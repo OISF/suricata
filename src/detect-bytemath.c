@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,18 +72,22 @@
 /* the max no of bytes that can be extracted in non-string mode */
 #define NO_STRING_MAX_BYTES_TO_EXTRACT 4
 
+/*
+ * Note that keyword/value items past <rvalue> are permitted to be in any order to maintain
+ * compatibility with snort
+ */
 #define PARSE_REGEX                                                                                \
     "^"                                                                                            \
     "\\s*(bytes)\\s*(\\d+)\\s*"                                                                    \
     ",\\s*(offset)\\s*([-]?\\d+)\\s*"                                                              \
     ",\\s*(oper)\\s*([-+\\/]{1}|<<|>>)\\s*"                                                        \
     ",\\s*(rvalue)\\s*(\\w+)\\s*"                                                                  \
-    ",\\s*(result)\\s*(\\w+)\\s*"                                                                  \
-    "(?:,\\s*(relative)\\s*)?"                                                                     \
-    "(?:,\\s*(endian)\\s*(big|little)\\s*)?"                                                       \
-    "(?:,\\s*(string)\\s*(hex|dec|oct)\\s*)?"                                                      \
-    "(?:,\\s*(dce)\\s*)?"                                                                          \
-    "(?:,\\s*(bitmask)\\s*(0?[xX]?[0-9a-fA-F]{2,8})\\s*)?"                                         \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
+    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?"                           \
     "$"
 
 /* Mandatory value group numbers -- kw values not needed */
@@ -95,7 +99,7 @@
 #define OPER_VAL	6
 //#define RVALUE_KW	7
 #define RVALUE_VAL	8
-//#define RESULT_KW	9
+#define RESULT_KW       9
 #define RESULT_VAL	10
 
 /* Optional value group numbers */
@@ -109,7 +113,7 @@
 #define BITMASK_VAL	18
 
 #define MIN_GROUP	10
-#define MAX_GROUP	19
+#define MAX_GROUP       21
 
 static DetectParseRegex parse_regex;
 
@@ -263,6 +267,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     char tmp_str[128] = "";
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
+    SCLogNotice("byte_math expression: \"%s\"; ret: %d", arg, ret);
     if (ret < MIN_GROUP || ret > MAX_GROUP) {
         SCLogError(SC_ERR_PCRE_PARSE, "byte_math parse error; invalid value: ret %" PRId32
                    ", string \"%s\"", ret, arg);
@@ -370,169 +375,187 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         }
     }
 
-    /* result */
-    pcre2len = sizeof(tmp_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, RESULT_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                              "for \"result\" to byte_math");
-        goto error;
-    }
-    if (!isalpha(*tmp_str)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math result must be "
-                   "a variable name. Unable to find \"%s\"", tmp_str);
-        goto error;
-    }
-
-    bmd->result = SCStrdup(tmp_str);
-    if (bmd->result == NULL)
-        goto error;
-
-    /* optional value handling:
-     * relative - 11
-     * endian <val> - 12-13
-     * string <val> - 14-15
-     * dce - 16
-     * bitmask <val> - 17-18
+    /*
+     * Keyword-value handling. These can come in any order. The keyword
+     * result is technically not an option but, in practice, has appeared
+     * out of order with the other option values. Hence, it's included in
+     * the arbitrary order handling logic.
+     *
+     * result <val>
+     * relative
+     * endian <val>
+     * string <val>
+     * dce
+     * bitmask <val>
      */
 
-    if (ret > RELATIVE_KW) {
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(
-                parse_regex.match, RELATIVE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"relative\" arg");
-            goto error;
-        }
-
-        if (tmp_str[0] != '\0') {
-            bmd->flags |= DETECT_BYTEMATH_FLAG_RELATIVE;
-        }
-    }
-
-    if (ret > ENDIAN_VAL) {
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(
-                parse_regex.match, ENDIAN_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"endian\" arg");
-            goto error;
-        }
-
-        if (tmp_str[0] != '\0') {
-            bmd->flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
-        }
-
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(
-                parse_regex.match, ENDIAN_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"endian\" value");
-            goto error;
-        }
-
-        /* Since the parse succeeded, there's a value */
-        if (strcmp("big", tmp_str) == 0)
-            bmd->endian = DETECT_BYTEMATH_ENDIAN_BIG;
-        else if (strcmp("little", tmp_str) == 0)
-            bmd->endian = DETECT_BYTEMATH_ENDIAN_LITTLE;
-    }
-
-    if (ret > STRING_VAL) {
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(
-                parse_regex.match, STRING_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"string\" arg");
-            goto error;
-        }
-
-        if (tmp_str[0] != '\0') {
-            bmd->flags |= DETECT_BYTEMATH_FLAG_STRING;
-        }
-
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(
-                parse_regex.match, STRING_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"string\" value");
-            goto error;
-        }
-
-        /* Since the parse succeeded, there's a value */
-        if (strcmp("hex", tmp_str) == 0) {
-            bmd->base = DETECT_BYTEMATH_BASE_HEX;
-        } else if (strcmp("oct", tmp_str) == 0) {
-            bmd->base = DETECT_BYTEMATH_BASE_OCT;
-        } else if (strcmp("dec", tmp_str) == 0) {
-            bmd->base = DETECT_BYTEMATH_BASE_DEC;
-        }
-    }
-
-    if (ret > DCE_KW) {
-        pcre2len = sizeof(tmp_str);
-        res = SC_Pcre2SubstringCopy(parse_regex.match, DCE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"dce\" arg");
-            goto error;
-        }
-
-        if (tmp_str[0] != '\0') {
-            bmd->flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
-            bmd->endian = DETECT_BYTEMATH_ENDIAN_DCE;
-        }
-    }
-
-    if (ret > BITMASK_VAL) {
-        pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, BITMASK_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                                  "for byte_math \"bitmask\" arg");
-            goto error;
-        }
-
-        if (tmp_str[0] != '\0') {
-            bmd->flags |= DETECT_BYTEMATH_FLAG_BITMASK;
-        }
-
-        /* bitmask value*/
-        pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, BITMASK_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+    /* Note that keywords accepting values will increment <i> */
+    for (int i = RESULT_KW; i < ret; i++) {
+        char opt_str[64] = "";
+        pcre2len = sizeof(opt_str);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
                     "pcre2_substring_copy_bynumber failed "
-                    "for bitmask value: \"%s\"",
-                    tmp_str);
+                    "for arg %d for byte_extract with %d",
+                    i, res);
             goto error;
         }
 
-        res = ByteExtractStringUint32(&bmd->bitmask_val, 16, strlen(tmp_str), tmp_str);
-        if (res < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to extract bitmask "
-                       "value: \"%s\"", tmp_str);
-            goto error;
-        }
+        if (strlen(opt_str) == 0)
+            continue;
 
-        /* determine how many trailing 0's are in the bitmask. This will be used
-         * to rshift the value after applying the bitmask
-         */
-        bmd->bitmask_shift_count = 0;
-        if (bmd->bitmask_val) {
-            uint32_t bmask = bmd->bitmask_val;
-            while (!(bmask & 0x1)){
-                bmask = bmask >> 1;
-                bmd->bitmask_shift_count++;
+        if (strcmp("result", opt_str) == 0) {
+            /* result */
+            pcre2len = sizeof(tmp_str);
+            i++;
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for \"result\" to byte_math");
+                goto error;
+            }
+            if (!isalpha(*tmp_str)) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                        "byte_math result must be "
+                        "a variable name. Unable to find \"%s\"",
+                        tmp_str);
+                goto error;
+            }
+
+            bmd->result = SCStrdup(tmp_str);
+            if (bmd->result == NULL)
+                goto error;
+        } else if (strcmp("relative", opt_str) == 0) {
+            pcre2len = sizeof(tmp_str);
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"relative\" arg");
+                goto error;
+            }
+
+            if (tmp_str[0] != '\0') {
+                bmd->flags |= DETECT_BYTEMATH_FLAG_RELATIVE;
+            }
+        } else if (strcmp("endian", opt_str) == 0) {
+            pcre2len = sizeof(tmp_str);
+            i++; /* for value */
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"endian\" arg");
+                goto error;
+            }
+
+            if (tmp_str[0] != '\0') {
+                bmd->flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
+            }
+
+            pcre2len = sizeof(tmp_str);
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"endian\" value");
+                goto error;
+            }
+
+            /* Since the parse succeeded, there's a value */
+            if (strcmp("big", tmp_str) == 0)
+                bmd->endian = DETECT_BYTEMATH_ENDIAN_BIG;
+            else if (strcmp("little", tmp_str) == 0)
+                bmd->endian = DETECT_BYTEMATH_ENDIAN_LITTLE;
+        } else if (strcmp("string", opt_str) == 0) {
+            pcre2len = sizeof(tmp_str);
+            i++; /* for value */
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"string\" arg");
+                goto error;
+            }
+
+            if (tmp_str[0] != '\0') {
+                bmd->flags |= DETECT_BYTEMATH_FLAG_STRING;
+            }
+
+            pcre2len = sizeof(tmp_str);
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"string\" value");
+                goto error;
+            }
+
+            /* Since the parse succeeded, there's a value */
+            if (strcmp("hex", tmp_str) == 0) {
+                bmd->base = DETECT_BYTEMATH_BASE_HEX;
+            } else if (strcmp("oct", tmp_str) == 0) {
+                bmd->base = DETECT_BYTEMATH_BASE_OCT;
+            } else if (strcmp("dec", tmp_str) == 0) {
+                bmd->base = DETECT_BYTEMATH_BASE_DEC;
+            }
+        } else if (strcmp("dce", opt_str) == 0) {
+            pcre2len = sizeof(tmp_str);
+            res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"dce\" arg");
+                goto error;
+            }
+
+            if (tmp_str[0] != '\0') {
+                bmd->flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
+                bmd->endian = DETECT_BYTEMATH_ENDIAN_DCE;
+            }
+        } else if (strcmp("bitmask", opt_str) == 0) {
+            pcre2len = sizeof(tmp_str);
+            i++; /* for value */
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                      "for byte_math \"bitmask\" arg");
+                goto error;
+            }
+
+            if (tmp_str[0] != '\0') {
+                bmd->flags |= DETECT_BYTEMATH_FLAG_BITMASK;
+            }
+
+            /* bitmask value*/
+            pcre2len = sizeof(tmp_str);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, i, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                        "pcre2_substring_copy_bynumber failed "
+                        "for bitmask value: \"%s\"",
+                        tmp_str);
+                goto error;
+            }
+
+            res = ByteExtractStringUint32(&bmd->bitmask_val, 16, strlen(tmp_str), tmp_str);
+            if (res < 0) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                        "Unable to extract bitmask "
+                        "value: \"%s\"",
+                        tmp_str);
+                goto error;
+            }
+
+            /* determine how many trailing 0's are in the bitmask. This will be used
+             * to rshift the value after applying the bitmask
+             */
+            bmd->bitmask_shift_count = 0;
+            if (bmd->bitmask_val) {
+                uint32_t bmask = bmd->bitmask_val;
+                while (!(bmask & 0x1)) {
+                    bmask = bmask >> 1;
+                    bmd->bitmask_shift_count++;
+                }
             }
         }
     }
@@ -544,8 +567,10 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
             case 4:
                 break;
             default:
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "nbytes must be 1, 2, or 4 "
-                           "when used with \"dce\"; %d is not valid", bmd->nbytes);
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                        "nbytes must be 1, 2, or 4 "
+                        "when used with \"dce\"; %d is not valid",
+                        bmd->nbytes);
                 goto error;
                 break;
         }
@@ -556,8 +581,10 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         case DETECT_BYTEMATH_OPERATOR_RSHIFT:
             /* nbytes has already been validated to be in the range [1, 10] */
             if (bmd->nbytes > 4) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "nbytes must be 1 through 4 (inclusive) "
-                           "when used with \"<<\" or \">>\"; %d is not valid", bmd->nbytes);
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                        "nbytes must be 1 through 4 (inclusive) "
+                        "when used with \"<<\" or \">>\"; %d is not valid",
+                        bmd->nbytes);
                 goto error;
             }
             break;
@@ -576,7 +603,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 
     return bmd;
 
- error:
+error:
     if (bmd != NULL)
         DetectByteMathFree(de_ctx, bmd);
     return NULL;
@@ -616,17 +643,14 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
             if (!prev_pm) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "relative specified without "
-                           "previous pattern match");
+                                                     "previous pattern match");
                 goto error;
             }
         }
     } else if (data->endian == DETECT_BYTEMATH_ENDIAN_DCE) {
         if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
-                                               DETECT_BYTETEST, DETECT_BYTEJUMP,
-                                               DETECT_BYTE_EXTRACT,
-                                               DETECT_BYTEMATH,
-                                               DETECT_ISDATAAT, -1);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                    DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -643,10 +667,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         s->flags |= SIG_FLAG_APPLAYER;
 
     } else if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
-                                           DETECT_BYTETEST, DETECT_BYTEJUMP,
-                                           DETECT_BYTE_EXTRACT, DETECT_BYTEMATH,
-                                           DETECT_ISDATAAT, -1);
+        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -666,11 +688,12 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             goto error;
 
         if ((data->flags & DETECT_BYTEMATH_FLAG_STRING) ||
-            (data->base == DETECT_BYTEMATH_BASE_DEC) ||
-            (data->base == DETECT_BYTEMATH_BASE_HEX) ||
-            (data->base == DETECT_BYTEMATH_BASE_OCT) ) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
-                       "A bytemath keyword with dce holds other invalid modifiers.");
+                (data->base == DETECT_BYTEMATH_BASE_DEC) ||
+                (data->base == DETECT_BYTEMATH_BASE_HEX) ||
+                (data->base == DETECT_BYTEMATH_BASE_OCT)) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                    "Invalid option. "
+                    "A bytemath keyword with dce holds other invalid modifiers.");
             goto error;
         }
     }
@@ -678,8 +701,10 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (rvalue != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(rvalue, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
-                       "seen in byte_math - %s\n", rvalue);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "unknown byte_ keyword var "
+                    "seen in byte_math - %s\n",
+                    rvalue);
             goto error;
         }
         data->rvalue = index;
@@ -688,8 +713,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         rvalue = NULL;
     }
 
-    SigMatch *prev_bmd_sm = DetectGetLastSMByListId(s, sm_list,
-            DETECT_BYTEMATH, -1);
+    SigMatch *prev_bmd_sm = DetectGetLastSMByListId(s, sm_list, DETECT_BYTEMATH, -1);
     if (prev_bmd_sm == NULL) {
         data->local_id = 0;
     } else {
@@ -720,10 +744,10 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
- okay:
+okay:
     return 0;
 
- error:
+error:
     if (rvalue)
         SCFree(rvalue);
     DetectByteMathFree(de_ctx, data);
@@ -1072,6 +1096,26 @@ static int DetectByteMathParseTest16(void)
     PASS;
 }
 
+static int DetectByteMathParseTest17(void)
+{
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 72, oper +, "
+            "rvalue 77, endian little, result bar",
+            NULL);
+
+    FAIL_IF(bmd == NULL);
+    FAIL_IF_NOT(bmd->nbytes == 4);
+    FAIL_IF_NOT(bmd->offset == 72);
+    FAIL_IF_NOT(bmd->oper == DETECT_BYTEMATH_OPERATOR_PLUS);
+    FAIL_IF_NOT(bmd->rvalue == 77);
+    FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
+    FAIL_IF_NOT(bmd->endian == DETECT_BYTEMATH_ENDIAN_LITTLE);
+
+    DetectByteMathFree(NULL, bmd);
+
+    PASS;
+}
+
 static int DetectByteMathPacket01(void)
 {
     uint8_t buf[] = { 0x38, 0x35, 0x6d, 0x00, 0x00, 0x01,
@@ -1345,6 +1389,7 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest14", DetectByteMathParseTest14);
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
     UtRegisterTest("DetectByteMathParseTest16", DetectByteMathParseTest16);
+    UtRegisterTest("DetectByteMathParseTest17", DetectByteMathParseTest17);
     UtRegisterTest("DetectByteMathPacket01",    DetectByteMathPacket01);
     UtRegisterTest("DetectByteMathPacket02", DetectByteMathPacket02);
     UtRegisterTest("DetectByteMathContext01", DetectByteMathContext01);
