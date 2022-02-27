@@ -39,6 +39,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
+#include "util-dpdk.h"
 
 #ifndef HAVE_DPDK
 
@@ -118,15 +119,24 @@ typedef struct DPDKThreadVars_ {
     uint64_t dropped;
     uint16_t port_id;
     uint16_t queue_id;
-    struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
     struct timeval machine_start_time;
+    DpdkOperationMode op_mode;
+    union {
+        struct rte_mempool *pkt_mempool;
+        struct {
+            struct rte_ring *rx_ring;
+            struct rte_ring *tx_ring;
+        } rings;
+    };
 } DPDKThreadVars;
 
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *, const void *, void **);
 static void ReceiveDPDKThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *, void *);
 static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot);
+static void ReceiveDPDKSetRings(DPDKThreadVars *ptv, DPDKIfaceConfig *iconf, uint16_t queue_id);
+static void ReceiveDPDKSetMempool(DPDKThreadVars *ptv, DPDKIfaceConfig *iconf);
 
 static TmEcode DecodeDPDKThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeDPDKThreadDeinit(ThreadVars *tv, void *data);
@@ -211,25 +221,6 @@ static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *dri
 }
 
 /**
- * Attempts to retrieve NUMA node id on which the caller runs
- * @return NUMA id on success, -1 otherwise
- */
-static int GetNumaNode(void)
-{
-    int cpu = 0;
-    int node = -1;
-
-#if defined(__linux__)
-    cpu = sched_getcpu();
-    node = numa_node_of_cpu(cpu);
-#else
-    SCLogWarning(SC_ERR_TM_THREADS_ERROR, "NUMA node retrieval is not supported on this OS.");
-#endif
-
-    return node;
-}
-
-/**
  * \brief Registration Function for ReceiveDPDK.
  * \todo Unit tests are needed for this module.
  */
@@ -248,7 +239,6 @@ void TmModuleReceiveDPDKRegister(void)
 
 /**
  * \brief Registration Function for DecodeDPDK.
- * \todo Unit tests are needed for this module.
  */
 void TmModuleDecodeDPDKRegister(void)
 {
@@ -261,7 +251,7 @@ void TmModuleDecodeDPDKRegister(void)
     tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
-static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
+static inline void DPDKDumpCountersEthDev(DPDKThreadVars *ptv)
 {
     struct rte_eth_stats eth_stats;
     int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
@@ -292,7 +282,36 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
     }
 }
 
-static void DPDKReleasePacket(Packet *p)
+static inline void DPDKDumpCountersRing(DPDKThreadVars *ptv)
+{
+    uint64_t pkts;
+#ifdef RTE_LIBRTE_RING_DEBUG
+    pkts = ptv->rings.rx_ring.stats[ptv->queue_id].enq_fail_objs +
+           ptv->rings.rx_ring.stats[ptv->queue_id].enq_success_objs;
+    StatsSetUI64(ptv->tv, ptv->capture_dpdk_imissed,
+            pkts - ptv->rings.rx_ring.stats[ptv->queue_id].deq_success_objs);
+    StatsSetUI64(ptv->tv, ptv->capture_dpdk_tx_errs,
+            ptv->rings.tx_ring.stats[ptv->queue_id.enq_fail_objs]);
+#else
+    pkts = ptv->pkts;
+#endif
+    StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets, pkts);
+}
+
+static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
+{
+    if (ptv->op_mode == DPDK_RING_MODE)
+        DPDKDumpCountersRing(ptv);
+    else
+        DPDKDumpCountersEthDev(ptv);
+}
+
+/**
+ * Tries to transmit packet over the selected device if Suricata is configured in copy mode.
+ * @param p Packet structure
+ * @return 0 on transmit, 1 otherwise
+ */
+static inline int DPDKReleasePacketEthDevTx(Packet *p)
 {
     int retval;
     /* Need to be in copy mode and need to detect early release
@@ -320,14 +339,31 @@ static void DPDKReleasePacket(Packet *p)
                 SCLogDebug("Unable to transmit the packet on port %u queue %u",
                         p->dpdk_v.out_port_id, p->dpdk_v.out_queue_id);
                 rte_pktmbuf_free(p->dpdk_v.mbuf);
-                p->dpdk_v.mbuf = NULL;
             }
         }
+        return 0;
     } else {
-        rte_pktmbuf_free(p->dpdk_v.mbuf);
-        p->dpdk_v.mbuf = NULL;
+        return 1;
     }
+}
 
+static inline void DPDKReleasePacketTxOrFree(Packet *p)
+{
+    if (p->dpdk_v.tx_ring == NULL) {
+        if (DPDKReleasePacketEthDevTx(p) != 0) {
+            rte_pktmbuf_free(p->dpdk_v.mbuf);
+        }
+    } else if (p->dpdk_v.copy_mode != DPDK_COPY_MODE_IPS || !PacketTestAction(p, ACTION_DROP)) {
+        // in IDS ring mode the tx ring is not set
+        BUG_ON(PKT_IS_PSEUDOPKT(p));
+        rte_ring_enqueue_burst(p->dpdk_v.tx_ring, (void **)&p->dpdk_v.mbuf, 1, NULL);
+    }
+}
+
+static void DPDKReleasePacket(Packet *p)
+{
+    DPDKReleasePacketTxOrFree(p);
+    p->dpdk_v.mbuf = NULL;
     PacketFreeOrRelease(p);
 }
 
@@ -338,7 +374,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
     Packet *p;
-    uint16_t nb_rx;
+    uint16_t nb_rx = 0;
     time_t last_dump = 0;
     time_t current_time;
 
@@ -355,7 +391,12 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             break;
         }
 
-        nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
+        if (ptv->op_mode == DPDK_ETHDEV_MODE) {
+            nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
+        } else if (ptv->op_mode == DPDK_RING_MODE) {
+            nb_rx = rte_ring_dequeue_burst(
+                    ptv->rings.rx_ring, (void **)ptv->received_mbufs, BURST_SIZE, NULL);
+        }
         if (unlikely(nb_rx == 0)) {
             continue;
         }
@@ -378,6 +419,8 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             p->dpdk_v.copy_mode = ptv->copy_mode;
             p->dpdk_v.out_port_id = ptv->out_port_id;
             p->dpdk_v.out_queue_id = ptv->queue_id;
+            p->livedev = ptv->livedev;
+            p->dpdk_v.tx_ring = ptv->rings.tx_ring;
 
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                     rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
@@ -400,6 +443,21 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     SCReturnInt(TM_ECODE_OK);
 }
 
+void ReceiveDPDKSetMempool(DPDKThreadVars *ptv, DPDKIfaceConfig *iconf)
+{
+    // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
+    ptv->pkt_mempool = iconf->pkt_mempool;
+    iconf->pkt_mempool = NULL;
+}
+
+void ReceiveDPDKSetRings(DPDKThreadVars *ptv, DPDKIfaceConfig *iconf, uint16_t queue_id)
+{
+    ptv->rings.rx_ring = iconf->rx_rings[queue_id];
+    iconf->rx_rings[queue_id] = NULL;
+    ptv->rings.tx_ring = iconf->tx_rings[queue_id];
+    iconf->tx_rings[queue_id] = NULL;
+}
+
 /**
  * \brief Init function for ReceiveDPDK.
  *
@@ -411,7 +469,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    int retval, thread_numa;
+    int retval;
     DPDKThreadVars *ptv = NULL;
     DPDKIfaceConfig *dpdk_config = (DPDKIfaceConfig *)initdata;
 
@@ -451,32 +509,37 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->pkt_mempool = dpdk_config->pkt_mempool;
     dpdk_config->pkt_mempool = NULL;
 
-    // the last thread starts the device
-    if (queue_id == dpdk_config->threads - 1) {
-        retval = rte_eth_dev_start(ptv->port_id);
-        if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (%s) during device startup of %s",
-                    rte_strerror(-retval), dpdk_config->iface);
-            goto fail;
+    ptv->op_mode = dpdk_config->op_mode;
+    if (ptv->op_mode == DPDK_ETHDEV_MODE) {
+        ReceiveDPDKSetMempool(ptv, dpdk_config);
+        // the last thread starts the device
+        if (queue_id == dpdk_config->threads - 1) {
+            retval = rte_eth_dev_start(ptv->port_id);
+            if (retval < 0) {
+                SCLogError(SC_ERR_DPDK_INIT, "Error (%s) during device startup of %s",
+                        rte_strerror(-retval), dpdk_config->iface);
+                goto fail;
+            }
+
+            struct rte_eth_dev_info dev_info;
+            retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
+            if (retval != 0) {
+                SCLogError(SC_ERR_DPDK_INIT, "Error (%s) when getting device info of %s",
+                        rte_strerror(-retval), dpdk_config->iface);
+                goto fail;
+            }
+
+            // some PMDs requires additional actions only after the device has started
+            DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
         }
 
-        struct rte_eth_dev_info dev_info;
-        retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
-        if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (%s) when getting device info of %s",
-                    rte_strerror(-retval), dpdk_config->iface);
-            goto fail;
+        if ((int)rte_socket_id() != rte_eth_dev_socket_id(ptv->port_id)) {
+            SCLogWarning(SC_WARN_DPDK_CONF,
+                    "NIC on NUMA %d but thread on NUMA %d. Decreased performance expected",
+                    rte_eth_dev_socket_id(ptv->port_id), rte_socket_id());
         }
-
-        // some PMDs requires additional actions only after the device has started
-        DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
-    }
-
-    thread_numa = GetNumaNode();
-    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
-        SCLogWarning(SC_WARN_DPDK_CONF,
-                "NIC on NUMA %d but thread on NUMA %d. Decreased performance expected",
-                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+    } else if (ptv->op_mode == DPDK_RING_MODE) {
+        ReceiveDPDKSetRings(ptv, dpdk_config, queue_id);
     }
 
     *data = (void *)ptv;
@@ -491,17 +554,10 @@ fail:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-/**
- * \brief This function prints stats to the screen at exit.
- * \param tv pointer to ThreadVars
- * \param data pointer that gets cast into DPDKThreadVars for ptv
- */
-static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
+static void ReceiveDPDKThreadExitStatsEthDev(DPDKThreadVars *ptv)
 {
     SCEnter();
     int retval;
-    DPDKThreadVars *ptv = (DPDKThreadVars *)data;
-
     if (ptv->queue_id == 0) {
         struct rte_eth_stats eth_stats;
         char port_name[RTE_ETH_NAME_MAX_LEN];
@@ -527,9 +583,35 @@ static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
                       " errors: %" PRIu64,
                     port_name, eth_stats.opackets, eth_stats.obytes, eth_stats.oerrors);
     }
+    SCReturn;
+}
 
+static void ReceiveDPDKThreadExitStatsRing(DPDKThreadVars *ptv)
+{
+    SCEnter();
+    uint64_t pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_dpdk_packets);
+    SC_ATOMIC_ADD(ptv->livedev->pkts, pkts);
+    SCLogPerf("(%s): Total RX stats of %s: packets %" PRIu64, ptv->tv->name,
+            ptv->rings.rx_ring->name, pkts);
+
+    SCReturn;
+}
+
+/**
+ * \brief This function prints stats to the screen at exit.
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into DPDKThreadVars for ptv
+ */
+static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
+{
+    SCEnter();
+    DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     DPDKDumpCounters(ptv);
-    SCLogPerf("(%s) received packets %" PRIu64, tv->name, ptv->pkts);
+    if (ptv->op_mode == DPDK_ETHDEV_MODE)
+        ReceiveDPDKThreadExitStatsEthDev(ptv);
+    else
+        ReceiveDPDKThreadExitStatsRing(ptv);
+    SCReturn;
 }
 
 /**
@@ -543,33 +625,35 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
 
     int retval;
-    if (ptv->queue_id == 0) {
-        struct rte_eth_dev_info dev_info;
-        char iface[RTE_ETH_NAME_MAX_LEN];
-        retval = rte_eth_dev_get_name_by_port(ptv->port_id, iface);
-        if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when getting device name (port %d)",
-                    retval, ptv->port_id);
-            SCReturnInt(TM_ECODE_FAILED);
+    if (ptv->op_mode == DPDK_ETHDEV_MODE) {
+        if (ptv->queue_id == 0) {
+            struct rte_eth_dev_info dev_info;
+            char iface[RTE_ETH_NAME_MAX_LEN];
+            retval = rte_eth_dev_get_name_by_port(ptv->port_id, iface);
+            if (retval != 0) {
+                SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when getting device name (port %d)",
+                        retval, ptv->port_id);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+            retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
+            if (retval != 0) {
+                SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during getting device info (port %s)",
+                        retval, iface);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+
+            DevicePreStopPMDSpecificActions(ptv, dev_info.driver_name);
         }
-        retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
-        if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during getting device info (port %s)",
-                    retval, iface);
-            SCReturnInt(TM_ECODE_FAILED);
+
+        rte_eth_dev_stop(ptv->port_id);
+        if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
+            rte_eth_dev_stop(ptv->out_port_id);
         }
 
-        DevicePreStopPMDSpecificActions(ptv, dev_info.driver_name);
-    }
-
-    rte_eth_dev_stop(ptv->port_id);
-    if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
-        rte_eth_dev_stop(ptv->out_port_id);
-    }
-
-    if (ptv->queue_id == 0 && ptv->pkt_mempool != NULL) {
-        rte_mempool_free(ptv->pkt_mempool);
-        ptv->pkt_mempool = NULL;
+        if (ptv->queue_id == 0 && ptv->pkt_mempool != NULL) {
+            rte_mempool_free(ptv->pkt_mempool);
+            ptv->pkt_mempool = NULL;
+        }
     }
 
     SCFree(ptv);
