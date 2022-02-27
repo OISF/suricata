@@ -553,7 +553,7 @@ static int HostBitsTestSig01(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
     ThreadVars th_v;
@@ -585,9 +585,9 @@ static int HostBitsTestSig01(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
     HostBitsTestShutdown();
 
-    SCFree(p);
     PASS;
 }
 
@@ -734,9 +734,7 @@ static int HostBitsTestSig04(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -771,9 +769,9 @@ static int HostBitsTestSig04(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
     HostBitsTestShutdown();
 
-    SCFree(p);
     PASS;
 }
 
@@ -791,9 +789,7 @@ static int HostBitsTestSig05(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -831,10 +827,10 @@ static int HostBitsTestSig05(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
 
     HostBitsTestShutdown();
 
-    SCFree(p);
     PASS;
 }
 
@@ -957,9 +953,7 @@ static int HostBitsTestSig07(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1022,11 +1016,11 @@ static int HostBitsTestSig07(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
 
     if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
 
-    SCFree(p);
     return result;
 end:
 
@@ -1043,11 +1037,12 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
+    PacketFree(p);
+
     if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
 
-    SCFree(p);
-    return result;}
+    return result;
 #endif
 
 /**
@@ -1063,9 +1058,7 @@ static int HostBitsTestSig07(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1121,11 +1114,11 @@ static int HostBitsTestSig07(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
 
     FLOW_DESTROY(&f);
 
     HostBitsTestShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1142,9 +1135,7 @@ static int HostBitsTestSig08(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1217,12 +1208,12 @@ static int HostBitsTestSig08(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
 
     FLOW_DESTROY(&f);
 
     HostBitsTestShutdown();
 
-    SCFree(p);
     PASS;
 }
 #endif /* UNITTESTS */
