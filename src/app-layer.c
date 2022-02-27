@@ -989,7 +989,7 @@ void AppLayerDeSetupCounters()
 #include "util-unittest.h"
 
 #define TEST_START \
-    Packet *p = SCMalloc(SIZE_OF_PACKET);\
+    Packet *p = PacketGetFromAlloc(); \
     FAIL_IF_NULL(p);\
     Flow f;\
     ThreadVars tv;\
@@ -1075,8 +1075,7 @@ void AppLayerDeSetupCounters()
     StreamTcpSessionClear(p->flow->protoctx);\
     StreamTcpThreadDeinit(&tv, (void *)stt); \
     StreamTcpFreeConfig(TRUE);\
-    PACKET_DESTRUCTOR(p);\
-    SCFree(p);\
+    PacketFree(p);\
     FLOW_DESTROY(&f); \
     StatsThreadCleanup(&tv);
 
