@@ -77,7 +77,7 @@ fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPConte
 
 pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
-    if v.start > v.end {
+    if v.start > v.end || (v.end > 0 && v.size > 0 && v.end > v.size - 1) {
         return Err(Err::Error(make_error(rem, ErrorKind::Verify)));
     }
     return Ok((rem, v));
