@@ -447,7 +447,7 @@ static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
         /* convert to lowercase and store */
         uint32_t u;
         for (u = 0; u < nlen; u++)
-            name[u] = tolower(name[u]);
+            name[u] = u8_tolower(name[u]);
 
         field->name = (uint8_t *)name;
         field->name_len = nlen;
@@ -1068,7 +1068,7 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                     tempUrlLen = 0;
                     for (i = 0; i < tokLen && tok[i] != 0; i++) {
                         /* url is all lowercase */
-                        tempUrl[tempUrlLen] = tolower(tok[i]);
+                        tempUrl[tempUrlLen] = u8_tolower(tok[i]);
                         tempUrlLen++;
                     }
 

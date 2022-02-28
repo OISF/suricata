@@ -2655,7 +2655,7 @@ static int SpmSearchTest02(void) {
                 d.nocase = 1;
                 uint16_t j;
                 for (j = 0; j < haystack_len; j++) {
-                    haystack[j] = toupper(haystack[j]);
+                    haystack[j] = u8_toupper(haystack[j]);
                 }
                 if (SpmTestSearch(&d, matcher) == 0) {
                     printf("  test %" PRIu32 ": fail (case-insensitive)\n", i);
