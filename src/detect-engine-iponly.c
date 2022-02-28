@@ -97,6 +97,50 @@ static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
 static IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
                                             IPOnlyCIDRItem *item);
 
+static int InsertRange(
+        IPOnlyCIDRItem **pdd, IPOnlyCIDRItem *dd, const uint32_t first_in, const uint32_t last_in)
+{
+    DEBUG_VALIDATE_BUG_ON(dd == NULL);
+    DEBUG_VALIDATE_BUG_ON(pdd == NULL);
+
+    uint32_t first = first_in;
+    uint32_t last = last_in;
+
+    dd->netmask = 32;
+    /* Find the maximum netmask starting from current address first
+     * and not crossing last.
+     * To extend the mask, we need to start from a power of 2.
+     * And we need to pay attention to unsigned overflow back to 0.0.0.0
+     */
+    while (dd->netmask > 0 && (first & (1UL << (32 - dd->netmask))) == 0 &&
+            first + (1UL << (32 - (dd->netmask - 1))) - 1 <= last) {
+        dd->netmask--;
+    }
+    dd->ip[0] = htonl(first);
+    first += 1UL << (32 - dd->netmask);
+    // case whatever-255.255.255.255 looping to 0.0.0.0/0
+    while (first <= last && first != 0) {
+        IPOnlyCIDRItem *new = IPOnlyCIDRItemNew();
+        if (new == NULL)
+            goto error;
+        new->negated = dd->negated;
+        new->family = dd->family;
+        new->netmask = 32;
+        while (new->netmask > 0 && (first & (1UL << (32 - new->netmask))) == 0 &&
+                first + (1UL << (32 - (new->netmask - 1))) - 1 <= last) {
+            new->netmask--;
+        }
+        new->ip[0] = htonl(first);
+        first += 1UL << (32 - new->netmask);
+        dd = IPOnlyCIDRItemInsert(dd, new);
+    }
+    // update head of list
+    *pdd = dd;
+    return 0;
+error:
+    return -1;
+}
+
 /**
  * \internal
  * \brief Parses an ipv4/ipv6 address string and updates the result into the
@@ -201,7 +245,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
 
             dd->ip[0] = in.s_addr & netmask;
 
-        } else if ((ip2 = strchr(ip, '-')) != NULL)  {
+        } else if ((ip2 = strchr(ip, '-')) != NULL) {
             /* 1.2.3.4-1.2.3.6 range format */
             ip[ip2 - ip] = '\0';
             ip2++;
@@ -223,39 +267,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                 goto error;
 
             SCLogDebug("Creating CIDR range for [%s - %s]", ip, ip2);
-            dd->netmask = 32;
-            /* Find the maximum netmask starting from current address first
-             * and not crossing last.
-             * To extend the mask, we need to start from a power of 2.
-             * And we need to pay attention to unsigned overflow back to 0.0.0.0
-             */
-            while (dd->netmask > 0 &&
-                   (first & (1UL << (32-dd->netmask))) == 0 &&
-                   first + (1UL << (32-(dd->netmask-1))) - 1 <= last) {
-                dd->netmask--;
-            }
-            dd->ip[0] = htonl(first);
-            first += 1UL << (32-dd->netmask);
-            //case whatever-255.255.255.255 looping to 0.0.0.0/0
-            while ( first <= last && first != 0 ) {
-                IPOnlyCIDRItem *new = IPOnlyCIDRItemNew();
-                if (new == NULL)
-                    goto error;
-                new->negated = dd->negated;
-                new->family= dd->family;
-                new->netmask = 32;
-                while (new->netmask > 0 &&
-                       (first & (1UL << (32-new->netmask))) == 0 &&
-                       first + (1UL << (32-(new->netmask-1))) - 1 <= last) {
-                    new->netmask--;
-                }
-                new->ip[0] = htonl(first);
-                first += 1UL << (32-new->netmask);
-                dd = IPOnlyCIDRItemInsert(dd, new);
-            }
-            //update head of list
-            *pdd = dd;
-
+            return InsertRange(pdd, dd, first, last);
         } else {
             /* 1.2.3.4 format */
             r = inet_pton(AF_INET, ip, &in);
