@@ -683,7 +683,8 @@ static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
  *
  * \return Pointer to the position it was found, otherwise NULL if not found
  */
-static inline uint8_t * FindBuffer(const uint8_t *src, uint32_t len, const uint8_t *find, uint32_t find_len)
+static inline uint8_t *FindBuffer(
+        const uint8_t *src, uint32_t len, const uint8_t *find, uint16_t find_len)
 {
     /* Use utility search function */
     return BasicSearchNocase(src, len, find, find_len);
@@ -886,7 +887,7 @@ static int IsExeUrl(const uint8_t *url, uint32_t len)
     /* Now check for executable extensions and if not found, cut off at first '/' */
     for (i = 0; UrlExeExts[i] != NULL; i++) {
         extLen = strlen(UrlExeExts[i]);
-        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], strlen(UrlExeExts[i]));
+        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], (uint16_t)strlen(UrlExeExts[i]));
         if (ext != NULL && (ext + extLen - url == (int)len || ext[extLen] == '?')) {
             isExeUrl = 1;
             break;
@@ -1025,7 +1026,8 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
     MimeDecConfig *mdcfg = MimeDecGetConfig();
     uint8_t *fptr, *remptr, *tok = NULL, *tempUrl, *urlHost;
     uint32_t tokLen = 0, i, tempUrlLen, urlHostLen;
-    uint8_t schemeStrLen = 0, flags = 0;
+    uint16_t schemeStrLen = 0;
+    uint8_t flags = 0;
     ConfNode *scheme = NULL;
     char *schemeStr = NULL;
 
@@ -1036,7 +1038,8 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
 
     TAILQ_FOREACH (scheme, &mdcfg->extract_urls_schemes->head, next) {
         schemeStr = scheme->val;
-        schemeStrLen = strlen(schemeStr);
+        // checked against UINT16_MAX when setting in SMTPConfigure
+        schemeStrLen = (uint16_t)strlen(schemeStr);
 
         remptr = (uint8_t *)line;
         do {
@@ -1217,11 +1220,12 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \return Number of bytes pulled from the current buffer
  */
-static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state, int force)
+static uint8_t ProcessBase64Remainder(
+        const uint8_t *buf, uint8_t len, MimeDecParseState *state, int force)
 {
     uint32_t ret;
-    uint8_t remainder = 0, remdec = 0;
+    uint8_t remainder = 0;
+    uint32_t remdec = 0;
 
     SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
@@ -1313,7 +1317,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
         /* Process remainder and return number of bytes pulled from current buffer */
-        rem1 = ProcessBase64Remainder(buf, len, state, 0);
+        rem1 = ProcessBase64Remainder(buf, (uint8_t)len, state, 0);
     }
 
     /* No error and at least some more data needs to be decoded */
@@ -1401,9 +1405,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
  *
  * \return byte value on success, -1 if failed
  **/
-static int16_t DecodeQPChar(char h)
+static int8_t DecodeQPChar(char h)
 {
-    uint16_t res = 0;
+    int8_t res = 0;
 
     /* 0-9 */
     if (h >= 48 && h <= 57) {
@@ -1482,7 +1486,7 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                     state->msg->anomaly_flags |= ANOM_INVALID_QP;
                     SCLogDebug("Error: Quoted-printable decoding failed");
                 } else {
-                    val = (res << 4); /* Shift result left */
+                    val = (uint8_t)(res << 4); /* Shift result left */
                     h2 = *(buf + offset + 2);
                     res = DecodeQPChar(h2);
                     if (res < 0) {
@@ -1868,10 +1872,12 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TRAN_STR);
         if (field != NULL) {
             /* Look for base64 */
-            if (FindBuffer(field->value, field->value_len, (const uint8_t *)BASE64_STR, strlen(BASE64_STR))) {
+            if (FindBuffer(field->value, field->value_len, (const uint8_t *)BASE64_STR,
+                        (uint16_t)strlen(BASE64_STR))) {
                 SCLogDebug("Base64 encoding found");
                 entity->ctnt_flags |= CTNT_IS_BASE64;
-            } else if (FindBuffer(field->value, field->value_len, (const uint8_t *)QP_STR, strlen(QP_STR))) {
+            } else if (FindBuffer(field->value, field->value_len, (const uint8_t *)QP_STR,
+                               (uint16_t)strlen(QP_STR))) {
                 /* Look for quoted-printable */
                 SCLogDebug("quoted-printable encoding found");
                 entity->ctnt_flags |= CTNT_IS_QP;
@@ -1930,7 +1936,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     return MIME_DEC_ERR_MEM;
                 }
                 memcpy(state->stack->top->bdef, bptr, blen);
-                state->stack->top->bdef_len = blen;
+                state->stack->top->bdef_len = (uint16_t)blen;
             }
 
             /* Look for file name (if not already found) */
@@ -1967,9 +1973,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     &rptr, &entity->ctnt_type_len);
             if (entity->ctnt_type != NULL) {
                 /* Check for encapsulated message */
-                if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                            (const uint8_t *)MSG_STR, strlen(MSG_STR)))
-                {
+                if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len, (const uint8_t *)MSG_STR,
+                            (uint16_t)strlen(MSG_STR))) {
                     SCLogDebug("Found encapsulated message entity");
 
                     entity->ctnt_flags |= CTNT_IS_ENV;
@@ -1988,20 +1993,18 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     /* Ready to parse headers */
                     state->state_flag = HEADER_READY;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)MULTIPART_STR, strlen(MULTIPART_STR)))
-                {
+                                   (const uint8_t *)MULTIPART_STR,
+                                   (uint16_t)strlen(MULTIPART_STR))) {
                     /* Check for multipart */
                     SCLogDebug("Found multipart entity");
                     entity->ctnt_flags |= CTNT_IS_MULTIPART;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)TXT_STR, strlen(TXT_STR)))
-                {
+                                   (const uint8_t *)TXT_STR, (uint16_t)strlen(TXT_STR))) {
                     /* Check for plain text */
                     SCLogDebug("Found plain text entity");
                     entity->ctnt_flags |= CTNT_IS_TEXT;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)HTML_STR, strlen(HTML_STR)))
-                {
+                                   (const uint8_t *)HTML_STR, (uint16_t)strlen(HTML_STR))) {
                     /* Check for html */
                     SCLogDebug("Found html entity");
                     entity->ctnt_flags |= CTNT_IS_HTML;
@@ -2076,8 +2079,8 @@ static int ProcessBodyComplete(MimeDecParseState *state)
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_len,
-        MimeDecParseState *state)
+static int ProcessMimeBoundary(
+        const uint8_t *buf, uint32_t len, uint16_t bdef_len, MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
     uint8_t *rptr;
@@ -2219,7 +2222,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     uint8_t temp[BOUNDARY_BUF];
     uint8_t *bstart;
     int body_found = 0;
-    uint32_t tlen;
+    uint16_t tlen;
 
     if (!g_disable_hashing) {
         if (MimeDecGetConfig()->body_md5) {
@@ -2599,10 +2602,14 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
 
             line = tok;
 
-            state->current_line_delimiter_len = (remainPtr - tok) - tokLen;
+            if ((remainPtr - tok) - tokLen > UINT8_MAX) {
+                SCLogDebug("Error: MimeDecParseLine() overflow: %ld", (remainPtr - tok) - tokLen);
+                ret = MIME_DEC_ERR_OVERFLOW;
+                break;
+            }
+            state->current_line_delimiter_len = (uint8_t)((remainPtr - tok) - tokLen);
             /* Parse the line */
-            ret = MimeDecParseLine(line, tokLen,
-                                   (remainPtr - tok) - tokLen, state);
+            ret = MimeDecParseLine(line, tokLen, state->current_line_delimiter_len, state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("Error: MimeDecParseLine() function failed: %d",
                         ret);
