@@ -196,7 +196,7 @@ static int HTPParseAndCheckContentRange(
     } else if (range->end == range->size - 1 && range->start == 0) {
         SCLogDebug("range without all information");
         return -3;
-    } else if (range->start > range->end) {
+    } else if (range->start > range->end || range->end > range->size - 1) {
         AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("invalid range");
