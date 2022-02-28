@@ -197,6 +197,7 @@ pub struct RpcPacket<'a> {
     pub procedure: u32,
 
     pub creds_flavor: u32,
+    pub creds_len: u32,
     pub creds: RpcRequestCreds<'a>,
 
     pub verifier_flavor: u32,
@@ -261,6 +262,7 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
         procedure,
 
         creds_flavor,
+        creds_len,
         creds,
 
         verifier_flavor,
@@ -368,6 +370,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
         procedure,
 
         creds_flavor,
+        creds_len,
         creds,
 
         verifier_flavor,
