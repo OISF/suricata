@@ -492,11 +492,17 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                 (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
                 SCFree(c->current->buffer);
                 SCFree(c->current);
+                c->current = NULL;
+                return NULL;
             }
             SCLogDebug("inserted range fragment");
             c->current = NULL;
             if (c->container->files == NULL) {
                 // we have to wait for the flow owning the file
+                return NULL;
+            }
+            if (c->container->files->tail == NULL) {
+                // file has already been closed meanwhile
                 return NULL;
             }
             // keep on going, maybe this out of order chunk
