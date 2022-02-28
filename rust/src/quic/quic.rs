@@ -60,6 +60,8 @@ impl QuicTransaction {
 pub struct QuicState {
     max_tx_id: u64,
     keys: Option<rustls::quic::Keys>,
+    hello_tc: bool,
+    hello_ts: bool,
     transactions: Vec<QuicTransaction>,
 }
 
@@ -68,6 +70,8 @@ impl Default for QuicState {
         Self {
             max_tx_id: 0,
             keys: None,
+            hello_tc: false,
+            hello_ts: false,
             transactions: Vec::new(),
         }
     }
@@ -129,6 +133,10 @@ impl QuicState {
             match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
                 Ok((rest, header)) => {
                     // unprotect
+                    if self.hello_tc && self.hello_ts {
+                        // payload is encrypted, stop parsing here
+                        return true;
+                    }
                     if self.keys.is_none() && header.ty == QuicType::Initial {
                         if let Some(version) = quic_rustls_version(u32::from(header.version)) {
                             let keys = rustls::quic::Keys::initial(version, &header.dcid, false);
@@ -213,7 +221,14 @@ impl QuicState {
                                                 }
                                             }
                                         }
-                                        Frame::Crypto(c) => extv.extend_from_slice(&c.extv),
+                                        Frame::Crypto(c) => {
+                                            extv.extend_from_slice(&c.extv);
+                                            if to_server {
+                                                self.hello_ts = true
+                                            } else {
+                                                self.hello_tc = true
+                                            }
+                                        }
                                         _ => {}
                                     }
                                 }
