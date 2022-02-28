@@ -166,7 +166,8 @@ impl QuicState {
                         }
                         // mutate one at a time
                         h2[0] = h20;
-                        let _ = &h2[hlen..hlen + 4].copy_from_slice(&pktnum_buf);
+                        let _ = &h2[hlen..hlen + 1 + ((h20 & 3) as usize)]
+                            .copy_from_slice(&pktnum_buf[..1 + ((h20 & 3) as usize)]);
                         let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
                         rest2 = Vec::with_capacity(framebuf.len() - (1 + ((h20 & 3) as usize)));
                         if framebuf.len() < 1 + ((h20 & 3) as usize) {
@@ -178,7 +179,11 @@ impl QuicState {
                         } else {
                             &keys.local.packet
                         };
-                        let r = pkey.decrypt_in_place(pkt_num, &h2[..hlen + 4], &mut rest2);
+                        let r = pkey.decrypt_in_place(
+                            pkt_num,
+                            &h2[..hlen + 1 + ((h20 & 3) as usize)],
+                            &mut rest2,
+                        );
                         if !r.is_ok() {
                             return false;
                         }
