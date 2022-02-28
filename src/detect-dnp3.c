@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -125,7 +125,6 @@ DNP3Mapping DNP3FunctionNameMap[] = {
 static void DetectDNP3FuncRegisterTests(void);
 static void DetectDNP3IndRegisterTests(void);
 static void DetectDNP3ObjRegisterTests(void);
-static void DetectDNP3DataRegisterTests(void);
 #endif
 
 /**
@@ -566,10 +565,6 @@ static void DetectDNP3DataRegister(void)
     sigmatch_table[DETECT_AL_DNP3DATA].desc          = "make the following content options to match on the re-assembled application buffer";
     sigmatch_table[DETECT_AL_DNP3DATA].url           = "/rules/dnp3-keywords.html#dnp3-data";
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =
-        DetectDNP3DataRegisterTests;
-#endif
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("dnp3_data",
@@ -763,276 +758,6 @@ static int DetectDNP3ObjParseTest(void)
     PASS;
 }
 
-/**
- * Test request (to server) content match.
- */
-static int DetectDNP3DataTest01(void)
-{
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    Flow f;
-    Packet *p;
-    TcpSession tcp;
-    ThreadVars tv;
-
-    uint8_t request[] = {
-        0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
-        0xa5, 0xe9,
-
-        0xff, 0xc9, 0x05, 0x0c, 0x01, 0x28, 0x01, 0x00,
-        0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
-
-        /* CRC. */
-        0x72, 0xef,
-
-        0x00, 0x00, 0x00, 0x00, 0x00,
-
-        /* CRC. */
-        0xff, 0xff,
-    };
-
-    /* Setup flow. */
-    memset(&f, 0, sizeof(Flow));
-    memset(&tcp, 0, sizeof(TcpSession));
-    memset(&tv, 0, sizeof(ThreadVars));
-    p = UTHBuildPacket(request, sizeof(request), IPPROTO_TCP);
-    FLOW_INITIALIZE(&f);
-    f.alproto = ALPROTO_DNP3;
-    f.protoctx = (void *)&tcp;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
-    StreamTcpInitConfig(true);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
-
-    /* Either direction - should match. */
-    Signature *s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00 00 00 00|\"; "
-        "sid:1; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* To server - should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "flow:established,to_server; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00 00 00 00|\"; "
-        "sid:2; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* To client - should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "flow:established,to_client; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00 00 00 00|\"; "
-        "sid:3; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* The content of a CRC - should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "dnp3_data; "
-        "content:\"|72 ef|\"; "
-        "sid:4; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNP3,
-        STREAM_TOSERVER, request, sizeof(request));
-    SCMutexUnlock(&f.m);
-    FAIL_IF(r);
-
-    FAIL_IF(f.alstate == NULL);
-
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    FAIL_IF(!PacketAlertCheck(p, 1));
-    FAIL_IF(!PacketAlertCheck(p, 2));
-    FAIL_IF(PacketAlertCheck(p, 3));
-    FAIL_IF(PacketAlertCheck(p, 4));
-
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
-    PASS;
-}
-
-/**
- * Test response (to client) content match.
- */
-static int DetectDNP3DataTest02(void)
-{
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    Flow f;
-    Packet *p;
-    TcpSession tcp;
-    ThreadVars tv;
-
-    uint8_t request[] = {
-        /* Link header. */
-        0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
-
-        /* CRC. */
-        0xa5, 0xe9,
-
-        /* Transport header. */
-        0xff,
-
-        /* Application layer. */
-        0xc9, 0x05, 0x0c, 0x01, 0x28, 0x01, 0x00, 0x00,
-        0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
-
-        /* CRC. */
-        0x72, 0xef,
-
-        /* Application layer. */
-        0x00, 0x00, 0x00, 0x00, 0x00,
-
-        /* CRC. */
-        0xff, 0xff,
-    };
-
-    uint8_t response[] = {
-        /* Link header. */
-        0x05, 0x64, 0x1c, 0x44, 0x01, 0x00, 0x02, 0x00,
-
-        /* CRC. */
-        0xe2, 0x59,
-
-        /* Transport header. */
-        0xc3,
-
-        /* Application layyer. */
-        0xc9, 0x81, 0x00, 0x00, 0x0c, 0x01, 0x28, 0x01,
-        0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00,
-
-        /* CRC. */
-        0x7a, 0x65,
-
-        /* Application layer. */
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-        /* CRC. */
-        0xff, 0xff
-    };
-
-    /* Setup flow. */
-    memset(&f, 0, sizeof(Flow));
-    memset(&tcp, 0, sizeof(TcpSession));
-    memset(&tv, 0, sizeof(ThreadVars));
-    p = UTHBuildPacket(response, sizeof(response), IPPROTO_TCP);
-    FLOW_INITIALIZE(&f);
-    f.alproto = ALPROTO_DNP3;
-    f.protoctx = (void *)&tcp;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOCLIENT | FLOW_PKT_ESTABLISHED;
-    StreamTcpInitConfig(true);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
-
-    /* Either direction - should match. */
-    Signature *s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00|\"; "
-        "sid:1; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* To server - should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "flow:established,to_server; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00|\"; "
-        "sid:2; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* To client - should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "flow:established,to_client; "
-        "dnp3_data; "
-        "content:\"|01 01 01 00 00 00 00|\"; "
-        "sid:3; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    /* The content of a CRC - should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert dnp3 any any -> any any ("
-        "msg:\"DetectDNP3DataTest01\"; "
-        "dnp3_data; "
-        "content:\"|7a 65|\"; "
-        "sid:4; rev:1;)");
-    FAIL_IF(s == NULL);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    /* Send through the request, then response. */
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNP3,
-        STREAM_TOSERVER, request, sizeof(request));
-    SCMutexUnlock(&f.m);
-    FAIL_IF(r);
-    FAIL_IF(f.alstate == NULL);
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNP3, STREAM_TOCLIENT,
-        response, sizeof(response));
-    SCMutexUnlock(&f.m);
-    FAIL_IF(r);
-
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    FAIL_IF(!PacketAlertCheck(p, 1));
-    FAIL_IF(PacketAlertCheck(p, 2));
-    FAIL_IF(!PacketAlertCheck(p, 3));
-    FAIL_IF(PacketAlertCheck(p, 4));
-
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
-    PASS;
-}
-
 static void DetectDNP3FuncRegisterTests(void)
 {
     UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest",
@@ -1052,11 +777,5 @@ static void DetectDNP3ObjRegisterTests(void)
 {
     UtRegisterTest("DetectDNP3ObjParseTest", DetectDNP3ObjParseTest);
     UtRegisterTest("DetectDNP3ObjSetupTest", DetectDNP3ObjSetupTest);
-}
-
-void DetectDNP3DataRegisterTests(void)
-{
-    UtRegisterTest("DetectDNP3DataTest01", DetectDNP3DataTest01);
-    UtRegisterTest("DetectDNP3DataTest02", DetectDNP3DataTest02);
 }
 #endif
