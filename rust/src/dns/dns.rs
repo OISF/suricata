@@ -713,9 +713,23 @@ fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
 }
 
 /// Probe input to see if it looks like DNS.
+///
+/// Returns a tuple of booleans: (is_dns, is_request, incomplete)
 fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
-    let i2 = if input.len() <= dlen { input } else { &input[..dlen] };
-    match parser::dns_parse_request(i2) {
+    // Trim input to dlen if larger.
+    let input = if input.len() <= dlen { input } else { &input[..dlen] };
+
+    // If input is less than dlen then we know we don't have enough data to
+    // parse a complete message, so perform header validation only.
+    if input.len() < dlen {
+        if let Ok((_, header)) = parser::dns_parse_header(input) {
+            return probe_header_validity(header, dlen);
+        } else {
+            return (false, false, false);
+        }
+    }
+
+    match parser::dns_parse_request(input) {
         Ok((_, request)) => {
             return probe_header_validity(request.header, dlen);
         },
