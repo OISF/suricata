@@ -205,7 +205,7 @@ static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
         for (u = 0; u < cd->content_len; u++)
         {
             if (isupper(cd->content[u])) {
-                cd->content[u] = tolower(cd->content[u]);
+                cd->content[u] = u8_tolower(cd->content[u]);
                 changed = true;
             }
         }
