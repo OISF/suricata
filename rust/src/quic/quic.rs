@@ -126,6 +126,56 @@ impl QuicState {
         return None;
     }
 
+    fn decrypt<'a>(
+        &mut self, to_server: bool, header: &QuicHeader, framebuf: &'a [u8], buf: &'a [u8],
+        hlen: usize, output: &'a mut Vec<u8>,
+    ) -> bool {
+        if let Some(keys) = &self.keys {
+            let hkey = if to_server {
+                &keys.remote.header
+            } else {
+                &keys.local.header
+            };
+            if framebuf.len() < 4 + hkey.sample_len() {
+                return false;
+            }
+            let mut h2 = Vec::with_capacity(hlen + header.length);
+            h2.extend_from_slice(&buf[..hlen + header.length]);
+            let mut h20 = h2[0];
+            let mut pktnum_buf = Vec::with_capacity(4);
+            pktnum_buf.extend_from_slice(&h2[hlen..hlen + 4]);
+            let r1 = hkey.decrypt_in_place(
+                &h2[hlen + 4..hlen + 4 + hkey.sample_len()],
+                &mut h20,
+                &mut pktnum_buf,
+            );
+            if !r1.is_ok() {
+                return false;
+            }
+            // mutate one at a time
+            h2[0] = h20;
+            let _ = &h2[hlen..hlen + 1 + ((h20 & 3) as usize)]
+                .copy_from_slice(&pktnum_buf[..1 + ((h20 & 3) as usize)]);
+            let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
+            if framebuf.len() < 1 + ((h20 & 3) as usize) {
+                return false;
+            }
+            output.extend_from_slice(&framebuf[1 + ((h20 & 3) as usize)..]);
+            let pkey = if to_server {
+                &keys.remote.packet
+            } else {
+                &keys.local.packet
+            };
+            let r = pkey.decrypt_in_place(pkt_num, &h2[..hlen + 1 + ((h20 & 3) as usize)], output);
+            if !r.is_ok() {
+                return false;
+            }
+            return true;
+        }
+        // unreachable by the way
+        return false;
+    }
+
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
@@ -148,54 +198,14 @@ impl QuicState {
                         return false;
                     }
                     let (mut framebuf, next_buf) = rest.split_at(header.length);
-                    let mut rest2;
-                    if let Some(keys) = &self.keys {
-                        let hkey = if to_server {
-                            &keys.remote.header
-                        } else {
-                            &keys.local.header
-                        };
-                        if framebuf.len() < 4 + hkey.sample_len() {
+                    let hlen = buf.len() - rest.len();
+                    let mut output;
+                    if self.keys.is_some() {
+                        output = Vec::with_capacity(framebuf.len()+4);
+                        if !self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output) {
                             return false;
                         }
-                        let hlen = buf.len() - rest.len();
-                        let mut h2 = Vec::with_capacity(hlen + header.length);
-                        h2.extend_from_slice(&buf[..hlen + header.length]);
-                        let mut h20 = h2[0];
-                        let mut pktnum_buf = Vec::with_capacity(4);
-                        pktnum_buf.extend_from_slice(&h2[hlen..hlen + 4]);
-                        let r1 = hkey.decrypt_in_place(
-                            &h2[hlen + 4..hlen + 4 + hkey.sample_len()],
-                            &mut h20,
-                            &mut pktnum_buf,
-                        );
-                        if !r1.is_ok() {
-                            return false;
-                        }
-                        // mutate one at a time
-                        h2[0] = h20;
-                        let _ = &h2[hlen..hlen + 1 + ((h20 & 3) as usize)]
-                            .copy_from_slice(&pktnum_buf[..1 + ((h20 & 3) as usize)]);
-                        let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
-                        rest2 = Vec::with_capacity(framebuf.len() - (1 + ((h20 & 3) as usize)));
-                        if framebuf.len() < 1 + ((h20 & 3) as usize) {
-                            return false;
-                        }
-                        rest2.extend_from_slice(&framebuf[1 + ((h20 & 3) as usize)..]);
-                        let pkey = if to_server {
-                            &keys.remote.packet
-                        } else {
-                            &keys.local.packet
-                        };
-                        let r = pkey.decrypt_in_place(
-                            pkt_num,
-                            &h2[..hlen + 1 + ((h20 & 3) as usize)],
-                            &mut rest2,
-                        );
-                        if !r.is_ok() {
-                            return false;
-                        }
-                        framebuf = &rest2;
+                        framebuf = &output;
                     }
                     buf = next_buf;
                     match QuicData::from_bytes(framebuf) {
