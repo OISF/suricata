@@ -1024,7 +1024,7 @@ static uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
     int len = strlen(t->string);
 
     for (int i = 0; i < len; i++)
-        hash += tolower((unsigned char)t->string[i]);
+        hash += u8_tolower((unsigned char)t->string[i]);
 
     hash = hash % ht->array_size;
     return hash;
