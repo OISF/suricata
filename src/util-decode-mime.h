@@ -86,7 +86,8 @@ typedef enum MimeDecRetCode {
     MIME_DEC_ERR_DATA = -1,
     MIME_DEC_ERR_MEM = -2,
     MIME_DEC_ERR_PARSE = -3,
-    MIME_DEC_ERR_STATE = -4,    /**< parser in error state */
+    MIME_DEC_ERR_STATE = -4, /**< parser in error state */
+    MIME_DEC_ERR_OVERFLOW = -5,
 } MimeDecRetCode;
 
 /**
@@ -160,7 +161,7 @@ typedef struct MimeDecEntity {
 typedef struct MimeDecStackNode {
     MimeDecEntity *data;  /**< Pointer to the entity data structure */
     uint8_t *bdef;  /**< Copy of boundary definition for child entity */
-    uint32_t bdef_len;  /**< Boundary length for child entity */
+    uint16_t bdef_len;  /**< Boundary length for child entity */
     bool is_encap;      /**< Flag indicating entity is encapsulated in message */
     struct MimeDecStackNode *next;  /**< Pointer to next item on the stack */
 } MimeDecStackNode;

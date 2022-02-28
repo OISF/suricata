@@ -296,6 +296,9 @@ static void SMTPConfigure(void) {
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
                 /* new_val_len: scheme value from config e.g. 'http' + '://' + null terminator */
                 size_t new_val_len = strlen(scheme->val) + 3 + 1;
+                if (new_val_len > UINT16_MAX) {
+                    FatalError(SC_ERR_FATAL, "Too long value for extract-urls-schemes");
+                }
                 char *new_val = SCMalloc(new_val_len);
                 if (unlikely(new_val == NULL)) {
                     FatalError(SC_ERR_FATAL, "SCMalloc failure.");
