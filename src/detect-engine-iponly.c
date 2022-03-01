@@ -2415,6 +2415,33 @@ static int IPOnlyTestBug5066v5(void)
     PASS;
 }
 
+static int IPOnlyTestBug5168v1(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "1.2.3.64/0.0.0.0") != 0);
+
+    char ip[16];
+    PrintInet(AF_INET, (const void *)&x->ip[0], ip, sizeof(ip));
+    SCLogDebug("ip %s netmask %d", ip, x->netmask);
+
+    FAIL_IF_NOT(strcmp(ip, "0.0.0.0") == 0);
+    FAIL_IF_NOT(x->netmask == 0);
+
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
+static int IPOnlyTestBug5168v2(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "0.0.0.5/0.0.0.5") != -1);
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void)
@@ -2457,6 +2484,9 @@ void IPOnlyRegisterTests(void)
     UtRegisterTest("IPOnlyTestBug5066v3", IPOnlyTestBug5066v3);
     UtRegisterTest("IPOnlyTestBug5066v4", IPOnlyTestBug5066v4);
     UtRegisterTest("IPOnlyTestBug5066v5", IPOnlyTestBug5066v5);
+
+    UtRegisterTest("IPOnlyTestBug5168v1", IPOnlyTestBug5168v1);
+    UtRegisterTest("IPOnlyTestBug5168v2", IPOnlyTestBug5168v2);
 #endif
 
     return;
