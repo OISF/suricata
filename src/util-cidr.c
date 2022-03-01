@@ -26,6 +26,32 @@
 #include "suricata-common.h"
 #include "util-cidr.h"
 
+/** \brief turn 32 bit mask into CIDR
+ *  \retval cidr cidr value or -1 if the netmask can't be expressed as cidr
+ */
+int CIDRFromMask(uint32_t netmask)
+{
+    if (netmask == 0) {
+        return 0;
+    }
+    int lead_1 = 0;
+    bool seen_0 = false;
+    for (int i = 0; i < 32; i++) {
+        if (!seen_0) {
+            if ((netmask & BIT_U32(i)) != 0) {
+                lead_1++;
+            } else {
+                seen_0 = true;
+            }
+        } else {
+            if ((netmask & BIT_U32(i)) != 0) {
+                return -1;
+            }
+        }
+    }
+    return lead_1;
+}
+
 uint32_t CIDRGet(int cidr)
 {
     if (cidr <= 0 || cidr > 32)
