@@ -456,6 +456,13 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                     goto error;
 
                 netmask = in.s_addr;
+
+                /* validate netmask */
+                int cidr = CIDRFromMask(netmask);
+                if (cidr < 0) {
+                    SCLogNotice("cidr %d for netmask %08x/%s", cidr, netmask, mask);
+                    goto error;
+                }
             }
 
             r = inet_pton(AF_INET, ip, &in);
