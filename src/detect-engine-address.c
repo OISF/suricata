@@ -452,6 +452,16 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                     goto error;
 
                 netmask = in.s_addr;
+
+                /* validate netmask */
+                int cidr = CIDRFromMask(netmask);
+                if (cidr < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE,
+                            "netmask \"%s\" is not usable. Only netmasks that are compatible with "
+                            "CIDR notation are supported. See #5168.",
+                            mask);
+                    goto error;
+                }
             }
 
             r = inet_pton(AF_INET, ip, &in);
