@@ -4311,23 +4311,18 @@ static int AddressTestAddressGroupSetup48(void)
 
 static int AddressTestCutIPv401(void)
 {
-    DetectAddress *a, *b, *c;
-    a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
-    b = DetectAddressParseSingle("1.2.2.0-1.2.3.4");
+    DetectAddress *c;
+    DetectAddress *a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
+    FAIL_IF_NULL(a);
+    DetectAddress *b = DetectAddressParseSingle("1.2.2.0-1.2.3.4");
+    FAIL_IF_NULL(b);
 
-    if (DetectAddressCut(NULL, a, b, &c) == -1)
-        goto error;
+    FAIL_IF(DetectAddressCut(NULL, a, b, &c) == -1);
 
     DetectAddressFree(a);
     DetectAddressFree(b);
     DetectAddressFree(c);
-    return 1;
-
-error:
-    DetectAddressFree(a);
-    DetectAddressFree(b);
-    DetectAddressFree(c);
-    return 0;
+    PASS;
 }
 
 static int AddressTestCutIPv402(void)
