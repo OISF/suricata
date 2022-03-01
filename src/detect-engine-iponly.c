@@ -227,16 +227,11 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                 if (r <= 0)
                     goto error;
 
-                netmask = in.s_addr;
-                if (netmask != 0) {
-                    uint32_t m = netmask;
-                    /* Extract cidr netmask */
-                    while ((0x01 & m) == 0) {
-                        dd->netmask++;
-                        m = m >> 1;
-                    }
-                    dd->netmask = 32 - dd->netmask;
-                }
+                int cidr = CIDRFromMask(in.s_addr);
+                if (cidr < 0)
+                    goto error;
+
+                dd->netmask = (uint8_t)cidr;
             }
 
             r = inet_pton(AF_INET, ip, &in);
