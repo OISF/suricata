@@ -13,6 +13,12 @@ Example signatures::
   alert smb any any -> any any (msg: "SMB1 version rule"; smb.version: 1; sid: 44;)
   alert smb any any -> any any (msg: "SMB2 version rule"; smb.version: 2; sid: 45;)
 
+Matching in transition from SMBv1 to SMBv2
+********************************************
+
+In the initial negotiation protocol request, a client supporting SMBv1 and SMBv2 can send an initial SMBv1 request and receive an SMBv2 response from server, indicating that SMBv2 will be used.
+
+This first SMBv2 response made by the server will match as SMBv1, since the entire transaction will be considered a SMBv1 transaction. 
 
 Does `smb.version` match SMBv3?
 ****************************************
