@@ -25,6 +25,7 @@ use nom::sequence::pair;
 use nom::IResult;
 use num::FromPrimitive;
 use std::fmt;
+use std::fmt::Write;
 use tls_parser::TlsMessage::Handshake;
 use tls_parser::TlsMessageHandshake::{ClientHello, ServerHello};
 use tls_parser::{
@@ -137,6 +138,7 @@ pub(crate) struct Crypto {
     //does not work, because of lifetime due to references to the slice used for parsing
     //and cannot manage to create a stucture with the Vector the slices refer to...
     //pub exts: Vec<TlsExtension>,
+    pub ja3: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -177,12 +179,25 @@ pub struct QuicTlsExtension {
 }
 
 // get interesting stuff out of parsed tls extensions
-fn quic_get_tls_extensions(input: Option<&[u8]>) -> Vec<QuicTlsExtension> {
+fn quic_get_tls_extensions(
+    input: Option<&[u8]>, ja3: &mut String, client: bool,
+) -> Vec<QuicTlsExtension> {
     let mut extv = Vec::new();
     if let Some(extr) = input {
         if let Ok((_, exts)) = parse_tls_extensions(extr) {
+            let mut dash = false;
             for e in &exts {
                 let etype = TlsExtensionType::from(e);
+                if dash {
+                    match write!(ja3, "-") {
+                        _ => {}
+                    }
+                } else {
+                    dash = true;
+                }
+                match write!(ja3, "{}", u16::from(etype)) {
+                    _ => {}
+                }
                 let mut values = Vec::new();
                 match e {
                     TlsExtension::SNI(x) => {
@@ -203,6 +218,54 @@ fn quic_get_tls_extensions(input: Option<&[u8]>) -> Vec<QuicTlsExtension> {
                 }
                 extv.push(QuicTlsExtension { etype, values })
             }
+            if client {
+                match write!(ja3, ",") {
+                    _ => {}
+                }
+                dash = false;
+                for e in &exts {
+                    match e {
+                        TlsExtension::EllipticCurves(x) => {
+                            for ec in x {
+                                if dash {
+                                    match write!(ja3, "-") {
+                                        _ => {}
+                                    }
+                                } else {
+                                    dash = true;
+                                }
+                                match write!(ja3, "{}", ec.0) {
+                                    _ => {}
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                match write!(ja3, ",") {
+                    _ => {}
+                }
+                dash = false;
+                for e in &exts {
+                    match e {
+                        TlsExtension::EcPointFormats(x) => {
+                            for ec in *x {
+                                if dash {
+                                    match write!(ja3, "-") {
+                                        _ => {}
+                                    }
+                                } else {
+                                    dash = true;
+                                }
+                                match write!(ja3, "{}", ec) {
+                                    _ => {}
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
         }
     }
     return extv;
@@ -218,14 +281,44 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         if let Handshake(hs) = msg {
             match hs {
                 ClientHello(ch) => {
+                    let mut ja3 = String::with_capacity(256);
+                    match write!(&mut ja3, "{},", u16::from(ch.version)) {
+                        _ => {}
+                    }
+                    let mut dash = false;
+                    for c in &ch.ciphers {
+                        if dash {
+                            match write!(&mut ja3, "-") {
+                                _ => {}
+                            }
+                        } else {
+                            dash = true;
+                        }
+                        match write!(&mut ja3, "{}", u16::from(*c)) {
+                            _ => {}
+                        }
+                    }
+                    match write!(&mut ja3, ",") {
+                        _ => {}
+                    }
                     let ciphers = ch.ciphers;
-                    let extv = quic_get_tls_extensions(ch.ext);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv })));
+                    let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
+                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
                 }
                 ServerHello(sh) => {
+                    let mut ja3 = String::with_capacity(256);
+                    match write!(&mut ja3, "{},", u16::from(sh.version)) {
+                        _ => {}
+                    }
+                    match write!(&mut ja3, "{}", u16::from(sh.cipher)) {
+                        _ => {}
+                    }
+                    match write!(&mut ja3, ",") {
+                        _ => {}
+                    }
                     let ciphers = vec![sh.cipher];
-                    let extv = quic_get_tls_extensions(sh.ext);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv })));
+                    let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
+                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
                 }
                 _ => {}
             }

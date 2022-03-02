@@ -37,13 +37,14 @@ pub struct QuicTransaction {
     pub sni: Option<Vec<u8>>,
     pub ua: Option<Vec<u8>>,
     pub extv: Vec<QuicTlsExtension>,
+    pub ja3: Option<String>,
     tx_data: AppLayerTxData,
 }
 
 impl QuicTransaction {
     fn new(
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extv: Vec<QuicTlsExtension>,
+        extv: Vec<QuicTlsExtension>, ja3: Option<String>,
     ) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
@@ -53,6 +54,7 @@ impl QuicTransaction {
             sni,
             ua,
             extv,
+            ja3,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -100,9 +102,9 @@ impl QuicState {
 
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extb: Vec<QuicTlsExtension>,
+        extb: Vec<QuicTlsExtension>, ja3: Option<String>,
     ) {
-        let mut tx = QuicTransaction::new(header, data, sni, ua, extb);
+        let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         self.transactions.push(tx);
@@ -215,6 +217,7 @@ impl QuicState {
                             if header.ty != QuicType::Short {
                                 let mut sni: Option<Vec<u8>> = None;
                                 let mut ua: Option<Vec<u8>> = None;
+                                let mut ja3: Option<String> = None;
                                 let mut extv: Vec<QuicTlsExtension> = Vec::new();
                                 for frame in &data.frames {
                                     match frame {
@@ -233,6 +236,7 @@ impl QuicState {
                                             }
                                         }
                                         Frame::Crypto(c) => {
+                                            ja3 = Some(c.ja3.clone());
                                             for e in &c.extv {
                                                 if e.etype == TlsExtensionType::ServerName
                                                     && e.values.len() > 0
@@ -251,7 +255,7 @@ impl QuicState {
                                     }
                                 }
 
-                                self.new_tx(header, data, sni, ua, extv);
+                                self.new_tx(header, data, sni, ua, extv, ja3);
                             }
                         }
                         Err(_e) => {
