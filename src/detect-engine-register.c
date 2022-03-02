@@ -217,6 +217,7 @@
 #include "detect-mqtt-publish-message.h"
 #include "detect-mqtt-subscribe-topic.h"
 #include "detect-mqtt-unsubscribe-topic.h"
+#include "detect-quic-ja3.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
 #include "detect-quic-version.h"
@@ -652,6 +653,7 @@ void SigTableSetup(void)
     DetectMQTTPublishMessageRegister();
     DetectMQTTSubscribeTopicRegister();
     DetectMQTTUnsubscribeTopicRegister();
+    DetectQuicJa3Register();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
     DetectQuicVersionRegister();
