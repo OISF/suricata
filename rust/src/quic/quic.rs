@@ -23,6 +23,7 @@ use super::{
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::ffi::CString;
+use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
@@ -201,7 +202,7 @@ impl QuicState {
                     let hlen = buf.len() - rest.len();
                     let mut output;
                     if self.keys.is_some() {
-                        output = Vec::with_capacity(framebuf.len()+4);
+                        output = Vec::with_capacity(framebuf.len() + 4);
                         if !self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output) {
                             return false;
                         }
@@ -232,6 +233,13 @@ impl QuicState {
                                             }
                                         }
                                         Frame::Crypto(c) => {
+                                            for e in &c.extv {
+                                                if e.etype == TlsExtensionType::ServerName
+                                                    && e.values.len() > 0
+                                                {
+                                                    sni = Some(e.values[0].to_vec());
+                                                }
+                                            }
                                             extv.extend_from_slice(&c.extv);
                                             if to_server {
                                                 self.hello_ts = true
