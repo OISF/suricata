@@ -42,6 +42,9 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.close()?;
     }
 
+    if let Some(ja3) = &tx.ja3 {
+        js.set_string("ja3", ja3)?;
+    }
     if tx.extv.len() > 0 {
         js.open_array("extensions")?;
         for e in &tx.extv {
