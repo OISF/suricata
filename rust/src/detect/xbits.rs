@@ -14,9 +14,13 @@ pub const DETECT_XBITS_TRACK_IPPAIR: u8 = 2;
 pub const DETECT_XBITS_TRACK_FLOW: u8 = 3;
 pub const DETECT_XBITS_EXPIRE_DEFAULT: u32 = 30;
 
+pub const VAR_TYPE_IPPAIR_BIT: u8 = 11;
+pub const VAR_TYPE_HOST_BIT: u8 = 8;
+
 #[repr(C)]
 #[derive(Debug)]
-pub struct RSXBitsData {
+pub struct DetectXbitsData {
+    idx: u32,
     cmd: u8,
     tracker: u8,
     expire: u32,
@@ -49,18 +53,15 @@ fn get_xbit_cmd(str_c: &str) -> Result<u8, ()> {
 }
 
 fn evaluate_args(args: Vec<&str>) -> Result<(u8, CString, u8, u32, u8), ()> {
-    let tracker: Vec<&str> = args[2].trim().split(' ').collect();
+    let tracker: Vec<&str> = args[2].trim().split(' ').map(|s| s.trim()).collect();
     if tracker.len() != 2 {
         return Err(());
     }
-    match tracker[0].trim() {
-        "track" => {}
-        _ => {
-            SCLogError!("xbits track keyword parsing failed");
-            return Err(());
-        }
+    if tracker[0].ne("track") {
+        SCLogError!("xbits track keyword parsing failed");
+        return Err(());
     }
-    let tracker: u8 = match get_xbit_type(tracker[1].trim()) {
+    let tracker: u8 = match get_xbit_type(tracker[1]) {
         Ok(val) => val,
         Err(e) => {
             SCLogError!("xbits tracker parsing failed: {:?}", e);
@@ -68,9 +69,9 @@ fn evaluate_args(args: Vec<&str>) -> Result<(u8, CString, u8, u32, u8), ()> {
         }
     };
     let vartype = if tracker == DETECT_XBITS_TRACK_IPPAIR {
-        11 // VAR_TYPE_IPPAIR_BIT
+        VAR_TYPE_IPPAIR_BIT
     } else {
-        8 // VAR_TYPE_HOST_BIT
+        VAR_TYPE_HOST_BIT
     };
     let cmd: u8 = match get_xbit_cmd(args[0].trim()) {
         Ok(val) => val,
@@ -83,18 +84,15 @@ fn evaluate_args(args: Vec<&str>) -> Result<(u8, CString, u8, u32, u8), ()> {
     if args.len() == 3 {
         return Ok((cmd, name, tracker, DETECT_XBITS_EXPIRE_DEFAULT, vartype));
     }
-    let expire: Vec<&str> = args[3].trim().split(' ').collect();
+    let expire: Vec<&str> = args[3].trim().split(' ').map(|s| s.trim()).collect();
     if expire.len() != 2 {
         return Err(());
     }
-    match expire[0].trim() {
-        "expire" => {}
-        _ => {
-            SCLogError!("xbits expire keyword parsing failed");
-            return Err(());
-        }
+    if expire[0].ne("expire") {
+        SCLogError!("xbits expire keyword parsing failed");
+        return Err(());
     }
-    let expire: u32 = match expire[1].trim().parse() {
+    let expire: u32 = match expire[1].parse() {
         Ok(val) => val,
         Err(_) => {
             SCLogError!("xbits expire parsing failed");
@@ -107,14 +105,15 @@ fn evaluate_args(args: Vec<&str>) -> Result<(u8, CString, u8, u32, u8), ()> {
     Ok((cmd, name, tracker, expire, vartype))
 }
 
-pub fn parse_xbits(arg: &str) -> Result<RSXBitsData, ()> {
-    let split_args: Vec<&str> = arg.split(',').collect();
+fn parse_xbits(arg: &str) -> Result<DetectXbitsData, ()> {
+    let split_args: Vec<&str> = arg.trim().split(',').collect();
     let res;
 
     match split_args.len() {
         1 => match split_args[0] {
             "noalert" => {
-                return Ok(RSXBitsData {
+                return Ok(DetectXbitsData {
+                    idx: 0,  // TODO is this a right thing to do?
                     cmd: get_xbit_cmd("noalert")?,
                     name: std::ptr::null_mut(),
                     tracker: 0,
@@ -138,7 +137,8 @@ pub fn parse_xbits(arg: &str) -> Result<RSXBitsData, ()> {
             return Err(());
         }
     }
-    Ok(RSXBitsData {
+    Ok(DetectXbitsData {
+        idx: 0,
         cmd: res.0,
         name: (res.1).into_raw(),
         tracker: res.2,
@@ -147,32 +147,32 @@ pub fn parse_xbits(arg: &str) -> Result<RSXBitsData, ()> {
     })
 }
 
+impl Drop for DetectXbitsData {
+    fn drop(&mut self) {
+        let _str = unsafe { CString::from_raw(self.name as *mut c_char) };  // Does this not mean taking the ownership back?
+//        All primitive types will be dropped without any special treatment, right?
+    }
+}
+
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut c_void {
+pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut DetectXbitsData {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
 
-    let arg = match CStr::from_ptr(carg).to_str() {
-        Ok(arg) => arg,
-        _ => {
-            return std::ptr::null_mut();
-        }
-    };
-
-    match parse_xbits(arg) {
-        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
-        Err(_) => {
-            return std::ptr::null_mut();
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Ok(detect) = parse_xbits(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
         }
     }
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_xbits_free(ptr: *mut c_void, name: *const c_char) {
     if !ptr.is_null() {
         let _str = CString::from_raw(name as *mut c_char);
-        std::mem::drop(Box::from_raw(ptr as *mut RSXBitsData));
+        std::mem::drop(Box::from_raw(ptr as *mut DetectXbitsData));
     }
 }
 
@@ -212,13 +212,17 @@ mod test {
     fn test_good_input() {
         assert_eq!(true, parse_xbits("noalert").is_ok());
         assert_eq!(true, parse_xbits("set,abc,track ip_pair").is_ok());
-        assert_eq!(
-            true,
-            parse_xbits("set, abc ,track ip_pair, expire 3600").is_ok()
-        );
-        assert_eq!(
-            true,
-            parse_xbits("set  ,abc,track ip_src, expire 1234").is_ok()
-        );
+        let test_str1 = "set, abc ,track ip_pair, expire 3600";
+        let test_res1 = parse_xbits(test_str1).unwrap();
+        assert_eq!(DETECT_XBITS_CMD_SET, test_res1.cmd);
+        assert_eq!(DETECT_XBITS_TRACK_IPPAIR, test_res1.tracker);
+        assert_eq!(3600, test_res1.expire);
+        assert_eq!(VAR_TYPE_IPPAIR_BIT, test_res1.vartype);
+        let test_str2 = "isset  ,abc,track ip_src, expire 1234";
+        let test_res2 = parse_xbits(test_str2).unwrap();
+        assert_eq!(DETECT_XBITS_CMD_ISSET, test_res2.cmd);
+        assert_eq!(DETECT_XBITS_TRACK_IPSRC, test_res2.tracker);
+        assert_eq!(1234, test_res2.expire);
+        assert_eq!(VAR_TYPE_HOST_BIT, test_res2.vartype);
     }
 }
