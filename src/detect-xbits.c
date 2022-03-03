@@ -50,6 +50,7 @@
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "rust.h"
 
 /*
     xbits:set,bitname,track ip_pair,expire 60
@@ -169,7 +170,7 @@ static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Sig
     if (fd == NULL)
         return 0;
 
-    switch (fd->type) {
+    switch (fd->vartype) {
         case VAR_TYPE_HOST_BIT:
             return DetectXbitMatchHost(p, (const DetectXbitsData *)fd);
             break;
@@ -192,15 +193,15 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         const char *rawstr, DetectXbitsData **cdout)
 {
     DetectXbitsData *cd = NULL;
-    RSXBitsData *ptr = rs_xbits_parse(rawstr);
+    cd = rs_xbits_parse(rawstr);
 
-    if (ptr == NULL) {
+    if (cd == NULL) {
         return -1;
     }
-    switch (ptr->cmd) {
+    switch (cd->cmd) {
         case DETECT_XBITS_CMD_NOALERT: {
-            if (ptr->name != NULL) {
-                rs_xbits_free(ptr, ptr->name);
+            if (cd->name != NULL) {
+                rs_xbits_free(cd, cd->name);
                 return -1;
             }
             /* return ok, cd is NULL. Flag sig. */
@@ -213,26 +214,15 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
         default:
-            if (strlen(ptr->name) == 0) {
-                rs_xbits_free(ptr, ptr->name);
+            if (strlen(cd->name) == 0) {
+                rs_xbits_free(cd, cd->name);
                 return -1;
             }
             break;
     }
 
-    cd = SCMalloc(sizeof(DetectXbitsData));
-    if (unlikely(cd == NULL))
-        return -1;
-
-    cd->idx = VarNameStoreSetupAdd(ptr->name, ptr->vartype);
-    cd->cmd = ptr->cmd;
-    cd->tracker = ptr->tracker;
-    cd->type = ptr->vartype;
-    cd->expire = ptr->expire;
-
+    cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
     *cdout = cd;
-    // ptr's job is done, free it
-    rs_xbits_free(ptr, ptr->name);
     return 0;
 }
 
