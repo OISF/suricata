@@ -179,6 +179,51 @@ impl QuicState {
         return false;
     }
 
+    fn handle_frames(&mut self, data: QuicData, header: QuicHeader, to_server: bool) {
+        // no tx for the short header (data) frames
+        if header.ty != QuicType::Short {
+            let mut sni: Option<Vec<u8>> = None;
+            let mut ua: Option<Vec<u8>> = None;
+            let mut ja3: Option<String> = None;
+            let mut extv: Vec<QuicTlsExtension> = Vec::new();
+            for frame in &data.frames {
+                match frame {
+                    Frame::Stream(s) => {
+                        if let Some(tags) = &s.tags {
+                            for (tag, value) in tags {
+                                if tag == &StreamTag::Sni {
+                                    sni = Some(value.to_vec());
+                                } else if tag == &StreamTag::Uaid {
+                                    ua = Some(value.to_vec());
+                                }
+                                if sni.is_some() && ua.is_some() {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Frame::Crypto(c) => {
+                        ja3 = Some(c.ja3.clone());
+                        for e in &c.extv {
+                            if e.etype == TlsExtensionType::ServerName && e.values.len() > 0 {
+                                sni = Some(e.values[0].to_vec());
+                            }
+                        }
+                        extv.extend_from_slice(&c.extv);
+                        if to_server {
+                            self.hello_ts = true
+                        } else {
+                            self.hello_tc = true
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            self.new_tx(header, data, sni, ua, extv, ja3);
+        }
+    }
+
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
@@ -213,50 +258,7 @@ impl QuicState {
                     buf = next_buf;
                     match QuicData::from_bytes(framebuf) {
                         Ok(data) => {
-                            // no tx for the short header (data) frames
-                            if header.ty != QuicType::Short {
-                                let mut sni: Option<Vec<u8>> = None;
-                                let mut ua: Option<Vec<u8>> = None;
-                                let mut ja3: Option<String> = None;
-                                let mut extv: Vec<QuicTlsExtension> = Vec::new();
-                                for frame in &data.frames {
-                                    match frame {
-                                        Frame::Stream(s) => {
-                                            if let Some(tags) = &s.tags {
-                                                for (tag, value) in tags {
-                                                    if tag == &StreamTag::Sni {
-                                                        sni = Some(value.to_vec());
-                                                    } else if tag == &StreamTag::Uaid {
-                                                        ua = Some(value.to_vec());
-                                                    }
-                                                    if sni.is_some() && ua.is_some() {
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        Frame::Crypto(c) => {
-                                            ja3 = Some(c.ja3.clone());
-                                            for e in &c.extv {
-                                                if e.etype == TlsExtensionType::ServerName
-                                                    && e.values.len() > 0
-                                                {
-                                                    sni = Some(e.values[0].to_vec());
-                                                }
-                                            }
-                                            extv.extend_from_slice(&c.extv);
-                                            if to_server {
-                                                self.hello_ts = true
-                                            } else {
-                                                self.hello_tc = true
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-
-                                self.new_tx(header, data, sni, ua, extv, ja3);
-                            }
+                            self.handle_frames(data, header, to_server);
                         }
                         Err(_e) => {
                             return false;
@@ -316,8 +318,9 @@ pub unsafe extern "C" fn rs_quic_parse_tc(
 
     if state.parse(buf, false) {
         return AppLayerResult::ok();
+    } else {
+        return AppLayerResult::err();
     }
-    return AppLayerResult::err();
 }
 
 #[no_mangle]
@@ -330,8 +333,9 @@ pub unsafe extern "C" fn rs_quic_parse_ts(
 
     if state.parse(buf, true) {
         return AppLayerResult::ok();
+    } else {
+        return AppLayerResult::err();
     }
-    return AppLayerResult::err();
 }
 
 #[no_mangle]
