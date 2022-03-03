@@ -3,6 +3,9 @@ name: commit-check
 on:
   - pull_request
 
+env:
+  LIBHTP_BRANCH: 0.5.40
+
 jobs:
 
   check-commits:
@@ -60,7 +63,7 @@ jobs:
       - run: echo $PATH
       - uses: actions/checkout@v1
       - run: git fetch
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: git clone https://github.com/OISF/libhtp -b ${LIBHTP_BRANCH}
       - name: Building all commits
         run: |
           echo "Building commits from ${GITHUB_BASE_REF}."
