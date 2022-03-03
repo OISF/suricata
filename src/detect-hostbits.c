@@ -391,7 +391,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_HOST_BIT);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
-    cd->type = VAR_TYPE_HOST_BIT;
+    cd->vartype = VAR_TYPE_HOST_BIT;
     cd->expire = 300;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
