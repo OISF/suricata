@@ -141,22 +141,22 @@ static inline void OutputTxLogFiles(ThreadVars *tv,
         OutputFiledataLoggerThreadData *filedata_td,
         Packet *p, Flow *f, void *tx,
         const uint64_t tx_id, AppLayerTxData *txd, const int tx_progress_ts,
-        const int tx_progress_tc, const bool tx_complete, const bool last_pseudo,
+        const int tx_progress_tc, const bool tx_complete,
         const bool ts_ready, const bool tc_ready, const bool ts_eof, const bool tc_eof,
         const bool eof)
 {
     int packet_dir;
     int opposing_dir;
     bool packet_dir_ready;
-    const bool opposing_dir_ready = last_pseudo;
+    const bool opposing_dir_ready = eof;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         packet_dir = STREAM_TOSERVER;
         opposing_dir = STREAM_TOCLIENT;
-        packet_dir_ready = last_pseudo || ts_ready || ts_eof;
+        packet_dir_ready = eof | ts_ready | ts_eof;
     } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
         packet_dir = STREAM_TOCLIENT;
         opposing_dir = STREAM_TOSERVER;
-        packet_dir_ready = last_pseudo || tc_ready || tc_eof;
+        packet_dir_ready = eof | tc_ready | tc_eof;
     } else {
         abort();
     }
@@ -429,7 +429,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             OutputTxLogFiles(tv,
                     op_thread_data->file, op_thread_data->filedata,
                     p, f, tx, tx_id, txd, tx_progress_ts, tx_progress_tc, tx_complete,
-                    last_pseudo, ts_ready, tc_ready, ts_eof, tc_eof, eof);
+                    ts_ready, tc_ready, ts_eof, tc_eof, eof);
         }
         if (txd)
             SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged.flags);
