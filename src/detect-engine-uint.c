@@ -88,6 +88,16 @@ static int DetectU32Validate(DetectU32Data *du32)
                 return 1;
             }
             break;
+        case DETECT_UINT_LTE:
+            if (du32->arg1 == UINT32_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GTE:
+            if (du32->arg1 == 0) {
+                return 1;
+            }
+            break;
         case DETECT_UINT_GT:
             if (du32->arg1 == UINT32_MAX) {
                 return 1;
@@ -351,6 +361,16 @@ static int DetectU8Validate(DetectU8Data *du8)
                 return 1;
             }
             break;
+        case DETECT_UINT_LTE:
+            if (du8->arg1 == UINT8_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GTE:
+            if (du8->arg1 == 0) {
+                return 1;
+            }
+            break;
         case DETECT_UINT_GT:
             if (du8->arg1 == UINT8_MAX) {
                 return 1;
@@ -569,6 +589,16 @@ static int DetectU16Validate(DetectU16Data *du16)
 {
     switch (du16->mode) {
         case DETECT_UINT_LT:
+            if (du16->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_LTE:
+            if (du16->arg1 == UINT16_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GTE:
             if (du16->arg1 == 0) {
                 return 1;
             }
