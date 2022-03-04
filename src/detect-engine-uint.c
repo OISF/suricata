@@ -503,3 +503,217 @@ DetectU8Data *DetectU8Parse (const char *u8str)
 
     return u8d;
 }
+
+//same as u32 but with u16
+int DetectU16Match(const uint16_t parg, const DetectU16Data *du16)
+{
+    switch (du16->mode) {
+        case DETECT_UINT_EQ:
+            if (parg == du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_LT:
+            if (parg < du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_LTE:
+            if (parg <= du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_GT:
+            if (parg > du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_GTE:
+            if (parg >= du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_RA:
+            if (parg > du16->arg1 && parg < du16->arg2) {
+                return 1;
+            }
+            return 0;
+        default:
+            BUG_ON("unknown mode");
+    }
+    return 0;
+}
+
+static int DetectU16Validate(DetectU16Data *du16)
+{
+    switch (du16->mode) {
+        case DETECT_UINT_LT:
+            if (du16->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GT:
+            if (du16->arg1 == UINT16_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_RA:
+            if (du16->arg1 >= du16->arg2) {
+                return 1;
+            }
+            // we need at least one value that can match parg > du16->arg1 && parg < du16->arg2
+            if (du16->arg1 + 1 >= du16->arg2) {
+                return 1;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+/**
+ * \brief This function is used to parse u16 options passed via some u16 keyword
+ *
+ * \param u16str Pointer to the user provided u16 options
+ *
+ * \retval DetectU16Data pointer to DetectU16Data on success
+ * \retval NULL on failure
+ */
+
+DetectU16Data *DetectU16Parse (const char *u16str)
+{
+    /* We initialize these to please static checkers, these values will
+       either be updated or not used later on */
+    DetectU16Data u16da = {0, 0, 0};
+    DetectU16Data *u16d = NULL;
+    char arg1[16] = "";
+    char arg2[16] = "";
+    char arg3[16] = "";
+
+    int ret = 0, res = 0;
+    size_t pcre2len;
+
+    ret = DetectParsePcreExec(&uint_pcre, u16str, 0, 0);
+    if (ret < 2 || ret > 4) {
+        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
+        return NULL;
+    }
+
+    pcre2len = sizeof(arg1);
+    res = pcre2_substring_copy_bynumber(uint_pcre.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        return NULL;
+    }
+    SCLogDebug("Arg1 \"%s\"", arg1);
+
+    if (ret >= 3) {
+        pcre2len = sizeof(arg2);
+        res = pcre2_substring_copy_bynumber(uint_pcre.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            return NULL;
+        }
+        SCLogDebug("Arg2 \"%s\"", arg2);
+
+        if (ret >= 4) {
+            pcre2len = sizeof(arg3);
+            res = pcre2_substring_copy_bynumber(
+                    uint_pcre.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                return NULL;
+            }
+            SCLogDebug("Arg3 \"%s\"", arg3);
+        }
+    }
+
+    if (strlen(arg2) > 0) {
+        /*set the values*/
+        switch(arg2[0]) {
+            case '<':
+            case '>':
+                if (strlen(arg2) == 1) {
+                    if (StringParseUint16(&u16da.arg1, 10, strlen(arg3), arg3) < 0) {
+                        SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
+                        return NULL;
+                    }
+
+                    SCLogDebug("u16 is %" PRIu16 "", u16da.arg1);
+                    if (strlen(arg1) > 0)
+                        return NULL;
+
+                    if (arg2[0] == '<') {
+                        u16da.mode = DETECT_UINT_LT;
+                    } else { // arg2[0] == '>'
+                        u16da.mode = DETECT_UINT_GT;
+                    }
+                    break;
+                } else if (strlen(arg2) == 2) {
+                    if (arg2[0] == '<' && arg2[1] == '=') {
+                        u16da.mode = DETECT_UINT_LTE;
+                        break;
+                    } else if (arg2[0] == '>' || arg2[1] == '=') {
+                        u16da.mode = DETECT_UINT_GTE;
+                        break;
+                    } else if (arg2[0] != '<' || arg2[1] != '>') {
+                        return NULL;
+                    }
+                } else {
+                    return NULL;
+                }
+                // fall through
+            case '-':
+                u16da.mode = DETECT_UINT_RA;
+                if (StringParseUint16(&u16da.arg1, 10, strlen(arg1), arg1) < 0) {
+                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
+                    return NULL;
+                }
+                if (StringParseUint16(&u16da.arg2, 10, strlen(arg3), arg3) < 0) {
+                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
+                    return NULL;
+                }
+
+                SCLogDebug("u16 is %"PRIu16" to %"PRIu16"", u16da.arg1, u16da.arg2);
+                if (u16da.arg1 >= u16da.arg2) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u16 range. ");
+                    return NULL;
+                }
+                break;
+            default:
+                u16da.mode = DETECT_UINT_EQ;
+
+                if (strlen(arg2) > 0 ||
+                    strlen(arg3) > 0)
+                    return NULL;
+
+                if (StringParseUint16(&u16da.arg1, 10, strlen(arg1), arg1) < 0) {
+                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
+                    return NULL;
+                }
+        }
+    } else {
+        u16da.mode = DETECT_UINT_EQ;
+
+        if (strlen(arg3) > 0)
+            return NULL;
+
+        if (StringParseUint16(&u16da.arg1, 10, strlen(arg1), arg1) < 0) {
+            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
+            return NULL;
+        }
+    }
+    if (DetectU16Validate(&u16da)) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint16 condition : %s", u16str);
+        return NULL;
+    }
+    u16d = SCCalloc(1, sizeof (DetectU16Data));
+    if (unlikely(u16d == NULL))
+        return NULL;
+    u16d->arg1 = u16da.arg1;
+    u16d->arg2 = u16da.arg2;
+    u16d->mode = u16da.mode;
+
+    return u16d;
+}

@@ -59,4 +59,14 @@ typedef struct DetectU8Data_ {
 int DetectU8Match(const uint8_t parg, const DetectU8Data *du8);
 DetectU8Data *DetectU8Parse (const char *u8str);
 
+typedef struct DetectU16Data_ {
+    uint16_t arg1;   /**< first arg value in the signature*/
+    uint16_t arg2;   /**< second arg value in the signature, in case of range
+                          operator*/
+    DetectUintMode mode;    /**< operator used in the signature */
+} DetectU16Data;
+
+int DetectU16Match(const uint16_t parg, const DetectU16Data *du16);
+DetectU16Data *DetectU16Parse (const char *u16str);
+
 #endif /* __DETECT_UTIL_UINT_H */
