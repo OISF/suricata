@@ -34,6 +34,7 @@
 #include "runmodes.h"
 #include "runmode-dpdk.h"
 #include "source-dpdk.h"
+#include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-byte.h"
 #include "util-cpu.h"
@@ -71,8 +72,13 @@ static void ArgumentsInit(struct Arguments *args, unsigned capacity);
 static void ArgumentsCleanup(struct Arguments *args);
 static void ArgumentsAdd(struct Arguments *args, char *value);
 static void ArgumentsAddOptionAndArgument(struct Arguments *args, const char *opt, const char *arg);
+static void ArgumentsAddLcoreArguments(struct Arguments *args);
+static void ArgumentsLcoreValidate(void);
 static void InitEal(void);
 
+static char *ConfigLcoreArgValGet(void);
+static int ConfigLcoreWorkersSet(uint32_t *cpus, size_t sz);
+static uint32_t ConfigLcoreMainGet(void);
 static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues);
@@ -248,6 +254,118 @@ static void ArgumentsAddOptionAndArgument(struct Arguments *args, const char *op
     SCReturn;
 }
 
+/**
+ * Returns the first management core to be used as a main lcore
+ * @return
+ */
+static uint32_t ConfigLcoreMainGet(void)
+{
+    ThreadsAffinityType *taf = GetAffinityTypeFromName("management-cpu-set");
+    for (uint16_t i = 0; i < (uint16_t)sizeof(cpu_set_t); i++) {
+        if (CPU_ISSET(i, &taf->cpu_set)) {
+            return i;
+        }
+    }
+
+    FatalError(SC_ERR_DPDK_CONF, "No affinity set for management threads");
+}
+
+/**
+ * Convert cpu_set_t mask to an array of numbers.
+ * @param cpus - array to fill in
+ * @param sz - size of the array
+ * @return length of the new array
+ */
+static int ConfigLcoreWorkersSet(uint32_t *cpus, const size_t sz)
+{
+    int cpus_len = 0;
+    memset(cpus, 0, sz);
+    ThreadsAffinityType *taf = GetAffinityTypeFromName("worker-cpu-set");
+
+    for (uint16_t i = 0; i < (uint16_t)sizeof(cpu_set_t); i++) {
+        if (CPU_ISSET(i, &taf->cpu_set)) {
+            cpus[cpus_len++] = i;
+        }
+    }
+
+    return cpus_len;
+}
+
+/**
+ * Function converts cpu_set_t mask to a string of lcores to enable, divided by a comma separator.
+ * Used for EAL initialization together with "-l" parameter (format -l 2,4,6,8).
+ * @return dynamically allocated string
+ */
+static char *ConfigLcoreArgValGet(void)
+{
+    SCEnter();
+    int ret;
+    uint32_t lcore_arr[sizeof(cpu_set_t)];
+    lcore_arr[0] = ConfigLcoreMainGet();
+    uint16_t lcore_arr_len = // using 1 for extra main lcore apart from worker lcores
+            1 + ConfigLcoreWorkersSet(&lcore_arr[1], sizeof(cpu_set_t) - 1);
+    uint32_t max_num = ArrayMaxValue(lcore_arr, lcore_arr_len);
+
+    // lcore_arr_len - how many CPUs are set
+    // CountDigits(max_num) + 1 - the highest number of digits with comma separator
+    // +1 - terminating character
+    uint16_t lcore_arg_size = lcore_arr_len * (CountDigits(max_num) + 1) + 1;
+    char *lcore_arg = AllocArgument(lcore_arg_size);
+    uint16_t lcore_arg_len = 0;
+
+    for (uint16_t i = 0; i < lcore_arr_len; i++) {
+        ret = snprintf(
+                &lcore_arg[lcore_arg_len], lcore_arg_size - lcore_arg_len, "%u,", lcore_arr[i]);
+        if (ret <= 0)
+            FatalError(SC_ERR_DPDK_EAL_INIT,
+                    "Conversion of threading affinity to lcore argument failed - returned %d from "
+                    "snprintf",
+                    ret);
+        else if (lcore_arg_len + ret > lcore_arg_size)
+            FatalError(SC_ERR_DPDK_EAL_INIT, "Conversion of threading affinity to lcore argument "
+                                             "failed - lcore argument buffer insufficiently long");
+
+        lcore_arg_len += ret;
+    }
+    lcore_arg[lcore_arg_len - 1] = '\0'; // trim the last comma separator
+    SCReturnCharPtr(lcore_arg);
+}
+
+static void ArgumentsLcoreValidate(void)
+{
+    if (threading_set_cpu_affinity == FALSE)
+        FatalError(SC_ERR_DPDK_CONF, "CPU affinity needs to be set");
+
+    ThreadsAffinityType *mngmt_taf = GetAffinityTypeFromName("management-cpu-set");
+    ThreadsAffinityType *wrkr_taf = GetAffinityTypeFromName("worker-cpu-set");
+
+    if (mngmt_taf == NULL)
+        FatalError(SC_ERR_DPDK_CONF, "Unable to obtain CPU affinity for \"management-cpu-set\"");
+    else if (wrkr_taf == NULL)
+        FatalError(SC_ERR_DPDK_CONF, "Unable to obtain CPU affinity for \"worker-cpu-set\"");
+
+    cpu_set_t result;
+    CPU_AND(&result, &mngmt_taf->cpu_set, &wrkr_taf->cpu_set);
+    if (CPU_COUNT(&result) != 0)
+        FatalError(SC_ERR_DPDK_CONF, "Affinity of management and worker threads must not overlap");
+}
+
+static void ArgumentsAddLcoreArguments(struct Arguments *args)
+{
+    ArgumentsLcoreValidate();
+
+    ArgumentsAdd(args, AllocAndSetArgument("-l"));
+    char *lcore_arg = ConfigLcoreArgValGet();
+    ArgumentsAdd(args, lcore_arg);
+
+    ArgumentsAdd(args, AllocAndSetArgument("--main-lcore"));
+    uint32_t main_lcore = ConfigLcoreMainGet();
+    uint16_t main_lcore_str_size = CountDigits(main_lcore) + 1;
+    char *main_lcore_str = AllocArgument(main_lcore_str_size);
+    snprintf(main_lcore_str, main_lcore_str_size, "%u", main_lcore);
+    ArgumentsAdd(args, main_lcore_str);
+}
+
 static void InitEal()
 {
     SCEnter();
@@ -263,6 +381,7 @@ static void InitEal()
 
     ArgumentsInit(&args, EAL_ARGS);
     ArgumentsAdd(&args, AllocAndSetArgument("suricata"));
+    ArgumentsAddLcoreArguments(&args);
 
     TAILQ_FOREACH (param, &eal_params->head, next) {
         ArgumentsAddOptionAndArgument(&args, param->name, param->val);

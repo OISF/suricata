@@ -1301,18 +1301,6 @@
             AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
                         [enable_dpdk=$enableval],[enable_dpdk=no])
     AS_IF([test "x$enable_dpdk" = "xyes"], [
-        AC_CHECK_LIB(numa, numa_available,, [numa_found="no"])
-        if test "$numa_found" = "no"; then
-            echo
-            echo "  ERROR! libnuma not found by pkg-config, go get it"
-            echo "      from http://github.com/numactl/numactl or your distribution:"
-            echo "          Ubuntu: apt-get install libnuma-dev"
-            echo "          Fedora: dnf install numactl-devel"
-            echo "          CentOS/RHEL: yum install numactl-devel"
-            echo
-            exit 1
-        fi
-
         AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
         PKG_CHECK_EXISTS(libdpdk >= 20.11, [pkgconfig_libdpdk_above20=yes], )
         if test "$pkgconfig_libdpdk_above20" = "yes"; then

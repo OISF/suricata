@@ -39,6 +39,8 @@
 
 #include "util-device.h"
 
+uint32_t ArrayMaxValue(const uint32_t *arr, uint16_t arr_len);
+uint8_t CountDigits(uint32_t n);
 void DPDKCleanupEAL(void);
 void DPDKCloseDevice(LiveDevice *ldev);
 

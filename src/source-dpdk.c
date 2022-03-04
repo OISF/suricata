@@ -211,25 +211,6 @@ static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *dri
 }
 
 /**
- * Attempts to retrieve NUMA node id on which the caller runs
- * @return NUMA id on success, -1 otherwise
- */
-static int GetNumaNode(void)
-{
-    int cpu = 0;
-    int node = -1;
-
-#if defined(__linux__)
-    cpu = sched_getcpu();
-    node = numa_node_of_cpu(cpu);
-#else
-    SCLogWarning(SC_ERR_TM_THREADS_ERROR, "NUMA node retrieval is not supported on this OS.");
-#endif
-
-    return node;
-}
-
-/**
  * \brief Registration Function for ReceiveDPDK.
  * \todo Unit tests are needed for this module.
  */
@@ -411,7 +392,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    int retval, thread_numa;
+    int retval;
     DPDKThreadVars *ptv = NULL;
     DPDKIfaceConfig *dpdk_config = (DPDKIfaceConfig *)initdata;
 
@@ -472,11 +453,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
     }
 
-    thread_numa = GetNumaNode();
-    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
+    if ((int)rte_socket_id() != rte_eth_dev_socket_id(ptv->port_id)) {
         SCLogWarning(SC_WARN_DPDK_CONF,
                 "NIC on NUMA %d but thread on NUMA %d. Decreased performance expected",
-                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+                rte_eth_dev_socket_id(ptv->port_id), rte_socket_id());
     }
 
     *data = (void *)ptv;
