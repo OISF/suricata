@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use super::parser::QuicType;
 use super::quic::QuicTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
@@ -86,7 +87,7 @@ fn quic_tls_extension_name(e: u16) -> Option<String> {
 
 fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("quic")?;
-    if tx.header.flags.is_long {
+    if tx.header.ty != QuicType::Short {
         js.set_string("version", String::from(tx.header.version).as_str())?;
 
         if let Some(sni) = &tx.sni {
