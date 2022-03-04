@@ -366,10 +366,7 @@ static void *StatsMgmtThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv_local->name);
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);
@@ -449,10 +446,7 @@ static void *StatsWakeupThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv_local->name);
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);

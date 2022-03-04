@@ -228,10 +228,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -370,10 +367,7 @@ static void *TmThreadsSlotVar(void *td)
 
     PacketPoolInit();//Empty();
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -521,10 +515,7 @@ static void *TmThreadsManagement(void *td)
 
     BUG_ON(s == NULL);
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);

@@ -2815,7 +2815,7 @@ int InitGlobal(void) {
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
-    (void)SCSetThreadName("Suricata-Main");
+    SCSetThreadName("Suricata-Main");
 
     /* Ignore SIGUSR2 as early as possble. We redeclare interest
      * once we're done launching threads. The goal is to either die
