@@ -20,6 +20,7 @@ use nom::bytes::complete::take;
 use nom::combinator::{all_consuming, map};
 use nom::number::complete::{be_u24, be_u32, be_u8};
 use nom::IResult;
+use std::convert::TryFrom;
 
 use rustls::quic::Version;
 
@@ -169,7 +170,7 @@ pub struct QuicHeader {
     pub version_buf: Vec<u8>,
     pub dcid: Vec<u8>,
     pub scid: Vec<u8>,
-    pub length: usize,
+    pub length: u16,
 }
 
 #[derive(Debug, PartialEq)]
@@ -295,10 +296,21 @@ impl QuicHeader {
                 _ => rest,
             };
             let (rest, length) = if has_length {
-                let (rest, plength) = quic_var_uint(rest)?;
-                (rest, plength as usize)
+                let (rest2, plength) = quic_var_uint(rest)?;
+                if plength > rest.len() as u64 {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
+                if let Ok(length) = u16::try_from(plength) {
+                    (rest2, length)
+                } else {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
             } else {
-                (rest, rest.len())
+                if let Ok(length) = u16::try_from(rest.len()) {
+                    (rest, length)
+                } else {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
             };
 
             Ok((
