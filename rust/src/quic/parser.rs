@@ -40,6 +40,7 @@ use std::convert::TryFrom;
 pub struct QuicVersion(pub u32);
 
 impl QuicVersion {
+    pub const Q039: QuicVersion = QuicVersion(0x51303339);
     pub const Q043: QuicVersion = QuicVersion(0x51303433);
     pub const Q044: QuicVersion = QuicVersion(0x51303434);
     pub const Q045: QuicVersion = QuicVersion(0x51303435);
@@ -56,6 +57,7 @@ impl QuicVersion {
 impl From<QuicVersion> for String {
     fn from(from: QuicVersion) -> Self {
         match from {
+            QuicVersion(0x51303339) => "Q039".to_string(),
             QuicVersion(0x51303433) => "Q043".to_string(),
             QuicVersion(0x51303434) => "Q044".to_string(),
             QuicVersion(0x51303435) => "Q045".to_string(),
@@ -86,16 +88,23 @@ pub enum QuicType {
     Short,
 }
 
+const QUIC_FLAG_MULTIPATH: u8 = 0x40;
+const QUIC_FLAG_DCID_LEN: u8 = 0x8;
+const QUIC_FLAG_NONCE: u8 = 0x4;
+const QUIC_FLAG_VERSION: u8 = 0x1;
+
 #[derive(Debug, PartialEq)]
 pub struct PublicFlags {
     pub is_long: bool,
+    pub raw: u8,
 }
 
 impl PublicFlags {
     pub fn new(value: u8) -> Self {
         let is_long = value & 0x80 == 0x80;
+        let raw = value;
 
-        PublicFlags { is_long }
+        PublicFlags { is_long, raw }
     }
 }
 
@@ -185,27 +194,80 @@ impl QuicHeader {
     }
 
     pub(crate) fn from_bytes(
-        input: &[u8], dcid_len: usize,
+        input: &[u8], _dcid_len: usize,
     ) -> IResult<&[u8], QuicHeader, QuicError> {
         let (rest, first) = be_u8(input)?;
         let flags = PublicFlags::new(first);
 
-        if !flags.is_long {
+        if !flags.is_long && (flags.raw & QUIC_FLAG_MULTIPATH) == 0 {
+            let (mut rest, dcid) = if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                take(8_usize)(rest)?
+            } else {
+                take(0_usize)(rest)?
+            };
+            if (flags.raw & QUIC_FLAG_NONCE) != 0 && (flags.raw & QUIC_FLAG_DCID_LEN) == 0 {
+                let (rest1, _) = take(32_usize)(rest)?;
+                rest = rest1;
+            }
+            let version_buf: &[u8];
+            let version;
+            if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                let (_, version_buf1) = take(4_usize)(rest)?;
+                let (rest1, version1) = map(be_u32, QuicVersion)(rest)?;
+                rest = rest1;
+                version = version1;
+                version_buf = version_buf1;
+            } else {
+                version = QuicVersion(0);
+                version_buf = &rest[..0];
+            }
+            let pkt_num_len = 1 + ((flags.raw & 0x30) >> 4);
+            let (mut rest, _pkt_num) = take(pkt_num_len)(rest)?;
+            if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                let (rest1, _msg_auth_hash) = take(12_usize)(rest)?;
+                rest = rest1;
+            }
+            let ty = if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                QuicType::Initial
+            } else {
+                QuicType::Short
+            };
+            if let Ok(plength) = u16::try_from(rest.len()) {
+                return Ok((
+                    rest,
+                    QuicHeader {
+                        flags,
+                        ty: ty,
+                        version: version,
+                        version_buf: version_buf.to_vec(),
+                        dcid: dcid.to_vec(),
+                        scid: Vec::new(),
+                        length: plength,
+                    },
+                ));
+            } else {
+                return Err(nom::Err::Error(QuicError::InvalidPacket));
+            }
+        } else if !flags.is_long {
             // Decode short header
-            let (rest, dcid) = take(dcid_len)(rest)?;
+            // depends on version let (rest, dcid) = take(_dcid_len)(rest)?;
 
-            return Ok((
-                rest,
-                QuicHeader {
-                    flags,
-                    ty: QuicType::Short,
-                    version: QuicVersion(0),
-                    version_buf: Vec::new(),
-                    dcid: dcid.to_vec(),
-                    scid: Vec::new(),
-                    length: 0,
-                },
-            ));
+            if let Ok(plength) = u16::try_from(rest.len()) {
+                return Ok((
+                    rest,
+                    QuicHeader {
+                        flags,
+                        ty: QuicType::Short,
+                        version: QuicVersion(0),
+                        version_buf: Vec::new(),
+                        dcid: Vec::new(),
+                        scid: Vec::new(),
+                        length: plength,
+                    },
+                ));
+            } else {
+                return Err(nom::Err::Error(QuicError::InvalidPacket));
+            }
         } else {
             // Decode Long header
             let (_, version_buf) = take(4_usize)(rest)?;
@@ -335,7 +397,13 @@ mod tests {
     #[test]
     fn public_flags_test() {
         let pf = PublicFlags::new(0xcb);
-        assert_eq!(PublicFlags { is_long: true }, pf);
+        assert_eq!(
+            PublicFlags {
+                is_long: true,
+                raw: 0xcb
+            },
+            pf
+        );
     }
 
     const TEST_DEFAULT_CID_LENGTH: usize = 8;
@@ -348,7 +416,10 @@ mod tests {
             QuicHeader::from_bytes(data.as_ref(), TEST_DEFAULT_CID_LENGTH).unwrap();
         assert_eq!(
             QuicHeader {
-                flags: PublicFlags { is_long: true },
+                flags: PublicFlags {
+                    is_long: true,
+                    raw: 0xcb
+                },
                 ty: QuicType::Initial,
                 version: QuicVersion(0xff00001d),
                 version_buf: vec![0xff, 0x00, 0x00, 0x1d],
@@ -372,7 +443,10 @@ mod tests {
 
         assert_eq!(
             QuicHeader {
-                flags: PublicFlags { is_long: true },
+                flags: PublicFlags {
+                    is_long: true,
+                    raw: 0xff
+                },
                 ty: QuicType::Initial,
                 version: QuicVersion::Q044,
                 version_buf: vec![0x51, 0x30, 0x34, 0x34],
