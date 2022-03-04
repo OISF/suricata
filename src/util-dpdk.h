@@ -39,6 +39,7 @@
 
 #include "util-device.h"
 
+uint8_t CountDigits(uint16_t n);
 void DPDKCleanupEAL(void);
 void DPDKCloseDevice(LiveDevice *ldev);
 

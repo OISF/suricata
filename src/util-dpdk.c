@@ -24,6 +24,19 @@
 #include "suricata.h"
 #include "util-dpdk.h"
 
+uint8_t CountDigits(uint16_t n)
+{
+    uint8_t digits_cnt = 0;
+    if (n == 0)
+        return 1;
+
+    while (n != 0) {
+        n = n / 10;
+        digits_cnt++;
+    }
+    return digits_cnt;
+}
+
 void DPDKCleanupEAL(void)
 {
 #ifdef HAVE_DPDK
