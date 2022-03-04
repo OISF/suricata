@@ -31,6 +31,7 @@ typedef enum {
     DETECT_UINT_EQ = PREFILTER_U8HASH_MODE_EQ,
     DETECT_UINT_GT = PREFILTER_U8HASH_MODE_GT,
     DETECT_UINT_RA = PREFILTER_U8HASH_MODE_RA,
+    DETECT_UINT_NE,
     DETECT_UINT_LTE,
     DETECT_UINT_GTE,
 } DetectUintMode;
@@ -60,13 +61,15 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8);
 DetectU8Data *DetectU8Parse (const char *u8str);
 
 typedef struct DetectU16Data_ {
-    uint16_t arg1;   /**< first arg value in the signature*/
-    uint16_t arg2;   /**< second arg value in the signature, in case of range
-                          operator*/
-    DetectUintMode mode;    /**< operator used in the signature */
+    uint16_t arg1;       /**< first arg value in the signature*/
+    uint16_t arg2;       /**< second arg value in the signature, in case of range
+                              operator*/
+    DetectUintMode mode; /**< operator used in the signature */
 } DetectU16Data;
 
 int DetectU16Match(const uint16_t parg, const DetectU16Data *du16);
-DetectU16Data *DetectU16Parse (const char *u16str);
+DetectU16Data *DetectU16Parse(const char *u16str);
+void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx);
+bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx);
 
 #endif /* __DETECT_UTIL_UINT_H */
