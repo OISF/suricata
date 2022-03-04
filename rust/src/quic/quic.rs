@@ -142,8 +142,9 @@ impl QuicState {
             if framebuf.len() < 4 + hkey.sample_len() {
                 return false;
             }
-            let mut h2 = Vec::with_capacity(hlen + header.length);
-            h2.extend_from_slice(&buf[..hlen + header.length]);
+            let h2len = hlen + usize::from(header.length);
+            let mut h2 = Vec::with_capacity(h2len);
+            h2.extend_from_slice(&buf[..h2len]);
             let mut h20 = h2[0];
             let mut pktnum_buf = Vec::with_capacity(4);
             pktnum_buf.extend_from_slice(&h2[hlen..hlen + 4]);
@@ -241,11 +242,8 @@ impl QuicState {
                             self.keys = Some(keys)
                         }
                     }
-                    if header.length > rest.len() {
-                        //TODO event whenever an error condition is met
-                        return false;
-                    }
-                    let (mut framebuf, next_buf) = rest.split_at(header.length);
+                    // header.length was checked against rest.len() during parsing
+                    let (mut framebuf, next_buf) = rest.split_at(header.length.into());
                     let hlen = buf.len() - rest.len();
                     let mut output;
                     if self.keys.is_some() {
