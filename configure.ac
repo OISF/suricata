@@ -1321,7 +1321,13 @@
             exit 1
         fi
         CFLAGS="${CFLAGS} `pkg-config --cflags libdpdk`"
-        LIBS="${LIBS} -Wl,-R,`pkg-config --libs-only-L libdpdk | cut -c 3-` -lnuma `pkg-config --libs libdpdk`"
+        dpdk_libs_cut="$(pkg-config --libs-only-L libdpdk | cut -c 3-)"
+        if test "${dpdk_libs_cut}" = ""; then
+            DPDK_RPATH=""
+        else
+            DPDK_RPATH="-Wl,-R,`${dpdk_libs_cut}`"
+        fi
+        LIBS="${LIBS} ${DPDK_RPATH} `pkg-config --libs libdpdk`"
     ])
 
   # Netmap support
