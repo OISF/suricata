@@ -274,7 +274,6 @@ enum {
         SCLogDebug("Thread name is too long, truncating it..."); \
     strlcpy(tname, n, 16); \
     pthread_set_name_np(pthread_self(), tname); \
-    0; \
 })
 #elif defined __OpenBSD__ /* OpenBSD */
 /** \todo Add implementation for OpenBSD */
@@ -289,16 +288,15 @@ enum {
 /**
  * \brief Set the threads name
  */
-#define SCSetThreadName(n) ({ \
-    char tname[THREAD_NAME_LEN + 1] = ""; \
-    if (strlen(n) > THREAD_NAME_LEN) \
-        SCLogDebug("Thread name is too long, truncating it..."); \
-    strlcpy(tname, n, THREAD_NAME_LEN); \
-    int ret = 0; \
-    if ((ret = prctl(PR_SET_NAME, tname, 0, 0, 0)) < 0) \
-        SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno)); \
-    ret; \
-})
+#define SCSetThreadName(n)                                                                         \
+    ({                                                                                             \
+        char tname[THREAD_NAME_LEN + 1] = "";                                                      \
+        if (strlen(n) > THREAD_NAME_LEN)                                                           \
+            SCLogDebug("Thread name is too long, truncating it...");                               \
+        strlcpy(tname, n, THREAD_NAME_LEN);                                                        \
+        if (prctl(PR_SET_NAME, tname, 0, 0, 0) < 0)                                                \
+            SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno));            \
+    })
 #else
 #define SCSetThreadName(n) (0)
 #endif
