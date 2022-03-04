@@ -31,7 +31,7 @@
 /**
  * \brief Regex for parsing our options
  */
-#define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
+#define PARSE_REGEX "^\\s*([0-9]*)?\\s*([!<>=-]+)?\\s*([0-9]+)?\\s*$"
 
 static DetectParseRegex uint_pcre;
 
@@ -41,6 +41,11 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
     switch (du32->mode) {
         case DETECT_UINT_EQ:
             if (parg == du32->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_NE:
+            if (parg != du32->arg1) {
                 return 1;
             }
             return 0;
@@ -165,6 +170,7 @@ DetectU32Data *DetectU32Parse (const char *u32str)
         switch(arg2[0]) {
             case '<':
             case '>':
+            case '!':
                 if (strlen(arg2) == 1) {
                     if (strlen(arg3) == 0)
                         return NULL;
@@ -180,8 +186,10 @@ DetectU32Data *DetectU32Parse (const char *u32str)
 
                     if (arg2[0] == '<') {
                         u32da.mode = DETECT_UINT_LT;
-                    } else { // arg2[0] == '>'
+                    } else if (arg2[0] == '>') {
                         u32da.mode = DETECT_UINT_GT;
+                    } else { // if (arg2[0] == '!')
+                        u32da.mode = DETECT_UINT_NE;
                     }
                     break;
                 } else if (strlen(arg2) == 2) {
@@ -296,6 +304,11 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
     switch (du8->mode) {
         case DETECT_UINT_EQ:
             if (parg == du8->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_NE:
+            if (parg != du8->arg1) {
                 return 1;
             }
             return 0;
@@ -420,6 +433,7 @@ DetectU8Data *DetectU8Parse (const char *u8str)
         switch(arg2[0]) {
             case '<':
             case '>':
+            case '!':
                 if (strlen(arg2) == 1) {
                     if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
                         SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
@@ -432,8 +446,10 @@ DetectU8Data *DetectU8Parse (const char *u8str)
 
                     if (arg2[0] == '<') {
                         u8da.mode = DETECT_UINT_LT;
-                    } else { // arg2[0] == '>'
+                    } else if (arg2[0] == '>') {
                         u8da.mode = DETECT_UINT_GT;
+                    } else { // if (arg2[0] == '!')
+                        u8da.mode = DETECT_UINT_NE;
                     }
                     break;
                 } else if (strlen(arg2) == 2) {
@@ -504,12 +520,17 @@ DetectU8Data *DetectU8Parse (const char *u8str)
     return u8d;
 }
 
-//same as u32 but with u16
+// same as u32 but with u16
 int DetectU16Match(const uint16_t parg, const DetectU16Data *du16)
 {
     switch (du16->mode) {
         case DETECT_UINT_EQ:
             if (parg == du16->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_NE:
+            if (parg != du16->arg1) {
                 return 1;
             }
             return 0;
@@ -581,11 +602,11 @@ static int DetectU16Validate(DetectU16Data *du16)
  * \retval NULL on failure
  */
 
-DetectU16Data *DetectU16Parse (const char *u16str)
+DetectU16Data *DetectU16Parse(const char *u16str)
 {
     /* We initialize these to please static checkers, these values will
        either be updated or not used later on */
-    DetectU16Data u16da = {0, 0, 0};
+    DetectU16Data u16da = { 0, 0, 0 };
     DetectU16Data *u16d = NULL;
     char arg1[16] = "";
     char arg2[16] = "";
@@ -631,9 +652,10 @@ DetectU16Data *DetectU16Parse (const char *u16str)
 
     if (strlen(arg2) > 0) {
         /*set the values*/
-        switch(arg2[0]) {
+        switch (arg2[0]) {
             case '<':
             case '>':
+            case '!':
                 if (strlen(arg2) == 1) {
                     if (StringParseUint16(&u16da.arg1, 10, strlen(arg3), arg3) < 0) {
                         SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint16 failed");
@@ -646,8 +668,10 @@ DetectU16Data *DetectU16Parse (const char *u16str)
 
                     if (arg2[0] == '<') {
                         u16da.mode = DETECT_UINT_LT;
-                    } else { // arg2[0] == '>'
+                    } else if (arg2[0] == '>') {
                         u16da.mode = DETECT_UINT_GT;
+                    } else { // if (arg2[0] == '!')
+                        u16da.mode = DETECT_UINT_NE;
                     }
                     break;
                 } else if (strlen(arg2) == 2) {
@@ -675,7 +699,7 @@ DetectU16Data *DetectU16Parse (const char *u16str)
                     return NULL;
                 }
 
-                SCLogDebug("u16 is %"PRIu16" to %"PRIu16"", u16da.arg1, u16da.arg2);
+                SCLogDebug("u16 is %" PRIu16 " to %" PRIu16 "", u16da.arg1, u16da.arg2);
                 if (u16da.arg1 >= u16da.arg2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u16 range. ");
                     return NULL;
@@ -684,8 +708,7 @@ DetectU16Data *DetectU16Parse (const char *u16str)
             default:
                 u16da.mode = DETECT_UINT_EQ;
 
-                if (strlen(arg2) > 0 ||
-                    strlen(arg3) > 0)
+                if (strlen(arg2) > 0 || strlen(arg3) > 0)
                     return NULL;
 
                 if (StringParseUint16(&u16da.arg1, 10, strlen(arg1), arg1) < 0) {
@@ -708,7 +731,7 @@ DetectU16Data *DetectU16Parse (const char *u16str)
         SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint16 condition : %s", u16str);
         return NULL;
     }
-    u16d = SCCalloc(1, sizeof (DetectU16Data));
+    u16d = SCCalloc(1, sizeof(DetectU16Data));
     if (unlikely(u16d == NULL))
         return NULL;
     u16d->arg1 = u16da.arg1;
@@ -716,4 +739,20 @@ DetectU16Data *DetectU16Parse (const char *u16str)
     u16d->mode = u16da.mode;
 
     return u16d;
+}
+
+void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectU16Data *a = smctx;
+    v->u8[0] = a->mode;
+    v->u16[1] = a->arg1;
+    v->u16[2] = a->arg2;
+}
+
+bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectU16Data *a = smctx;
+    if (v.u8[0] == a->mode && v.u16[1] == a->arg1 && v.u16[2] == a->arg2)
+        return true;
+    return false;
 }
