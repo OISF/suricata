@@ -749,6 +749,7 @@ pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSett
 mod tests {
 
     use super::*;
+    use crate::detect::DetectUintMode;
 
     #[test]
     fn test_http2_parse_header() {
