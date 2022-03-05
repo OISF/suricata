@@ -20,7 +20,7 @@ use super::http2::{
 };
 use super::parser;
 use crate::core::Direction;
-use crate::detect::{detect_parse_u64, DetectU64Data, DetectUintMode};
+use crate::detect::{detect_match_u32, detect_match_u64, detect_parse_u64, DetectU64Data};
 use std::ffi::CStr;
 use std::str::FromStr;
 
@@ -255,28 +255,11 @@ fn http2_detect_settings_match(
                 None => {
                     return 1;
                 }
-                Some(x) => match x.mode {
-                    DetectUintMode::DetectUintModeEqual => {
-                        if set[i].value == x.value {
-                            return 1;
-                        }
+                Some(x) => {
+                    if detect_match_u32(&x, set[i].value) {
+                        return 1;
                     }
-                    DetectUintMode::DetectUintModeLt => {
-                        if set[i].value <= x.value {
-                            return 1;
-                        }
-                    }
-                    DetectUintMode::DetectUintModeGt => {
-                        if set[i].value >= x.value {
-                            return 1;
-                        }
-                    }
-                    DetectUintMode::DetectUintModeRange => {
-                        if set[i].value <= x.value && set[i].value >= x.valrange {
-                            return 1;
-                        }
-                    }
-                },
+                }
             }
         }
     }
@@ -345,35 +328,9 @@ fn http2_detect_sizeupdate_match(
     blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &DetectU64Data,
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
-        match ctx.mode {
-            DetectUintMode::DetectUintModeEqual => {
-                if block.sizeupdate == ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            DetectUintMode::DetectUintModeLt => {
-                if block.sizeupdate <= ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            DetectUintMode::DetectUintModeGt => {
-                if block.sizeupdate >= ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            DetectUintMode::DetectUintModeRange => {
-                if block.sizeupdate <= ctx.value
-                    && block.sizeupdate >= ctx.valrange
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
+        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
+            if detect_match_u64(&ctx, block.sizeupdate) {
+                return 1;
             }
         }
     }
