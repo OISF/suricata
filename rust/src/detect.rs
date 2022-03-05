@@ -27,6 +27,7 @@ pub enum DetectUintMode {
     DetectUintModeLt,
     DetectUintModeGt,
     DetectUintModeRange,
+    DetectUintModeNe,
 }
 
 #[derive(Debug)]
@@ -47,6 +48,21 @@ fn detect_parse_u32_start_equal(i: &str) -> IResult<&str, DetectU32Data> {
             value,
             valrange: 0,
             mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
+
+fn detect_parse_u32_start_ne(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("!"))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    Ok((
+        i,
+        DetectU32Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeNe,
         },
     ))
 }
@@ -105,6 +121,11 @@ pub fn detect_match_u32(x: &DetectU32Data, val: u32) -> bool {
                 return true;
             }
         }
+        DetectUintMode::DetectUintModeNe => {
+            if val != x.value {
+                return true;
+            }
+        }
         DetectUintMode::DetectUintModeLt => {
             if val < x.value {
                 return true;
@@ -130,6 +151,7 @@ pub fn detect_parse_u32(i: &str) -> IResult<&str, DetectU32Data> {
         detect_parse_u32_start_greater,
         complete(detect_parse_u32_start_interval),
         detect_parse_u32_start_equal,
+        detect_parse_u32_start_ne,
     ))(i)?;
     Ok((i, u32))
 }
@@ -152,6 +174,21 @@ fn detect_parse_u64_start_equal(i: &str) -> IResult<&str, DetectU64Data> {
             value,
             valrange: 0,
             mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
+
+fn detect_parse_u64_start_ne(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("!"))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    Ok((
+        i,
+        DetectU64Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeNe,
         },
     ))
 }
@@ -209,6 +246,7 @@ pub fn detect_parse_u64(i: &str) -> IResult<&str, DetectU64Data> {
         detect_parse_u64_start_greater,
         complete(detect_parse_u64_start_interval),
         detect_parse_u64_start_equal,
+        detect_parse_u64_start_ne,
     ))(i)?;
     Ok((i, u64))
 }
@@ -217,6 +255,11 @@ pub fn detect_match_u64(x: &DetectU64Data, val: u64) -> bool {
     match x.mode {
         DetectUintMode::DetectUintModeEqual => {
             if val == x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeNe => {
+            if val != x.value {
                 return true;
             }
         }
@@ -257,6 +300,21 @@ fn detect_parse_u16_start_equal(i: &str) -> IResult<&str, DetectU16Data> {
             value,
             valrange: 0,
             mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
+
+fn detect_parse_u16_start_ne(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("!"))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    Ok((
+        i,
+        DetectU16Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeNe,
         },
     ))
 }
@@ -314,6 +372,7 @@ pub fn detect_parse_u16(i: &str) -> IResult<&str, DetectU16Data> {
         detect_parse_u16_start_greater,
         complete(detect_parse_u16_start_interval),
         detect_parse_u16_start_equal,
+        detect_parse_u16_start_ne,
     ))(i)?;
     Ok((i, u16))
 }
@@ -322,6 +381,11 @@ pub fn detect_match_u16(x: &DetectU16Data, val: u16) -> bool {
     match x.mode {
         DetectUintMode::DetectUintModeEqual => {
             if val == x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeNe => {
+            if val != x.value {
                 return true;
             }
         }
