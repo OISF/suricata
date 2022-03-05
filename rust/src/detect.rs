@@ -29,6 +29,7 @@ pub enum DetectUintMode {
     DetectUintModeRange,
 }
 
+#[derive(Debug)]
 pub struct DetectU32Data {
     pub value: u32,
     pub valrange: u32,
@@ -133,6 +134,7 @@ pub fn detect_parse_u32(i: &str) -> IResult<&str, DetectU32Data> {
     Ok((i, u32))
 }
 
+#[derive(Debug)]
 pub struct DetectU64Data {
     pub value: u64,
     pub valrange: u64,
@@ -212,6 +214,111 @@ pub fn detect_parse_u64(i: &str) -> IResult<&str, DetectU64Data> {
 }
 
 pub fn detect_match_u64(x: &DetectU64Data, val: u64) -> bool {
+    match x.mode {
+        DetectUintMode::DetectUintModeEqual => {
+            if val == x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeLt => {
+            if val < x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeGt => {
+            if val > x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeRange => {
+            if val < x.value && val > x.valrange {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+#[derive(Debug)]
+pub struct DetectU16Data {
+    pub value: u16,
+    pub valrange: u16,
+    pub mode: DetectUintMode,
+}
+
+fn detect_parse_u16_start_equal(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("="))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    Ok((
+        i,
+        DetectU16Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
+
+fn detect_parse_u16_start_interval(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("-")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, valrange) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    Ok((
+        i,
+        DetectU16Data {
+            value,
+            valrange,
+            mode: DetectUintMode::DetectUintModeRange,
+        },
+    ))
+}
+
+fn detect_parse_u16_start_lesser(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("<")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    Ok((
+        i,
+        DetectU16Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeLt,
+        },
+    ))
+}
+
+fn detect_parse_u16_start_greater(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag(">")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u16>().ok())(i)?;
+    Ok((
+        i,
+        DetectU16Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeGt,
+        },
+    ))
+}
+
+pub fn detect_parse_u16(i: &str) -> IResult<&str, DetectU16Data> {
+    let (i, u16) = alt((
+        detect_parse_u16_start_lesser,
+        detect_parse_u16_start_greater,
+        complete(detect_parse_u16_start_interval),
+        detect_parse_u16_start_equal,
+    ))(i)?;
+    Ok((i, u16))
+}
+
+pub fn detect_match_u16(x: &DetectU16Data, val: u16) -> bool {
     match x.mode {
         DetectUintMode::DetectUintModeEqual => {
             if val == x.value {
