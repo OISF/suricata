@@ -378,15 +378,15 @@ static int DsizeTestParse03(void)
 }
 
 /**
- * \test this is a test for a valid dsize value 1<>2
+ * \test this is a test for a valid dsize value 1<>3
  *
  */
 static int DsizeTestParse04(void)
 {
-    DetectU16Data *dd = DetectU16Parse("1<>2");
+    DetectU16Data *dd = DetectU16Parse("1<>3");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->arg1 == 1);
-    FAIL_IF_NOT(dd->arg2 == 2);
+    FAIL_IF_NOT(dd->arg2 == 3);
     FAIL_IF_NOT(dd->mode == DETECT_UINT_RA);
 
     DetectDsizeFree(NULL, dd);
@@ -394,15 +394,15 @@ static int DsizeTestParse04(void)
 }
 
 /**
- * \test this is a test for a valid dsize value 1 <> 2
+ * \test this is a test for a valid dsize value 1 <> 3
  *
  */
 static int DsizeTestParse05(void)
 {
-    DetectU16Data *dd = DetectU16Parse(" 1 <> 2 ");
+    DetectU16Data *dd = DetectU16Parse(" 1 <> 3 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->arg1 == 1);
-    FAIL_IF_NOT(dd->arg2 == 2);
+    FAIL_IF_NOT(dd->arg2 == 3);
     FAIL_IF_NOT(dd->mode == DETECT_UINT_RA);
 
     DetectDsizeFree(NULL, dd);
