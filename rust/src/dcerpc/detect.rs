@@ -22,20 +22,14 @@ use super::dcerpc::{
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
-
-pub const DETECT_DCE_IFACE_OP_NONE: u8 = 0;
-pub const DETECT_DCE_IFACE_OP_LT: u8 = 1;
-pub const DETECT_DCE_IFACE_OP_GT: u8 = 2;
-pub const DETECT_DCE_IFACE_OP_EQ: u8 = 3;
-pub const DETECT_DCE_IFACE_OP_NE: u8 = 4;
+use crate::detect::{detect_parse_u16, DetectU16Data, detect_match_u16};
 
 pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
 
 #[derive(Debug)]
 pub struct DCEIfaceData {
     pub if_uuid: Vec<u8>,
-    pub op: u8,
-    pub version: u16,
+    pub du16: Option<DetectU16Data>,
     pub any_frag: u8,
 }
 
@@ -57,47 +51,6 @@ impl DCEOpnumRange {
 #[derive(Debug)]
 pub struct DCEOpnumData {
     pub data: Vec<DCEOpnumRange>,
-}
-
-fn extract_op_version(opver: &str) -> Result<(u8, u16), ()> {
-    if !opver.is_char_boundary(1){
-        return Err(());
-    }
-    let (op, version) = opver.split_at(1);
-    let opval: u8 = match op {
-        ">" => DETECT_DCE_IFACE_OP_GT,
-        "<" => DETECT_DCE_IFACE_OP_LT,
-        "=" => DETECT_DCE_IFACE_OP_EQ,
-        "!" => DETECT_DCE_IFACE_OP_NE,
-        _ => DETECT_DCE_IFACE_OP_NONE,
-    };
-
-    let version: u16 = match version.parse::<u16>() {
-        Ok(res) => res,
-        _ => {
-            return Err(());
-        }
-    };
-    if opval == DETECT_DCE_IFACE_OP_NONE
-        || (opval == DETECT_DCE_IFACE_OP_LT && version == std::u16::MIN)
-        || (opval == DETECT_DCE_IFACE_OP_GT && version == std::u16::MAX)
-    {
-        return Err(());
-    }
-
-    Ok((opval, version))
-}
-
-fn match_iface_version(version: u16, if_data: &DCEIfaceData) -> bool {
-    match if_data.op {
-        DETECT_DCE_IFACE_OP_LT => version < if_data.version,
-        DETECT_DCE_IFACE_OP_GT => version > if_data.version,
-        DETECT_DCE_IFACE_OP_EQ => version == if_data.version,
-        DETECT_DCE_IFACE_OP_NE => version != if_data.version,
-        _ => {
-            return true;
-        }
-    }
 }
 
 fn match_backuuid(
@@ -132,11 +85,11 @@ fn match_backuuid(
                 continue;
             }
 
-            if if_data.op != DETECT_DCE_IFACE_OP_NONE
-                && !match_iface_version(uuidentry.version, if_data)
-            {
-                SCLogDebug!("Interface version did not match");
-                ret &= 0;
+            if let Some(x) = &if_data.du16 {
+                if !detect_match_u16(&x, uuidentry.version) {
+                    SCLogDebug!("Interface version did not match");
+                    ret &= 0;
+                }
             }
 
             if ret == 1 {
@@ -150,7 +103,7 @@ fn match_backuuid(
 
 fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     let split_args: Vec<&str> = arg.split(',').collect();
-    let mut op_version = (0, 0);
+    let mut du16 = None;
     let mut any_frag: u8 = 0;
     let if_uuid = match Uuid::parse_str(split_args[0]) {
         Ok(res) => res.as_bytes().to_vec(),
@@ -166,8 +119,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 any_frag = 1;
             }
             _ => {
-                op_version = match extract_op_version(split_args[1]) {
-                    Ok((op, ver)) => (op, ver),
+                    match detect_parse_u16(split_args[1]) {
+                    Ok((_,x)) => {du16 = Some(x)},
                     _ => {
                         return Err(());
                     }
@@ -175,8 +128,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
             }
         },
         3 => {
-            op_version = match extract_op_version(split_args[1]) {
-                Ok((op, ver)) => (op, ver),
+            match detect_parse_u16(split_args[1]) {
+                Ok((_,x)) => {du16 = Some(x)},
                 _ => {
                     return Err(());
                 }
@@ -193,8 +146,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
 
     Ok(DCEIfaceData {
         if_uuid: if_uuid,
-        op: op_version.0,
-        version: op_version.1,
+        du16: du16,
         any_frag: any_frag,
     })
 }
