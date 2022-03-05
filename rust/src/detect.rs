@@ -97,6 +97,32 @@ fn detect_parse_u32_start_greater(i: &str) -> IResult<&str, DetectU32Data> {
     ))
 }
 
+pub fn detect_match_u32(x: &DetectU32Data, val: u32) -> bool {
+    match x.mode {
+        DetectUintMode::DetectUintModeEqual => {
+            if val == x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeLt => {
+            if val < x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeGt => {
+            if val > x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeRange => {
+            if val < x.value && val > x.valrange {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 pub fn detect_parse_u32(i: &str) -> IResult<&str, DetectU32Data> {
     let (i, u32) = alt((
         detect_parse_u32_start_lesser,
@@ -183,4 +209,30 @@ pub fn detect_parse_u64(i: &str) -> IResult<&str, DetectU64Data> {
         detect_parse_u64_start_equal,
     ))(i)?;
     Ok((i, u64))
+}
+
+pub fn detect_match_u64(x: &DetectU64Data, val: u64) -> bool {
+    match x.mode {
+        DetectUintMode::DetectUintModeEqual => {
+            if val == x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeLt => {
+            if val < x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeGt => {
+            if val > x.value {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeRange => {
+            if val < x.value && val > x.valrange {
+                return true;
+            }
+        }
+    }
+    return false;
 }
