@@ -163,6 +163,8 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
                 if detect_match_u16(&x, i.ver) {
                     return 1;
                 }
+            } else {
+                return 1;
             }
         }
     }
