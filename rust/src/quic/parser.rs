@@ -335,7 +335,7 @@ impl QuicHeader {
             };
             let (rest, length) = if has_length {
                 let (rest2, plength) = quic_var_uint(rest)?;
-                if plength > rest.len() as u64 {
+                if plength > rest2.len() as u64 {
                     return Err(nom::Err::Error(QuicError::InvalidPacket));
                 }
                 if let Ok(length) = u16::try_from(plength) {
