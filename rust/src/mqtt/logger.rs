@@ -17,17 +17,16 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use std;
-use super::mqtt::{MQTTTransaction, MQTTState};
+use super::mqtt::{MQTTState, MQTTTransaction};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mqtt::mqtt_message::{MQTTOperation, MQTTSubscribeTopicData};
-use crate::mqtt::parser::{FixedHeader};
+use crate::mqtt::parser::FixedHeader;
+use std;
 
 pub const MQTT_LOG_PASSWORDS: u32 = BIT_U32!(0);
 
 #[inline]
-fn log_mqtt_topic(js: &mut JsonBuilder, t: &MQTTSubscribeTopicData) -> Result<(), JsonError>
-{
+fn log_mqtt_topic(js: &mut JsonBuilder, t: &MQTTSubscribeTopicData) -> Result<(), JsonError> {
     js.start_object()?;
     js.set_string("topic", &t.topic_name)?;
     js.set_uint("qos", t.qos as u64)?;
@@ -36,8 +35,7 @@ fn log_mqtt_topic(js: &mut JsonBuilder, t: &MQTTSubscribeTopicData) -> Result<()
 }
 
 #[inline]
-fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonError>
-{
+fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonError> {
     js.set_uint("qos", hdr.qos_level as u64)?;
     js.set_bool("retain", hdr.retain)?;
     js.set_bool("dup", hdr.dup_flag)?;
@@ -247,12 +245,12 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                 js.open_object("pingreq")?;
                 log_mqtt_header(js, &msg.header)?;
                 js.close()?; // pingreq
-            },
+            }
             MQTTOperation::PINGRESP => {
                 js.open_object("pingresp")?;
                 log_mqtt_header(js, &msg.header)?;
                 js.close()?; // pingresp
-            },
+            }
             MQTTOperation::AUTH(ref auth) => {
                 js.open_object("auth")?;
                 log_mqtt_header(js, &msg.header)?;
@@ -265,7 +263,7 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                     js.close()?; // properties
                 }
                 js.close()?; // auth
-            },
+            }
             MQTTOperation::DISCONNECT(ref disco) => {
                 js.open_object("disconnect")?;
                 log_mqtt_header(js, &msg.header)?;
@@ -280,15 +278,15 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                     js.close()?; // properties
                 }
                 js.close()?; // disconnect
-            },
+            }
             MQTTOperation::TRUNCATED(ref trunc) => {
                 js.open_object(&trunc.original_message_type.to_lower_str())?;
                 log_mqtt_header(js, &msg.header)?;
                 js.set_bool("truncated", true)?;
                 js.set_uint("skipped_length", trunc.skipped_length as u64)?;
                 js.close()?; // truncated
-            },
-            MQTTOperation::UNASSIGNED => {},
+            }
+            MQTTOperation::UNASSIGNED => {}
         }
     }
     js.close()?; // mqtt
@@ -297,7 +295,9 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_logger_log(_state: &mut MQTTState, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_mqtt_logger_log(
+    _state: &mut MQTTState, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
     log_mqtt(tx, flags, js).is_ok()
 }
