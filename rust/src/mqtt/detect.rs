@@ -17,7 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::mqtt::mqtt::{MQTTTransaction, MQTTState};
+use crate::mqtt::mqtt::{MQTTState, MQTTTransaction};
 use crate::mqtt::mqtt_message::{MQTTOperation, MQTTTypeCode};
 use std::ffi::CStr;
 use std::ptr;
@@ -33,31 +33,24 @@ pub enum MQTTFlagState {
 }
 
 #[inline]
-fn check_flag_state(
-    flag_state: MQTTFlagState,
-    flag_value: bool,
-    ok: &mut bool,
-) {
+fn check_flag_state(flag_state: MQTTFlagState, flag_value: bool, ok: &mut bool) {
     match flag_state {
         MQTTFlagState::MQTT_MUST_BE_SET => {
             if !flag_value {
                 *ok = false;
             }
-        },
+        }
         MQTTFlagState::MQTT_CANT_BE_SET => {
             if flag_value {
                 *ok = false;
             }
-        },
+        }
         _ => {}
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_type(
-    tx: &MQTTTransaction,
-    mtype: u8,
-) -> u8 {
+pub extern "C" fn rs_mqtt_tx_has_type(tx: &MQTTTransaction, mtype: u8) -> u8 {
     for msg in tx.msg.iter() {
         if mtype == msg.header.message_type as u8 {
             return 1;
@@ -81,9 +74,7 @@ pub unsafe extern "C" fn rs_mqtt_cstr_message_code(
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_has_flags(
-    tx: &MQTTTransaction,
-    qretain: MQTTFlagState,
-    qdup: MQTTFlagState,
+    tx: &MQTTTransaction, qretain: MQTTFlagState, qdup: MQTTFlagState,
 ) -> u8 {
     for msg in tx.msg.iter() {
         let mut ok = true;
@@ -98,10 +89,7 @@ pub extern "C" fn rs_mqtt_tx_has_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_qos(
-    tx: &MQTTTransaction,
-    qos: u8,
-) -> u8 {
+pub extern "C" fn rs_mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> u8 {
     for msg in tx.msg.iter() {
         if qos == msg.header.qos_level {
             return 1;
@@ -111,20 +99,14 @@ pub extern "C" fn rs_mqtt_tx_has_qos(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_protocol_version(
-    state: &MQTTState,
-) -> u8 {
+pub extern "C" fn rs_mqtt_tx_get_protocol_version(state: &MQTTState) -> u8 {
     return state.protocol_version;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_has_connect_flags(
-    tx: &MQTTTransaction,
-    username: MQTTFlagState,
-    password: MQTTFlagState,
-    will: MQTTFlagState,
-    will_retain: MQTTFlagState,
-    clean_session: MQTTFlagState,
+    tx: &MQTTTransaction, username: MQTTFlagState, password: MQTTFlagState, will: MQTTFlagState,
+    will_retain: MQTTFlagState, clean_session: MQTTFlagState,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -144,9 +126,7 @@ pub extern "C" fn rs_mqtt_tx_has_connect_flags(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -166,9 +146,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -190,9 +168,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -213,9 +189,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -237,9 +211,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
@@ -261,8 +233,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
-    tx: &MQTTTransaction,
-    session_present: *mut bool,
+    tx: &MQTTTransaction, session_present: *mut bool,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNACK(ref ca) = msg.op {
@@ -275,9 +246,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::PUBLISH(ref pubv) = msg.op {
@@ -298,9 +267,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
-    tx: &MQTTTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::PUBLISH(ref pubv) = msg.op {
@@ -320,12 +287,9 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(tx: &MQTTTransaction,
-    i: u32,
-    buf: *mut *const u8,
-    len: *mut u32)
-    -> u8
-{
+pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(
+    tx: &MQTTTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> u8 {
     let mut offset = 0;
     for msg in tx.msg.iter() {
         if let MQTTOperation::SUBSCRIBE(ref subv) = msg.op {
@@ -349,12 +313,9 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(tx: &MQTTTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(tx: &MQTTTransaction,
-    i: u32,
-    buf: *mut *const u8,
-    len: *mut u32)
-    -> u8
-{
+pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(
+    tx: &MQTTTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> u8 {
     let mut offset = 0;
     for msg in tx.msg.iter() {
         if let MQTTOperation::UNSUBSCRIBE(ref unsubv) = msg.op {
@@ -378,10 +339,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(tx: &MQTTTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(
-    tx: &MQTTTransaction,
-    result: *mut u8,
-) -> u8 {
+pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result: *mut u8) -> u8 {
     for msg in tx.msg.iter() {
         match msg.op {
             MQTTOperation::PUBACK(ref v)
@@ -407,17 +365,14 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(
                     return 1;
                 }
             }
-            _ => return 0
+            _ => return 0,
         }
     }
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(
-    tx: &MQTTTransaction,
-    code: u8,
-) -> u8 {
+pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code: u8) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::UNSUBACK(ref unsuback) = msg.op {
             if let Some(ref reason_codes) = unsuback.reason_codes {
@@ -435,10 +390,10 @@ pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(
 #[cfg(test)]
 mod test {
     use super::*;
-    use std;
     use crate::mqtt::mqtt::MQTTTransaction;
     use crate::mqtt::mqtt_message::*;
     use crate::mqtt::parser::FixedHeader;
+    use std;
 
     #[test]
     fn test_multi_unsubscribe() {
@@ -472,23 +427,23 @@ mod test {
         });
         let mut s: *const u8 = std::ptr::null_mut();
         let mut slen: u32 = 0;
-        let mut r = unsafe{rs_mqtt_tx_get_unsubscribe_topic(&t, 0, &mut s, &mut slen)};
+        let mut r = unsafe { rs_mqtt_tx_get_unsubscribe_topic(&t, 0, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        let mut topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        let mut topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "foo");
-        r = unsafe{rs_mqtt_tx_get_unsubscribe_topic(&t, 1, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_unsubscribe_topic(&t, 1, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baar");
-        r = unsafe{rs_mqtt_tx_get_unsubscribe_topic(&t, 2, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_unsubscribe_topic(&t, 2, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "fieee");
-        r = unsafe{rs_mqtt_tx_get_unsubscribe_topic(&t, 3, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_unsubscribe_topic(&t, 3, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baaaaz");
-        r = unsafe{rs_mqtt_tx_get_unsubscribe_topic(&t, 4, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_unsubscribe_topic(&t, 4, &mut s, &mut slen) };
         assert_eq!(r, 0);
     }
 
@@ -512,7 +467,8 @@ mod test {
                     MQTTSubscribeTopicData {
                         topic_name: "baar".to_string(),
                         qos: 1,
-                    }],
+                    },
+                ],
                 properties: None,
             }),
         });
@@ -534,29 +490,30 @@ mod test {
                     MQTTSubscribeTopicData {
                         topic_name: "baaaaz".to_string(),
                         qos: 1,
-                    }],
+                    },
+                ],
                 properties: None,
             }),
         });
         let mut s: *const u8 = std::ptr::null_mut();
         let mut slen: u32 = 0;
-        let mut r = unsafe{rs_mqtt_tx_get_subscribe_topic(&t, 0, &mut s, &mut slen)};
+        let mut r = unsafe { rs_mqtt_tx_get_subscribe_topic(&t, 0, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        let mut topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        let mut topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "foo");
-        r = unsafe{rs_mqtt_tx_get_subscribe_topic(&t, 1, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_subscribe_topic(&t, 1, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baar");
-        r = unsafe{rs_mqtt_tx_get_subscribe_topic(&t, 2, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_subscribe_topic(&t, 2, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "fieee");
-        r = unsafe{rs_mqtt_tx_get_subscribe_topic(&t, 3, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_subscribe_topic(&t, 3, &mut s, &mut slen) };
         assert_eq!(r, 1);
-        topic = String::from_utf8_lossy(unsafe{build_slice!(s, slen as usize)});
+        topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baaaaz");
-        r = unsafe{rs_mqtt_tx_get_subscribe_topic(&t, 4, &mut s, &mut slen)};
+        r = unsafe { rs_mqtt_tx_get_subscribe_topic(&t, 4, &mut s, &mut slen) };
         assert_eq!(r, 0);
     }
 }
