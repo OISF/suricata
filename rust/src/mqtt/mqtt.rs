@@ -52,6 +52,7 @@ pub enum MQTTEvent {
     MissingMsgId,
     UnassignedMsgType,
     TooManyTransactions,
+    ParseError,
 }
 
 #[derive(Debug)]
@@ -69,7 +70,13 @@ pub struct MQTTTransaction {
 
 impl MQTTTransaction {
     pub fn new(msg: MQTTMessage) -> MQTTTransaction {
-        let mut m = MQTTTransaction {
+        let mut m = MQTTTransaction::new_empty();
+        m.msg.push(msg);
+        return m;
+    }
+
+    pub fn new_empty() -> MQTTTransaction {
+        return MQTTTransaction {
             tx_id: 0,
             pkt_id: None,
             complete: false,
@@ -79,8 +86,6 @@ impl MQTTTransaction {
             toserver: false,
             tx_data: applayer::AppLayerTxData::new(),
         };
-        m.msg.push(msg);
-        return m;
     }
 }
 
@@ -457,6 +462,7 @@ impl MQTTState {
                         return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
                 Err(_) => {
+                    self.set_event_notx(MQTTEvent::ParseError, false);
                     return AppLayerResult::err();
                 }
             }
@@ -514,6 +520,7 @@ impl MQTTState {
                     return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
                 Err(_) => {
+                    self.set_event_notx(MQTTEvent::ParseError, true);
                     return AppLayerResult::err();
                 }
             }
@@ -524,6 +531,20 @@ impl MQTTState {
 
     fn set_event(tx: &mut MQTTTransaction, event: MQTTEvent) {
         tx.tx_data.set_event(event as u8);
+    }
+
+    fn set_event_notx(&mut self, event: MQTTEvent, toclient: bool) {
+        let mut tx = MQTTTransaction::new_empty();
+        self.tx_id += 1;
+        tx.tx_id = self.tx_id;
+        if toclient {
+            tx.toclient = true;
+        } else {
+            tx.toserver = true;
+        }
+        tx.complete = true;
+        tx.tx_data.set_event(event as u8);
+        self.transactions.push(tx);
     }
 }
 
