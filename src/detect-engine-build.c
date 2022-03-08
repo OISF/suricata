@@ -561,6 +561,11 @@ static int SignatureCreateMask(Signature *s)
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
+        }
+    }
+
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
             case DETECT_CONFIG: {
                 DetectConfigData *fd = (DetectConfigData *)sm->ctx;
                 if (fd->scope == CONFIG_SCOPE_FLOW) {
