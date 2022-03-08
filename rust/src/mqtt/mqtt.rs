@@ -51,6 +51,7 @@ pub enum MQTTEvent {
     InvalidQosLevel,
     MissingMsgId,
     UnassignedMsgtype,
+    MalformedTraffic,
 }
 
 #[derive(Debug)]
@@ -70,7 +71,13 @@ pub struct MQTTTransaction {
 
 impl MQTTTransaction {
     pub fn new(msg: MQTTMessage) -> MQTTTransaction {
-        let mut m = MQTTTransaction {
+        let mut m = MQTTTransaction::new_empty();
+        m.msg.push(msg);
+        return m;
+    }
+
+    pub fn new_empty() -> MQTTTransaction {
+        return MQTTTransaction {
             tx_id: 0,
             pkt_id: None,
             complete: false,
@@ -82,8 +89,6 @@ impl MQTTTransaction {
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         };
-        m.msg.push(msg);
-        return m;
     }
 
     pub fn free(&mut self) {
@@ -454,6 +459,7 @@ impl MQTTState {
                         return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
                 Err(_) => {
+                    self.set_event_notx(MQTTEvent::MalformedTraffic, false);
                     return AppLayerResult::err();
                 }
             }
@@ -511,6 +517,7 @@ impl MQTTState {
                     return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
                 Err(_) => {
+                    self.set_event_notx(MQTTEvent::MalformedTraffic, true);
                     return AppLayerResult::err();
                 }
             }
@@ -543,6 +550,20 @@ impl MQTTState {
         }
 
         return None;
+    }
+
+    fn set_event_notx(&mut self, event: MQTTEvent, toclient: bool) {
+        let mut tx = MQTTTransaction::new_empty();
+        self.tx_id += 1;
+        tx.tx_id = self.tx_id;
+        if toclient {
+            tx.toclient = true;
+        } else {
+            tx.toserver = true;
+        }
+        tx.complete = true;
+        MQTTState::set_event(&mut tx, event);
+        self.transactions.push(tx);
     }
 }
 
@@ -717,6 +738,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_i
             MQTTEvent::InvalidQosLevel     => { "invalid_qos_level\0" },
             MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
             MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
+            MQTTEvent::MalformedTraffic    => { "malformed_traffic\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -748,6 +770,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::
                 "invalid_qos_level"    => MQTTEvent::InvalidQosLevel as i32,
                 "missing_msg_id"       => MQTTEvent::MissingMsgId as i32,
                 "unassigned_msg_type"  => MQTTEvent::UnassignedMsgtype as i32,
+                "malformed_traffic"    => MQTTEvent::MalformedTraffic as i32,
                 _                      => -1, // unknown event
             }
         },
