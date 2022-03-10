@@ -154,27 +154,22 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
  * \brief Remove alert from the p->alerts.alerts array at pos
  * \param p Pointer to the Packet
  * \param pos Position in the array
- * \retval 0 if the number of alerts is less than pos
- *         1 if all goes well
  */
-int PacketAlertRemove(Packet *p, uint16_t pos)
+static void PacketAlertRemove(Packet *p, uint16_t pos)
 {
-    uint16_t i = 0;
-    int match = 0;
-
-    if (pos > p->alerts.cnt) {
+    if (pos >= p->alerts.cnt) {
         SCLogDebug("removing %u failed, pos > cnt %u", pos, p->alerts.cnt);
-        return 0;
+        return;
     }
 
-    for (i = pos; i <= p->alerts.cnt - 1; i++) {
-        memcpy(&p->alerts.alerts[i], &p->alerts.alerts[i + 1], sizeof(PacketAlert));
+    const uint16_t after = (p->alerts.cnt - 1) - pos;
+    if (after) {
+        const uint16_t after_start = pos + 1;
+        memmove(p->alerts.alerts + pos, p->alerts.alerts + after_start,
+                (sizeof(PacketAlert) * after));
     }
 
-    // Update it, since we removed 1
     p->alerts.cnt--;
-
-    return match;
 }
 
 /** \brief append a signature match to a packet
