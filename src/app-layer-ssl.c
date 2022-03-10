@@ -1431,6 +1431,10 @@ static int EnsureRecordSpace(SSLStateConnp *curr_connp, const uint8_t * const in
         SCLogDebug("cert_len unknown still, create small buffer to start");
         certs_len = 256;
     }
+    // Limit in a first time allocation for very large certificates
+    if (certs_len > 0x10000 && certs_len > curr_connp->trec_pos + input_len) {
+        certs_len = 0x10000;
+    }
 
     if (curr_connp->trec == NULL) {
         curr_connp->trec_len = certs_len;
