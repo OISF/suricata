@@ -42,6 +42,7 @@
 #include "util-unittest.h"
 
 #include "util-debug.h"
+#include "util-validate.h"
 #include "util-buffer.h"
 
 #include "output.h"
@@ -175,7 +176,8 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
     if (PKT_IS_IPV4(p)) {
         PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-    } else if (PKT_IS_IPV6(p)) {
+    } else {
+        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_IPV6(p)));
         PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     }
