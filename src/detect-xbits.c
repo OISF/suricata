@@ -201,7 +201,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     switch (cd->cmd) {
         case DETECT_XBITS_CMD_NOALERT: {
             if (cd->name != NULL) {
-                rs_xbits_free(cd, cd->name);
+                rs_xbits_free(cd);
                 return -1;
             }
             /* return ok, cd is NULL. Flag sig. */
@@ -215,7 +215,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         case DETECT_XBITS_CMD_TOGGLE:
         default:
             if (strlen(cd->name) == 0) {
-                rs_xbits_free(cd, cd->name);
+                rs_xbits_free(cd);
                 return -1;
             }
             break;
@@ -276,12 +276,7 @@ error:
 
 static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectXbitsData *fd = (DetectXbitsData *)ptr;
-
-    if (fd == NULL)
-        return;
-
-    SCFree(fd);
+    rs_xbits_free(ptr);
 }
 
 #ifdef UNITTESTS

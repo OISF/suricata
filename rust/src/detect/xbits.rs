@@ -1,5 +1,5 @@
 use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
 
 pub const DETECT_XBITS_CMD_SET: u8 = 0;
 pub const DETECT_XBITS_CMD_TOGGLE: u8 = 1;
@@ -147,12 +147,12 @@ fn parse_xbits(arg: &str) -> Result<DetectXbitsData, ()> {
     })
 }
 
-impl Drop for DetectXbitsData {
-    fn drop(&mut self) {
-        let _str = unsafe { CString::from_raw(self.name as *mut c_char) };  // Does this not mean taking the ownership back?
-//        All primitive types will be dropped without any special treatment, right?
-    }
-}
+//impl Drop for DetectXbitsData {
+//    fn drop(&mut self) {
+//        let _str = unsafe { CString::from_raw(self.name as *mut c_char) };  // Does this not mean taking the ownership back?
+////        All primitive types will be dropped without any special treatment, right?
+//    }
+//}
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut DetectXbitsData {
@@ -169,10 +169,10 @@ pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut DetectXbits
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_free(ptr: *mut c_void, name: *const c_char) {
+pub unsafe extern "C" fn rs_xbits_free(ptr: *mut DetectXbitsData) {
     if !ptr.is_null() {
-        let _str = CString::from_raw(name as *mut c_char);
-        std::mem::drop(Box::from_raw(ptr as *mut DetectXbitsData));
+        let _str = CString::from_raw((*ptr).name as *mut c_char);
+        let _xbdata = Box::from_raw(ptr);
     }
 }
 
