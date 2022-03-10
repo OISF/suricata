@@ -201,13 +201,17 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         p->alerts.alerts[p->alerts.cnt].frame_id =
                 (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
     } else {
-        /* We need to make room for this s->num
-         (a bit ugly with memcpy but we are planning changes here)*/
-        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
-            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
-        }
+        /* find position to insert */
+        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--)
+            ;
 
         i++; /* The right place to store the alert */
+
+        const uint16_t target_pos = i + 1;
+        const uint16_t space_post_target = packet_alert_max - 1 - i;
+        const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
+        memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i,
+                (to_move * sizeof(PacketAlert)));
 
         p->alerts.alerts[i].num = s->num;
         p->alerts.alerts[i].action = s->action;
