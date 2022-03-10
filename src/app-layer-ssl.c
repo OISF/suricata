@@ -1418,6 +1418,12 @@ static uint32_t GetCertsLen(SSLStateConnp *curr_connp, const uint8_t *input,
     }
 }
 
+// For certificates whose size is bigger than this,
+// we do not allocate all the required memory straight away,
+// to avoid DOS by RAM exhaustion, but we will allocate
+// this memory once a consequent part of the certificate has been seen.
+#define SSL_CERT_MAX_FIRST_ALLOC 65536 // 0x10000
+
 /** \internal
  *  \brief setup or grow the `trec` space in the connp
  */
@@ -1430,6 +1436,10 @@ static int EnsureRecordSpace(SSLStateConnp *curr_connp, const uint8_t * const in
     if (certs_len == 0) {
         SCLogDebug("cert_len unknown still, create small buffer to start");
         certs_len = 256;
+    }
+    // Limit in a first time allocation for very large certificates
+    if (certs_len > SSL_CERT_MAX_FIRST_ALLOC && certs_len > curr_connp->trec_pos + input_len) {
+        certs_len = SSL_CERT_MAX_FIRST_ALLOC;
     }
 
     if (curr_connp->trec == NULL) {
