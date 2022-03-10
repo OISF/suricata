@@ -32,7 +32,6 @@ void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 int PacketAlertAppend(DetectEngineThreadCtx *, const Signature *,
         Packet *, uint64_t tx_id, uint8_t);
 int PacketAlertCheck(Packet *, uint32_t);
-int PacketAlertRemove(Packet *, uint16_t);
 void PacketAlertTagInit(void);
 PacketAlert *PacketAlertGetTag(void);
 
