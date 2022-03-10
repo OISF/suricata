@@ -38,11 +38,8 @@
 static void DetectQuicJa3RegisterTests(void);
 #endif
 
-#define BUFFER_NAME  "quic_ja3"
-#define KEYWORD_NAME "quic.ja3"
-#define KEYWORD_ID   DETECT_AL_QUIC_JA3
-
 static int quic_ja3_id = 0;
+static int quic_ja3s_id = 0;
 
 static int DetectQuicJa3Setup(DetectEngineCtx *, Signature *, const char *);
 
@@ -71,8 +68,8 @@ static InspectionBuffer *GetJa3Data(DetectEngineThreadCtx *det_ctx,
  */
 void DetectQuicJa3Register(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_JA3].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_JA3].desc = "match Quic ja3";
+    sigmatch_table[DETECT_AL_QUIC_JA3].name = "quic.ja3";
+    sigmatch_table[DETECT_AL_QUIC_JA3].desc = "match Quic ja3 from client to server";
     sigmatch_table[DETECT_AL_QUIC_JA3].url = "/rules/quic-keywords.html#quic-ja3";
     sigmatch_table[DETECT_AL_QUIC_JA3].Setup = DetectQuicJa3Setup;
     sigmatch_table[DETECT_AL_QUIC_JA3].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
@@ -80,13 +77,27 @@ void DetectQuicJa3Register(void)
     sigmatch_table[DETECT_AL_QUIC_JA3].RegisterTests = DetectQuicJa3RegisterTests;
 #endif
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister2("quic_ja3", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetJa3Data, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister2("quic_ja3", ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetJa3Data);
 
-    quic_ja3_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    quic_ja3_id = DetectBufferTypeGetByName("quic_ja3");
+
+    sigmatch_table[DETECT_AL_QUIC_JA3S].name = "quic.ja3s";
+    sigmatch_table[DETECT_AL_QUIC_JA3S].desc = "match Quic ja3 from server to client";
+    sigmatch_table[DETECT_AL_QUIC_JA3S].url = "/rules/quic-keywords.html#quic-ja3";
+    sigmatch_table[DETECT_AL_QUIC_JA3S].Setup = DetectQuicJa3Setup;
+    sigmatch_table[DETECT_AL_QUIC_JA3S].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+
+    DetectAppLayerMpmRegister2("quic_ja3s", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetJa3Data, ALPROTO_QUIC, 1);
+
+    DetectAppLayerInspectEngineRegister2("quic_ja3s", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectBufferGeneric, GetJa3Data);
+
+    quic_ja3s_id = DetectBufferTypeGetByName("quic_ja3s");
 }
 
 /**
