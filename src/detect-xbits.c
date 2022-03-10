@@ -365,6 +365,10 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
+        default:
+            SigMatchFree(de_ctx, sm);
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "Unknown command for xbits");
+            return -1;
     }
 
     return 0;

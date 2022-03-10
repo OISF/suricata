@@ -813,7 +813,8 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
                 if (f->use_cnt == 0) {
                     if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
                         prev_f = new_f;
-                    // f got unlocked by TcpReuseReplace and will be unlocked again by MoveToWorkQueue
+                    // f got unlocked by TcpReuseReplace and will be unlocked again by
+                    // MoveToWorkQueue
                     FromHashLockCMP(f);
                     MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
                 }
