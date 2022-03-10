@@ -641,8 +641,11 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls,
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
 
-    /* since fb lock is still held this flow won't be found until we are done */
-    FLOWLOCK_UNLOCK(old_f);
+    // if f->use_cnt == 0, flow will be unlocked by caller with MoveToWorkQueue
+    if (f->use_cnt > 0) {
+        /* since fb lock is still held this flow won't be found until we are done */
+        FLOWLOCK_UNLOCK(old_f);
+    }
 
     /* Get a new flow. It will be either a locked flow or NULL */
     Flow *f = FlowGetNew(tv, fls, p);
