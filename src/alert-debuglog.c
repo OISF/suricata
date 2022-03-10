@@ -178,6 +178,9 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
     } else if (PKT_IS_IPV6(p)) {
         PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    } else {
+        snprintf(srcip, sizeof(srcip), "unknown-ip-version");
+        snprintf(dstip, sizeof(dstip), "unknown-ip-version");
     }
 
     MemBufferWriteString(aft->buffer, "SRC IP:            %s\n"
