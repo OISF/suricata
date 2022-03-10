@@ -28,6 +28,7 @@
 #include "flow-private.h"
 
 #include "util-profiling.h"
+#include "util-validate.h" //DEBUG_VALIDATE_BUG_ON
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -172,6 +173,33 @@ static void PacketAlertRemove(Packet *p, uint16_t pos)
     p->alerts.cnt--;
 }
 
+/**
+ * \brief calculate correct position for alert queue insertion, do memmove if needed
+ *
+ * \param p packet
+ * \param s matched signature
+ * \retval int16_t index of position for insertion in the alert queue
+ */
+static uint16_t PacketAlertMemMoveQueuePos(Packet *p, const Signature *s)
+{
+    uint16_t i = 0;
+    for (i = p->alerts.cnt; i > 0 && p->alerts.alerts[i - 1].num > s->num; i--)
+        ;
+
+    const uint16_t target_pos = i + 1;
+    /* There is no space left for memmove, let's just replace*/
+    if (target_pos == packet_alert_max) {
+        return i;
+    }
+    const uint16_t space_post_target = packet_alert_max - 1 - i;
+    const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
+    DEBUG_VALIDATE_BUG_ON(to_move == 0);
+    memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i, (to_move * sizeof(PacketAlert)));
+
+    /* We'll use i later on to insert the alert in the Packet Queue*/
+    return i;
+}
+
 /** \brief append a signature match to a packet
  *
  *  \param det_ctx thread detection engine ctx
@@ -182,7 +210,6 @@ static void PacketAlertRemove(Packet *p, uint16_t pos)
 int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         Packet *p, uint64_t tx_id, uint8_t flags)
 {
-    int i = 0;
 
     if (p->alerts.cnt == packet_alert_max)
         return 0;
@@ -201,13 +228,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         p->alerts.alerts[p->alerts.cnt].frame_id =
                 (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
     } else {
-        /* We need to make room for this s->num
-         (a bit ugly with memcpy but we are planning changes here)*/
-        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
-            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
-        }
-
-        i++; /* The right place to store the alert */
+        uint16_t i = PacketAlertMemMoveQueuePos(p, s);
 
         p->alerts.alerts[i].num = s->num;
         p->alerts.alerts[i].action = s->action;
