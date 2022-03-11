@@ -223,9 +223,7 @@ fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
 }
 
 #[inline]
-fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTConnackData>
-where
-{
+fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTConnackData> {
     move |i: &[u8]| {
         let (i, topic_name_compression_response) = be_u8(i)?;
         let (i, return_code) = be_u8(i)?;
@@ -244,9 +242,7 @@ where
 #[inline]
 fn parse_publish(
     protocol_version: u8, has_id: bool,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData>
-where
-{
+) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData> {
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
         let (i, message_id) = cond(has_id, be_u16)(i)?;
@@ -264,9 +260,7 @@ where
 }
 
 #[inline]
-fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTMessageIdOnly>
-where
-{
+fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTMessageIdOnly> {
     move |input: &[u8]| {
         if protocol_version < 5 {
             // before v5 we don't even have to care about reason codes
@@ -348,9 +342,7 @@ fn parse_subscribe_topic(i: &[u8]) -> IResult<&[u8], MQTTSubscribeTopicData> {
 }
 
 #[inline]
-fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData>
-where
-{
+fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -367,9 +359,7 @@ where
 }
 
 #[inline]
-fn parse_suback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubackData>
-where
-{
+fn parse_suback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubackData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (qoss, properties) = parse_properties(i, protocol_version == 5)?;
@@ -387,9 +377,7 @@ where
 #[inline]
 fn parse_unsubscribe(
     protocol_version: u8,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData>
-where
-{
+) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -406,9 +394,7 @@ where
 }
 
 #[inline]
-fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData>
-where
-{
+fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -427,9 +413,7 @@ where
 #[inline]
 fn parse_disconnect(
     remaining_len: usize, protocol_version: u8,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData>
-where
-{
+) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData> {
     move |input: &[u8]| {
         if protocol_version < 5 {
             return Ok((
@@ -501,9 +485,7 @@ fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
 fn parse_remaining_message<'a>(
     full: &'a [u8], len: usize, skiplen: usize, header: FixedHeader, message_type: MQTTTypeCode,
     protocol_version: u8,
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], MQTTMessage>
-where
-{
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], MQTTMessage> {
     move |input: &'a [u8]| {
         match message_type {
             MQTTTypeCode::CONNECT => match parse_connect(input) {
