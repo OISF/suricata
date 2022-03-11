@@ -1642,6 +1642,24 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                     "ssn->client.last_ack %"PRIu32"", ssn,
                     ssn->client.isn, ssn->client.next_seq,
                     ssn->client.last_ack);
+        } else if (PKT_IS_TOSERVER(p)) {
+            /*
+             * On retransmitted SYN packets, the timestamp value must be updated,
+             * to avoid dropping any SYN+ACK packets that respond to a retransmitted SYN
+             * with an updated timestamp in StateSynSentValidateTimestamp.
+             */
+            if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP) && TCP_HAS_TS(p)) {
+                uint32_t ts_val = TCP_GET_TSVAL(p);
+
+                // Check whether packets have been received in the correct order (only ever update)
+                if (ssn->client.last_ts < ts_val) {
+                    ssn->client.last_ts = ts_val;
+                    ssn->client.last_pkt_ts = p->ts.tv_sec;
+                }
+
+                SCLogDebug("ssn %p: Retransmitted SYN. Updated timestamp from packet %" PRIu64, ssn,
+                        p->pcap_cnt);
+            }
         }
 
         /** \todo check if it's correct or set event */
