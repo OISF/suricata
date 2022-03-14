@@ -175,5 +175,4 @@ static inline uint32_t StreamSliceGetGapSize(const StreamSlice *stream_slice)
 {
     return StreamSliceGetDataLen(stream_slice);
 }
-
 #endif
