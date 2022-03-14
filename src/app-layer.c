@@ -41,14 +41,13 @@
 #include "flow-util.h"
 #include "flow-private.h"
 #include "ippair.h"
-
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "decode-events.h"
-
 #include "app-layer-htp-mem.h"
+#include "util-exception-policy.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
@@ -334,6 +333,8 @@ static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
     return ret;
 }
 
+extern enum ExceptionPolicy g_applayerparser_error_policy;
+
 /** \todo data const
  *  \retval int -1 error
  *  \retval int 0 ok
@@ -442,8 +443,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
                         p, ssn, *stream) != 0)
             {
-                DisableAppLayer(tv, f, p);
-                SCReturnInt(-1);
+                goto detect_error;
             }
             if (FlowChangeProto(f)) {
                 /* We have the first data which requested a protocol change from P1 to P2
@@ -479,8 +479,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                 AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                DisableAppLayer(tv, f, p);
-                SCReturnInt(-1);
+                goto detect_error;
             }
             /* This can happen if the current direction is not the
              * right direction, and the data from the other(also
@@ -511,7 +510,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
         if (r < 0) {
-            SCReturnInt(-1);
+            goto parser_error;
         }
     } else {
         /* if the ssn is midstream, we may end up with a case where the
@@ -561,8 +560,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
             {
-                DisableAppLayer(tv, f, p);
-                SCReturnInt(-1);
+                goto detect_error;
             }
 
             /* if protocol detection is marked done for our direction we
@@ -594,7 +592,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                     SCLogDebug("packet %"PRIu64": pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
                             p->pcap_cnt, *alproto, *alproto_otherdir, r);
                     if (r < 0) {
-                        SCReturnInt(-1);
+                        goto parser_error;
                     }
                 }
                 *alproto = ALPROTO_FAILED;
@@ -620,6 +618,12 @@ static int TCPProtoDetect(ThreadVars *tv,
         }
     }
     SCReturnInt(0);
+parser_error:
+    ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+    SCReturnInt(-1);
+detect_error:
+    DisableAppLayer(tv, f, p);
+    SCReturnInt(-2);
 }
 
 /** \brief handle TCP data for the app-layer.
@@ -681,6 +685,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         /* ignore parser result for gap */
         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+        if (r < 0) {
+            ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+            SCReturnInt(-1);
+        }
         goto end;
     }
 
@@ -760,6 +768,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
             if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+                if (r < 0) {
+                    ExceptionPolicyApply(
+                            p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+                    SCReturnInt(-1);
+                }
             }
         }
     }
@@ -853,6 +866,10 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                 flags, p->payload, p->payload_len);
         PACKET_PROFILING_APP_END(tctx, f->alproto);
         PACKET_PROFILING_APP_STORE(tctx, p);
+    }
+    if (r < 0) {
+        ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+        SCReturnInt(-1);
     }
 
     SCReturnInt(r);

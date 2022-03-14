@@ -28,6 +28,7 @@
 typedef struct FlowStorageId FlowStorageId;
 
 #include "decode.h"
+#include "util-exception-policy.h"
 #include "util-var.h"
 #include "util-atomic.h"
 #include "util-device.h"
@@ -298,6 +299,8 @@ typedef struct FlowCnf_
     uint32_t emerg_timeout_new;
     uint32_t emerg_timeout_est;
     uint32_t emergency_recovery;
+
+    enum ExceptionPolicy memcap_policy;
 
     SC_ATOMIC_DECLARE(uint64_t, memcap);
 } FlowConfig;

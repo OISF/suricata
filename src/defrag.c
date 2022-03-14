@@ -62,6 +62,8 @@
 #include "util-unittest.h"
 #endif
 
+#include "util-validate.h"
+
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
 #define DEFAULT_DEFRAG_POOL_SIZE 0xffff
 
@@ -620,8 +622,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         }
     }
     else {
-        /* Abort - should not happen. */
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid address family, aborting.");
+        DEBUG_VALIDATE_BUG_ON(1);
         return NULL;
     }
 

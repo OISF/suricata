@@ -525,6 +525,7 @@ noinst_HEADERS = \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
+	util-exception-policy.h \
 	util-file-decompression.h \
 	util-file.h \
 	util-file-swf-decompression.h \
@@ -1104,6 +1105,7 @@ libsuricata_c_a_SOURCES = \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
+	util-exception-policy.c \
 	util-file.c \
 	util-file-decompression.c \
 	util-file-swf-decompression.c \
