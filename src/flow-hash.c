@@ -549,6 +549,13 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
     return f;
 }
 
+static uint64_t g_pcapcnt_flow_memcap_num = UINT64_MAX;
+
+void FlowSimulateMemcapHitForPacket(const uint64_t pkt_num)
+{
+    g_pcapcnt_flow_memcap_num = pkt_num;
+}
+
 /**
  *  \brief Get a new flow
  *
@@ -563,6 +570,10 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 {
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
+
+    if (g_pcapcnt_flow_memcap_num != UINT64_MAX && g_pcapcnt_flow_memcap_num == p->pcap_cnt) {
+        return NULL;
+    }
 
     if (FlowCreateCheck(p, emerg) == 0) {
         return NULL;

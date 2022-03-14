@@ -148,5 +148,7 @@ static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 
 uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream);
 
+void StreamTcpDebugSimulateMemcapHitForPacket(const uint64_t pkt_num);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

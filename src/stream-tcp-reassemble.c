@@ -74,6 +74,14 @@ static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
 #endif
 
+static uint64_t g_pcapcnt_stream_tcp_segment_memcap_num = UINT64_MAX;
+thread_local uint64_t t_pcapcnt = UINT64_MAX;
+
+void StreamTcpDebugSimulateMemcapHitForPacket(const uint64_t pkt_num)
+{
+    g_pcapcnt_stream_tcp_segment_memcap_num = pkt_num;
+}
+
 static PoolThread *segment_thread_pool = NULL;
 /* init only, protect initializing and growing pool */
 static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
@@ -146,6 +154,12 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  */
 int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
+    if (unlikely((g_pcapcnt_stream_tcp_segment_memcap_num != UINT64_MAX &&
+                  g_pcapcnt_stream_tcp_segment_memcap_num == t_pcapcnt))) {
+        SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
+        return 0;
+    }
+
     uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.reassembly_memcap);
     if (memcapcopy == 0 ||
         (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= memcapcopy)

@@ -594,6 +594,9 @@ uint32_t FlowGetFlags(Flow *flow);
 uint16_t FlowGetSourcePort(Flow *flow);
 uint16_t FlowGetDestinationPort(Flow *flow);
 
+
+void FlowSimulateMemcapHitForPacket(const uint64_t pkt_num);
+
 /** ----- Inline functions ----- */
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
