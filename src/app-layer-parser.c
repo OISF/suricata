@@ -170,6 +170,17 @@ struct AppLayerParserState_ {
     FramesContainer *frames;
 };
 
+static uint64_t g_applayer_debug_error_offset_ts = UINT64_MAX;
+static uint64_t g_applayer_debug_error_offset_tc = UINT64_MAX;
+
+void AppLayerDebugErrorOffset(const uint64_t offset, const uint8_t dir)
+{
+    if (dir == STREAM_TOSERVER)
+        g_applayer_debug_error_offset_ts = offset;
+    else
+        g_applayer_debug_error_offset_tc = offset;
+}
+
 static void AppLayerParserFramesFreeContainer(FramesContainer *frames)
 {
     if (frames != NULL) {
@@ -1305,6 +1316,15 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (input_len > 0 || (flags & STREAM_EOF)) {
         Setup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), input, input_len, flags,
                 &stream_slice);
+
+        if (((stream_slice.flags & STREAM_TOSERVER) &&
+                    stream_slice.offset >= g_applayer_debug_error_offset_ts) ||
+                ((stream_slice.flags & STREAM_TOCLIENT) &&
+                        stream_slice.offset >= g_applayer_debug_error_offset_tc)) {
+            AppLayerIncParserErrorCounter(tv, f);
+            goto error;
+        }
+
         /* invoke the parser */
         AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice,
                 alp_tctx->alproto_local_storage[f->protomap][alproto]);

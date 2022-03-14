@@ -82,6 +82,7 @@
 
 #include "source-pcap.h"
 #include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 
 #include "source-pfring.h"
 
@@ -1352,6 +1353,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"simulate-packet-flow-memcap", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-ts", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-tc", required_argument, 0, 0},
+        {"simulate-packet-loss", required_argument, 0, 0},
+        {"simulate-packet-tcp-memcap", required_argument, 0, 0},
+
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1720,6 +1727,43 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            } else if (strcmp((long_opts[option_index]).name,
+                               "simulate-applayer-error-at-offset-ts") == 0) {
+                BUG_ON(optarg == NULL);
+                uint64_t offset = 0;
+                if (ParseSizeStringU64(optarg, &offset) < 0) {
+                    return TM_ECODE_FAILED;
+                }
+                AppLayerDebugErrorOffset(offset, STREAM_TOSERVER);
+            } else if (strcmp((long_opts[option_index]).name,
+                               "simulate-applayer-error-at-offset-tc") == 0) {
+                BUG_ON(optarg == NULL);
+                uint64_t offset = 0;
+                if (ParseSizeStringU64(optarg, &offset) < 0) {
+                    return TM_ECODE_FAILED;
+                }
+                AppLayerDebugErrorOffset(offset, STREAM_TOCLIENT);
+            } else if (strcmp((long_opts[option_index]).name, "simulate-packet-loss") == 0) {
+                BUG_ON(optarg == NULL);
+                uint64_t pkt_num = 0;
+                if (ParseSizeStringU64(optarg, &pkt_num) < 0) {
+                    return TM_ECODE_FAILED;
+                }
+                PcapFileDebugSimulatePacketLoss(pkt_num);
+            } else if (strcmp((long_opts[option_index]).name, "simulate-packet-tcp-memcap") == 0) {
+                BUG_ON(optarg == NULL);
+                uint64_t pkt_num = 0;
+                if (ParseSizeStringU64(optarg, &pkt_num) < 0) {
+                    return TM_ECODE_FAILED;
+                }
+                StreamTcpDebugSimulateMemcapHitForPacket(pkt_num);
+            } else if (strcmp((long_opts[option_index]).name, "simulate-packet-flow-memcap") == 0) {
+                BUG_ON(optarg == NULL);
+                uint64_t pkt_num = 0;
+                if (ParseSizeStringU64(optarg, &pkt_num) < 0) {
+                    return TM_ECODE_FAILED;
+                }
+                FlowSimulateMemcapHitForPacket(pkt_num);
             }
             break;
         case 'c':
