@@ -74,6 +74,7 @@
 #include "util-validate.h"
 #include "util-runmodes.h"
 #include "util-random.h"
+#include "util-exception-policy.h"
 
 #include "source-pcap-file.h"
 
@@ -100,6 +101,7 @@ static int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
         uint8_t state);
 
+extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
 
 static PoolThread *ssn_pool = NULL;
@@ -462,6 +464,11 @@ void StreamTcpInitConfig(bool quiet)
             stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
         }
     }
+    stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
+    stream_config.reassembly_memcap_policy =
+            ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
+    SCLogNotice("memcap-policy: %u/%u", stream_config.ssn_memcap_policy,
+            stream_config.reassembly_memcap_policy);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -694,11 +701,18 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
         if (p->flow->protoctx != NULL)
             ssn_pool_cnt++;
         SCMutexUnlock(&ssn_pool_mutex);
-#endif
 
+        if (unlikely((g_eps_stream_ssn_memcap != UINT64_MAX &&
+                      g_eps_stream_ssn_memcap == t_pcapcnt))) {
+            SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
+            ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            return NULL;
+        }
+#endif
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
+            ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
             return NULL;
         }
 
@@ -5296,6 +5310,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
     SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s", p->pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow");
+    t_pcapcnt = p->pcap_cnt;
 
     if (!(PKT_IS_TCP(p))) {
         return TM_ECODE_OK;
