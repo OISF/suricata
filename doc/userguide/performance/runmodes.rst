@@ -46,3 +46,21 @@ useful during development.
 
 For more information about the command line options concerning the
 runmode, see :doc:`../command-line-options`.
+
+Load balancing
+~~~~~~~~~~~~~~
+
+Suricata may use different ways to load balance the packets to process
+between different threads with the configuration option `autofp-scheduler`.
+
+The default value is `hash`, which means the packet is assigned to threads
+using the 5-7 tuple hash, which is also used anyways to store the flows
+in memory.
+
+This option can also be set to
+- `ippair` : packets are assigned to threads using addresses only.
+- `ftp-hash` : same as `hash` except for flows that may be ftp or ftp-data
+so that these flows get processed by the same thread. Like so, there is no
+concurrency issue in recognizing ftp-data flows due to processing them
+before the ftp flow got processed. In case of such a flow, a variant of the
+hash is used.

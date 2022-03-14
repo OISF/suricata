@@ -1145,6 +1145,8 @@ host-mode: auto
 #
 # hash     - Flow assigned to threads using the 5-7 tuple hash.
 # ippair   - Flow assigned to threads using addresses only.
+# ftp-hash - Flow assigned to threads using the hash, except for FTP, so that
+#            ftp-data flows will be handled by the same thread
 #
 #autofp-scheduler: hash
 
