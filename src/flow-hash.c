@@ -108,6 +108,61 @@ typedef struct FlowHashKey6_ {
     };
 } FlowHashKey6;
 
+uint32_t FlowGetIpPairProtoHash(const Packet *p)
+{
+    uint32_t hash = 0;
+    if (p->ip4h != NULL) {
+        FlowHashKey4 fhk;
+
+        int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
+        fhk.addrs[1 - ai] = p->src.addr_data32[0];
+        fhk.addrs[ai] = p->dst.addr_data32[0];
+
+        fhk.ports[0] = 0xfedc;
+        fhk.ports[1] = 0xba98;
+
+        fhk.proto = (uint16_t)p->proto;
+        fhk.recur = (uint16_t)p->recursion_level;
+        /* g_vlan_mask sets the vlan_ids to 0 if vlan.use-for-tracking
+         * is disabled. */
+        fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+
+        hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+    } else if (p->ip6h != NULL) {
+        FlowHashKey6 fhk;
+        if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
+            fhk.src[0] = p->src.addr_data32[0];
+            fhk.src[1] = p->src.addr_data32[1];
+            fhk.src[2] = p->src.addr_data32[2];
+            fhk.src[3] = p->src.addr_data32[3];
+            fhk.dst[0] = p->dst.addr_data32[0];
+            fhk.dst[1] = p->dst.addr_data32[1];
+            fhk.dst[2] = p->dst.addr_data32[2];
+            fhk.dst[3] = p->dst.addr_data32[3];
+        } else {
+            fhk.src[0] = p->dst.addr_data32[0];
+            fhk.src[1] = p->dst.addr_data32[1];
+            fhk.src[2] = p->dst.addr_data32[2];
+            fhk.src[3] = p->dst.addr_data32[3];
+            fhk.dst[0] = p->src.addr_data32[0];
+            fhk.dst[1] = p->src.addr_data32[1];
+            fhk.dst[2] = p->src.addr_data32[2];
+            fhk.dst[3] = p->src.addr_data32[3];
+        }
+
+        fhk.ports[0] = 0xfedc;
+        fhk.ports[1] = 0xba98;
+        fhk.proto = (uint16_t)p->proto;
+        fhk.recur = (uint16_t)p->recursion_level;
+        fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+
+        hash = hashword(fhk.u32, 11, flow_config.hash_rand);
+    }
+    return hash;
+}
+
 /* calculate the hash key for this packet
  *
  * we're using:
