@@ -72,6 +72,7 @@ typedef struct DefragConfig_ {
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
+    enum ExceptionPolicy memcap_policy;
 } DefragConfig;
 
 /** \brief check if a memory alloc would fit in the memcap
