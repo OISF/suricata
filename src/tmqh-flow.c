@@ -33,6 +33,7 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tmqh-flow.h"
+#include "flow-hash.h"
 
 #include "tm-queuehandlers.h"
 
@@ -42,6 +43,7 @@
 Packet *TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);
 void TmqhOutputFlowIPPair(ThreadVars *t, Packet *p);
+static void TmqhOutputFlowFTPHash(ThreadVars *t, Packet *p);
 void *TmqhOutputFlowSetupCtx(const char *queue_str);
 void TmqhOutputFlowFreeCtx(void *ctx);
 void TmqhFlowRegisterTests(void);
@@ -66,6 +68,8 @@ void TmqhFlowRegister(void)
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
         } else if (strcasecmp(scheduler, "ippair") == 0) {
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowIPPair;
+        } else if (strcasecmp(scheduler, "ftp-hash") == 0) {
+            tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowFTPHash;
         } else {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry \"%s\" "
                        "for autofp-scheduler in conf.  Killing engine.",
@@ -87,6 +91,7 @@ void TmqhFlowPrintAutofpHandler(void)
 
     PRINT_IF_FUNC(TmqhOutputFlowHash, "Hash");
     PRINT_IF_FUNC(TmqhOutputFlowIPPair, "IPPair");
+    PRINT_IF_FUNC(TmqhOutputFlowFTPHash, "FTPHash");
 
 #undef PRINT_IF_FUNC
 }
@@ -263,6 +268,34 @@ void TmqhOutputFlowIPPair(ThreadVars *tv, Packet *p)
     }
 
     uint32_t qid = addr_hash % ctx->size;
+    PacketQueue *q = ctx->queues[qid].q;
+    SCMutexLock(&q->mutex_q);
+    PacketEnqueue(q, p);
+    SCCondSignal(&q->cond_q);
+    SCMutexUnlock(&q->mutex_q);
+
+    return;
+}
+
+static void TmqhOutputFlowFTPHash(ThreadVars *tv, Packet *p)
+{
+    uint32_t qid;
+    TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
+
+    if (p->flags & PKT_WANTS_FLOW) {
+        uint32_t hash = p->flow_hash;
+        if (p->tcph != NULL && ((p->sp >= 1024 && p->dp >= 1024) || p->dp == 21 || p->sp == 21 ||
+                                       p->dp == 20 || p->sp == 20)) {
+            hash = FlowGetIpPairProtoHash(p);
+        }
+        qid = hash % ctx->size;
+    } else {
+        qid = ctx->last++;
+
+        if (ctx->last == ctx->size)
+            ctx->last = 0;
+    }
+
     PacketQueue *q = ctx->queues[qid].q;
     SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);
