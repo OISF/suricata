@@ -82,6 +82,7 @@
 
 #include "source-pcap.h"
 #include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 
 #include "source-pfring.h"
 
@@ -175,6 +176,7 @@
 #include "util-plugin.h"
 
 #include "util-dpdk.h"
+#include "util-exception-policy.h"
 
 #include "rust.h"
 
@@ -1351,6 +1353,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"simulate-packet-flow-memcap", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-ts", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-tc", required_argument, 0, 0},
+        {"simulate-packet-loss", required_argument, 0, 0},
+        {"simulate-packet-tcp-reassembly-memcap", required_argument, 0, 0},
+        {"simulate-packet-tcp-ssn-memcap", required_argument, 0, 0},
+        {"simulate-packet-defrag-memcap", required_argument, 0, 0},
+
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1719,6 +1729,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            } else {
+                int r = ExceptionSimulationCommandlineParser(
+                        (long_opts[option_index]).name, optarg);
+                if (r < 0)
+                    return TM_ECODE_FAILED;
             }
             break;
         case 'c':
