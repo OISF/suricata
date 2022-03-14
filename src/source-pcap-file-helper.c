@@ -28,6 +28,15 @@
 #include "util-profiling.h"
 #include "source-pcap-file.h"
 
+#ifdef DEBUG
+static uint64_t g_pcap_simulate_packet_loss = UINT64_MAX;
+
+void PcapFileDebugSimulatePacketLoss(const uint64_t pkt_num)
+{
+    g_pcap_simulate_packet_loss = pkt_num;
+}
+#endif
+
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
 
@@ -59,6 +68,14 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 {
     SCEnter();
+
+#ifdef DEBUG
+    if ((pcap_g.cnt + 1ULL) == g_pcap_simulate_packet_loss) {
+        SCLogNotice("skipping packet %"PRIu64, g_pcap_simulate_packet_loss);
+        pcap_g.cnt++;
+        SCReturn;
+    }
+#endif
 
     PcapFileFileVars *ptv = (PcapFileFileVars *)user;
     Packet *p = PacketGetFromQueueOrAlloc();

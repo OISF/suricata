@@ -176,4 +176,8 @@ static inline uint32_t StreamSliceGetGapSize(const StreamSlice *stream_slice)
     return StreamSliceGetDataLen(stream_slice);
 }
 
+#ifdef DEBUG
+void AppLayerDebugErrorOffset(const uint64_t offset, const uint8_t dir);
+#endif
+
 #endif

@@ -112,4 +112,8 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
  */
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
+#ifdef DEBUG
+void PcapFileDebugSimulatePacketLoss(const uint64_t pkt_num);
+#endif
+
 #endif /* __SOURCE_PCAP_FILE_HELPER_H__ */

@@ -100,6 +100,7 @@ static int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
         uint8_t state);
 
+extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
 
 static PoolThread *ssn_pool = NULL;
@@ -5276,6 +5277,9 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
     SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s", p->pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow");
+#ifdef DEBUG
+    t_pcapcnt = p->pcap_cnt;
+#endif
 
     if (!(PKT_IS_TCP(p))) {
         return TM_ECODE_OK;
