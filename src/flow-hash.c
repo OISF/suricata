@@ -49,6 +49,7 @@
 #include "output.h"
 #include "output-flow.h"
 #include "stream-tcp.h"
+#include "util-exception-policy.h"
 
 extern TcpStreamCnf stream_config;
 
@@ -526,6 +527,11 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
     return f;
 }
 
+static inline void NoFlowHandleIPS(Packet *p)
+{
+    ExceptionPolicyApply(p, flow_config.memcap_policy, PKT_DROP_REASON_FLOW_MEMCAP);
+}
+
 /**
  *  \brief Get a new flow
  *
@@ -537,10 +543,14 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
  *
  *  \retval f *LOCKED* flow on succes, NULL on error.
  */
-static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
+static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
-
+#ifdef DEBUG
+    if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
+        return NULL;
+    }
+#endif
     if (FlowCreateCheck(p, emerg) == 0) {
         return NULL;
     }
@@ -561,6 +571,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 
             f = FlowGetUsedFlow(tv, fls->dtv, &p->ts);
             if (f == NULL) {
+                NoFlowHandleIPS(p);
                 return NULL;
             }
 #ifdef UNITTESTS
@@ -585,6 +596,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 #ifdef UNITTESTS
             }
 #endif
+            NoFlowHandleIPS(p);
             return NULL;
         }
 
@@ -600,9 +612,8 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
     return f;
 }
 
-static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls,
-                             FlowBucket *fb, Flow *old_f,
-                             const uint32_t hash, const Packet *p)
+static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *fb, Flow *old_f,
+        const uint32_t hash, Packet *p)
 {
 #ifdef UNITTESTS
     if (tv != NULL && fls->dtv != NULL) {
@@ -724,8 +735,7 @@ static inline void FromHashLockCMP(Flow *f)
  *
  *  \retval f *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
-        const Packet *p, Flow **dest)
+Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow **dest)
 {
     Flow *f = NULL;
 

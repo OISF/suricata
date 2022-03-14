@@ -483,6 +483,7 @@ util-device.c util-device.h \
 util-ebpf.c util-ebpf.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
+util-exception-policy.c util-exception-policy.h \
 util-file.c util-file.h \
 util-file-decompression.c util-file-decompression.h \
 util-file-swf-decompression.c util-file-swf-decompression.h \

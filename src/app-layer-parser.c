@@ -169,6 +169,13 @@ struct AppLayerParserState_ {
     AppLayerDecoderEvents *decoder_events;
 };
 
+enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_IGNORE;
+
+static void AppLayerConfg(void)
+{
+    g_applayerparser_error_policy = ExceptionPolicyParse("app-layer.error-policy", true);
+}
+
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
 {
@@ -1281,6 +1288,24 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
+#ifdef DEBUG
+        uint64_t offset = 0;
+        if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+            TcpSession *ssn = f->protoctx;
+            TcpStream *stream = (flags & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
+            offset = STREAM_APP_PROGRESS(stream);
+        }
+        if (((flags & STREAM_TOSERVER) && offset >= g_eps_applayer_error_offset_ts)) {
+            SCLogNotice("putting parser %s into an error state from toserver offset %" PRIu64,
+                    AppProtoToString(alproto), g_eps_applayer_error_offset_ts);
+            goto error;
+        }
+        if (((flags & STREAM_TOCLIENT) && offset >= g_eps_applayer_error_offset_tc)) {
+            SCLogNotice("putting parser %s into an error state from toclient offset %" PRIu64,
+                    AppProtoToString(alproto), g_eps_applayer_error_offset_tc);
+            goto error;
+        }
+#endif
         /* invoke the parser */
         AppLayerResult res = p->Parser[direction](f, alstate, pstate,
                 input, input_len,
@@ -1613,6 +1638,8 @@ static void ValidateParsers(void)
 void AppLayerParserRegisterProtocolParsers(void)
 {
     SCEnter();
+
+    AppLayerConfg();
 
     RegisterHTPParsers();
     RegisterSSLParsers();

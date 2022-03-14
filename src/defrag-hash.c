@@ -181,6 +181,7 @@ void DefragInitConfig(char quiet)
     defrag_config.hash_size   = DEFRAG_DEFAULT_HASHSIZE;
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(defrag_config.memcap, DEFRAG_DEFAULT_MEMCAP);
+    defrag_config.memcap_policy = ExceptionPolicyParse("defrag.memcap-policy", false);
 
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
@@ -472,6 +473,14 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
  */
 static DefragTracker *DefragTrackerGetNew(Packet *p)
 {
+#ifdef DEBUG
+    if (g_eps_defrag_memcap != UINT64_MAX && g_eps_defrag_memcap == p->pcap_cnt) {
+        SCLogNotice("simulating memcap hit for packet %" PRIu64, p->pcap_cnt);
+        ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
+        return NULL;
+    }
+#endif
+
     DefragTracker *dt = NULL;
 
     /* get a tracker from the spare queue */
@@ -491,6 +500,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
 
             dt = DefragTrackerGetUsedDefragTracker();
             if (dt == NULL) {
+                ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
                 return NULL;
             }
 
@@ -499,6 +509,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
             /* now see if we can alloc a new tracker */
             dt = DefragTrackerAlloc();
             if (dt == NULL) {
+                ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
                 return NULL;
             }
 
