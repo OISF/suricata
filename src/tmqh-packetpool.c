@@ -338,7 +338,7 @@ void PacketPoolDestroy(void)
     PktPool *my_pool = GetThreadPacketPool();
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(my_pool->destroyed);
+    BUG_ON(my_pool && my_pool->destroyed);
 #endif /* DEBUG_VALIDATION */
 
     if (my_pool && my_pool->pending_pool != NULL) {
