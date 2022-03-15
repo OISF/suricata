@@ -152,9 +152,6 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
             return DetectIPPairbitMatchUnset(p,xd);
         case DETECT_XBITS_CMD_TOGGLE:
             return DetectIPPairbitMatchToggle(p,xd);
-        default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
-            return 0;
     }
     return 0;
 }
@@ -304,7 +301,6 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         case DETECT_XBITS_CMD_SET:
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
-        default:
             if (strlen(fb_name) == 0)
                 return -1;
             break;
