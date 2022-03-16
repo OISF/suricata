@@ -214,7 +214,7 @@ pub unsafe extern "C" fn rs_smb_cmd_match(
     let version = tx.vercmd.get_version();
     let cmd;
     if version == 1 {
-        cmd = tx.vercmd.get_smb1_cmd().1 as u16;
+        cmd = tx.vercmd.get_smb1_cmd().1.into();
     } else {
         cmd = tx.vercmd.get_smb2_cmd().1;
     }
