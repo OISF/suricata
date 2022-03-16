@@ -100,6 +100,7 @@ pub enum QuicType {
 
 const QUIC_FLAG_MULTIPATH: u8 = 0x40;
 const QUIC_FLAG_DCID_LEN: u8 = 0x8;
+const QUIC_FLAG_NONCE: u8 = 0x4;
 const QUIC_FLAG_VERSION: u8 = 0x1;
 
 #[derive(Debug, PartialEq)]
@@ -203,21 +204,39 @@ impl QuicHeader {
     }
 
     pub(crate) fn from_bytes(
-        input: &[u8], dcid_len: usize,
+        input: &[u8], _dcid_len: usize,
     ) -> IResult<&[u8], QuicHeader, QuicError> {
         let (rest, first) = be_u8(input)?;
         let flags = PublicFlags::new(first);
 
         if !flags.is_long && (flags.raw & QUIC_FLAG_MULTIPATH) == 0 {
-            if (flags.raw & QUIC_FLAG_VERSION) == 0 || (flags.raw & QUIC_FLAG_DCID_LEN) == 0 {
-                return Err(nom::Err::Error(QuicError::InvalidPacket));
+            let (mut rest, dcid) = if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                take(8_usize)(rest)?
+            } else {
+                take(0_usize)(rest)?
+            };
+            if (flags.raw & QUIC_FLAG_NONCE) != 0 && (flags.raw & QUIC_FLAG_DCID_LEN) == 0 {
+                let (rest1, _) = take(32_usize)(rest)?;
+                rest = rest1;
             }
-            let (rest, dcid) = take(8_usize)(rest)?;
-            let (_, version_buf) = take(4_usize)(rest)?;
-            let (rest, version) = map(be_u32, QuicVersion)(rest)?;
+            let version_buf: &[u8];
+            let version;
+            if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                let (_, version_buf1) = take(4_usize)(rest)?;
+                let (rest1, version1) = map(be_u32, QuicVersion)(rest)?;
+                rest = rest1;
+                version = version1;
+                version_buf = version_buf1;
+            } else {
+                version = QuicVersion(0);
+                version_buf = &rest[..0];
+            }
             let pkt_num_len = 1 + (flags.raw & 0x30) >> 4;
-            let (rest, _pkt_num) = take(pkt_num_len)(rest)?;
-            let (rest, _msg_auth_hash) = take(12_usize)(rest)?;
+            let (mut rest, _pkt_num) = take(pkt_num_len)(rest)?;
+            if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                let (rest1, _msg_auth_hash) = take(12_usize)(rest)?;
+                rest = rest1;
+            }
             if let Ok(plength) = u16::try_from(rest.len()) {
                 return Ok((
                     rest,
@@ -236,7 +255,7 @@ impl QuicHeader {
             }
         } else if !flags.is_long {
             // Decode short header
-            let (rest, dcid) = take(dcid_len)(rest)?;
+            // depends on version let (rest, dcid) = take(_dcid_len)(rest)?;
 
             if let Ok(plength) = u16::try_from(rest.len()) {
                 return Ok((
@@ -246,7 +265,7 @@ impl QuicHeader {
                         ty: QuicType::Short,
                         version: QuicVersion(0),
                         version_buf: Vec::new(),
-                        dcid: dcid.to_vec(),
+                        dcid: Vec::new(),
                         scid: Vec::new(),
                         length: plength,
                     },
