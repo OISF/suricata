@@ -38,13 +38,14 @@ pub struct QuicTransaction {
     pub ua: Option<Vec<u8>>,
     pub extv: Vec<QuicTlsExtension>,
     pub ja3: Option<String>,
+    pub client: bool,
     tx_data: AppLayerTxData,
 }
 
 impl QuicTransaction {
     fn new(
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extv: Vec<QuicTlsExtension>, ja3: Option<String>,
+        extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
@@ -55,6 +56,7 @@ impl QuicTransaction {
             ua,
             extv,
             ja3,
+            client,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -102,9 +104,9 @@ impl QuicState {
 
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extb: Vec<QuicTlsExtension>, ja3: Option<String>,
+        extb: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) {
-        let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3);
+        let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         self.transactions.push(tx);
@@ -221,7 +223,7 @@ impl QuicState {
                 }
             }
 
-            self.new_tx(header, data, sni, ua, extv, ja3);
+            self.new_tx(header, data, sni, ua, extv, ja3, to_server);
         }
     }
 

@@ -269,6 +269,7 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
                 ClientHello(ch) => {
                     let mut ja3 = String::with_capacity(256);
                     ja3.push_str(&u16::from(ch.version).to_string());
+                    ja3.push_str(",");
                     let mut dash = false;
                     for c in &ch.ciphers {
                         if dash {
