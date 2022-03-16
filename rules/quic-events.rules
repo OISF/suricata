@@ -1,0 +1,8 @@
+# QUIC app-layer event rules.
+#
+# These SIDs fall in the 2231000+ range. See:
+#    http://doc.emergingthreats.net/bin/view/Main/SidAllocation and
+#    https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+
+alert quic any any -> any any (msg:"SURICATA QUIC failed decrypt"; app-layer-event:quic.failed_decrypt; classtype:protocol-command-decode; sid:2231000; rev:1;)
+alert quic any any -> any any (msg:"SURICATA QUIC error on data"; app-layer-event:quic.error_on_data; classtype:protocol-command-decode; sid:2231001; rev:1;)
