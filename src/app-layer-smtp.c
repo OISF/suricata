@@ -241,6 +241,8 @@ SMTPConfig smtp_config = { false, { false, false, false, NULL, false, false, 0 }
     STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
+static SMTPInput *SMTPInputAlloc(void);
+static void SMTPInputFree(SMTPInput *);
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -635,25 +637,25 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
  * \retval -1 Either when we don't have any new lines to supply anymore or
  *            on failure.
  */
-static AppLayerResult SMTPGetLine(SMTPState *state)
+static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input)
 {
     SCEnter();
 
     /* we have run out of input */
-    if (state->input_len <= 0)
+    if (input->len <= 0)
         return APP_LAYER_ERROR;
 
-    uint8_t *lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
+    uint8_t *lf_idx = memchr(input->data + state->consumed, 0x0a, input->len);
 
     if (lf_idx == NULL) {
-        SCReturnStruct(APP_LAYER_INCOMPLETE(state->consumed, state->input_len + 1));
+        SCReturnStruct(APP_LAYER_INCOMPLETE(state->consumed, input->len + 1));
     } else {
         uint32_t o_consumed = state->consumed;
-        state->consumed = lf_idx - state->input + 1;
+        state->consumed = lf_idx - input->data + 1;
         state->current_line_len = state->consumed - o_consumed;
-        state->current_line = state->input + o_consumed;
-        state->input_len -= state->current_line_len;
-        if (state->consumed >= 2 && state->input[state->consumed - 2] == 0x0D) {
+        state->current_line = input->data + o_consumed;
+        input->len -= state->current_line_len;
+        if (state->consumed >= 2 && input->data[state->consumed - 2] == 0x0D) {
             state->current_line_delimiter_len = 2;
             state->current_line_len -= 2;
         } else {
@@ -1271,6 +1273,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
 {
     SCEnter();
 
+    SMTPInput *smtp_input = NULL;
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
@@ -1282,33 +1285,43 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         SCReturnStruct(APP_LAYER_ERROR);
     }
 
-    state->input = input;
-    state->input_len = input_len;
     state->consumed = 0;
     state->direction = direction;
-    AppLayerResult res = SMTPGetLine(state);
+    smtp_input = SMTPInputAlloc();
+    smtp_input->data = input;
+    smtp_input->len = input_len;
+    AppLayerResult res = SMTPGetLine(state, smtp_input);
 
     /* toserver */
     if (direction == 0) {
         while (res.status == 0) {
-            if (SMTPProcessRequest(state, f, pstate) == -1)
-                SCReturnStruct(APP_LAYER_ERROR);
-            res = SMTPGetLine(state);
+            if (SMTPProcessRequest(state, f, pstate) == -1) {
+                goto error;
+            }
+            res = SMTPGetLine(state, smtp_input);
         }
         if (res.status == 1)
-            return res;
+            goto incomplete;
         /* toclient */
     } else {
         while (res.status == 0) {
-            if (SMTPProcessReply(state, f, pstate, thread_data) == -1)
-                SCReturnStruct(APP_LAYER_ERROR);
-            res = SMTPGetLine(state);
+            if (SMTPProcessReply(state, f, pstate, thread_data) == -1) {
+                goto error;
+            }
+            res = SMTPGetLine(state, smtp_input);
         }
         if (res.status == 1)
-            return res;
+            goto incomplete;
     }
 
+    SMTPInputFree(smtp_input);
     SCReturnStruct(APP_LAYER_OK);
+error:
+    SMTPInputFree(smtp_input);
+    SCReturnStruct(APP_LAYER_ERROR);
+incomplete:
+    SMTPInputFree(smtp_input);
+    return res;
 }
 
 static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
@@ -1351,6 +1364,23 @@ void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
     TAILQ_INIT(&smtp_state->tx_list);
 
     return smtp_state;
+}
+
+static SMTPInput *SMTPInputAlloc(void)
+{
+    SMTPInput *smtp_input = SCMalloc(sizeof(SMTPInput));
+    if (unlikely(smtp_input == NULL))
+        return NULL;
+    memset(smtp_input, 0, sizeof(SMTPInput));
+
+    return smtp_input;
+}
+
+static void SMTPInputFree(SMTPInput *obj)
+{
+    if (obj) {
+        SCFree(obj);
+    }
 }
 
 static SMTPString *SMTPStringAlloc(void)
@@ -2159,10 +2189,8 @@ static int SMTPParserTest02(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2176,11 +2204,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2194,10 +2220,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2211,11 +2235,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2229,10 +2251,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2246,11 +2266,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2264,10 +2282,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2281,11 +2297,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2299,11 +2313,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2317,11 +2329,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2336,11 +2346,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2355,11 +2363,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2374,11 +2380,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2393,11 +2397,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2411,10 +2413,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2428,11 +2428,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2446,10 +2444,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2463,11 +2459,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2481,10 +2475,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2498,11 +2490,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2516,11 +2506,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2534,11 +2522,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2553,11 +2539,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2572,11 +2556,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2591,11 +2573,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -2610,11 +2590,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2628,10 +2606,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2645,11 +2621,9 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2663,10 +2637,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2798,10 +2770,8 @@ static int SMTPParserTest03(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2815,11 +2785,9 @@ static int SMTPParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2833,11 +2801,9 @@ static int SMTPParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != ( SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                      SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2851,15 +2817,13 @@ static int SMTPParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 3 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->cmds[1] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->cmds[2] != SMTP_COMMAND_DATA ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 3 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->cmds[1] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->cmds[2] != SMTP_COMMAND_DATA ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                            SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2873,12 +2837,10 @@ static int SMTPParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                            SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2951,10 +2913,8 @@ static int SMTPParserTest04(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2968,11 +2928,9 @@ static int SMTPParserTest04(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3100,10 +3058,8 @@ static int SMTPParserTest05(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3117,11 +3073,9 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3135,11 +3089,9 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3153,12 +3105,10 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3172,11 +3122,9 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3197,12 +3145,10 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3216,11 +3162,9 @@ static int SMTPParserTest05(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3401,10 +3345,8 @@ static int SMTPParserTest06(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3418,11 +3360,9 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3436,10 +3376,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3453,11 +3391,9 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3471,10 +3407,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3488,11 +3422,9 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3506,10 +3438,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 0 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3523,14 +3453,11 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->cmds[0] != SMTP_COMMAND_BDAT ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
-        smtp_state->bdat_chunk_len != 51 ||
-        smtp_state->bdat_chunk_idx != 0) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->cmds[0] != SMTP_COMMAND_BDAT ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
+            smtp_state->bdat_chunk_len != 51 || smtp_state->bdat_chunk_idx != 0) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3544,13 +3471,10 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
-        smtp_state->bdat_chunk_len != 51 ||
-        smtp_state->bdat_chunk_idx != 32) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
+            smtp_state->bdat_chunk_len != 51 || smtp_state->bdat_chunk_idx != 32) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3564,12 +3488,9 @@ static int SMTPParserTest06(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-        smtp_state->cmds_cnt != 1 ||
-        smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN ||
-        smtp_state->bdat_chunk_len != 51 ||
-        smtp_state->bdat_chunk_idx != 51) {
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN ||
+            smtp_state->bdat_chunk_len != 51 || smtp_state->bdat_chunk_idx != 51) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -4068,9 +3989,7 @@ static int SMTPParserTest14(void)
         printf("no smtp state: ");
         goto end;
     }
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4085,9 +4004,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4111,9 +4028,7 @@ static int SMTPParserTest14(void)
     }
 
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4129,9 +4044,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4158,9 +4071,7 @@ static int SMTPParserTest14(void)
     }
 
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4176,9 +4087,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4195,9 +4104,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4220,9 +4127,7 @@ static int SMTPParserTest14(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4239,11 +4144,9 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
-            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                    SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
@@ -4259,12 +4162,11 @@ static int SMTPParserTest14(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
-            smtp_state->curr_tx->mime_state == NULL || smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
-            smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                    SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->curr_tx->mime_state == NULL ||
+            smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
@@ -4280,11 +4182,10 @@ static int SMTPParserTest14(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
-            smtp_state->curr_tx->mime_state == NULL || smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
+            smtp_state->curr_tx->mime_state == NULL ||
+            smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4340,9 +4241,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
@@ -4358,9 +4257,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4377,9 +4274,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 0 ||
-            smtp_state->cmds_idx != 0 ||
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
