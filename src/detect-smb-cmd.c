@@ -29,10 +29,6 @@
 #include "detect-smb-cmd.h"
 #include "rust.h"
 
-#define PARSE_REGEX                                                                                \
-    "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
-static DetectParseRegex parse_regex;
-
 static int g_smb_cmd_list_id = 0;
 
 static void DetectSmbCmdFree(DetectEngineCtx *de_ctx, void *ptr)
@@ -116,9 +112,6 @@ void DetectSmbCmdRegister(void)
 
     DetectAppLayerInspectEngineRegister2(
             "smb_cmd", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectSmbCmd, NULL);
-
-    /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_smb_cmd_list_id = DetectBufferTypeRegister("smb_cmd");
 }
