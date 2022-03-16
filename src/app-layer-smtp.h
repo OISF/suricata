@@ -65,11 +65,6 @@ typedef struct SMTPString_ {
     TAILQ_ENTRY(SMTPString_) next;
 } SMTPString;
 
-typedef struct SMTPInput_ {
-    const uint8_t *data;
-    int32_t len;
-} SMTPInput;
-
 typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;

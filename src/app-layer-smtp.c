@@ -241,8 +241,6 @@ SMTPConfig smtp_config = { false, { false, false, false, NULL, false, false, 0 }
     STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
-static SMTPInput *SMTPInputAlloc(void);
-static void SMTPInputFree(SMTPInput *);
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -637,25 +635,25 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
  * \retval -1 Either when we don't have any new lines to supply anymore or
  *            on failure.
  */
-static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input)
+static AppLayerResult SMTPGetLine(SMTPState *state, const uint8_t **input, int32_t *input_len)
 {
     SCEnter();
 
     /* we have run out of input */
-    if (input->len <= 0)
+    if (*input_len <= 0)
         return APP_LAYER_ERROR;
 
-    uint8_t *lf_idx = memchr(input->data + state->consumed, 0x0a, input->len);
+    uint8_t *lf_idx = memchr(*input + state->consumed, 0x0a, *input_len);
 
     if (lf_idx == NULL) {
-        SCReturnStruct(APP_LAYER_INCOMPLETE(state->consumed, input->len + 1));
+        SCReturnStruct(APP_LAYER_INCOMPLETE(state->consumed, *input_len + 1));
     } else {
         uint32_t o_consumed = state->consumed;
-        state->consumed = lf_idx - input->data + 1;
+        state->consumed = lf_idx - *input + 1;
         state->current_line_len = state->consumed - o_consumed;
-        state->current_line = input->data + o_consumed;
-        input->len -= state->current_line_len;
-        if (state->consumed >= 2 && input->data[state->consumed - 2] == 0x0D) {
+        state->current_line = *input + o_consumed;
+        *input_len -= state->current_line_len;
+        if (state->consumed >= 2 && (*input)[state->consumed - 2] == 0x0D) {
             state->current_line_delimiter_len = 2;
             state->current_line_len -= 2;
         } else {
@@ -1273,9 +1271,8 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
 {
     SCEnter();
 
-    SMTPInput *smtp_input = NULL;
     const uint8_t *input = StreamSliceGetData(&stream_slice);
-    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+    int32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL &&
             ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
@@ -1287,17 +1284,14 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
 
     state->consumed = 0;
     state->direction = direction;
-    smtp_input = SMTPInputAlloc();
-    smtp_input->data = input;
-    smtp_input->len = input_len;
-    AppLayerResult res = SMTPGetLine(state, smtp_input);
+    AppLayerResult res = SMTPGetLine(state, &input, &input_len);
 
     /* toserver */
     if (direction == 0) {
         while (res.status == 0) {
             if (SMTPProcessRequest(state, f, pstate) == -1)
                 SCReturnStruct(APP_LAYER_ERROR);
-            res = SMTPGetLine(state, smtp_input);
+            res = SMTPGetLine(state, &input, &input_len);
         }
         if (res.status == 1)
             return res;
@@ -1306,13 +1300,12 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         while (res.status == 0) {
             if (SMTPProcessReply(state, f, pstate, thread_data) == -1)
                 SCReturnStruct(APP_LAYER_ERROR);
-            res = SMTPGetLine(state, smtp_input);
+            res = SMTPGetLine(state, &input, &input_len);
         }
         if (res.status == 1)
             return res;
     }
 
-    SMTPInputFree(smtp_input);
     SCReturnStruct(APP_LAYER_OK);
 }
 
@@ -1356,23 +1349,6 @@ void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
     TAILQ_INIT(&smtp_state->tx_list);
 
     return smtp_state;
-}
-
-static SMTPInput *SMTPInputAlloc(void)
-{
-    SMTPInput *smtp_input = SCMalloc(sizeof(SMTPInput));
-    if (unlikely(smtp_input == NULL))
-        return NULL;
-    memset(smtp_input, 0, sizeof(SMTPInput));
-
-    return smtp_input;
-}
-
-static void SMTPInputFree(SMTPInput *obj)
-{
-    if (obj) {
-        SCFree(obj);
-    }
 }
 
 static SMTPString *SMTPStringAlloc(void)
