@@ -30,6 +30,13 @@ static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 const DEFAULT_DCID_LEN: usize = 16;
 
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
+pub enum QuicEvent {
+    FailedDecrypt,
+    ErrorOnData,
+    ErrorOnHeader,
+}
+
 #[derive(Debug)]
 pub struct QuicTransaction {
     tx_id: u64,
@@ -58,6 +65,20 @@ impl QuicTransaction {
             extv,
             ja3,
             client,
+            tx_data: AppLayerTxData::new(),
+        }
+    }
+
+    fn new_empty(client: bool, header: QuicHeader) -> Self {
+        QuicTransaction {
+            tx_id: 0,
+            header: header,
+            cyu: Vec::new(),
+            sni: None,
+            ua: None,
+            extv: Vec::new(),
+            ja3: None,
+            client: client,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -222,6 +243,14 @@ impl QuicState {
         self.new_tx(header, data, sni, ua, extv, ja3, to_server);
     }
 
+    fn set_event_notx(&mut self, event: QuicEvent, header: QuicHeader, client: bool) {
+        let mut tx = QuicTransaction::new_empty(client, header);
+        self.max_tx_id += 1;
+        tx.tx_id = self.max_tx_id;
+        tx.tx_data.set_event(event as u8);
+        self.transactions.push(tx);
+    }
+
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
@@ -252,6 +281,7 @@ impl QuicState {
                         {
                             output.resize(dlen, 0);
                         } else {
+                            self.set_event_notx(QuicEvent::FailedDecrypt, header, to_server);
                             return false;
                         }
                         framebuf = &output;
@@ -277,11 +307,13 @@ impl QuicState {
                             self.handle_frames(data, header, to_server);
                         }
                         Err(_e) => {
+                            self.set_event_notx(QuicEvent::ErrorOnData, header, to_server);
                             return false;
                         }
                     }
                 }
                 Err(_e) => {
+                    // should we make an event with an empty header ?
                     return false;
                 }
             }
