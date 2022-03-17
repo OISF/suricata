@@ -464,6 +464,11 @@ void StreamTcpInitConfig(bool quiet)
         }
     }
 
+    int v = 0;
+    if ((ConfGetBool("stream.drop-on-memcap-reached", &v)) == 1 && v == 1) {
+        stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_MEMCAP;
+    }
+
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
                     stream_config.flags & STREAMTCP_INIT_FLAG_INLINE

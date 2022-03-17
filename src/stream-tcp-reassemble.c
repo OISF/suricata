@@ -1911,6 +1911,12 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
         if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
+
+            /* failure can only be because of memcap hit, so see if this should lead to a drop */
+            if ((stream_config.flags & STREAMTCP_INIT_FLAG_DROP_MEMCAP) && EngineModeIsIPS()) {
+                p->flow->flags |= FLOW_ACTION_DROP;
+                PACKET_DROP(p);
+            }
             SCReturnInt(-1);
         }
 
