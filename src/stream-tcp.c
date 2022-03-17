@@ -463,6 +463,9 @@ void StreamTcpInitConfig(bool quiet)
             stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
         }
     }
+    stream_config.ssn_memcap_policy = MemcapPolicyParse("stream.memcap-policy");
+    stream_config.reassembly_memcap_policy = MemcapPolicyParse("stream.reassembly.memcap-policy");
+    SCLogNotice("memcap-policy: %u/%u", stream_config.ssn_memcap_policy, stream_config.reassembly_memcap_policy);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -701,6 +704,7 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
+            MemcapPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
             return NULL;
         }
 

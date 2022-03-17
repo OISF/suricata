@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,6 +29,7 @@
 
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
+#include "util-memcap.h"
 
 #define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine
@@ -63,6 +64,9 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toclient_chunk_size;
 
     bool streaming_log_api;
+
+    enum MemcapPolicy ssn_memcap_policy;
+    enum MemcapPolicy reassembly_memcap_policy;
 
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
