@@ -237,6 +237,11 @@ impl QuicHeader {
                 let (rest1, _msg_auth_hash) = take(12_usize)(rest)?;
                 rest = rest1;
             }
+            let ty = if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                QuicType::Initial
+            } else {
+                QuicType::Short
+            };
             if let Ok(plength) = u16::try_from(rest.len()) {
                 return Ok((
                     rest,
