@@ -56,7 +56,9 @@ lock               0x0A
 ioctl              0x0B
 cancel             0x0C
 echo               0x0D
+keep_alive         0x0D
 query_directory    0x0E
+find               0x0E
 change_notify      0x0F
 query_info         0x10
 set_info           0x11
