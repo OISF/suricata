@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -896,6 +896,16 @@ impl NFSState {
         let chunk_offset;
         let nfs_version;
 
+        let mut fill_bytes = 0;
+        let pad = reply.count % 4;
+        if pad != 0 {
+            fill_bytes = 4 - pad;
+        }
+         // linux defines a max of 1mb. Allow several multiples.
+        if reply.count == 0 || reply.count > 16777216 {
+            return 0;
+        }
+
         match xidmapr {
             Some(xidmap) => {
                 file_name = xidmap.file_name.to_vec();
@@ -917,11 +927,6 @@ impl NFSState {
         SCLogDebug!("chunk_offset {}", chunk_offset);
 
         let mut is_last = reply.eof;
-        let mut fill_bytes = 0;
-        let pad = reply.count % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
         SCLogDebug!("XID {} is_last {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}",
                 r.hdr.xid, is_last, fill_bytes, reply.count, reply.data_len, reply.data.len());
 
@@ -1001,7 +1006,8 @@ impl NFSState {
 
         if !self.is_udp {
             self.tc_chunk_xid = r.hdr.xid;
-            self.tc_chunk_left = (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
+            //debug_validate_bug_on!(reply.data.len() as u32 > reply.count);
+            self.tc_chunk_left = reply.count - reply.data.len() as u32;
         }
 
         SCLogDebug!("REPLY {} to procedure {} blob size {} / {}: chunk_left {} chunk_xid {:04X}",
@@ -1308,7 +1314,7 @@ impl NFSState {
                                 // we should have enough data to parse the RPC record
                                 match parse_rpc_reply(cur_i) {
                                     Ok((remaining, ref rpc_record)) => {
-                                        match parse_nfs3_reply_read(rpc_record.prog_data) {
+                                        match parse_nfs3_reply_read(rpc_record.prog_data, false) {
                                             Ok((_, ref nfs_reply_read)) => {
                                                 // deal with the partial nfs read data
                                                 status |= self.process_partial_read_reply_record(rpc_record, nfs_reply_read);

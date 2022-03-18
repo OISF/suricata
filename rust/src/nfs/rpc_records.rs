@@ -247,35 +247,39 @@ pub fn parse_rpc(start_i: &[u8]) -> IResult<&[u8], RpcPacket> {
 }
 
 // to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
-named!(pub parse_rpc_reply<RpcReplyPacket>,
-   do_parse!(
-       hdr: parse_rpc_packet_header
+pub fn parse_rpc_reply(start_i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len + 4;
 
-       >> reply_state: verify!(be_u32, |v| v <= 1)
+    let (i, reply_state) = verify!(i, be_u32, |v| v <= 1)?;
 
-       >> verifier_flavor: be_u32
-       >> verifier_len: verify!(be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)
-       >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
+    let (i, verifier_flavor) = be_u32(i)?;
+    let (i, verifier_len) = verify!(i, be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)?;
+    let (i, verifier) = cond!(i, verifier_len > 0, take!(verifier_len as usize))?;
 
-       >> accept_state: be_u32
+    let (i, accept_state) = be_u32(i)?;
 
-       >> pl: rest
+    let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(nom::Err::Error(error_position!(i, nom::ErrorKind::LengthValue)));
+    }
 
-       >> (
-           RpcReplyPacket {
-                hdr:hdr,
+    let (i, prog_data) = rest(i)?;
+    let packet = RpcReplyPacket {
+        hdr,
 
-                verifier_flavor:verifier_flavor,
-                verifier_len:verifier_len,
-                verifier:verifier,
+        verifier_flavor,
+        verifier_len,
+        verifier,
 
-                reply_state:reply_state,
-                accept_state:accept_state,
+        reply_state,
+        accept_state,
 
-                prog_data:pl,
-           }
-   ))
-);
+        //prog_data_size: data_size,
+        prog_data,
+    };
+    Ok((i, packet))
+}
 
 named!(pub parse_rpc_udp_packet_header<RpcPacketHeader>,
     do_parse!(

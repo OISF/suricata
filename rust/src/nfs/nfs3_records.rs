@@ -391,14 +391,14 @@ pub struct Nfs3RequestWrite<'a> {
 }
 
 /// Complete data expected
-fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take!(i, file_len as usize)?;
     let (i, _) = cond!(i, fill_bytes > 0, take!(fill_bytes))?;
     Ok((i, file_data))
 }
 
 /// Partial data. We have all file_len, but need to consider fill_bytes
-fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take!(i, file_len as usize)?;
     let fill_bytes = cmp::min(fill_bytes as usize, i.len());
     let (i, _) = cond!(i, fill_bytes > 0, take!(fill_bytes))?;
@@ -413,9 +413,9 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     let (i, file_len) = verify!(i, be_u32, |v| v <= count)?;
     let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
     let (i, file_data) = if complete {
-        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_complete(i, file_len as usize, fill_bytes as usize)?
     } else if i.len() >= file_len as usize {
-        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_partial(i, file_len as usize, fill_bytes as usize)?
     } else {
         rest(i)?
     };
@@ -429,36 +429,30 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     }))
 }
 
-/*
-#[derive(Debug,PartialEq)]
-pub struct Nfs3ReplyRead<'a> {
-    pub status: u32,
-    pub attr_follows: u32,
-    pub attr_blob: &'a[u8],
-    pub count: u32,
-    pub eof: bool,
-    pub data_len: u32,
-    pub data: &'a[u8], // likely partial
+pub fn parse_nfs3_reply_read(i: &[u8], complete: bool) -> IResult<&[u8], NfsReplyRead> {
+    let (i, status) = be_u32(i)?;
+    let (i, attr_follows) = verify!(i, be_u32, |v| v <= 1)?;
+    let (i, attr_blob) = take!(i, 84_usize)?; // fixed size?
+    let (i, count) = be_u32(i)?;
+    let (i, eof) = verify!(i, be_u32, |v| v <= 1)?;
+    let (i, data_len) = verify!(i, be_u32, |v| v <= count)?;
+    let fill_bytes = if data_len % 4 != 0 { 4 - data_len % 4 } else { 0 };
+    // Handle the various file data parsing logics
+    let (i, data) = if complete {
+        parse_nfs3_data_complete(i, data_len as usize, fill_bytes as usize)?
+    } else if i.len() >= data_len as usize {
+        parse_nfs3_data_partial(i, data_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
+    let reply = NfsReplyRead {
+        status,
+        attr_follows,
+        attr_blob,
+        count,
+        eof: eof != 0,
+        data_len,
+        data,
+    };
+    Ok((i, reply))
 }
-*/
-named!(pub parse_nfs3_reply_read<NfsReplyRead>,
-    do_parse!(
-            status: be_u32
-        >>  attr_follows: verify!(be_u32, |v| v <= 1)
-        >>  attr_blob: take!(84) // fixed size?
-        >>  count: be_u32
-        >>  eof: verify!(be_u32, |v| v <= 1)
-        >>  data_len: be_u32
-        >>  data_contents: rest
-        >> (
-            NfsReplyRead {
-                status:status,
-                attr_follows:attr_follows,
-                attr_blob:attr_blob,
-                count:count,
-                eof:eof != 0,
-                data_len:data_len,
-                data:data_contents,
-            }
-        ))
-);

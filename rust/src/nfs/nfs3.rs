@@ -268,7 +268,7 @@ impl NFSState {
                 },
             };
         } else if xidmap.procedure == NFSPROC3_READ {
-            match parse_nfs3_reply_read(r.prog_data) {
+            match parse_nfs3_reply_read(r.prog_data, true) {
                 Ok((_, ref reply)) => {
                     self.process_read_record(r, reply, Some(&xidmap));
                     nfs_status = reply.status;
