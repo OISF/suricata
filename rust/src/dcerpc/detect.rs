@@ -421,7 +421,7 @@ mod test {
         let iface_data = parse_iface_data(arg);
         assert_eq!(iface_data.is_err(), true);
 
-        let arg = "12345678-1234-1234-1234-123456789ABC,>=1,any_frag";
+        let arg = "12345678-1234-1234-1234-123456789ABC,>=0,any_frag";
         let iface_data = parse_iface_data(arg);
         assert_eq!(iface_data.is_err(), true);
 
