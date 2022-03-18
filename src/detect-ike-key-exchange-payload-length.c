@@ -73,8 +73,6 @@ void DetectIkeKeyExchangePayloadLengthRegister(void)
 
     g_ike_key_exch_payload_length_buffer_id =
             DetectBufferTypeGetByName("ike.key_exchange_payload_length");
-
-    DetectUintRegister();
 }
 
 static int DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,

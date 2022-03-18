@@ -68,8 +68,6 @@ void DetectIkeNoncePayloadLengthRegister(void)
             1, DetectEngineInspectIkeNoncePayloadLengthGeneric, NULL);
 
     g_ike_nonce_payload_length_buffer_id = DetectBufferTypeGetByName("ike.nonce_payload_length");
-
-    DetectUintRegister();
 }
 
 static int DetectEngineInspectIkeNoncePayloadLengthGeneric(DetectEngineCtx *de_ctx,

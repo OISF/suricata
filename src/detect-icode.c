@@ -177,30 +177,10 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static void
-PrefilterPacketICodeSet(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectU8Data *a = smctx;
-    v->u8[0] = a->mode;
-    v->u8[1] = a->arg1;
-    v->u8[2] = a->arg2;
-}
-
-static bool
-PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectU8Data *a = smctx;
-    if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
-        return true;
-    return false;
-}
-
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE,
-            PrefilterPacketICodeSet,
-            PrefilterPacketICodeCompare,
-            PrefilterPacketICodeMatch);
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE, PrefilterPacketU8Set,
+            PrefilterPacketU8Compare, PrefilterPacketICodeMatch);
 }
 
 static bool PrefilterICodeIsPrefilterable(const Signature *s)

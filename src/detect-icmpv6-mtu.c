@@ -58,8 +58,6 @@ void DetectICMPv6mtuRegister(void)
 #endif
     sigmatch_table[DETECT_ICMPV6MTU].SupportsPrefilter = PrefilterIcmpv6mtuIsPrefilterable;
     sigmatch_table[DETECT_ICMPV6MTU].SetupPrefilter = PrefilterSetupIcmpv6mtu;
-
-    DetectUintRegister();
     return;
 }
 

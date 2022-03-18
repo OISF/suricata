@@ -539,7 +539,7 @@ static int SignatureCreateMask(Signature *s)
                  * if GT is used in the same rule the
                  * flag will be set anyway. */
                 if (ds->mode == DETECT_UINT_RA || ds->mode == DETECT_UINT_GT ||
-                        ds->mode == DETECT_UINT_NE) {
+                        ds->mode == DETECT_UINT_NE || ds->mode == DETECT_UINT_GTE) {
 
                     s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                     SCLogDebug("sig requires payload");
