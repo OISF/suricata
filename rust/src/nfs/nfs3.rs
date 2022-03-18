@@ -83,7 +83,7 @@ impl NFSState {
                 },
             };
         } else if r.procedure == NFSPROC3_WRITE {
-            match parse_nfs3_request_write(r.prog_data) {
+            match parse_nfs3_request_write(r.prog_data, true) {
                 Ok((_, w)) => {
                     self.process_write_record(r, &w);
                 },

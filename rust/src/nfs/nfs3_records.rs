@@ -17,6 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
+use std::cmp;
 use nom::{IResult, be_u32, be_u64, rest};
 use crate::nfs::nfs_records::*;
 
@@ -389,25 +390,45 @@ pub struct Nfs3RequestWrite<'a> {
     pub file_data: &'a[u8],
 }
 
-named!(pub parse_nfs3_request_write<Nfs3RequestWrite>,
-    do_parse!(
-            handle: parse_nfs3_handle
-        >>  offset: be_u64
-        >>  count: be_u32
-        >>  stable: verify!(be_u32, |v| v <= 2)
-        >>  file_len: verify!(be_u32, |v| v <= count)
-        >>  file_data: rest // likely partial
-        >> (
-            Nfs3RequestWrite {
-                handle:handle,
-                offset:offset,
-                count:count,
-                stable:stable,
-                file_len:file_len,
-                file_data:file_data,
-            }
-        ))
-);
+/// Complete data expected
+fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take!(i, file_len as usize)?;
+    let (i, _) = cond!(i, fill_bytes > 0, take!(fill_bytes))?;
+    Ok((i, file_data))
+}
+
+/// Partial data. We have all file_len, but need to consider fill_bytes
+fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take!(i, file_len as usize)?;
+    let fill_bytes = cmp::min(fill_bytes as usize, i.len());
+    let (i, _) = cond!(i, fill_bytes > 0, take!(fill_bytes))?;
+    Ok((i, file_data))
+}
+
+pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3RequestWrite> {
+    let (i, handle) = parse_nfs3_handle(i)?;
+    let (i, offset) = be_u64(i)?;
+    let (i, count) = be_u32(i)?;
+    let (i, stable) = verify!(i, be_u32, |v| v <= 2)?;
+    let (i, file_len) = verify!(i, be_u32, |v| v <= count)?;
+    let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
+    let (i, file_data) = if complete {
+        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+    } else if i.len() >= file_len as usize {
+        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
+    Ok((i, Nfs3RequestWrite {
+        handle,
+        offset,
+        count,
+        stable,
+        file_len,
+        file_data,
+    }))
+}
+
 /*
 #[derive(Debug,PartialEq)]
 pub struct Nfs3ReplyRead<'a> {

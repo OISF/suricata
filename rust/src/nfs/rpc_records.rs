@@ -18,6 +18,7 @@
 //! Nom parsers for RPCv2
 
 use nom::{be_u32, rest};
+use nom::IResult;
 
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
 pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
@@ -203,48 +204,47 @@ pub struct RpcPacket<'a> {
     pub prog_data: &'a[u8],
 }
 
-named!(pub parse_rpc<RpcPacket>,
-   do_parse!(
-       hdr: parse_rpc_packet_header
+pub fn parse_rpc(start_i: &[u8]) -> IResult<&[u8], RpcPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len as usize + 4;
 
-       >> rpcver: be_u32
-       >> program: be_u32
-       >> progver: be_u32
-       >> procedure: be_u32
+    let (i, rpcver) = be_u32(i)?;
+    let (i, program) = be_u32(i)?;
+    let (i, progver) = be_u32(i)?;
+    let (i, procedure) = be_u32(i)?;
 
-       >> creds_flavor: be_u32
-       >> creds_len: verify!(be_u32, |size| size < RPC_MAX_CREDS_SIZE)
-       >> creds: flat_map!(take!(creds_len), switch!(value!(creds_flavor),
-            1 => call!(parse_rpc_request_creds_unix)    |
-            6 => call!(parse_rpc_request_creds_gssapi)  |
-            _ => call!(parse_rpc_request_creds_unknown) ))
+    let (i, creds_flavor) = be_u32(i)?;
+    let (i, creds_len) = verify!(i, be_u32, |size| size < RPC_MAX_CREDS_SIZE)?;
+    let (i, creds) = flat_map!(i, take!(creds_len), switch!(value!(creds_flavor),
+        1 => call!(parse_rpc_request_creds_unix)    |
+        6 => call!(parse_rpc_request_creds_gssapi)  |
+        _ => call!(parse_rpc_request_creds_unknown) ))?;
 
-       >> verifier_flavor: be_u32
-       >> verifier_len: verify!(be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)
-       >> verifier: take!(verifier_len as usize)
+    let (i, verifier_flavor) = be_u32(i)?;
+    let (i, verifier_len) = verify!(i, be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)?;
+    let (i, verifier) = take!(i, verifier_len as usize)?;
 
-       >> pl: rest
+    let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(nom::Err::Error(error_position!(i, nom::ErrorKind::LengthValue)));
+    }
 
-       >> (
-           RpcPacket {
-                hdr:hdr,
+    let (i, prog_data) = rest(i)?;
 
-                rpcver:rpcver,
-                program:program,
-                progver:progver,
-                procedure:procedure,
-
-                creds_flavor:creds_flavor,
-                creds:creds,
-
-                verifier_flavor:verifier_flavor,
-                verifier_len:verifier_len,
-                verifier:verifier,
-
-                prog_data:pl,
-           }
-   ))
-);
+    Ok((i, RpcPacket {
+        hdr,
+        rpcver,
+        program,
+        progver,
+        procedure,
+        creds_flavor,
+        creds,
+        verifier_flavor,
+        verifier_len,
+        verifier,
+        prog_data,
+    }))
+}
 
 // to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
 named!(pub parse_rpc_reply<RpcReplyPacket>,
