@@ -21,6 +21,8 @@ use nom7::character::complete::digit1;
 use nom7::combinator::{complete, map_opt, opt, verify};
 use nom7::IResult;
 
+use std::ffi::CStr;
+
 #[derive(PartialEq, Debug)]
 pub enum DetectUintMode {
     DetectUintModeEqual,
@@ -188,4 +190,24 @@ pub fn detect_parse_uint<
         detect_parse_uint_start_ne,
     ))(i)?;
     Ok((i, uint))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_u64_parse(
+    str: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_void {
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = detect_parse_uint::<u64>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
+    // Just unbox...
+    std::mem::drop(Box::from_raw(ctx as *mut DetectUintData<u64>));
 }

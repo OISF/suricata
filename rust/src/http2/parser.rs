@@ -716,7 +716,7 @@ impl std::str::FromStr for HTTP2SettingsId {
 }
 
 pub struct DetectHTTP2settingsSigCtx {
-    pub id: HTTP2SettingsId,          //identifier
+    pub id: HTTP2SettingsId,                //identifier
     pub value: Option<DetectUintData<u32>>, //optional value
 }
 

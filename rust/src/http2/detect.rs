@@ -20,7 +20,7 @@ use super::http2::{
 };
 use super::parser;
 use crate::core::Direction;
-use crate::detect::{detect_match_uint, detect_parse_uint, DetectUintData};
+use crate::detect::{detect_match_uint, DetectUintData};
 use std::ffi::CStr;
 use std::str::FromStr;
 
@@ -302,26 +302,6 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_detect_settingsctx_match(ctx, tx, direction.into());
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_parse(
-    str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
-    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
-    if let Ok(s) = ft_name.to_str() {
-        if let Ok((_, ctx)) = detect_parse_uint::<u64>(s) {
-            let boxed = Box::new(ctx);
-            return Box::into_raw(boxed) as *mut _;
-        }
-    }
-    return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
-    // Just unbox...
-    std::mem::drop(Box::from_raw(ctx as *mut DetectUintData<u64>));
 }
 
 fn http2_detect_sizeupdate_match(
