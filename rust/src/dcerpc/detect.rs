@@ -19,10 +19,10 @@ use super::dcerpc::{
     DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
     DCERPC_UUID_ENTRY_FLAG_FF,
 };
+use crate::detect::{detect_match_uint, detect_parse_uint, DetectUintData};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
-use crate::detect::{detect_parse_uint, DetectUintData, detect_match_uint};
 
 pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
 
@@ -119,8 +119,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 any_frag = 1;
             }
             _ => {
-                    match detect_parse_uint(split_args[1]) {
-                    Ok((_,x)) => {du16 = Some(x)},
+                match detect_parse_uint(split_args[1]) {
+                    Ok((_, x)) => du16 = Some(x),
                     _ => {
                         return Err(());
                     }
@@ -129,7 +129,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
         },
         3 => {
             match detect_parse_uint(split_args[1]) {
-                Ok((_,x)) => {du16 = Some(x)},
+                Ok((_, x)) => du16 = Some(x),
                 _ => {
                     return Err(());
                 }
@@ -298,11 +298,11 @@ mod test {
     use crate::detect::DetectUintMode;
 
     fn extract_op_version(i: &str) -> Result<(DetectUintMode, u16), ()> {
-        match detect_parse_u16(i) {
-            Ok((_, d)) => {
-                return Ok((d.mode, d.value))
+        match detect_parse_uint(i) {
+            Ok((_, d)) => return Ok((d.mode, d.arg1)),
+            _ => {
+                return Err(());
             }
-            _ => { return Err(()); }
         }
     }
     #[test]
@@ -335,24 +335,20 @@ mod test {
         assert_eq!(true, extract_op_version(op_version).is_err());
 
         let op_version = "";
-        assert_eq!(
-            Err(()),
-            extract_op_version(op_version)
-        );
-
+        assert_eq!(Err(()), extract_op_version(op_version));
     }
 
     #[test]
     fn test_match_iface_version() {
-        let iface_data = DetectU16Data {
-                mode: DetectUintMode::DetectUintModeEqual,
-                value: 10,
-                valrange: 0,
+        let iface_data = DetectUintData::<u16> {
+            mode: DetectUintMode::DetectUintModeEqual,
+            arg1: 10,
+            arg2: 0,
         };
-        let version = 10;
+        let version: u16 = 10;
         assert_eq!(true, detect_match_uint(&iface_data, version));
 
-        let version = 2;
+        let version: u16 = 2;
         assert_eq!(false, detect_match_uint(&iface_data, version));
     }
 
@@ -373,7 +369,7 @@ mod test {
         assert_eq!(expected_uuid, uuid);
         if let Some(x) = iface_data.du16 {
             assert_eq!(DetectUintMode::DetectUintModeGt, x.mode);
-            assert_eq!(1, x.value);
+            assert_eq!(1, x.arg1);
         } else {
             panic!("Result should have been Some.");
         }
@@ -396,7 +392,7 @@ mod test {
         assert_eq!(1, iface_data.any_frag);
         if let Some(x) = iface_data.du16 {
             assert_eq!(DetectUintMode::DetectUintModeNe, x.mode);
-            assert_eq!(10, x.value);
+            assert_eq!(10, x.arg1);
         } else {
             panic!("Result should have been Some.");
         }

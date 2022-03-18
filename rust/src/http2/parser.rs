@@ -912,7 +912,7 @@ mod tests {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
                 match ctx.value {
                     Some(ctxval) => {
-                        assert_eq!(ctxval.value, 42);
+                        assert_eq!(ctxval.arg1, 42);
                     }
                     None => {
                         panic!("No value");
@@ -932,9 +932,9 @@ mod tests {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
                 match ctx.value {
                     Some(ctxval) => {
-                        assert_eq!(ctxval.value, 42);
+                        assert_eq!(ctxval.arg1, 42);
                         assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeRange);
-                        assert_eq!(ctxval.valrange, 68);
+                        assert_eq!(ctxval.arg2, 68);
                     }
                     None => {
                         panic!("No value");
@@ -954,7 +954,7 @@ mod tests {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
                 match ctx.value {
                     Some(ctxval) => {
-                        assert_eq!(ctxval.value, 54);
+                        assert_eq!(ctxval.arg1, 54);
                         assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeLt);
                     }
                     None => {
@@ -975,7 +975,7 @@ mod tests {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
                 match ctx.value {
                     Some(ctxval) => {
-                        assert_eq!(ctxval.value, 76);
+                        assert_eq!(ctxval.arg1, 76);
                         assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeGt);
                     }
                     None => {
