@@ -16,9 +16,9 @@
  */
 
 use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag};
+use nom7::bytes::complete::{is_a, tag, take_while};
 use nom7::character::complete::digit1;
-use nom7::combinator::{map_opt, opt, value, verify};
+use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
@@ -202,6 +202,7 @@ pub fn detect_parse_uint<
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
     ))(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
     Ok((i, uint))
 }
 
