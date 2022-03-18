@@ -1149,7 +1149,7 @@ impl NFSState {
                                 SCLogDebug!("CONFIRMED WRITE: large record {}, file chunk xfer", rec_size);
 
                                 // lets try to parse the RPC record. Might fail with Incomplete.
-                                match parse_rpc(cur_i) {
+                                match parse_rpc(cur_i, false) {
                                     Ok((remaining, ref rpc_record)) => {
                                         match parse_nfs3_request_write(rpc_record.prog_data, false) {
                                             Ok((_, ref nfs_request_write)) => {
@@ -1184,17 +1184,11 @@ impl NFSState {
 
                     // we have the full records size worth of data,
                     // let's parse it
-                    match parse_rpc(&cur_i[..rec_size]) {
+                    match parse_rpc(cur_i, true) {
                         Ok((_, ref rpc_record)) => {
-                            cur_i = &cur_i[rec_size..];
                             status |= self.process_request_record(rpc_record);
                         },
                         Err(nom::Err::Incomplete(_)) => {
-                            cur_i = &cur_i[rec_size..]; // progress input past parsed record
-
-                            // we shouldn't get incomplete as we have the full data
-                            // so if we got incomplete anyway it's the data that is
-                            // bad.
                             self.set_event(NFSEvent::MalformedData);
 
                             status = 1;
@@ -1206,12 +1200,15 @@ impl NFSState {
                             return 1;
                         },
                     }
+                    cur_i = &cur_i[rec_size..];
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     SCLogDebug!("Fragmentation required (TCP level) 2");
                     self.tcp_buffer_ts.extend_from_slice(cur_i);
                     break;
                 },
+                /* This error is fatal. If we failed to parse the RPC hdr we don't
+                 * have a length and we don't know where the next record starts. */
                 Err(nom::Err::Error(_e)) |
                 Err(nom::Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
@@ -1312,7 +1309,7 @@ impl NFSState {
                                 SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
 
                                 // we should have enough data to parse the RPC record
-                                match parse_rpc_reply(cur_i) {
+                                match parse_rpc_reply(cur_i, false) {
                                     Ok((remaining, ref rpc_record)) => {
                                         match parse_nfs3_reply_read(rpc_record.prog_data, false) {
                                             Ok((_, ref nfs_reply_read)) => {
@@ -1350,14 +1347,11 @@ impl NFSState {
                     }
 
                     // we have the full data of the record, lets parse
-                    match parse_rpc_reply(&cur_i[..rec_size]) {
+                    match parse_rpc_reply(cur_i, true) {
                         Ok((_, ref rpc_record)) => {
-                            cur_i = &cur_i[rec_size..]; // progress input past parsed record
                             status |= self.process_reply_record(rpc_record);
                         },
                         Err(nom::Err::Incomplete(_)) => {
-                            cur_i = &cur_i[rec_size..]; // progress input past parsed record
-
                             // we shouldn't get incomplete as we have the full data
                             // so if we got incomplete anyway it's the data that is
                             // bad.
@@ -1372,12 +1366,15 @@ impl NFSState {
                             return 1;
                         }
                     }
+                    cur_i = &cur_i[rec_size..]; // progress input past parsed record
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     SCLogDebug!("REPLY: insufficient data for HDR");
                     self.tcp_buffer_tc.extend_from_slice(cur_i);
                     break;
                 },
+                /* This error is fatal. If we failed to parse the RPC hdr we don't
+                 * have a length and we don't know where the next record starts. */
                 Err(nom::Err::Error(_e)) |
                 Err(nom::Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
@@ -1842,7 +1839,7 @@ fn nfs_probe_dir(i: &[u8], rdir: *mut u8) -> i8 {
 
 pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
-        match parse_rpc_reply(i) {
+        match parse_rpc_reply(i, false) {
             Ok((_, ref rpc)) => {
                 if rpc.hdr.frag_len >= 24 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
                     SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
@@ -1875,7 +1872,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
             },
         }
     } else {
-        match parse_rpc(i) {
+        match parse_rpc(i, false) {
             Ok((_, ref rpc)) => {
                 if rpc.hdr.frag_len >= 40 && rpc.hdr.msgtype == 0 &&
                    rpc.rpcver == 2 && (rpc.progver == 3 || rpc.progver == 4) &&

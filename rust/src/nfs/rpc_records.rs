@@ -17,7 +17,7 @@
 
 //! Nom parsers for RPCv2
 
-use nom::{be_u32, rest};
+use nom::{be_u32, rest, rest_len};
 use nom::IResult;
 
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
@@ -153,6 +153,7 @@ pub struct RpcReplyPacket<'a> {
     pub reply_state: u32,
     pub accept_state: u32,
 
+    pub prog_data_size: u32,
     pub prog_data: &'a[u8],
 }
 
@@ -201,10 +202,22 @@ pub struct RpcPacket<'a> {
     pub verifier_len: u32,
     pub verifier: &'a[u8],
 
+    pub prog_data_size: u32,
     pub prog_data: &'a[u8],
 }
 
-pub fn parse_rpc(start_i: &[u8]) -> IResult<&[u8], RpcPacket> {
+/// Parse request RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
     let rec_size = hdr.frag_len as usize + 4;
 
@@ -228,8 +241,12 @@ pub fn parse_rpc(start_i: &[u8]) -> IResult<&[u8], RpcPacket> {
     if consumed > rec_size as usize {
         return Err(nom::Err::Error(error_position!(i, nom::ErrorKind::LengthValue)));
     }
-
-    let (i, prog_data) = rest(i)?;
+    let data_size: u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take!(i, data_size)?
+    };
 
     Ok((i, RpcPacket {
         hdr,
@@ -242,12 +259,23 @@ pub fn parse_rpc(start_i: &[u8]) -> IResult<&[u8], RpcPacket> {
         verifier_flavor,
         verifier_len,
         verifier,
+        prog_data_size: data_size,
         prog_data,
     }))
 }
 
-// to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
-pub fn parse_rpc_reply(start_i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
+/// Parse reply RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
     let rec_size = hdr.frag_len + 4;
 
@@ -264,7 +292,12 @@ pub fn parse_rpc_reply(start_i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         return Err(nom::Err::Error(error_position!(i, nom::ErrorKind::LengthValue)));
     }
 
-    let (i, prog_data) = rest(i)?;
+    let data_size: u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take!(i, data_size)?
+    };
     let packet = RpcReplyPacket {
         hdr,
 
@@ -275,7 +308,7 @@ pub fn parse_rpc_reply(start_i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         reply_state,
         accept_state,
 
-        //prog_data_size: data_size,
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
@@ -315,6 +348,7 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
        >> verifier_len: verify!(be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: take!(verifier_len as usize)
 
+       >> prog_data_size: rest_len
        >> pl: rest
 
        >> (
@@ -333,6 +367,7 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
                 verifier_len:verifier_len,
                 verifier:verifier,
 
+                prog_data_size: prog_data_size as u32,
                 prog_data:pl,
            }
    ))
@@ -349,6 +384,7 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
        >> reply_state: verify!(be_u32, |v| v <= 1)
        >> accept_state: be_u32
 
+       >> data_size: rest_len
        >> pl: rest
 
        >> (
@@ -362,6 +398,7 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
                 reply_state:reply_state,
                 accept_state:accept_state,
 
+                prog_data_size: data_size as u32,
                 prog_data:pl,
            }
    ))
