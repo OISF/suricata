@@ -17,7 +17,7 @@
 
 use super::huffman;
 use crate::common::nom7::bits;
-use crate::detect::{detect_parse_u32, DetectU32Data};
+use crate::detect::{detect_parse_uint, DetectUintData};
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
 use nom7::bits::streaming::take as take_bits;
 use nom7::branch::alt;
@@ -717,7 +717,7 @@ impl std::str::FromStr for HTTP2SettingsId {
 
 pub struct DetectHTTP2settingsSigCtx {
     pub id: HTTP2SettingsId,          //identifier
-    pub value: Option<DetectU32Data>, //optional value
+    pub value: Option<DetectUintData<u32>>, //optional value
 }
 
 pub fn http2_parse_settingsctx(i: &str) -> IResult<&str, DetectHTTP2settingsSigCtx> {
@@ -725,7 +725,7 @@ pub fn http2_parse_settingsctx(i: &str) -> IResult<&str, DetectHTTP2settingsSigC
     let (i, id) = map_opt(alt((complete(is_not(" <>=")), rest)), |s: &str| {
         HTTP2SettingsId::from_str(s).ok()
     })(i)?;
-    let (i, value) = opt(complete(detect_parse_u32))(i)?;
+    let (i, value) = opt(complete(detect_parse_uint))(i)?;
     Ok((i, DetectHTTP2settingsSigCtx { id, value }))
 }
 

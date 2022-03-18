@@ -20,7 +20,7 @@ use crate::core::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
-use crate::detect::detect_match_u16;
+use crate::detect::detect_match_uint;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -160,7 +160,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
 
         if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
             if let Some(x) = &dce_data.du16 {
-                if detect_match_u16(&x, i.ver) {
+                if detect_match_uint(&x, i.ver) {
                     return 1;
                 }
             } else {

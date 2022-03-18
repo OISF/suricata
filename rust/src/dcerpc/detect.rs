@@ -22,14 +22,14 @@ use super::dcerpc::{
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
-use crate::detect::{detect_parse_u16, DetectU16Data, detect_match_u16};
+use crate::detect::{detect_parse_uint, DetectUintData, detect_match_uint};
 
 pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
 
 #[derive(Debug)]
 pub struct DCEIfaceData {
     pub if_uuid: Vec<u8>,
-    pub du16: Option<DetectU16Data>,
+    pub du16: Option<DetectUintData<u16>>,
     pub any_frag: u8,
 }
 
@@ -86,7 +86,7 @@ fn match_backuuid(
             }
 
             if let Some(x) = &if_data.du16 {
-                if !detect_match_u16(&x, uuidentry.version) {
+                if !detect_match_uint(&x, uuidentry.version) {
                     SCLogDebug!("Interface version did not match");
                     ret &= 0;
                 }
@@ -119,7 +119,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 any_frag = 1;
             }
             _ => {
-                    match detect_parse_u16(split_args[1]) {
+                    match detect_parse_uint(split_args[1]) {
                     Ok((_,x)) => {du16 = Some(x)},
                     _ => {
                         return Err(());
@@ -128,7 +128,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
             }
         },
         3 => {
-            match detect_parse_u16(split_args[1]) {
+            match detect_parse_uint(split_args[1]) {
                 Ok((_,x)) => {du16 = Some(x)},
                 _ => {
                     return Err(());
@@ -350,10 +350,10 @@ mod test {
                 valrange: 0,
         };
         let version = 10;
-        assert_eq!(true, detect_match_u16(&iface_data, version));
+        assert_eq!(true, detect_match_uint(&iface_data, version));
 
         let version = 2;
-        assert_eq!(false, detect_match_u16(&iface_data, version));
+        assert_eq!(false, detect_match_uint(&iface_data, version));
     }
 
     #[test]
