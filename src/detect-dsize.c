@@ -139,7 +139,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     sm = SigMatchAlloc();
     if (sm == NULL){
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for SigMatch");
-        SCFree(dd);
+        rs_detect_u16_free(dd);
         goto error;
     }
 
@@ -172,7 +172,7 @@ error:
  */
 void DetectDsizeFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    SCFree(de_ptr);
+    rs_detect_u16_free(de_ptr);
 }
 
 /* prefilter code */

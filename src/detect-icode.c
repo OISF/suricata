@@ -136,7 +136,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 
 error:
     if (icd != NULL)
-        SCFree(icd);
+        rs_detect_u8_free(icd);
     if (sm != NULL) SCFree(sm);
     return -1;
 }
@@ -148,7 +148,7 @@ error:
  */
 void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u8_free(ptr);
 }
 
 /* prefilter code */

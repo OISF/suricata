@@ -150,5 +150,5 @@ error:
  */
 static void DetectIkeNoncePayloadLengthFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }

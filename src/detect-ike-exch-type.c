@@ -150,5 +150,5 @@ error:
  */
 static void DetectIkeExchTypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u8_free(ptr);
 }
