@@ -441,21 +441,6 @@ static void SBBPrune(StreamingBuffer *sb)
     }
 }
 
-/**
- * \internal
- * \brief move buffer forward by 'slide'
- */
-static void AutoSlide(StreamingBuffer *sb)
-{
-    uint32_t size = sb->cfg->buf_slide;
-    uint32_t slide = sb->buf_offset - size;
-    SCLogDebug("sliding %u forward, size of original buffer left after slide %u", slide, size);
-    memmove(sb->buf, sb->buf+slide, size);
-    sb->stream_offset += slide;
-    sb->buf_offset = size;
-    SBBPrune(sb);
-}
-
 static int WARN_UNUSED
 GrowToSize(StreamingBuffer *sb, uint32_t size)
 {
@@ -554,8 +539,6 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
     }
 
     if (!DATA_FITS(sb, data_len)) {
-        if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
-            AutoSlide(sb);
         if (sb->buf_size == 0) {
             if (GrowToSize(sb, data_len) != 0)
                 return NULL;
@@ -567,9 +550,7 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
             }
         }
     }
-    if (!DATA_FITS(sb, data_len)) {
-        return NULL;
-    }
+    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
 
     StreamingBufferSegment *seg = CALLOC(sb->cfg, 1, sizeof(StreamingBufferSegment));
     if (seg != NULL) {
@@ -598,8 +579,6 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
     }
 
     if (!DATA_FITS(sb, data_len)) {
-        if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
-            AutoSlide(sb);
         if (sb->buf_size == 0) {
             if (GrowToSize(sb, data_len) != 0)
                 return -1;
@@ -611,9 +590,7 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
             }
         }
     }
-    if (!DATA_FITS(sb, data_len)) {
-        return -1;
-    }
+    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
 
     memcpy(sb->buf + sb->buf_offset, data, data_len);
     seg->stream_offset = sb->stream_offset + sb->buf_offset;
@@ -639,8 +616,6 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
     }
 
     if (!DATA_FITS(sb, data_len)) {
-        if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
-            AutoSlide(sb);
         if (sb->buf_size == 0) {
             if (GrowToSize(sb, data_len) != 0)
                 return -1;
@@ -652,9 +627,7 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
             }
         }
     }
-    if (!DATA_FITS(sb, data_len)) {
-        return -1;
-    }
+    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
 
     memcpy(sb->buf + sb->buf_offset, data, data_len);
     uint32_t rel_offset = sb->buf_offset;
@@ -692,18 +665,10 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
 
     uint32_t rel_offset = offset - sb->stream_offset;
     if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
-        if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE) {
-            AutoSlide(sb);
-            rel_offset = offset - sb->stream_offset;
-        }
-        if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
-            if (GrowToSize(sb, (rel_offset + data_len)) != 0)
-                return -1;
-        }
+        if (GrowToSize(sb, (rel_offset + data_len)) != 0)
+            return -1;
     }
-    if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
-        return -2;
-    }
+    DEBUG_VALIDATE_BUG_ON(!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset));
 
     memcpy(sb->buf + rel_offset, data, data_len);
     seg->stream_offset = offset;
@@ -942,93 +907,9 @@ static void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
     }
 }
 
-static int StreamingBufferTest01(void)
-{
-    StreamingBufferConfig cfg = { STREAMING_BUFFER_AUTOSLIDE, 8, 16, NULL, NULL, NULL, NULL };
-    StreamingBuffer *sb = StreamingBufferInit(&cfg);
-    FAIL_IF(sb == NULL);
-
-    StreamingBufferSegment *seg1 = StreamingBufferAppendRaw(sb, (const uint8_t *)"ABCDEFGH", 8);
-    StreamingBufferSegment *seg2 = StreamingBufferAppendRaw(sb, (const uint8_t *)"01234567", 8);
-    FAIL_IF(sb->stream_offset != 0);
-    FAIL_IF(sb->buf_offset != 16);
-    FAIL_IF(seg1->stream_offset != 0);
-    FAIL_IF(seg2->stream_offset != 8);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg2));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg1,(const uint8_t *)"ABCDEFGH", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg2,(const uint8_t *)"01234567", 8));
-    Dump(sb);
-    FAIL_IF_NOT_NULL(sb->head);
-    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
-
-    StreamingBufferSegment *seg3 = StreamingBufferAppendRaw(sb, (const uint8_t *)"QWERTY", 6);
-    FAIL_IF(sb->stream_offset != 8);
-    FAIL_IF(sb->buf_offset != 14);
-    FAIL_IF(seg3->stream_offset != 16);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg3));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg3,(const uint8_t *)"QWERTY", 6));
-    Dump(sb);
-    FAIL_IF_NOT_NULL(sb->head);
-    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
-
-    StreamingBufferSegment *seg4 = StreamingBufferAppendRaw(sb, (const uint8_t *)"KLM", 3);
-    FAIL_IF(sb->stream_offset != 14);
-    FAIL_IF(sb->buf_offset != 11);
-    FAIL_IF(seg4->stream_offset != 22);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg3));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg4));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg4,(const uint8_t *)"KLM", 3));
-    Dump(sb);
-    FAIL_IF_NOT_NULL(sb->head);
-    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
-
-    StreamingBufferSegment *seg5 = StreamingBufferAppendRaw(sb, (const uint8_t *)"!@#$%^&*()_+<>?/,.;:'[]{}-=", 27);
-    FAIL_IF(sb->stream_offset != 17);
-    FAIL_IF(sb->buf_offset != 35);
-    FAIL_IF(seg5->stream_offset != 25);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg1));
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg3));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg4));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg5));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg5,(const uint8_t *)"!@#$%^&*()_+<>?/,.;:'[]{}-=", 27));
-    Dump(sb);
-    FAIL_IF_NOT_NULL(sb->head);
-    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
-
-    StreamingBufferSegment *seg6 = StreamingBufferAppendRaw(sb, (const uint8_t *)"UVWXYZ", 6);
-    FAIL_IF(sb->stream_offset != 17);
-    FAIL_IF(sb->buf_offset != 41);
-    FAIL_IF(seg6->stream_offset != 52);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg1));
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg3));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg4));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg5));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg6));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg6,(const uint8_t *)"UVWXYZ", 6));
-    Dump(sb);
-    FAIL_IF_NOT_NULL(sb->head);
-    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
-
-    SCFree(seg1);
-    SCFree(seg2);
-    SCFree(seg3);
-    SCFree(seg4);
-    SCFree(seg5);
-    SCFree(seg6);
-    StreamingBufferFree(sb);
-    PASS;
-}
-
 static int StreamingBufferTest02(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 24, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1084,7 +965,7 @@ static int StreamingBufferTest02(void)
 
 static int StreamingBufferTest03(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 24, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1139,7 +1020,7 @@ static int StreamingBufferTest03(void)
 
 static int StreamingBufferTest04(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1227,49 +1108,10 @@ static int StreamingBufferTest04(void)
     PASS;
 }
 
-static int StreamingBufferTest05(void)
-{
-    StreamingBufferConfig cfg = { STREAMING_BUFFER_AUTOSLIDE, 8, 32, NULL, NULL, NULL, NULL };
-    StreamingBuffer sb = STREAMING_BUFFER_INITIALIZER(&cfg);
-
-    StreamingBufferSegment *seg1 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"AAAAAAAA", 8);
-    StreamingBufferSegment *seg2 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"BBBBBBBB", 8);
-    StreamingBufferSegment *seg3 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"CCCCCCCC", 8);
-    StreamingBufferSegment *seg4 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"DDDDDDDD", 8);
-    FAIL_IF(sb.stream_offset != 0);
-    FAIL_IF(sb.buf_offset != 32);
-    FAIL_IF(seg1->stream_offset != 0);
-    FAIL_IF(seg2->stream_offset != 8);
-    FAIL_IF(seg3->stream_offset != 16);
-    FAIL_IF(seg4->stream_offset != 24);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(&sb,seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(&sb,seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(&sb,seg3));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(&sb,seg4));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg1,(const uint8_t *)"AAAAAAAA", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg2,(const uint8_t *)"BBBBBBBB", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg3,(const uint8_t *)"CCCCCCCC", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg4,(const uint8_t *)"DDDDDDDD", 8));
-    Dump(&sb);
-    FAIL_IF_NOT(sb.head == RB_MIN(SBB, &sb.sbb_tree));
-    StreamingBufferSegment *seg5 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"EEEEEEEE", 8);
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg5,(const uint8_t *)"EEEEEEEE", 8));
-    Dump(&sb);
-    FAIL_IF_NOT(sb.head == RB_MIN(SBB, &sb.sbb_tree));
-
-    SCFree(seg1);
-    SCFree(seg2);
-    SCFree(seg3);
-    SCFree(seg4);
-    SCFree(seg5);
-    StreamingBufferClear(&sb);
-    PASS;
-}
-
 /** \test lots of gaps in block list */
 static int StreamingBufferTest06(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1327,7 +1169,7 @@ static int StreamingBufferTest06(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest07(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1385,7 +1227,7 @@ static int StreamingBufferTest07(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest08(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1443,7 +1285,7 @@ static int StreamingBufferTest08(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest09(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1501,7 +1343,7 @@ static int StreamingBufferTest09(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest10(void)
 {
-    StreamingBufferConfig cfg = { 0, 8, 16, NULL, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1562,11 +1404,9 @@ static int StreamingBufferTest10(void)
 void StreamingBufferRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamingBufferTest01", StreamingBufferTest01);
     UtRegisterTest("StreamingBufferTest02", StreamingBufferTest02);
     UtRegisterTest("StreamingBufferTest03", StreamingBufferTest03);
     UtRegisterTest("StreamingBufferTest04", StreamingBufferTest04);
-    UtRegisterTest("StreamingBufferTest05", StreamingBufferTest05);
     UtRegisterTest("StreamingBufferTest06", StreamingBufferTest06);
     UtRegisterTest("StreamingBufferTest07", StreamingBufferTest07);
     UtRegisterTest("StreamingBufferTest08", StreamingBufferTest08);
