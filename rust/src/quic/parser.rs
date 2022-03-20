@@ -231,7 +231,7 @@ impl QuicHeader {
                 version = QuicVersion(0);
                 version_buf = &rest[..0];
             }
-            let pkt_num_len = 1 + (flags.raw & 0x30) >> 4;
+            let pkt_num_len = 1 + ((flags.raw & 0x30) >> 4);
             let (mut rest, _pkt_num) = take(pkt_num_len)(rest)?;
             if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
                 let (rest1, _msg_auth_hash) = take(12_usize)(rest)?;
@@ -247,7 +247,7 @@ impl QuicHeader {
                     rest,
                     QuicHeader {
                         flags,
-                        ty: QuicType::Initial,
+                        ty: ty,
                         version: version,
                         version_buf: version_buf.to_vec(),
                         dcid: dcid.to_vec(),
