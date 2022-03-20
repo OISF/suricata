@@ -409,7 +409,6 @@ static int StreamTcpReassemblyConfig(bool quiet)
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
 
-    stream_config.sbcnf.flags = STREAMING_BUFFER_NOFLAGS;
     stream_config.sbcnf.buf_size = 2048;
     stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
