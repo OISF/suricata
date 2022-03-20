@@ -64,7 +64,7 @@
 #include "util-memcmp.h"
 
 static StreamingBufferConfig default_cfg = {
-    0, 0, 3072, HTPMalloc, HTPCalloc, HTPRealloc, HTPFree };
+    0, 3072, HTPMalloc, HTPCalloc, HTPRealloc, HTPFree };
 
 /**
  * \brief Append a chunk of body to the HtpBody struct
