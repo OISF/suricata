@@ -395,7 +395,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         return result;
     }
 
-    OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
+    OutputStatsCtx *stats_ctx = SCCalloc(1, sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
         return result;
 
@@ -440,7 +440,12 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         return result;
     }
 
-    stats_ctx->file_ctx = ajt->file_ctx;
+    stats_ctx->file_ctx = LogFileEnsureExists(ajt->file_ctx, 1);
+    if (!stats_ctx->file_ctx) {
+        SCFree(stats_ctx);
+        SCFree(output_ctx);
+        return result;
+    }
 
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinitSub;
