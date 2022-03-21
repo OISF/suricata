@@ -147,6 +147,10 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             }
             break;
     }
+    if (p->drop_reason != 0) {
+        const char *str = PacketDropReasonToString(p->drop_reason);
+        jb_set_string(js, "reason", str);
+    }
 
     /* Close drop. */
     jb_close(js);
