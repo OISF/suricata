@@ -267,6 +267,9 @@ impl QuicState {
                         // payload is encrypted, stop parsing here
                         return true;
                     }
+                    if header.ty == QuicType::Short {
+                        return true;
+                    }
                     if self.keys.is_none() && header.ty == QuicType::Initial {
                         if let Some(version) = quic_rustls_version(u32::from(header.version)) {
                             let keys = rustls::quic::Keys::initial(version, &header.dcid, false);
