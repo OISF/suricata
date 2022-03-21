@@ -4929,7 +4929,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         FlowSetNoPacketInspectionFlag(p->flow);
         DecodeSetNoPacketInspectionFlag(p);
         StreamTcpDisableAppLayer(p->flow);
-        PACKET_DROP(p);
+        PacketDrop(p, PKT_DROP_REASON_FLOW_DROP);
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p);
         SCReturnInt(0);
@@ -5097,7 +5097,7 @@ error:
          * anyway. Doesn't disable all detection, so we can still
          * match on the stream event that was set. */
         DecodeSetNoPayloadInspectionFlag(p);
-        PACKET_DROP(p);
+        PacketDrop(p, PKT_DROP_REASON_STREAM_ERROR);
     }
     SCReturnInt(-1);
 }

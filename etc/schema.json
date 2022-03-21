@@ -1088,6 +1088,9 @@
                 },
                 "urg": {
                     "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
