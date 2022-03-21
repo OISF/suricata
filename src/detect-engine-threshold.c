@@ -299,7 +299,7 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
             pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
             break;
         case TH_ACTION_DROP:
-            PACKET_DROP(p);
+            PacketDrop(p, PKT_DROP_REASON_RULES_THRESHOLD);
             pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
             break;
         case TH_ACTION_REJECT:

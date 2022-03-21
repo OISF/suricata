@@ -1688,7 +1688,7 @@ static void DetectFlow(ThreadVars *tv,
 
     /* if flow is set to drop, we enforce that here */
     if (p->flow->flags & FLOW_ACTION_DROP) {
-        PACKET_DROP(p);
+        PacketDrop(p, PKT_DROP_REASON_FLOW_DROP);
         SCReturn;
     }
 
