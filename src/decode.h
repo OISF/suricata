@@ -395,6 +395,21 @@ typedef struct PktProfiling_ {
     uint64_t proto_detect;
 } PktProfiling;
 
+enum PacketDropReason {
+    PKT_DROP_REASON_NOT_SET = 0,
+    PKT_DROP_REASON_DECODE_ERROR,
+    PKT_DROP_REASON_DEFRAG_ERROR,
+    PKT_DROP_REASON_DEFRAG_MEMCAP,
+    PKT_DROP_REASON_FLOW_MEMCAP,
+    PKT_DROP_REASON_FLOW_DROP,
+    PKT_DROP_REASON_STREAM_ERROR,
+    PKT_DROP_REASON_STREAM_MEMCAP,
+    PKT_DROP_REASON_APPLAYER_ERROR,
+    PKT_DROP_REASON_APPLAYER_MEMCAP,
+    PKT_DROP_REASON_RULES,
+    PKT_DROP_REASON_RULES_THRESHOLD,    /**< detection_filter in action */
+};
+
 #endif /* PROFILING */
 
 /* forward declaration since Packet struct definition requires this */
@@ -593,6 +608,14 @@ typedef struct Packet_
     /** data linktype in host order */
     int datalink;
 
+    /* count decoded layers of packet : too many layers
+     * cause issues with performance and stability (stack exhaustion)
+     */
+    uint8_t nb_decoded_layers;
+
+    /* enum PacketDropReason::PKT_DROP_REASON_* as uint8_t for compactness */
+    uint8_t drop_reason;
+
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr
                            * to the 'real' packet, the one we
@@ -617,11 +640,6 @@ typedef struct Packet_
      * the packet to its owner's stack. If NULL, then allocated with malloc.
      */
     struct PktPool_ *pool;
-
-    /* count decoded layers of packet : too many layers
-     * cause issues with performance and stability (stack exhaustion)
-     */
-    uint8_t nb_decoded_layers;
 
 #ifdef PROFILING
     PktProfiling *profile;
@@ -793,6 +811,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->ts.tv_sec = 0;                                                                        \
         (p)->ts.tv_usec = 0;                                                                       \
         (p)->datalink = 0;                                                                         \
+        (p)->drop_reason = 0;                                                                      \
         (p)->action = 0;                                                                           \
         if ((p)->pktvar != NULL) {                                                                 \
             PktVarFree((p)->pktvar);                                                               \
@@ -887,7 +906,7 @@ static inline void PacketSetAction(Packet *p, const uint8_t a)
 
 #define PACKET_ACCEPT(p) PACKET_SET_ACTION(p, ACTION_ACCEPT)
 
-#define PACKET_DROP(p) PACKET_SET_ACTION(p, ACTION_DROP)
+//#define PACKET_DROP(p) PACKET_SET_ACTION(p, ACTION_DROP)
 
 #define PACKET_REJECT(p) PACKET_SET_ACTION(p, (ACTION_REJECT|ACTION_DROP))
 
@@ -898,6 +917,14 @@ static inline void PacketSetAction(Packet *p, const uint8_t a)
 #define PACKET_PASS(p) PACKET_SET_ACTION(p, ACTION_PASS)
 
 #define PACKET_TEST_ACTION(p, a) (p)->action &(a)
+
+static inline void PacketDrop(Packet *p, enum PacketDropReason r)
+{
+    if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
+        p->drop_reason = (uint8_t)r;
+
+    PACKET_SET_ACTION(p, ACTION_DROP);
+}
 
 static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
 {
@@ -976,6 +1003,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
 void DecodeUpdatePacketCounters(ThreadVars *tv,
                                 const DecodeThreadVars *dtv, const Packet *p);
+const char *PacketDropReasonToString(enum PacketDropReason r);
 
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
