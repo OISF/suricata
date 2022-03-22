@@ -706,6 +706,10 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
+            if ((stream_config.flags & STREAMTCP_INIT_FLAG_DROP_MEMCAP) && EngineModeIsIPS()) {
+                p->flow->flags |= FLOW_ACTION_DROP;
+                PacketDrop(p, PKT_DROP_REASON_STREAM_MEMCAP); // TODO separate from reassembly?
+            }
             return NULL;
         }
 
