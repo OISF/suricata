@@ -2363,71 +2363,6 @@ static int StreamTcpReassembleTest34(void)
     PASS;
 }
 
-/** \test Test the bug 76 condition */
-static int StreamTcpReassembleTest37(void)
-{
-    TcpSession ssn;
-    Flow f;
-    TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = NULL;
-    uint8_t packet[1460] = "";
-    PacketQueueNoLock pq;
-    ThreadVars tv;
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    Packet *p = PacketGetFromAlloc();
-    FAIL_IF(unlikely(p == NULL));
-
-    StreamTcpUTInit(&ra_ctx);
-    StreamTcpUTSetupSession(&ssn);
-    memset(&pq,0,sizeof(PacketQueueNoLock));
-    memset(&f, 0, sizeof (Flow));
-    memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = &ssn;
-    f.proto = IPPROTO_TCP;
-    p->src.family = AF_INET;
-    p->dst.family = AF_INET;
-    p->proto = IPPROTO_TCP;
-    p->flow = &f;
-    tcph.th_win = 5480;
-    tcph.th_flags = TH_PUSH | TH_ACK;
-    p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = packet;
-    ssn.client.os_policy = OS_POLICY_BSD;
-
-    p->tcph->th_seq = htonl(3061088537UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
-    SET_ISN(&ssn.client, 3061091309UL);
-
-    /* pre base_seq, so should be rejected */
-    FAIL_IF (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) != -1);
-
-    p->tcph->th_seq = htonl(3061089928UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
-
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
-
-    p->tcph->th_seq = htonl(3061091319UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
-
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
-
-    StreamTcpUTClearSession(&ssn);
-    StreamTcpUTDeinit(ra_ctx);
-    SCFree(p);
-    PASS;
-}
-
 /**
  *  \test   Test to make sure that we don't return the segments until the app
  *          layer proto has been detected and after that remove the processed
@@ -3814,8 +3749,6 @@ void StreamTcpReassembleRegisterTests(void)
                    StreamTcpReassembleTest33);
     UtRegisterTest("StreamTcpReassembleTest34 -- Bug test",
                    StreamTcpReassembleTest34);
-    UtRegisterTest("StreamTcpReassembleTest37 -- Bug76 test",
-                   StreamTcpReassembleTest37);
     UtRegisterTest("StreamTcpReassembleTest39 -- app proto test",
                    StreamTcpReassembleTest39);
     UtRegisterTest("StreamTcpReassembleTest40 -- app proto test",
