@@ -803,6 +803,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_PKT_RETRANSMISSION,
     },
     {
+            "stream.pkt_spurious_retransmission",
+            STREAM_PKT_SPURIOUS_RETRANSMISSION,
+    },
+    {
             "stream.pkt_bad_window_update",
             STREAM_PKT_BAD_WINDOW_UPDATE,
     },
