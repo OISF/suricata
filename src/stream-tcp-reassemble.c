@@ -701,7 +701,7 @@ uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
  *  \brief Insert a packets TCP data into the stream reassembly engine.
  *
  *  \retval 0 good segment, as far as we checked.
- *  \retval -1 badness, reason to drop in inline mode
+ *  \retval -1 insert failure due to memcap
  *
  *  If the retval is 0 the segment is inserted correctly, or overlap is handled,
  *  or it wasn't added because of reassembly depth.
