@@ -654,7 +654,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                             uint64_t offset)
 {
     BUG_ON(seg == NULL);
-
+    DEBUG_VALIDATE_BUG_ON(offset < sb->stream_offset);
     if (offset < sb->stream_offset)
         return -2;
 
