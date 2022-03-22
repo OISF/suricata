@@ -2560,6 +2560,33 @@ static bool StreamTcpPacketIsOutdatedAck(TcpSession *ssn, Packet *p)
     return false;
 }
 
+/** \internal
+ *  \brief check if packet is before ack'd windows
+ *  If packet is before last ack, we will not accept it
+ */
+static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
+{
+    TcpStream *stream;
+    if (PKT_IS_TOCLIENT(p)) {
+        stream = &ssn->server;
+    } else {
+        stream = &ssn->client;
+    }
+    /* take base_seq into account to avoid edge cases where last_ack might be
+     * too far ahead during heavy packet loss */
+    const uint32_t le = MIN(stream->last_ack, stream->base_seq);
+    if (p->payload_len > 0 && (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, le))) {
+        SCLogDebug("ssn %p: spurious retransmission; packet entirely before last_ack: SEQ %u(%u) "
+                   "last_ack %u",
+                ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack);
+        return true;
+    }
+    SCLogDebug("ssn %p: NOT spurious retransmission; packet NOT entirely before last_ack: SEQ "
+               "%u(%u) last_ack %u, le %u",
+            ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack, le);
+    return false;
+}
+
 /**
  *  \brief  Function to handle the TCP_ESTABLISHED state. The function handles
  *          ACK, FIN, RST packets and correspondingly changes the connection
@@ -4958,6 +4985,11 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 if (StreamTcpPacketIsOutdatedAck(ssn, p))
                     goto skip;
             }
+        }
+
+        if (StreamTcpPacketIsSpuriousRetransmission(ssn, p)) {
+            StreamTcpSetEvent(p, STREAM_PKT_SPURIOUS_RETRANSMISSION);
+            goto error;
         }
 
         /* handle the per 'state' logic */
