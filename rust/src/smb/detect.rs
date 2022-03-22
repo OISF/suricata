@@ -286,12 +286,9 @@ fn str_to_u16(v: &str) -> Result<u16, ()> {
     return size.map_err(|_| ());
 }
 
-
 fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
-
     let cmd_names1 = gen_smb1_command_names();
     let cmd_names2 = gen_smb2_command_names();
-
 
     let split_args: Vec<&str> = arg.split(',').collect();
 
@@ -299,21 +296,21 @@ fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
     let mut cmd_codes2 = HashSet::new();
 
     for cmd in split_args.iter() {
-        let cmd = cmd.trim();
+        let cmd = cmd.trim().to_ascii_lowercase();
 
-        match str_to_u16(cmd) {
-            Ok(cmd_code) =>  {
+        match str_to_u16(&cmd) {
+            Ok(cmd_code) => {
                 cmd_codes1.insert(cmd_code);
                 cmd_codes2.insert(cmd_code);
             }
             Err(_) => {
                 let mut in_any = false;
-                if let Some(cmd_code) = cmd_names1.get(cmd) {
+                if let Some(cmd_code) = cmd_names1.get(cmd.as_str()) {
                     cmd_codes1.insert(*cmd_code);
                     in_any = true;
                 }
 
-                if let Some(cmd_code) = cmd_names2.get(cmd) {
+                if let Some(cmd_code) = cmd_names2.get(cmd.as_str()) {
                     cmd_codes2.insert(*cmd_code);
                     in_any = true;
                 }
@@ -323,115 +320,291 @@ fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
                 }
             }
         }
-
     }
     return Ok(SmbCmdData::new(cmd_codes1, cmd_codes2));
 }
 
-fn gen_smb2_command_names() -> HashMap<&'static str, u16> {
+fn gen_smb2_command_names() -> HashMap<String, u16> {
+    let commands = [
+        smb2::SMB2_COMMAND_NEGOTIATE_PROTOCOL,
+        smb2::SMB2_COMMAND_SESSION_SETUP,
+        smb2::SMB2_COMMAND_SESSION_LOGOFF,
+        smb2::SMB2_COMMAND_TREE_CONNECT,
+        smb2::SMB2_COMMAND_TREE_DISCONNECT,
+        smb2::SMB2_COMMAND_CREATE,
+        smb2::SMB2_COMMAND_CLOSE,
+        smb2::SMB2_COMMAND_FLUSH,
+        smb2::SMB2_COMMAND_READ,
+        smb2::SMB2_COMMAND_WRITE,
+        smb2::SMB2_COMMAND_LOCK,
+        smb2::SMB2_COMMAND_IOCTL,
+        smb2::SMB2_COMMAND_CANCEL,
+        smb2::SMB2_COMMAND_KEEPALIVE,
+        smb2::SMB2_COMMAND_FIND,
+        smb2::SMB2_COMMAND_CHANGE_NOTIFY,
+        smb2::SMB2_COMMAND_GET_INFO,
+        smb2::SMB2_COMMAND_SET_INFO,
+        smb2::SMB2_COMMAND_OPLOCK_BREAK,
+    ];
     let mut cmd_names2 = HashMap::new();
-    cmd_names2.insert("negotiate", smb2::SMB2_COMMAND_NEGOTIATE_PROTOCOL);
-    cmd_names2.insert("session_setup", smb2::SMB2_COMMAND_SESSION_SETUP);
-    cmd_names2.insert("logoff", smb2::SMB2_COMMAND_SESSION_LOGOFF);
-    cmd_names2.insert("tree_connect", smb2::SMB2_COMMAND_TREE_CONNECT);
-    cmd_names2.insert("tree_disconnect", smb2::SMB2_COMMAND_TREE_DISCONNECT);
-    cmd_names2.insert("create", smb2::SMB2_COMMAND_CREATE);
-    cmd_names2.insert("close", smb2::SMB2_COMMAND_CLOSE);
-    cmd_names2.insert("flush", smb2::SMB2_COMMAND_FLUSH);
-    cmd_names2.insert("read", smb2::SMB2_COMMAND_READ);
-    cmd_names2.insert("write", smb2::SMB2_COMMAND_WRITE);
-    cmd_names2.insert("lock", smb2::SMB2_COMMAND_LOCK);
-    cmd_names2.insert("ioctl", smb2::SMB2_COMMAND_IOCTL);
-    cmd_names2.insert("cancel", smb2::SMB2_COMMAND_CANCEL);
-    cmd_names2.insert("echo", smb2::SMB2_COMMAND_KEEPALIVE);
-    cmd_names2.insert("keep_alive", smb2::SMB2_COMMAND_KEEPALIVE);
-    cmd_names2.insert("find", smb2::SMB2_COMMAND_FIND);
-    cmd_names2.insert("query_directory", smb2::SMB2_COMMAND_FIND);
-    cmd_names2.insert("change_notify", smb2::SMB2_COMMAND_CHANGE_NOTIFY);
-    cmd_names2.insert("query_info", smb2::SMB2_COMMAND_GET_INFO);
-    cmd_names2.insert("set_info", smb2::SMB2_COMMAND_SET_INFO);
-    cmd_names2.insert("oplock_break", smb2::SMB2_COMMAND_OPLOCK_BREAK);
+
+    for cmd in commands {
+        cmd_names2.insert(smb2::smb2_command_string(cmd), cmd);
+    }
+
+    cmd_names2.insert("negotiate".into(), smb2::SMB2_COMMAND_NEGOTIATE_PROTOCOL);
+    cmd_names2.insert(
+        "smb2_command_session_setup".into(),
+        smb2::SMB2_COMMAND_SESSION_SETUP,
+    );
+    cmd_names2.insert("session_setup".into(), smb2::SMB2_COMMAND_SESSION_SETUP);
+    cmd_names2.insert("logoff".into(), smb2::SMB2_COMMAND_SESSION_LOGOFF);
+    cmd_names2.insert("tree_connect".into(), smb2::SMB2_COMMAND_TREE_CONNECT);
+    cmd_names2.insert("tree_disconnect".into(), smb2::SMB2_COMMAND_TREE_DISCONNECT);
+    cmd_names2.insert("create".into(), smb2::SMB2_COMMAND_CREATE);
+    cmd_names2.insert("close".into(), smb2::SMB2_COMMAND_CLOSE);
+    cmd_names2.insert("flush".into(), smb2::SMB2_COMMAND_FLUSH);
+    cmd_names2.insert("read".into(), smb2::SMB2_COMMAND_READ);
+    cmd_names2.insert("write".into(), smb2::SMB2_COMMAND_WRITE);
+    cmd_names2.insert("lock".into(), smb2::SMB2_COMMAND_LOCK);
+    cmd_names2.insert("ioctl".into(), smb2::SMB2_COMMAND_IOCTL);
+    cmd_names2.insert("cancel".into(), smb2::SMB2_COMMAND_CANCEL);
+    cmd_names2.insert("echo".into(), smb2::SMB2_COMMAND_KEEPALIVE);
+    cmd_names2.insert("keep_alive".into(), smb2::SMB2_COMMAND_KEEPALIVE);
+    cmd_names2.insert("find".into(), smb2::SMB2_COMMAND_FIND);
+    cmd_names2.insert("query_directory".into(), smb2::SMB2_COMMAND_FIND);
+    cmd_names2.insert("change_notify".into(), smb2::SMB2_COMMAND_CHANGE_NOTIFY);
+    cmd_names2.insert("get_info".into(), smb2::SMB2_COMMAND_GET_INFO);
+    cmd_names2.insert("query_info".into(), smb2::SMB2_COMMAND_GET_INFO);
+    cmd_names2.insert("set_info".into(), smb2::SMB2_COMMAND_SET_INFO);
+    cmd_names2.insert("oplock_break".into(), smb2::SMB2_COMMAND_OPLOCK_BREAK);
 
     return cmd_names2;
 }
 
-fn gen_smb1_command_names() -> HashMap<&'static str, u16> {
+fn gen_smb1_command_names() -> HashMap<String, u16> {
+    let commands = [
+        smb1::SMB1_COMMAND_CREATE_DIRECTORY,
+        smb1::SMB1_COMMAND_DELETE_DIRECTORY,
+        smb1::SMB1_COMMAND_OPEN,
+        smb1::SMB1_COMMAND_CREATE,
+        smb1::SMB1_COMMAND_CLOSE,
+        smb1::SMB1_COMMAND_FLUSH,
+        smb1::SMB1_COMMAND_DELETE,
+        smb1::SMB1_COMMAND_RENAME,
+        smb1::SMB1_COMMAND_QUERY_INFORMATION,
+        smb1::SMB1_COMMAND_SET_INFORMATION,
+        smb1::SMB1_COMMAND_READ,
+        smb1::SMB1_COMMAND_WRITE,
+        smb1::SMB1_COMMAND_LOCK_BYTE_RANGE,
+        smb1::SMB1_COMMAND_UNLOCK_BYTE_RANGE,
+        smb1::SMB1_COMMAND_CREATE_TEMPORARY,
+        smb1::SMB1_COMMAND_CREATE_NEW,
+        smb1::SMB1_COMMAND_CHECK_DIRECTORY,
+        smb1::SMB1_COMMAND_PROCESS_EXIT,
+        smb1::SMB1_COMMAND_SEEK,
+        smb1::SMB1_COMMAND_LOCK_AND_READ,
+        smb1::SMB1_COMMAND_WRITE_AND_UNLOCK,
+        smb1::SMB1_COMMAND_READ_RAW,
+        smb1::SMB1_COMMAND_READ_MPX,
+        smb1::SMB1_COMMAND_READ_MPX_SECONDARY,
+        smb1::SMB1_COMMAND_WRITE_RAW,
+        smb1::SMB1_COMMAND_WRITE_MPX,
+        smb1::SMB1_COMMAND_WRITE_MPX_SECONDARY,
+        smb1::SMB1_COMMAND_WRITE_COMPLETE,
+        smb1::SMB1_COMMAND_QUERY_SERVER,
+        smb1::SMB1_COMMAND_SET_INFORMATION2,
+        smb1::SMB1_COMMAND_QUERY_INFORMATION2,
+        smb1::SMB1_COMMAND_LOCKING_ANDX,
+        smb1::SMB1_COMMAND_TRANS,
+        smb1::SMB1_COMMAND_TRANS_SECONDARY,
+        smb1::SMB1_COMMAND_IOCTL,
+        smb1::SMB1_COMMAND_IOCTL_SECONDARY,
+        smb1::SMB1_COMMAND_COPY,
+        smb1::SMB1_COMMAND_MOVE,
+        smb1::SMB1_COMMAND_ECHO,
+        smb1::SMB1_COMMAND_WRITE_AND_CLOSE,
+        smb1::SMB1_COMMAND_OPEN_ANDX,
+        smb1::SMB1_COMMAND_READ_ANDX,
+        smb1::SMB1_COMMAND_WRITE_ANDX,
+        smb1::SMB1_COMMAND_NEW_FILE_SIZE,
+        smb1::SMB1_COMMAND_CLOSE_AND_TREE_DISC,
+        smb1::SMB1_COMMAND_TRANS2,
+        smb1::SMB1_COMMAND_TRANS2_SECONDARY,
+        smb1::SMB1_COMMAND_FIND_CLOSE2,
+        smb1::SMB1_COMMAND_FIND_NOTIFY_CLOSE,
+        smb1::SMB1_COMMAND_TREE_CONNECT,
+        smb1::SMB1_COMMAND_TREE_DISCONNECT,
+        smb1::SMB1_COMMAND_NEGOTIATE_PROTOCOL,
+        smb1::SMB1_COMMAND_SESSION_SETUP_ANDX,
+        smb1::SMB1_COMMAND_LOGOFF_ANDX,
+        smb1::SMB1_COMMAND_TREE_CONNECT_ANDX,
+        smb1::SMB1_COMMAND_SECURITY_PACKAGE_ANDX,
+        smb1::SMB1_COMMAND_QUERY_INFO_DISK,
+        smb1::SMB1_COMMAND_SEARCH,
+        smb1::SMB1_COMMAND_FIND,
+        smb1::SMB1_COMMAND_FIND_UNIQUE,
+        smb1::SMB1_COMMAND_FIND_CLOSE,
+        smb1::SMB1_COMMAND_NT_TRANS,
+        smb1::SMB1_COMMAND_NT_TRANS_SECONDARY,
+        smb1::SMB1_COMMAND_NT_CREATE_ANDX,
+        smb1::SMB1_COMMAND_NT_CANCEL,
+        smb1::SMB1_COMMAND_NT_RENAME,
+        smb1::SMB1_COMMAND_OPEN_PRINT_FILE,
+        smb1::SMB1_COMMAND_WRITE_PRINT_FILE,
+        smb1::SMB1_COMMAND_CLOSE_PRINT_FILE,
+        smb1::SMB1_COMMAND_GET_PRINT_QUEUE,
+        smb1::SMB1_COMMAND_READ_BULK,
+        smb1::SMB1_COMMAND_WRITE_BULK,
+        smb1::SMB1_COMMAND_WRITE_BULK_DATA,
+        smb1::SMB1_COMMAND_INVALID,
+        smb1::SMB1_COMMAND_NONE,
+    ];
+
     let mut cmd_names1 = HashMap::new();
-    cmd_names1.insert("create_directory", smb1::SMB1_COMMAND_CREATE_DIRECTORY);
-    cmd_names1.insert("delete_directory", smb1::SMB1_COMMAND_DELETE_DIRECTORY);
-    cmd_names1.insert("open", smb1::SMB1_COMMAND_OPEN);
-    cmd_names1.insert("create", smb1::SMB1_COMMAND_CREATE);
-    cmd_names1.insert("close", smb1::SMB1_COMMAND_CLOSE);
-    cmd_names1.insert("flush", smb1::SMB1_COMMAND_FLUSH);
-    cmd_names1.insert("delete", smb1::SMB1_COMMAND_DELETE);
-    cmd_names1.insert("rename", smb1::SMB1_COMMAND_RENAME);
-    cmd_names1.insert("query_information", smb1::SMB1_COMMAND_QUERY_INFORMATION);
-    cmd_names1.insert("set_information", smb1::SMB1_COMMAND_SET_INFORMATION);
-    cmd_names1.insert("read", smb1::SMB1_COMMAND_READ);
-    cmd_names1.insert("write", smb1::SMB1_COMMAND_WRITE);
-    cmd_names1.insert("lock_byte_range", smb1::SMB1_COMMAND_LOCK_BYTE_RANGE);
-    cmd_names1.insert("unlock_byte_range", smb1::SMB1_COMMAND_UNLOCK_BYTE_RANGE);
-    cmd_names1.insert("create_temporary", smb1::SMB1_COMMAND_CREATE_TEMPORARY);
-    cmd_names1.insert("create_new", smb1::SMB1_COMMAND_CREATE_NEW);
-    cmd_names1.insert("check_directory", smb1::SMB1_COMMAND_CHECK_DIRECTORY);
-    cmd_names1.insert("process_exit", smb1::SMB1_COMMAND_PROCESS_EXIT);
-    cmd_names1.insert("seek", smb1::SMB1_COMMAND_SEEK);
-    cmd_names1.insert("lock_and_read", smb1::SMB1_COMMAND_LOCK_AND_READ);
-    cmd_names1.insert("write_and_unlock", smb1::SMB1_COMMAND_WRITE_AND_UNLOCK);
-    cmd_names1.insert("read_raw", smb1::SMB1_COMMAND_READ_RAW);
-    cmd_names1.insert("read_mpx", smb1::SMB1_COMMAND_READ_MPX);
-    cmd_names1.insert("read_mpx_secondary", smb1::SMB1_COMMAND_READ_MPX_SECONDARY);
-    cmd_names1.insert("write_raw", smb1::SMB1_COMMAND_WRITE_RAW);
-    cmd_names1.insert("write_mpx", smb1::SMB1_COMMAND_WRITE_MPX);
-    cmd_names1.insert("write_mpx_secondary", smb1::SMB1_COMMAND_WRITE_MPX_SECONDARY);
-    cmd_names1.insert("write_complete", smb1::SMB1_COMMAND_WRITE_COMPLETE);
-    cmd_names1.insert("query_server", smb1::SMB1_COMMAND_QUERY_SERVER);
-    cmd_names1.insert("set_information2", smb1::SMB1_COMMAND_SET_INFORMATION2);
-    cmd_names1.insert("query_information2", smb1::SMB1_COMMAND_QUERY_INFORMATION);
-    cmd_names1.insert("locking_andx", smb1::SMB1_COMMAND_LOCKING_ANDX);
-    cmd_names1.insert("transaction", smb1::SMB1_COMMAND_TRANS);
-    cmd_names1.insert("transaction_secondary", smb1::SMB1_COMMAND_TRANS_SECONDARY);
-    cmd_names1.insert("ioctl", smb1::SMB1_COMMAND_IOCTL);
-    cmd_names1.insert("ioctl_secondary", smb1::SMB1_COMMAND_IOCTL_SECONDARY);
-    cmd_names1.insert("copy", smb1::SMB1_COMMAND_COPY);
-    cmd_names1.insert("move", smb1::SMB1_COMMAND_MOVE);
-    cmd_names1.insert("echo", smb1::SMB1_COMMAND_ECHO);
-    cmd_names1.insert("write_and_close", smb1::SMB1_COMMAND_WRITE_AND_CLOSE);
-    cmd_names1.insert("open_andx", smb1::SMB1_COMMAND_OPEN_ANDX);
-    cmd_names1.insert("read_andx", smb1::SMB1_COMMAND_READ_ANDX);
-    cmd_names1.insert("write_andx", smb1::SMB1_COMMAND_WRITE_ANDX);
-    cmd_names1.insert("new_file_size", smb1::SMB1_COMMAND_NEW_FILE_SIZE);
-    cmd_names1.insert("close_and_tree_disc", smb1::SMB1_COMMAND_CLOSE_AND_TREE_DISC);
-    cmd_names1.insert("transaction2", smb1::SMB1_COMMAND_TRANS2);
-    cmd_names1.insert("transaction2_secondary", smb1::SMB1_COMMAND_TRANS2_SECONDARY);
-    cmd_names1.insert("find_close2", smb1::SMB1_COMMAND_FIND_CLOSE2);
-    cmd_names1.insert("find_notify_close", smb1::SMB1_COMMAND_FIND_NOTIFY_CLOSE);
-    cmd_names1.insert("tree_connect", smb1::SMB1_COMMAND_TREE_CONNECT);
-    cmd_names1.insert("tree_disconnect", smb1::SMB1_COMMAND_TREE_DISCONNECT);
-    cmd_names1.insert("negotiate", smb1::SMB1_COMMAND_NEGOTIATE_PROTOCOL);
-    cmd_names1.insert("session_setup_andx", smb1::SMB1_COMMAND_SESSION_SETUP_ANDX);
-    cmd_names1.insert("logoff_andx", smb1::SMB1_COMMAND_LOGOFF_ANDX);
-    cmd_names1.insert("tree_connect_andx", smb1::SMB1_COMMAND_TREE_CONNECT_ANDX);
-    cmd_names1.insert("security_package_andx", smb1::SMB1_COMMAND_SECURITY_PACKAGE_ANDX);
-    cmd_names1.insert("query_information_disk", smb1::SMB1_COMMAND_QUERY_INFO_DISK);
-    cmd_names1.insert("search", smb1::SMB1_COMMAND_SEARCH);
-    cmd_names1.insert("find", smb1::SMB1_COMMAND_FIND);
-    cmd_names1.insert("find_unique", smb1::SMB1_COMMAND_FIND_UNIQUE);
-    cmd_names1.insert("find_close", smb1::SMB1_COMMAND_FIND_CLOSE);
-    cmd_names1.insert("nt_transact", smb1::SMB1_COMMAND_NT_TRANS);
-    cmd_names1.insert("nt_transact_secondary", smb1::SMB1_COMMAND_NT_TRANS_SECONDARY);
-    cmd_names1.insert("nt_create_andx", smb1::SMB1_COMMAND_NT_CREATE_ANDX);
-    cmd_names1.insert("nt_cancel", smb1::SMB1_COMMAND_NT_CANCEL);
-    cmd_names1.insert("nt_rename", smb1::SMB1_COMMAND_NT_RENAME);
-    cmd_names1.insert("open_print_file", smb1::SMB1_COMMAND_OPEN_PRINT_FILE);
-    cmd_names1.insert("write_print_file", smb1::SMB1_COMMAND_WRITE_PRINT_FILE);
-    cmd_names1.insert("close_print_file", smb1::SMB1_COMMAND_CLOSE_PRINT_FILE);
-    cmd_names1.insert("get_print_queue", smb1::SMB1_COMMAND_GET_PRINT_QUEUE);
-    cmd_names1.insert("read_bulk", smb1::SMB1_COMMAND_READ_BULK);
-    cmd_names1.insert("write_bulk", smb1::SMB1_COMMAND_WRITE_BULK);
-    cmd_names1.insert("write_bulk_data", smb1::SMB1_COMMAND_WRITE_BULK_DATA);
-    cmd_names1.insert("invalid", smb1::SMB1_COMMAND_INVALID);
-    cmd_names1.insert("no_andx_command", smb1::SMB1_COMMAND_NONE);
+
+    for cmd in commands {
+        cmd_names1.insert(smb1::smb1_command_string(cmd), cmd);
+    }
+
+    cmd_names1.insert(
+        "create_directory".into(),
+        smb1::SMB1_COMMAND_CREATE_DIRECTORY,
+    );
+    cmd_names1.insert(
+        "delete_directory".into(),
+        smb1::SMB1_COMMAND_DELETE_DIRECTORY,
+    );
+    cmd_names1.insert("open".into(), smb1::SMB1_COMMAND_OPEN);
+    cmd_names1.insert("create".into(), smb1::SMB1_COMMAND_CREATE);
+    cmd_names1.insert("close".into(), smb1::SMB1_COMMAND_CLOSE);
+    cmd_names1.insert("flush".into(), smb1::SMB1_COMMAND_FLUSH);
+    cmd_names1.insert("delete".into(), smb1::SMB1_COMMAND_DELETE);
+    cmd_names1.insert("rename".into(), smb1::SMB1_COMMAND_RENAME);
+    cmd_names1.insert(
+        "query_information".into(),
+        smb1::SMB1_COMMAND_QUERY_INFORMATION,
+    );
+    cmd_names1.insert("set_information".into(), smb1::SMB1_COMMAND_SET_INFORMATION);
+    cmd_names1.insert("read".into(), smb1::SMB1_COMMAND_READ);
+    cmd_names1.insert("write".into(), smb1::SMB1_COMMAND_WRITE);
+    cmd_names1.insert("lock_byte_range".into(), smb1::SMB1_COMMAND_LOCK_BYTE_RANGE);
+    cmd_names1.insert(
+        "unlock_byte_range".into(),
+        smb1::SMB1_COMMAND_UNLOCK_BYTE_RANGE,
+    );
+    cmd_names1.insert(
+        "create_temporary".into(),
+        smb1::SMB1_COMMAND_CREATE_TEMPORARY,
+    );
+    cmd_names1.insert("create_new".into(), smb1::SMB1_COMMAND_CREATE_NEW);
+    cmd_names1.insert("check_directory".into(), smb1::SMB1_COMMAND_CHECK_DIRECTORY);
+    cmd_names1.insert("process_exit".into(), smb1::SMB1_COMMAND_PROCESS_EXIT);
+    cmd_names1.insert("seek".into(), smb1::SMB1_COMMAND_SEEK);
+    cmd_names1.insert("lock_and_read".into(), smb1::SMB1_COMMAND_LOCK_AND_READ);
+    cmd_names1.insert(
+        "write_and_unlock".into(),
+        smb1::SMB1_COMMAND_WRITE_AND_UNLOCK,
+    );
+    cmd_names1.insert("read_raw".into(), smb1::SMB1_COMMAND_READ_RAW);
+    cmd_names1.insert("read_mpx".into(), smb1::SMB1_COMMAND_READ_MPX);
+    cmd_names1.insert(
+        "read_mpx_secondary".into(),
+        smb1::SMB1_COMMAND_READ_MPX_SECONDARY,
+    );
+    cmd_names1.insert("write_raw".into(), smb1::SMB1_COMMAND_WRITE_RAW);
+    cmd_names1.insert("write_mpx".into(), smb1::SMB1_COMMAND_WRITE_MPX);
+    cmd_names1.insert(
+        "write_mpx_secondary".into(),
+        smb1::SMB1_COMMAND_WRITE_MPX_SECONDARY,
+    );
+    cmd_names1.insert("write_complete".into(), smb1::SMB1_COMMAND_WRITE_COMPLETE);
+    cmd_names1.insert("query_server".into(), smb1::SMB1_COMMAND_QUERY_SERVER);
+    cmd_names1.insert(
+        "set_information2".into(),
+        smb1::SMB1_COMMAND_SET_INFORMATION2,
+    );
+    cmd_names1.insert(
+        "query_information2".into(),
+        smb1::SMB1_COMMAND_QUERY_INFORMATION,
+    );
+    cmd_names1.insert("locking_andx".into(), smb1::SMB1_COMMAND_LOCKING_ANDX);
+    cmd_names1.insert("transaction".into(), smb1::SMB1_COMMAND_TRANS);
+    cmd_names1.insert(
+        "transaction_secondary".into(),
+        smb1::SMB1_COMMAND_TRANS_SECONDARY,
+    );
+    cmd_names1.insert("ioctl".into(), smb1::SMB1_COMMAND_IOCTL);
+    cmd_names1.insert("ioctl_secondary".into(), smb1::SMB1_COMMAND_IOCTL_SECONDARY);
+    cmd_names1.insert("copy".into(), smb1::SMB1_COMMAND_COPY);
+    cmd_names1.insert("move".into(), smb1::SMB1_COMMAND_MOVE);
+    cmd_names1.insert("echo".into(), smb1::SMB1_COMMAND_ECHO);
+    cmd_names1.insert("write_and_close".into(), smb1::SMB1_COMMAND_WRITE_AND_CLOSE);
+    cmd_names1.insert("open_andx".into(), smb1::SMB1_COMMAND_OPEN_ANDX);
+    cmd_names1.insert("read_andx".into(), smb1::SMB1_COMMAND_READ_ANDX);
+    cmd_names1.insert("write_andx".into(), smb1::SMB1_COMMAND_WRITE_ANDX);
+    cmd_names1.insert("new_file_size".into(), smb1::SMB1_COMMAND_NEW_FILE_SIZE);
+    cmd_names1.insert(
+        "close_and_tree_disc".into(),
+        smb1::SMB1_COMMAND_CLOSE_AND_TREE_DISC,
+    );
+    cmd_names1.insert("transaction2".into(), smb1::SMB1_COMMAND_TRANS2);
+    cmd_names1.insert(
+        "transaction2_secondary".into(),
+        smb1::SMB1_COMMAND_TRANS2_SECONDARY,
+    );
+    cmd_names1.insert("find_close2".into(), smb1::SMB1_COMMAND_FIND_CLOSE2);
+    cmd_names1.insert(
+        "find_notify_close".into(),
+        smb1::SMB1_COMMAND_FIND_NOTIFY_CLOSE,
+    );
+    cmd_names1.insert("tree_connect".into(), smb1::SMB1_COMMAND_TREE_CONNECT);
+    cmd_names1.insert("tree_disconnect".into(), smb1::SMB1_COMMAND_TREE_DISCONNECT);
+    cmd_names1.insert("negotiate".into(), smb1::SMB1_COMMAND_NEGOTIATE_PROTOCOL);
+    cmd_names1.insert(
+        "session_setup_andx".into(),
+        smb1::SMB1_COMMAND_SESSION_SETUP_ANDX,
+    );
+    cmd_names1.insert("logoff_andx".into(), smb1::SMB1_COMMAND_LOGOFF_ANDX);
+    cmd_names1.insert(
+        "tree_connect_andx".into(),
+        smb1::SMB1_COMMAND_TREE_CONNECT_ANDX,
+    );
+    cmd_names1.insert(
+        "security_package_andx".into(),
+        smb1::SMB1_COMMAND_SECURITY_PACKAGE_ANDX,
+    );
+    cmd_names1.insert(
+        "query_information_disk".into(),
+        smb1::SMB1_COMMAND_QUERY_INFO_DISK,
+    );
+    cmd_names1.insert("search".into(), smb1::SMB1_COMMAND_SEARCH);
+    cmd_names1.insert("find".into(), smb1::SMB1_COMMAND_FIND);
+    cmd_names1.insert("find_unique".into(), smb1::SMB1_COMMAND_FIND_UNIQUE);
+    cmd_names1.insert("find_close".into(), smb1::SMB1_COMMAND_FIND_CLOSE);
+    cmd_names1.insert("nt_transact".into(), smb1::SMB1_COMMAND_NT_TRANS);
+    cmd_names1.insert(
+        "nt_transact_secondary".into(),
+        smb1::SMB1_COMMAND_NT_TRANS_SECONDARY,
+    );
+    cmd_names1.insert("nt_create_andx".into(), smb1::SMB1_COMMAND_NT_CREATE_ANDX);
+    cmd_names1.insert("nt_cancel".into(), smb1::SMB1_COMMAND_NT_CANCEL);
+    cmd_names1.insert("nt_rename".into(), smb1::SMB1_COMMAND_NT_RENAME);
+    cmd_names1.insert("open_print_file".into(), smb1::SMB1_COMMAND_OPEN_PRINT_FILE);
+    cmd_names1.insert(
+        "write_print_file".into(),
+        smb1::SMB1_COMMAND_WRITE_PRINT_FILE,
+    );
+    cmd_names1.insert(
+        "close_print_file".into(),
+        smb1::SMB1_COMMAND_CLOSE_PRINT_FILE,
+    );
+    cmd_names1.insert("get_print_queue".into(), smb1::SMB1_COMMAND_GET_PRINT_QUEUE);
+    cmd_names1.insert("read_bulk".into(), smb1::SMB1_COMMAND_READ_BULK);
+    cmd_names1.insert("write_bulk".into(), smb1::SMB1_COMMAND_WRITE_BULK);
+    cmd_names1.insert("write_bulk_data".into(), smb1::SMB1_COMMAND_WRITE_BULK_DATA);
+    cmd_names1.insert("invalid".into(), smb1::SMB1_COMMAND_INVALID);
+    cmd_names1.insert("no_andx_command".into(), smb1::SMB1_COMMAND_NONE);
 
     return cmd_names1.into_iter().map(|(k, v)| (k, v.into())).collect();
 }
