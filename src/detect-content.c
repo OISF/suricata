@@ -111,6 +111,12 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
             if (str[i] == '|') {
                 bin_count++;
                 if (bin) {
+                    if (binpos > 0) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                                "Incomplete hex code in content - %s. Invalidating signature.",
+                                contentstr);
+                        goto error;
+                    }
                     bin = 0;
                 } else {
                     bin = 1;
@@ -3050,6 +3056,22 @@ static int DetectLongContentTest3(void)
     return !DetectLongContentTestCommon(sig, 1);
 }
 
+static int DetectBadBinContent(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    FAIL_IF_NOT_NULL(SigInit(
+            de_ctx, "alert tcp any any -> any any (msg:\"test\"; content:\"|a|\"; sid:1;)"));
+    FAIL_IF_NOT_NULL(SigInit(
+            de_ctx, "alert tcp any any -> any any (msg:\"test\"; content:\"|aa b|\"; sid:1;)"));
+    FAIL_IF_NOT_NULL(SigInit(
+            de_ctx, "alert tcp any any -> any any (msg:\"test\"; content:\"|aa bz|\"; sid:1;)"));
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for DetectContent
  */
@@ -3168,5 +3190,7 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectLongContentTest1", DetectLongContentTest1);
     UtRegisterTest("DetectLongContentTest2", DetectLongContentTest2);
     UtRegisterTest("DetectLongContentTest3", DetectLongContentTest3);
+
+    UtRegisterTest("DetectBadBinContent", DetectBadBinContent);
 }
 #endif /* UNITTESTS */
