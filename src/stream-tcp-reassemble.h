@@ -76,7 +76,6 @@ typedef struct TcpReassemblyThreadCtx_ {
 
     uint16_t counter_tcp_reass_data_normal_fail;
     uint16_t counter_tcp_reass_data_overlap_fail;
-    uint16_t counter_tcp_reass_list_fail;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
