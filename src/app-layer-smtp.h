@@ -68,6 +68,11 @@ typedef struct SMTPString_ {
 typedef struct SMTPInput_ {
     const uint8_t *data;
     int32_t len;
+    /** current line extracted by the parser from the call to SMTPGetline() */
+    const uint8_t *current_line;
+    /** length of the line in current_line.  Doesn't include the delimiter */
+    int32_t current_line_len;
+    uint8_t current_line_delimiter_len;
 } SMTPInput;
 
 typedef struct SMTPTransaction_ {
@@ -116,11 +121,6 @@ typedef struct SMTPState_ {
     uint8_t direction;
 
     /* --parser details-- */
-    /** current line extracted by the parser from the call to SMTPGetline() */
-    const uint8_t *current_line;
-    /** length of the line in current_line.  Doesn't include the delimiter */
-    int32_t current_line_len;
-    uint8_t current_line_delimiter_len;
     /* Consumed bytes till current line */
     int32_t consumed;
 
