@@ -71,8 +71,7 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
  *  \param data_len data length
  *
  *  \return 0 on success
- *  \return -1 on memory allocation error
- *  \return negative value on other errors
+ *  \return -1 on error (memory allocation error)
  */
 static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, uint8_t *data, uint16_t data_len)
 {
@@ -92,15 +91,18 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
                "data_offset %"PRIu16", SEQ %u BASE %u, data_len %u",
                stream, &stream->sb, stream_offset,
                data_offset, seg->seq, stream->base_seq, data_len);
-    BUG_ON(data_offset > data_len);
-    if (data_len == data_offset) {
+    DEBUG_VALIDATE_BUG_ON(data_offset > data_len);
+    if (data_len <= data_offset) {
         SCReturnInt(0);
     }
 
     int ret = StreamingBufferInsertAt(
             &stream->sb, &seg->sbseg, data + data_offset, data_len - data_offset, stream_offset);
     if (ret != 0) {
-        SCReturnInt(ret);
+        /* StreamingBufferInsertAt can return -2 only if the offset is wrong, which should be
+         * correctly handled here. */
+        DEBUG_VALIDATE_BUG_ON(ret != -1);
+        SCReturnInt(-1);
     }
 #ifdef DEBUG
     {
@@ -460,6 +462,9 @@ static int DoHandleDataCheckBackwards(TcpStream *stream,
  *
  *  Walk forward from the current segment which is already in the tree.
  *  We walk until the next segs start with a SEQ beyond our right edge.
+ *
+ *  \retval 1 data was different
+ *  \retval 0 data was the same
  */
 static int DoHandleDataCheckForward(TcpStream *stream,
         TcpSegment *seg, uint8_t *buf, Packet *p)
@@ -497,7 +502,8 @@ static int DoHandleDataCheckForward(TcpStream *stream,
 }
 
 /**
- *  \param dup_seg in-tree duplicate of `seg`
+ *  \param tree_seg in-tree duplicate of `seg`
+ *  \retval res 0 ok, -1 insertion error due to memcap
  */
 static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpStream *stream, TcpSegment *seg, TcpSegment *tree_seg, Packet *p)
@@ -557,7 +563,8 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 }
 
 /**
- *  \retval -1 segment not inserted
+ *  \return 0 ok
+ *  \return -1 segment not inserted due to memcap issue
  *
  *  \param seg segment, this function takes total ownership
  *
