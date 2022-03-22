@@ -659,17 +659,26 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
     if (!parent_ctx->threaded)
         return parent_ctx;
 
-    SCLogDebug("Adding reference %d to file ctx %p", thread_id, parent_ctx);
+    SCLogDebug("Adding reference for thread/slot %d to file %s [ctx %p]", thread_id,
+            parent_ctx->filename, parent_ctx);
     SCMutexLock(&parent_ctx->threads->mutex);
     /* are there enough context slots already */
     if (thread_id < parent_ctx->threads->slot_count) {
         /* has it been opened yet? */
         if (!parent_ctx->threads->lf_slots[thread_id]) {
-            SCLogDebug("Opening new file for %d reference to file ctx %p", thread_id, parent_ctx);
-            LogFileNewThreadedCtx(parent_ctx, parent_ctx->filename, parent_ctx->threads->append, thread_id);
+            SCLogDebug("Opening new file for thread/slot %d to file %s [ctx %p]", thread_id,
+                    parent_ctx->filename, parent_ctx);
+            if (!LogFileNewThreadedCtx(
+                        parent_ctx, parent_ctx->filename, parent_ctx->threads->append, thread_id))
+                BUG_ON(parent_ctx->threads->lf_slots[thread_id] != NULL);
         }
         SCMutexUnlock(&parent_ctx->threads->mutex);
-        SCLogDebug("Existing file for %d reference to file ctx %p", thread_id, parent_ctx);
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {
+            if (parent_ctx->threads->lf_slots[thread_id])
+                SCLogDebug("Existing file for thread/slot %d reference to file %s [ctx %p]",
+                        thread_id, parent_ctx->filename, parent_ctx);
+        }
+        /* If there was a failure, this will be null */
         return parent_ctx->threads->lf_slots[thread_id];
     }
 
@@ -698,7 +707,9 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
         parent_ctx->threads->lf_slots[i] = NULL;
     }
     parent_ctx->threads->slot_count = new_size;
-    LogFileNewThreadedCtx(parent_ctx, parent_ctx->filename, parent_ctx->threads->append, thread_id);
+    if (!LogFileNewThreadedCtx(
+                parent_ctx, parent_ctx->filename, parent_ctx->threads->append, thread_id))
+        BUG_ON(parent_ctx->threads->lf_slots[thread_id] != NULL);
 
     SCMutexUnlock(&parent_ctx->threads->mutex);
 
