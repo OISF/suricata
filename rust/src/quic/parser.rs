@@ -125,16 +125,16 @@ pub fn quic_pkt_num(input: &[u8]) -> u64 {
             return input[0] as u64;
         }
         2 => {
-            return input[0] as u64 | ((input[1] as u64) << 8);
+            return ((input[0] as u64) << 8) | (input[1] as u64);
         }
         3 => {
-            return input[0] as u64 | ((input[1] as u64) << 8) | ((input[2] as u64) << 16);
+            return ((input[0] as u64) << 16) | ((input[1] as u64) << 8) | (input[2] as u64);
         }
         4 => {
-            return input[0] as u64
-                | ((input[1] as u64) << 8)
-                | ((input[2] as u64) << 16)
-                | ((input[3] as u64) << 24);
+            return ((input[0] as u64) << 24)
+                | ((input[1] as u64) << 16)
+                | ((input[2] as u64) << 8)
+                | (input[3] as u64);
         }
         _ => {
             // should not be reachable because rustls errors first

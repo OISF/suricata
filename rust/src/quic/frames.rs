@@ -148,15 +148,29 @@ pub(crate) enum Frame {
     Unknown(Vec<u8>),
 }
 
+fn parse_padding_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    // nom take_while: cannot infer type for type parameter `Error` declared on the function `take_while`
+    let mut offset = 0;
+    while offset < input.len() {
+        if input[offset] != 0 {
+            break;
+        }
+        offset = offset + 1;
+    }
+    return Ok((&input[offset..], Frame::Padding));
+}
+
 fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
     let (rest, largest_acknowledged) = quic_var_uint(input)?;
     let (rest, ack_delay) = quic_var_uint(rest)?;
     let (rest, ack_range_count) = quic_var_uint(rest)?;
-    let (rest, first_ack_range) = quic_var_uint(rest)?;
+    let (mut rest, first_ack_range) = quic_var_uint(rest)?;
 
-    if ack_range_count != 0 {
-        //TODO RFC9000 section 19.3.1.  ACK Ranges
-        return Err(nom::Err::Error(QuicError::NotSupported));
+    for _ in 0..ack_range_count {
+        //RFC9000 section 19.3.1.  ACK Ranges
+        let (rest1, _gap) = quic_var_uint(rest)?;
+        let (rest1, _ack_range_length) = quic_var_uint(rest1)?;
+        rest = rest1;
     }
 
     Ok((
@@ -397,7 +411,7 @@ impl Frame {
             parse_stream_frame(rest, frame_ty)?
         } else {
             match frame_ty {
-                0x00 => (rest, Frame::Padding),
+                0x00 => parse_padding_frame(rest)?,
                 0x02 => parse_ack_frame(rest)?,
                 0x06 => parse_crypto_frame(rest)?,
                 _ => ([].as_ref(), Frame::Unknown(rest.to_vec())),

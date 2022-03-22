@@ -18,7 +18,7 @@
 use super::{
     cyu::Cyu,
     frames::{Frame, QuicTlsExtension, StreamTag},
-    parser::{quic_pkt_num, quic_rustls_version, QuicData, QuicHeader, QuicType},
+    parser::{quic_pkt_num, quic_rustls_version, QuicData, QuicHeader, QuicType, QuicVersion},
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -155,7 +155,7 @@ impl QuicState {
     fn decrypt<'a>(
         &mut self, to_server: bool, header: &QuicHeader, framebuf: &'a [u8], buf: &'a [u8],
         hlen: usize, output: &'a mut Vec<u8>,
-    ) -> bool {
+    ) -> Result<usize, ()> {
         if let Some(keys) = &self.keys {
             let hkey = if to_server {
                 &keys.remote.header
@@ -163,7 +163,7 @@ impl QuicState {
                 &keys.local.header
             };
             if framebuf.len() < 4 + hkey.sample_len() {
-                return false;
+                return Err(());
             }
             let h2len = hlen + usize::from(header.length);
             let mut h2 = Vec::with_capacity(h2len);
@@ -177,7 +177,7 @@ impl QuicState {
                 &mut pktnum_buf,
             );
             if !r1.is_ok() {
-                return false;
+                return Err(());
             }
             // mutate one at a time
             h2[0] = h20;
@@ -185,7 +185,7 @@ impl QuicState {
                 .copy_from_slice(&pktnum_buf[..1 + ((h20 & 3) as usize)]);
             let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
             if framebuf.len() < 1 + ((h20 & 3) as usize) {
-                return false;
+                return Err(());
             }
             output.extend_from_slice(&framebuf[1 + ((h20 & 3) as usize)..]);
             let pkey = if to_server {
@@ -194,13 +194,11 @@ impl QuicState {
                 &keys.local.packet
             };
             let r = pkey.decrypt_in_place(pkt_num, &h2[..hlen + 1 + ((h20 & 3) as usize)], output);
-            if !r.is_ok() {
-                return false;
+            if let Ok(r2) = r {
+                return Ok(r2.len());
             }
-            return true;
         }
-        // unreachable by the way
-        return false;
+        return Err(());
     }
 
     fn handle_frames(&mut self, data: QuicData, header: QuicHeader, to_server: bool) {
@@ -267,7 +265,7 @@ impl QuicState {
                         // payload is encrypted, stop parsing here
                         return true;
                     }
-                    if header.ty == QuicType::Short {
+                    if header.ty != QuicType::Initial {
                         return true;
                     }
                     if self.keys.is_none() && header.ty == QuicType::Initial {
@@ -282,13 +280,29 @@ impl QuicState {
                     let mut output;
                     if self.keys.is_some() {
                         output = Vec::with_capacity(framebuf.len() + 4);
-                        if !self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output) {
+                        if let Ok(dlen) =
+                            self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output)
+                        {
+                            output.resize(dlen, 0);
+                        } else {
                             self.set_event_notx(QuicEvent::FailedDecrypt, header, to_server);
                             return false;
                         }
                         framebuf = &output;
                     }
                     buf = next_buf;
+                    if header.version == QuicVersion(0x51303530) {
+                        self.new_tx(
+                            header,
+                            QuicData { frames: Vec::new() },
+                            None,
+                            None,
+                            Vec::new(),
+                            None,
+                            to_server,
+                        );
+                        continue;
+                    }
                     match QuicData::from_bytes(framebuf) {
                         Ok(data) => {
                             self.handle_frames(data, header, to_server);
