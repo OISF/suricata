@@ -2429,7 +2429,6 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: ssn->server.next_seq %"PRIu32
                    " (next_seq had fallen behind last_ack)",
                    ssn, ssn->server.next_seq);
-
     } else {
         SCLogDebug("ssn %p: no update to ssn->server.next_seq %"PRIu32
                    " SEQ %u SEQ+ %u last_ack %u",
