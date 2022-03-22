@@ -163,19 +163,10 @@ static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
  *  \retval 2 not inserted, data overlap
  *  \retval 1 inserted with overlap detected
  *  \retval 0 inserted, no overlap
- *  \retval -1 error
  */
 static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup_seg, Packet *p)
 {
-    /* before our base_seq we don't insert it in our list */
-    if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq))
-    {
-        SCLogDebug("not inserting: SEQ+payload %"PRIu32", last_ack %"PRIu32", "
-                "base_seq %"PRIu32, (seg->seq + TCP_SEG_LEN(seg)),
-                stream->last_ack, stream->base_seq);
-        StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ);
-        return -1;
-    }
+    BUG_ON(SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq));
 
     /* fast track */
     if (RB_EMPTY(&stream->seg_tree)) {
@@ -645,12 +636,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* insert segment into list. Note: doesn't handle the data */
     int r = DoInsertSegment (stream, seg, &dup_seg, p);
-    SCLogDebug("DoInsertSegment returned %d", r);
-    if (r < 0) {
-        StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
-        StreamTcpSegmentReturntoPool(seg);
-        SCReturnInt(-1);
-    }
+
     if (IsTcpSessionDumpingEnabled()) {
         StreamTcpSegmentAddPacketData(seg, p, tv, ra_ctx);
     }
