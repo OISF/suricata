@@ -68,8 +68,6 @@ void DetectIkeExchTypeRegister(void)
             DetectEngineInspectIkeExchTypeGeneric, NULL);
 
     g_ike_exch_type_buffer_id = DetectBufferTypeGetByName("ike.exchtype");
-
-    DetectUintRegister();
 }
 
 static int DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
@@ -152,5 +150,5 @@ error:
  */
 static void DetectIkeExchTypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u8_free(ptr);
 }

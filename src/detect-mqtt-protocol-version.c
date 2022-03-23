@@ -141,7 +141,7 @@ static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (de != NULL)
-        SCFree(de);
+        rs_detect_u8_free(de);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -155,8 +155,7 @@ error:
  */
 void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    if (de_ptr != NULL)
-        SCFree(de_ptr);
+    rs_detect_u8_free(de_ptr);
 }
 
 /*
