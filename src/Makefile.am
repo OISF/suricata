@@ -1208,7 +1208,6 @@ EXTRA_DIST = \
 	tests/detect-icmpv6hdr.c \
 	tests/detect-snmp-pdu_type.c \
 	tests/detect-snmp-version.c \
-	tests/detect-tcpmss.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
