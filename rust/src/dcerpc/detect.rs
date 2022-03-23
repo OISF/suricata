@@ -19,23 +19,17 @@ use super::dcerpc::{
     DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
     DCERPC_UUID_ENTRY_FLAG_FF,
 };
+use crate::detect::{detect_match_uint, detect_parse_uint, DetectUintData};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
-
-pub const DETECT_DCE_IFACE_OP_NONE: u8 = 0;
-pub const DETECT_DCE_IFACE_OP_LT: u8 = 1;
-pub const DETECT_DCE_IFACE_OP_GT: u8 = 2;
-pub const DETECT_DCE_IFACE_OP_EQ: u8 = 3;
-pub const DETECT_DCE_IFACE_OP_NE: u8 = 4;
 
 pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
 
 #[derive(Debug)]
 pub struct DCEIfaceData {
     pub if_uuid: Vec<u8>,
-    pub op: u8,
-    pub version: u16,
+    pub du16: Option<DetectUintData<u16>>,
     pub any_frag: u8,
 }
 
@@ -57,47 +51,6 @@ impl DCEOpnumRange {
 #[derive(Debug)]
 pub struct DCEOpnumData {
     pub data: Vec<DCEOpnumRange>,
-}
-
-fn extract_op_version(opver: &str) -> Result<(u8, u16), ()> {
-    if !opver.is_char_boundary(1){
-        return Err(());
-    }
-    let (op, version) = opver.split_at(1);
-    let opval: u8 = match op {
-        ">" => DETECT_DCE_IFACE_OP_GT,
-        "<" => DETECT_DCE_IFACE_OP_LT,
-        "=" => DETECT_DCE_IFACE_OP_EQ,
-        "!" => DETECT_DCE_IFACE_OP_NE,
-        _ => DETECT_DCE_IFACE_OP_NONE,
-    };
-
-    let version: u16 = match version.parse::<u16>() {
-        Ok(res) => res,
-        _ => {
-            return Err(());
-        }
-    };
-    if opval == DETECT_DCE_IFACE_OP_NONE
-        || (opval == DETECT_DCE_IFACE_OP_LT && version == std::u16::MIN)
-        || (opval == DETECT_DCE_IFACE_OP_GT && version == std::u16::MAX)
-    {
-        return Err(());
-    }
-
-    Ok((opval, version))
-}
-
-fn match_iface_version(version: u16, if_data: &DCEIfaceData) -> bool {
-    match if_data.op {
-        DETECT_DCE_IFACE_OP_LT => version < if_data.version,
-        DETECT_DCE_IFACE_OP_GT => version > if_data.version,
-        DETECT_DCE_IFACE_OP_EQ => version == if_data.version,
-        DETECT_DCE_IFACE_OP_NE => version != if_data.version,
-        _ => {
-            return true;
-        }
-    }
 }
 
 fn match_backuuid(
@@ -132,11 +85,11 @@ fn match_backuuid(
                 continue;
             }
 
-            if if_data.op != DETECT_DCE_IFACE_OP_NONE
-                && !match_iface_version(uuidentry.version, if_data)
-            {
-                SCLogDebug!("Interface version did not match");
-                ret &= 0;
+            if let Some(x) = &if_data.du16 {
+                if !detect_match_uint(&x, uuidentry.version) {
+                    SCLogDebug!("Interface version did not match");
+                    ret &= 0;
+                }
             }
 
             if ret == 1 {
@@ -150,7 +103,7 @@ fn match_backuuid(
 
 fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     let split_args: Vec<&str> = arg.split(',').collect();
-    let mut op_version = (0, 0);
+    let mut du16 = None;
     let mut any_frag: u8 = 0;
     let if_uuid = match Uuid::parse_str(split_args[0]) {
         Ok(res) => res.as_bytes().to_vec(),
@@ -166,8 +119,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 any_frag = 1;
             }
             _ => {
-                op_version = match extract_op_version(split_args[1]) {
-                    Ok((op, ver)) => (op, ver),
+                match detect_parse_uint(split_args[1]) {
+                    Ok((_, x)) => du16 = Some(x),
                     _ => {
                         return Err(());
                     }
@@ -175,8 +128,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
             }
         },
         3 => {
-            op_version = match extract_op_version(split_args[1]) {
-                Ok((op, ver)) => (op, ver),
+            match detect_parse_uint(split_args[1]) {
+                Ok((_, x)) => du16 = Some(x),
                 _ => {
                     return Err(());
                 }
@@ -193,8 +146,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
 
     Ok(DCEIfaceData {
         if_uuid: if_uuid,
-        op: op_version.0,
-        version: op_version.1,
+        du16: du16,
         any_frag: any_frag,
     })
 }
@@ -343,30 +295,39 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::detect::DetectUintMode;
 
+    fn extract_op_version(i: &str) -> Result<(DetectUintMode, u16), ()> {
+        match detect_parse_uint(i) {
+            Ok((_, d)) => return Ok((d.mode, d.arg1)),
+            _ => {
+                return Err(());
+            }
+        }
+    }
     #[test]
     fn test_extract_op_version() {
         let op_version = "<1";
         assert_eq!(
-            Ok((DETECT_DCE_IFACE_OP_LT, 1)),
+            Ok((DetectUintMode::DetectUintModeLt, 1)),
             extract_op_version(op_version)
         );
 
         let op_version = ">10";
         assert_eq!(
-            Ok((DETECT_DCE_IFACE_OP_GT, 10)),
+            Ok((DetectUintMode::DetectUintModeGt, 10)),
             extract_op_version(op_version)
         );
 
         let op_version = "=45";
         assert_eq!(
-            Ok((DETECT_DCE_IFACE_OP_EQ, 45)),
+            Ok((DetectUintMode::DetectUintModeEqual, 45)),
             extract_op_version(op_version)
         );
 
         let op_version = "!0";
         assert_eq!(
-            Ok((DETECT_DCE_IFACE_OP_NE, 0)),
+            Ok((DetectUintMode::DetectUintModeNe, 0)),
             extract_op_version(op_version)
         );
 
@@ -374,26 +335,21 @@ mod test {
         assert_eq!(true, extract_op_version(op_version).is_err());
 
         let op_version = "";
-        assert_eq!(
-            Err(()),
-            extract_op_version(op_version)
-        );
-
+        assert_eq!(Err(()), extract_op_version(op_version));
     }
 
     #[test]
     fn test_match_iface_version() {
-        let iface_data = DCEIfaceData {
-            if_uuid: Vec::new(),
-            op: 3,
-            version: 10,
-            any_frag: 0,
+        let iface_data = DetectUintData::<u16> {
+            mode: DetectUintMode::DetectUintModeEqual,
+            arg1: 10,
+            arg2: 0,
         };
-        let version = 10;
-        assert_eq!(true, match_iface_version(version, &iface_data));
+        let version: u16 = 10;
+        assert_eq!(true, detect_match_uint(&iface_data, version));
 
-        let version = 2;
-        assert_eq!(false, match_iface_version(version, &iface_data));
+        let version: u16 = 2;
+        assert_eq!(false, detect_match_uint(&iface_data, version));
     }
 
     #[test]
@@ -411,8 +367,9 @@ mod test {
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
         let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
-        assert_eq!(DETECT_DCE_IFACE_OP_GT, iface_data.op);
-        assert_eq!(1, iface_data.version);
+        let du16 = iface_data.du16.unwrap();
+        assert_eq!(DetectUintMode::DetectUintModeGt, du16.mode);
+        assert_eq!(1, du16.arg1);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,any_frag";
         let iface_data = parse_iface_data(arg).unwrap();
@@ -420,9 +377,8 @@ mod test {
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
         let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
-        assert_eq!(DETECT_DCE_IFACE_OP_NONE, iface_data.op);
+        assert!(iface_data.du16.is_none());
         assert_eq!(1, iface_data.any_frag);
-        assert_eq!(0, iface_data.version);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,!10,any_frag";
         let iface_data = parse_iface_data(arg).unwrap();
@@ -430,9 +386,10 @@ mod test {
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
         let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
-        assert_eq!(DETECT_DCE_IFACE_OP_NE, iface_data.op);
         assert_eq!(1, iface_data.any_frag);
-        assert_eq!(10, iface_data.version);
+        let du16 = iface_data.du16.unwrap();
+        assert_eq!(DetectUintMode::DetectUintModeNe, du16.mode);
+        assert_eq!(10, du16.arg1);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>1,ay_frag";
         let iface_data = parse_iface_data(arg);
@@ -458,7 +415,7 @@ mod test {
         let iface_data = parse_iface_data(arg);
         assert_eq!(iface_data.is_err(), true);
 
-        let arg = "12345678-1234-1234-1234-123456789ABC,>=1,any_frag";
+        let arg = "12345678-1234-1234-1234-123456789ABC,>=0,any_frag";
         let iface_data = parse_iface_data(arg);
         assert_eq!(iface_data.is_err(), true);
 

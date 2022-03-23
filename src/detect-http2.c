@@ -244,8 +244,6 @@ void DetectHttp2Register(void)
             "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectHTTP2, NULL);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
-    DetectUintRegister();
-
     return;
 }
 
@@ -465,7 +463,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        SCFree(prio);
+        rs_detect_u8_free(prio);
         return -1;
     }
 
@@ -484,7 +482,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
  */
 void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u8_free(ptr);
 }
 
 /**
@@ -532,7 +530,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        SCFree(wu);
+        rs_detect_u32_free(wu);
         return -1;
     }
 
@@ -551,7 +549,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
 
 /**
