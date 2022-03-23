@@ -24,17 +24,7 @@
 #ifndef __DETECT_DSIZE_H__
 #define __DETECT_DSIZE_H__
 
-#define DETECTDSIZE_LT 0
-#define DETECTDSIZE_EQ 1
-#define DETECTDSIZE_GT 2
-#define DETECTDSIZE_RA 3
-#define DETECTDSIZE_NE 4
-
-typedef struct DetectDsizeData_ {
-    uint16_t dsize;
-    uint16_t dsize2;
-    uint8_t mode;
-} DetectDsizeData;
+#include "detect-engine-uint.h"
 
 /* prototypes */
 void DetectDsizeRegister (void);
@@ -49,7 +39,7 @@ static inline bool SigDsizePrefilter(const Packet *p, const Signature *s, uint32
 {
     if (unlikely(sflags & SIG_FLAG_DSIZE)) {
         if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-            if (!(s->dsize_mode == DETECTDSIZE_NE)) {
+            if (!(s->dsize_mode == DETECT_UINT_NE)) {
                 SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u", p->payload_len,
                         s->dsize_low, s->dsize_high);
                 return true;
