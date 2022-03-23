@@ -28,15 +28,10 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "detect-template2.h"
 
-/**
- * \brief Regex for parsing our options
- */
-#define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
-
-static DetectParseRegex parse_regex;
 
 /* prototypes */
 static int DetectTemplate2Match (DetectEngineThreadCtx *, Packet *,
@@ -61,38 +56,20 @@ void DetectTemplate2Register(void)
     sigmatch_table[DETECT_TEMPLATE2].Match = DetectTemplate2Match;
     sigmatch_table[DETECT_TEMPLATE2].Setup = DetectTemplate2Setup;
     sigmatch_table[DETECT_TEMPLATE2].Free = DetectTemplate2Free;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_TEMPLATE2].RegisterTests = DetectTemplate2RegisterTests;
-#endif
     sigmatch_table[DETECT_TEMPLATE2].SupportsPrefilter = PrefilterTemplate2IsPrefilterable;
     sigmatch_table[DETECT_TEMPLATE2].SetupPrefilter = PrefilterSetupTemplate2;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
     return;
 }
 
-static inline int Template2Match(const uint8_t parg, const uint8_t mode,
-        const uint8_t darg1, const uint8_t darg2)
-{
-    if (mode == DETECT_TEMPLATE2_EQ && parg == darg1)
-        return 1;
-    else if (mode == DETECT_TEMPLATE2_LT && parg < darg1)
-        return 1;
-    else if (mode == DETECT_TEMPLATE2_GT && parg > darg1)
-        return 1;
-    else if (mode == DETECT_TEMPLATE2_RA && (parg > darg1 && parg < darg2))
-        return 1;
-
-    return 0;
-}
-
 /**
- * \brief This function is used to match TEMPLATE2 rule option on a packet with those passed via template2:
+ * \brief This function is used to match TEMPLATE2 rule option on a packet with those passed via
+ * template2:
  *
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectTemplate2Data
+ * \param m pointer to the sigmatch that we will cast into DetectU8Data
  *
  * \retval 0 no match
  * \retval 1 match
@@ -115,171 +92,8 @@ static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    const DetectTemplate2Data *template2d = (const DetectTemplate2Data *)ctx;
-    return Template2Match(ptemplate2, template2d->mode, template2d->arg1, template2d->arg2);
-}
-
-/**
- * \brief This function is used to parse template2 options passed via template2: keyword
- *
- * \param template2str Pointer to the user provided template2 options
- *
- * \retval template2d pointer to DetectTemplate2Data on success
- * \retval NULL on failure
- */
-
-static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
-{
-    DetectTemplate2Data *template2d = NULL;
-    char *arg1 = NULL;
-    char *arg2 = NULL;
-    char *arg3 = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2_len;
-
-    ret = DetectParsePcreExec(&parse_regex, template2str, 0, 0);
-    if (ret < 2 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
-        goto error;
-    }
-    const char *str_ptr;
-
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        goto error;
-    }
-    arg1 = (char *) str_ptr;
-    SCLogDebug("Arg1 \"%s\"", arg1);
-
-    if (ret >= 3) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-            goto error;
-        }
-        arg2 = (char *) str_ptr;
-        SCLogDebug("Arg2 \"%s\"", arg2);
-
-        if (ret >= 4) {
-            res = pcre2_substring_get_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-                goto error;
-            }
-            arg3 = (char *) str_ptr;
-            SCLogDebug("Arg3 \"%s\"", arg3);
-        }
-    }
-
-    template2d = SCMalloc(sizeof (DetectTemplate2Data));
-    if (unlikely(template2d == NULL))
-        goto error;
-    template2d->arg1 = 0;
-    template2d->arg2 = 0;
-
-    if (arg2 != NULL) {
-        /*set the values*/
-        switch(arg2[0]) {
-            case '<':
-                if (arg3 == NULL)
-                    goto error;
-
-                template2d->mode = DETECT_TEMPLATE2_LT;
-                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
-                               " \"%s\"", arg3);
-                    goto error;
-                }
-                SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
-                if (strlen(arg1) > 0)
-                    goto error;
-
-                break;
-            case '>':
-                if (arg3 == NULL)
-                    goto error;
-
-                template2d->mode = DETECT_TEMPLATE2_GT;
-                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
-                               " \"%s\"", arg3);
-                    goto error;
-                }
-                SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
-                if (strlen(arg1) > 0)
-                    goto error;
-
-                break;
-            case '-':
-                if (arg1 == NULL || strlen(arg1)== 0)
-                    goto error;
-                if (arg3 == NULL || strlen(arg3)== 0)
-                    goto error;
-
-                template2d->mode = DETECT_TEMPLATE2_RA;
-                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
-                               " \"%s\"", arg1);
-                    goto error;
-                }
-                if (StringParseUint8(&template2d->arg2, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid second arg:"
-                               " \"%s\"", arg3);
-                    goto error;
-                }
-                SCLogDebug("template2 is %"PRIu8" to %"PRIu8"",template2d->arg1, template2d->arg2);
-                if (template2d->arg1 >= template2d->arg2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid template2 range. ");
-                    goto error;
-                }
-                break;
-            default:
-                template2d->mode = DETECT_TEMPLATE2_EQ;
-
-                if ((arg2 != NULL && strlen(arg2) > 0) ||
-                    (arg3 != NULL && strlen(arg3) > 0) ||
-                    (arg1 == NULL ||strlen(arg1) == 0))
-                    goto error;
-
-                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
-                               " \"%s\"", arg1);
-                    goto error;
-                }
-                break;
-        }
-    } else {
-        template2d->mode = DETECT_TEMPLATE2_EQ;
-
-        if ((arg3 != NULL && strlen(arg3) > 0) ||
-            (arg1 == NULL ||strlen(arg1) == 0))
-            goto error;
-
-        if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
-                       " \"%s\"", arg1);
-            goto error;
-        }
-    }
-
-    pcre2_substring_free((PCRE2_UCHAR8 *)arg1);
-    pcre2_substring_free((PCRE2_UCHAR8 *)arg2);
-    pcre2_substring_free((PCRE2_UCHAR8 *)arg3);
-    return template2d;
-
-error:
-    if (template2d)
-        SCFree(template2d);
-    if (arg1)
-        pcre2_substring_free((PCRE2_UCHAR8 *)arg1);
-    if (arg2)
-        pcre2_substring_free((PCRE2_UCHAR8 *)arg2);
-    if (arg3)
-        pcre2_substring_free((PCRE2_UCHAR8 *)arg3);
-    return NULL;
+    const DetectU8Data *template2d = (const DetectU8Data *)ctx;
+    return DetectU8Match(ptemplate2, template2d);
 }
 
 /**
@@ -294,7 +108,7 @@ error:
  */
 static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const char *template2str)
 {
-    DetectTemplate2Data *template2d = DetectTemplate2Parse(template2str);
+    DetectU8Data *template2d = DetectU8Parse(template2str);
     if (template2d == NULL)
         return -1;
 
@@ -314,14 +128,13 @@ static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const ch
 }
 
 /**
- * \brief this function will free memory associated with DetectTemplate2Data
+ * \brief this function will free memory associated with DetectU8Data
  *
- * \param ptr pointer to DetectTemplate2Data
+ * \param ptr pointer to DetectU8Data
  */
 void DetectTemplate2Free(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectTemplate2Data *template2d = (DetectTemplate2Data *)ptr;
-    SCFree(template2d);
+    rs_detect_u8_free(ptr);
 }
 
 /* prefilter code */
@@ -350,41 +163,22 @@ PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const v
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
+    DetectU8Data du8;
+    du8.mode = ctx->v1.u8[0];
+    du8.arg1 = ctx->v1.u8[1];
+    du8.arg2 = ctx->v1.u8[2];
     /* if we match, add all the sigs that use this prefilter. This means
      * that these will be inspected further */
-    if (Template2Match(ptemplate2, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
+    if (DetectU8Match(ptemplate2, &du8)) {
         SCLogDebug("packet matches template2/hl %u", ptemplate2);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketTemplate2Set(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectTemplate2Data *a = smctx;
-    v->u8[0] = a->mode;
-    v->u8[1] = a->arg1;
-    v->u8[2] = a->arg2;
-}
-
-static bool
-PrefilterPacketTemplate2Compare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectTemplate2Data *a = smctx;
-    if (v.u8[0] == a->mode &&
-        v.u8[1] == a->arg1 &&
-        v.u8[2] == a->arg2)
-        return true;
-    return false;
-}
-
 static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TEMPLATE2,
-            PrefilterPacketTemplate2Set,
-            PrefilterPacketTemplate2Compare,
-            PrefilterPacketTemplate2Match);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TEMPLATE2, PrefilterPacketU8Set,
+            PrefilterPacketU8Compare, PrefilterPacketTemplate2Match);
 }
 
 static bool PrefilterTemplate2IsPrefilterable(const Signature *s)
@@ -398,8 +192,3 @@ static bool PrefilterTemplate2IsPrefilterable(const Signature *s)
     }
     return false;
 }
-
-#ifdef UNITTESTS
-#include "tests/detect-template2.c"
-#endif
-
