@@ -78,18 +78,6 @@ if [ -e $FILE_C ] || [ -e $FILE_H ]; then
     exit 1
 fi
 
-FILE_C="tests/detect-${LC}.c"
-if [ ! -e tests/detect-template2.c ]; then
-    Usage
-    echo "ERROR: input file tests/detect-template.c is missing"
-    exit 1
-fi
-if [ -e $FILE_C ]; then
-    Usage
-    echo "ERROR: file $FILE_C already exist, won't overwrite"
-    exit 1
-fi
-
 FILE_C="detect-${LC}.c"
 FILE_H="detect-${LC}.h"
 cp detect-template2.c $FILE_C
@@ -113,15 +101,6 @@ sed -i "s/#include \"detect-template2.h\"/#include \"detect-template2.h\"\\n#inc
 
 # add reg func to detect-engine-register.c
 sed -i "s/DetectTemplate2Register();/DetectTemplate2Register();\\n    Detect${NR}Register();/g" detect-engine-register.c
-
-# tests file
-FILE_C="tests/detect-${LC}.c"
-cp tests/detect-template2.c $FILE_C
-
-# search and replaces
-sed -i "s/TEMPLATE2/${UC}/g" $FILE_C
-sed -i "s/Template2/${NR}/g" $FILE_C
-sed -i "s/template2/${LC}/g" $FILE_C
 
 Done
 exit 0

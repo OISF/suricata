@@ -1235,7 +1235,6 @@ EXTRA_DIST = \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
 	tests/detect-template-buffer.c \
-	tests/detect-template2.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \
