@@ -18,6 +18,8 @@
 #ifndef __DETECT_ENGINE_PREFILTER_COMMON_H__
 #define __DETECT_ENGINE_PREFILTER_COMMON_H__
 
+#include "rust.h"
+
 typedef union {
     uint8_t u8[16];
     uint16_t u16[8];
@@ -51,10 +53,10 @@ typedef struct PrefilterPacketU8HashCtx_ {
     SigsArray *array[256];
 } PrefilterPacketU8HashCtx;
 
-#define PREFILTER_U8HASH_MODE_EQ    0
-#define PREFILTER_U8HASH_MODE_LT    1
-#define PREFILTER_U8HASH_MODE_GT    2
-#define PREFILTER_U8HASH_MODE_RA    3
+#define PREFILTER_U8HASH_MODE_EQ DetectUintModeEqual
+#define PREFILTER_U8HASH_MODE_LT DetectUintModeLt
+#define PREFILTER_U8HASH_MODE_GT DetectUintModeGt
+#define PREFILTER_U8HASH_MODE_RA DetectUintModeRange
 
 int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,

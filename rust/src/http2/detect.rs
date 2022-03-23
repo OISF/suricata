@@ -20,6 +20,7 @@ use super::http2::{
 };
 use super::parser;
 use crate::core::Direction;
+use crate::detect::{detect_match_uint, DetectUintData};
 use std::ffi::CStr;
 use std::str::FromStr;
 
@@ -254,28 +255,11 @@ fn http2_detect_settings_match(
                 None => {
                     return 1;
                 }
-                Some(x) => match x.mode {
-                    parser::DetectUintMode::DetectUintModeEqual => {
-                        if set[i].value == x.value {
-                            return 1;
-                        }
+                Some(x) => {
+                    if detect_match_uint(&x, set[i].value) {
+                        return 1;
                     }
-                    parser::DetectUintMode::DetectUintModeLt => {
-                        if set[i].value <= x.value {
-                            return 1;
-                        }
-                    }
-                    parser::DetectUintMode::DetectUintModeGt => {
-                        if set[i].value >= x.value {
-                            return 1;
-                        }
-                    }
-                    parser::DetectUintMode::DetectUintModeRange => {
-                        if set[i].value <= x.value && set[i].value >= x.valrange {
-                            return 1;
-                        }
-                    }
-                },
+                }
             }
         }
     }
@@ -320,59 +304,13 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
     return http2_detect_settingsctx_match(ctx, tx, direction.into());
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_parse(
-    str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
-    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
-    if let Ok(s) = ft_name.to_str() {
-        if let Ok((_, ctx)) = parser::detect_parse_u64(s) {
-            let boxed = Box::new(ctx);
-            return Box::into_raw(boxed) as *mut _;
-        }
-    }
-    return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
-    // Just unbox...
-    std::mem::drop(Box::from_raw(ctx as *mut parser::DetectU64Data));
-}
-
 fn http2_detect_sizeupdate_match(
-    blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &parser::DetectU64Data,
+    blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &DetectUintData<u64>,
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
-        match ctx.mode {
-            parser::DetectUintMode::DetectUintModeEqual => {
-                if block.sizeupdate == ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            parser::DetectUintMode::DetectUintModeLt => {
-                if block.sizeupdate <= ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            parser::DetectUintMode::DetectUintModeGt => {
-                if block.sizeupdate >= ctx.value
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
-            }
-            parser::DetectUintMode::DetectUintModeRange => {
-                if block.sizeupdate <= ctx.value
-                    && block.sizeupdate >= ctx.valrange
-                    && block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-                {
-                    return 1;
-                }
+        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
+            if detect_match_uint(&ctx, block.sizeupdate) {
+                return 1;
             }
         }
     }
@@ -396,7 +334,7 @@ fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderB
 }
 
 fn http2_detect_sizeupdatectx_match(
-    ctx: &mut parser::DetectU64Data, tx: &mut HTTP2Transaction, direction: Direction,
+    ctx: &mut DetectUintData<u64>, tx: &mut HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
@@ -422,7 +360,7 @@ fn http2_detect_sizeupdatectx_match(
 pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
     ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, parser::DetectU64Data);
+    let ctx = cast_pointer!(ctx, DetectUintData<u64>);
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_detect_sizeupdatectx_match(ctx, tx, direction.into());
 }
