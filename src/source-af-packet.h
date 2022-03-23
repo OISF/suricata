@@ -75,7 +75,7 @@ struct ebpf_timeout_config {
  * page_size << order. So default value is using the same formula with
  * an order of 3 which guarantee we have some room in the block compared
  * to standard frame size */
-#define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
+#define AFP_BLOCK_SIZE_DEFAULT_ORDER 4
 
 typedef struct AFPIfaceConfig_
 {
