@@ -58,8 +58,6 @@ void DetectICMPv6mtuRegister(void)
 #endif
     sigmatch_table[DETECT_ICMPV6MTU].SupportsPrefilter = PrefilterIcmpv6mtuIsPrefilterable;
     sigmatch_table[DETECT_ICMPV6MTU].SetupPrefilter = PrefilterSetupIcmpv6mtu;
-
-    DetectUintRegister();
     return;
 }
 
@@ -139,7 +137,7 @@ static int DetectICMPv6mtuSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 void DetectICMPv6mtuFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
 
 /* prefilter code */
