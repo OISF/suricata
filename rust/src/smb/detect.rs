@@ -20,6 +20,7 @@ use crate::core::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
+use crate::detect::detect_match_uint;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -125,40 +126,6 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
     return 0;
 }
 
-/* based on:
- * typedef enum DetectDceIfaceOperators_ {
- *    DETECT_DCE_IFACE_OP_NONE = 0,
- *    DETECT_DCE_IFACE_OP_LT,
- *    DETECT_DCE_IFACE_OP_GT,
- *    DETECT_DCE_IFACE_OP_EQ,
- *    DETECT_DCE_IFACE_OP_NE,
- * } DetectDceIfaceOperators;
- */
-#[inline]
-fn match_version(op: u8, them: u16, us: u16) -> bool {
-    let result = match op {
-        0 => { // NONE
-            true
-        },
-        1 => { // LT
-            them < us
-        },
-        2 => { // GT
-            them > us
-        },
-        3 => { // EQ
-            them == us
-        },
-        4 => { // NE
-            them != us
-        },
-        _ => {
-            panic!("called with invalid op {}", op);
-        },
-    };
-    result
-}
-
 /* mimic logic that is/was in the C code:
  * - match on REQUEST (so not on BIND/BINDACK (probably for mixing with
  *                     dce_opnum and dce_stub_data)
@@ -170,8 +137,6 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
                                             -> u8
 {
     let if_uuid = dce_data.if_uuid.as_slice();
-    let if_op = dce_data.op;
-    let if_version = dce_data.version;
     let is_dcerpc_request = match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             x.req_cmd == DCERPC_TYPE_REQUEST
@@ -194,7 +159,11 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
         SCLogDebug!("stored UUID {:?} acked {} ack_result {}", i, i.acked, i.ack_result);
 
         if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
-            if match_version(if_op as u8, if_version as u16, i.ver) {
+            if let Some(x) = &dce_data.du16 {
+                if detect_match_uint(&x, i.ver) {
+                    return 1;
+                }
+            } else {
                 return 1;
             }
         }
