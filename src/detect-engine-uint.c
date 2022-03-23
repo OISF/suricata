@@ -138,3 +138,13 @@ bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx)
         return true;
     return false;
 }
+
+int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64)
+{
+    return rs_detect_u64_match(parg, du64);
+}
+
+DetectUintData_u64 *DetectU64Parse(const char *u64str)
+{
+    return rs_detect_u64_parse(u64str);
+}
