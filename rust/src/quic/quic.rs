@@ -265,7 +265,7 @@ impl QuicState {
                         // payload is encrypted, stop parsing here
                         return true;
                     }
-                    if header.ty != QuicType::Initial {
+                    if header.ty == QuicType::Short {
                         return true;
                     }
                     if self.keys.is_none() && header.ty == QuicType::Initial {
@@ -291,6 +291,18 @@ impl QuicState {
                         framebuf = &output;
                     }
                     buf = next_buf;
+                    if header.ty != QuicType::Initial{
+                        self.new_tx(
+                            header,
+                            QuicData { frames: Vec::new() },
+                            None,
+                            None,
+                            Vec::new(),
+                            None,
+                            to_server,
+                        );
+                        continue;
+                    }
                     if header.version == QuicVersion(0x51303530) {
                         self.new_tx(
                             header,
