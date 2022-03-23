@@ -545,18 +545,18 @@ static int SignatureCreateMask(Signature *s)
             }
             case DETECT_DSIZE:
             {
-                DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
+                DetectU16Data *ds = (DetectU16Data *)sm->ctx;
                 /* LT will include 0, so no payload.
                  * if GT is used in the same rule the
                  * flag will be set anyway. */
-                if (ds->mode == DETECTDSIZE_RA || ds->mode == DETECTDSIZE_GT ||
-                        ds->mode == DETECTDSIZE_NE) {
+                if (ds->mode == DETECT_UINT_RA || ds->mode == DETECT_UINT_GT ||
+                        ds->mode == DETECT_UINT_NE || ds->mode == DETECT_UINT_GTE) {
 
                     s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                     SCLogDebug("sig requires payload");
 
-                } else if (ds->mode == DETECTDSIZE_EQ) {
-                    if (ds->dsize > 0) {
+                } else if (ds->mode == DETECT_UINT_EQ) {
+                    if (ds->arg1 > 0) {
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
                     } else {
