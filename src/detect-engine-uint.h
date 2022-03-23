@@ -37,9 +37,13 @@
 #define DETECT_UINT_LT  DetectUintModeLt
 #define DETECT_UINT_LTE DetectUintModeLte
 
+typedef DetectUintData_u64 DetectU64Data;
 typedef DetectUintData_u32 DetectU32Data;
 typedef DetectUintData_u16 DetectU16Data;
 typedef DetectUintData_u8 DetectU8Data;
+
+int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64);
+DetectUintData_u64 *DetectU64Parse(const char *u64str);
 
 int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32);
 DetectUintData_u32 *DetectU32Parse(const char *u32str);
