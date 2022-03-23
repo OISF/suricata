@@ -194,7 +194,7 @@ pub fn detect_parse_uint<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintD
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_u64_parse(
     str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
+) -> *mut DetectUintData<u64> {
     let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = detect_parse_uint::<u64>(s) {
@@ -203,6 +203,16 @@ pub unsafe extern "C" fn rs_detect_u64_parse(
         }
     }
     return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_u64_match(
+    arg: u64, ctx: &DetectUintData<u64>,
+) -> std::os::raw::c_int {
+    if detect_match_uint(ctx, arg) {
+        return 1;
+    }
+    return 0;
 }
 
 #[no_mangle]
