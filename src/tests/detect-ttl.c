@@ -25,10 +25,10 @@
 
 static int DetectTtlParseTest01 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse("10");
+    DetectU8Data *ttld = DetectU8Parse("10");
     FAIL_IF_NULL(ttld);
-    FAIL_IF_NOT(ttld->ttl1 == 10);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_EQ);
+    FAIL_IF_NOT(ttld->arg1 == 10);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_EQ);
     DetectTtlFree(NULL, ttld);
     PASS;
 }
@@ -40,10 +40,10 @@ static int DetectTtlParseTest01 (void)
 
 static int DetectTtlParseTest02 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse("<10");
+    DetectU8Data *ttld = DetectU8Parse("<10");
     FAIL_IF_NULL(ttld);
-    FAIL_IF_NOT(ttld->ttl1 == 10);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_LT);
+    FAIL_IF_NOT(ttld->arg1 == 10);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_LT);
     DetectTtlFree(NULL, ttld);
     PASS;
 }
@@ -55,11 +55,11 @@ static int DetectTtlParseTest02 (void)
 
 static int DetectTtlParseTest03 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse("1-2");
+    DetectU8Data *ttld = DetectU8Parse("1-3");
     FAIL_IF_NULL(ttld);
-    FAIL_IF_NOT(ttld->ttl1 == 1);
-    FAIL_IF_NOT(ttld->ttl2 == 2);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_RA);
+    FAIL_IF_NOT(ttld->arg1 == 1);
+    FAIL_IF_NOT(ttld->arg2 == 3);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_RA);
     DetectTtlFree(NULL, ttld);
     PASS;
 }
@@ -71,10 +71,10 @@ static int DetectTtlParseTest03 (void)
 
 static int DetectTtlParseTest04 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse(" > 10 ");
+    DetectU8Data *ttld = DetectU8Parse(" > 10 ");
     FAIL_IF_NULL(ttld);
-    FAIL_IF_NOT(ttld->ttl1 == 10);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_GT);
+    FAIL_IF_NOT(ttld->arg1 == 10);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_GT);
     DetectTtlFree(NULL, ttld);
     PASS;
 }
@@ -86,11 +86,11 @@ static int DetectTtlParseTest04 (void)
 
 static int DetectTtlParseTest05 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse(" 1 - 2 ");
+    DetectU8Data *ttld = DetectU8Parse(" 1 - 3 ");
     FAIL_IF_NULL(ttld);
-    FAIL_IF_NOT(ttld->ttl1 == 1);
-    FAIL_IF_NOT(ttld->ttl2 == 2);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_RA);
+    FAIL_IF_NOT(ttld->arg1 == 1);
+    FAIL_IF_NOT(ttld->arg2 == 3);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_RA);
     DetectTtlFree(NULL, ttld);
     PASS;
 }
@@ -102,7 +102,7 @@ static int DetectTtlParseTest05 (void)
 
 static int DetectTtlParseTest06 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse(" 1 = 2 ");
+    DetectU8Data *ttld = DetectU8Parse(" 1 = 2 ");
     FAIL_IF_NOT_NULL(ttld);
     PASS;
 }
@@ -114,7 +114,7 @@ static int DetectTtlParseTest06 (void)
 
 static int DetectTtlParseTest07 (void)
 {
-    DetectTtlData *ttld = DetectTtlParse(" 1<>2 ");
+    DetectU8Data *ttld = DetectU8Parse(" 1<>2 ");
     FAIL_IF_NOT_NULL(ttld);
     PASS;
 }
@@ -132,17 +132,17 @@ static int DetectTtlSetupTest01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (msg:\"with in ttl limit\"; ttl:1 - 2; sid:1;)");
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (msg:\"with in ttl limit\"; ttl:1 - 3; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_MATCH]->ctx);
-    DetectTtlData *ttld = (DetectTtlData *)s->sm_arrays[DETECT_SM_LIST_MATCH]->ctx;
+    DetectU8Data *ttld = (DetectU8Data *)s->sm_arrays[DETECT_SM_LIST_MATCH]->ctx;
 
-    FAIL_IF_NOT(ttld->ttl1 == 1);
-    FAIL_IF_NOT(ttld->ttl2 == 2);
-    FAIL_IF_NOT(ttld->mode == DETECT_TTL_RA);
+    FAIL_IF_NOT(ttld->arg1 == 1);
+    FAIL_IF_NOT(ttld->arg2 == 3);
+    FAIL_IF_NOT(ttld->mode == DETECT_UINT_RA);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
