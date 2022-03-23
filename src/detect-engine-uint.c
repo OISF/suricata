@@ -28,7 +28,6 @@
 #include "detect-parse.h"
 #include "detect-engine-uint.h"
 
-
 int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32)
 {
     return rs_detect_u32_match(parg, du32);
