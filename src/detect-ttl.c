@@ -30,17 +30,11 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "detect-ttl.h"
 #include "util-debug.h"
 #include "util-byte.h"
-
-/**
- * \brief Regex for parsing our ttl options
- */
-#define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
-
-static DetectParseRegex parse_regex;
 
 /* prototypes */
 static int DetectTtlMatch (DetectEngineThreadCtx *, Packet *,
@@ -71,23 +65,7 @@ void DetectTtlRegister(void)
     sigmatch_table[DETECT_TTL].SupportsPrefilter = PrefilterTtlIsPrefilterable;
     sigmatch_table[DETECT_TTL].SetupPrefilter = PrefilterSetupTtl;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
     return;
-}
-
-static inline int TtlMatch(const uint8_t pttl, const uint8_t mode,
-                           const uint8_t dttl1, const uint8_t dttl2)
-{
-    if (mode == DETECT_TTL_EQ && pttl == dttl1)
-        return 1;
-    else if (mode == DETECT_TTL_LT && pttl < dttl1)
-        return 1;
-    else if (mode == DETECT_TTL_GT && pttl > dttl1)
-        return 1;
-    else if (mode == DETECT_TTL_RA && (pttl > dttl1 && pttl < dttl2))
-        return 1;
-
-    return 0;
 }
 
 /**
@@ -97,7 +75,7 @@ static inline int TtlMatch(const uint8_t pttl, const uint8_t mode,
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectTtlData
+ * \param m pointer to the sigmatch that we will cast into DetectU8Data
  *
  * \retval 0 no match
  * \retval 1 match
@@ -118,154 +96,8 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    const DetectTtlData *ttld = (const DetectTtlData *)ctx;
-    return TtlMatch(pttl, ttld->mode, ttld->ttl1, ttld->ttl2);
-}
-
-/**
- * \brief This function is used to parse ttl options passed via ttl: keyword
- *
- * \param ttlstr Pointer to the user provided ttl options
- *
- * \retval ttld pointer to DetectTtlData on success
- * \retval NULL on failure
- */
-
-static DetectTtlData *DetectTtlParse (const char *ttlstr)
-{
-    size_t pcre2len;
-    char arg1[6] = "";
-    char arg2[6] = "";
-    char arg3[6] = "";
-
-    int ret = DetectParsePcreExec(&parse_regex, ttlstr, 0, 0);
-    if (ret < 2 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
-        return NULL;
-    }
-
-    pcre2len = sizeof(arg1);
-    int res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        return NULL;
-    }
-    SCLogDebug("arg1 \"%s\"", arg1);
-
-    if (ret >= 3) {
-        pcre2len = sizeof(arg2);
-        res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-            return NULL;
-        }
-        SCLogDebug("arg2 \"%s\"", arg2);
-
-        if (ret >= 4) {
-            pcre2len = sizeof(arg3);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-                return NULL;
-            }
-            SCLogDebug("arg3 \"%s\"", arg3);
-        }
-    }
-
-    uint8_t ttl1 = 0;
-    uint8_t ttl2 = 0;
-    int mode = 0;
-
-    if (strlen(arg2) > 0) {
-        switch (arg2[0]) {
-            case '<':
-                if (strlen(arg3) == 0)
-                    return NULL;
-
-                mode = DETECT_TTL_LT;
-                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
-                               "value: \"%s\"", arg3);
-                    return NULL;
-                }
-                SCLogDebug("ttl is %d",ttl1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                break;
-            case '>':
-                if (strlen(arg3) == 0)
-                    return NULL;
-
-                mode = DETECT_TTL_GT;
-                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
-                               "value: \"%s\"", arg3);
-                    return NULL;
-                }
-                SCLogDebug("ttl is %d",ttl1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                break;
-            case '-':
-                if (strlen(arg1) == 0 || strlen(arg3) == 0)
-                    return NULL;
-
-                mode = DETECT_TTL_RA;
-
-                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
-                               "value: \"%s\"", arg1);
-                    return NULL;
-                }
-                if (StringParseUint8(&ttl2, 10, 0, (const char *)arg3) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid second ttl "
-                               "value: \"%s\"", arg3);
-                    return NULL;
-                }
-                SCLogDebug("ttl is %d to %d",ttl1, ttl2);
-                if (ttl1 >= ttl2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ttl range");
-                    return NULL;
-                }
-                break;
-            default:
-                mode = DETECT_TTL_EQ;
-
-                if ((strlen(arg2) > 0) ||
-                    (strlen(arg3) > 0) ||
-                    (strlen(arg1) == 0))
-                    return NULL;
-                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
-                               "value: \"%s\"", arg1);
-                    return NULL;
-                }
-                break;
-        }
-    } else {
-        mode = DETECT_TTL_EQ;
-
-        if ((strlen(arg3) > 0) ||
-            (strlen(arg1) == 0))
-            return NULL;
-        if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
-                        "value: \"%s\"", arg1);
-            return NULL;
-        }
-    }
-
-    DetectTtlData *ttld = SCMalloc(sizeof(DetectTtlData));
-    if (unlikely(ttld == NULL))
-        return NULL;
-    ttld->ttl1 = (uint8_t)ttl1;
-    ttld->ttl2 = (uint8_t)ttl2;
-    ttld->mode = mode;
-
-    return ttld;
+    const DetectU8Data *ttld = (const DetectU8Data *)ctx;
+    return DetectU8Match(pttl, ttld);
 }
 
 /**
@@ -280,7 +112,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
  */
 static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ttlstr)
 {
-    DetectTtlData *ttld = DetectTtlParse(ttlstr);
+    DetectU8Data *ttld = DetectU8Parse(ttlstr);
     if (ttld == NULL)
         return -1;
 
@@ -299,14 +131,13 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tt
 }
 
 /**
- * \brief this function will free memory associated with DetectTtlData
+ * \brief this function will free memory associated with DetectU8Data
  *
- * \param ptr pointer to DetectTtlData
+ * \param ptr pointer to DetectU8Data
  */
 void DetectTtlFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectTtlData *ttld = (DetectTtlData *)ptr;
-    SCFree(ttld);
+    rs_detect_u8_free(ptr);
 }
 
 /* prefilter code */
@@ -332,39 +163,20 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (TtlMatch(pttl, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
+    DetectU8Data du8;
+    du8.mode = ctx->v1.u8[0];
+    du8.arg1 = ctx->v1.u8[1];
+    du8.arg2 = ctx->v1.u8[2];
+    if (DetectU8Match(pttl, &du8)) {
         SCLogDebug("packet matches ttl/hl %u", pttl);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketTtlSet(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectTtlData *a = smctx;
-    v->u8[0] = a->mode;
-    v->u8[1] = a->ttl1;
-    v->u8[2] = a->ttl2;
-}
-
-static bool
-PrefilterPacketTtlCompare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectTtlData *a = smctx;
-    if (v.u8[0] == a->mode &&
-        v.u8[1] == a->ttl1 &&
-        v.u8[2] == a->ttl2)
-        return true;
-    return false;
-}
-
 static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TTL,
-            PrefilterPacketTtlSet,
-            PrefilterPacketTtlCompare,
-            PrefilterPacketTtlMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TTL, PrefilterPacketU8Set,
+            PrefilterPacketU8Compare, PrefilterPacketTtlMatch);
 }
 
 static bool PrefilterTtlIsPrefilterable(const Signature *s)
