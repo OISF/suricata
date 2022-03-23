@@ -24,17 +24,6 @@
 #ifndef _DETECT_TEMPLATE2_H
 #define	_DETECT_TEMPLATE2_H
 
-#define DETECT_TEMPLATE2_LT   0   /**< "less than" operator */
-#define DETECT_TEMPLATE2_EQ   1   /**< "equals" operator (default) */
-#define DETECT_TEMPLATE2_GT   2   /**< "greater than" operator */
-#define DETECT_TEMPLATE2_RA   3   /**< "range" operator */
-
-typedef struct DetectTemplate2Data_ {
-    uint8_t arg1;   /**< first arg value in the signature*/
-    uint8_t arg2;   /**< second arg value in the signature, in case of range
-                         operator*/
-    uint8_t mode;   /**< operator used in the signature */
-} DetectTemplate2Data;
 
 void DetectTemplate2Register(void);
 
