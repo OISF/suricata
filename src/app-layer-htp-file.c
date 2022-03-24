@@ -393,7 +393,7 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
+int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t data_len,
         uint8_t flags, uint8_t direction)
 {
     SCEnter();
@@ -425,7 +425,10 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     if (s->file_range != NULL) {
-        HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+        bool added = HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+        if (added) {
+            htud->tx_data.files_opened++;
+        }
         HttpRangeFreeBlock(s->file_range);
         s->file_range = NULL;
     }

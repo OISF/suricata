@@ -1388,9 +1388,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             printf("FILEDATA (final chunk) END: \n");
 #endif
             if (!(htud->tsflags & HTP_DONTSTORE)) {
-                if (HTPFileClose(hstate, filedata, filedata_len, flags,
-                            STREAM_TOSERVER) == -1)
-                {
+                if (HTPFileClose(hstate, htud, filedata, filedata_len, flags, STREAM_TOSERVER) ==
+                        -1) {
                     goto end;
                 }
             }
@@ -1512,7 +1511,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 } else if (result == -2) {
                     htud->tsflags |= HTP_DONTSTORE;
                 } else {
-                    if (HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER) == -1) {
+                    if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                         goto end;
                     }
                 }
@@ -1579,7 +1578,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     } else if (result == -2) {
                         htud->tsflags |= HTP_DONTSTORE;
                     } else {
-                        if (HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER) == -1) {
+                        if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                             goto end;
                         }
                     }
@@ -1855,7 +1854,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     } else {
         if (tx_ud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
+            (void)HTPFileClose(hstate, tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
             tx_ud->tsflags &= ~HTP_FILENAME_SET;
         }
     }
@@ -1943,7 +1942,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
+            (void)HTPFileClose(hstate, tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
             tx_ud->tcflags &= ~HTP_FILENAME_SET;
         }
     }
@@ -2117,7 +2116,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
     if (htud != NULL) {
         if (htud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
+            (void)HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                     (uint32_t)hstate->conn->in_data_counter);
@@ -2153,7 +2152,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
     if (htud != NULL) {
         if (htud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
+            (void)HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOCLIENT);
             htud->tcflags &= ~HTP_FILENAME_SET;
         }
     }

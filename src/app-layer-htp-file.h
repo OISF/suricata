@@ -33,7 +33,7 @@ int HTPFileOpenWithRange(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t,
 bool HTPFileCloseHandleRange(
         FileContainer *, const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
 int HTPFileStoreChunk(HtpState *, const uint8_t *, uint32_t, uint8_t);
-int HTPFileClose(HtpState *, const uint8_t *, uint32_t, uint8_t, uint8_t);
+int HTPFileClose(HtpState *, HtpTxUserData *, const uint8_t *, uint32_t, uint8_t, uint8_t);
 
 void HTPFileParserRegisterTests(void);
 
