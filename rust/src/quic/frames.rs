@@ -136,6 +136,7 @@ pub(crate) struct Crypto {
     // We remap the Vec<TlsExtension> from tls_parser::parse_tls_extensions because of
     // the lifetime of TlsExtension due to references to the slice used for parsing
     pub extv: Vec<QuicTlsExtension>,
+    pub ja3: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -190,13 +191,59 @@ pub struct QuicTlsExtension {
     pub values: Vec<Vec<u8>>,
 }
 
+fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
+    ja3.push_str(",");
+    let mut dash = false;
+    for e in &exts {
+        match e {
+            TlsExtension::EllipticCurves(x) => {
+                for ec in x {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&ec.0.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    ja3.push_str(",");
+    dash = false;
+    for e in &exts {
+        match e {
+            TlsExtension::EcPointFormats(x) => {
+                for ec in *x {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&ec.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 // get interesting stuff out of parsed tls extensions
-fn quic_get_tls_extensions(input: Option<&[u8]>) -> Vec<QuicTlsExtension> {
+fn quic_get_tls_extensions(
+    input: Option<&[u8]>, ja3: &mut String, client: bool,
+) -> Vec<QuicTlsExtension> {
     let mut extv = Vec::new();
     if let Some(extr) = input {
         if let Ok((_, exts)) = parse_tls_extensions(extr) {
+            let mut dash = false;
             for e in &exts {
                 let etype = TlsExtensionType::from(e);
+                if dash {
+                    ja3.push_str("-");
+                } else {
+                    dash = true;
+                }
+                ja3.push_str(&u16::from(etype).to_string());
                 let mut values = Vec::new();
                 match e {
                     TlsExtension::SNI(x) => {
@@ -217,6 +264,9 @@ fn quic_get_tls_extensions(input: Option<&[u8]>) -> Vec<QuicTlsExtension> {
                 }
                 extv.push(QuicTlsExtension { etype, values })
             }
+            if client {
+                quic_tls_ja3_client_extends(ja3, exts);
+            }
         }
     }
     return extv;
@@ -231,14 +281,32 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         if let Handshake(hs) = msg {
             match hs {
                 ClientHello(ch) => {
+                    let mut ja3 = String::with_capacity(256);
+                    ja3.push_str(&u16::from(ch.version).to_string());
+                    ja3.push_str(",");
+                    let mut dash = false;
+                    for c in &ch.ciphers {
+                        if dash {
+                            ja3.push_str("-");
+                        } else {
+                            dash = true;
+                        }
+                        ja3.push_str(&u16::from(*c).to_string());
+                    }
+                    ja3.push_str(",");
                     let ciphers = ch.ciphers;
-                    let extv = quic_get_tls_extensions(ch.ext);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv })));
+                    let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
+                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
                 }
                 ServerHello(sh) => {
+                    let mut ja3 = String::with_capacity(256);
+                    ja3.push_str(&u16::from(sh.version).to_string());
+                    ja3.push_str(",");
+                    ja3.push_str(&u16::from(sh.cipher).to_string());
+                    ja3.push_str(",");
                     let ciphers = vec![sh.cipher];
-                    let extv = quic_get_tls_extensions(sh.ext);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv })));
+                    let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
+                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
                 }
                 _ => {}
             }
