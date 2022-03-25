@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2021 Open Information Security Foundation
+/* Copyright (C) 2018-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -144,39 +144,19 @@ pub fn smb1_check_tx(cmd: u8) -> bool {
     }
 }
 
-fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
+fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>, direction: Direction)
 {
-    // we can have created 2 txs for a FID: one for reads
-    // and one for writes. So close both.
-    match state.get_file_tx_by_fuid(fid, Direction::ToServer) {
-        Some((tx, files, flags)) => {
-            SCLogDebug!("found tx {}", tx.id);
-            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                if !tx.request_done {
-                    SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
-                    tdf.file_tracker.close(files, flags);
-                    tx.request_done = true;
-                    tx.response_done = true;
-                    SCLogDebug!("tx {} is done", tx.id);
-                }
+    if let Some((tx, files, flags)) = state.get_file_tx_by_fuid(fid, direction) {
+        SCLogDebug!("found tx {}", tx.id);
+        if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+            if !tx.request_done {
+                SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
+                tdf.file_tracker.close(files, flags);
+                tx.request_done = true;
+                tx.response_done = true;
+                SCLogDebug!("tx {} is done", tx.id);
             }
-        },
-        None => { },
-    }
-    match state.get_file_tx_by_fuid(fid, Direction::ToClient) {
-        Some((tx, files, flags)) => {
-            SCLogDebug!("found tx {}", tx.id);
-            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                if !tx.request_done {
-                    SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
-                    tdf.file_tracker.close(files, flags);
-                    tx.request_done = true;
-                    tx.response_done = true;
-                    SCLogDebug!("tx {} is done", tx.id);
-                }
-            }
-        },
-        None => { },
+        }
     }
 }
 
@@ -551,8 +531,10 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                 Ok((_, cd)) => {
                     let mut fid = cd.fid.to_vec();
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                    state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
+
                     SCLogDebug!("closing FID {:?}/{:?}", cd.fid, fid);
-                    smb1_close_file(state, &fid);
+                    smb1_close_file(state, &fid, Direction::ToServer);
                 },
                 _ => {
                     events.push(SMBEvent::MalformedData);
@@ -784,6 +766,14 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
             } else {
                 false
             }
+        },
+        SMB1_COMMAND_CLOSE => {
+            let fid = state.ssn2vec_map.remove(&SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID));
+            if let Some(fid) = fid {
+                SCLogDebug!("closing FID {:?}", fid);
+                smb1_close_file(state, &fid, Direction::ToClient);
+            }
+            false
         },
         SMB1_COMMAND_TRANS => {
             smb1_trans_response_record(state, r);
@@ -1021,7 +1011,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
 
             if command == SMB1_COMMAND_WRITE_AND_CLOSE {
                 SCLogDebug!("closing FID {:?}", file_fid);
-                smb1_close_file(state, &file_fid);
+                smb1_close_file(state, &file_fid, Direction::ToServer);
             }
         },
         _ => {
