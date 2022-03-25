@@ -18,6 +18,9 @@
 use super::parser::QuicType;
 use super::quic::QuicTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use digest::Digest;
+use digest::Update;
+use md5::Md5;
 
 fn quic_tls_extension_name(e: u16) -> Option<String> {
     match e {
@@ -108,6 +111,17 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.close()?;
     }
 
+    if let Some(ja3) = &tx.ja3 {
+        if tx.client {
+            js.open_object("ja3")?;
+        } else {
+            js.open_object("ja3s")?;
+        }
+        let hash = format!("{:x}", Md5::new().chain(&ja3).finalize());
+        js.set_string("hash", &hash)?;
+        js.set_string("string", ja3)?;
+        js.close()?;
+    }
     if tx.extv.len() > 0 {
         js.open_array("extensions")?;
         for e in &tx.extv {
