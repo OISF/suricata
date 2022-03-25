@@ -347,9 +347,14 @@ end:
     SCReturnInt(retval);
 }
 
-void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
+/** \brief close range, add reassembled file if possible
+ *  \retval true if reassembled file was added
+ *  \retval false if no reassembled file was added
+ */
+bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
+    bool added = false;
     if (HttpRangeAppendData(c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
@@ -364,10 +369,12 @@ void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
         if (ranged && files) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
+            added = true;
         }
         DEBUG_VALIDATE_BUG_ON(ranged && !files);
         THashDataUnlock(c->container->hdata);
     }
+    return added;
 }
 
 /**

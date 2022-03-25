@@ -38,7 +38,7 @@ typedef struct SuricataContext_ {
     void (*AppLayerParserTriggerRawStreamReassembly)(Flow *, int direction);
 
     void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
-    void (*HTPFileCloseHandleRange)(
+    bool (*HTPFileCloseHandleRange)(
             FileContainer *, const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
 
     int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,

@@ -141,7 +141,7 @@ pub struct HTTP2Transaction {
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
-    tx_data: AppLayerTxData,
+    pub tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
     ft_ts: FileTransferTracker,
 

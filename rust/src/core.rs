@@ -106,7 +106,7 @@ pub type SCHTPFileCloseHandleRange = extern "C" fn (
         flags: u16,
         c: *mut HttpRangeContainerBlock,
         data: *const u8,
-        data_len: u32);
+        data_len: u32) -> bool;
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
         sbcfg: &StreamingBufferConfig,

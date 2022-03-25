@@ -175,20 +175,23 @@ pub fn http2_range_append(fr: *mut HttpRangeContainerBlock, data: &[u8]) {
 pub fn http2_range_close(
     tx: &mut HTTP2Transaction, files: &mut FileContainer, flags: u16, data: &[u8],
 ) {
-    match unsafe { SC } {
-        None => panic!("BUG no suricata_config"),
-        Some(c) => {
-            (c.HTPFileCloseHandleRange)(
+    let added = if let Some(c) = unsafe { SC } {
+        let added = (c.HTPFileCloseHandleRange)(
                 files,
                 flags,
                 tx.file_range,
                 data.as_ptr(),
                 data.len() as u32,
-            );
-            (c.HttpRangeFreeBlock)(tx.file_range);
-        }
-    }
+                );
+        (c.HttpRangeFreeBlock)(tx.file_range);
+        added
+    } else {
+        false
+    };
     tx.file_range = std::ptr::null_mut();
+    if added {
+        tx.tx_data.incr_files_opened();
+    }
 }
 
 // Defined in app-layer-htp-range.h
