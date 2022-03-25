@@ -134,7 +134,7 @@ pub struct HTTP2Transaction {
     decoder: decompression::HTTP2Decoder,
     pub file_range: *mut HttpRangeContainerBlock,
 
-    tx_data: AppLayerTxData,
+    pub tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
     ft_ts: FileTransferTracker,
 
