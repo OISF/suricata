@@ -68,6 +68,26 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        void *txv, const int list_id);
 static int g_tls_ja3s_str_buffer_id = 0;
 
+static InspectionBuffer *GetJa3Data(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_quic_tx_get_ja3(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
 /**
  * \brief Registration function for keyword: ja3s.string
  */
@@ -89,6 +109,12 @@ void DetectTlsJa3SStringRegister(void)
     DetectAppLayerMpmRegister2("ja3s.string", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
+    DetectAppLayerMpmRegister2("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetJa3Data, ALPROTO_QUIC, 1);
+
+    DetectAppLayerInspectEngineRegister2("ja3s.string", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectBufferGeneric, GetJa3Data);
+
     DetectBufferTypeSetDescriptionByName("ja3s.string", "TLS JA3S string");
 
     g_tls_ja3s_str_buffer_id = DetectBufferTypeGetByName("ja3s.string");
@@ -109,8 +135,10 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
     if (DetectBufferSetActiveList(s, g_tls_ja3s_str_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting protocols.");
         return -1;
+    }
 
     /* try to enable JA3 */
     SSLEnableJA3();
