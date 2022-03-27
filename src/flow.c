@@ -596,6 +596,9 @@ void FlowInitConfig(bool quiet)
             flow_config.prealloc = configval;
         }
     }
+
+    flow_config.memcap_policy = MemcapPolicyParse("flow.memcap-policy");
+
     SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash-size: "
                "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(flow_config.memcap),
                flow_config.hash_size, flow_config.prealloc);
