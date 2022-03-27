@@ -343,6 +343,7 @@ noinst_HEADERS = \
 	detect-transform-strip-whitespace.h \
 	detect-transform-urldecode.h \
 	detect-transform-xor.h \
+	detect-transform-rot13.h \
 	detect-ttl.h \
 	detect-udphdr.h \
 	detect-uricontent.h \
@@ -936,6 +937,7 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-strip-whitespace.c \
 	detect-transform-urldecode.c \
 	detect-transform-xor.c \
+	detect-transform-rot13.c \
 	detect-ttl.c \
 	detect-udphdr.c \
 	detect-uricontent.c \
