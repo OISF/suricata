@@ -556,6 +556,14 @@ void FlowSimulateMemcapHitForPacket(const uint64_t pkt_num)
     g_pcapcnt_flow_memcap_num = pkt_num;
 }
 
+// TODO config setting
+static inline void NoFlowHandleIPS(Packet *p)
+{
+    if (EngineModeIsIPS()) {
+        PacketDrop(p, PKT_DROP_REASON_FLOW_MEMCAP);
+    }
+}
+
 /**
  *  \brief Get a new flow
  *
@@ -567,7 +575,7 @@ void FlowSimulateMemcapHitForPacket(const uint64_t pkt_num)
  *
  *  \retval f *LOCKED* flow on succes, NULL on error.
  */
-static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
+static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 
@@ -575,6 +583,8 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
         return NULL;
     }
 
+    // TODO how to handle packets for failed flow pickup?
+    // TODO also consider emerg mode here which seems to have a different logic
     if (FlowCreateCheck(p, emerg) == 0) {
         return NULL;
     }
@@ -595,6 +605,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 
             f = FlowGetUsedFlow(tv, fls->dtv, &p->ts);
             if (f == NULL) {
+                NoFlowHandleIPS(p);
                 return NULL;
             }
 #ifdef UNITTESTS
@@ -619,6 +630,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 #ifdef UNITTESTS
             }
 #endif
+            NoFlowHandleIPS(p);
             return NULL;
         }
 
@@ -636,7 +648,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
 
 static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls,
                              FlowBucket *fb, Flow *old_f,
-                             const uint32_t hash, const Packet *p)
+                             const uint32_t hash, Packet *p)
 {
 #ifdef UNITTESTS
     if (tv != NULL && fls->dtv != NULL) {
@@ -746,7 +758,7 @@ static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool 
  *  \retval f *LOCKED* flow or NULL
  */
 Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
-        const Packet *p, Flow **dest)
+        Packet *p, Flow **dest)
 {
     Flow *f = NULL;
 
