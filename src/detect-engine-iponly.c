@@ -1107,6 +1107,8 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                     } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
                         SCLogDebug("port-less protocol and sig needs ports");
                         continue;
+                    } else if ((s->mask & SIG_MASK_REQUIRE_FLOW) != 0) {
+                        continue;
                     }
 
                     if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
