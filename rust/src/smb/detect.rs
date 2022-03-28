@@ -210,7 +210,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_cmd_match(
-    tx: &mut SMBTransaction, cmd_data: &mut SmbCmdData,
+    tx: &mut SMBTransaction, cmd_valid_codes: &mut SmbCmdValidCodes,
 ) -> u8 {
 
     let version = tx.vercmd.get_version();
@@ -223,8 +223,8 @@ pub unsafe extern "C" fn rs_smb_cmd_match(
 
     SCLogDebug!("rs_smb_cmd_match: version {} cmd {}", version, cmd);
 
-    if let Some(set) = cmd_data.0.get(&version) {
-        if set.contains(&cmd) {
+    if let Some(valid_codes) = cmd_valid_codes.0.get(&version) {
+        if valid_codes.contains(&cmd) {
             return 1;
         }
     }
@@ -254,14 +254,16 @@ pub unsafe extern "C" fn rs_smb_cmd_parse(carg: *const c_char) -> *mut c_void {
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_cmd_free(ptr: *mut c_void) {
     if ptr != std::ptr::null_mut() {
-        std::mem::drop(Box::from_raw(ptr as *mut SmbCmdData));
+        std::mem::drop(Box::from_raw(ptr as *mut SmbCmdValidCodes));
     }
 }
 
+/// Stores the SMB command codes used to match with smb.cmd keyword.
+/// It includes both valid codes for SMB1 and SMB2.
 #[derive(Debug, PartialEq)]
-pub struct SmbCmdData (HashMap<u8, HashSet<u16>>);
+pub struct SmbCmdValidCodes (HashMap<u8, HashSet<u16>>);
 
-impl SmbCmdData {
+impl SmbCmdValidCodes {
 
     fn new(cmd_codes1: HashSet<u16>, cmd_codes2: HashSet<u16>) -> Self {
 
@@ -286,7 +288,7 @@ fn str_to_u16(v: &str) -> Result<u16, ()> {
     return size.map_err(|_| ());
 }
 
-fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
+fn parse_cmd_data(arg: &str) -> Result<SmbCmdValidCodes, ()> {
     let cmd_names1 = gen_smb1_command_names();
     let cmd_names2 = gen_smb2_command_names();
 
@@ -321,7 +323,7 @@ fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
             }
         }
     }
-    return Ok(SmbCmdData::new(cmd_codes1, cmd_codes2));
+    return Ok(SmbCmdValidCodes::new(cmd_codes1, cmd_codes2));
 }
 
 fn gen_smb2_command_names() -> HashMap<String, u16> {
@@ -631,7 +633,7 @@ mod tests {
         cmd_codes2.insert(0x8);
 
         assert_eq!(
-            SmbCmdData::new(cmd_codes1, cmd_codes2),
+            SmbCmdValidCodes::new(cmd_codes1, cmd_codes2),
             parse_cmd_data(option).unwrap(),
         );
     }
