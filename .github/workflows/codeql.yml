@@ -1,0 +1,55 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
+  schedule:
+    - cron: '18 21 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      security-events: write
+
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp', 'python' ]
+        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+
+    - run: |
+       sudo apt-get update
+       sudo apt-get install libyaml-dev
+       sudo apt-get install libssl-dev
+       sudo apt-get install libpcre2-dev
+       sudo apt-get install libjansson-dev
+       sudo apt-get install libpcap-dev
+       sudo apt-get install libnuma-dev
+       git clone --depth 1 https://github.com/OISF/libhtp.git
+       cargo install cbindgen
+       export PATH=/opt/work/.cargo/bin:$PATH
+        chmod +x autogen.sh
+       ./autogen.sh
+       ./configure
+       make
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
