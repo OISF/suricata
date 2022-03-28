@@ -76,7 +76,7 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     }
 
     sm->type = DETECT_SMB_VERSION;
-    sm->ctx = (void *)dod;
+    sm->ctx = dod;
 
     SigMatchAppendSMToList(s, sm, g_smb_version_list_id);
     return 0;
