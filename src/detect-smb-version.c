@@ -35,10 +35,6 @@
 #include "detect-smb-version.h"
 #include "rust.h"
 
-#define PARSE_REGEX                                                                                \
-    "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
-static DetectParseRegex parse_regex;
-
 static int g_smb_version_list_id = 0;
 
 static void DetectSmbVersionFree(DetectEngineCtx *de_ctx, void *ptr)
@@ -123,9 +119,6 @@ void DetectSmbVersionRegister(void)
 
     DetectAppLayerInspectEngineRegister2(
             "smb_version", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectSmbVersion, NULL);
-
-    /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_smb_version_list_id = DetectBufferTypeRegister("smb_version");
 }
