@@ -3,7 +3,18 @@ extraction:
     prepare:
       packages:
         - cargo
+        - libssl-dev
+        - rustc
+        - libpcre2-dev
+        - libyaml-dev
+        - libjansson-dev
+        - libnuma-dev
+        - libpcap-dev
     after_prepare:
       - git clone --depth 1 https://github.com/OISF/libhtp.git
       - cargo install cbindgen
       - export PATH=/opt/work/.cargo/bin:$PATH
+      - chmod +x autogen.sh
+      - ./autogen.sh
+      - ./configure
+      - make
