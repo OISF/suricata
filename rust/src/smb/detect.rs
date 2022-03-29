@@ -20,6 +20,9 @@ use crate::core::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
+use std::ffi::CStr;
+use std::os::raw::{c_char, c_void};
+use crate::smb::smb::SMBTransaction;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -200,4 +203,70 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
         }
     }
     return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_match(
+    tx: &mut SMBTransaction, version_data: &mut u8,
+) -> u8 {
+
+    let version = tx.vercmd.get_version();
+    if version == *version_data {
+        return 1;
+    }
+
+    return 0;
+}
+
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_void {
+    if carg.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Ok(detect) = parse_version_data(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
+        }
+    }
+
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
+    if ptr != std::ptr::null_mut() {
+        std::mem::drop(Box::from_raw(ptr as *mut u8));
+    }
+}
+
+fn parse_version_data(arg: &str) -> Result<u8, ()> {
+    let arg = arg.trim();
+    let version = u8::from_str_radix(&arg, 10).map_err(|_| ())?;
+
+    if version != 1 && version != 2 {
+        return Err(());
+    }
+
+    return Ok(version);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cmd_data() {
+        assert_eq!(Err(()), parse_version_data("0"));
+        assert_eq!(1u8, parse_version_data("1").unwrap());
+        assert_eq!(2u8, parse_version_data("2").unwrap());
+        assert_eq!(Err(()), parse_version_data("3"));
+    }
+
+    #[test]
+    fn test_parse_cmd_data_with_spaces() {
+        assert_eq!(1u8, parse_version_data(" 1").unwrap());
+        assert_eq!(2u8, parse_version_data(" 2 ").unwrap());
+    }
 }
