@@ -189,6 +189,10 @@ static int16_t MemMovePacketAlertQueuePos(Packet *p, const Signature *s)
     i++; /* The right place to store the alert */
 
     const uint16_t target_pos = i + 1;
+    /* There is no space left for memmove, let's just replace*/
+    if (target_pos == packet_alert_max) {
+        return i;
+    }
     const uint16_t space_post_target = packet_alert_max - 1 - i;
     const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
     DEBUG_VALIDATE_BUG_ON(to_move == 0);
@@ -242,7 +246,8 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num <= s->num) {
             /* We just add it */
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, p->alerts.cnt);
-            SCLogDebug("Added signature %" PRIu32 " to packet %" PRIu64 "", s->id, p->pcap_cnt);
+            SCLogDebug("Added signature %" PRIu32 " internal id %" PRIu32 " to packet %" PRIu64 "",
+                    s->id, s->num, p->pcap_cnt);
         } else {
             /* find position to insert */
             int16_t i = MemMovePacketAlertQueuePos(p, s);
@@ -261,17 +266,22 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         int16_t num_diff = s->num - p->alerts.alerts[p->alerts.cnt - 1].num;
         if (num_diff == 0 || num_diff == -1) {
             /* Replace last position in queue */
-            SCLogDebug("Replacing lower priority signature %" PRIu32 " with sid %" PRIu32
-                       " in packet %" PRIu64 "",
-                    p->alerts.alerts[p->alerts.cnt - 1].s->id, s->id, p->pcap_cnt);
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
+                       ")  with higher priority signature %" PRIu32 " (%" PRIu32
+                       ") in packet %" PRIu64 "",
+                    p->alerts.alerts[p->alerts.cnt - 1].s->id,
+                    p->alerts.alerts[p->alerts.cnt - 1].num, s->id, s->num, p->pcap_cnt);
+            // TODO log to stats signature id that was discarded/replaced
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, (p->alerts.cnt - 1));
         } else if (num_diff < -1) {
             /* If the new signature's internal id isn't equal/adjacent to the last one from the
              * queue, find the correct position, to keep queue sorted by rule priority */
             int16_t i = MemMovePacketAlertQueuePos(p, s);
-            SCLogDebug("Replacing lower priority signature %" PRIu32 " with sid %" PRIu32
-                       " in packet %" PRIu64 "",
-                    p->alerts.alerts[i].s->id, s->id, p->pcap_cnt);
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
+                       ") with higher priority signature %" PRIu32 " (%" PRIu32
+                       ") in packet %" PRIu64 "",
+                    p->alerts.alerts[i].s->id, p->alerts.alerts[i].num, s->id, s->num, p->pcap_cnt);
+            // TODO log to stats signature id that was discarded/replaced
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
         }
         /* Don't update p->alerts.cnt here, already at max */
