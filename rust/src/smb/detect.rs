@@ -224,17 +224,14 @@ pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_voi
     if carg.is_null() {
         return std::ptr::null_mut();
     }
-    let arg = match CStr::from_ptr(carg).to_str() {
-        Ok(arg) => arg,
-        _ => {
-            return std::ptr::null_mut();
-        }
-    };
 
-    match parse_version_data(arg) {
-        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
-        Err(_) => std::ptr::null_mut(),
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Ok(detect) = parse_version_data(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
+        }
     }
+
+    return std::ptr::null_mut();
 }
 
 #[no_mangle]
@@ -265,5 +262,11 @@ mod tests {
         assert_eq!(1u8, parse_version_data("1").unwrap());
         assert_eq!(2u8, parse_version_data("2").unwrap());
         assert_eq!(Err(()), parse_version_data("3"));
+    }
+
+    #[test]
+    fn test_parse_cmd_data_with_spaces() {
+        assert_eq!(1u8, parse_version_data(" 1").unwrap());
+        assert_eq!(2u8, parse_version_data(" 2 ").unwrap());
     }
 }
