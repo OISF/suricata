@@ -102,6 +102,7 @@ The memory used for those is set up and dedicated at start and is calculated
 as follows: 
 
 ::
+
  af-packet.threads X af-packet.ring-size X (default-packet-size + ~750 bytes)
 
 where ``af-packet.threads``, ``af-packet.ring-size``, ``default-packet-size`` 
