@@ -293,7 +293,7 @@ noinst_HEADERS = \
 	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
 	detect-smb-filename.h \
-  detect-smb-share.h \
+	detect-smb-share.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
 	detect-snmp-version.h \
