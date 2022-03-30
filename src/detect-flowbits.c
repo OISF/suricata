@@ -212,12 +212,123 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return 0;
 }
 
-static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
-    int name_len)
+static int DetectFlowbitParse(
+        DetectEngineCtx *de_ctx, const char *rawstr, DetectFlowbitsData **cdout)
 {
+    bool cmd_set = false;
+    bool name_set = false;
+    uint8_t cmd = 0;
+    char name[256] = "";
+    char *val = NULL;
+    DetectFlowbitsData *cd = NULL;
+    char copy[strlen(rawstr) + 1];
+    strlcpy(copy, rawstr, sizeof(copy));
+    char *context = NULL;
+    char *token = strtok_r(copy, ",", &context);
+    while (token != NULL) {
+        while (*token != '\0' && isblank(*token)) {
+            token++;
+        }
+        if (strchr(token, '|') == NULL) {
+            val = strchr(token, ' ');
+            if (val != NULL) {
+                *val++ = '\0';
+                while (*val != '\0' && isblank(*val)) {
+                    val++;
+                }
+            } else {
+                SCLogDebug("val %s", token);
+            }
+        }
+        if (strlen(token) == 0) {
+            goto next;
+        }
+        if (strcmp(token, "noalert") == 0 && !cmd_set) {
+            if (strtok_r(NULL, ",", &context) != NULL) {
+                return -1;
+            }
+            if (val && strlen(val) != 0) {
+                return -1;
+            }
+            *cdout = NULL;
+            return 0;
+        }
+        if (!cmd_set) {
+            if (val && strlen(val) != 0) {
+                return -1;
+            }
+            if (strcmp(token, "set") == 0) {
+                cmd = DETECT_FLOWBITS_CMD_SET;
+            } else if (strcmp(token, "isset") == 0) {
+                cmd = DETECT_FLOWBITS_CMD_ISSET;
+            } else if (strcmp(token, "unset") == 0) {
+                cmd = DETECT_FLOWBITS_CMD_UNSET;
+            } else if (strcmp(token, "isnotset") == 0) {
+                cmd = DETECT_FLOWBITS_CMD_ISNOTSET;
+            } else if (strcmp(token, "toggle") == 0) {
+                cmd = DETECT_FLOWBITS_CMD_TOGGLE;
+            } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid flowbits cmd: %s", token);
+                return -1;
+            }
+            cmd_set = true;
+        } else if (!name_set) {
+            if (val && strlen(val) != 0) {
+                return -1;
+            }
+
+            if (strchr(token, '|') == NULL) {
+                /* Validate name, spaces are not allowed. */
+                for (size_t i = 0; i < strlen(token); i++) {
+                    if (isblank(token[i])) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "spaces not allowed in flowbit names");
+                        return 0;
+                    }
+                }
+            }
+            strlcpy(name, token, sizeof(name));
+            name_set = true;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid flowbits keyword: %s", token);
+            return -1;
+        }
+    next:
+        token = strtok_r(NULL, ",", &context);
+    }
+    if (cmd_set && !name_set) {
+        return -1;
+    }
+
+    cd = SCCalloc(1, sizeof(DetectFlowbitsData));
+    if (unlikely(cd == NULL))
+        goto error;
+    if (strchr(name, '|') != NULL) {
+        int retval = FlowbitOrAddData(de_ctx, cd, name);
+        if (retval == -1) {
+            goto error;
+        }
+        cd->cmd = cmd;
+    } else {
+        cd->idx = VarNameStoreSetupAdd(name, VAR_TYPE_FLOW_BIT);
+        de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
+        cd->cmd = cmd;
+        cd->or_list_size = 0;
+        cd->or_list = NULL;
+        SCLogDebug(
+                "idx %" PRIu32 ", cmd %d, name %s", cd->idx, cmd, strlen(name) ? name : "(none)");
+    }
+    *cdout = cd;
+
+    return 0;
+error:
+    if (cd != NULL)
+        DetectFlowbitFree(de_ctx, cd);
+    return -1;
+#if 0
     const int max_substrings = 30;
     int count, rc;
     int ov[max_substrings];
+
 
     count = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, max_substrings);
     if (count != 2 && count != 3) {
@@ -258,72 +369,22 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
     }
 
     return 1;
+#endif
 }
 
 int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowbitsData *cd = NULL;
     SigMatch *sm = NULL;
-    uint8_t fb_cmd = 0;
-    char fb_cmd_str[16] = "", fb_name[256] = "";
 
-    if (!DetectFlowbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name,
-            sizeof(fb_name))) {
+    int result = DetectFlowbitParse(de_ctx, rawstr, &cd);
+    if (result < 0) {
         return -1;
+    } else if (result == 0 && cd == NULL) {
+        s->flags |= SIG_FLAG_NOALERT;
+        return 0;
     }
 
-    if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_NOALERT;
-    } else if (strcmp(fb_cmd_str,"isset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_ISSET;
-    } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_ISNOTSET;
-    } else if (strcmp(fb_cmd_str,"set") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_SET;
-    } else if (strcmp(fb_cmd_str,"unset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
-    } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
-        goto error;
-    }
-
-    switch (fb_cmd) {
-        case DETECT_FLOWBITS_CMD_NOALERT:
-            if (strlen(fb_name) != 0)
-                goto error;
-            s->flags |= SIG_FLAG_NOALERT;
-            return 0;
-        case DETECT_FLOWBITS_CMD_ISNOTSET:
-        case DETECT_FLOWBITS_CMD_ISSET:
-        case DETECT_FLOWBITS_CMD_SET:
-        case DETECT_FLOWBITS_CMD_UNSET:
-        case DETECT_FLOWBITS_CMD_TOGGLE:
-        default:
-            if (strlen(fb_name) == 0)
-                goto error;
-            break;
-    }
-
-    cd = SCCalloc(1, sizeof(DetectFlowbitsData));
-    if (unlikely(cd == NULL))
-        goto error;
-    if (strchr(fb_name, '|') != NULL) {
-        int retval = FlowbitOrAddData(de_ctx, cd, fb_name);
-        if (retval == -1) {
-            goto error;
-        }
-        cd->cmd = fb_cmd;
-    } else {
-        cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
-        de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
-        cd->cmd = fb_cmd;
-        cd->or_list_size = 0;
-        cd->or_list = NULL;
-        SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-            cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
-    }
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -333,8 +394,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     sm->type = DETECT_FLOWBITS;
     sm->ctx = (SigMatchCtx *)cd;
 
-    switch (fb_cmd) {
-        /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
+    switch (cd->cmd) {
+            /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
 
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
@@ -744,41 +805,38 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 
 static int FlowBitsTestParse01(void)
 {
-    char command[16] = "", name[16] = "";
+    DetectEngineCtx *de_ctx = NULL;
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    DetectFlowbitsData *cd = NULL;
 
-    /* Single argument version. */
-    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name,
-            sizeof(name)));
-    FAIL_IF(strcmp(command, "noalert") != 0);
+#define BAD_INPUT(str) FAIL_IF_NOT(DetectFlowbitParse(de_ctx, (str), &cd) == -1);
 
-    /* No leading or trailing spaces. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
-            sizeof(name)));
-    FAIL_IF(strcmp(command, "set") != 0);
-    FAIL_IF(strcmp(name, "flowbit") != 0);
+    BAD_INPUT("alert");
+    BAD_INPUT("n0alert");
+    BAD_INPUT("nOalert");
+    BAD_INPUT("set,namewith space");
+    BAD_INPUT("issset,typo")
 
-    /* Leading space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
-            sizeof(name)));
-    FAIL_IF(strcmp(command, "set") != 0);
-    FAIL_IF(strcmp(name, "flowbit") != 0);
+#undef BAD_INPUT
 
-    /* Trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
-            sizeof(name)));
-    FAIL_IF(strcmp(command, "set") != 0);
-    FAIL_IF(strcmp(name, "flowbit") != 0);
+#define GOOD_INPUT(str, command)                                                                   \
+    FAIL_IF_NOT(DetectFlowbitParse(de_ctx, (str), &cd) == 0);                                      \
+    FAIL_IF_NULL(cd);                                                                              \
+    FAIL_IF_NOT(cd->cmd == (command));                                                             \
+    DetectFlowbitFree(NULL, cd);                                                                   \
+    cd = NULL;
 
-    /* Leading and trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
-            sizeof(name)));
-    FAIL_IF(strcmp(command, "set") != 0);
-    FAIL_IF(strcmp(name, "flowbit") != 0);
+    GOOD_INPUT("unset, flowbit ", DETECT_FLOWBITS_CMD_UNSET);
+    GOOD_INPUT("set,flowbit", DETECT_FLOWBITS_CMD_SET);
+    GOOD_INPUT("isset, flowbit", DETECT_FLOWBITS_CMD_ISSET);
+    GOOD_INPUT("isnotset,flowbit ", DETECT_FLOWBITS_CMD_ISNOTSET);
+    GOOD_INPUT("toggle, flowbit ", DETECT_FLOWBITS_CMD_TOGGLE);
 
-    /* Spaces are not allowed in the name. */
-    FAIL_IF(DetectFlowbitParse("set,namewith space", command, sizeof(command),
-            name, sizeof(name)));
+#undef GOOD_INPUT
 
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
