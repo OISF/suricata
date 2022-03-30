@@ -258,11 +258,11 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     } else {
         SCLogDebug("Reached packet_alert_max.");
         /* If we reach packet_alert_max, remove lower priority
-         * rules and keep newer, higher priority ones.
+         * rules and keep higher priority ones.
          * If Suri wants to append a signature whose priority is lower than the
-         * ones already queued and we are at packet_alert_max, it isn't queued. */
+         * ones already queued and we are at packet_alert_max, it is discarded. */
         int16_t num_diff = s->num - p->alerts.alerts[p->alerts.cnt - 1].num;
-        if (num_diff == 0 || num_diff == -1) {
+        if (num_diff == -1) {
             /* Replace last position in queue */
             SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
                        ")  with higher priority signature %" PRIu32 " (%" PRIu32
@@ -272,7 +272,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
             // TODO log to stats signature id that was discarded/replaced
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, (p->alerts.cnt - 1));
         } else if (num_diff < -1) {
-            /* If the new signature's internal id isn't equal/adjacent to the last one from the
+            /* If the new signature's internal id adjacent to the last one in the
              * queue, find the correct position, to keep queue sorted by rule priority */
             uint16_t i = MemMovePacketAlertQueuePos(p, s);
             SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
