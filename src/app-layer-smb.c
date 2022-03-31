@@ -92,6 +92,27 @@ static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
     }
 }
 
+static uint16_t SMBTCPProbeBegins(Flow *f, uint8_t direction,
+        const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    SCLogDebug("SMBTCPProbeBegins");
+
+    if (len < MIN_REC_SIZE) {
+        return ALPROTO_UNKNOWN;
+    }
+
+    const int r = rs_smb_probe_begins_tcp(direction, input, len, rdir);
+    switch (r) {
+        case 1:
+            return ALPROTO_SMB;
+        case 0:
+            return ALPROTO_UNKNOWN;
+        case -1:
+        default:
+            return ALPROTO_FAILED;
+    }
+}
+
 /** \internal
  *  \brief as SMB3 records have no direction indicator, fall
  *         back to the port numbers for a hint
@@ -197,18 +218,18 @@ static int SMBRegisterPatternsForProtocolDetection(void)
     int r = 0;
     /* SMB1 */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbe,
+            "|ff|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbeBegins,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbe,
+            "|ff|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbeBegins,
             MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB2/3 */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbe,
+            "|fe|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbeBegins,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbe,
+            "|fe|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbeBegins,
             MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB3 encrypted records */

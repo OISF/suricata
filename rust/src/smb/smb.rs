@@ -58,6 +58,8 @@ pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
+pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
+
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
@@ -1940,9 +1942,18 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
-fn rs_smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
+fn smb_probe_tcp(direction: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> i8
 {
-    match search_smb_record(slice) {
+    let r = if begins {
+        if slice[0] == NBSS_MSGTYPE_SESSION_MESSAGE {
+            Ok((&slice[..4], &slice[4..]))
+        } else {
+            Err(nom::Err::Error(error_position!(slice, nom::error::ErrorKind::Eof)))
+        }
+    } else {
+        search_smb_record(slice)
+    };
+    match r {
         Ok((_, ref data)) => {
             SCLogDebug!("smb found");
             match parse_smb_version(data) {
@@ -2003,53 +2014,30 @@ fn rs_smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
     return 0;
 }
 
-// probing parser
+// probing confirmation parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(flags: u8,
-        input: *const u8, len: u32,
-        rdir: *mut u8)
+pub extern "C" fn rs_smb_probe_begins_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> i8
 {
+    if len < MIN_REC_SIZE as u32 {
+        return 0;
+    }
     let slice = build_slice!(input, len as usize);
-    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
-        if rs_smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
-            return 1;
-        }
+    return smb_probe_tcp(direction, slice, rdir, true);
+}
+
+// probing confirmation parser
+// return 1 if found, 0 is not found
+#[no_mangle]
+pub extern "C" fn rs_smb_probe_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
+    -> i8
+{
+    if len < MIN_REC_SIZE as u32 {
+        return 0;
     }
-    match parse_nbss_record_partial(slice) {
-        Ok((_, ref hdr)) => {
-            if hdr.is_smb() {
-                SCLogDebug!("smb found");
-                return 1;
-            } else if hdr.needs_more(){
-                return 0;
-            } else if hdr.is_valid() &&
-                hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
-                //we accept a first small netbios message before real SMB
-                let hl = hdr.length as usize;
-                if hdr.data.len() >= hl + 8 {
-                    // 8 is 4 bytes NBSS + 4 bytes SMB0xFX magic
-                    match parse_nbss_record_partial(&hdr.data[hl..]) {
-                        Ok((_, ref hdr2)) => {
-                            if hdr2.is_smb() {
-                                SCLogDebug!("smb found");
-                                return 1;
-                            }
-                        }
-                        _ => {}
-                    }
-                } else if hdr.length < 256 {
-                    // we want more data, 256 is some random value
-                    return 0;
-                }
-                // default is failure
-            }
-        },
-        _ => { },
-    }
-    SCLogDebug!("no smb");
-    return -1
+    let slice = build_slice!(input, len as usize);
+    return smb_probe_tcp(direction, slice, rdir, false);
 }
 
 #[no_mangle]
