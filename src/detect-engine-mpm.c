@@ -776,7 +776,7 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx,
 #define SGH_DIRECTION_TS(sgh) ((sgh)->init->direction & SIG_FLAG_TOSERVER)
 #define SGH_DIRECTION_TC(sgh) ((sgh)->init->direction & SIG_FLAG_TOCLIENT)
 
-static void SetMpm(Signature *s, SigMatch *mpm_sm)
+static void SetMpm(Signature *s, SigMatch *mpm_sm, const int mpm_sm_list)
 {
     if (s == NULL || mpm_sm == NULL)
         return;
@@ -799,6 +799,7 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
         }
     }
     cd->flags |= DETECT_CONTENT_MPM;
+    s->init_data->mpm_sm_list = mpm_sm_list;
     s->init_data->mpm_sm = mpm_sm;
     return;
 }
@@ -844,7 +845,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->mpm_sm != NULL)
         return;
 
-    SigMatch *mpm_sm = NULL, *sm = NULL;
+    SigMatch *sm = NULL;
     const int nlists = s->init_data->smlists_array_size;
     int nn_sm_list[nlists];
     int n_sm_list[nlists];
@@ -869,7 +870,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* fast_pattern set in rule, so using this pattern */
             if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                SetMpm(s, sm);
+                SetMpm(s, sm, list_id);
                 return;
             }
 
@@ -938,15 +939,29 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
+    SigMatch *mpm_sm = NULL;
+    int mpm_sm_list = -1;
     for (int i = 0; i < count_final_sm_list; i++) {
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
+        /* GetMpmForList may keep `mpm_sm` the same, so track if it changed */
+        SigMatch *prev_mpm_sm = mpm_sm;
         mpm_sm = GetMpmForList(s, final_sm_list[i], mpm_sm, max_len, skip_negated_content);
+        if (mpm_sm != prev_mpm_sm) {
+            mpm_sm_list = final_sm_list[i];
+        }
     }
 
+#ifdef DEBUG
+    if (mpm_sm != NULL) {
+        BUG_ON(mpm_sm_list == -1);
+        int check_list = SigMatchListSMBelongsTo(s, mpm_sm);
+        BUG_ON(check_list != mpm_sm_list);
+    }
+#endif
     /* assign to signature */
-    SetMpm(s, mpm_sm);
+    SetMpm(s, mpm_sm, mpm_sm_list);
     return;
 }
 
@@ -1243,7 +1258,7 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
                 continue;
             if (s->init_data->mpm_sm == NULL)
                 continue;
-            int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+            int list = s->init_data->mpm_sm_list;
             if (list < 0)
                 continue;
             if (list != ms->sm_list)
@@ -1352,7 +1367,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        int list = s->init_data->mpm_sm_list;
         if (list < 0)
             continue;
 
@@ -1444,7 +1459,10 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
         if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        if ((s->flags & am->direction) == 0)
+            continue;
+
+        int list = s->init_data->mpm_sm_list;
         if (list < 0)
             continue;
 
@@ -1521,7 +1539,7 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx,
         if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        int list = s->init_data->mpm_sm_list;
         if (list < 0)
             continue;
 
@@ -1772,7 +1790,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->init_data->mpm_sm != NULL) {
-            int sm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+            int sm_list = s->init_data->mpm_sm_list;
             BUG_ON(sm_list == -1);
 
             DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;

@@ -613,7 +613,7 @@ static int RuleGetMpmPatternSize(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return -1;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+    int mpm_list = s->init_data->mpm_sm_list;
     if (mpm_list < 0)
         return -1;
     const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
@@ -626,7 +626,7 @@ static int RuleMpmIsNegated(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return 0;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+    int mpm_list = s->init_data->mpm_sm_list;
     if (mpm_list < 0)
         return 0;
     const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
@@ -721,7 +721,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             }
 
         } else {
-            int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+            int mpm_list = s->init_data->mpm_sm_list;
             BUG_ON(mpm_list < 0);
             const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
@@ -1115,15 +1115,13 @@ static int RuleSetWhitelist(Signature *s)
 
             /* one byte pattern in packet/stream payloads */
         } else if (s->init_data->mpm_sm != NULL &&
-                   SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH &&
-                   RuleGetMpmPatternSize(s) == 1)
-        {
+                   s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH &&
+                   RuleGetMpmPatternSize(s) == 1) {
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
             wl = 55;
 
         } else if (DetectFlagsSignatureNeedsSynPackets(s) &&
-                   DetectFlagsSignatureNeedsSynOnlyPackets(s))
-        {
+                   DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
             SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
             wl = 33;
         }

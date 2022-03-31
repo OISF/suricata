@@ -500,6 +500,8 @@ typedef struct SignatureInitData_ {
     /* used at init to determine max dsize */
     SigMatch *dsize_sm;
 
+    /* list id for `mpm_sm`. Should always match `SigMatchListSMBelongsTo(s, mpm_sm)`. */
+    int mpm_sm_list;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
     /* used to speed up init of prefilter */

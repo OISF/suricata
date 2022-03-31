@@ -1273,6 +1273,7 @@ Signature *SigAlloc (void)
         SCFree(sig);
         return NULL;
     }
+    sig->init_data->mpm_sm_list = -1;
 
     sig->init_data->smlists_array_size = DetectBufferTypeMaxId();
     SCLogDebug("smlists size %u", sig->init_data->smlists_array_size);
