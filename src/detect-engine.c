@@ -437,7 +437,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     if (unlikely(new_engine == NULL)) {
         exit(EXIT_FAILURE);
     }
-    if (SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+    if (s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH) {
         SCLogDebug("stream is mpm");
         prepend = true;
         new_engine->mpm = true;
@@ -482,9 +482,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
-    const int mpm_list = s->init_data->mpm_sm ?
-        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) :
-        -1;
+    const int mpm_list = s->init_data->mpm_sm ? s->init_data->mpm_sm_list : -1;
 
     const int files_id = DetectBufferTypeGetByName("files");
 
@@ -1523,6 +1521,7 @@ static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInsp
     if (e == NULL)
         return -1;
 
+    e->mpm = s->init_data->mpm_sm_list == list_id;
     e->sm_list = list_id;
     e->sm_list_base = list_id;
     e->v1.Callback = Callback;

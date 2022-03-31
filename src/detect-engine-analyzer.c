@@ -153,8 +153,9 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     int fast_pattern_set = 0;
     int fast_pattern_only_set = 0;
     int fast_pattern_chop_set = 0;
-    DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const DetectContentData *fp_cd = NULL;
+    const SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const int mpm_sm_list = s->init_data->mpm_sm_list;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -186,7 +187,7 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     }
 
     fprintf(fp_engine_analysis_FD, "        Fast pattern matcher: ");
-    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
     else {
@@ -472,8 +473,9 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
 
 static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Signature *s)
 {
-    DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const DetectContentData *fp_cd = NULL;
+    const SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const int mpm_sm_list = s->init_data->mpm_sm_list;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -510,7 +512,7 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
 
     fprintf(rule_engine_analysis_FD, "\" on \"");
 
-    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    const int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH) {
         int payload = 0;
         int stream = 0;
@@ -1159,7 +1161,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         warn_offset_depth_alproto = 1;
     }
     if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
-        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+            s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
