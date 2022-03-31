@@ -58,6 +58,8 @@ pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
+pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
+
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
@@ -1950,16 +1952,18 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     return -1;
 }
 
-// probing parser
-// return 1 if found, 0 is not found
-#[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(direction: u8,
-        input: *const u8, len: u32,
-        rdir: *mut u8)
-    -> i8
+fn smb_probe_tcp(direction: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> i8
 {
-    let slice = build_slice!(input, len as usize);
-    match search_smb_record(slice) {
+    let r = if begins {
+        if slice[0] == NBSS_MSGTYPE_SESSION_MESSAGE {
+            Ok((&slice[..4], &slice[4..]))
+        } else {
+            Err(nom::Err::Error(error_position!(slice, nom::ErrorKind::Eof)))
+        }
+    } else {
+        search_smb_record(slice)
+    };
+    match r {
         Ok((_, ref data)) => {
             SCLogDebug!("smb found");
             match parse_smb_version(data) {
@@ -2050,6 +2054,32 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
     }
     SCLogDebug!("no smb");
     return -1
+}
+
+// probing confirmation parser
+// return 1 if found, 0 is not found
+#[no_mangle]
+pub extern "C" fn rs_smb_probe_begins_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
+    -> i8
+{
+    if len < MIN_REC_SIZE as u32 {
+        return 0;
+    }
+    let slice = build_slice!(input, len as usize);
+    return smb_probe_tcp(direction, slice, rdir, true);
+}
+
+// probing confirmation parser
+// return 1 if found, 0 is not found
+#[no_mangle]
+pub extern "C" fn rs_smb_probe_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
+    -> i8
+{
+    if len < MIN_REC_SIZE as u32 {
+        return 0;
+    }
+    let slice = build_slice!(input, len as usize);
+    return smb_probe_tcp(direction, slice, rdir, false);
 }
 
 #[no_mangle]
