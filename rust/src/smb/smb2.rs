@@ -499,10 +499,12 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     SCLogDebug!("create_options {:08x}", cr.create_options);
 
                     let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
-                    state.ssn2vec_map.insert(name_key, cr.data.to_vec());
+                    let mut name_val = cr.data.to_vec();
+                    name_val.retain(|&i|i != 0x00);
 
+                    state.ssn2vec_map.insert(name_key, name_val.to_vec());
                     let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                    let tx = state.new_create_tx(&cr.data.to_vec(),
+                    let tx = state.new_create_tx(&name_val.to_vec(),
                             cr.disposition, del, dir, tx_hdr);
                     tx.vercmd.set_smb2_cmd(r.command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);
