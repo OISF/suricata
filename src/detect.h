@@ -911,8 +911,8 @@ typedef struct DetectEngineCtx_ {
     bool sigerror_ok;
     const char *sigerror;
 
-    /** list of keywords that need thread local ctxs */
-    DetectEngineThreadKeywordCtxItem *keyword_list;
+    /** hash list of keywords that need thread local ctxs */
+    HashListTable *keyword_hash;
     int keyword_id;
 
     struct {
@@ -1543,8 +1543,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, cons
 
 Signature *DetectGetTagSignature(void);
 
-
-int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, DetectEngineThreadCtx *,void *data, const char *name);
+int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, void *data, const char *name);
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 

@@ -78,6 +78,7 @@
 #include "util-var-name.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-hash-string.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"
@@ -2408,13 +2409,7 @@ DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
 {
-    DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
-    while (item) {
-        DetectEngineThreadKeywordCtxItem *next = item->next;
-        SCFree(item);
-        item = next;
-    }
-    de_ctx->keyword_list = NULL;
+    HashListTableFree(de_ctx->keyword_hash);
 }
 
 static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
@@ -2888,15 +2883,16 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
 
         det_ctx->keyword_ctxs_size = de_ctx->keyword_id;
 
-        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
-        while (item) {
+        HashListTableBucket *hb = HashListTableGetListHead(de_ctx->keyword_hash);
+        for (; hb != NULL; hb = HashListTableGetListNext(hb)) {
+            DetectEngineThreadKeywordCtxItem *item = HashListTableGetListData(hb);
+
             det_ctx->keyword_ctxs_array[item->id] = item->InitFunc(item->data);
             if (det_ctx->keyword_ctxs_array[item->id] == NULL) {
                 SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
                         "for keyword \"%s\" failed", item->name);
                 return TM_ECODE_FAILED;
             }
-            item = item->next;
         }
     }
     return TM_ECODE_OK;
@@ -2905,12 +2901,12 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
 static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx->keyword_id > 0) {
-        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
-        while (item) {
+        HashListTableBucket *hb = HashListTableGetListHead(de_ctx->keyword_hash);
+        for (; hb != NULL; hb = HashListTableGetListNext(hb)) {
+            DetectEngineThreadKeywordCtxItem *item = HashListTableGetListData(hb);
+
             if (det_ctx->keyword_ctxs_array[item->id] != NULL)
                 item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
-
-            item = item->next;
         }
         det_ctx->keyword_ctxs_size = 0;
         SCFree(det_ctx->keyword_ctxs_array);
@@ -3376,6 +3372,29 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
     PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 }
 
+static uint32_t DetectKeywordCtxHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    DetectEngineThreadKeywordCtxItem *ctx = data;
+    const char *name = ctx->name;
+    uint64_t hash = StringHashDjb2((const uint8_t *)name, strlen(name)) + (uint64_t)ctx->data;
+    hash %= ht->array_size;
+    return hash;
+}
+
+static char DetectKeywordCtxCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    DetectEngineThreadKeywordCtxItem *ctx1 = data1;
+    DetectEngineThreadKeywordCtxItem *ctx2 = data2;
+    const char *name1 = ctx1->name;
+    const char *name2 = ctx2->name;
+    return (strcmp(name1, name2) == 0 && ctx1->data == ctx2->data);
+}
+
+static void DetectKeywordCtxFreeFunc(void *ptr)
+{
+    SCFree(ptr);
+}
+
 /** \brief Register Thread keyword context Funcs
  *
  *  \param de_ctx detection engine to register in
@@ -3396,31 +3415,37 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
 {
     BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL);
 
-    if (mode) {
-        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
-        while (item != NULL) {
-            if (strcmp(name, item->name) == 0) {
-                return item->id;
-            }
-
-            item = item->next;
-        }
+    if (de_ctx->keyword_hash == NULL) {
+        de_ctx->keyword_hash = HashListTableInit(4096, // TODO
+                DetectKeywordCtxHashFunc, DetectKeywordCtxCompareFunc, DetectKeywordCtxFreeFunc);
+        BUG_ON(de_ctx->keyword_hash == NULL);
     }
 
-    DetectEngineThreadKeywordCtxItem *item = SCMalloc(sizeof(DetectEngineThreadKeywordCtxItem));
+    if (mode) {
+        DetectEngineThreadKeywordCtxItem search = { .data = data, .name = name };
+
+        DetectEngineThreadKeywordCtxItem *item =
+                HashListTableLookup(de_ctx->keyword_hash, (void *)&search, 0);
+        if (item)
+            return item->id;
+
+        /* fall through */
+    }
+
+    DetectEngineThreadKeywordCtxItem *item = SCCalloc(1, sizeof(DetectEngineThreadKeywordCtxItem));
     if (unlikely(item == NULL))
         return -1;
-    memset(item, 0x00, sizeof(DetectEngineThreadKeywordCtxItem));
 
     item->InitFunc = InitFunc;
     item->FreeFunc = FreeFunc;
     item->data = data;
     item->name = name;
-
-    item->next = de_ctx->keyword_list;
-    de_ctx->keyword_list = item;
     item->id = de_ctx->keyword_id++;
 
+    if (HashListTableAdd(de_ctx->keyword_hash, (void *)item, 0) < 0) {
+        SCFree(item);
+        return -1;
+    }
     return item->id;
 }
 
@@ -3438,27 +3463,14 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
  *        recommended to store it in the keywords global ctx so that
  *        it's freed when the de_ctx is freed.
  */
-int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, void *data, const char *name)
+int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *de_ctx, void *data, const char *name)
 {
-    BUG_ON(de_ctx == NULL);
-
-    DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
-    DetectEngineThreadKeywordCtxItem *prev_item = NULL;
-    while (item != NULL) {
-        if (strcmp(name, item->name) == 0 && (data == item->data)) {
-            if (prev_item == NULL)
-                de_ctx->keyword_list = item->next;
-            else
-                prev_item->next = item->next;
-            if (det_ctx)
-                item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
-            SCFree(item);
-            return 1;
-        }
-        prev_item = item;
-        item = item->next;
-    }
+    /* might happen if we call this before a call to *Register* */
+    if (de_ctx->keyword_hash == NULL)
+        return 1;
+    DetectEngineThreadKeywordCtxItem remove = { .data = data, .name = name };
+    if (HashListTableRemove(de_ctx->keyword_hash, (void *)&remove, 0) == 0)
+        return 1;
     return 0;
 }
 /** \brief Retrieve thread local keyword ctx by id
