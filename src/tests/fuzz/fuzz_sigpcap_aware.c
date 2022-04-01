@@ -153,7 +153,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     p = PacketGetFromAlloc();
     p->pkt_src = PKT_SRC_WIRE;
     p->ts.tv_sec = header.ts.tv_sec;
-    p->ts.tv_usec = header.ts.tv_usec;
+    p->ts.tv_usec = header.ts.tv_usec % 1000000;
     p->datalink = pkts.datalink;
     while (r > 0) {
         if (PacketCopyData(p, pkt, header.caplen) == 0) {
@@ -178,7 +178,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         PACKET_RECYCLE(p);
         p->pkt_src = PKT_SRC_WIRE;
         p->ts.tv_sec = header.ts.tv_sec;
-        p->ts.tv_usec = header.ts.tv_usec;
+        p->ts.tv_usec = header.ts.tv_usec % 1000000;
         p->datalink = pkts.datalink;
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
