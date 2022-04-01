@@ -34,7 +34,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformROT13Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformROT13Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformROT13RegisterTests(void);
 #endif
@@ -43,17 +43,12 @@ static void TransformROT13(InspectionBuffer *buffer, void *options);
 void DetectTransformROT13Register(void)
 {
     sigmatch_table[DETECT_TRANSFORM_ROT13].name = "rot13";
-    sigmatch_table[DETECT_TRANSFORM_ROT13].desc =
-        "apply ROT13 to alpha characters in buffer";
-    sigmatch_table[DETECT_TRANSFORM_ROT13].url =
-        "/rules/transforms.html#rot13";
-    sigmatch_table[DETECT_TRANSFORM_ROT13].Transform =
-        TransformROT13;
-    sigmatch_table[DETECT_TRANSFORM_ROT13].Setup =
-        DetectTransformROT13Setup;
+    sigmatch_table[DETECT_TRANSFORM_ROT13].desc = "apply ROT13 to alpha characters in buffer";
+    sigmatch_table[DETECT_TRANSFORM_ROT13].url = "/rules/transforms.html#rot13";
+    sigmatch_table[DETECT_TRANSFORM_ROT13].Transform = TransformROT13;
+    sigmatch_table[DETECT_TRANSFORM_ROT13].Setup = DetectTransformROT13Setup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_ROT13].RegisterTests =
-        DetectTransformROT13RegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_ROT13].RegisterTests = DetectTransformROT13RegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_ROT13].flags |= SIGMATCH_NOOPT;
 }
@@ -67,7 +62,7 @@ void DetectTransformROT13Register(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformROT13Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformROT13Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_ROT13, NULL);
@@ -84,11 +79,11 @@ static void TransformROT13(InspectionBuffer *buffer, void *options)
     for (uint32_t i = 0; i < input_len; i++) {
         if (likely(isalpha(*input))) {
             char c = tolower(*input);
-           if (c >= 'a' && c <= 'm') {
-               *oi++ = *input + 13;
-           } else if (c >= 'n' && c <= 'z') {
-               *oi++ = *input - 13;
-           }
+            if (c >= 'a' && c <= 'm') {
+                *oi++ = *input + 13;
+            } else if (c >= 'n' && c <= 'z') {
+                *oi++ = *input - 13;
+            }
         } else {
             *oi++ = *input;
         }
@@ -136,7 +131,8 @@ static int DetectTransformROT13Test02(void)
 
 static int DetectTransformROT13Test03(void)
 {
-    const char rule[] = "alert http any any -> any any (http_request_line; rot13; content:\"GET/HTTP\"; sid:1;)";
+    const char rule[] = "alert http any any -> any any (http_request_line; rot13; "
+                        "content:\"GET/HTTP\"; sid:1;)";
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
@@ -171,13 +167,9 @@ static int DetectTransformROT13Test04(void)
 
 static void DetectTransformROT13RegisterTests(void)
 {
-    UtRegisterTest("DetectTransformROT13Test01",
-            DetectTransformROT13Test01);
-    UtRegisterTest("DetectTransformROT13Test02",
-            DetectTransformROT13Test02);
-    UtRegisterTest("DetectTransformROT13Test03",
-            DetectTransformROT13Test03);
-    UtRegisterTest("DetectTransformROT13Test04",
-            DetectTransformROT13Test04);
+    UtRegisterTest("DetectTransformROT13Test01", DetectTransformROT13Test01);
+    UtRegisterTest("DetectTransformROT13Test02", DetectTransformROT13Test02);
+    UtRegisterTest("DetectTransformROT13Test03", DetectTransformROT13Test03);
+    UtRegisterTest("DetectTransformROT13Test04", DetectTransformROT13Test04);
 }
 #endif

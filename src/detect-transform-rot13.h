@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_ROT13_H__
 
 /* prototypes */
-void DetectTransformROT13Register (void);
+void DetectTransformROT13Register(void);
 
 #endif /* __DETECT_TRANSFORM_ROT13_H__ */
