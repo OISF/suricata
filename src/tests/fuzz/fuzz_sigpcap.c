@@ -142,7 +142,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
     p->ts.tv_sec = header->ts.tv_sec;
-    p->ts.tv_usec = header->ts.tv_usec;
+    p->ts.tv_usec = header->ts.tv_usec % 1000000;
     p->datalink = pcap_datalink(pkts);
     while (r > 0) {
         if (PacketCopyData(p, pkt, header->caplen) == 0) {
@@ -166,7 +166,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         r = pcap_next_ex(pkts, &header, &pkt);
         PACKET_RECYCLE(p);
         p->ts.tv_sec = header->ts.tv_sec;
-        p->ts.tv_usec = header->ts.tv_usec;
+        p->ts.tv_usec = header->ts.tv_usec % 1000000;
         p->datalink = pcap_datalink(pkts);
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
