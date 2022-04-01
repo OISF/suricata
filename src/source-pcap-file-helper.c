@@ -77,7 +77,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     p->ts.tv_sec = h->ts.tv_sec;
-    p->ts.tv_usec = h->ts.tv_usec;
+    p->ts.tv_usec = h->ts.tv_usec % 1000000;
     SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
     p->datalink = ptv->datalink;
     p->pcap_cnt = ++pcap_g.cnt;
