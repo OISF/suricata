@@ -956,7 +956,7 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
     DetectParseFreeRegex(&pd->parse_regex);
-    DetectUnregisterThreadCtxFuncs(de_ctx, NULL, pd, "pcre");
+    DetectUnregisterThreadCtxFuncs(de_ctx, pd, "pcre");
 
     SCFree(pd);
 
