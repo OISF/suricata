@@ -1437,72 +1437,47 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     }
 }
 
-static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, const DetectBufferMpmRegistery *am)
-{
-    const Signature *s = NULL;
-    uint32_t sig;
-    uint32_t cnt = 0;
-    uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    uint8_t sids_array[max_sid];
-    memset(sids_array, 0x00, max_sid);
+struct SidsArray {
+    uint8_t *sids_array;
+    uint32_t sids_array_size;
+    /* indicates this has an active engine */
+    bool active;
 
+    enum DetectBufferMpmType type;
+};
+
+static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
+{
     SCLogDebug("handling %s direction %s for list %d", am->name,
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (s->init_data->mpm_sm == NULL)
-            continue;
-
-        if ((s->flags & am->direction) == 0)
-            continue;
-
-        int list = s->init_data->mpm_sm_list;
-        if (list < 0)
-            continue;
-
-        if ((s->flags & am->direction) == 0)
-            continue;
-
-        if (list != am->sm_list)
-            continue;
-
-        sids_array[s->num / 8] |= 1 << (s->num % 8);
-        cnt++;
-    }
-
-    if (cnt == 0)
+    if (sa->active == false || sa->sids_array_size == 0 || sa->sids_array == NULL)
         return NULL;
 
-    MpmStore lookup = { sids_array, max_sid, am->direction,
-        MPMB_MAX, am->sm_list, 0, NULL};
+    MpmStore lookup = { sa->sids_array, sa->sids_array_size, am->direction, MPMB_MAX, am->sm_list,
+        0, NULL };
     SCLogDebug("am->direction %d am->sm_list %d",
             am->direction, am->sm_list);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
-        SCLogDebug("new unique mpm for %s %s: %u patterns",
-                am->name,
-                am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
-                cnt);
+        SCLogDebug("new unique mpm for %s %s", am->name,
+                am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient");
 
         MpmStore *copy = SCCalloc(1, sizeof(MpmStore));
         if (copy == NULL)
             return NULL;
-        uint8_t *sids = SCCalloc(1, max_sid);
+        uint8_t *sids = SCCalloc(1, sa->sids_array_size);
         if (sids == NULL) {
             SCFree(copy);
             return NULL;
         }
 
-        memcpy(sids, sids_array, max_sid);
+        memcpy(sids, sa->sids_array, sa->sids_array_size);
         copy->sid_array = sids;
-        copy->sid_array_size = max_sid;
+        copy->sid_array_size = sa->sids_array_size;
         copy->buffer = MPMB_MAX;
         copy->direction = am->direction;
         copy->sm_list = am->sm_list;
@@ -1518,62 +1493,35 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
     return NULL;
 }
 
-static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, const DetectBufferMpmRegistery *am)
+static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
 {
-    const Signature *s = NULL;
-    uint32_t sig;
-    uint32_t cnt = 0;
-    uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    uint8_t sids_array[max_sid];
-    memset(sids_array, 0x00, max_sid);
-
     SCLogDebug("handling %s for list %d", am->name,
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (s->init_data->mpm_sm == NULL)
-            continue;
-
-        int list = s->init_data->mpm_sm_list;
-        if (list < 0)
-            continue;
-
-        if (list != am->sm_list)
-            continue;
-
-        sids_array[s->num / 8] |= 1 << (s->num % 8);
-        cnt++;
-    }
-
-    if (cnt == 0)
+    if (sa->active == false || sa->sids_array_size == 0 || sa->sids_array == NULL)
         return NULL;
 
-    MpmStore lookup = { sids_array, max_sid, SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT,
-        MPMB_MAX, am->sm_list, 0, NULL};
+    MpmStore lookup = { sa->sids_array, sa->sids_array_size, SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
+        MPMB_MAX, am->sm_list, 0, NULL };
     SCLogDebug("am->sm_list %d", am->sm_list);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
-        SCLogDebug("new unique mpm for %s: %u patterns",
-                am->name, cnt);
+        SCLogDebug("new unique mpm for %s", am->name);
 
         MpmStore *copy = SCCalloc(1, sizeof(MpmStore));
         if (copy == NULL)
             return NULL;
-        uint8_t *sids = SCCalloc(1, max_sid);
+        uint8_t *sids = SCCalloc(1, sa->sids_array_size);
         if (sids == NULL) {
             SCFree(copy);
             return NULL;
         }
 
-        memcpy(sids, sids_array, max_sid);
+        memcpy(sids, sa->sids_array, sa->sids_array_size);
         copy->sid_array = sids;
-        copy->sid_array_size = max_sid;
+        copy->sid_array_size = sa->sids_array_size;
         copy->buffer = MPMB_MAX;
         copy->direction = SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT;
         copy->sm_list = am->sm_list;
@@ -1608,52 +1556,98 @@ static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     SCLogDebug("rule group %p does NOT have SIG_GROUP_HEAD_HAVERAWSTREAM set", sgh);
 }
 
-static void PrepareAppMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
+static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
-    if (de_ctx->app_mpms_list_cnt == 0)
-        return;
+    const int max_buffer_id = de_ctx->buffer_type_id + 1;
+    struct SidsArray sids[max_buffer_id][2];
+    memset(sids, 0, sizeof(sids));
+    const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
+
+    /* flag the list+directions we have engines for as active */
+    for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
+        struct SidsArray *sa = &sids[a->sm_list][0];
+        sa->active = true;
+        sa->type = a->type;
+    }
+    for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
+        sids[a->sm_list][0].type = a->type;
+        if ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh)) {
+            struct SidsArray *sa = &sids[a->sm_list][0];
+            sa->active = true;
+        }
+        if ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh)) {
+            struct SidsArray *sa = &sids[a->sm_list][1];
+            sa->active = true;
+        }
+    }
+
+    for (uint32_t sig = 0; sig < sh->sig_cnt; sig++) {
+        const Signature *s = sh->match_array[sig];
+        if (s == NULL)
+            continue;
+        if (s->init_data->mpm_sm == NULL)
+            continue;
+        const int list = s->init_data->mpm_sm_list;
+        if (list < 0)
+            continue;
+        if (list == DETECT_SM_LIST_PMATCH)
+            continue;
+
+        switch (sids[list][0].type) {
+            /* app engines are direction aware */
+            case DETECT_BUFFER_MPM_TYPE_APP:
+                if (s->flags & SIG_FLAG_TOSERVER) {
+                    struct SidsArray *sa = &sids[list][0];
+                    if (sa->active) {
+                        if (sa->sids_array == NULL) {
+                            sa->sids_array = SCCalloc(1, max_sid);
+                            sa->sids_array_size = max_sid;
+                            BUG_ON(sa->sids_array == NULL); // TODO
+                        }
+                        sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                    }
+                }
+                if (s->flags & SIG_FLAG_TOCLIENT) {
+                    struct SidsArray *sa = &sids[list][1];
+                    if (sa->active) {
+                        if (sa->sids_array == NULL) {
+                            sa->sids_array = SCCalloc(1, max_sid);
+                            sa->sids_array_size = max_sid;
+                            BUG_ON(sa->sids_array == NULL); // TODO
+                        }
+                        sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                    }
+                }
+                break;
+            /* pkt engines are directionless, so only use index 0 */
+            case DETECT_BUFFER_MPM_TYPE_PKT: {
+                struct SidsArray *sa = &sids[list][0];
+                if (sa->active) {
+                    if (sa->sids_array == NULL) {
+                        sa->sids_array = SCCalloc(1, max_sid);
+                        sa->sids_array_size = max_sid;
+                        BUG_ON(sa->sids_array == NULL); // TODO
+                    }
+                    sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                }
+                break;
+            }
+            default:
+                abort();
+                break;
+        }
+    }
 
     sh->init->app_mpms = SCCalloc(de_ctx->app_mpms_list_cnt, sizeof(MpmCtx *));
     BUG_ON(sh->init->app_mpms == NULL);
 
-    DetectBufferMpmRegistery *a = de_ctx->app_mpms_list;
-    while (a != NULL) {
-        if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
-            (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh)))
-        {
-            MpmStore *mpm_store = MpmStorePrepareBufferAppLayer(de_ctx, sh, a);
-            if (mpm_store != NULL) {
-                sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
-
-                SCLogDebug("a %p a->name %s a->PrefilterRegisterWithListId %p "
-                        "mpm_store->mpm_ctx %p", a, a->name,
-                        a->PrefilterRegisterWithListId, mpm_store->mpm_ctx);
-
-                /* if we have just certain types of negated patterns,
-                 * mpm_ctx can be NULL */
-                if (a->PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
-                    BUG_ON(a->PrefilterRegisterWithListId(de_ctx,
-                                sh, mpm_store->mpm_ctx,
-                                a, a->sm_list) != 0);
-                    SCLogDebug("mpm %s %d set up", a->name, a->sm_list);
-                }
-            }
-        }
-        a = a->next;
-    }
-}
-
-static void PreparePktMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
-{
-    if (de_ctx->pkt_mpms_list_cnt == 0)
-        return;
-
     sh->init->pkt_mpms = SCCalloc(de_ctx->pkt_mpms_list_cnt, sizeof(MpmCtx *));
     BUG_ON(sh->init->pkt_mpms == NULL);
 
-    DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list;
-    while (a != NULL) {
-        MpmStore *mpm_store = MpmStorePrepareBufferPkt(de_ctx, sh, a);
+    for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
+        struct SidsArray *sa = &sids[a->sm_list][0];
+
+        MpmStore *mpm_store = MpmStorePrepareBufferPkt(de_ctx, sh, a, sa);
         if (mpm_store != NULL) {
             sh->init->pkt_mpms[a->id] = mpm_store->mpm_ctx;
 
@@ -1670,7 +1664,41 @@ static void PreparePktMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 SCLogDebug("mpm %s %d set up", a->name, a->sm_list);
             }
         }
-        a = a->next;
+    }
+    for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
+        if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
+                (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh))) {
+            const int dir = a->direction == SIG_FLAG_TOCLIENT;
+            struct SidsArray *sa = &sids[a->sm_list][dir];
+
+            MpmStore *mpm_store = MpmStorePrepareBufferAppLayer(de_ctx, sh, a, sa);
+            if (mpm_store != NULL) {
+                sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
+
+                SCLogDebug("a %p a->name %s a->PrefilterRegisterWithListId %p "
+                           "mpm_store->mpm_ctx %p",
+                        a, a->name, a->PrefilterRegisterWithListId, mpm_store->mpm_ctx);
+
+                /* if we have just certain types of negated patterns,
+                 * mpm_ctx can be NULL */
+                if (a->PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
+                    BUG_ON(a->PrefilterRegisterWithListId(
+                                   de_ctx, sh, mpm_store->mpm_ctx, a, a->sm_list) != 0);
+                    SCLogDebug("mpm %s %d set up", a->name, a->sm_list);
+                }
+            }
+        }
+    }
+
+    /* free temp sig arrays */
+    for (int i = 0; i < max_buffer_id; i++) {
+        struct SidsArray *sa;
+        sa = &sids[i][0];
+        if (sa->sids_array != NULL)
+            SCFree(sa->sids_array);
+        sa = &sids[i][1];
+        if (sa->sids_array != NULL)
+            SCFree(sa->sids_array);
     }
 }
 
@@ -1727,8 +1755,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
 
-    PrepareAppMpms(de_ctx, sh);
-    PreparePktMpms(de_ctx, sh);
+    PrepareMpms(de_ctx, sh);
     return 0;
 }
 
