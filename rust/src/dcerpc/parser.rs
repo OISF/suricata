@@ -160,7 +160,7 @@ named!(pub parse_dcerpc_bindack<DCERPCBindAck>,
         >> _assoc_group: take!(4)
         >> sec_addr_len: le_u16
         >> take!(sec_addr_len)
-        >> cond!((sec_addr_len + 2) % 4 != 0, take!(4 - (sec_addr_len + 2) % 4))
+        >> cond!((sec_addr_len.wrapping_add(2)) % 4 != 0, take!(4 - (sec_addr_len.wrapping_add(2)) % 4))
         >> numctxitems: le_u8
         >> take!(3) // Padding
         >> ctxitems: count!(parse_dcerpc_bindack_result, numctxitems as usize)
