@@ -19,7 +19,7 @@
 #include "util-hash-string.h"
 
 /* djb2 string hashing */
-uint32_t StringHashDjb2(uint8_t *data, uint32_t datalen)
+uint32_t StringHashDjb2(const uint8_t *data, uint32_t datalen)
 {
     uint32_t hash = 5381;
     for (uint32_t i = 0; i < datalen; i++) {
@@ -52,4 +52,3 @@ void StringHashFreeFunc(void *data)
 {
     SCFree(data);
 }
-
