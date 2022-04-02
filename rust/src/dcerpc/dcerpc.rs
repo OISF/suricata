@@ -301,7 +301,7 @@ pub struct DCERPCState {
     pub buffer_tc: Vec<u8>,
     pub pad: u8,
     pub padleft: u16,
-    pub bytes_consumed: u16,
+    pub bytes_consumed: i32,
     pub tx_id: u64,
     pub query_completed: bool,
     pub data_needed_for_dir: Direction,
@@ -966,7 +966,7 @@ impl DCERPCState {
 
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
-        if self.bytes_consumed < DCERPC_HDR_LEN && input_len > 0 {
+        if self.bytes_consumed < DCERPC_HDR_LEN.into() && input_len > 0 {
             parsed = self.process_header(buffer);
             if parsed == -1 {
                 self.extend_buffer(buffer, direction);
@@ -975,7 +975,7 @@ impl DCERPCState {
             if parsed == -2 {
                 return AppLayerResult::err();
             }
-            self.bytes_consumed += parsed as u16;
+            self.bytes_consumed += parsed;
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
@@ -987,7 +987,7 @@ impl DCERPCState {
         } else {
             self.query_completed = true;
         }
-        parsed = self.bytes_consumed as i32;
+        parsed = self.bytes_consumed;
 
         let current_call_id = self.get_hdr_call_id().unwrap_or(0);
 
@@ -1058,7 +1058,7 @@ impl DCERPCState {
                 return AppLayerResult::err();
             }
         }
-        self.bytes_consumed += retval as u16;
+        self.bytes_consumed += retval;
 
         // If the query has been completed, clean the buffer and reset the direction
         if self.query_completed == true {
