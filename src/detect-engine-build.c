@@ -1872,6 +1872,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         DetectEnginePktInspectionSetup(s);
 
         if (rule_engine_analysis_set) {
+            EngineAnalysisAddAllRulePatterns(de_ctx, s);
             EngineAnalysisRules2(de_ctx, s);
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
