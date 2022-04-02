@@ -61,6 +61,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-validate.h"
+#include "util-hash-string.h"
 
 const char *builtin_mpms[] = {
     "toserver TCP packet",
@@ -2105,14 +2106,84 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     return 0;
 }
 
-typedef struct DetectFPAndItsId_ {
-    PatIntId id;
-    uint16_t content_len;
-    uint32_t flags;
-    int sm_list;
+static inline uint32_t ContentFlagsForHash(const DetectContentData *cd)
+{
+    return cd->flags & (DETECT_CONTENT_NOCASE | DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH |
+                               DETECT_CONTENT_NEGATED | DETECT_CONTENT_ENDS_WITH);
+}
 
-    uint8_t *content;
-} DetectFPAndItsId;
+/** \internal
+ *  \brief The hash function for Pattern. Hashes pattern after chop is applied.
+ *
+ *  \param ht      Pointer to the hash table.
+ *  \param data    Pointer to the Pattern.
+ *  \param datalen Not used in our case.
+ *
+ *  \retval hash The generated hash value.
+ */
+static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectPatternTracker *p = (DetectPatternTracker *)data;
+    uint32_t hash = p->sm_list + ContentFlagsForHash(p->cd);
+    uint16_t content_len = p->cd->content_len;
+    const uint8_t *content = p->cd->content;
+    if (p->cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        content += p->cd->fp_chop_offset;
+        content_len = p->cd->fp_chop_len;
+    }
+    hash += StringHashDjb2(content, content_len);
+    return hash % ht->array_size;
+}
+
+/**
+ * \brief The Compare function for Pattern. Compares patterns after chop is applied.
+ *
+ * \param data1 Pointer to the first Pattern.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second Pattern.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 Patterns sent as args match.
+ * \retval 0 If the 2 Patterns sent as args do not match.
+ */
+static char PatternCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    const DetectPatternTracker *p1 = (DetectPatternTracker *)data1;
+    const DetectPatternTracker *p2 = (DetectPatternTracker *)data2;
+
+    if (p1->sm_list != p2->sm_list)
+        return 0;
+
+    if (ContentFlagsForHash(p1->cd) != ContentFlagsForHash(p2->cd))
+        return 0;
+
+    uint16_t p1_content_len = p1->cd->content_len;
+    uint8_t *p1_content = p1->cd->content;
+    if (p1->cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        p1_content += p1->cd->fp_chop_offset;
+        p1_content_len = p1->cd->fp_chop_len;
+    }
+    uint16_t p2_content_len = p2->cd->content_len;
+    uint8_t *p2_content = p2->cd->content;
+    if (p2->cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        p2_content += p2->cd->fp_chop_offset;
+        p2_content_len = p2->cd->fp_chop_len;
+    }
+
+    if (p1_content_len != p2_content_len)
+        return 0;
+
+    if (memcmp(p1_content, p2_content, p1_content_len) != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static void PatternFreeFunc(void *ptr)
+{
+    SCFree(ptr);
+}
 
 /**
  * \brief Figured out the FP and their respective content ids for all the
@@ -2125,116 +2196,61 @@ typedef struct DetectFPAndItsId_ {
  */
 int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 {
-    uint32_t struct_total_size = 0;
-    uint32_t content_total_size = 0;
-    Signature *s = NULL;
-
-    /* Count the amount of memory needed to store all the structures
-     * and the content of those structures. This will over estimate the
-     * true size, since duplicates are removed below, but counted here.
-     */
-    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+    uint32_t cnt = 0;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->flags & SIG_FLAG_PREFILTER)
             continue;
 
         RetrieveFPForSig(de_ctx, s);
         if (s->init_data->mpm_sm != NULL) {
-            DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
-            struct_total_size += sizeof(DetectFPAndItsId);
-            content_total_size += cd->content_len;
-
             s->flags |= SIG_FLAG_PREFILTER;
+            cnt++;
         }
     }
-    /* no rules */
-    if (struct_total_size + content_total_size == 0)
+    /* no mpm rules */
+    if (cnt == 0)
         return 0;
 
-    /* array hash buffer - I've run out of ideas to name it */
-    uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
-    if (unlikely(ahb == NULL))
-        return -1;
-
-    uint8_t *content = NULL;
-    uint16_t content_len = 0;
+    HashListTable *ht = HashListTableInit(4096, PatternHashFunc, PatternCompareFunc, PatternFreeFunc);
+    BUG_ON(ht == NULL);
     PatIntId max_id = 0;
-    DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
-    uint8_t *content_offset = ahb + struct_total_size;
 
-    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
-        if (s->init_data->mpm_sm != NULL) {
-            int sm_list = s->init_data->mpm_sm_list;
-            BUG_ON(sm_list == -1);
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->init_data->mpm_sm == NULL)
+            continue;
 
-            DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
-            DetectFPAndItsId *dup = (DetectFPAndItsId *)ahb;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                content = cd->content + cd->fp_chop_offset;
-                content_len = cd->fp_chop_len;
-            } else {
-                content = cd->content;
-                content_len = cd->content_len;
-            }
-            uint32_t flags = cd->flags & DETECT_CONTENT_NOCASE;
-            /* Check for content already found on the same list */
-            for (; dup != struct_offset; dup++) {
-                if (dup->content_len != content_len)
-                    continue;
-                if (dup->sm_list != sm_list)
-                    continue;
-                if (dup->flags != flags)
-                    continue;
-                /* Check for pattern matching a duplicate. Use case insensitive matching
-                 * for case insensitive patterns. */
-                if (flags & DETECT_CONTENT_NOCASE) {
-                    if (SCMemcmpLowercase(dup->content, content, content_len) != 0)
-                        continue;
-                } else {
-                    /* Case sensitive matching */
-                    if (SCMemcmp(dup->content, content, content_len) != 0)
-                        continue;
-                }
-                /* Found a match with a previous pattern. */
-                break;
-            }
-            if (dup != struct_offset) {
-                /* Exited for-loop before the end, so found an existing match.
-                 * Use its ID. */
-                cd->id = dup->id;
-                continue;
-            }
+        const int sm_list = s->init_data->mpm_sm_list;
+        BUG_ON(sm_list == -1);
 
-            /* Not found, so new content. Give it a new ID and add it
-             * to the array.  Copy the content at the end of the
-             * content array.
-             */
-            struct_offset->id = max_id++;
-            cd->id = struct_offset->id;
-            struct_offset->content_len = content_len;
-            struct_offset->sm_list = sm_list;
-            struct_offset->content = content_offset;
-            struct_offset->flags = flags;
+        DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
 
-            content_offset += content_len;
+        DetectPatternTracker lookup = {
+            .cd = cd, .sm_list = sm_list, .cnt = 0, .mpm = 0
+        };
+        DetectPatternTracker *res = HashListTableLookup(ht, &lookup, 0);
+        if (res) {
+            res->cnt++;
+            res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
 
-            if (flags & DETECT_CONTENT_NOCASE) {
-                /* Need to store case-insensitive patterns as lower case
-                 * because SCMemcmpLowercase() above assumes that all
-                 * patterns are stored lower case so that it doesn't
-                 * need to re-lower its first argument.
-                 */
-                memcpy_tolower(struct_offset->content, content, content_len);
-            } else {
-                memcpy(struct_offset->content, content, content_len);
-            }
+            cd->id = res->cd->id;
+            SCLogDebug("%u: res id %u cnt %u", s->id, res->cd->id, res->cnt);
+        } else {
+            DetectPatternTracker *add = SCCalloc(1, sizeof(*add));
+            BUG_ON(add == NULL);
+            add->cd = cd;
+            add->sm_list = sm_list;
+            add->cnt = 1;
+            add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+            HashListTableAdd(ht, (void *)add, 0);
 
-            struct_offset++;
-        } /* if (s->mpm_sm != NULL) */
-    } /* for */
+            cd->id = max_id++;
+            SCLogDebug("%u: add id %u cnt %u", s->id, add->cd->id, add->cnt);
+        }
+    }
 
     de_ctx->max_fp_id = max_id;
 
-    SCFree(ahb);
+    HashListTableFree(ht);
 
     return 0;
 }
