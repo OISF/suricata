@@ -673,6 +673,14 @@ typedef struct DetectBufferMpmRegistery_ {
     struct DetectBufferMpmRegistery_ *next;
 } DetectBufferMpmRegistery;
 
+/* helper structure to track pattern stats and assign pattern id's. */
+typedef struct DetectPatternTracker {
+    const struct DetectContentData_ *cd;
+    int sm_list;
+    uint32_t cnt;
+    uint32_t mpm;
+} DetectPatternTracker;
+
 typedef struct DetectReplaceList_ {
     struct DetectContentData_ *cd;
     uint8_t *found;

@@ -144,5 +144,7 @@ struct MpmListIdDataArgs {
     void *txv;
 };
 
+void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s);
+
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
