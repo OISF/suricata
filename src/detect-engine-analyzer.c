@@ -1255,6 +1255,43 @@ static void EngineAnalysisRulePatterns(const DetectEngineCtx *de_ctx, const Sign
             smd++;
         } while (1);
     }
+    const DetectEngineFrameInspectionEngine *frame = s->frame_inspect;
+    for (; frame != NULL; frame = frame->next) {
+        SigMatchData *smd = frame->smd;
+        do {
+            if (smd == NULL) {
+                BUG_ON(!(frame->sm_list < DETECT_SM_LIST_DYNAMIC_START));
+                smd = s->sm_arrays[frame->sm_list];
+            }
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    struct PatternItem lookup = {
+                        .cd = cd, .sm_list = frame->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    struct PatternItem *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = frame->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
 
     SCReturn;
 }
