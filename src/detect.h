@@ -652,6 +652,14 @@ typedef struct DetectBufferMpmRegistery_ {
     struct DetectBufferMpmRegistery_ *next;
 } DetectBufferMpmRegistery;
 
+/* helper structure to track pattern stats and assign pattern id's. */
+typedef struct DetectPatternTracker {
+    const struct DetectContentData_ *cd;
+    int sm_list;
+    uint32_t cnt;
+    uint32_t mpm;
+} DetectPatternTracker;
+
 typedef struct DetectReplaceList_ {
     struct DetectContentData_ *cd;
     uint8_t *found;
@@ -797,6 +805,7 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sgh_hash_table;
 
     HashListTable *mpm_hash_table;
+    HashListTable *pattern_hash_table;
 
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
