@@ -154,7 +154,7 @@ pub fn parse_dcerpc_bindack(i: &[u8]) -> IResult<&[u8], DCERPCBindAck> {
     let (i, _assoc_group) = take(4_usize)(i)?;
     let (i, sec_addr_len) = le_u16(i)?;
     let (i, _) = take(sec_addr_len)(i)?;
-    let (i, _) = cond((sec_addr_len + 2) % 4 != 0, |b| take(4 - (sec_addr_len + 2) % 4)(b))(i)?;
+    let (i, _) = cond((sec_addr_len.wrapping_add(2)) % 4 != 0, |b| take(4 - (sec_addr_len.wrapping_add(2)) % 4)(b))(i)?;
     let (i, numctxitems) = le_u8(i)?;
     let (i, _) = take(3_usize)(i)?; // Padding
     let (i, ctxitems) = count(parse_dcerpc_bindack_result, numctxitems as usize)(i)?;
