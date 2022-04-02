@@ -361,8 +361,8 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (filemagic == NULL)
         return -1;
 
-    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
-            DetectFilemagicThreadInit, (void *)filemagic, DetectFilemagicThreadFree, 1);
+    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(
+            de_ctx, "filemagic", DetectFilemagicThreadInit, NULL, DetectFilemagicThreadFree, 1);
     if (g_magic_thread_ctx_id == -1)
         goto error;
 
