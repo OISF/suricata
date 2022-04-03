@@ -2121,7 +2121,7 @@ static inline uint32_t ContentFlagsForHash(const DetectContentData *cd)
  *
  *  \retval hash The generated hash value.
  */
-static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+static uint32_t PatternChopHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     const DetectPatternTracker *p = (DetectPatternTracker *)data;
     uint32_t hash = p->sm_list + ContentFlagsForHash(p->cd);
@@ -2132,6 +2132,23 @@ static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
         content_len = p->cd->fp_chop_len;
     }
     hash += StringHashDjb2(content, content_len);
+    return hash % ht->array_size;
+}
+
+/** \internal
+ *  \brief The hash function for Pattern. Ignores chop.
+ *
+ *  \param ht      Pointer to the hash table.
+ *  \param data    Pointer to the Pattern.
+ *  \param datalen Not used in our case.
+ *
+ *  \retval hash The generated hash value.
+ */
+static uint32_t PatternNoChopHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectPatternTracker *p = (DetectPatternTracker *)data;
+    uint32_t hash = p->sm_list + ContentFlagsForHash(p->cd);
+    hash += StringHashDjb2(p->cd->content, p->cd->content_len);
     return hash % ht->array_size;
 }
 
@@ -2146,7 +2163,7 @@ static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
  * \retval 1 If the 2 Patterns sent as args match.
  * \retval 0 If the 2 Patterns sent as args do not match.
  */
-static char PatternCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+static char PatternChopCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     const DetectPatternTracker *p1 = (DetectPatternTracker *)data1;
     const DetectPatternTracker *p2 = (DetectPatternTracker *)data2;
@@ -2174,6 +2191,38 @@ static char PatternCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t
         return 0;
 
     if (memcmp(p1_content, p2_content, p1_content_len) != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \brief The Compare function for Pattern. Ignores chop settings
+ *
+ * \param data1 Pointer to the first Pattern.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second Pattern.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 Patterns sent as args match.
+ * \retval 0 If the 2 Patterns sent as args do not match.
+ */
+static char PatternNoChopCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    const DetectPatternTracker *p1 = (DetectPatternTracker *)data1;
+    const DetectPatternTracker *p2 = (DetectPatternTracker *)data2;
+
+    if (p1->sm_list != p2->sm_list)
+        return 0;
+
+    if (ContentFlagsForHash(p1->cd) != ContentFlagsForHash(p2->cd))
+        return 0;
+
+    if (p1->cd->content_len != p2->cd->content_len)
+        return 0;
+
+    if (memcmp(p1->cd->content, p2->cd->content, p1->cd->content_len) != 0) {
         return 0;
     }
 
@@ -2211,7 +2260,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     if (cnt == 0)
         return 0;
 
-    HashListTable *ht = HashListTableInit(4096, PatternHashFunc, PatternCompareFunc, PatternFreeFunc);
+    HashListTable *ht = HashListTableInit(4096, PatternChopHashFunc, PatternChopCompareFunc, PatternFreeFunc);
     BUG_ON(ht == NULL);
     PatIntId max_id = 0;
 
@@ -2253,4 +2302,156 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     HashListTableFree(ht);
 
     return 0;
+}
+
+/** \brief add all patterns on our stats hash
+ *  Used to fill the hash later used by DumpPatterns()
+ *  \note sets up the hash table on first call
+ */
+void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s)
+{
+    if (de_ctx->pattern_hash_table == NULL) {
+        de_ctx->pattern_hash_table =
+            HashListTableInit(4096, PatternNoChopHashFunc, PatternNoChopCompareFunc, PatternFreeFunc);
+        BUG_ON(de_ctx->pattern_hash_table == NULL);
+    }
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH]) {
+        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_PMATCH];
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+                    DetectPatternTracker lookup = {
+                        .cd = cd, .sm_list = DETECT_SM_LIST_PMATCH, .cnt = 0, .mpm = 0
+                    };
+                    DetectPatternTracker *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        DetectPatternTracker *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = DETECT_SM_LIST_PMATCH;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+
+    const DetectEngineAppInspectionEngine *app = s->app_inspect;
+    for (; app != NULL; app = app->next) {
+        SigMatchData *smd = app->smd;
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    DetectPatternTracker lookup = {
+                        .cd = cd, .sm_list = app->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    DetectPatternTracker *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        DetectPatternTracker *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = app->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+    const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
+    for (; pkt != NULL; pkt = pkt->next) {
+        SigMatchData *smd = pkt->smd;
+        do {
+            if (smd == NULL) {
+                BUG_ON(!(pkt->sm_list < DETECT_SM_LIST_DYNAMIC_START));
+                smd = s->sm_arrays[pkt->sm_list];
+            }
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    DetectPatternTracker lookup = {
+                        .cd = cd, .sm_list = pkt->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    DetectPatternTracker *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        DetectPatternTracker *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = pkt->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+    const DetectEngineFrameInspectionEngine *frame = s->frame_inspect;
+    for (; frame != NULL; frame = frame->next) {
+        SigMatchData *smd = frame->smd;
+        do {
+            if (smd == NULL) {
+                BUG_ON(!(frame->sm_list < DETECT_SM_LIST_DYNAMIC_START));
+                smd = s->sm_arrays[frame->sm_list];
+            }
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    DetectPatternTracker lookup = {
+                        .cd = cd, .sm_list = frame->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    DetectPatternTracker *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        DetectPatternTracker *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = frame->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
 }
