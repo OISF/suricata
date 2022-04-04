@@ -666,7 +666,7 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
         >>  _timeout: le_u32
         >>  _reserved2: take!(2)
         >>  param_cnt: le_u16
-        >>  _param_offset: le_u16
+        >>  _param_offset: verify!(le_u16, |v| v <= (0xffffu16 - param_cnt))
         >>  data_cnt: le_u16
         >>  _data_offset: le_u16
         >>  _setup_cnt: le_u8
