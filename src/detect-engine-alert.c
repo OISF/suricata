@@ -200,6 +200,29 @@ static uint16_t PacketAlertMemMoveQueuePos(Packet *p, const Signature *s)
     return i;
 }
 
+/**
+ * \brief insert signature in packet alerts queue
+ *
+ * After logic for appending at the right position is applied, just call this to
+ * insert at the right position.
+ *
+ * \param det_ctx thread detection engine ctx
+ * \param s the signature that matched
+ * \param p packet
+ * \param flags alert flags
+ * \param pos the correct position in the Alerts queue
+ */
+static void PacketAlertInsertPos(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
+        uint64_t tx_id, uint8_t flags, uint16_t pos)
+{
+    p->alerts.alerts[pos].num = s->num;
+    p->alerts.alerts[pos].action = s->action;
+    p->alerts.alerts[pos].flags = flags;
+    p->alerts.alerts[pos].s = s;
+    p->alerts.alerts[pos].tx_id = tx_id;
+    p->alerts.alerts[pos].frame_id = (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+}
+
 /** \brief append a signature match to a packet
  *
  *  \param det_ctx thread detection engine ctx
@@ -220,22 +243,10 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
                                p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
         /* We just add it */
-        p->alerts.alerts[p->alerts.cnt].num = s->num;
-        p->alerts.alerts[p->alerts.cnt].action = s->action;
-        p->alerts.alerts[p->alerts.cnt].flags = flags;
-        p->alerts.alerts[p->alerts.cnt].s = s;
-        p->alerts.alerts[p->alerts.cnt].tx_id = tx_id;
-        p->alerts.alerts[p->alerts.cnt].frame_id =
-                (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+        PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, p->alerts.cnt);
     } else {
         uint16_t i = PacketAlertMemMoveQueuePos(p, s);
-
-        p->alerts.alerts[i].num = s->num;
-        p->alerts.alerts[i].action = s->action;
-        p->alerts.alerts[i].flags = flags;
-        p->alerts.alerts[i].s = s;
-        p->alerts.alerts[i].tx_id = tx_id;
-        p->alerts.alerts[i].frame_id = (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+        PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
     }
 
     /* Update the count */
