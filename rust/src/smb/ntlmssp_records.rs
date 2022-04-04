@@ -101,9 +101,9 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
 
     // subtrack 12 as idenfier (8) and type (4) are cut before we are called
     // subtract 60 for the len/offset/maxlen fields above
-    let (i, _) = cond(nego_flags.1==1, |b| take(domain_blob_offset - (12 + 60))(b))(i)?;
+    let (i, _) = cond(nego_flags.1==1 && domain_blob_offset > 72, |b| take(domain_blob_offset - (12 + 60))(b))(i)?;
     // or 52 if we have no version
-    let (i, _) = cond(nego_flags.1==0, |b| take(domain_blob_offset - (12 + 52))(b))(i)?;
+    let (i, _) = cond(nego_flags.1==0 && domain_blob_offset > 64, |b| take(domain_blob_offset - (12 + 52))(b))(i)?;
 
     let (i, domain_blob) = take(domain_blob_len)(i)?;
     let (i, user_blob) = take(user_blob_len)(i)?;
