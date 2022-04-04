@@ -1093,8 +1093,12 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (int list_id = 0; list_id < nlists; list_id++) {
+    for (int list_id = DETECT_SM_LIST_PMATCH; list_id < nlists; list_id++) {
         if (s->init_data->smlists[list_id] == NULL)
+            continue;
+
+        if (list_id == DETECT_SM_LIST_POSTMATCH || list_id == DETECT_SM_LIST_TMATCH ||
+                list_id == DETECT_SM_LIST_SUPPRESS || list_id == DETECT_SM_LIST_THRESHOLD)
             continue;
 
         if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id))
