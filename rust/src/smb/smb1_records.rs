@@ -20,7 +20,7 @@ use crate::smb::error::SmbError;
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{complete, cond, peek, rest};
+use nom7::combinator::{complete, cond, peek, rest, verify};
 use nom7::multi::many1;
 use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use nom7::IResult;
@@ -702,7 +702,7 @@ pub fn parse_smb_trans2_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestTra
     let (i, _timeout) = le_u32(i)?;
     let (i, _reserved2) = take(2_usize)(i)?;
     let (i, param_cnt) = le_u16(i)?;
-    let (i, param_offset) = le_u16(i)?;
+    let (i, param_offset) = verify(le_u16, |&v| v <= (u16::MAX - param_cnt))(i)?;
     let (i, data_cnt) = le_u16(i)?;
     let (i, data_offset) = le_u16(i)?;
     let (i, _setup_cnt) = le_u8(i)?;
