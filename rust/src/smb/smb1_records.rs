@@ -16,11 +16,13 @@
  */
 
 use crate::smb::error::SmbError;
-use nom::IResult;
-use nom::combinator::rest;
-use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
+use nom::bytes::streaming:: take;
+use nom::combinator::{cond, rest, verify};
+use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
+use nom::IResult;
+
 
 // SMB_FLAGS_REPLY in Microsoft docs.
 const SMB1_FLAGS_RESPONSE: u8 = 0x80;
@@ -656,37 +658,41 @@ pub struct SmbRequestTrans2Record<'a> {
     pub data_blob: &'a[u8],
 }
 
-named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
-    do_parse!(
-            _wct: le_u8
-        >>  _total_param_cnt: le_u16
-        >>  _total_data_cnt: le_u16
-        >>  _max_param_cnt: le_u16
-        >>  _max_data_cnt: le_u16
-        >>  _max_setup_cnt: le_u8
-        >>  _reserved1: take!(1)
-        >>  _flags: le_u16
-        >>  _timeout: le_u32
-        >>  _reserved2: take!(2)
-        >>  param_cnt: le_u16
-        >>  _param_offset: le_u16
-        >>  data_cnt: le_u16
-        >>  _data_offset: le_u16
-        >>  _setup_cnt: le_u8
-        >>  _reserved3: take!(1)
-        >>  subcmd: le_u16
-        >>  _bcc: le_u16
-        >>  _padding: take!(3)
-        //TODO test and use _param_offset and _data_offset
-        >>  setup_blob: take!(param_cnt)
-        >>  data_blob: take!(data_cnt)
+pub fn parse_smb_trans2_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestTrans2Record> {
+    let (i, _wct) = le_u8(i)?;
+    let (i, _total_param_cnt) = le_u16(i)?;
+    let (i, _total_data_cnt) = le_u16(i)?;
+    let (i, _max_param_cnt) = le_u16(i)?;
+    let (i, _max_data_cnt) = le_u16(i)?;
+    let (i, _max_setup_cnt) = le_u8(i)?;
+    let (i, _reserved1) = take(1_usize)(i)?;
+    let (i, _flags) = le_u16(i)?;
+    let (i, _timeout) = le_u32(i)?;
+    let (i, _reserved2) = take(2_usize)(i)?;
+    let (i, param_cnt) = le_u16(i)?;
+    let (i, param_offset) = verify(le_u16, |&v| v <= (std::u16::MAX - param_cnt))(i)?;
+    let (i, data_cnt) = le_u16(i)?;
+    let (i, data_offset) = le_u16(i)?;
+    let (i, _setup_cnt) = le_u8(i)?;
+    let (i, _reserved3) = take(1_usize)(i)?;
+    let (i, subcmd) = le_u16(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    //TODO test and use param_offset
+    let (i, _padding) = take(3_usize)(i)?;
+    let (i, setup_blob) = take(param_cnt)(i)?;
+    let (i, _padding2) = cond(
+        data_offset > param_offset + param_cnt,
+        |b| take(data_offset - param_offset - param_cnt)(b)
+    )(i)?;
+    let (i, data_blob) = take(data_cnt)(i)?;
 
-        >> (SmbRequestTrans2Record {
-                subcmd,
-                setup_blob,
-                data_blob
-           }))
-);
+    let record = SmbRequestTrans2Record {
+        subcmd,
+        setup_blob,
+        data_blob
+    };
+    Ok((i, record))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct SmbResponseCreateAndXRecord<'a> {
