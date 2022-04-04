@@ -87,9 +87,10 @@ named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
 
          // subtrack 12 as idenfier (8) and type (4) are cut before we are called
          // subtract 60 for the len/offset/maxlen fields above
-         >> cond!(nego_flags.1==1, take!(domain_blob_offset - (12 + 60)))
+         >> cond!(nego_flags.1==1 && domain_blob_offset > 72, take!(domain_blob_offset - (12 + 60)))
+
          // or 52 if we have no version
-         >> cond!(nego_flags.1==0, take!(domain_blob_offset - (12 + 52)))
+         >> cond!(nego_flags.1==0 && domain_blob_offset > 64, take!(domain_blob_offset - (12 + 52)))
 
          >> domain_blob: take!(domain_blob_len)
          >> user_blob: take!(user_blob_len)
