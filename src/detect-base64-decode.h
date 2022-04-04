@@ -18,7 +18,6 @@
 #ifndef __DETECT_BASE64_DECODE_H__
 #define __DETECT_BASE64_DECODE_H__
 
-#include "app-layer-template.h"
 
 typedef struct DetectBase64Decode_ {
     uint32_t bytes;
