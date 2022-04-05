@@ -269,7 +269,6 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
                        ") in packet %" PRIu64 "",
                     p->alerts.alerts[p->alerts.cnt - 1].s->id,
                     p->alerts.alerts[p->alerts.cnt - 1].num, s->id, s->num, p->pcap_cnt);
-            // TODO log to stats signature id that was discarded/replaced
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, (p->alerts.cnt - 1));
         } else if (num_diff < -1) {
             /* If the new signature's internal id adjacent to the last one in the
@@ -280,8 +279,10 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
                        ") in packet %" PRIu64 "",
                     p->alerts.alerts[i].s->id, p->alerts.alerts[i].num, s->id, s->num, p->pcap_cnt);
             PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
-            // TODO log to stats signature id that was discarded/replaced
         }
+        /* Update so we can log to stats later. If we got here, some alert was
+        discarded */
+        p->alerts.discarded++;
         /* Don't update p->alerts.cnt here, already at max */
         // TODO how do we take care of alerts that have drop action, in this case?
     }

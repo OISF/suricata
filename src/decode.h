@@ -304,6 +304,7 @@ extern uint16_t packet_alert_max;
 
 typedef struct PacketAlerts_ {
     uint16_t cnt;
+    uint16_t discarded;
     PacketAlert *alerts;
     /* single pa used when we're dropping,
      * so we can log it out in the drop log. */
@@ -839,6 +840,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->BypassPacketsFlow = NULL;                                                             \
         (p)->pktlen = 0;                                                                           \
         (p)->alerts.cnt = 0;                                                                       \
+        (p)->alerts.discarded = 0;                                                                 \
         (p)->alerts.drop.action = 0;                                                               \
         (p)->pcap_cnt = 0;                                                                         \
         (p)->tunnel_rtv_cnt = 0;                                                                   \
