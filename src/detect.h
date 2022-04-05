@@ -1045,6 +1045,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /** id for alert counter */
     uint16_t counter_alerts;
+    /** id for discarded alerts counter**/
+    uint16_t counter_alerts_overflow;
 #ifdef PROFILING
     uint16_t counter_mpm_list;
     uint16_t counter_nonmpm_list;

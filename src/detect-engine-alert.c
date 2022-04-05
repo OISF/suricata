@@ -267,6 +267,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
         /* we must grow the alert queue */
         if (pos == AlertQueueExpand(det_ctx)) {
             /* this means we failed to expand the queue */
+            p->alerts.discarded++;
             return;
         }
     }
@@ -368,6 +369,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         /* Thresholding removes this alert */
         if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
             /* we will not copy this to the AlertQueue */
+            p->alerts.discarded++;
         } else if (p->alerts.cnt < packet_alert_max) {
             p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
@@ -378,6 +380,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 break;
             }
             p->alerts.cnt++;
+        } else {
+            p->alerts.discarded++;
         }
         i++;
     }
