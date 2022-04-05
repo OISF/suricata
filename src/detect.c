@@ -822,6 +822,7 @@ static DetectRunScratchpad DetectRunSetup(
 
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
+    p->alerts.discarded = 0;
 #endif
     det_ctx->ticker++;
     det_ctx->filestore_cnt = 0;
@@ -930,6 +931,9 @@ static inline void DetectRunPostRules(
     PacketAlertFinalize(de_ctx, det_ctx, p);
     if (p->alerts.cnt > 0) {
         StatsAddUI64(tv, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
+    }
+    if (p->alerts.discarded > 0) {
+        StatsAddUI64(tv, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 }
