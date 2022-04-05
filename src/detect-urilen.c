@@ -207,7 +207,8 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         }
     }
 
-    pcre2_substring_free((PCRE2_UCHAR *)arg1);
+    if (arg1 != NULL)
+        pcre2_substring_free((PCRE2_UCHAR *)arg1);
     pcre2_substring_free((PCRE2_UCHAR *)arg2);
     if (arg3 != NULL)
         pcre2_substring_free((PCRE2_UCHAR *)arg3);
