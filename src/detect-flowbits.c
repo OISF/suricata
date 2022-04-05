@@ -45,9 +45,6 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
-static DetectParseRegex parse_regex;
-
 #define MAX_TOKENS 100
 
 int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
@@ -72,8 +69,6 @@ void DetectFlowbitsRegister (void)
 #endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
