@@ -256,7 +256,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         /* Thresholding removes this alert */
         if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
             /* we will not copy this to the AlertQueue */
-        } else {
+            // TODO I think here we increment discarded by thresholding
+        } else if (p->alerts.cnt < packet_alert_max) {
             memcpy(&p->alerts.alerts[p->alerts.cnt], &det_ctx->alert_queue[i], sizeof(PacketAlert));
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
 
@@ -266,6 +267,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 break;
             }
             p->alerts.cnt++;
+        } else {
+            p->alerts.discarded++;
         }
         i++;
     }
