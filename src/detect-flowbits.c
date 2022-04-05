@@ -1372,6 +1372,35 @@ static int FlowBitsTestSig11(void)
 }
 
 /**
+ * \test FlowBitsTestSig12 is a test to check random arguments to
+ *  flowbits keyword are rejected
+ *  See https://redmine.openinfosecfoundation.org/issues/5154
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig12(void)
+{
+    Signature *s = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"flowbits with noalert option\"; "
+            "flow:established,to_server; http.method; content:\"POST\"; "
+            "flowbits:set,ET.whatever,asdfasdf; sid:7;)");
+    FAIL_IF_NOT_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
  * \brief this function registers unit tests for FlowBits
  */
 void FlowBitsRegisterTests(void)
@@ -1388,5 +1417,6 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig09", FlowBitsTestSig09);
     UtRegisterTest("FlowBitsTestSig10", FlowBitsTestSig10);
     UtRegisterTest("FlowBitsTestSig11", FlowBitsTestSig11);
+    UtRegisterTest("FlowBitsTestSig12", FlowBitsTestSig12);
 }
 #endif /* UNITTESTS */
