@@ -145,6 +145,21 @@ is: pass, drop, reject, alert.
 This means a pass rule is considered before a drop rule, a drop rule
 before a reject rule and so on.
 
+Packet alert queue settings
+---------------------------
+
+It is possible to configure the size of the alerts queue that is used to append alerts triggered by each packet.
+
+This will influence how many alerts would be perceived to have matched against a given packet.
+The default value is 15. If an invalid setting or no value is provided, the engine will fall
+back to the default.
+
+::
+
+    #Define maximum number of possible alerts that can be triggered for the same
+    # packet. Default is 15
+    packet-alert-max: 15
+
 Splitting configuration in multiple files
 -----------------------------------------
 
