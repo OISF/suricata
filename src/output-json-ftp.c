@@ -93,6 +93,9 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
     } else {
         json_object_set_new(cjs, "command_data", json_string(NULL));
     }
+    json_object_set_new(cjs, "command_truncated", json_boolean(tx->request_truncated));
+
+    bool reply_truncated = false;
 
     if (!TAILQ_EMPTY(&tx->response_list)) {
         FTPString *response;
@@ -105,6 +108,9 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
                 length = (uint16_t)response->len - 1;
             } else if (response->len > UINT16_MAX) {
                 length = UINT16_MAX;
+            }
+            if (!reply_truncated && response->truncated) {
+                reply_truncated = true;
             }
             while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
                 uint16_t offset = 0;
@@ -144,6 +150,7 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
 
     json_object_set_new(cjs, "reply_received",
             json_string((char *)(tx->done ? "yes" : "no")));
+    json_object_set_new(cjs, "reply_truncated", json_boolean(reply_truncated));
 
     return cjs;
 }
