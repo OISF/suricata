@@ -160,6 +160,59 @@ back to the default.
     # packet. Default is 15
     packet-alert-max: 15
 
+We recommend that you use the default value for this setting unless you are seeing a high number of discarded alerts
+(``alert_queue_overflow``) - see the `Discarded and Suppressed Alerts Stats`_ section for more details.
+
+Impact on engine behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Internally, the Suricata engine represents each packet with a data structure that has its own alert queue. The max size
+of the queue is defined by ``packet-alert-max``. The same rule can be triggered by the same packet multiple times. As
+long as there is still space in the alert queue, those are appended.
+
+Rules that have the ``noalert`` keyword will be checked - in case their signatures have actions that must be applied to the Packet or Flow, then suppressed. They have no effect in the final alert queue.
+
+Rules are queued by priority: higher priority rules may be kept instead of lower priority ones that may have been triggered earlier, if Suricata reaches ``packet-alert-max`` for a given packet (a.k.a. packet alert queue overflow).
+
+Packet alert queue overflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once the alert queue reaches its max size, we are potentially at packet alert queue overflow, so new alerts will only be appended in case their rules have a higher priority id (this is the internal id attributed by the engine, not the signature id).
+
+This may happen in two different situations:
+
+- a higher priority rule is triggered after a lower priority one: the lower priority rule is replaced in the queue;
+- a lower priority rule is triggered: the rule is just discarded.
+
+.. note ::
+
+    This behavior does not mean that triggered ``drop`` rules would have their action ignored, in IPS mode.
+
+.. _alerts stats:
+
+Discarded and Suppressed Alerts Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Both scenarios previously described will be logged as *detect.alert_queue_overflow* in the stats logs (in stats.log and eve-log's stats event).
+
+When ``noalert`` rules match, they appear in the stats logs as *detect.alerts_suppressed*.
+
+::
+
+    Date: 4/6/2022 -- 17:18:08 (uptime: 0d, 00h 00m 00s)
+    ------------------------------------------------------------------------------------
+    Counter                                       | TM Name                   | Value
+    ------------------------------------------------------------------------------------
+    detect.alert                                  | Total                     | 3
+    detect.alert_queue_overflow                   | Total                     | 4
+    detect.alerts_suppressed                      | Total                     | 1
+
+
+In this example from a stats.log, we read that 8 alerts were generated: 3 were kept in the packet queue while 4
+were discarded due to packets having reached max size for the alert queue, and 1 was suppressed due to coming from a ``noalert``
+rule.
+
+
 Splitting configuration in multiple files
 -----------------------------------------
 
