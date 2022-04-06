@@ -185,6 +185,28 @@ This may happen in two different situations:
 
     This behavior does not mean that triggered ``drop`` rules would have their action ignored, in IPS mode.
 
+Discarded and Suppressed Alerts Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Both scenarios previously described will be logged as *detect.alert_queue_overflow* in the stats logs (in stats.log and eve-log's stats event).
+
+When ``noalert`` rules match, they appear in the stats logs as *detect.alerts_suppressed*.
+
+::
+
+    Date: 4/6/2022 -- 17:18:08 (uptime: 0d, 00h 00m 00s)
+    ------------------------------------------------------------------------------------
+    Counter                                       | TM Name                   | Value
+    ------------------------------------------------------------------------------------
+    detect.alert                                  | Total                     | 3
+    detect.alert_queue_overflow                   | Total                     | 4
+    detect.alerts_suppressed                      | Total                     | 1
+
+
+In this example from a stats.log, we read that 8 alerts were generated: 3 were kept in the packet queue while 4
+were discarded due to packets having reached max size for the alert queue, and 1 was suppressed due to coming from a ``noalert``
+rule.
+
 
 Splitting configuration in multiple files
 -----------------------------------------
