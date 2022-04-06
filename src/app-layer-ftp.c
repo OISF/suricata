@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,6 +57,7 @@
 #include "util-memrchr.h"
 #include "util-mem.h"
 #include "util-misc.h"
+#include "util-validate.h"
 
 #include "output-json.h"
 #include "rust.h"
@@ -126,6 +127,7 @@ const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1] = {
 };
 uint64_t ftp_config_memcap = 0;
 uint32_t ftp_config_maxtx = 1024;
+uint32_t ftp_max_line_len = 4096;
 
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
@@ -162,6 +164,14 @@ static void FTPParseMemcap(void)
                     conf_val);
         }
         SCLogInfo("FTP max tx: %" PRIu32, ftp_config_maxtx);
+    }
+
+    if ((ConfGet("app-layer.protocols.ftp.max-line-length", &conf_val)) == 1) {
+        if (ParseSizeStringU32(conf_val, &ftp_max_line_len) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ftp.max-line-length from conf file - %s.",
+                    conf_val);
+        }
+        SCLogConfig("FTP max line length: %" PRIu32, ftp_max_line_len);
     }
 }
 
@@ -366,6 +376,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         /* we have seen the lf for the previous line.  Clear the parser
          * details to parse new line */
         line_state->current_line_lf_seen = 0;
+        state->current_line_truncated = false;
         if (line_state->current_line_db == 1) {
             line_state->current_line_db = 0;
             FTPFree(line_state->db, line_state->db_len);
@@ -393,20 +404,27 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             line_state->current_line_db = 1;
             memcpy(line_state->db, state->input, state->input_len);
             line_state->db_len = state->input_len;
-        } else {
-            ptmp = FTPRealloc(line_state->db, line_state->db_len,
-                             (line_state->db_len + state->input_len));
-            if (ptmp == NULL) {
-                FTPFree(line_state->db, line_state->db_len);
-                line_state->db = NULL;
-                line_state->db_len = 0;
-                return -1;
+        } else if (!state->current_line_truncated) {
+            int32_t input_len = state->input_len;
+            if (line_state->db_len + input_len > ftp_max_line_len) {
+                input_len = ftp_max_line_len - line_state->db_len;
+                DEBUG_VALIDATE_BUG_ON(input_len < 0);
+                state->current_line_truncated = true;
             }
-            line_state->db = ptmp;
+            if (input_len > 0) {
+                ptmp = FTPRealloc(
+                        line_state->db, line_state->db_len, (line_state->db_len + input_len));
+                if (ptmp == NULL) {
+                    FTPFree(line_state->db, line_state->db_len);
+                    line_state->db = NULL;
+                    line_state->db_len = 0;
+                    return -1;
+                }
+                line_state->db = ptmp;
 
-            memcpy(line_state->db + line_state->db_len,
-                   state->input, state->input_len);
-            line_state->db_len += state->input_len;
+                memcpy(line_state->db + line_state->db_len, state->input, input_len);
+                line_state->db_len += input_len;
+            }
         }
         state->input += state->input_len;
         state->input_len = 0;
@@ -417,27 +435,35 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         line_state->current_line_lf_seen = 1;
 
         if (line_state->current_line_db == 1) {
-            ptmp = FTPRealloc(line_state->db, line_state->db_len,
-                             (line_state->db_len + (lf_idx + 1 - state->input)));
-            if (ptmp == NULL) {
-                FTPFree(line_state->db, line_state->db_len);
-                line_state->db = NULL;
-                line_state->db_len = 0;
-                return -1;
-            }
-            line_state->db = ptmp;
+            if (!state->current_line_truncated) {
+                int32_t input_len = lf_idx + 1 - state->input;
+                if (line_state->db_len + input_len > ftp_max_line_len) {
+                    input_len = ftp_max_line_len - line_state->db_len;
+                    DEBUG_VALIDATE_BUG_ON(input_len < 0);
+                    state->current_line_truncated = true;
+                }
+                if (input_len > 0) {
+                    ptmp = FTPRealloc(
+                            line_state->db, line_state->db_len, (line_state->db_len + input_len));
+                    if (ptmp == NULL) {
+                        FTPFree(line_state->db, line_state->db_len);
+                        line_state->db = NULL;
+                        line_state->db_len = 0;
+                        return -1;
+                    }
+                    line_state->db = ptmp;
 
-            memcpy(line_state->db + line_state->db_len,
-                   state->input, (lf_idx + 1 - state->input));
-            line_state->db_len += (lf_idx + 1 - state->input);
+                    memcpy(line_state->db + line_state->db_len, state->input, input_len);
+                    line_state->db_len += input_len;
 
-            if (line_state->db_len > 1 &&
-                line_state->db[line_state->db_len - 2] == 0x0D) {
-                line_state->db_len -= 2;
-                state->current_line_delimiter_len = 2;
-            } else {
-                line_state->db_len -= 1;
-                state->current_line_delimiter_len = 1;
+                    if (line_state->db_len > 1 && line_state->db[line_state->db_len - 2] == 0x0D) {
+                        line_state->db_len -= 2;
+                        state->current_line_delimiter_len = 2;
+                    } else {
+                        line_state->db_len -= 1;
+                        state->current_line_delimiter_len = 1;
+                    }
+                }
             }
 
             state->current_line = line_state->db;
@@ -445,7 +471,12 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 
         } else {
             state->current_line = state->input;
-            state->current_line_len = lf_idx - state->input;
+            if (lf_idx - state->input > ftp_max_line_len) {
+                state->current_line_len = ftp_max_line_len;
+                state->current_line_truncated = true;
+            } else {
+                state->current_line_len = lf_idx - state->input;
+            }
 
             if (state->input != lf_idx &&
                 *(lf_idx - 1) == 0x0D) {
@@ -605,6 +636,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request,
                 state->current_line, state->current_line_len);
+        tx->request_truncated = state->current_line_truncated;
 
         /* change direction (default to server) so expectation will handle
          * the correct message when expectation will match.
@@ -832,6 +864,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             FTPString *response = FTPStringAlloc();
             if (likely(response)) {
                 response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
+                response->truncated = state->current_line_truncated;
                 TAILQ_INSERT_TAIL(&tx->response_list, response, next);
             }
         }
