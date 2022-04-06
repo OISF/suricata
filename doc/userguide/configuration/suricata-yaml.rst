@@ -183,6 +183,23 @@ This may happen in two different situations:
 
     This behavior does not mean that triggered ``drop`` rules would have their action ignored, in IPS mode.
 
+Discarded Alerts Stats
+~~~~~~~~~~~~~~~~~~~~~~
+
+Both scenarios previously described will be logged as *detect.alert_queue_overflow* in the stats logs (stats.log and eve-log -- event type stats).
+
+::
+
+    Date: 4/6/2022 -- 17:18:08 (uptime: 0d, 00h 00m 00s)
+    ------------------------------------------------------------------------------------
+    Counter                                       | TM Name                   | Value
+    ------------------------------------------------------------------------------------
+    detect.alert                                  | Total                     | 3
+    detect.alert_queue_overflow                   | Total                     | 4
+
+In this example from a stats.log, we read that 7 alerts were generated: 3 were kept in the packet queue while 4
+were discarded due to packets having reached max size for the alert queue.
+
 
 Splitting configuration in multiple files
 -----------------------------------------
