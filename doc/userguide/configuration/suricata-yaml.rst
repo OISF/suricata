@@ -160,6 +160,32 @@ back to the default.
     # packet. Default is 15
     packet-alert-max: 15
 
+Impact on engine behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Internally, the Suricata engine represents each packet with a data structure that has its own alert queue. The max size
+of the queue is defined by ``packet-alert-max``. The same rule can be triggered by the same packet multiple times. As
+long as there is still space in the alert queue, those are appended.
+
+``noalert`` rules, on the other hand, are checked in case their signatures have actions that must be applied to the packet, then suppressed, having no effect in the final alert queue.
+
+Rules are queued by priority: higher priority rules may be kept instead of lower priority ones that may have been triggered earlier, if Suricata reaches ``packet-alert-max`` for a given packet (a.k.a. packet alert queue overflow).
+
+Packet alert queue overflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once the alert queue reaches its max size, we are potentially at packet alert queue overflow, so new alerts will only be appended in case their rules have a higher priority id (this is the internal id attributed by the engine, not the signature id).
+
+This may happen in two different situations:
+
+- a higher priority rule is triggered after a lower priority one: the lower priority rule is replaced in the queue;
+- a lower priority rule is triggered: the rule is just discarded.
+
+.. note ::
+
+    This behavior does not mean that triggered ``drop`` rules would have their action ignored, in IPS mode.
+
+
 Splitting configuration in multiple files
 -----------------------------------------
 
