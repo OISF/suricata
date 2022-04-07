@@ -30,6 +30,10 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading from 6.0.4 to 6.0.5
+-----------------------------
+- FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.
+
 Upgrading 5.0 to 6.0
 --------------------
 - SIP now enabled by default

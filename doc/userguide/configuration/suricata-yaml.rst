@@ -1185,6 +1185,31 @@ Limit for the maximum number of asn1 frames to decode (default 256):
 
    asn1_max_frames: 256
 
+.. _suricata-yaml-configure-ftp:
+
+FTP
+~~~
+
+The FTP application layer parser is enabled by default and uses dynamic protocol
+detection.
+
+By default, FTP control channel commands and responses are limited to 4096
+bytes, but this value can be changed. When a command request or response exceeds
+the line length limit, the stored data will be truncated, however the parser
+will continue to watch for the end of line and acquire the next command.
+Commands that are truncated will be noted in the *eve* log file with the fields
+``command_truncated`` or ``reply_truncated``. Please note that this affects the
+control messages only, not FTP data (file transfers).
+
+  ::
+
+    ftp:
+      enabled: yes
+      #memcap: 64mb
+
+      # Maximum line length for control messages before they will be truncated.
+      #max-line-length: 4kb
+
 .. _suricata-yaml-configure-libhtp:
 
 Configure HTTP (libhtp)
