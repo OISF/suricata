@@ -394,12 +394,6 @@ static void GlobalsDestroy(SCInstance *suri)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
-#ifdef HAVE_NSS
-    if (NSS_IsInitialized()) {
-        NSS_Shutdown();
-        PR_Cleanup();
-    }
-#endif
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
@@ -2760,6 +2754,16 @@ static void SetupUserMode(SCInstance *suri)
     }
 }
 
+#ifdef HAVE_NSS
+static void AtExitNSSShutdown(void)
+{
+    if (NSS_IsInitialized()) {
+        NSS_Shutdown();
+        PR_Cleanup();
+    }
+}
+#endif
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
@@ -2915,6 +2919,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         /* init NSS for hashing */
         PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
         NSS_NoDB_Init(NULL);
+        atexit(AtExitNSSShutdown);
     }
 #endif
 
