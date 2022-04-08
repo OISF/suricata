@@ -26,6 +26,7 @@
 
 #include "conf.h"            /* ConfNode   */
 #include "util-buffer.h"
+#include "util-hash.h"
 
 #ifdef HAVE_LIBHIREDIS
 #include "util-log-redis.h"
@@ -46,11 +47,18 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
+typedef struct ThreadSlotHashEntry_ {
+    uint64_t thread_id;
+    int slot; /* table slot */
+} ThreadSlotHashEntry;
+
 struct LogFileCtx_;
 typedef struct LogThreadedFileCtx_ {
-    int slot_count;
     SCMutex mutex;
-    struct LogFileCtx_ **lf_slots;
+    int slot_count;                /* Allocated slot count */
+    struct LogFileCtx_ **lf_slots; /* Slots */
+    int last_slot;                 /* Last slot allocated */
+    HashTable *ht;
     char *append;
 } LogThreadedFileCtx;
 

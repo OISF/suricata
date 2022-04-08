@@ -1,5 +1,5 @@
 /* vi: set et ts=4: */
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -322,6 +322,33 @@ static void SCLogFileClose(LogFileCtx *log_ctx)
     SCMutexUnlock(&log_ctx->fp_mutex);
 }
 
+static char ThreadSlotHashCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
+{
+    ThreadSlotHashEntry *p1 = (ThreadSlotHashEntry *)data1;
+    ThreadSlotHashEntry *p2 = (ThreadSlotHashEntry *)data2;
+
+    if (p1 == NULL || p2 == NULL)
+        return 0;
+
+    return p1->thread_id == p2->thread_id;
+}
+static uint32_t ThreadSlotHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    const ThreadSlotHashEntry *ent = (ThreadSlotHashEntry *)data;
+
+    return ent->thread_id % ht->array_size;
+}
+
+static void ThreadSlotHashFreeFunc(void *data)
+{
+    ThreadSlotHashEntry *thread_ent = (ThreadSlotHashEntry *)data;
+
+    if (thread_ent) {
+        SCFree(thread_ent);
+    }
+}
+
 bool SCLogOpenThreadedFile(
         const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count)
 {
@@ -329,6 +356,12 @@ bool SCLogOpenThreadedFile(
         if (!parent_ctx->threads) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads container");
             return false;
+        }
+
+        parent_ctx->threads->ht = HashTableInit(
+                255, ThreadSlotHashFunc, ThreadSlotHashCompareFunc, ThreadSlotHashFreeFunc);
+        if (!parent_ctx->threads->ht) {
+            FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to initialize thread/slot table");
         }
 
         parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
@@ -361,6 +394,9 @@ error_exit:
         }
         if (parent_ctx->threads->append) {
             SCFree(parent_ctx->threads->append);
+        }
+        if (parent_ctx->threads->ht) {
+            HashTableFree(parent_ctx->threads->ht);
         }
         SCFree(parent_ctx->threads);
         parent_ctx->threads = NULL;
@@ -851,6 +887,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCFree(lf_ctx->threads->lf_slots);
         if (lf_ctx->threads->append)
             SCFree(lf_ctx->threads->append);
+        if (lf_ctx->threads->ht) {
+            HashTableFree(lf_ctx->threads->ht);
+        }
         SCFree(lf_ctx->threads);
     } else {
         if (lf_ctx->type != LOGFILE_TYPE_PLUGIN) {
