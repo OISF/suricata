@@ -150,7 +150,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 return 0;
             }
             memcpy(isolatedBuffer, albuffer, alnext - albuffer);
-            (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
+            size_t datalen = alnext - albuffer;
+            if (datalen > 0xFFFF) {
+                datalen = 0xFFFF;
+            }
+            (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, datalen);
             free(isolatedBuffer);
             if (FlowChangeProto(f)) {
                 // exits if a protocol change is requested
