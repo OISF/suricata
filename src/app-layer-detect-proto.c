@@ -1950,6 +1950,12 @@ void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_
  */
 void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
 {
+    if (FlowChangeProto(f)) {
+        // If we are already changing protocols, from SMTP to TLS for instance,
+        // and that we do not get TLS but HTTP1, which is requesting whange to HTTP2,
+        // we do not proceed the new protocol change
+        return;
+    }
     FlowSetChangeProtoFlag(f);
     f->protodetect_dp = dp;
     f->alproto_expect = expect_proto;
