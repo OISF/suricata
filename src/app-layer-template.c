@@ -18,7 +18,6 @@
 /*
  * TODO: Update \author in this file and app-layer-template.h.
  * TODO: Implement your app-layer logic with unit tests.
- * TODO: Remove SCLogNotice statements or convert to debug.
  */
 
 /**
@@ -108,7 +107,7 @@ static void TemplateTxFree(void *txv)
 
 static void *TemplateStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    SCLogNotice("Allocating template state.");
+    SCLogDebug("Allocating template state.");
     TemplateState *state = SCCalloc(1, sizeof(TemplateState));
     if (unlikely(state == NULL)) {
         return NULL;
@@ -121,7 +120,7 @@ static void TemplateStateFree(void *state)
 {
     TemplateState *template_state = state;
     TemplateTransaction *tx;
-    SCLogNotice("Freeing template state.");
+    SCLogDebug("Freeing template state.");
     while ((tx = TAILQ_FIRST(&template_state->tx_list)) != NULL) {
         TAILQ_REMOVE(&template_state->tx_list, tx, next);
         TemplateTxFree(tx);
@@ -140,7 +139,7 @@ static void TemplateStateTxFree(void *statev, uint64_t tx_id)
     TemplateState *state = statev;
     TemplateTransaction *tx = NULL, *ttx;
 
-    SCLogNotice("Freeing transaction %"PRIu64, tx_id);
+    SCLogDebug("Freeing transaction %" PRIu64, tx_id);
 
     TAILQ_FOREACH_SAFE(tx, &state->tx_list, next, ttx) {
 
@@ -156,7 +155,7 @@ static void TemplateStateTxFree(void *statev, uint64_t tx_id)
         return;
     }
 
-    SCLogNotice("Transaction %"PRIu64" not found.", tx_id);
+    SCLogDebug("Transaction %" PRIu64 " not found.", tx_id);
 }
 
 static int TemplateStateGetEventInfo(const char *event_name, int *event_id,
@@ -203,11 +202,11 @@ static AppProto TemplateProbingParserTs(Flow *f, uint8_t direction,
 {
     /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
-        SCLogNotice("Detected as ALPROTO_TEMPLATE.");
+        SCLogDebug("Detected as ALPROTO_TEMPLATE.");
         return ALPROTO_TEMPLATE;
     }
 
-    SCLogNotice("Protocol not detected as ALPROTO_TEMPLATE.");
+    SCLogDebug("Protocol not detected as ALPROTO_TEMPLATE.");
     return ALPROTO_UNKNOWN;
 }
 
@@ -225,11 +224,11 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
 {
     /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
-        SCLogNotice("Detected as ALPROTO_TEMPLATE.");
+        SCLogDebug("Detected as ALPROTO_TEMPLATE.");
         return ALPROTO_TEMPLATE;
     }
 
-    SCLogNotice("Protocol not detected as ALPROTO_TEMPLATE.");
+    SCLogDebug("Protocol not detected as ALPROTO_TEMPLATE.");
     return ALPROTO_UNKNOWN;
 }
 
@@ -241,7 +240,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParser
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
     const uint8_t flags = StreamSliceGetFlags(&stream_slice);
 
-    SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
+    SCLogDebug("Parsing template request: len=%" PRIu32, input_len);
 
     if (input == NULL) {
         if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
@@ -283,10 +282,10 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParser
      */
     TemplateTransaction *tx = TemplateTxAlloc(state);
     if (unlikely(tx == NULL)) {
-        SCLogNotice("Failed to allocate new Template tx.");
+        SCLogDebug("Failed to allocate new Template tx.");
         goto end;
     }
-    SCLogNotice("Allocated Template tx %"PRIu64".", tx->tx_id);
+    SCLogDebug("Allocated Template tx %" PRIu64 ".", tx->tx_id);
 
     /* Make a copy of the request. */
     tx->request_buffer = SCCalloc(1, input_len);
@@ -300,7 +299,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParser
      * event. */
     if ((input_len == 1 && tx->request_buffer[0] == '\n') ||
         (input_len == 2 && tx->request_buffer[0] == '\r')) {
-        SCLogNotice("Creating event for empty message.");
+        SCLogDebug("Creating event for empty message.");
         AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
     }
 
@@ -316,7 +315,7 @@ static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParse
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
-    SCLogNotice("Parsing Template response.");
+    SCLogDebug("Parsing Template response.");
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
@@ -342,13 +341,11 @@ static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParse
     }
 
     if (tx == NULL) {
-        SCLogNotice("Failed to find transaction for response on state %p.",
-            state);
+        SCLogDebug("Failed to find transaction for response on state %p.", state);
         goto end;
     }
 
-    SCLogNotice("Found transaction %"PRIu64" for response on state %p.",
-        tx->tx_id, state);
+    SCLogDebug("Found transaction %" PRIu64 " for response on state %p.", tx->tx_id, state);
 
     /* If the protocol requires multiple chunks of data to complete, you may
      * run into the case where you have existing response data.
@@ -357,8 +354,8 @@ static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParse
      * you might want to realloc the buffer and append the data.
      */
     if (tx->response_buffer != NULL) {
-        SCLogNotice("WARNING: Transaction already has response data, "
-            "existing data will be overwritten.");
+        SCLogDebug("WARNING: Transaction already has response data, "
+                   "existing data will be overwritten.");
         SCFree(tx->response_buffer);
     }
 
@@ -381,7 +378,7 @@ end:
 static uint64_t TemplateGetTxCnt(void *statev)
 {
     const TemplateState *state = statev;
-    SCLogNotice("Current tx count is %"PRIu64".", state->transaction_max);
+    SCLogDebug("Current tx count is %" PRIu64 ".", state->transaction_max);
     return state->transaction_max;
 }
 
@@ -390,17 +387,16 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
     TemplateState *state = statev;
     TemplateTransaction *tx;
 
-    SCLogNotice("Requested tx ID %"PRIu64".", tx_id);
+    SCLogDebug("Requested tx ID %" PRIu64 ".", tx_id);
 
     TAILQ_FOREACH(tx, &state->tx_list, next) {
         if (tx->tx_id == tx_id) {
-            SCLogNotice("Transaction %"PRIu64" found, returning tx object %p.",
-                tx_id, tx);
+            SCLogDebug("Transaction %" PRIu64 " found, returning tx object %p.", tx_id, tx);
             return tx;
         }
     }
 
-    SCLogNotice("Transaction ID %"PRIu64" not found.", tx_id);
+    SCLogDebug("Transaction ID %" PRIu64 " not found.", tx_id);
     return NULL;
 }
 
@@ -421,8 +417,8 @@ static int TemplateGetStateProgress(void *txv, uint8_t direction)
 {
     TemplateTransaction *tx = txv;
 
-    SCLogNotice("Transaction progress requested for tx ID %"PRIu64
-        ", direction=0x%02x", tx->tx_id, direction);
+    SCLogDebug("Transaction progress requested for tx ID %" PRIu64 ", direction=0x%02x", tx->tx_id,
+            direction);
 
     if (direction & STREAM_TOCLIENT && tx->response_done) {
         return 1;
@@ -459,7 +455,7 @@ void RegisterTemplateParsers(void)
 
         if (RunmodeIsUnittests()) {
 
-            SCLogNotice("Unittest mode, registering default configuration.");
+            SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
                 TemplateProbingParserTs, TemplateProbingParserTc);
@@ -490,7 +486,7 @@ void RegisterTemplateParsers(void)
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
 
-        SCLogNotice("Registering Template protocol parser.");
+        SCLogDebug("Registering Template protocol parser.");
 
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new Template flow. */
