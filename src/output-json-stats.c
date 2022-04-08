@@ -440,7 +440,14 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         return result;
     }
 
-    stats_ctx->file_ctx = ajt->file_ctx;
+    SCLogDebug("Preparing file context for stats submodule logger");
+    /* Share output slot with thread 1 */
+    stats_ctx->file_ctx = LogFileEnsureExists(ajt->file_ctx);
+    if (!stats_ctx->file_ctx) {
+        SCFree(stats_ctx);
+        SCFree(output_ctx);
+        return result;
+    }
 
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinitSub;
