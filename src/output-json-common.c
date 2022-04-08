@@ -53,7 +53,7 @@ OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx)
         goto error;
     }
 
-    thread->file_ctx = LogFileEnsureExists(ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(ctx->file_ctx);
     if (!thread->file_ctx) {
         goto error;
     }
@@ -119,7 +119,7 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     }
 
     thread->ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->ctx->file_ctx);
     if (!thread->file_ctx) {
         goto error_exit;
     }
