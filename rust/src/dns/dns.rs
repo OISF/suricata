@@ -311,7 +311,7 @@ pub struct DNSState {
     pub tx_id: u64,
 
     // Transactions.
-    pub transactions: Vec<DNSTransaction>,
+    pub transactions: VecDeque<DNSTransaction>,
 
     pub events: u16,
 
@@ -322,7 +322,8 @@ pub struct DNSState {
 
 impl State<DNSTransaction> for DNSState {
     fn get_transactions(&self) -> &[DNSTransaction] {
-        &self.transactions
+        let (r, _) = self.transactions.as_slices();
+        return r;
     }
 }
 
@@ -397,7 +398,7 @@ impl DNSState {
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
@@ -441,7 +442,7 @@ impl DNSState {
                     }
                 }
                 tx.response = Some(response);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
@@ -926,6 +927,15 @@ pub unsafe extern "C" fn rs_dns_apply_tx_config(
     }
 }
 
+pub unsafe extern "C" fn rs_dns_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, DNSState);
+    state.transactions.make_contiguous();
+    state.get_transaction_iterator(min_tx_id, istate)
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
@@ -952,7 +962,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
+        get_tx_iterator: Some(rs_dns_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
