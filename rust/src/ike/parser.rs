@@ -304,7 +304,7 @@ pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
     let (i, number_transforms) = be_u8(i)?;
     let (i, spi) = take(spi_size as usize)(i)?;
     let (i, payload_data) = cond(
-        (start_i.len() as i16 - 4) - spi_size as i16 >= 0,
+        (start_i.len() - 4) >= spi_size.into(),
         |b| take((start_i.len() - 4) - spi_size as usize)(b)
         )(i)?;
     let payload = ProposalPayload {
