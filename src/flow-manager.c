@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -264,11 +264,6 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
     return 1;
 }
 
-static inline void FMFlowLock(Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-}
-
 typedef struct FlowManagerTimeoutThread {
     /* used to temporarily store flows that have timed out and are
      * removed from the hash */
@@ -344,7 +339,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
             continue;
         }
 
-        FMFlowLock(f); //FLOWLOCK_WRLOCK(f);
+        FLOWLOCK_WRLOCK(f);
 
         Flow *next_flow = f->next;
 
