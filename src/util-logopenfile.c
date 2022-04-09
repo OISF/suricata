@@ -711,6 +711,11 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
 static bool LogFileThreadedName(
         const char *original_name, char *threaded_name, size_t len, uint32_t unique_id)
 {
+    if (strcmp("/dev/null", original_name) == 0) {
+        strlcpy(threaded_name, original_name, len);
+        return true;
+    }
+
     const char *base = SCBasename(original_name);
     if (!base) {
         FatalError(SC_ERR_FATAL,
