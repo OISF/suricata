@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -717,19 +717,6 @@ static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool 
     return false;
 }
 
-static inline void FromHashLockBucket(FlowBucket *fb)
-{
-    FBLOCK_LOCK(fb);
-}
-static inline void FromHashLockTO(Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-}
-static inline void FromHashLockCMP(Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-}
-
 /** \brief Get Flow for packet
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
@@ -755,7 +742,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
     /* get our hash bucket and lock it */
     const uint32_t hash = p->flow_hash;
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
-    FromHashLockBucket(fb);
+    FBLOCK_LOCK(fb);
 
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
 
@@ -792,7 +779,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
         const bool timedout =
             (fb_nextts < (uint32_t)p->ts.tv_sec && FlowIsTimedOut(f, (uint32_t)p->ts.tv_sec, emerg));
         if (timedout) {
-            FromHashLockTO(f);//FLOWLOCK_WRLOCK(f);
+            FLOWLOCK_WRLOCK(f);
             if (likely(f->use_cnt == 0)) {
                 next_f = f->next;
                 MoveToWorkQueue(tv, fls, fb, f, prev_f);
@@ -801,7 +788,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
             }
             FLOWLOCK_UNLOCK(f);
         } else if (FlowCompare(f, p) != 0) {
-            FromHashLockCMP(f);//FLOWLOCK_WRLOCK(f);
+            FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
             if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
                 Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
