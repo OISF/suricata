@@ -151,6 +151,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
     p = PacketGetFromAlloc();
+    p->pkt_src = PKT_SRC_WIRE;
     p->ts.tv_sec = header.ts.tv_sec;
     p->ts.tv_usec = header.ts.tv_usec;
     p->datalink = pkts.datalink;
@@ -175,6 +176,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         r = FPC_next(&pkts, &header, &pkt);
         PACKET_RECYCLE(p);
+        p->pkt_src = PKT_SRC_WIRE;
         p->ts.tv_sec = header.ts.tv_sec;
         p->ts.tv_usec = header.ts.tv_usec;
         p->datalink = pkts.datalink;
