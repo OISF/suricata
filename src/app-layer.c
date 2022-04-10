@@ -357,20 +357,26 @@ static int TCPProtoDetect(ThreadVars *tv,
         TcpSessionSetReassemblyDepth(ssn,
                 AppLayerParserGetStreamDepth(f));
         FlagPacketFlow(p, f, flags);
+
         /* if protocol detection indicated that we need to reverse
          * the direction of the flow, do it now. We flip the flow,
          * packet and the direction flags */
         if (reverse_flow && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
-            SCLogDebug("reversing flow after proto detect told us so");
-            PacketSwap(p);
-            FlowSwap(f);
-            SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
-            if (*stream == &ssn->client) {
-                *stream = &ssn->server;
+            /* but only if we didn't already detect it on the other side. */
+            if (*alproto_otherdir == ALPROTO_UNKNOWN) {
+                SCLogDebug("reversing flow after proto detect told us so");
+                PacketSwap(p);
+                FlowSwap(f);
+                SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
+                if (*stream == &ssn->client) {
+                    *stream = &ssn->server;
+                } else {
+                    *stream = &ssn->client;
+                }
+                direction = 1 - direction;
             } else {
-                *stream = &ssn->client;
+                // TODO event, error?
             }
-            direction = 1 - direction;
         }
 
         /* account flow if we have both sides */
