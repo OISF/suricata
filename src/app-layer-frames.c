@@ -820,8 +820,7 @@ void FramesPrune(Flow *f, Packet *p)
         frames = &frames_container->toclient;
     }
 
-    const bool eof = ssn->state == TCP_CLOSED || PKT_IS_PSEUDOPKT(p) ||
-                     (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    const bool eof = ssn->state == TCP_CLOSED || PKT_IS_PSEUDOPKT(p);
     SCLogDebug("eof %s", eof ? "TRUE" : "false");
     FramePrune(frames, stream, eof);
 }
