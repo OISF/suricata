@@ -384,7 +384,7 @@ int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
     // PrintRawDataFp(stdout, data, data_len);
     // PrintRawDataFp(stdout, data, MIN(64, data_len));
 #endif
-    BUG_ON((int64_t)data_len > frame->len);
+    BUG_ON(frame->len > 0 && (int64_t)data_len > frame->len);
 
     // TODO don't call if matching needs frame end and DETECT_CI_FLAGS_END not set
     // TODO same for start
