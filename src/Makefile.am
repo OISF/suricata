@@ -337,6 +337,7 @@ noinst_HEADERS = \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
 	detect-transform-md5.h \
+	detect-transform-base64.h \
 	detect-transform-pcrexform.h \
 	detect-transform-sha1.h \
 	detect-transform-sha256.h \
@@ -930,6 +931,7 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
 	detect-transform-md5.c \
+	detect-transform-base64.c \
 	detect-transform-pcrexform.c \
 	detect-transform-sha1.c \
 	detect-transform-sha256.c \
