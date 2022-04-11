@@ -438,7 +438,6 @@ impl MQTTState {
         }
 
         while current.len() > 0 {
-            let mut skipped = false;
             SCLogDebug!("request: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
@@ -450,17 +449,18 @@ impl MQTTState {
                             current.len()
                         );
                         if trunc.skipped_length >= current.len() {
-                            skipped = true;
                             self.skip_request = trunc.skipped_length - current.len();
+                            self.handle_msg(msg, true);
+                            return AppLayerResult::ok();
                         } else {
+                            consumed += trunc.skipped_length;
                             current = &current[trunc.skipped_length..];
+                            self.handle_msg(msg, true);
                             self.skip_request = 0;
+                            continue;
                         }
                     }
                     self.handle_msg(msg, false);
-                    if skipped {
-                        return AppLayerResult::ok();
-                    }
                     consumed += current.len() - rem.len();
                     current = rem;
                 }
@@ -512,7 +512,6 @@ impl MQTTState {
         }
 
         while current.len() > 0 {
-            let mut skipped = false;
             SCLogDebug!("response: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len as usize) {
                 Ok((rem, msg)) => {
@@ -524,18 +523,19 @@ impl MQTTState {
                             current.len()
                         );
                         if trunc.skipped_length >= current.len() {
-                            skipped = true;
                             self.skip_response = trunc.skipped_length - current.len();
+                            self.handle_msg(msg, true);
+                            SCLogDebug!("skip_response now {}", self.skip_response);
+                            return AppLayerResult::ok();
                         } else {
+                            consumed += trunc.skipped_length;
                             current = &current[trunc.skipped_length..];
+                            self.handle_msg(msg, true);
                             self.skip_response = 0;
+                            continue;
                         }
-                        SCLogDebug!("skip_response now {}", self.skip_response);
                     }
                     self.handle_msg(msg, true);
-                    if skipped {
-                        return AppLayerResult::ok();
-                    }
                     consumed += current.len() - rem.len();
                     current = rem;
                 }
