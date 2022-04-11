@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,7 @@ use crate::common::nom7::{bits, take_until_and_consume};
 use std::fmt;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
-use nom7::combinator::{cond, rest};
+use nom7::combinator::{cond, rest, verify};
 use nom7::number::streaming::{le_u8, le_u16, le_u32};
 use nom7::sequence::tuple;
 use nom7::IResult;
@@ -71,30 +71,39 @@ fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
     )))(i)
 }
 
+// called from SMB1/SMB2 where both have a u16 field, so we can limit
+// field validation to 16 bits
 pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
-    let (i, _lm_blob_len) = le_u16(i)?;
-    let (i, _lm_blob_maxlen) = le_u16(i)?;
-    let (i, _lm_blob_offset) = le_u32(i)?;
+    let record_len = i.len() + 12; // idenfier (8) and type (4) are cut before we are called
+    let offset_upper_bound = std::cmp::min(record_len as u32, std::u16::MAX as u32);
 
-    let (i, _ntlmresp_blob_len) = le_u16(i)?;
+    let (i, lm_blob_len) = le_u16(i)?;
+    let (i, _lm_blob_maxlen) = le_u16(i)?;
+    let (i, lm_blob_offset) = verify(le_u32, |&v| v < offset_upper_bound)(i)?;
+    let lm_blob_right_edge = lm_blob_len as u32 + lm_blob_offset;
+
+    let (i, ntlmresp_blob_len) = le_u16(i)?;
     let (i, _ntlmresp_blob_maxlen) = le_u16(i)?;
-    let (i, _ntlmresp_blob_offset) = le_u32(i)?;
+    let (i, ntlmresp_blob_offset) = verify(le_u32, |&v| v == lm_blob_right_edge)(i)?;
+    let ntlmresp_blob_right_edge = ntlmresp_blob_len as u32 + ntlmresp_blob_offset;
 
     let (i, domain_blob_len) = le_u16(i)?;
     let (i, _domain_blob_maxlen) = le_u16(i)?;
-    let (i, domain_blob_offset) = le_u32(i)?;
+    let (i, domain_blob_offset) = verify(le_u32, |&v| v < offset_upper_bound)(i)?;
+    let domain_blob_right_edge = domain_blob_len as u32 + domain_blob_offset;
 
     let (i, user_blob_len) = le_u16(i)?;
     let (i, _user_blob_maxlen) = le_u16(i)?;
-    let (i, _user_blob_offset) = le_u32(i)?;
+    let (i, user_blob_offset) = verify(le_u32, |&v| v == domain_blob_right_edge)(i)?;
+    let user_blob_right_edge = user_blob_len as u32 + user_blob_offset;
 
     let (i, host_blob_len) = le_u16(i)?;
     let (i, _host_blob_maxlen) = le_u16(i)?;
-    let (i, _host_blob_offset) = le_u32(i)?;
+    let (i, _host_blob_offset) = verify(le_u32, |&v| v == user_blob_right_edge)(i)?;
 
     let (i, _ssnkey_blob_len) = le_u16(i)?;
     let (i, _ssnkey_blob_maxlen) = le_u16(i)?;
-    let (i, _ssnkey_blob_offset) = le_u32(i)?;
+    let (i, _ssnkey_blob_offset) = verify(le_u32, |&v| (v >= ntlmresp_blob_right_edge && v < offset_upper_bound))(i)?;
 
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
     let (i, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
