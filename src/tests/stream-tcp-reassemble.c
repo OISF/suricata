@@ -31,7 +31,8 @@ struct TestReassembleRawCallbackData {
     const uint32_t expect_data_len;
 };
 
-static int TestReassembleRawCallback(void *cb_data, const uint8_t *data, const uint32_t data_len)
+static int TestReassembleRawCallback(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t offset)
 {
     struct TestReassembleRawCallbackData *cb = cb_data;
 
