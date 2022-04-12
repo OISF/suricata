@@ -101,6 +101,17 @@ Example::
     alert http any any -> any any (http_request_line; to_sha256; \
         content:"|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401|"; sid:1;)
 
+from_base64
+-----------
+
+The ``from_base64`` the buffer, and passes the base64-decoded contents onward. If the buffer
+cannot be base64-decoded, it is passed on unchanged.
+
+Example::
+
+    alert http any any -> any any (http_request_line; from_base64; \
+        content:"This is Suricata\n"; sid:1;)
+
 pcrexform
 ---------
 
