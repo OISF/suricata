@@ -1597,7 +1597,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     }
 
     /* run the callback */
-    r = Callback(cb_data, mydata, mydata_len);
+    r = Callback(cb_data, mydata, mydata_len, mydata_offset);
     BUG_ON(r < 0);
 
     if (return_progress) {
@@ -1745,7 +1745,7 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
         SCLogDebug("data %p len %u", mydata, mydata_len);
 
         /* we have data. */
-        r = Callback(cb_data, mydata, mydata_len);
+        r = Callback(cb_data, mydata, mydata_len, mydata_offset);
         BUG_ON(r < 0);
 
         if (mydata_offset == progress) {
