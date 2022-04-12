@@ -127,7 +127,8 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
 
-typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const uint32_t input_len);
+typedef int (*StreamReassembleRawFunc)(
+        void *data, const uint8_t *input, const uint32_t input_len, const uint64_t offset);
 
 int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         StreamReassembleRawFunc Callback, void *cb_data,

@@ -54,7 +54,8 @@ struct StreamMpmData {
     const MpmCtx *mpm_ctx;
 };
 
-static int StreamMpmFunc(void *cb_data, const uint8_t *data, const uint32_t data_len)
+static int StreamMpmFunc(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t _offset)
 {
     struct StreamMpmData *smd = cb_data;
     if (data_len >= smd->mpm_ctx->minlen) {
@@ -221,7 +222,8 @@ struct StreamContentInspectData {
     Flow *f;
 };
 
-static int StreamContentInspectFunc(void *cb_data, const uint8_t *data, const uint32_t data_len)
+static int StreamContentInspectFunc(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t _offset)
 {
     SCEnter();
     int r = 0;
@@ -279,7 +281,8 @@ struct StreamContentInspectEngineData {
     Flow *f;
 };
 
-static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, const uint32_t data_len)
+static int StreamContentInspectEngineFunc(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t _offset)
 {
     SCEnter();
     int r = 0;
