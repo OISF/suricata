@@ -1742,6 +1742,13 @@ end:
     return r;
 }
 
+int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembleRawFunc Callback,
+        void *cb_data, const uint64_t offset, const bool eof)
+{
+    uint64_t unused = 0;
+    return StreamReassembleRawDo(ssn, stream, Callback, cb_data, offset, &unused, eof, false);
+}
+
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
                         StreamReassembleRawFunc Callback, void *cb_data,
                         uint64_t *progress_out, bool respect_inspect_depth)
