@@ -1259,8 +1259,12 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     /* we don't have the parser registered for this protocol */
-    if (p->StateAlloc == NULL)
+    if (p->StateAlloc == NULL) {
+        if (f->proto == IPPROTO_TCP) {
+            StreamTcpDisableAppLayer(f);
+        }
         goto end;
+    }
 
     if (flags & STREAM_GAP) {
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
