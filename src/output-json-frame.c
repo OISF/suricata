@@ -330,9 +330,9 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
 
             int64_t abs_offset = (int64_t)frame->rel_offset + (int64_t)STREAM_BASE_OFFSET(stream);
             int64_t win = STREAM_APP_PROGRESS(stream) - abs_offset;
-            SCLogDebug("abs_offset %" PRIi64 ", frame->rel_offset %" PRIi64
-                       ", frames->progress_rel %d win %" PRIi64,
-                    abs_offset, frame->rel_offset, frames->progress_rel, win);
+            //            SCLogDebug("abs_offset %" PRIi64 ", frame->rel_offset %" PRIi64
+            //                       ", frames->progress_rel %d win %" PRIi64,
+            //                    abs_offset, frame->rel_offset, frames->progress_rel, win);
 
             if (!eof && win < frame->len && win < 2500) {
                 SCLogDebug("frame id %" PRIi64 " len %" PRIi64 ", win %" PRIi64

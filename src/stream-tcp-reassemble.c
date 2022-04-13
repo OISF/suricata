@@ -1389,14 +1389,6 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream = &ssn->server;
     }
 
-    /* Record updates */
-    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        if (progress > STREAM_APP_PROGRESS(stream)) {
-            AppLayerFramesUpdateProgress(p->flow, stream, progress,
-                    PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
-        }
-    }
-
     if (progress > STREAM_RAW_PROGRESS(stream)) {
         uint32_t slide = progress - STREAM_RAW_PROGRESS(stream);
         stream->raw_progress_rel += slide;
@@ -1745,8 +1737,13 @@ end:
 int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembleRawFunc Callback,
         void *cb_data, const uint64_t offset, const bool eof)
 {
+    /* take app progress as the right edge of used data. */
+    const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
+    SCLogDebug("app_progress %" PRIu64, app_progress);
+
     uint64_t unused = 0;
-    return StreamReassembleRawDo(ssn, stream, Callback, cb_data, offset, &unused, eof, false);
+    return StreamReassembleRawDo(
+            ssn, stream, Callback, cb_data, offset, app_progress, &unused, eof, false);
 }
 
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
