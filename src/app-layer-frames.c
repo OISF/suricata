@@ -224,23 +224,6 @@ static inline uint64_t FrameLeftEdge(
         }
     }
 }
-#if 0
-static inline uint64_t FramesLeftEdge(const TcpStream *stream, const Frames *frames)
-{
-    uint64_t le = STREAM_APP_PROGRESS(stream);
-    for (uint16_t i = 0; i < frames->cnt; i++) {
-        if (i < FRAMES_STATIC_CNT) {
-            const Frame *frame = &frames->sframes[i];
-            le = MIN(le, FrameLeftEdge(stream, frame));
-        } else {
-            const uint16_t o = i - FRAMES_STATIC_CNT;
-            const Frame *frame = &frames->dframes[o];
-            le = MIN(le, FrameLeftEdge(stream, frame));
-        }
-    }
-    return le;
-}
-#endif
 
 /** Stream buffer slides forward, we need to update and age out
  *  frame offsets/frames. Aging out means we move existing frames
@@ -274,12 +257,6 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
     BUG_ON(frames == NULL);
     SCLogDebug("%s frames %p: sliding %u bytes", ds, frames, slide);
     uint64_t le = STREAM_APP_PROGRESS(stream);
-
-    if (slide >= frames->progress_rel)
-        frames->progress_rel = 0;
-    else
-        frames->progress_rel -= slide;
-
     const uint64_t next_base = STREAM_BASE_OFFSET(stream) + slide;
     const uint16_t start = frames->cnt;
     uint16_t removed = 0;
@@ -346,24 +323,6 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
     BUG_ON(o > le);
     BUG_ON(x != start - removed);
     return 0;
-}
-
-void AppLayerFramesUpdateProgress(
-        Flow *f, TcpStream *stream, const uint64_t progress, const uint8_t direction)
-{
-    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
-    if (frames_container == NULL)
-        return;
-
-    Frames *frames;
-    if (direction == STREAM_TOSERVER) {
-        frames = &frames_container->toserver;
-    } else {
-        frames = &frames_container->toclient;
-    }
-
-    const uint32_t slide = progress - STREAM_APP_PROGRESS(stream);
-    frames->progress_rel += slide;
 }
 
 void AppLayerFramesSlide(Flow *f, const uint32_t slide, const uint8_t direction)
@@ -711,7 +670,7 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
     SCLogDebug("start: left edge %" PRIu64 ", left_edge_rel %u, stream base %" PRIu64,
             (uint64_t)frames->left_edge_rel + STREAM_BASE_OFFSET(stream), frames->left_edge_rel,
             STREAM_BASE_OFFSET(stream));
-    const uint64_t abs_offset = STREAM_BASE_OFFSET(stream) + (uint64_t)frames->progress_rel;
+    const uint64_t abs_offset = STREAM_BASE_OFFSET(stream);
     const uint64_t acked = StreamTcpGetUsable(stream, eof);
     uint64_t le = STREAM_APP_PROGRESS(stream);
 

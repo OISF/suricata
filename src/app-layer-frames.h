@@ -61,9 +61,8 @@ typedef struct Frame {
 typedef struct Frames {
     uint16_t cnt;
     uint16_t dyn_size;     /**< size in elements of `dframes` */
-    uint32_t progress_rel; /**< processing depth relative to STREAM_BASE_OFFSET */
-    uint64_t base_id;
     uint32_t left_edge_rel;
+    uint64_t base_id;
     Frame sframes[FRAMES_STATIC_CNT]; /**< static frames */
     Frame *dframes;                   /**< dynamically allocated space for more frames */
 #ifdef DEBUG
@@ -102,8 +101,6 @@ void AppLayerFrameSetLengthById(Flow *f, const int dir, const FrameId id, int64_
 void AppLayerFrameSetTxId(Frame *r, uint64_t tx_id);
 void AppLayerFrameSetTxIdById(Flow *f, const int dir, const FrameId id, uint64_t tx_id);
 
-void AppLayerFramesUpdateProgress(
-        Flow *f, TcpStream *stream, const uint64_t progress, const uint8_t direction);
 void AppLayerFramesSlide(Flow *f, const uint32_t slide, const uint8_t direction);
 
 FramesContainer *AppLayerFramesGetContainer(Flow *f);
