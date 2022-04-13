@@ -1648,6 +1648,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  \param Callback the function pointer to the callback function
  *  \param cb_data callback data
  *  \param[in] progress_in progress to work from
+ *  \param[in] re right edge of data to consider
  *  \param[out] progress_out absolute progress value of the data this
  *                           call handled.
  *  \param eof we're wrapping up so inspect all data we have, incl unACKd
@@ -1657,48 +1658,14 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  much data.
  */
 static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
-                        StreamReassembleRawFunc Callback, void *cb_data,
-                        const uint64_t progress_in,
-                        uint64_t *progress_out, bool eof,
-                        bool respect_inspect_depth)
+        StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
+        const uint64_t re, uint64_t *progress_out, bool eof, bool respect_inspect_depth)
 {
     SCEnter();
     int r = 0;
 
     StreamingBufferBlock *iter = NULL;
     uint64_t progress = progress_in;
-    /* absolute right edge of ack'd data */
-    const uint64_t last_ack_abs = GetAbsLastAck(stream);
-    SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
-
-    /* if the app layer triggered a flush, and we're supposed to
-     * use a minimal inspect depth, we actually take the app progress
-     * as that is the right edge of the data. Then we take the window
-     * of 'min_inspect_depth' before that. */
-
-    SCLogDebug("respect_inspect_depth %s STREAMTCP_STREAM_FLAG_TRIGGER_RAW %s stream->min_inspect_depth %u",
-            respect_inspect_depth ? "true" : "false",
-            (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) ? "true" : "false",
-            stream->min_inspect_depth);
-
-    if (respect_inspect_depth &&
-        (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
-        && stream->min_inspect_depth)
-    {
-        progress = STREAM_APP_PROGRESS(stream);
-        if (stream->min_inspect_depth >= progress) {
-            progress = 0;
-        } else {
-            progress -= stream->min_inspect_depth;
-        }
-
-        SCLogDebug("stream app %"PRIu64", raw %"PRIu64, STREAM_APP_PROGRESS(stream), STREAM_RAW_PROGRESS(stream));
-
-        progress = MIN(progress, STREAM_RAW_PROGRESS(stream));
-        SCLogDebug("applied min inspect depth due to STREAMTCP_STREAM_FLAG_TRIGGER_RAW: progress %"PRIu64, progress);
-    }
-
-    SCLogDebug("progress %"PRIu64", min inspect depth %u %s", progress, stream->min_inspect_depth, stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW ? "STREAMTCP_STREAM_FLAG_TRIGGER_RAW":"(no trigger)");
 
     /* loop through available buffers. On no packet loss we'll have a single
      * iteration. On missing data we'll walk the blocks */
@@ -1721,23 +1688,23 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
         if (eof) {
             // inspect all remaining data, ack'd or not
         } else {
-            if (last_ack_abs < progress) {
+            if (re < progress) {
                 SCLogDebug("nothing to do");
                 goto end;
             }
 
-            SCLogDebug("last_ack_abs %"PRIu64", raw_progress %"PRIu64, last_ack_abs, progress);
-            SCLogDebug("raw_progress + mydata_len %"PRIu64", last_ack_abs %"PRIu64, progress + mydata_len, last_ack_abs);
+            SCLogDebug("re %" PRIu64 ", raw_progress %" PRIu64, re, progress);
+            SCLogDebug("raw_progress + mydata_len %" PRIu64 ", re %" PRIu64, progress + mydata_len,
+                    re);
 
             /* see if the buffer contains unack'd data as well */
-            if (progress + mydata_len > last_ack_abs) {
+            if (progress + mydata_len > re) {
                 uint32_t check = mydata_len;
-                mydata_len = last_ack_abs - progress;
+                mydata_len = re - progress;
                 BUG_ON(check < mydata_len);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", mydata_len);
             }
-
         }
         if (mydata_len == 0)
             break;
@@ -1756,9 +1723,9 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
             SCLogDebug("raw progress now %"PRIu64, progress);
 
         /* data is beyond the progress we'd like, and before last ack. Gap. */
-        } else if (mydata_offset > progress && mydata_offset < last_ack_abs) {
+        } else if (mydata_offset > progress && mydata_offset < re) {
             SCLogDebug("GAP: data is missing from %"PRIu64" (%u bytes), setting to first data we have: %"PRIu64, progress, (uint32_t)(mydata_offset - progress), mydata_offset);
-            SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
+            SCLogDebug("re %" PRIu64, re);
             progress = mydata_offset;
             SCLogDebug("raw progress now %"PRIu64, progress);
 
@@ -1798,9 +1765,46 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         return 0;
     }
 
-    return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
-            STREAM_RAW_PROGRESS(stream), progress_out,
-            (p->flags & PKT_PSEUDO_STREAM_END), respect_inspect_depth);
+    uint64_t progress = STREAM_RAW_PROGRESS(stream);
+    /* if the app layer triggered a flush, and we're supposed to
+     * use a minimal inspect depth, we actually take the app progress
+     * as that is the right edge of the data. Then we take the window
+     * of 'min_inspect_depth' before that. */
+
+    SCLogDebug("respect_inspect_depth %s STREAMTCP_STREAM_FLAG_TRIGGER_RAW %s "
+               "stream->min_inspect_depth %u",
+            respect_inspect_depth ? "true" : "false",
+            (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) ? "true" : "false",
+            stream->min_inspect_depth);
+
+    if (respect_inspect_depth && (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) &&
+            stream->min_inspect_depth) {
+        progress = STREAM_APP_PROGRESS(stream);
+        if (stream->min_inspect_depth >= progress) {
+            progress = 0;
+        } else {
+            progress -= stream->min_inspect_depth;
+        }
+
+        SCLogDebug("stream app %" PRIu64 ", raw %" PRIu64, STREAM_APP_PROGRESS(stream),
+                STREAM_RAW_PROGRESS(stream));
+
+        progress = MIN(progress, STREAM_RAW_PROGRESS(stream));
+        SCLogDebug("applied min inspect depth due to STREAMTCP_STREAM_FLAG_TRIGGER_RAW: progress "
+                   "%" PRIu64,
+                progress);
+    }
+
+    SCLogDebug("progress %" PRIu64 ", min inspect depth %u %s", progress, stream->min_inspect_depth,
+            stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW ? "STREAMTCP_STREAM_FLAG_TRIGGER_RAW"
+                                                              : "(no trigger)");
+
+    /* absolute right edge of ack'd data */
+    const uint64_t last_ack_abs = GetAbsLastAck(stream);
+    SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
+
+    return StreamReassembleRawDo(ssn, stream, Callback, cb_data, progress, last_ack_abs,
+            progress_out, (p->flags & PKT_PSEUDO_STREAM_END), respect_inspect_depth);
 }
 
 int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
@@ -1811,8 +1815,12 @@ int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
     if (stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
         return 0;
 
-    return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
-            progress_in, progress_out, eof, false);
+    /* absolute right edge of ack'd data */
+    const uint64_t last_ack_abs = GetAbsLastAck(stream);
+    SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
+
+    return StreamReassembleRawDo(
+            ssn, stream, Callback, cb_data, progress_in, last_ack_abs, progress_out, eof, false);
 }
 
 /** \internal
