@@ -223,6 +223,7 @@ SMTPConfig smtp_config = { false, { false, false, false, NULL, false, false, 0 }
     STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
+static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate);
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -855,7 +856,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
     SCEnter();
 
     /* Line with just LF */
-    if (state->current_line_len == 0 && state->consumed == 1) {
+    if (state->current_line_len == 0 && state->consumed == 1 &&
+            state->current_line_delimiter_len == 1) {
         return 0; // to continue processing further
     }
 
@@ -1273,6 +1275,42 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     }
 }
 
+static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
+{
+    // By this time we should have had the command line parsed
+    uint8_t *lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
+    const uint32_t orig_input_len = state->input_len;
+    // Both DATA and BDAT set SMTP_PARSER_STATE_COMMAND_DATA_MODE, so this while
+    // loop should be valid for both
+    while (state->input_len > 0 && (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+        uint8_t delim_len = 0;
+        uint32_t consumed_line = 0;
+        state->current_line = state->input + state->consumed;
+        if (lf_idx == NULL) {
+            state->consumed = state->input_len;
+            consumed_line = state->input_len;
+        } else {
+            ptrdiff_t idx = lf_idx - state->input;
+            state->consumed = idx + 1;
+            consumed_line = lf_idx - state->current_line + 1;
+            if (orig_input_len >= idx && idx > 0 && state->input[idx - 1] == 0x0d) {
+                delim_len = 2;
+            } else if (orig_input_len == 1 ||
+                       (orig_input_len >= idx && idx > 0 && state->input[idx - 1] != 0x0d)) {
+                delim_len = 1;
+            }
+        }
+        state->current_line_delimiter_len = delim_len;
+        state->current_line_len = consumed_line - delim_len;
+        state->input_len -= (state->current_line_len + delim_len);
+        if (SMTPProcessRequest(state, f, pstate) == -1) {
+            return -1;
+        }
+        lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
+    }
+    return 0;
+}
+
 static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         AppLayerParserState *pstate, StreamSlice stream_slice, SMTPThreadCtx *thread_data)
 {
@@ -1294,11 +1332,22 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     state->input_len = input_len;
     state->consumed = 0;
     state->direction = direction;
+    if (direction == 0) {
+        if (((state->current_command == SMTP_COMMAND_DATA) ||
+                    (state->current_command == SMTP_COMMAND_BDAT)) &&
+                (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+            int ret = SMTPPreProcessCommands(state, f, pstate);
+            if (ret == 0 && state->consumed == state->input_len) {
+                SCReturnStruct(APP_LAYER_OK);
+            }
+        }
+    }
     AppLayerResult res = SMTPGetLine(state);
 
     /* toserver */
     if (direction == 0) {
         while (res.status == 0) {
+            BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_len > 0) && (SMTPProcessRequest(state, f, pstate) == -1))
                     SCReturnStruct(APP_LAYER_ERROR);
@@ -1317,6 +1366,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         /* toclient */
     } else {
         while (res.status == 0) {
+            BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_len > 0) &&
                         (SMTPProcessReply(state, f, pstate, thread_data) == -1))
