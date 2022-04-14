@@ -300,8 +300,8 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
     }
 
     TcpSession *ssn = (TcpSession *)f->protoctx;
-    int client = StreamNeedsReassembly(ssn, STREAM_TOSERVER);
-    int server = StreamNeedsReassembly(ssn, STREAM_TOCLIENT);
+    uint8_t client = StreamNeedsReassembly(ssn, STREAM_TOSERVER);
+    uint8_t server = StreamNeedsReassembly(ssn, STREAM_TOCLIENT);
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
