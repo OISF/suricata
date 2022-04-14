@@ -390,17 +390,16 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
     TemplateState *state = statev;
     TemplateTransaction *tx;
 
-    SCLogNotice("Requested tx ID %"PRIu64".", tx_id);
+    SCLogDebug("Requested tx ID %" PRIu64 ".", tx_id);
 
     TAILQ_FOREACH(tx, &state->tx_list, next) {
         if (tx->tx_id == tx_id) {
-            SCLogNotice("Transaction %"PRIu64" found, returning tx object %p.",
-                tx_id, tx);
+            SCLogDebug("Transaction %" PRIu64 " found, returning tx object %p.", tx_id, tx);
             return tx;
         }
     }
 
-    SCLogNotice("Transaction ID %"PRIu64" not found.", tx_id);
+    SCLogDebug("Transaction ID %" PRIu64 " not found.", tx_id);
     return NULL;
 }
 
