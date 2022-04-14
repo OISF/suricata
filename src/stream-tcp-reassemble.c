@@ -800,7 +800,7 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 /**
  *  \brief see what if any work the TCP session still needs
  */
-int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
+uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
 {
     const TcpStream *stream = NULL;
 #ifdef DEBUG

@@ -1159,7 +1159,8 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 {
     if (s != f->flow_state) {
         /* set the state */
-        f->flow_state = s;
+        // Explicit cast from the enum type to the compact version
+        f->flow_state = (FlowStateType)s;
 
         /* update timeout policy and value */
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
