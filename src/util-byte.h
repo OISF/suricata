@@ -134,7 +134,7 @@ int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *bytes);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str, bool strict);
+int ByteExtractString(uint64_t *res, int base, size_t len, const char *str, bool strict);
 
 /**
  * Extract unsigned integer value from a string as uint64_t.
@@ -147,7 +147,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str, bo
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringUint64(uint64_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint32_t.
@@ -160,7 +160,7 @@ int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *s
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringUint32(uint32_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint16_t.
@@ -173,7 +173,7 @@ int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *s
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringUint16(uint16_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint8_t.
@@ -186,7 +186,7 @@ int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *s
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringUint8(uint8_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string.
@@ -200,7 +200,7 @@ int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str, bool strict);
+int ByteExtractStringSigned(int64_t *res, int base, size_t len, const char *str, bool strict);
 
 /**
  * Extract signed integer value from a string as uint64_t.
@@ -213,7 +213,7 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringInt64(int64_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as uint32_t.
@@ -226,7 +226,7 @@ int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringInt32(int32_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as uint16_t.
@@ -239,7 +239,7 @@ int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringInt16(int16_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as uint8_t.
@@ -252,7 +252,7 @@ int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringInt8(int8_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint64_t strictly.
@@ -265,7 +265,7 @@ int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseUint64(uint64_t *res, int base, uint16_t len, const char *str);
+int StringParseUint64(uint64_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint32_t strictly.
@@ -278,7 +278,7 @@ int StringParseUint64(uint64_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseUint32(uint32_t *res, int base, uint16_t len, const char *str);
+int StringParseUint32(uint32_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint16_t strictly.
@@ -291,7 +291,7 @@ int StringParseUint32(uint32_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseUint16(uint16_t *res, int base, uint16_t len, const char *str);
+int StringParseUint16(uint16_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint8_t strictly.
@@ -304,7 +304,7 @@ int StringParseUint16(uint16_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseUint8(uint8_t *res, int base, uint16_t len, const char *str);
+int StringParseUint8(uint8_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as int64_t strictly.
@@ -317,7 +317,7 @@ int StringParseUint8(uint8_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseInt64(int64_t *res, int base, uint16_t len, const char *str);
+int StringParseInt64(int64_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as int32_t strictly.
@@ -330,7 +330,7 @@ int StringParseInt64(int64_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseInt32(int32_t *res, int base, uint16_t len, const char *str);
+int StringParseInt32(int32_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as int16_t strictly.
@@ -343,7 +343,7 @@ int StringParseInt32(int32_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseInt16(int16_t *res, int base, uint16_t len, const char *str);
+int StringParseInt16(int16_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as int8_t strictly.
@@ -356,7 +356,7 @@ int StringParseInt16(int16_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseInt8(int8_t *res, int base, uint16_t len, const char *str);
+int StringParseInt8(int8_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint64_t strictly within the range.
@@ -369,7 +369,8 @@ int StringParseInt8(int8_t *res, int base, uint16_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseU64RangeCheck(uint64_t *res, int base, uint16_t len, const char *str, uint64_t min, uint64_t max);
+int WARN_UNUSED StringParseU64RangeCheck(
+        uint64_t *res, int base, size_t len, const char *str, uint64_t min, uint64_t max);
 
 /**
  * Extract unsigned integer value from a string as uint32_t strictly within the range.
@@ -382,7 +383,8 @@ int WARN_UNUSED StringParseU64RangeCheck(uint64_t *res, int base, uint16_t len, 
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseU32RangeCheck(uint32_t *res, int base, uint16_t len, const char *str, uint32_t min, uint32_t max);
+int WARN_UNUSED StringParseU32RangeCheck(
+        uint32_t *res, int base, size_t len, const char *str, uint32_t min, uint32_t max);
 
 /**
  * Extract unsigned integer value from a string as uint16_t strictly within the range.
@@ -395,7 +397,8 @@ int WARN_UNUSED StringParseU32RangeCheck(uint32_t *res, int base, uint16_t len, 
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseU16RangeCheck(uint16_t *res, int base, uint16_t len, const char *str, uint16_t min, uint16_t max);
+int WARN_UNUSED StringParseU16RangeCheck(
+        uint16_t *res, int base, size_t len, const char *str, uint16_t min, uint16_t max);
 
 /**
  * Extract unsigned integer value from a string as uint8_t strictly within the range.
@@ -408,7 +411,8 @@ int WARN_UNUSED StringParseU16RangeCheck(uint16_t *res, int base, uint16_t len, 
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseU8RangeCheck(uint8_t *res, int base, uint16_t len, const char *str, uint8_t min, uint8_t max);
+int WARN_UNUSED StringParseU8RangeCheck(
+        uint8_t *res, int base, size_t len, const char *str, uint8_t min, uint8_t max);
 
 /**
  * Extract signed integer value from a string as int64_t strictly within the range.
@@ -421,7 +425,8 @@ int WARN_UNUSED StringParseU8RangeCheck(uint8_t *res, int base, uint16_t len, co
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseI64RangeCheck(int64_t *res, int base, uint16_t len, const char *str, int64_t min, int64_t max);
+int WARN_UNUSED StringParseI64RangeCheck(
+        int64_t *res, int base, size_t len, const char *str, int64_t min, int64_t max);
 
 /**
  * Extract signed integer value from a string as int32_t strictly within the range.
@@ -434,7 +439,8 @@ int WARN_UNUSED StringParseI64RangeCheck(int64_t *res, int base, uint16_t len, c
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseI32RangeCheck(int32_t *res, int base, uint16_t len, const char *str, int32_t min, int32_t max);
+int WARN_UNUSED StringParseI32RangeCheck(
+        int32_t *res, int base, size_t len, const char *str, int32_t min, int32_t max);
 
 /**
  * Extract signed integer value from a string as int16_t strictly within the range.
@@ -447,7 +453,8 @@ int WARN_UNUSED StringParseI32RangeCheck(int32_t *res, int base, uint16_t len, c
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseI16RangeCheck(int16_t *res, int base, uint16_t len, const char *str, int16_t min, int16_t max);
+int WARN_UNUSED StringParseI16RangeCheck(
+        int16_t *res, int base, size_t len, const char *str, int16_t min, int16_t max);
 
 /**
  * Extract signed integer value from a string as int8_t strictly within the range.
@@ -460,7 +467,8 @@ int WARN_UNUSED StringParseI16RangeCheck(int16_t *res, int base, uint16_t len, c
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED StringParseI8RangeCheck(int8_t *res, int base, uint16_t len, const char *str, int8_t min, int8_t max);
+int WARN_UNUSED StringParseI8RangeCheck(
+        int8_t *res, int base, size_t len, const char *str, int8_t min, int8_t max);
 
 #ifdef UNITTESTS
 void ByteRegisterTests(void);
