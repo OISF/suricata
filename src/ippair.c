@@ -33,6 +33,7 @@
 #include "util-random.h"
 #include "util-misc.h"
 #include "util-byte.h"
+#include "util-validate.h"
 
 #include "ippair-queue.h"
 
@@ -168,8 +169,10 @@ void IPPairClearMemory(IPPair *h)
 void IPPairInitConfig(bool quiet)
 {
     SCLogDebug("initializing ippair engine...");
-    if (IPPairStorageSize() > 0)
-        g_ippair_size = sizeof(IPPair) + IPPairStorageSize();
+    if (IPPairStorageSize() > 0) {
+        DEBUG_VALIDATE_BUG_ON(sizeof(IPPair) + IPPairStorageSize() > UINT16_MAX);
+        g_ippair_size = (uint16_t)(sizeof(IPPair) + IPPairStorageSize());
+    }
 
     memset(&ippair_config,  0, sizeof(ippair_config));
     //SC_ATOMIC_INIT(flow_flags);
