@@ -73,6 +73,8 @@ jobs:
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
         with:
           fetch-depth: 0
+      # The action above is supposed to do this for us, but it doesn't appear to stick.
+      - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       - run: git fetch
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Building all commits
