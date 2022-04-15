@@ -47,12 +47,12 @@ impl SMBTransactionFile {
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
-        chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
+        chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
         Some(sfcm) => {
             ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
-                    chunk_size, fill_bytes, is_last, xid); }
+                    chunk_size, 0, is_last, xid); }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
 }
