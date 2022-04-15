@@ -906,7 +906,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
-                                rd.len, 0, false, &file_id);
+                                rd.len, false, &file_id);
                         SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                     }
                     true
@@ -934,7 +934,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
-                                rd.len, 0, false, &file_id);
+                                rd.len, false, &file_id);
                         tdf.share_name = share_name;
                     }
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
@@ -1000,7 +1000,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                                 }
                                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                         &file_name, rd.data, offset,
-                                        rd.len, 0, false, &file_id);
+                                        rd.len, false, &file_id);
                             }
                             true
                         },
@@ -1016,7 +1016,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                             }
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, rd.data, offset,
-                                    rd.len, 0, false, &file_id);
+                                    rd.len, false, &file_id);
                             tdf.share_name = share_name;
                         }
                         tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
