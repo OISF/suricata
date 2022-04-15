@@ -34,7 +34,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use crate::filecontainer::*;
 
 #[derive(Debug)]
-pub struct FileChunk {
+struct FileChunk {
     contains_gap: bool,
     chunk: Vec<u8>,
 }
