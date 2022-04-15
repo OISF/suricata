@@ -1210,11 +1210,18 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
     while (state->input_len > 0 && (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         uint8_t delim_len = 0;
         uint32_t consumed_line = 0;
-        state->current_line = state->input + state->consumed;
         if (lf_idx == NULL) {
+            if ((state->input_len == 1 && state->input[state->consumed] == '-') ||
+                    (state->input_len > 1 && state->input[state->consumed] == '-' &&
+                            state->input[state->consumed + 1] == '-')) {
+                SCLogDebug("possible boundary, yield to getline");
+                return 1;
+            }
+            state->current_line = state->input + state->consumed;
             state->consumed = state->input_len;
             consumed_line = state->input_len;
         } else {
+            state->current_line = state->input + state->consumed;
             ptrdiff_t idx = lf_idx - state->input;
             state->consumed = idx + 1;
             consumed_line = lf_idx - state->current_line + 1;
