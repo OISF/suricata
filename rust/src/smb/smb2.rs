@@ -154,7 +154,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &tdf.file_name, rd.data, offset,
-                                rd.len, 0, false, &file_id);
+                                rd.len, false, &file_id);
                     }
                     true
                 },
@@ -216,7 +216,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, offset,
-                                rd.len, 0, false, &file_id);
+                                rd.len, false, &file_id);
                         tdf.share_name = share_name;
                     }
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_READ);
@@ -267,7 +267,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
-                                wr.wr_len, 0, false, &file_id);
+                                wr.wr_len, false, &file_id);
                     }
                     true
                 },
@@ -325,7 +325,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
-                                wr.wr_len, 0, false, &file_id);
+                                wr.wr_len, false, &file_id);
                     }
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
                     tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
