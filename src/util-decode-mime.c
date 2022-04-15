@@ -1463,8 +1463,8 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
             state->data_chunk_len++;
             entity->decoded_body_len += 1;
 
-            /* Add CRLF sequence if end of line */
-            if (remaining == 1) {
+            /* Add CRLF sequence if end of line, unless its a partial line */
+            if (remaining == 1 && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
                 entity->decoded_body_len += EOL_LEN;
@@ -1501,8 +1501,8 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                         state->data_chunk_len++;
                         entity->decoded_body_len++;
 
-                        /* Add CRLF sequence if end of line */
-                        if (remaining == 3) {
+                        /* Add CRLF sequence if end of line, unless for partial lines */
+                        if (remaining == 3 && state->current_line_delimiter_len > 0) {
                             memcpy(state->data_chunk + state->data_chunk_len,
                                     CRLF, EOL_LEN);
                             state->data_chunk_len += EOL_LEN;
@@ -1591,8 +1591,8 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
             memcpy(state->data_chunk + state->data_chunk_len, buf + offset, tobuf);
             state->data_chunk_len += tobuf;
 
-            /* Now always add a CRLF to the end */
-            if (tobuf == remaining) {
+            /* Now always add a CRLF to the end, unless its a partial line */
+            if (tobuf == remaining && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
             }
