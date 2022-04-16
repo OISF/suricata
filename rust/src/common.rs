@@ -1,3 +1,5 @@
+use super::build_slice;
+use crate::jsonbuilder::HEX;
 use std::ffi::CString;
 use std::os::raw::c_char;
 
@@ -12,9 +14,9 @@ pub mod nom7 {
     /// `take_until` does not consume the matched tag, and
     /// `take_until_and_consume` was removed in nom 7. This function
     /// provides an implementation (specialized for `&[u8]`).
-    pub fn take_until_and_consume<'a, E: ParseError<&'a [u8]>>(t: &'a [u8])
-         -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a [u8], E>
-    {
+    pub fn take_until_and_consume<'a, E: ParseError<&'a [u8]>>(
+        t: &'a [u8],
+    ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a [u8], E> {
         move |i: &'a [u8]| {
             let (i, res) = take_until(t)(i)?;
             let (i, _) = tag(t)(i)?;
@@ -115,9 +117,50 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
 
 /// Convert an u8-array of data into a hexadecimal representation
 pub fn to_hex(input: &[u8]) -> String {
-    static CHARS: &'static [u8] = b"0123456789abcdef";
+    return input
+        .iter()
+        .map(|b| {
+            vec![
+                char::from(HEX[(b >> 4) as usize]),
+                char::from(HEX[(b & 0xf) as usize]),
+            ]
+        })
+        .flatten()
+        .collect();
+}
 
-    return input.iter().map(
-        |b| vec![char::from(CHARS[(b >>  4) as usize]), char::from(CHARS[(b & 0xf) as usize])]
-    ).flatten().collect();
+#[no_mangle]
+pub unsafe extern "C" fn rs_to_hex(
+    output: *mut u8, out_len: usize, input: *const u8, in_len: usize,
+) {
+    if out_len < 2 * in_len + 1 {
+        return;
+    }
+    let islice = build_slice!(input, in_len);
+    let oslice = std::slice::from_raw_parts_mut(output, 2 * in_len + 1);
+    // only used from C
+    for i in 0..islice.len() {
+        oslice[2 * i] = HEX[(islice[i] >> 4) as usize];
+        oslice[2 * i + 1] = HEX[(islice[i] & 0xf) as usize];
+    }
+    oslice[2 * islice.len()] = 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_to_hex_sep(
+    output: *mut u8, out_len: usize, sep: u8, input: *const u8, in_len: usize,
+) {
+    if out_len < 3 * in_len {
+        return;
+    }
+    let islice = build_slice!(input, in_len);
+    let oslice = std::slice::from_raw_parts_mut(output, 3 * in_len);
+    // only used from C
+    for i in 0..islice.len() {
+        oslice[3 * i] = HEX[(islice[i] >> 4) as usize];
+        oslice[3 * i + 1] = HEX[(islice[i] & 0xf) as usize];
+        oslice[3 * i + 2] = sep;
+    }
+    // overwrites last separator with final null char
+    oslice[3 * islice.len() - 1] = 0;
 }
