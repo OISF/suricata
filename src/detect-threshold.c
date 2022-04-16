@@ -115,7 +115,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     int second_found = 0, count_found = 0;
     int type_found = 0, track_found = 0;
     int second_pos = 0, count_pos = 0;
-    uint16_t pos = 0;
+    size_t pos = 0;
     int i = 0;
 
     copy_str = SCStrdup(rawstr);

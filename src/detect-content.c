@@ -95,7 +95,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
     char converted = 0;
 
     {
-        uint16_t i, x;
+        size_t i, x;
         uint8_t bin = 0;
         uint8_t escape = 0;
         uint8_t binstr[3] = "";
