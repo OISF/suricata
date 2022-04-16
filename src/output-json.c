@@ -143,22 +143,10 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
         case FILE_STATE_CLOSED:
             JB_SET_STRING(jb, "state", "CLOSED");
             if (ff->flags & FILE_MD5) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->md5[x]);
-                }
-                jb_set_string(jb, "md5", str);
+                jb_set_hex(jb, "md5", (uint8_t *)ff->md5, (uint32_t)sizeof(ff->md5));
             }
             if (ff->flags & FILE_SHA1) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->sha1[x]);
-                }
-                jb_set_string(jb, "sha1", str);
+                jb_set_hex(jb, "sha1", (uint8_t *)ff->sha1, (uint32_t)sizeof(ff->sha1));
             }
             break;
         case FILE_STATE_TRUNCATED:
@@ -173,13 +161,7 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     }
 
     if (ff->flags & FILE_SHA256) {
-        size_t x;
-        int i;
-        char str[256];
-        for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
-            i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
-        }
-        jb_set_string(jb, "sha256", str);
+        jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
     }
 
     if (stored) {
