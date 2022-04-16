@@ -65,6 +65,8 @@ pub struct FileTransferTracker {
 
     chunks: HashMap<u64, FileChunk>,
     cur_ooo_chunk_offset: u64,
+
+    in_flight: u64,
 }
 
 impl FileTransferTracker {
@@ -82,6 +84,7 @@ impl FileTransferTracker {
             file_is_truncated:false,
             cur_ooo_chunk_offset:0,
             chunks:HashMap::new(),
+            in_flight: 0,
         }
     }
 
@@ -219,15 +222,19 @@ impl FileTransferTracker {
                 } else {
                     SCLogDebug!("UPDATE: appending data {} to ooo chunk at offset {}/{}",
                             d.len(), self.cur_ooo_chunk_offset, self.tracked);
-                    let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
-                        Vacant(entry) => {
-                            entry.insert(FileChunk::new(self.chunk_left))
-                        },
-                        Occupied(entry) => entry.into_mut(),
-                    };
-                    self.cur_ooo += d.len() as u64;
-                    c.contains_gap |= is_gap;
-                    c.chunk.extend(d);
+                    {
+                        let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
+                            Vacant(entry) => {
+                                entry.insert(FileChunk::new(self.chunk_left))
+                            },
+                            Occupied(entry) => entry.into_mut(),
+                        };
+                        self.cur_ooo += d.len() as u64;
+                        c.contains_gap |= is_gap;
+                        c.chunk.extend(d);
+                    }
+                    self.in_flight += d.len() as u64;
+                    SCLogDebug!("{:p} in_flight {}", self, self.in_flight);
                 }
 
                 consumed += self.chunk_left as usize;
@@ -251,6 +258,8 @@ impl FileTransferTracker {
                             let _offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
                                 Some(c) => {
+                                    self.in_flight -= c.chunk.len() as u64;
+
                                     let res = files.file_append(&self.track_id, &c.chunk, c.contains_gap);
                                     match res {
                                         0   => { },
@@ -311,6 +320,7 @@ impl FileTransferTracker {
                     c.chunk.extend(data);
                     c.contains_gap |= is_gap;
                     self.cur_ooo += data.len() as u64;
+                    self.in_flight += data.len() as u64;
                 }
 
                 self.chunk_left -= data.len() as u32;
@@ -322,5 +332,12 @@ impl FileTransferTracker {
 
     pub fn get_queued_size(&self) -> u64 {
         self.cur_ooo
+    }
+
+    pub fn get_inflight_size(&self) -> u64 {
+        self.in_flight
+    }
+    pub fn get_inflight_cnt(&self) -> usize {
+        self.chunks.len()
     }
 }
