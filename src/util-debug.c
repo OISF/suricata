@@ -742,7 +742,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file, uint32_t u
 
 #ifndef OS_WIN32
     if (userid != 0 || groupid != 0) {
-        if (chown(file, userid, groupid) == -1) {
+        if (fchown(fileno(iface_ctx->file_d), userid, groupid) == -1) {
             SCLogWarning(SC_WARN_CHOWN, "Failed to change ownership of file %s: %s", file,
                     strerror(errno));
         }
