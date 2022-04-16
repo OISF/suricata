@@ -599,9 +599,8 @@ static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t d
     PrefilterStore *ctx = data;
 
     uint32_t hash = strlen(ctx->name);
-    uint16_t u;
 
-    for (u = 0; u < strlen(ctx->name); u++) {
+    for (size_t u = 0; u < strlen(ctx->name); u++) {
         hash += ctx->name[u];
     }
 
