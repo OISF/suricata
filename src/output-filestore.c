@@ -88,15 +88,6 @@ static uint32_t FileGetMaxOpenFiles(void)
     return g_file_store_max_open_files;
 }
 
-static void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len)
-{
-    int i = 0;
-    size_t x = 0;
-    for (i = 0, x = 0; x < buf_len; x++) {
-        i += snprintf(&str[i], size - i, "%02x", buf[x]);
-    }
-}
-
 /**
  * \brief Update the timestamps on a file to match those of another
  *     file.
