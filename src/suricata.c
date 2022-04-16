@@ -530,22 +530,21 @@ static void SetBpfStringFromFile(char *filename)
                               " Use firewall filtering if possible.");
     }
 
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+
 #ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
+    if (_fstat(_fileno(fp), &st) != 0) {
 #else
-    if(stat(filename, &st) != 0) {
+    if (fstat(fileno(fp), &st) != 0) {
 #endif /* OS_WIN32 */
         SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
     bpf_len = st.st_size + 1;
-
-    // coverity[toctou : FALSE]
-    fp = fopen(filename,"r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
-        exit(EXIT_FAILURE);
-    }
 
     bpf_filter = SCMalloc(bpf_len * sizeof(char));
     if (unlikely(bpf_filter == NULL)) {
