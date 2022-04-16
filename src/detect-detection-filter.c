@@ -103,7 +103,6 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     char *copy_str = NULL, *df_opt = NULL;
     int seconds_found = 0, count_found = 0, track_found = 0;
     int seconds_pos = 0, count_pos = 0;
-    uint16_t pos = 0;
     int i = 0;
     char *saveptr = NULL;
 
@@ -112,10 +111,9 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
         goto error;
     }
 
-    for (pos = 0, df_opt = strtok_r(copy_str,",", &saveptr);
-         pos < strlen(copy_str) && df_opt != NULL;
-         pos++, df_opt = strtok_r(NULL,",", &saveptr))
-    {
+    for (size_t pos = 0, df_opt = strtok_r(copy_str, ",", &saveptr);
+            pos < strlen(copy_str) && df_opt != NULL;
+            pos++, df_opt = strtok_r(NULL, ",", &saveptr)) {
         if(strstr(df_opt,"count"))
             count_found++;
         if(strstr(df_opt,"second"))
