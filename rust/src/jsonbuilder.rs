@@ -474,6 +474,32 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    /// Set a key and a string field as the hex encoded string of the value.
+    pub fn set_hex(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.buf.push(',');
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.buf.push('"');
+        self.buf.push_str(key);
+        self.buf.push_str("\":\"");
+        for i in 0..val.len() {
+            self.buf.push(HEX[(val[i] >>  4) as usize] as char);
+            self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
+        }
+        self.buf.push('"');
+
+        Ok(self)
+    }
+
     /// Set a key and an unsigned integer type on an object.
     pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
@@ -712,6 +738,20 @@ pub unsafe extern "C" fn jb_set_base64(
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_base64(key, val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_set_hex(
+    js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
+) -> bool {
+    if bytes == std::ptr::null() || len == 0 {
+        return false;
+    }
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        let val = std::slice::from_raw_parts(bytes, len as usize);
+        return js.set_hex(key, val).is_ok();
     }
     return false;
 }
@@ -1160,6 +1200,6 @@ static ESCAPED: [u8; 256] = [
     __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
 ];
 
-static HEX: [u8; 16] = [
+pub static HEX: [u8; 16] = [
     b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
 ];

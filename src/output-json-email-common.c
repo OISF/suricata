@@ -138,13 +138,7 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
     if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
         MimeDecParseState *mime_state = tx->mime_state;
         if (mime_state && mime_state->has_md5 && (mime_state->state_flag == PARSE_DONE)) {
-            size_t x;
-            int i;
-            char s[256];
-            for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
-                i += snprintf(s + i, 255 - i, "%02x", mime_state->md5[x]);
-            }
-            jb_set_string(js, "body_md5", s);
+            jb_set_hex(js, "body_md5", mime_state->md5, (uint32_t)sizeof(mime_state->md5));
         }
     }
 }

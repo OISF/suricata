@@ -766,12 +766,8 @@ static int SaveCallback(void *ctx, const uint8_t *data, const uint32_t data_len)
 static int Md5AsAscii(const void *s, char *out, size_t out_size)
 {
     const Md5Type *md5 = s;
-    uint32_t x;
-    int i;
     char str[256];
-    for (i = 0, x = 0; x < sizeof(md5->md5); x++) {
-        i += snprintf(&str[i], 255-i, "%02x", md5->md5[x]);
-    }
+    PrintHexString(str, sizeof(str), (uint8_t *)md5->md5, sizeof(md5->md5));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
     return strlen(out);
@@ -780,12 +776,8 @@ static int Md5AsAscii(const void *s, char *out, size_t out_size)
 static int Sha256AsAscii(const void *s, char *out, size_t out_size)
 {
     const Sha256Type *sha = s;
-    uint32_t x;
-    int i;
     char str[256];
-    for (i = 0, x = 0; x < sizeof(sha->sha256); x++) {
-        i += snprintf(&str[i], 255-i, "%02x", sha->sha256[x]);
-    }
+    PrintHexString(str, sizeof(str), (uint8_t *)sha->sha256, sizeof(sha->sha256));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
     return strlen(out);
