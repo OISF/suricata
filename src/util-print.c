@@ -292,3 +292,10 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
     }
     return NULL;
 }
+
+void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len)
+{
+    for (size_t x = 0; x < buf_len; x++) {
+        snprintf(str + 2 * x, size - 2 * x, "%02x", buf[x]);
+    }
+}
