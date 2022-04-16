@@ -65,7 +65,7 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
     char converted = 0;
 
     {
-        uint16_t i, x;
+        size_t i, x;
         uint8_t escape = 0;
 
         /* it doesn't matter if we need to escape or not we remove the extra "\" to mimic snort */

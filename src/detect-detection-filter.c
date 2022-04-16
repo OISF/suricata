@@ -103,7 +103,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     char *copy_str = NULL, *df_opt = NULL;
     int seconds_found = 0, count_found = 0, track_found = 0;
     int seconds_pos = 0, count_pos = 0;
-    uint16_t pos = 0;
+    size_t pos = 0;
     int i = 0;
     char *saveptr = NULL;
 
