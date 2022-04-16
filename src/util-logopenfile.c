@@ -401,7 +401,11 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
                    filename, strerror(errno));
     } else {
         if (mode != 0) {
-            int r = chmod(filename, (mode_t)mode);
+#ifdef OS_WIN32
+            int r = _chmod(filename, (mode_t)mode);
+#else
+            int r = fchmod(fileno(ret), (mode_t)mode);
+#endif
             if (r < 0) {
                 SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
                              filename, mode, strerror(errno));
