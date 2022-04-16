@@ -114,6 +114,9 @@ fn smb2_read_response_record_generic<'b>(state: &mut SMBState, r: &Smb2Record<'b
 
 pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
+    let max_queue_size = unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE };
+    let max_queue_cnt = unsafe { SMB_CFG_MAX_READ_QUEUE_CNT };
+
     smb2_read_response_record_generic(state, r);
 
     match parse_smb2_response_read(r.data) {
@@ -160,9 +163,17 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                                &tdf.file_name, rd.data, offset,
-                                rd.len, false, &file_id);
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
+                            state.set_event(SMBEvent::ReadResponseQueueSizeExceeded);
+                            state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
+                            state.set_event(SMBEvent::ReadResponseQueueCntExceeded);
+                            state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                        } else {
+                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                    &tdf.file_name, rd.data, offset,
+                                    rd.len, false, &file_id);
+                        }
                     }
                     true
                 },
@@ -213,23 +224,33 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
                 } else {
                     let file_name = match state.guid2name_map.get(&file_guid) {
-                        Some(n) => { n.to_vec() },
-                        None => { b"<unknown>".to_vec() },
+                        Some(n) => { n.to_vec() }
+                        None => { b"<unknown>".to_vec() }
                     };
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOCLIENT);
+
+                    tx.vercmd.set_smb2_cmd(SMB2_COMMAND_READ);
+                    tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
+                            r.session_id, r.tree_id, 0); // TODO move into new_file_tx
+
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                        tdf.share_name = share_name;
                         let file_id : u32 = tx.id as u32;
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                                &file_name, rd.data, offset,
-                                rd.len, false, &file_id);
-                        tdf.share_name = share_name;
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
+                            state.set_event(SMBEvent::ReadResponseQueueSizeExceeded);
+                            state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
+                            state.set_event(SMBEvent::ReadResponseQueueCntExceeded);
+                            state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                        } else {
+                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                    &file_name, rd.data, offset,
+                                    rd.len, false, &file_id);
+                        }
                     }
-                    tx.vercmd.set_smb2_cmd(SMB2_COMMAND_READ);
-                    tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                            r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                 }
             }
 
@@ -247,6 +268,9 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
 pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
+    let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
+    let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
+
     SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
@@ -280,9 +304,17 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                                &file_name, wr.data, wr.wr_offset,
-                                wr.wr_len, false, &file_id);
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                            state.set_event(SMBEvent::WriteQueueSizeExceeded);
+                            state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
+                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
+                            state.set_event(SMBEvent::WriteQueueCntExceeded);
+                            state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
+                        } else {
+                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                    &file_name, wr.data, wr.wr_offset,
+                                    wr.wr_len, false, &file_id);
+                        }
                     }
                     true
                 },
@@ -333,18 +365,27 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
                 } else {
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOSERVER);
+                    tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
+                    tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
+                            r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                                &file_name, wr.data, wr.wr_offset,
-                                wr.wr_len, false, &file_id);
+
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                            state.set_event(SMBEvent::WriteQueueSizeExceeded);
+                            state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
+                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
+                            state.set_event(SMBEvent::WriteQueueCntExceeded);
+                            state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
+                        } else {
+                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                    &file_name, wr.data, wr.wr_offset,
+                                    wr.wr_len, false, &file_id);
+                        }
                     }
-                    tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
-                    tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                            r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                 }
             }
 

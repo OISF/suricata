@@ -52,7 +52,11 @@ use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
 pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_READ_QUEUE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
@@ -2206,7 +2210,11 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::FileOverlap => { "file_overlap\0" },
             SMBEvent::ReadRequestTooLarge => { "read_request_too_large\0" },
             SMBEvent::ReadResponseTooLarge => { "read_response_too_large\0" },
+            SMBEvent::ReadResponseQueueSizeExceeded => { "read_response_queue_size_exceeded\0" },
+            SMBEvent::ReadResponseQueueCntExceeded => { "read_response_queue_cnt_exceeded\0" },
             SMBEvent::WriteRequestTooLarge => { "write_request_too_large\0" },
+            SMBEvent::WriteQueueSizeExceeded => { "write_queue_size_exceeded\0" },
+            SMBEvent::WriteQueueCntExceeded => { "write_queue_cnt_exceeded\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -2245,8 +2253,13 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_set_conf_val(max_read_size: u32, max_write_size: u32)
+pub unsafe extern "C" fn rs_smb_set_conf_val(max_read_size: u32, max_write_size: u32,
+    max_write_queue_size: u32, max_write_queue_cnt: u32, max_read_queue_size: u32, max_read_queue_cnt: u32)
 {
     SMB_CFG_MAX_READ_SIZE = max_read_size;
     SMB_CFG_MAX_WRITE_SIZE = max_write_size;
+    SMB_CFG_MAX_WRITE_QUEUE_SIZE = max_write_queue_size;
+    SMB_CFG_MAX_WRITE_QUEUE_CNT = max_write_queue_cnt;
+    SMB_CFG_MAX_READ_QUEUE_SIZE = max_read_queue_size;
+    SMB_CFG_MAX_READ_QUEUE_CNT = max_read_queue_cnt;
 }
