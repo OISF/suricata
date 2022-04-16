@@ -74,7 +74,11 @@ pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_READ_QUEUE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -2425,6 +2429,34 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
             match get_memval(val) {
                 Ok(retval) => { SMB_CFG_MAX_WRITE_SIZE = retval as u32; }
                 Err(_) => { SCLogError!("Invalid max-write-size value"); }
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-write-queue-size");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_SIZE = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-write-queue-size value"); }
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-write-queue-cnt");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_CNT = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-write-queue-cnt value"); }
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-read-queue-size");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_SIZE = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-read-queue-size value"); }
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-read-queue-cnt");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_CNT = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-read-queue-cnt value"); }
             }
         }
     } else {
