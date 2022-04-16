@@ -102,8 +102,9 @@ void ROHashFree(ROHashTable *table)
 
 uint32_t ROHashMemorySize(ROHashTable *table)
 {
-    return (uint32_t)(hashsize(table->hash_bits) * sizeof(ROHashTableOffsets) +
-            table->items * table->item_size + sizeof(ROHashTable));
+    uint32_t r1 = hashsize(table->hash_bits) * sizeof(ROHashTableOffsets);
+    uint32_t r2 = table->items * table->item_size;
+    return (uint32_t)(r1 + r2 + sizeof(ROHashTable));
 }
 
 /**
