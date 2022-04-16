@@ -34,8 +34,12 @@ pub enum SMBEvent {
     ReadRequestTooLarge = 10,
     /// READ response bigger than `max_read_size`
     ReadResponseTooLarge = 11,
+    ReadResponseQueueSizeExceeded = 12,
+    ReadResponseQueueCntExceeded = 13,
     /// WRITE request for more than `max_write_size`
-    WriteRequestTooLarge = 12,
+    WriteRequestTooLarge = 14,
+    WriteQueueSizeExceeded = 15,
+    WriteQueueCntExceeded = 16,
 }
 
 impl SMBEvent {
@@ -53,7 +57,11 @@ impl SMBEvent {
             9 => Some(SMBEvent::ResponseToServer),
             10 => Some(SMBEvent::ReadRequestTooLarge),
             11 => Some(SMBEvent::ReadResponseTooLarge),
-            12 => Some(SMBEvent::WriteRequestTooLarge),
+            12 => Some(SMBEvent::ReadResponseQueueSizeExceeded),
+            13 => Some(SMBEvent::ReadResponseQueueCntExceeded),
+            14 => Some(SMBEvent::WriteRequestTooLarge),
+            15 => Some(SMBEvent::WriteQueueSizeExceeded),
+            16 => Some(SMBEvent::WriteQueueCntExceeded),
             _ => None,
         }
     }
@@ -62,19 +70,23 @@ impl SMBEvent {
 pub fn smb_str_to_event(instr: &str) -> i32 {
     SCLogDebug!("checking {}", instr);
     match instr {
-        "internal_error"                => SMBEvent::InternalError as i32,
-        "malformed_data"                => SMBEvent::MalformedData as i32,
-        "record_overflow"               => SMBEvent::RecordOverflow as i32,
-        "malformed_ntlmssp_request"     => SMBEvent::MalformedNtlmsspRequest as i32,
-        "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
-        "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
-        "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
-        "file_overlap"                  => SMBEvent::FileOverlap as i32,
-        "request_to_client"             => SMBEvent::RequestToClient as i32,
-        "response_to_server"            => SMBEvent::ResponseToServer as i32,
-        "read_request_too_large"        => SMBEvent::ReadRequestTooLarge as i32,
-        "read_response_too_large"       => SMBEvent::ReadResponseTooLarge as i32,
-        "write_request_too_large"       => SMBEvent::WriteRequestTooLarge as i32,
+        "internal_error"                    => SMBEvent::InternalError as i32,
+        "malformed_data"                    => SMBEvent::MalformedData as i32,
+        "record_overflow"                   => SMBEvent::RecordOverflow as i32,
+        "malformed_ntlmssp_request"         => SMBEvent::MalformedNtlmsspRequest as i32,
+        "malformed_ntlmssp_response"        => SMBEvent::MalformedNtlmsspResponse as i32,
+        "duplicate_negotiate"               => SMBEvent::DuplicateNegotiate as i32,
+        "negotiate_malformed_dialects"      => SMBEvent::NegotiateMalformedDialects as i32,
+        "file_overlap"                      => SMBEvent::FileOverlap as i32,
+        "request_to_client"                 => SMBEvent::RequestToClient as i32,
+        "response_to_server"                => SMBEvent::ResponseToServer as i32,
+        "read_request_too_large"            => SMBEvent::ReadRequestTooLarge as i32,
+        "read_response_too_large"           => SMBEvent::ReadResponseTooLarge as i32,
+        "read_queue_size_too_large"         => SMBEvent::ReadResponseQueueSizeExceeded as i32,
+        "read_queue_cnt_too_large"          => SMBEvent::ReadResponseQueueCntExceeded as i32,
+        "write_request_too_large"           => SMBEvent::WriteRequestTooLarge as i32,
+        "write_queue_size_too_large"        => SMBEvent::WriteQueueSizeExceeded as i32,
+        "write_queue_cnt_too_large"         => SMBEvent::WriteQueueCntExceeded as i32,
         _ => -1,
     }
 }
