@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
+use super::build_slice;
 
 pub mod nom7 {
     use nom7::bytes::streaming::{tag, take_until};
@@ -120,4 +121,18 @@ pub fn to_hex(input: &[u8]) -> String {
     return input.iter().map(
         |b| vec![char::from(CHARS[(b >>  4) as usize]), char::from(CHARS[(b & 0xf) as usize])]
     ).flatten().collect();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_to_hex(output: *mut u8, out_len: usize, input: *const u8, in_len: usize) {
+    static CHARS: &'static [u8] = b"0123456789abcdef";
+    let islice = build_slice!(input, in_len);
+    let oslice = std::slice::from_raw_parts_mut(output, out_len);
+    for i in 0..in_len {
+        if out_len < 2 * i + 2 {
+            return;
+        }
+        oslice[2*i] = CHARS[(islice[i] >>  4) as usize];
+        oslice[2*i+1] = CHARS[(islice[i] & 0xf) as usize];
+    }
 }
