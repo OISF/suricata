@@ -118,7 +118,6 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     int second_found = 0, count_found = 0;
     int type_found = 0, track_found = 0;
     int second_pos = 0, count_pos = 0;
-    uint16_t pos = 0;
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
@@ -127,10 +126,9 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     }
 
     char *saveptr = NULL;
-    for (pos = 0, threshold_opt = strtok_r(copy_str,",", &saveptr);
-         pos < strlen(copy_str) && threshold_opt != NULL;
-         pos++, threshold_opt = strtok_r(NULL,"," , &saveptr))
-    {
+    for (size_t pos = 0, threshold_opt = strtok_r(copy_str, ",", &saveptr);
+            pos < strlen(copy_str) && threshold_opt != NULL;
+            pos++, threshold_opt = strtok_r(NULL, ",", &saveptr)) {
         if(strstr(threshold_opt,"count"))
             count_found++;
         if(strstr(threshold_opt,"second"))
