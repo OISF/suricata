@@ -144,7 +144,7 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
 
       # Download and extract dependency archives created during prep
       # job.
@@ -207,7 +207,7 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
@@ -347,7 +347,7 @@ jobs:
       - run: |
           cargo install --debug cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -417,7 +417,7 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -479,7 +479,7 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -549,7 +549,7 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -621,7 +621,7 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -754,7 +754,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -818,7 +818,7 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
         with:
           name: prep
@@ -874,7 +874,7 @@ jobs:
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - name: Downloading prep archive
         uses: actions/download-artifact@v2
         with:
