@@ -8,19 +8,24 @@ on:
       - 'master-*'
   pull_request:
 
+permissions: read-all
+
+env:
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   # Checking for correct formatting of branch for C code changes
   check-formatting:
     name: Formatting Check (clang 9)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
-    continue-on-error: true
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+    continue-on-error: false
     steps:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -81,7 +86,9 @@ jobs:
       # My patience simply ran too short to keep on looking. See follow-on
       # action to manually fix this up.
       - name: Checkout - might be merge commit!
-        uses: actions/checkout@v1
+        uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
+        with:
+          fetch-depth: 0
         # Use last commit of branch, not potential merge commit!
         #
         # This works perfectly well on pull requests within forked repos, but
@@ -89,7 +96,8 @@ jobs:
         # does not know the branch (from the forked repo). Argh.
 #        with:
 #          ref: ${{ github.head_ref }} # check out branch
-
+      # The action above is supposed to do this for us, but it doesn't appear to stick.
+      - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       # Manually ignore the merge commit as none of the with/ref things tried
       # with actions/checkout seemed to work for pull requests from forks into
       # the OISF repo.
