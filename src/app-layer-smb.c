@@ -261,7 +261,8 @@ static uint32_t stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
 void RegisterSMBParsers(void)
 {
     const char *proto_name = "smb";
-
+    uint32_t max_read_size = 0;
+    uint32_t max_write_size = 0;
     /** SMB */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMB, proto_name);
@@ -342,8 +343,31 @@ void RegisterSMBParsers(void)
             }
         }
         SCLogConfig("SMB stream depth: %u", stream_depth);
-
         AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
+
+        ConfNode *r = ConfGetNode("app-layer.protocols.smb.max-read-size");
+        if (r != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(r->val, &value) < 0) {
+                SCLogError(SC_ERR_SMB_CONFIG, "invalid value for max-read-size %s", r->val);
+            } else {
+                max_read_size = value;
+            }
+        }
+        SCLogConfig("SMB max-read-size: %u", max_read_size);
+
+        ConfNode *w = ConfGetNode("app-layer.protocols.smb.max-write-size");
+        if (w != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(w->val, &value) < 0) {
+                SCLogError(SC_ERR_SMB_CONFIG, "invalid value for max-write-size %s", w->val);
+            } else {
+                max_write_size = value;
+            }
+        }
+        SCLogConfig("SMB max-write-size: %u", max_write_size);
+
+        rs_smb_set_conf_val(max_read_size, max_write_size);
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

@@ -128,7 +128,9 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 return;
             }
 
-            if state.max_read_size > 0 && rd.len > state.max_read_size {
+            if (state.max_read_size != 0 && rd.len > state.max_read_size) ||
+               (unsafe { SMB_CFG_MAX_READ_SIZE != 0 && SMB_CFG_MAX_READ_SIZE < rd.len })
+            {
                 state.set_event(SMBEvent::ReadResponseTooLarge);
                 state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
                 return;
@@ -253,7 +255,8 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
     match parse_smb2_request_write(r.data) {
         Ok((_, wr)) => {
-            if state.max_read_size != 0 && wr.wr_len > state.max_write_size {
+            if (state.max_write_size != 0 && wr.wr_len > state.max_write_size) ||
+               (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < wr.wr_len }) {
                 state.set_event(SMBEvent::WriteRequestTooLarge);
                 state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
                 return;
@@ -471,7 +474,8 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_READ => {
             match parse_smb2_request_read(r.data) {
                 Ok((_, rd)) => {
-                    if state.max_read_size != 0 && rd.rd_len > state.max_read_size {
+                    if (state.max_read_size != 0 && rd.rd_len > state.max_read_size) ||
+                        (unsafe { SMB_CFG_MAX_READ_SIZE != 0 && SMB_CFG_MAX_READ_SIZE < rd.rd_len }) {
                         events.push(SMBEvent::ReadRequestTooLarge);
                     } else {
                         SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
