@@ -248,6 +248,13 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             }
 
             js.set_string("server_guid", &guid_to_string(&x.server_guid));
+
+            if state.max_read_size > 0 {
+                js.set_integer("max_read_size", state.max_read_size as u64);
+            }
+            if state.max_write_size > 0 {
+                js.set_integer("max_write_size", state.max_write_size as u64);
+            }
         },
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
             js.set_integer("tree_id", x.tree_id as u64);
