@@ -1080,6 +1080,10 @@ typedef struct DetectEngineThreadCtx_ {
     uint64_t tx_id;
     Packet *p;
 
+    uint16_t alert_queue_size;
+    uint16_t alert_queue_capacity;
+    PacketAlert *alert_queue;
+
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 
     /* holds the current recursion depth on content inspection */
@@ -1492,6 +1496,11 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
+
+void AlertQueueInit(DetectEngineThreadCtx *det_ctx);
+void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
+void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
+                      Packet *p, uint64_t tx_id, uint8_t alert_flags);
 
 int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 
