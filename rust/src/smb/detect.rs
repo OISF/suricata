@@ -214,19 +214,16 @@ pub unsafe extern "C" fn rs_smb_cmd_match(
 ) -> u8 {
 
     let version = tx.vercmd.get_version();
-    let cmd;
-    if version == 1 {
-        cmd = tx.vercmd.get_smb1_cmd().1.into();
+    let (cmd, valid_codes) = if version == 1 {
+        (tx.vercmd.get_smb1_cmd().1.into(), &cmd_valid_codes.cmd_codes1)
     } else {
-        cmd = tx.vercmd.get_smb2_cmd().1;
-    }
+        (tx.vercmd.get_smb2_cmd().1, &cmd_valid_codes.cmd_codes2)
+    };
 
     SCLogDebug!("rs_smb_cmd_match: version {} cmd {}", version, cmd);
 
-    if let Some(valid_codes) = cmd_valid_codes.0.get(&version) {
-        if valid_codes.contains(&cmd) {
-            return 1;
-        }
+    if valid_codes.contains(&cmd) {
+        return 1;
     }
 
     return 0;
@@ -261,17 +258,15 @@ pub unsafe extern "C" fn rs_smb_cmd_free(ptr: *mut c_void) {
 /// Stores the SMB command codes used to match with smb.cmd keyword.
 /// It includes both valid codes for SMB1 and SMB2.
 #[derive(Debug, PartialEq)]
-pub struct SmbCmdValidCodes (HashMap<u8, HashSet<u16>>);
+pub struct SmbCmdValidCodes {
+    cmd_codes1: HashSet<u16>,
+    cmd_codes2: HashSet<u16>,
+}
 
 impl SmbCmdValidCodes {
 
     fn new(cmd_codes1: HashSet<u16>, cmd_codes2: HashSet<u16>) -> Self {
-
-        let mut cmd_data = HashMap::new();
-        cmd_data.insert(1, cmd_codes1);
-        cmd_data.insert(2, cmd_codes2);
-
-        return Self(cmd_data);
+        return Self{cmd_codes1, cmd_codes2};
     }
 
 }
