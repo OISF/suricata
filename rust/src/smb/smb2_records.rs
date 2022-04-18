@@ -157,6 +157,9 @@ pub fn parse_smb2_request_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Neg
 pub struct Smb2NegotiateProtocolResponseRecord<'a> {
     pub dialect: u16,
     pub server_guid: &'a[u8],
+    pub max_trans_size: u32,
+    pub max_read_size: u32,
+    pub max_write_size: u32,
 }
 
 pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
@@ -165,9 +168,16 @@ pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Ne
     let (i, dialect) = le_u16(i)?;
     let (i, _ctx_cnt) = le_u16(i)?;
     let (i, server_guid) = take(16_usize)(i)?;
+    let (i, _capabilities) = le_u32(i)?;
+    let (i, max_trans_size) = le_u32(i)?;
+    let (i, max_read_size) = le_u32(i)?;
+    let (i, max_write_size) = le_u32(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
         dialect,
-        server_guid
+        server_guid,
+        max_trans_size,
+        max_read_size,
+        max_write_size
     };
     Ok((i, record))
 }
@@ -178,6 +188,9 @@ pub fn parse_smb2_response_negotiate_protocol_error(i: &[u8]) -> IResult<&[u8], 
     let record = Smb2NegotiateProtocolResponseRecord {
         dialect: 0,
         server_guid: &[],
+        max_trans_size: 0,
+        max_read_size: 0,
+        max_write_size: 0
     };
     Ok((i, record))
 }
