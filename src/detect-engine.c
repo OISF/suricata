@@ -2803,6 +2803,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
 
+    /* Alert processing queue */
+    AlertQueueInit(det_ctx);
+
     /* byte_extract storage */
     det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) *
                                   (de_ctx->byte_extract_max_local_id + 1));
@@ -3036,6 +3039,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
+    AlertQueueFree(det_ctx);
 
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {
