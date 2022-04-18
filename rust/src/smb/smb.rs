@@ -803,6 +803,9 @@ pub struct SMBState<> {
     /// them while inspecting DCERPC REQUEST txs
     pub dcerpc_ifaces: Option<Vec<DCERPCIface>>,
 
+    pub max_read_size: u32,
+    pub max_write_size: u32,
+
     /// Timestamp in seconds of last update. This is packet time,
     /// potentially coming from pcaps.
     ts: u64,
@@ -840,6 +843,8 @@ impl SMBState {
             dialect_vec: None,
             dcerpc_ifaces: None,
             ts: 0,
+            max_read_size: 0,
+            max_write_size: 0,
         }
     }
 
@@ -2196,6 +2201,9 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
             SMBEvent::FileOverlap => { "file_overlap\0" },
+            SMBEvent::ReadRequestTooLarge => { "read_request_too_large\0" },
+            SMBEvent::ReadResponseTooLarge => { "read_response_too_large\0" },
+            SMBEvent::WriteRequestTooLarge => { "write_request_too_large\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
