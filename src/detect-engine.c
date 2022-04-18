@@ -2768,6 +2768,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
 
+    /* Alert processing queue */
+    AlertQueueInit(det_ctx);
+
     /* byte_extract storage */
     det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) *
                                   (de_ctx->byte_extract_max_local_id + 1));
@@ -2998,6 +3001,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->match_array);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
+
+    AlertQueueFree(det_ctx);
 
     if (det_ctx->byte_values != NULL)
         SCFree(det_ctx->byte_values);

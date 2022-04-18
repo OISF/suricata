@@ -272,6 +272,86 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
     }
 }
 
+void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
+{
+    det_ctx->alert_queue_size = 0;
+    det_ctx->alert_queue = SCCalloc(packet_alert_max, sizeof(PacketAlert));
+    if (det_ctx->alert_queue == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIu64 " bytes for the alert queue",
+                (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
+    }
+    det_ctx->alert_queue_capacity = packet_alert_max;
+    SCLogDebug("alert queue initialized to %u elements (%" PRIu64 " bytes)", packet_alert_max,
+            (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
+}
+
+void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
+{
+    SCFree(det_ctx->alert_queue);
+    det_ctx->alert_queue_capacity = 0;
+}
+
+/** \internal
+ * \retval the new capacity
+ */
+static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
+{
+    uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
+    void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
+    if (unlikely(tmp_queue == NULL)) {
+        /* queue capacity didn't change */
+        return det_ctx->alert_queue_capacity;
+    }
+    det_ctx->alert_queue = tmp_queue;
+    det_ctx->alert_queue_capacity = new_cap;
+    SCLogDebug("Alert queue size doubled: %u elements, bytes: %" PRIuMAX "",
+            det_ctx->alert_queue_capacity,
+            (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
+    return new_cap;
+}
+
+/** \internal
+ */
+static inline PacketAlert PacketAlertSet(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, uint64_t tx_id, uint8_t alert_flags)
+{
+    PacketAlert pa;
+    pa.num = s->num;
+    pa.action = s->action;
+    pa.s = (Signature *)s;
+    pa.flags = alert_flags;
+    pa.tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
+    return pa;
+}
+
+/**
+ * \brief Append signature to local packet alert queue for later preprocessing
+ */
+void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
+        uint8_t alert_flags)
+{
+    /* first time we see a drop action signature, set that in the packet */
+    /* we do that even before inserting into the queue, so we save it even if appending fails */
+    if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
+        p->alerts.drop = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
+        SCLogDebug("Set PacketAlert drop action. s->num %" PRIu32 "", s->num);
+    }
+
+    uint16_t pos = det_ctx->alert_queue_size;
+    if (pos == det_ctx->alert_queue_capacity) {
+        /* we must grow the alert queue */
+        if (pos == AlertQueueExpand(det_ctx)) {
+            /* this means we failed to expand the queue */
+            return;
+        }
+    }
+    det_ctx->alert_queue[pos] = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
+
+    SCLogDebug("Appending sid %" PRIu32 ", s->num %" PRIu32 " to alert queue", s->id, s->num);
+    det_ctx->alert_queue_size++;
+    return;
+}
+
 /**
  * \brief Check the threshold of the sigs that match, set actions, break on pass action
  *        This function iterate the packet alerts array, removing those that didn't match
