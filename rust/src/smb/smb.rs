@@ -51,6 +51,9 @@ use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
+pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
+
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
@@ -2262,4 +2265,11 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c
         return -1;
     }
     0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_set_conf_val(max_read_size: u32, max_write_size: u32)
+{
+    SMB_CFG_MAX_READ_SIZE = max_read_size;
+    SMB_CFG_MAX_WRITE_SIZE = max_write_size;
 }
