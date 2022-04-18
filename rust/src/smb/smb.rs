@@ -73,6 +73,9 @@ pub enum SMBFrameType {
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
+pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 0;
+pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
+
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
@@ -2407,8 +2410,22 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
             match get_memval(val) {
                 Ok(retval) => { stream_depth = retval as u32; }
                 Err(_) => { SCLogError!("Invalid depth value"); }
-           }
+            }
             AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-read-size");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_READ_SIZE = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-read-size value"); }
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-write-size");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => { SMB_CFG_MAX_WRITE_SIZE = retval as u32; }
+                Err(_) => { SCLogError!("Invalid max-write-size value"); }
+            }
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
