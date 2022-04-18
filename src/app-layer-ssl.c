@@ -172,10 +172,43 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
     return -1;
 }
 
-static void SSLParserReset(SSLState *ssl_state)
-{
-    ssl_state->curr_connp->bytes_processed = 0;
-}
+#ifdef DEBUG_VALIDATION
+#define ValidateRecordState(connp)                                              \
+    do {                                                                        \
+        DEBUG_VALIDATE_BUG_ON(((connp)->record_length + SSLV3_RECORD_HDR_LEN) < \
+                (connp)->bytes_processed);                                      \
+    } while(0);
+#else
+#define ValidateRecordState(...)
+#endif
+
+#ifdef DEBUG_VALIDATION
+#define ValidateTrecBuffer(connp)                                               \
+    do {                                                                        \
+        DEBUG_VALIDATE_BUG_ON((connp)->trec_pos > (connp)->trec_len);           \
+        DEBUG_VALIDATE_BUG_ON((connp)->trec == NULL && (connp)->trec_len > 0);  \
+        DEBUG_VALIDATE_BUG_ON((connp)->trec == NULL && (connp)->trec_pos > 0);  \
+    } while(0)
+#else
+#define ValidateTrecBuffer(...)
+#endif
+
+#define SSLParserHSReset(connp)             \
+    do {                                    \
+        (connp)->trec_pos = 0;              \
+        (connp)->handshake_type = 0;        \
+        (connp)->hs_bytes_processed = 0;    \
+        (connp)->message_length = 0;        \
+        (connp)->message_start = 0;         \
+    } while(0)
+
+#define SSLParserReset(state)                       \
+    do {                                            \
+        SCLogDebug("resetting state");              \
+        (state)->curr_connp->bytes_processed = 0;   \
+        SSLParserHSReset((state)->curr_connp);      \
+    } while(0)
+
 
 void SSLSetEvent(SSLState *ssl_state, uint8_t event)
 {
