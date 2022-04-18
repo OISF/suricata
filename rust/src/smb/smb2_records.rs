@@ -152,6 +152,9 @@ named!(pub parse_smb2_request_negotiate_protocol<Smb2NegotiateProtocolRequestRec
 pub struct Smb2NegotiateProtocolResponseRecord<'a> {
     pub dialect: u16,
     pub server_guid: &'a[u8],
+    pub max_trans_size: u32,
+    pub max_read_size: u32,
+    pub max_write_size: u32,
 }
 
 named!(pub parse_smb2_response_negotiate_protocol<Smb2NegotiateProtocolResponseRecord>,
@@ -161,9 +164,16 @@ named!(pub parse_smb2_response_negotiate_protocol<Smb2NegotiateProtocolResponseR
         >>  dialect: le_u16
         >>  _ctx_cnt: le_u16
         >>  server_guid: take!(16)
+        >>  _capabilities: le_u32
+        >>  max_trans_size: le_u32
+        >>  max_read_size: le_u32
+        >>  max_write_size: le_u32
         >>  (Smb2NegotiateProtocolResponseRecord {
                 dialect,
-                server_guid
+                server_guid,
+                max_trans_size,
+                max_read_size,
+                max_write_size
             })
 ));
 
@@ -174,9 +184,11 @@ named!(pub parse_smb2_response_negotiate_protocol_error<Smb2NegotiateProtocolRes
         >>  (Smb2NegotiateProtocolResponseRecord {
                 dialect: 0,
                 server_guid: &[],
+                max_trans_size: 0,
+                max_read_size: 0,
+                max_write_size: 0
             })
 ));
-
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SessionSetupRequestRecord<'a> {
