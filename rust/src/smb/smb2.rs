@@ -128,6 +128,12 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 return;
             }
 
+            if state.max_read_size > 0 && rd.len > state.max_read_size {
+                state.set_event(SMBEvent::ReadResponseTooLarge);
+                state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                return;
+            }
+
             SCLogDebug!("SMBv2: read response => {:?}", rd);
 
             // get the request info. If we don't have it, there is nothing
@@ -245,6 +251,12 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
     match parse_smb2_request_write(r.data) {
         Ok((_, wr)) => {
+            if state.max_read_size != 0 && wr.wr_len > state.max_write_size {
+                state.set_event(SMBEvent::WriteRequestTooLarge);
+                state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                return;
+            }
+
             /* update key-guid map */
             let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GUID);
             state.ssn2vec_map.insert(guid_key, wr.guid.to_vec());
@@ -480,13 +492,17 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_READ => {
             match parse_smb2_request_read(r.data) {
                 Ok((_, rd)) => {
-                    SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
-                            rd.guid, rd.rd_len, rd.rd_offset);
+                    if state.max_read_size != 0 && rd.rd_len > state.max_read_size {
+                        events.push(SMBEvent::ReadRequestTooLarge);
+                    } else {
+                        SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
+                                rd.guid, rd.rd_len, rd.rd_offset);
 
-                    // store read guid,offset in map
-                    let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_OFFSET);
-                    let guidoff = SMBFileGUIDOffset::new(rd.guid.to_vec(), rd.rd_offset);
-                    state.ssn2vecoffset_map.insert(guid_key, guidoff);
+                        // store read guid,offset in map
+                        let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_OFFSET);
+                        let guidoff = SMBFileGUIDOffset::new(rd.guid.to_vec(), rd.rd_offset);
+                        state.ssn2vecoffset_map.insert(guid_key, guidoff);
+                    }
                 },
                 _ => {
                     events.push(SMBEvent::MalformedData);
@@ -767,6 +783,9 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     SCLogDebug!("SERVER dialect => {}", &smb2_dialect_string(rd.dialect));
 
                     state.dialect = rd.dialect;
+                    state.max_read_size = rd.max_read_size;
+                    state.max_write_size = rd.max_write_size;
+
                     let found2 = match state.get_negotiate_tx(2) {
                         Some(tx) => {
                             if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {

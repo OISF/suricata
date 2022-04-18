@@ -724,6 +724,7 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
     return [o1, o2, o3, o4]
 }
 
+#[derive(Default, Debug)]
 pub struct SMBState<> {
     /// map ssn/tree/msgid to vec (guid/name/share)
     pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
@@ -777,6 +778,9 @@ pub struct SMBState<> {
     /// them while inspecting DCERPC REQUEST txs
     pub dcerpc_ifaces: Option<Vec<DCERPCIface>>,
 
+    pub max_read_size: u32,
+    pub max_write_size: u32,
+
     /// Timestamp in seconds of last update. This is packet time,
     /// potentially coming from pcaps.
     ts: u64,
@@ -818,6 +822,7 @@ impl SMBState {
             dialect_vec: None,
             dcerpc_ifaces: None,
             ts: 0,
+            ..Default::default()
         }
     }
 
