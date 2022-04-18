@@ -20,6 +20,9 @@ use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
 use crate::smb::smb::*;
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
 
+const SMB2_FLAGS_SERVER_TO_REDIR: u32 = 0x0000_0001;
+const SMB2_FLAGS_ASYNC_COMMAND: u32 = 0x0000_0002;
+
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
     pub data: &'a[u8],
@@ -66,6 +69,22 @@ impl<'a> Smb2Record<'a> {
     }
 }
 
+#[derive(Debug)]
+struct SmbFlags {
+    direction: u8,
+    async_command: u8,
+}
+
+fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
+    let (i, val) = le_u32(i)?;
+    let direction = if val & SMB2_FLAGS_SERVER_TO_REDIR != 0 { 1 } else { 0 };
+    let async_command = if val & SMB2_FLAGS_ASYNC_COMMAND != 0 { 1 } else { 0 };
+    Ok((i, SmbFlags {
+        direction,
+        async_command,
+    }))
+}
+
 named!(pub parse_smb2_request_record<Smb2Record>,
     do_parse!(
             _server_component: tag!(b"\xfeSMB")
@@ -75,16 +94,7 @@ named!(pub parse_smb2_request_record<Smb2Record>,
         >>  _reserved: take!(2)
         >>  command: le_u16
         >>  _credits_requested: le_u16
-        >>  flags: bits!(tuple!(
-                take_bits!(u8, 2),      // reserved / unused
-                take_bits!(u8, 1),      // replay op
-                take_bits!(u8, 1),      // dfs op
-                take_bits!(u32, 24),    // reserved / unused
-                take_bits!(u8, 1),      // signing
-                take_bits!(u8, 1),      // chained
-                take_bits!(u8, 1),      // async
-                take_bits!(u8, 1)       // response
-            ))
+        >>  flags: parse_smb2_flags
         >> chain_offset: le_u32
         >> message_id: le_u64
         >> _process_id: le_u32
@@ -95,7 +105,7 @@ named!(pub parse_smb2_request_record<Smb2Record>,
         >> data_c: cond!(chain_offset > hlen as u32, take!(chain_offset - hlen as u32))
         >> data_r: cond!(chain_offset <= hlen as u32, rest)
         >> (Smb2Record {
-                direction: flags.7,
+                direction: flags.direction,
                 nt_status: 0,
                 command:command,
                 message_id: message_id,
@@ -506,28 +516,19 @@ named!(pub parse_smb2_response_record<Smb2Record>,
         >>  nt_status: le_u32
         >>  command: le_u16
         >>  _credit_granted: le_u16
-        >>  flags: bits!(tuple!(
-                take_bits!(u8, 2),      // reserved / unused
-                take_bits!(u8, 1),      // replay op
-                take_bits!(u8, 1),      // dfs op
-                take_bits!(u32, 24),    // reserved / unused
-                take_bits!(u8, 1),      // signing
-                take_bits!(u8, 1),      // chained
-                take_bits!(u8, 1),      // async
-                take_bits!(u8, 1)       // response
-            ))
+        >>  flags: parse_smb2_flags
         >> chain_offset: le_u32
         >> message_id: le_u64
-        >> _process_id: cond!(flags.6==0, le_u32)
-        >> tree_id: cond!(flags.6==0, le_u32)
-        >> async_id: cond!(flags.6==1, le_u64)
+        >> _process_id: cond!(flags.async_command == 0, le_u32)
+        >> tree_id: cond!(flags.async_command == 0, le_u32)
+        >> async_id: cond!(flags.async_command == 1, le_u64)
         >> session_id: le_u64
         >> _signature: take!(16)
         // there is probably a cleaner way to do this
         >> data_c: cond!(chain_offset > hlen as u32, take!(chain_offset - hlen as u32))
         >> data_r: cond!(chain_offset <= hlen as u32, rest)
         >> (Smb2Record {
-                direction: flags.7,
+                direction: flags.direction,
                 nt_status: nt_status,
                 message_id: message_id,
                 tree_id: tree_id.unwrap_or(0),
