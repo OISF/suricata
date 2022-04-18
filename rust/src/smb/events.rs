@@ -31,6 +31,12 @@ pub enum SMBEvent {
     RequestToClient,
     /// A response was seen in the to server direction,
     ResponseToServer,
+    /// READ request asking for more than `max_read_size`
+    ReadRequestTooLarge,
+    /// READ response bigger than `max_read_size`
+    ReadResponseTooLarge,
+    /// WRITE request for more than `max_write_size`
+    WriteRequestTooLarge,
 }
 
 impl SMBTransaction {
