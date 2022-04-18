@@ -30,6 +30,13 @@ pub enum SMBEvent {
     FileOverlap = 7,
     RequestToClient = 8,
     ResponseToServer = 9,
+
+    /// READ request asking for more than `max_read_size`
+    ReadRequestTooLarge = 10,
+    /// READ response bigger than `max_read_size`
+    ReadResponseTooLarge = 11,
+    /// WRITE request for more than `max_write_size`
+    WriteRequestTooLarge = 12,
 }
 
 impl SMBEvent {
@@ -45,6 +52,9 @@ impl SMBEvent {
             7 => Some(SMBEvent::FileOverlap),
             8 => Some(SMBEvent::RequestToClient),
             9 => Some(SMBEvent::ResponseToServer),
+            10 => Some(SMBEvent::ReadRequestTooLarge),
+            11 => Some(SMBEvent::ReadResponseTooLarge),
+            12 => Some(SMBEvent::WriteRequestTooLarge),
             _ => None,
         }
     }
@@ -63,6 +73,9 @@ pub fn smb_str_to_event(instr: &str) -> i32 {
         "file_overlap"                  => SMBEvent::FileOverlap as i32,
         "request_to_client"             => SMBEvent::RequestToClient as i32,
         "response_to_server"            => SMBEvent::ResponseToServer as i32,
+        "read_request_too_large"        => SMBEvent::ReadRequestTooLarge as i32,
+        "read_response_too_large"       => SMBEvent::ReadResponseTooLarge as i32,
+        "write_request_too_large"       => SMBEvent::WriteRequestTooLarge as i32,
         _ => -1,
     }
 }
