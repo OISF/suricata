@@ -834,6 +834,9 @@ static DetectRunScratchpad DetectRunSetup(
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
 
+    det_ctx->alert_queue_size = 0;
+    p->alerts.drop.action = 0;
+
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
         det_ctx->pkt_stream_add_cnt++;
@@ -999,6 +1002,72 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
             old_size, new_size, (uint64_t)(old_size * sizeof(RuleMatchCandidateTx)),
             (uint64_t)(new_size * sizeof(RuleMatchCandidateTx))); (void)old_size;
     return 1;
+}
+
+void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
+{
+    det_ctx->alert_queue_size = 0;
+    det_ctx->alert_queue = SCCalloc(PACKET_ALERT_MAX, sizeof(PacketAlert));
+    if (det_ctx->alert_queue == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIu64 " bytes",
+                (uint64_t)(PACKET_ALERT_MAX * sizeof(PacketAlert)));
+    }
+    det_ctx->alert_queue_capacity = PACKET_ALERT_MAX;
+    SCLogDebug("alert queue initialized to %u elements (%" PRIu64 " bytes)", PACKET_ALERT_MAX,
+            (uint64_t)(PACKET_ALERT_MAX * sizeof(PacketAlert)));
+}
+
+void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
+{
+    SCFree(det_ctx->alert_queue);
+    det_ctx->alert_queue_capacity = 0;
+}
+
+/** \internal
+ */
+static void AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
+{
+    det_ctx->alert_queue_capacity *= 2;
+    void *tmp_queue = SCRealloc(
+            det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
+    if (tmp_queue == NULL) {
+        return;
+    }
+    det_ctx->alert_queue = tmp_queue;
+    SCLogDebug("Alert queue size doubled. %u, bytes: %" PRIuMAX "", det_ctx->alert_queue_capacity,
+            (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
+}
+
+/**
+ * \brief Append signature to local packet alert queue for later preprocessing
+ */
+void DetectEngineThreadCtxAlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        Packet *p, uint64_t tx_id, uint8_t alert_flags)
+{
+    if (det_ctx->alert_queue_size == det_ctx->alert_queue_capacity) {
+        /* we must grow the alert queue */
+        AlertQueueExpand(det_ctx);
+    }
+    uint16_t pos = det_ctx->alert_queue_size;
+    det_ctx->alert_queue[pos].num = s->num;
+    det_ctx->alert_queue[pos].action = s->action;
+    det_ctx->alert_queue[pos].flags = alert_flags;
+    det_ctx->alert_queue[pos].s = s;
+    det_ctx->alert_queue[pos].tx_id = tx_id;
+    det_ctx->alert_queue[pos].frame_id =
+            (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+
+    /* first time we see a drop action signature, set that in the packet */
+    if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
+        p->alerts.drop.num = s->num;
+        p->alerts.drop.action = s->action;
+        p->alerts.drop.s = (Signature *)s;
+        SCLogDebug("Set PacketAlert drop action. s->num %" PRIu32 "", s->num);
+    }
+
+    SCLogDebug("Appending sid %" PRIu32 ", s->num %" PRIu32 " to alert queue", s->id, s->num);
+    det_ctx->alert_queue_size++;
+    return;
 }
 
 /** \internal
