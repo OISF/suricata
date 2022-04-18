@@ -829,6 +829,9 @@ static DetectRunScratchpad DetectRunSetup(
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
 
+    det_ctx->alert_queue_size = 0;
+    p->alerts.drop.action = 0;
+
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
         det_ctx->pkt_stream_add_cnt++;
