@@ -798,7 +798,7 @@ static inline void DetectRulePacketRules(
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
+        AlertQueueAppend(det_ctx, s, p, 0, alert_flags);
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
@@ -1458,7 +1458,7 @@ static void DetectRunTx(ThreadVars *tv,
 
                 const uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
-                PacketAlertAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
