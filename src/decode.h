@@ -271,10 +271,10 @@ typedef uint16_t Port;
  * found in this packet */
 typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
-    uint8_t action; /* Internal num, used for sorting */
+    uint8_t action; /* Internal num, used for thresholding */
     uint8_t flags;
     const struct Signature_ *s;
-    uint64_t tx_id;
+    uint64_t tx_id; /* Used for sorting */
 } PacketAlert;
 
 /* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
