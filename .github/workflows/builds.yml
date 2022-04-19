@@ -168,7 +168,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -295,7 +295,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -312,7 +312,7 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -370,7 +370,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -457,7 +457,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -543,7 +543,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -615,7 +615,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -684,7 +684,7 @@ jobs:
                 curl \
                 dpdk-dev
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -762,7 +762,7 @@ jobs:
                 curl \
                 dpdk-dev
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -843,7 +843,7 @@ jobs:
                 wget \
                 dpdk-dev
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -914,7 +914,7 @@ jobs:
                 exuberant-ctags \
                 dpdk-dev
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -989,7 +989,7 @@ jobs:
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -1052,7 +1052,7 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1135,7 +1135,7 @@ jobs:
         run: |
           apt -y install coccinelle
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1212,7 +1212,7 @@ jobs:
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1279,7 +1279,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1340,7 +1340,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1394,7 +1394,7 @@ jobs:
       - run: pip3 install PyYAML
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - name: Downloading prep archive
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1426,7 +1426,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
@@ -1475,7 +1475,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
           name: prep
           path: prep
