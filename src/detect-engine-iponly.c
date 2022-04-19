@@ -1129,7 +1129,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                             }
                         }
                     }
-                    PacketAlertAppend(det_ctx, s, p, 0, 0);
+                    AlertQueueAppend(det_ctx, s, p, 0, 0);
                 }
             }
         }
