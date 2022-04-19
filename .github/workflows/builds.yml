@@ -113,7 +113,7 @@ jobs:
       - name: Cleaning up
         run: rm -rf libhtp suricata-update suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+        uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         with:
           name: prep
           path: .
@@ -137,7 +137,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+        uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         with:
           name: prep
           path: .
@@ -249,7 +249,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+      - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         name: Uploading distribution
         with:
           name: dist
