@@ -22,6 +22,7 @@ use crate::mqtt::mqtt_property::*;
 use nom::combinator::rest;
 use nom::number::streaming::*;
 use nom::*;
+use nom::multi::length_data;
 use num_traits::FromPrimitive;
 
 #[derive(Debug)]
@@ -54,14 +55,11 @@ fn convert_varint(continued: Vec<u8>, last: u8) -> u32 {
 
 // DATA TYPES
 
-named!(#[inline], pub parse_mqtt_string<String>,
-       do_parse!(
-           length: be_u16
-           >> content: take!(length)
-           >>  (
-                 String::from_utf8_lossy(&content).to_string()
-               )
-       ));
+#[inline]
+pub fn parse_mqtt_string(i: &[u8]) -> IResult<&[u8], String> {
+    let (i, content) = length_data(be_u16)(i)?;
+    Ok((i, String::from_utf8_lossy(content).to_string()))
+}
 
 named!(#[inline], pub parse_mqtt_variable_integer<u32>,
        do_parse!(
@@ -117,7 +115,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
             }
             // parse properties
             let mut props = Vec::<MQTTProperty>::new();
-            let (rem, mut newrem) = take!(rem, proplen as usize)?;
+            let (rem, mut newrem) = nom::bytes::complete::take(proplen as usize)(rem)?;
             while newrem.len() > 0 {
                 match parse_property(newrem) {
                     Ok((rem2, val)) => {
