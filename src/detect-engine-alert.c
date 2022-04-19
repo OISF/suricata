@@ -288,12 +288,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 {
     SCEnter();
     int i = 0;
+    uint16_t max_pos = det_ctx->alert_queue_size;
+    bool has_pass_action = false;
 
-    while (i < p->alerts.cnt) {
-        const Signature *s = de_ctx->sig_array[p->alerts.alerts[i].num];
-        SCLogDebug("Sig->num: %" PRIu32 " SID %u", p->alerts.alerts[i].num, s->id);
+    while (i < max_pos) {
+        const Signature *s = det_ctx->alert_queue[i].s;
+        uint8_t res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
 
-        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &p->alerts.alerts[i]);
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
@@ -316,36 +317,39 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
              * - match is in applayer
              * - match is in stream */
             if (s->action & (ACTION_DROP | ACTION_PASS)) {
-                if ((p->alerts.alerts[i].flags &
+                if ((det_ctx->alert_queue[i].flags &
                             (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
                         (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY | SIG_FLAG_APPLAYER))) {
-                    p->alerts.alerts[i].flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+                    det_ctx->alert_queue[i].flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
                     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
                                "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
-                            p->pcap_cnt, s->id, s->action, p->alerts.alerts[i].flags);
+                            p->pcap_cnt, s->id, s->action, det_ctx->alert_queue[i].flags);
                 }
             }
 
             /* set actions on packet */
-            PacketApplySignatureActions(p, p->alerts.alerts[i].s, p->alerts.alerts[i].flags);
+            PacketApplySignatureActions(
+                    p, det_ctx->alert_queue[i].s, det_ctx->alert_queue[i].flags);
 
             if (PacketTestAction(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
-                p->alerts.cnt = i;
-                break;
+                has_pass_action = true;
             }
         }
 
         /* Thresholding removes this alert */
         if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertRemove(p, i);
-
-            if (p->alerts.cnt == 0)
-                break;
+            /* we will not copy this to the AlertQueue */
         } else {
-            i++;
+            memcpy(&p->alerts.alerts[p->alerts.cnt], &det_ctx->alert_queue[i], sizeof(PacketAlert));
+            SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
+            if (has_pass_action) {
+                break;
+            }
+            p->alerts.cnt++;
         }
+        i++;
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
