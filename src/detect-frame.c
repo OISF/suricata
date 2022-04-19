@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,7 +54,7 @@ static int DetectFrameSetup(DetectEngineCtx *, Signature *, const char *);
  *
  * \param de_ctx Pointer to the Detection Engine Context
  * \param s      Pointer to the Signature to which the current keyword belongs
- * \param str    Should hold an empty string always
+ * \param str    The frame name. Can be short name 'pdu' or full name 'sip.pdu'
  *
  * \retval 0  On success
  * \retval -1 On failure
@@ -63,83 +63,75 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
 {
     char value[256] = "";
     strlcpy(value, str, sizeof(value));
+    char buffer_name[512] = ""; // for registering in detect API we always need <proto>.<frame>.
 
     const bool is_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
     const bool is_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
-
     if (!(is_tcp || is_udp)) {
         SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "'frame' keyword only supported for TCP and UDP");
         return -1;
     }
 
-    int raw_frame_type = -1;
-    if (AppProtoIsValid(s->alproto)) {
-        if (is_tcp)
-            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, str);
-        if (is_udp && raw_frame_type < 0)
-            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, str);
-        if (raw_frame_type < 0) {
-            char *dot = strchr(value, '.');
-            if (dot != NULL)
-                *dot++ = '\0';
-            const char *val = dot ? dot : value;
-            const char *proto = dot ? value : NULL;
-            if (proto != NULL) {
-                const AppProto keyword_alproto = StringToAppProto(proto);
-                if (!AppProtoEquals(s->alproto, keyword_alproto)) {
-                    SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                            "frame '%s' mismatch with rule protocol '%s'", str,
-                            AppProtoToString(s->alproto));
-                    return -1;
-                }
-                if (DetectSignatureSetAppProto(s, keyword_alproto) < 0)
-                    return -1;
-            }
-            if (is_tcp)
-                raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
-            if (is_udp && raw_frame_type < 0)
-                raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, val);
-            if (raw_frame_type < 0) {
-                SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'",
-                        val, proto);
-                return -1;
-            }
+    char *dot = strchr(value, '.');
+    if (dot != NULL)
+        *dot++ = '\0';
+    const char *val = dot ? dot : value;
+    const char *proto = dot ? value : NULL;
+
+    bool is_short = false;
+    AppProto keyword_alproto = ALPROTO_UNKNOWN;
+    AppProto rule_alproto = s->alproto;
+
+    if (proto != NULL) {
+        keyword_alproto = StringToAppProto(proto);
+        if (!AppProtoIsValid(keyword_alproto)) {
+            is_short = true;
+            keyword_alproto = rule_alproto;
         }
     } else {
-        char *dot = strchr(value, '.');
-        if (dot != NULL)
-            *dot++ = '\0';
-        const char *val = dot ? dot : value;
-        const char *proto = dot ? value : NULL;
-        if (proto == NULL) {
-            return -1;
-        }
+        is_short = true;
+        keyword_alproto = rule_alproto;
+    }
 
-        AppProto alproto = StringToAppProto(proto);
-        if (alproto == ALPROTO_UNKNOWN || alproto == ALPROTO_FAILED) {
-            SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown app proto '%s' for 'frame'", proto);
+    if (is_short && rule_alproto == ALPROTO_UNKNOWN) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
+                "rule protocol unknown, can't use shorthand notation for frame '%s'", str);
+        return -1;
+    } else if (rule_alproto == ALPROTO_UNKNOWN) {
+        if (DetectSignatureSetAppProto(s, keyword_alproto) < 0)
             return -1;
-        }
+    } else if (!AppProtoEquals(rule_alproto, keyword_alproto)) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
+                "frame '%s' protocol '%s' mismatch with rule protocol '%s'", str,
+                AppProtoToString(keyword_alproto), AppProtoToString(s->alproto));
+        return -1;
+    }
 
-        if (DetectSignatureSetAppProto(s, alproto) < 0)
-            return -1;
-
-        if (is_tcp)
-            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
-        if (is_udp && raw_frame_type < 0)
-            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, val);
-        if (raw_frame_type < 0) {
-            SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'", val,
-                    proto);
-            return -1;
-        }
+    const char *frame_str = is_short ? str : val;
+    int raw_frame_type = -1;
+    if (is_tcp)
+        raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, keyword_alproto, frame_str);
+    if (is_udp && raw_frame_type < 0)
+        raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, keyword_alproto, frame_str);
+    if (raw_frame_type < 0) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'", frame_str,
+                proto);
+        return -1;
     }
     BUG_ON(raw_frame_type >= UINT8_MAX);
 
+    if (is_short) {
+        snprintf(buffer_name, sizeof(buffer_name), "%s.%s", AppProtoToString(s->alproto), str);
+        SCLogDebug("short name: %s", buffer_name);
+    } else {
+        strlcpy(buffer_name, str, sizeof(buffer_name));
+        SCLogDebug("long name: %s", buffer_name);
+    }
+
     uint8_t frame_type = (uint8_t)raw_frame_type;
     /* TODO we can have TS and TC specific frames */
-    const int buffer_id = DetectEngineBufferTypeRegisterWithFrameEngines(
-            de_ctx, str, SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT, s->alproto, frame_type);
+    const int buffer_id = DetectEngineBufferTypeRegisterWithFrameEngines(de_ctx, buffer_name,
+            SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT, keyword_alproto, frame_type);
     if (buffer_id < 0)
         return -1;
 
