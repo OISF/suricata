@@ -55,6 +55,8 @@ enum {
     /* Invalid behavior or content */
     SMTP_DECODER_EVENT_DUPLICATE_FIELDS,
     SMTP_DECODER_EVENT_UNPARSABLE_CONTENT,
+    /* For line >= 4KB */
+    SMTP_DECODER_EVENT_TRUNCATED_LINE,
 };
 
 typedef struct SMTPString_ {
@@ -124,6 +126,8 @@ typedef struct SMTPState_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
     uint8_t current_line_delimiter_len;
+    /* If rest of the bytes should be discarded in case of long line w/o LF */
+    bool discard_till_lf;
 
     /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */

@@ -110,6 +110,9 @@
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
 
+/* Limit till the data would be buffered in current line */
+#define SMTP_LINE_BUFFER_LIMIT 4096
+
 SCEnumCharMap smtp_decoder_event_table[ ] = {
     { "INVALID_REPLY",           SMTP_DECODER_EVENT_INVALID_REPLY },
     { "UNABLE_TO_MATCH_REPLY_WITH_REQUEST",
@@ -156,7 +159,8 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
       SMTP_DECODER_EVENT_DUPLICATE_FIELDS },
     { "UNPARSABLE_CONTENT",
       SMTP_DECODER_EVENT_UNPARSABLE_CONTENT },
-
+    { "TRUNCATED_LINE",
+      SMTP_DECODER_EVENT_TRUNCATED_LINE },
     { NULL,                      -1 },
 };
 
@@ -593,6 +597,12 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
+            if (!state->discard_till_lf && state->input_len >= SMTP_LINE_BUFFER_LIMIT) {
+                state->current_line = state->input;
+                state->current_line_len = SMTP_LINE_BUFFER_LIMIT;
+                state->current_line_delimiter_len = 0;
+                return 0;
+            }
             /* fragmented lines.  Decoder event for special cases.  Not all
              * fragmented lines should be treated as a possible evasion
              * attempt.  With multi payload smtp chunks we can have valid
@@ -628,6 +638,12 @@ static int SMTPGetLine(SMTPState *state)
             return -1;
 
         } else {
+            if (state->discard_till_lf) {
+                // Whatever came in with first LF should also get discarded
+                state->discard_till_lf = false;
+                state->current_line_len = 0;
+                return 0;
+            }
             state->ts_current_line_lf_seen = 1;
 
             if (state->ts_current_line_db == 1) {
@@ -695,7 +711,13 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
-            /* fragmented lines.  Decoder event for special cases.  Not all
+            if (!state->discard_till_lf && state->input_len >= SMTP_LINE_BUFFER_LIMIT) {
+                state->current_line = state->input;
+                state->current_line_len = SMTP_LINE_BUFFER_LIMIT;
+                state->current_line_delimiter_len = 0;
+                return 0;
+            }
+             /* fragmented lines.  Decoder event for special cases.  Not all
              * fragmented lines should be treated as a possible evasion
              * attempt.  With multi payload smtp chunks we can have valid
              * cases of fragmentation.  But within the same segment chunk
@@ -730,6 +752,12 @@ static int SMTPGetLine(SMTPState *state)
             return -1;
 
         } else {
+            if (state->discard_till_lf) {
+                // Whatever came in with first LF should also get discarded
+                state->discard_till_lf = false;
+                state->current_line_len = 0;
+                return 0;
+            }
             state->tc_current_line_lf_seen = 1;
 
             if (state->tc_current_line_db == 1) {
@@ -1396,20 +1424,39 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     state->input = input;
     state->input_len = input_len;
     state->direction = direction;
+    int res = SMTPGetLine(state);
 
     /* toserver */
     if (direction == 0) {
-        while (SMTPGetLine(state) >= 0) {
-            if (SMTPProcessRequest(state, f, pstate) == -1)
-                SCReturnInt(-1);
+        while (res == 0) {
+            if (!state->discard_till_lf) {
+                if ((state->current_line_len > 0) && (SMTPProcessRequest(state, f, pstate) == -1))
+                    SCReturnInt(-1);
+                if (state->current_line_delimiter_len == 0 &&
+                        state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
+                    state->discard_till_lf = true;
+                    break;
+                }
+                res = SMTPGetLine(state);
+            }
         }
 
         /* toclient */
     } else {
-        while (SMTPGetLine(state) >= 0) {
-            if (SMTPProcessReply(state, f, pstate, thread_data) == -1)
-                SCReturnInt(-1);
+      while (res == 0) {
+        if (!state->discard_till_lf) {
+          if ((state->current_line_len > 0) && (SMTPProcessReply(state, f, pstate, thread_data) == -1))
+            SCReturnInt(-1);
+          if (state->current_line_delimiter_len == 0 &&
+              state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
+            SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
+            state->discard_till_lf = true;
+            break;
+          }
+          res = SMTPGetLine(state);
         }
+      }
     }
 
     SCReturnInt(0);
