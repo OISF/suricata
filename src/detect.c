@@ -91,6 +91,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectRunScratchpad *scratch);
 static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow);
+static int AlertQueueSortHelper(const void *a, const void *b);
 
 /** \internal
  */
@@ -155,6 +156,10 @@ static void DetectRun(ThreadVars *th_v,
     }
 
 end:
+    /* sort the alert queue before copying it to the Packet */
+    qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
+            AlertQueueSortHelper);
+
     DetectRunPostRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
 
     DetectRunCleanup(det_ctx, p, pflow);
@@ -1086,6 +1091,21 @@ DetectRunTxSortHelper(const void *a, const void *b)
         return 0;
     else
         return s0->id > s1->id ? 1 : -1;
+}
+
+/** \internal
+ * \brief sort helper for sorting alerts by priority
+ *
+ * The id field is set from Signature::num, so we have higher priority (lower ids) first
+ */
+static int AlertQueueSortHelper(const void *a, const void *b)
+{
+    const PacketAlert *pa0 = a;
+    const PacketAlert *pa1 = b;
+    if (pa1->num == pa0->num)
+        return 0;
+    else
+        return pa0->num > pa1->num ? 1 : -1;
 }
 
 #if 0
