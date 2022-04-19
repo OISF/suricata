@@ -28,16 +28,20 @@ pub enum SMBEvent {
     DuplicateNegotiate = 5,
     NegotiateMalformedDialects = 6,
     FileOverlap = 7,
+    /// Negotiated max sizes exceed our limit
+    NegotiateMaxReadSizeTooLarge = 8,
+    NegotiateMaxWriteSizeTooLarge = 9,
+
     /// READ request asking for more than `max_read_size`
-    ReadRequestTooLarge = 8,
+    ReadRequestTooLarge = 10,
     /// READ response bigger than `max_read_size`
-    ReadResponseTooLarge = 9,
-    ReadResponseQueueSizeExceeded = 10,
-    ReadResponseQueueCntExceeded = 11,
+    ReadResponseTooLarge = 11,
+    ReadResponseQueueSizeExceeded = 12,
+    ReadResponseQueueCntExceeded = 13,
     /// WRITE request for more than `max_write_size`
-    WriteRequestTooLarge = 12,
-    WriteQueueSizeExceeded = 13,
-    WriteQueueCntExceeded = 14,
+    WriteRequestTooLarge = 14,
+    WriteQueueSizeExceeded = 15,
+    WriteQueueCntExceeded = 16,
 }
 
 impl SMBEvent {
@@ -51,13 +55,15 @@ impl SMBEvent {
             5 => Some(SMBEvent::DuplicateNegotiate),
             6 => Some(SMBEvent::NegotiateMalformedDialects),
             7 => Some(SMBEvent::FileOverlap),
-            8 => Some(SMBEvent::ReadRequestTooLarge),
-            9 => Some(SMBEvent::ReadResponseTooLarge),
-            10 => Some(SMBEvent::ReadResponseQueueSizeExceeded),
-            11 => Some(SMBEvent::ReadResponseQueueCntExceeded),
-            12 => Some(SMBEvent::WriteRequestTooLarge),
-            13 => Some(SMBEvent::WriteQueueSizeExceeded),
-            14 => Some(SMBEvent::WriteQueueCntExceeded),
+            8 => Some(SMBEvent::NegotiateMaxReadSizeTooLarge),
+            9 => Some(SMBEvent::NegotiateMaxWriteSizeTooLarge),
+            10 => Some(SMBEvent::ReadRequestTooLarge),
+            11 => Some(SMBEvent::ReadResponseTooLarge),
+            12 => Some(SMBEvent::ReadResponseQueueSizeExceeded),
+            13 => Some(SMBEvent::ReadResponseQueueCntExceeded),
+            14 => Some(SMBEvent::WriteRequestTooLarge),
+            15 => Some(SMBEvent::WriteQueueSizeExceeded),
+            16 => Some(SMBEvent::WriteQueueCntExceeded),
             _ => None,
         }
     }
@@ -74,6 +80,8 @@ pub fn smb_str_to_event(instr: &str) -> i32 {
         "duplicate_negotiate"               => SMBEvent::DuplicateNegotiate as i32,
         "negotiate_malformed_dialects"      => SMBEvent::NegotiateMalformedDialects as i32,
         "file_overlap"                      => SMBEvent::FileOverlap as i32,
+        "negotiate_max_read_size_too_large"  => SMBEvent::NegotiateMaxReadSizeTooLarge as i32,
+        "negotiate_max_write_size_too_large" => SMBEvent::NegotiateMaxWriteSizeTooLarge as i32,
         "read_request_too_large"            => SMBEvent::ReadRequestTooLarge as i32,
         "read_response_too_large"           => SMBEvent::ReadResponseTooLarge as i32,
         "read_queue_size_too_large"         => SMBEvent::ReadResponseQueueSizeExceeded as i32,

@@ -837,6 +837,15 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 Ok((_, rd)) => {
                     SCLogDebug!("SERVER dialect => {}", &smb2_dialect_string(rd.dialect));
 
+                    let smb_cfg_max_read_size = unsafe { SMB_CFG_MAX_READ_SIZE };
+                    if smb_cfg_max_read_size != 0 && rd.max_read_size > smb_cfg_max_read_size {
+                        state.set_event(SMBEvent::NegotiateMaxReadSizeTooLarge);
+                    }
+                    let smb_cfg_max_write_size = unsafe { SMB_CFG_MAX_WRITE_SIZE };
+                    if smb_cfg_max_write_size != 0 && rd.max_write_size > smb_cfg_max_write_size {
+                        state.set_event(SMBEvent::NegotiateMaxWriteSizeTooLarge);
+                    }
+
                     state.dialect = rd.dialect;
                     state.max_read_size = rd.max_read_size;
                     state.max_write_size = rd.max_write_size;

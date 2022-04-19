@@ -2208,6 +2208,8 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
             SMBEvent::FileOverlap => { "file_overlap\0" },
+            SMBEvent::NegotiateMaxReadSizeTooLarge => { "negotiate_max_read_size_too_large\0" },
+            SMBEvent::NegotiateMaxWriteSizeTooLarge => { "negotiate_max_write_size_too_large\0" },
             SMBEvent::ReadRequestTooLarge => { "read_request_too_large\0" },
             SMBEvent::ReadResponseTooLarge => { "read_response_too_large\0" },
             SMBEvent::ReadResponseQueueSizeExceeded => { "read_queue_size_too_large\0" },
