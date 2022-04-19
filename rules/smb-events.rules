@@ -18,3 +18,27 @@ alert smb any any -> any any (msg:"SURICATA SMB malformed request dialects"; flo
 alert smb any any -> any any (msg:"SURICATA SMB file overlap"; app-layer-event:smb.file_overlap; classtype:protocol-command-decode; sid:2225006; rev:1;)
 alert smb any any -> any any (msg:"SURICATA SMB wrong direction"; app-layer-event:smb.response_to_server; classtype:protocol-command-decode; sid:2225007; rev:1;)
 alert smb any any -> any any (msg:"SURICATA SMB wrong direction"; app-layer-event:smb.request_to_client; classtype:protocol-command-decode; sid:2225008; rev:1;)
+
+# checks negotiated max-read-size and 'app-layer.protocols.smb.max-read-size`
+alert smb any any -> any any (msg:"SURICATA SMB max requested READ size exceeded"; flow:to_server; app-layer-event:smb.read_request_too_large; classtype:protocol-command-decode; sid:2225009; rev:1;)
+# checks negotiated max-read-size and 'app-layer.protocols.smb.max-read-size`
+alert smb any any -> any any (msg:"SURICATA SMB max response READ size exceeded"; flow:to_client; app-layer-event:smb.read_response_too_large; classtype:protocol-command-decode; sid:2225010; rev:1;)
+# checks negotiated max-write-size and 'app-layer.protocols.smb.max-write-size`
+alert smb any any -> any any (msg:"SURICATA SMB max WRITE size exceeded"; flow:to_server; app-layer-event:smb.write_request_too_large; classtype:protocol-command-decode; sid:2225011; rev:1;)
+
+# checks 'app-layer.protocols.smb.max-read-size` against NEGOTIATE PROTOCOL response
+alert smb any any -> any any (msg:"SURICATA SMB supported READ size exceeded"; flow:to_client; app-layer-event:smb.negotiate_max_read_size_too_large; classtype:protocol-command-decode; sid:2225012; rev:1;)
+# checks 'app-layer.protocols.smb.max-write-size` against NEGOTIATE PROTOCOL response
+alert smb any any -> any any (msg:"SURICATA SMB supported WRITE size exceeded"; flow:to_server; app-layer-event:smb.negotiate_max_write_size_too_large; classtype:protocol-command-decode; sid:2225013; rev:1;)
+
+# checks 'app-layer.protocols.smb.max-write-queue-size` against out of order chunks
+alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue size exceeded"; flow:to_server; app-layer-event:smb.write_queue_size_too_large; classtype:protocol-command-decode; sid:2225014; rev:1;)
+# checks 'app-layer.protocols.smb.max-write-queue-cnt` against out of order chunks
+alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue cnt exceeded"; flow:to_server; app-layer-event:smb.write_queue_cnt_too_large; classtype:protocol-command-decode; sid:2225015; rev:1;)
+
+# checks 'app-layer.protocols.smb.max-read-queue-size` against out of order chunks
+alert smb any any -> any any (msg:"SURICATA SMB max READ queue size exceeded"; flow:to_client; app-layer-event:smb.read_queue_size_too_large; classtype:protocol-command-decode; sid:2225016; rev:1;)
+# checks 'app-layer.protocols.smb.max-read-queue-cnt` against out of order chunks
+alert smb any any -> any any (msg:"SURICATA SMB max READ queue cnt exceeded"; flow:to_client; app-layer-event:smb.read_queue_cnt_too_large; classtype:protocol-command-decode; sid:2225017; rev:1;)
+
+# next sid 2225018
