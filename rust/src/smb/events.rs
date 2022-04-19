@@ -31,6 +31,11 @@ pub enum SMBEvent {
     RequestToClient,
     /// A response was seen in the to server direction,
     ResponseToServer,
+
+    /// Negotiated max sizes exceed our limit
+    NegotiateMaxReadSizeTooLarge,
+    NegotiateMaxWriteSizeTooLarge,
+
     /// READ request asking for more than `max_read_size`
     ReadRequestTooLarge,
     /// READ response bigger than `max_read_size`
