@@ -119,7 +119,8 @@ typedef struct SMTPState_ {
     const uint8_t *input;
     int32_t input_len;
     uint8_t direction;
-
+    /* consumed number of bytes. Only used by PreProcessCommands */
+    int32_t consumed;
     /* --parser details-- */
     /** current line extracted by the parser from the call to SMTPGetline() */
     const uint8_t *current_line;
