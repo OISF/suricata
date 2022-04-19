@@ -1404,10 +1404,8 @@ HTTP keywords can be enabled to match on HTTP1 traffic.
 To do so, you should set ``app-layer.protocols.http2.http1-rules``.
 In this case, you cannot have HTTP1-only rules.
 
-Configure SMB (Rust)
-~~~~~~~~~~~~~~~~~~~~
-
-.. note:: for full SMB support compile Suricata with Rust support
+Configure SMB
+~~~~~~~~~~~~~
 
 The SMB parser will parse version 1, 2 and 3 of the SMB protocol over TCP.
 
@@ -1426,6 +1424,60 @@ independent. The ``probing parsers`` will only run on the ``detection-ports``.
 
 SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
 this parser.
+
+Resource limits
+---------------
+
+Several options are available for limiting record sizes and data chunk tracking.
+
+::
+
+    smb:
+      enabled: yes
+      max-read-size: 8mb
+      max-write-size: 1mb
+
+      max-read-queue-size: 16mb
+      max-read-queue-cnt: 16
+
+      max-write-queue-size: 16mb
+      max-write-queue-cnt: 16
+
+The `max-read-size` option can be set to control the max size of accepted
+READ records. Events will be raised if a READ request asks for too much data
+and/or if READ responses are too big. A value of 0 disables the checks.
+
+The `max-write-size` option can be set to control the max size of accepted
+WRITE request records. Events will be raised if a WRITE request sends too much
+data. A value of 0 disables the checks.
+
+Additionally if the `max-read-size` or `max-write-size` values in the
+"negotiate protocol response" exceeds this limit an event will also be raised.
+
+
+For file tracking, extraction and file data inspection the parser queues up
+out of order data chunks for both READs and WRITEs. To avoid using too much
+memory the parser allows for limiting both the size in bytes and the number
+of queued chunks.
+
+::
+
+    smb:
+      enabled: yes
+
+      max-read-queue-size: 16mb
+      max-read-queue-cnt: 16
+
+      max-write-queue-size: 16mb
+      max-write-queue-cnt: 16
+
+`max-read-queue-size` controls how many bytes can be used per SMB flow for
+out of order READs. `max-read-queue-cnt` controls how many READ chunks can be
+queued per SMB flow. Processing of these chunks will be blocked when any of
+the limits are exceeded, and an event will be raised.
+
+`max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
+but then for WRITEs.
 
 Engine Logging
 --------------
