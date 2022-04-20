@@ -829,6 +829,7 @@ static DetectRunScratchpad DetectRunSetup(
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
     p->alerts.discarded = 0;
+    p->alerts.suppressed = 0;
 #endif
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
@@ -939,6 +940,9 @@ static inline void DetectRunPostRules(
     }
     if (p->alerts.discarded > 0) {
         StatsAddUI64(tv, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
+    }
+    if (p->alerts.suppressed > 0) {
+        StatsAddUI64(tv, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 }
