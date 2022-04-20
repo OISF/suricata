@@ -32,13 +32,13 @@ alert smb any any -> any any (msg:"SURICATA SMB supported READ size exceeded"; f
 alert smb any any -> any any (msg:"SURICATA SMB supported WRITE size exceeded"; flow:to_server; app-layer-event:smb.negotiate_max_write_size_too_large; classtype:protocol-command-decode; sid:2225013; rev:1;)
 
 # checks 'app-layer.protocols.smb.max-write-queue-size` against out of order chunks
-alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue size exceeded"; flow:to_server; app-layer-event:smb.write_queue_size_too_large; classtype:protocol-command-decode; sid:2225014; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue size exceeded"; flow:to_server; app-layer-event:smb.write_queue_size_exceeded; classtype:protocol-command-decode; sid:2225014; rev:1;)
 # checks 'app-layer.protocols.smb.max-write-queue-cnt` against out of order chunks
-alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue cnt exceeded"; flow:to_server; app-layer-event:smb.write_queue_cnt_too_large; classtype:protocol-command-decode; sid:2225015; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB max WRITE queue cnt exceeded"; flow:to_server; app-layer-event:smb.write_queue_cnt_exceeded; classtype:protocol-command-decode; sid:2225015; rev:1;)
 
 # checks 'app-layer.protocols.smb.max-read-queue-size` against out of order chunks
-alert smb any any -> any any (msg:"SURICATA SMB max READ queue size exceeded"; flow:to_client; app-layer-event:smb.read_queue_size_too_large; classtype:protocol-command-decode; sid:2225016; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB max READ queue size exceeded"; flow:to_client; app-layer-event:smb.read_queue_size_exceeded; classtype:protocol-command-decode; sid:2225016; rev:1;)
 # checks 'app-layer.protocols.smb.max-read-queue-cnt` against out of order chunks
-alert smb any any -> any any (msg:"SURICATA SMB max READ queue cnt exceeded"; flow:to_client; app-layer-event:smb.read_queue_cnt_too_large; classtype:protocol-command-decode; sid:2225017; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB max READ queue cnt exceeded"; flow:to_client; app-layer-event:smb.read_queue_cnt_exceeded; classtype:protocol-command-decode; sid:2225017; rev:1;)
 
 # next sid 2225018

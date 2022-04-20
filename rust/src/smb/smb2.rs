@@ -164,10 +164,10 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             set_event_fileoverlap = true;
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
-                            state.set_event(SMBEvent::ReadResponseQueueSizeExceeded);
+                            state.set_event(SMBEvent::ReadQueueSizeExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                            state.set_event(SMBEvent::ReadResponseQueueCntExceeded);
+                            state.set_event(SMBEvent::ReadQueueCntExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -238,10 +238,10 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             set_event_fileoverlap = true;
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
-                            state.set_event(SMBEvent::ReadResponseQueueSizeExceeded);
+                            state.set_event(SMBEvent::ReadQueueSizeExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                            state.set_event(SMBEvent::ReadResponseQueueCntExceeded);
+                            state.set_event(SMBEvent::ReadQueueCntExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
