@@ -33,10 +33,7 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
 void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
                       Packet *p, uint64_t tx_id, uint8_t alert_flags);
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
-int PacketAlertAppend(DetectEngineThreadCtx *, const Signature *,
-        Packet *, uint64_t tx_id, uint8_t);
 int PacketAlertCheck(Packet *, uint32_t);
-int PacketAlertRemove(Packet *, uint16_t);
 void PacketAlertTagInit(void);
 PacketAlert *PacketAlertGetTag(void);
 
