@@ -167,10 +167,10 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         set_event_fileoverlap = true;
                     }
                     if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
-                        event = Some(SMBEvent::ReadResponseQueueCntExceeded);
+                        event = Some(SMBEvent::ReadQueueCntExceeded);
                         skip = Some((rd.len, rd.data.len()));
                     } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                        event = Some(SMBEvent::ReadResponseQueueCntExceeded);
+                        event = Some(SMBEvent::ReadQueueCntExceeded);
                         skip = Some((rd.len, rd.data.len()));
                     } else {
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -250,10 +250,10 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             set_event_fileoverlap = true;
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
-                            event = Some(SMBEvent::ReadResponseQueueSizeExceeded);
+                            event = Some(SMBEvent::ReadQueueSizeExceeded);
                             skip = Some((rd.len, rd.data.len()));
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                            event = Some(SMBEvent::ReadResponseQueueCntExceeded);
+                            event = Some(SMBEvent::ReadQueueCntExceeded);
                             skip = Some((rd.len, rd.data.len()));
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,

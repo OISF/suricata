@@ -2235,11 +2235,11 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::NegotiateMaxWriteSizeTooLarge => { "negotiate_max_write_size_too_large\0" },
             SMBEvent::ReadRequestTooLarge => { "read_request_too_large\0" },
             SMBEvent::ReadResponseTooLarge => { "read_response_too_large\0" },
-            SMBEvent::ReadResponseQueueSizeExceeded => { "read_queue_size_too_large\0" },
-            SMBEvent::ReadResponseQueueCntExceeded => { "read_queue_cnt_too_large\0" },
+            SMBEvent::ReadQueueSizeExceeded => { "read_queue_size_exceeded\0" },
+            SMBEvent::ReadQueueCntExceeded => { "read_queue_cnt_exceeded\0" },
             SMBEvent::WriteRequestTooLarge => { "write_request_too_large\0" },
-            SMBEvent::WriteQueueSizeExceeded => { "write_queue_size_too_large\0" },
-            SMBEvent::WriteQueueCntExceeded => { "write_queue_cnt_too_large\0" },
+            SMBEvent::WriteQueueSizeExceeded => { "write_queue_size_exceeded\0" },
+            SMBEvent::WriteQueueCntExceeded => { "write_queue_cnt_exceeded\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
