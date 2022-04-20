@@ -1962,7 +1962,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         if (node == NULL) {
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             SCLogWarning(SC_ERR_CONF_YAML_ERROR,
-                    "Config for protocol %s not found, so enabling by default."
+                    "App-Layer protocol %s enable status not set, so enabling by default."
                     " This behavior will change in Suricata 7, so please update"
                     " your config. See ticket #4744 for more details.",
                     alproto);
