@@ -56,6 +56,8 @@ enum {
     /* Invalid behavior or content */
     SMTP_DECODER_EVENT_DUPLICATE_FIELDS,
     SMTP_DECODER_EVENT_UNPARSABLE_CONTENT,
+    /* For line >= 4KB */
+    SMTP_DECODER_EVENT_TRUNCATED_LINE,
 };
 
 typedef struct SMTPString_ {
