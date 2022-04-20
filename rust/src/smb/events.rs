@@ -40,8 +40,8 @@ pub enum SMBEvent {
     ReadRequestTooLarge,
     /// READ response bigger than `max_read_size`
     ReadResponseTooLarge,
-    ReadResponseQueueSizeExceeded,
-    ReadResponseQueueCntExceeded,
+    ReadQueueSizeExceeded,
+    ReadQueueCntExceeded,
     /// WRITE request for more than `max_write_size`
     WriteRequestTooLarge,
     WriteQueueSizeExceeded,
