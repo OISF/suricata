@@ -1,3 +1,69 @@
+6.0.5 -- 2022-04-21
+
+Security #4888: ftp: SEGV at flow cleanup due to protocol confusion
+Security #5026: ftp: GetLine function buffers data indefinitely if 0x0a was not found in the frag'd input
+Security #5027: smtp: GetLine function buffers data indefinitely if 0x0a was not found int the frag'd input
+Bug #4467: dataset file not written when run as user
+Bug #4630: Protocol detection : confusion with SMB in midstream
+Bug #4677: Configuration test mode succeeds when reference.config file contains invalid content
+Bug #4744: Warn if Absent app-layer protocol is always enabled by default
+Bug #4791: flow/bypass: flow worker not performing flow timeout "housekeeping"
+Bug #4818: tcp: insert_data_normal_fail can hit without triggering memcap
+Bug #4820: xbits: no error on invalid 'expire' values
+Bug #4822: conf: quadratic complexity
+Bug #4824: pppoe decoder fails when protocol identity field is only 1 byte
+Bug #4837: af-packet: cluster_id is not used when trying to set fanout support
+Bug #4879: MQTT : transactions are never cleaned by AppLayerParserTransactionsCleanup
+Bug #4886: dnp3: buffer over read in logging base64 empty objects
+Bug #4890: protodetect: SMB vs TLS protocol detection in midstream
+Bug #4892: TFTP: memory leak due to missing detect state
+Bug #4894: Memory leak with signature using file_data and NFS
+Bug #4896: profiling: Invalid performance counter when using sampling
+Bug #4900: rust: build failure on Rust < 1.36
+Bug #4925: Rule error in SMB dce_iface and dce_opnum keywords
+Bug #4927: dcerpc dce_iface just match a packet
+Bug #4931: smtp: smtp transaction not logged if no email is present
+Bug #4954: stream: too aggressive pruning in lossy streams
+Bug #4956: SMTP assertion triggered
+Bug #4958: suricatasc loop if recv returns no data
+Bug #4960: dns: transaction not created when z-bit set
+Bug #4962: Run stream reassembly on both directions upon receiving a FIN packet
+Bug #4971: flow/bypass: app-layer/stream resources not freed when bypass activated
+Bug #4978: immediately evict tcp reused flows
+Bug #5003: Null deference in ConfigApplyTx
+Bug #5020: dataset: error with space in rule language
+Bug #5038: tftp: tftp rules failed to load
+Bug #5057: dns: probing/parser can return error when it should return incomplete
+Bug #5059: MQTT can return AppLayerResult::incomplete forever and buffer forever
+Bug #5062: Not keyword matches in Kerberos requests
+Bug #5095: output: timestamp missing usecs on Arm 32bit + Musl
+Bug #5097: Stacktrace logger should propagate original signal
+Bug #5098: htp: server personality radix handling issue
+Bug #5100: defrag: policy config can setup radix incorrectly
+Bug #5102: Application log cannot to be re-opened when running as non-root user
+Bug #5104: iprep: cidr support can set up radix incorrectly
+Bug #5106: detect/iponly: rule parsing does not always apply netmask correctly
+Bug #5108: swf: coverity warning
+Bug #5112: Off-by-one in flow-manager flow_hash row allocation
+Bug #5114: detect/ip_proto: inconsistent behavior when specifying protocol by string
+Bug #5116: detect/iponly: mixing netblocks can lead to FN/FP
+Bug #5118: smb: excessive CPU utilization and higher packet processing latency due to excessive calls to Vec::extend_from_slice()
+Bug #5136: smb: excessive memory use during file transfer
+Bug #5149: nfs: Integer underflow in NFS
+Bug #5163: iprep: use_cnt can get desynchronized (SIGABRT)
+Bug #5170: detect/iponly: non-cidr netmask settings can lead incorrect radix tree
+Bug #5192: SSL : over allocation for certificates
+Bug #5212: content:"22 2 22"; is parsed without error
+Bug #5249: flow: double unlock in tcp reuse case
+Bug #5272: mqtt: integer underflow with truncated
+Feature #4643: pthreads: set minimum stack size
+Feature #4973: SIGSEGV handling -- log stack before aborting
+Feature #5090: Add AlmaLinux 8.4 to CI
+Task #4902: rust: bump MSRV to 1.41.1
+Task #4933: GitHub: Add Fedora 35 builder to GitHub CI
+Task #5005: libhtp 0.5.40
+Documentation #5131: doc: add flowbits ORing doc
+
 6.0.4 -- 2021-11-16
 
 Security #4634: tcp: crafted injected packets cause desync after 3whs
