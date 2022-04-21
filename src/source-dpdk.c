@@ -197,22 +197,22 @@ static uint64_t DPDKGetSeconds()
     return CyclesToSeconds(rte_get_tsc_cycles());
 }
 
-static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+void DevicePostStartPMDSpecificActions(int port_id, int nb_rx_queues, const char *driver_name)
 {
     // The PMD Driver i40e has a special way to set the RSS, it can be set via rte_flow rules
     // and only after the start of the port
     if (strcmp(driver_name, "net_i40e") == 0)
-        i40eDeviceSetRSS(ptv->port_id, ptv->threads);
+        i40eDeviceSetRSS(port_id, nb_rx_queues);
 }
 
-static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+void DevicePreStopPMDSpecificActions(int port_id, const char *driver_name)
 {
     int retval;
 
     if (strcmp(driver_name, "net_i40e") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
-        retval = rte_flow_flush(ptv->port_id, &flush_error);
+        retval = rte_flow_flush(port_id, &flush_error);
         if (retval != 0) {
             SCLogError(SC_ERR_DPDK_CONF, "Unable to flush rte_flow rules: %s Flush error msg: %s",
                     rte_strerror(-retval), flush_error.message);
@@ -537,7 +537,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             }
 
             // some PMDs requires additional actions only after the device has started
-            DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
+            DevicePostStartPMDSpecificActions(ptv->port_id, ptv->threads, dev_info.driver_name);
         }
 
         if ((int)rte_socket_id() != rte_eth_dev_socket_id(ptv->port_id)) {
@@ -649,7 +649,7 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
                 SCReturnInt(TM_ECODE_FAILED);
             }
 
-            DevicePreStopPMDSpecificActions(ptv, dev_info.driver_name);
+            DevicePreStopPMDSpecificActions(ptv->port_id, dev_info.driver_name);
         }
 
         rte_eth_dev_stop(ptv->port_id);
