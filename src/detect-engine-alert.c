@@ -126,12 +126,11 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     SCReturnInt(1);
 }
 
-
 /**
  * \brief Check if a certain sid alerted, this is used in the test functions
  *
  * \param p   Packet on which we want to check if the signature alerted or not
- * \param sid Signature id of the signature that thas to be checked for a match
+ * \param sid Signature id of the signature that has to be checked for a match
  *
  * \retval match A value > 0 on a match; 0 on no match
  */
