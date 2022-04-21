@@ -1138,7 +1138,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
 }
 
 /**
- * \brief Build the radix trees from the lists of parsed adresses in CIDR format
+ * \brief Build the radix trees from the lists of parsed addresses in CIDR format
  *        the result should be 4 radix trees: src/dst ipv4 and src/dst ipv6
  *        holding SigNumArrays, each of them with a hierarchical relation
  *        of subnets and hosts
@@ -1558,7 +1558,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
 /**
  * \brief Add a signature to the lists of Addresses in CIDR format (sorted)
- *        this step is necesary to build the radix tree with a hierarchical
+ *        this step is necessary to build the radix tree with a hierarchical
  *        relation between nodes
  * \param de_ctx Pointer to the current detection engine context
  * \param de_ctx Pointer to the current ip only detection engine contest
@@ -1615,7 +1615,7 @@ static int IPOnlyTestSig01(void)
 }
 
 /**
- * \test check that we dont set a Signature as IPOnly because it has no rule
+ * \test check that we don't set a Signature as IPOnly because it has no rule
  *       option appending a SigMatch but a port is fixed
  */
 
@@ -1635,7 +1635,7 @@ static int IPOnlyTestSig02 (void)
 }
 
 /**
- * \test check that we set dont set a Signature as IPOnly
+ * \test check that we set don't set a Signature as IPOnly
  *  because it has rule options appending a SigMatch like content, and pcre
  */
 
