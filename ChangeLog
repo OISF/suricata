@@ -1,3 +1,54 @@
+5.0.9 -- 2022-04-21
+
+Security #4889: ftp: SEGV at flow cleanup due to protocol confusion
+Security #5025: ftp: GetLine function buffers data indefinitely if 0x0a was not found int the frag'd input
+Security #5028: smtp: GetLine function buffers data indefinitely if 0x0a was not found in the frag'd input
+Security #5253: Infinite loop in JsonFTPLogger
+Feature #4644: pthreads: set minimum stack size
+Bug #4466: dataset file not written when run as user
+Bug #4678: Configuration test mode succeeds when reference.config file contains invalid content
+Bug #4745: Absent app-layer protocol is always enabled by default
+Bug #4819: tcp: insert_data_normal_fail can hit without triggering memcap
+Bug #4823: conf: quadratic complexity
+Bug #4825: pppoe decoder fails when protocol identity field is only 1 byte
+Bug #4827: packetpool: packets in pool may have capture method ReleasePacket callbacks set
+Bug #4838: af-packet: cluster_id is not used when trying to set fanout support
+Bug #4878: datasets: memory leak in 5.0.x
+Bug #4887: dnp3: buffer over read in logging base64 empty objects
+Bug #4891: protodetect: SMB vs TLS protocol detection in midstream
+Bug #4893: TFTP: memory leak due to missing detect state
+Bug #4895: Memory leak with signature using file_data and NFS
+Bug #4897: profiling: Invalid performance counter when using sampling
+Bug #4901: eve: memory leak related to dns
+Bug #4932: smtp: smtp transaction not logged if no email is present
+Bug #4955: stream: too aggressive pruning in lossy streams
+Bug #4957: SMTP assertion triggered
+Bug #4959: suricatasc loop if recv returns no data
+Bug #4961: dns: transaction not created when z-bit set
+Bug #4963: Run stream reassembly on both directions upon receiving a FIN packet
+Bug #5058: dns: probing/parser can return error when it should return incomplete
+Bug #5063: Not keyword matches in Kerberos requests
+Bug #5096: output: timestamp missing usecs on Arm 32bit + Musl
+Bug #5099: htp: server personality radix handling issue
+Bug #5101: defrag: policy config can setup radix incorrectly
+Bug #5103: Application log cannot to be re-opened when running as non-root user
+Bug #5105: iprep: cidr support can set up radix incorrectly
+Bug #5107: detect/iponly: rule parsing does not always apply netmask correctly
+Bug #5109: swf: coverity warning
+Bug #5115: detect/ip_proto: inconsistent behavior when specifying protocol by string
+Bug #5117: detect/iponly: mixing netblocks can lead to FN/FP
+Bug #5119: smb: excessive CPU utilization and higher packet processing latency due to excessive calls to Vec::extend_from_slice()
+Bug #5137: smb: excessive memory use during file transfer
+Bug #5150: nfs: Integer underflow in NFS
+Bug #5157: xbits: noalert is allowed in rule language with other commands
+Bug #5164: iprep: use_cnt can get desynchronized (SIGABRT)
+Bug #5171: detect/iponly: non-cidr netmask settings can lead incorrect radix tree
+Bug #5193: SSL : over allocation for certificates
+Bug #5213: content:"22 2 22"; is parsed without error
+Bug #5227: 5.0.x: SMB: Wrong buffer being checked for possible overflow.
+Bug #5251: smb: integer underflows and overflows
+Task #5006: libhtp 0.5.40
+
 5.0.8 -- 2021-11-16
 
 Security #4635: tcp: crafted injected packets cause desync after 3whs
