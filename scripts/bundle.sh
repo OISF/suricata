@@ -1,18 +1,45 @@
 #! /usr/bin/env bash
+#
+# This script will bundle libhtp and/or suricata-update for you.
+#
+# To use, run from the top Suricata source directory:
+#
+#    ./scripts/bundle.sh
+
+what="$1"
 
 while IFS= read -r requirement; do
     set -- $requirement
+
+    # If a requirement was specified on the command line, skip all other
+    # requirements.
+    if [ "${what}" != "" ]; then
+        if [ "${what}" != "$1" ]; then
+            continue
+        fi
+    fi
     case "$1" in
         suricata-update)
-            echo "===> Fetching $1"
-            (cd suricata-update &&
-                 curl -Ls "$2" | tar zxf - --strip-components=1)
+            repo=${SU_REPO:-$2}
+            branch=${SU_BRANCH:-$3}
+            echo "===> Bundling ${repo} -b ${branch}"
+            rm -rf suricata-update.tmp
+            git clone "${repo}" -b "${branch}" suricata-update.tmp
+            cp -a suricata-update.tmp/* suricata-update/
+            rm -rf suricata-update.tmp
             ;;
         libhtp)
-            echo "===> Fetching $1"
-            mkdir -p libhtp
-            (cd libhtp &&
-                 curl -Ls "$2" | tar zxf - --strip-components=1)
+            repo=${LIBHTP_REPO:-$2}
+            branch=${LIBHTP_BRANCH:-$3}
+            echo "===> Bundling ${repo} -b ${branch}"
+            rm -rf libhtp
+            git clone "${repo}" -b "${branch}" libhtp
+            ;;
+        \#)
+            # Ignore comment.
+            ;;
+        "")
+            # Ignore blank line.
             ;;
         *)
             echo "error: unknown requirement: $1"
