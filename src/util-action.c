@@ -814,8 +814,8 @@ static int UtilActionTest13(void)
                               {0, 0, 1},
                               {0, 0, 1},
                               {0, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop has more
-      * priority than pass, it should alert on each packet */
+    /* All the packets should match the 3 sigs. As drop has more
+     * priority than pass, it should alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -889,9 +889,9 @@ static int UtilActionTest14(void)
                               {1, 0, 1},
                               {1, 0, 1},
                               {1, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -958,9 +958,9 @@ static int UtilActionTest15(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1022,9 +1022,9 @@ static int UtilActionTest16(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1086,9 +1086,9 @@ static int UtilActionTest17(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1155,9 +1155,9 @@ static int UtilActionTest18(void)
                               {0, 0, 1},
                               {0, 0, 1},
                               {0, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1230,9 +1230,9 @@ static int UtilActionTest19(void)
                               {1, 0, 0},
                               {1, 0, 0},
                               {1, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1305,9 +1305,9 @@ static int UtilActionTest20(void)
                               {0, 1, 0},
                               {0, 1, 0},
                               {0, 1, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1374,9 +1374,9 @@ static int UtilActionTest21(void)
                               {1, 0, 1},
                               {1, 0, 1},
                               {1, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1449,9 +1449,9 @@ static int UtilActionTest22(void)
                               {1, 1, 0},
                               {1, 1, 0},
                               {1, 1, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1524,9 +1524,9 @@ static int UtilActionTest23(void)
                               {0, 1, 1},
                               {0, 1, 1},
                               {0, 1, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
