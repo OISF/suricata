@@ -1,2 +1,7 @@
-libhtp https://github.com/OISF/libhtp/archive/0.5.x.tar.gz
-suricata-update https://github.com/OISF/suricata-update/archive/master.tar.gz
+# Specify libhtp and suricata-update requirements.
+#
+# Format:
+#
+#   name {repo} {branch|tag}
+libhtp https://github.com/OISF/libhtp 0.5.x
+suricata-update https://github.com/OISF/suricata-update master
