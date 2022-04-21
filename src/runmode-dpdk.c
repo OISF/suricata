@@ -106,7 +106,6 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         const struct rte_eth_conf *port_conf);
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf);
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf);
-static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
 
@@ -1331,7 +1330,7 @@ static int32_t DeviceRingsAttach(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
-static int DeviceConfigure(DPDKIfaceConfig *iconf)
+int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
     // configure device
