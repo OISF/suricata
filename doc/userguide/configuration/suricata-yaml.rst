@@ -1914,7 +1914,7 @@ DPDK allows the user space application to directly access memory where NIC store
 As a result, neither DPDK nor the application copies the packets for the inspection. The application directly
 processes packets via passed packet descriptors.
 
-
+.. _dpdk-high-lvl:
 .. figure:: suricata-yaml/dpdk.png
     :align: center
     :alt: DPDK basic architecture
@@ -1956,10 +1956,30 @@ parameters related to EAL.
 
 The node `dpdk.interfaces` wraps a list of interface configurations. Items of the list follows the structure that can
 be found in other capture interfaces. The individual items contain the usual configuration options
-such as `threads`/`copy-mode`/`checksum-checks` settings. Other capture interfaces, such as AF_PACKET, rely on the user that NICs are appropriately configured.
-Configuration through kernel does not apply to applications running under DPDK. The application is solely responsible for the
-initialization of NICs it is using. So, before the start of Suricata, NICs that Suricata uses, must undergo the process of initialization.
-As a result, there are extra extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
+such as `threads`/`copy-mode`/`checksum-checks` settings. The items also contain certain entries specific to DPDK. These are covered in more detail in the following subsections.
+
+DPDK has a concept of primary and secondary processes. `Multi-process support <https://doc.dpdk.org/guides/prog_guide/multi_proc_support.html>`_ 
+allows a group of DPDK processes to work together. 
+
+Responsibility of a primary process is to allocate and free up shared resources. There can only be one primary process per given file-prefix (i.e. namespace). Processes with different file-prefix are not able to communicate.
+Number of secondary processes are not strictly limited. After the memory is initialized, secondary processes can attach to these memory zones and work within them.
+This means that secondary process typically needs for its functioning a primary process to be alive. Additionally, primary process and any other secondary process must not share logical cores.
+For data exchange with the primary process, secondary processes often use `DPDK rings <https://doc.dpdk.org/guides/prog_guide/ring_lib.html>`_.
+Type of the process is specified using the DPDK `proc-type` parameter at the start of the application.
+
+Suricata is able to work both as a primary or a secondary process. However, initialization of Suricata varies greatly depending on the process type.
+It is also covered in the following subsections.
+
+.. _sub-dpdk-primary-process:
+  Suricata as a primary process (ethdev mode)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As shown at the Figure :numref:`dpdk-high-lvl`, DPDK applications do not use kernel layer. As a result, they can acheive greater processing speeds. 
+On the other hand, the drawback of this approach can be seen in the configuration process. NICs are commonly configured by the user through external tools (e.g. `ethtool`)
+and capture interfaces of the applications (e.g. `AF_PACKET`) only need to capture packets from the interface. Since this layer is cut out when using the DPDK applications,
+it is the responsibility of the application to configure the NICs appropriately. 
+So, before the start of Suricata, NICs that Suricata uses, must undergo the process of initialization.
+As a result, there are extra configuration options (how NICs can be configured) in the items (`interface:`) of the `dpdk.interfaces` list.
 At the start of the configuration process, all NIC offloads are disabled to prevent any packet modification.
 According to the configuration, checksum validation offload can be enabled to drop invalid packets.
 Other offloads can not be currently enabled.
@@ -2015,15 +2035,8 @@ Mempool cache is local to the individual CPU cores and holds packets that were r
 shared among all cores, cache tries to minimize the required inter-process synchronization. Recommended size of the cache
 is covered in the YAML file.
 
-There has been an ongoing effort to add a DPDK support into Suricata. While the capture interface is continually evolving,
-there has been certain areas with an increased focus. The current version of the DPDK capture interface provides
-support for physical NICs and for running on physical machines in workers runmode.
-The work has not been tested neither with the virtual interfaces nor
-in the virtual environments like VMs, Docker or similar.
-
-Although the capture interface uses DPDK library, there is no need to configure any lcores.
-The capture interface uses the standard Suricata threading module.
-Additionally, Suricata is intended to run as a primary process only.
+The current version of the DPDK capture interface provides support for physical NICs and for running on physical machines in workers runmode.
+The work has not been tested neither with the virtual interfaces nor in the virtual environments like VMs, Docker or similar.
 
 The minimal supported DPDK is version 19.11 which should be available in most repositories of major distributions.
 Alternatively, it is also possible to use `meson` and `ninja` to build and install DPDK from scratch.
@@ -2034,6 +2047,83 @@ To be able to run DPDK on Intel cards, it is required to change the default Inte
 `vfio-pci` or `igb_uio` driver. The process is described in
 `DPDK manual page regarding Linux drivers <https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_.
 DPDK is natively supported by Mellanox and thus their NICs should work "out of the box".
+
+Suricata as a secondary process (ring mode)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As mentioned previously, secondary processes must run alongside a primary process. The primary process must allocate resources. 
+These are later shared with the secondary processes. Therefore, when running Suricata as a secondary process, it needs to cooperate with a primary process.
+Main responsibilities of the primary process placed in front of Suricata should include:
+
+- allocation of memory resources
+- configuration of NICs
+- creation of communication rings
+- transfering packets from the NIC to the Suricata rings
+- transmitting packets in IPS mode
+
+Secondary applications typically do not operate with ports directly but instead, attempt to attach to DPDK rings that should be created by the primary application. 
+Suricata support arbitrary name of the receiving / transmitting rings. 
+The name of the rings specifies the `- interface:` list entry or the `copy-iface` entry. 
+As each Suricata worker reads incoming packets from a unique ring, the ring name contains static and dynamic part.
+Dynamic part, designated as `$QQQ` must be included in the ring name format. The remaining part of the ring name format is static.
+On Suricata startup, workers use the ring name format to lookup DPDK rings. 
+During this process, the dynamic part is substituted with worker's corresponding queue number (starting at 0, going upwards up to the count of Suricata worker threads). 
+
+Suricata in secondary mode does not take in respect configuration entries related to NIC setup (e.g. `mempool-size`, `mempool-cache`). 
+Instead, it relies on the primary application to do the initialization routines.
+
+Suricata can operate both in IDS and IPS mode. At the same time, Suricata can be configured in various ways to accomplish different use-cases.
+Figure :numref:`dpdk-secondary-ids` depicts a basic IDS use-case. 
+Primary application placed in front of Suricata receives packets and sends them to Suricata via DPDK rings.
+Each worker has one individual ring. It is expected from the primary application that both directions of the flow are sent to the same worker.
+After Suricata workers process the received packets, they return them to the original packet memory pool.
+
+.. _dpdk-secondary-ids:
+.. figure:: suricata-yaml/dpdk-secondary-ids.png
+    :align: center
+    :alt: Suricata as a secondary process in IDS mode
+    :figclass: align-center
+
+    `Suricata as a secondary process in IDS mode`
+
+As mentioned, Suricata supports IPS mode even when running as a secondary process. 
+The basic concept of how Suricata attaches to the rings is depicted at Figure :numref:`dpdk-secondary-ips-full`.
+Primary application creates a pair of rings for each NIC it works with.
+One ring is used for sending packets to Suricata and the other can be used to retrieve and transmit analyzed packets from Suricata through the appropriate NIC.
+However, in a classic IPS mode, there should be a pair of NICs. Entry `copy-iface` must hold ring name format of the other NIC.
+
+.. _dpdk-secondary-ips-full:
+.. figure:: suricata-yaml/dpdk-secondary-ips-full.png
+    :align: center
+    :alt: Suricata as a secondary process in IPS mode
+    :figclass: align-center
+
+    `Suricata as a secondary process in IPS mode`
+
+
+Alternatively, thanks to the abstraction that the rings provide, there can also be other uses of rings.
+Local IPS mode (Figure :numref:`dpdk-secondary-ips-local`) can be used to sift through the traffic based on Suricata DROP rules. The remaining traffic can be processed afterwards by the primary application or forwarded to another secondary application.
+
+.. _dpdk-secondary-ips-local:
+.. figure:: suricata-yaml/dpdk-secondary-ips-local.png
+    :align: center
+    :alt: Suricata as a secondary process in local IPS mode
+    :figclass: align-center
+
+    `Suricata as a secondary process in local IPS mode`
+
+
+Pipeline IPS mode (Figure :numref:`dpdk-secondary-ips-pipeline`) extends the previous use-case by chaining multiple applications one after another. 
+Suricata could receive packets from rings of one application but enqueue them to a ring leading to a different application. 
+The last application has the responsibility to free the packets the mbufs. 
+
+.. _dpdk-secondary-ips-pipeline:
+.. figure:: suricata-yaml/dpdk-secondary-ips-pipeline.png
+    :align: center
+    :alt: Suricata as a secondary process in IPS pipeline mode
+    :figclass: align-center
+
+    `Suricata as a secondary process in IPS pipeline mode`
 
 Pf-ring
 ~~~~~~~

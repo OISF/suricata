@@ -255,7 +255,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 {
 #ifdef HAVE_DPDK
     // unsigned int to follow rte_get_next_lcore prototype, UINT32_MAX to get the first lcore_id
-    unsigned int dpdk_last_spawned_lcore = UINT_MAX;
+    // static to remember last used lcore over multiple function calls (more ifaces in config)
+    static unsigned int dpdk_last_spawned_lcore = UINT_MAX;
 #endif
     int threads_count;
     uint16_t thread_max;
