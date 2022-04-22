@@ -667,17 +667,31 @@ af-packet:
 
 dpdk:
   eal-params:
+    # Running Suricata with DPDK requires configured CPU affinity in threading.cpu-affinity section
+    # For this reason, do not specify core mask/lcore settings in EAL parameters
     proc-type: primary
 
   # DPDK capture support
   # RX queues (and TX queues in IPS mode) are assigned to cores in 1:1 ratio
+  # With DPDK enabled, you need to set affinity of (at least) worker cores in set-cpu-affinity section
   interfaces:
-    - interface: 0000:3b:00.0 # PCIe address of the NIC port
+    - interface: 0000:3b:00.0 # PCIe address of the NIC port or (in the ring mode) format of DPDK rings
+      # Format of the DPDK rings should be specified in the interface/copy-iface entries always with
+      # a specifier "$QQQ" as it is the dynamic part of the name. The specifier is replaced with the actual queue
+      # number during the initialization process. Example of such entry can be: rx_myring_$QQQ
+      # Then, copy-iface entry can be specified as e.g.: tx_otherring_$QQQ
       # Threading: possible values are either "auto" or number of threads
       # - auto takes all cores
       # in IPS mode it is required to specify the number of cores and the numbers on both interfaces must match
       threads: auto
       promisc: true # promiscuous mode - capture all packets
+      # Operation mode defines how it initializes and how it receives packets
+      # In "ethdev" mode, Suricata runs as a primary DPDK process and directly communicates with the NICs.
+      # The "ring" mode is only allowed when Suricata runs as a secondary DPDK process. Suricata tries to look up rings
+      # specified in the interface/copy-iface entry. Rings must be created by a primary application prior to Suricata
+      # initialization.
+      # The operation mode needs to be the same on all interfaces.
+      operation-mode: ethdev
       multicast: true # enables also detection on multicast packets
       checksum-checks: true # if Suricata should validate checksums
       checksum-checks-offload: true # if possible offload checksum validation to the NIC (saves Suricata resources)
@@ -704,11 +718,14 @@ dpdk:
       # - none: IDS mode only - disables IPS functionality (does not further forward packets)
       # - tap: forwards all packets and generates alerts (omits DROP action) This is not DPDK TAP
       # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
+      # In the "ring" operation mode, you can select `copy-mode` to "tap" and `copy-iface` to the same as
+      # `inteface` to have local loopback IDS mode. (Suricata enqueues packets to the TX ring of the same interface)
       copy-mode: none
       copy-iface: none # or PCIe address of the second interface
 
     - interface: default
-      threads: auto
+      operation-mode: ethdev
+      threads: auto # or number of threads - auto takes all lcores, no thread entry takes all cores
       promisc: true
       multicast: true
       checksum-checks: true

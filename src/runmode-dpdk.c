@@ -93,6 +93,7 @@ static int ConfigSetChecksumOffload(DPDKIfaceConfig *iconf, int entry_bool);
 static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetCopyMode(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetCopyIfaceSettings(DPDKIfaceConfig *iconf, const char *iface, const char *mode);
+static void ConfigSetOperationMode(DPDKIfaceConfig *iconf, const char *entry_str);
 static void ConfigInit(DPDKIfaceConfig **iconf);
 static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface);
 static DPDKIfaceConfig *ConfigParse(const char *iface);
@@ -107,7 +108,12 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
 
+#define DPDK_CONFIG_OPERATION_MODE_ETHDEV "ethdev"
+#define DPDK_CONFIG_OPERATION_MODE_RING   "ring"
+
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
+#define DPDK_CONFIG_DEFAULT_OPERATION_MODE              DPDK_CONFIG_OPERATION_MODE_ETHDEV
+#define DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER         "$QQQ"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                65535
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              1024
@@ -122,6 +128,7 @@ static void DPDKDerefConfig(void *conf);
 
 DPDKIfaceConfigAttributes dpdk_yaml = {
     .threads = "threads",
+    .operation_mode = "operation-mode",
     .promisc = "promisc",
     .multicast = "multicast",
     .checksum_checks = "checksum-checks",
@@ -415,6 +422,13 @@ static void DPDKDerefConfig(void *conf)
             rte_mempool_free(iconf->pkt_mempool);
         }
 
+        if (iconf->rx_rings != NULL) {
+            SCFree(iconf->rx_rings);
+        }
+        if (iconf->tx_rings != NULL) {
+            SCFree(iconf->tx_rings);
+        }
+
         SCFree(iconf);
     }
     SCReturn;
@@ -442,14 +456,8 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
 static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    int retval;
-
     if (entry_str == NULL || entry_str[0] == '\0')
         FatalError(SC_ERR_INVALID_VALUE, "Interface name in DPDK config is NULL or empty");
-
-    retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->port_id);
-    if (retval < 0)
-        FatalError(SC_ERR_DPDK_CONF, "Interface \"%s\": %s", entry_str, rte_strerror(-retval));
 
     strlcpy(iconf->iface, entry_str, sizeof(iconf->iface));
     SCReturn;
@@ -649,19 +657,9 @@ static int ConfigSetChecksumOffload(DPDKIfaceConfig *iconf, int entry_bool)
 static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    int retval;
-
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "none") == 0) {
         iconf->out_iface = NULL;
         SCReturnInt(0);
-    }
-
-    retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->out_port_id);
-    if (retval < 0) {
-        SCLogWarning(SC_ERR_DPDK_CONF,
-                "Name of the copy interface (%s) for the interface %s is not valid, changing to %s",
-                entry_str, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_INTERFACE);
-        iconf->out_iface = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
     }
 
     iconf->out_iface = entry_str;
@@ -730,6 +728,21 @@ static int ConfigSetCopyIfaceSettings(DPDKIfaceConfig *iconf, const char *iface,
     SCReturnInt(0);
 }
 
+static void ConfigSetOperationMode(DPDKIfaceConfig *iconf, const char *entry_str)
+{
+    enum rte_proc_type_t process_type = rte_eal_process_type();
+
+    if (strcmp(entry_str, DPDK_CONFIG_OPERATION_MODE_ETHDEV) == 0 &&
+            process_type == RTE_PROC_PRIMARY) {
+        iconf->op_mode = DPDK_ETHDEV_MODE;
+    } else if (strcmp(entry_str, DPDK_CONFIG_OPERATION_MODE_RING) == 0 &&
+               process_type == RTE_PROC_SECONDARY) {
+        iconf->op_mode = DPDK_RING_MODE;
+    } else {
+        FatalError(SC_ERR_DPDK_CONF, "DPDK operation mode \"%s\" not supported", entry_str);
+    }
+}
+
 static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
 {
     SCEnter();
@@ -765,6 +778,13 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     retval = ConfigSetTxQueues(iconf, (uint16_t)iconf->threads);
     if (retval < 0)
         SCReturnInt(retval);
+
+    retval =
+            ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.operation_mode, &entry_str);
+    if (retval != 1)
+        ConfigSetOperationMode(iconf, DPDK_CONFIG_DEFAULT_OPERATION_MODE);
+    else
+        ConfigSetOperationMode(iconf, entry_str);
 
     retval = ConfGetChildValueIntWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_int) != 1
@@ -1220,6 +1240,95 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static const char *DeviceRingNameInit(const char *format, uint16_t r_num)
+{
+    static char name[RTE_RING_NAMESIZE];
+    char r_num_str[RTE_RING_NAMESIZE];
+    const char *r_specfier_pos = strstr(format, DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER);
+    uint16_t len_until_specifier = r_specfier_pos - format + 1;
+    snprintf(r_num_str, sizeof(r_num_str), "%" PRIu16, r_num);
+    snprintf(name, len_until_specifier, "%s", format);
+    strlcat(name, r_num_str, sizeof(name));
+    // copy the rest after queue number specifier
+    strlcat(name, r_specfier_pos + strlen(DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER), sizeof(name));
+    return name;
+}
+
+static bool DeviceRingNameIsValid(const char *name, uint16_t rings_cnt)
+{
+    uint16_t len = strlen(name);
+    uint16_t longest_name_len =
+            len - strlen(DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER) + CountDigits(rings_cnt) + 1;
+
+    if (len >= RTE_RING_NAMESIZE) {
+        SCLogError(SC_ERR_DPDK_CONF, "Ring name (entry \"interface\" %s) cannot be longer than %lu",
+                name, RTE_RING_NAMESIZE);
+        return false;
+    } else if (longest_name_len >= RTE_RING_NAMESIZE) {
+        SCLogError(SC_ERR_DPDK_CONF,
+                "Ring name (entry \"interface\" %s) longer than %lu when ring number specifier "
+                "substituted with %u",
+                name, RTE_RING_NAMESIZE, rings_cnt);
+        return false;
+    } else if (strstr(name, DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER) == NULL) {
+        SCLogError(SC_ERR_DPDK_CONF,
+                "Ring name (entry \"interface\" %s) omits the queue number specifier - \"%s\"",
+                name, DPDK_CONFIG_DEFAULT_QUEUE_NUM_SPECIFIER);
+        return false;
+    }
+    return true;
+}
+
+static int32_t DeviceRingsAttach(DPDKIfaceConfig *iconf)
+{
+    SCEnter();
+    uint16_t rings_cnt = iconf->threads;
+    if (!DeviceRingNameIsValid(iconf->iface, rings_cnt))
+        SCReturnInt(-EINVAL);
+    else if (iconf->copy_mode != DPDK_COPY_MODE_NONE) {
+        if (!DeviceRingNameIsValid(iconf->out_iface, rings_cnt))
+            SCReturnInt(-EINVAL);
+    }
+
+    // if fail occurs, these are freed in DPDKDerefConfig
+    iconf->rx_rings = SCCalloc(rings_cnt, sizeof(struct rte_ring *));
+    if (iconf->rx_rings == NULL) {
+        SCLogError(SC_ERR_DPDK_INIT, "Failed to calloc rx rings");
+        SCReturnInt(-ENOMEM);
+    }
+
+    iconf->tx_rings = SCCalloc(rings_cnt, sizeof(struct rte_ring *));
+    if (iconf->tx_rings == NULL) {
+        SCLogError(SC_ERR_DPDK_INIT, "Failed to calloc tx rings");
+        SCReturnInt(-ENOMEM);
+    }
+
+    for (int32_t i = 0; i < rings_cnt; ++i) {
+        const char *name;
+        name = DeviceRingNameInit(iconf->iface, i);
+        SCLogDebug("Looking up rx ring: %s", name);
+        iconf->rx_rings[i] = rte_ring_lookup(name);
+        if (iconf->rx_rings[i] == NULL) {
+            SCLogError(SC_ERR_DPDK_INIT, "rte_ring_lookup(): cannot get rx ring '%s'", name);
+            SCReturnInt(-ENOENT);
+        }
+
+        if (iconf->copy_mode == DPDK_COPY_MODE_NONE) {
+            iconf->tx_rings[i] = NULL;
+        } else {
+            name = DeviceRingNameInit(iconf->out_iface, i);
+            SCLogDebug("Looking up tx ring: %s", name);
+            iconf->tx_rings[i] = rte_ring_lookup(name);
+            if (iconf->tx_rings[i] == NULL) {
+                SCLogError(SC_ERR_DPDK_INIT, "rte_ring_lookup(): cannot get tx ring '%s'", name);
+                SCReturnInt(-ENOENT);
+            }
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 static int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
@@ -1233,6 +1342,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when getting port id of %s Is device enabled?",
                 retval, iconf->iface);
         SCReturnInt(retval);
+    }
+
+    if (iconf->copy_mode != DPDK_COPY_MODE_NONE) {
+        retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
+        if (retval < 0) {
+            SCLogWarning(SC_ERR_DPDK_CONF,
+                    "Name of the copy interface (%s) for the interface %s is not valid, changing "
+                    "to %s",
+                    iconf->out_iface, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_INTERFACE);
+            iconf->out_iface = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
+        }
     }
 
     if (!rte_eth_dev_is_valid_port(iconf->port_id)) {
@@ -1387,13 +1507,20 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
         FatalError(SC_ERR_DPDK_CONF, "DPDK configuration could not be parsed");
     }
 
-    if (DeviceConfigure(iconf) != 0) {
-        iconf->DerefFunc(iconf);
-        retval = rte_eal_cleanup();
-        if (retval != 0)
-            FatalError(SC_ERR_DPDK_EAL_INIT, "EAL cleanup failed: %s", strerror(-retval));
+    if (iconf->op_mode == DPDK_RING_MODE) {
+        if (DeviceRingsAttach(iconf) != 0) {
+            iconf->DerefFunc(iconf);
+            FatalError(SC_ERR_DPDK_CONF, "Device %s fails to configure", iface);
+        }
+    } else if (iconf->op_mode == DPDK_ETHDEV_MODE) {
+        if (DeviceConfigure(iconf) != 0) {
+            iconf->DerefFunc(iconf);
+            retval = rte_eal_cleanup();
+            if (retval != 0)
+                SCLogError(SC_ERR_DPDK_EAL_INIT, "EAL cleanup failed: %s", strerror(-retval));
 
-        FatalError(SC_ERR_DPDK_CONF, "Device %s fails to configure", iface);
+            FatalError(SC_ERR_DPDK_CONF, "Device %s fails to configure", iface);
+        }
     }
 
     SC_ATOMIC_RESET(iconf->ref);
