@@ -133,14 +133,8 @@ void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint3
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {
     /* last ack not yet initialized */
-    if (STREAM_BASE_OFFSET(stream) == 0 && (stream->tcp_flags & TH_ACK) == 0) {
-#ifdef UNITTESTS
-        if (RunmodeIsUnittests() && stream->last_ack == 0)
-            return false;
-#else
+    if (STREAM_BASE_OFFSET(stream) == 0 && (stream->tcp_flags & TH_ACK) == 0)
         return false;
-#endif
-    }
     if (SEQ_GT(stream->last_ack, stream->base_seq))
         return true;
     return false;
