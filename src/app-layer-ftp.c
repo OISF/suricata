@@ -387,6 +387,9 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         }
     }
 
+    /* Should be guaranteed by the caller. */
+    DEBUG_VALIDATE_BUG_ON(state->input_len <= 0);
+
     uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
     if (lf_idx == NULL) {
@@ -397,13 +400,18 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
          * if we see fragmentation then it's definitely something you
          * should alert about */
         if (line_state->current_line_db == 0) {
-            line_state->db = FTPMalloc(state->input_len);
+            int32_t input_len = state->input_len;
+            if ((uint32_t)input_len > ftp_max_line_len) {
+                input_len = ftp_max_line_len;
+                state->current_line_truncated = true;
+            }
+            line_state->db = FTPMalloc(input_len);
             if (line_state->db == NULL) {
                 return -1;
             }
             line_state->current_line_db = 1;
-            memcpy(line_state->db, state->input, state->input_len);
-            line_state->db_len = state->input_len;
+            memcpy(line_state->db, state->input, input_len);
+            line_state->db_len = input_len;
         } else if (!state->current_line_truncated) {
             int32_t input_len = state->input_len;
             if (line_state->db_len + input_len > ftp_max_line_len) {
