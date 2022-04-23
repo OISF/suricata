@@ -6341,9 +6341,16 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg;
     RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
-        if (!((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
-                    || SEQ_LT(seg->seq, stream->last_ack)))
-            break;
+        if (!(stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)) {
+            if (PKT_IS_PSEUDOPKT(p)) {
+                /* use un-ACK'd data as well */
+            } else {
+                /* in IDS mode, use ACK'd data */
+                if (SEQ_GEQ(seg->seq, stream->last_ack)) {
+                    break;
+                }
+            }
+        }
 
         const uint8_t *seg_data;
         uint32_t seg_datalen;
