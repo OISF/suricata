@@ -408,9 +408,13 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
     /* get a lock to access root packet fields */
     SCMutex *m = &p->root->tunnel_mutex;
 
+    enum PktSrcEnum pkt_src;
+    uint64_t pcap_cnt;
     JsonAddrInfo addr = json_addr_info_zero;
     SCMutexLock(m);
     JsonAddrInfoInit(p->root, 0, &addr);
+    pcap_cnt = p->root->pcap_cnt;
+    pkt_src = p->root->pkt_src;
     SCMutexUnlock(m);
 
     jb_set_string(js, "src_ip", addr.src_ip);
@@ -420,7 +424,10 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
     jb_set_string(js, "proto", addr.proto);
 
     jb_set_uint(js, "depth", p->recursion_level);
-
+    if (pcap_cnt != 0) {
+        jb_set_uint(js, "pcap_cnt", pcap_cnt);
+    }
+    jb_set_string(js, "pkt_src", PktSrcToString(pkt_src));
     jb_close(js);
 }
 
