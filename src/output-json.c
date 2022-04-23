@@ -905,6 +905,8 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
             break;
     }
 
+    jb_set_string(js, "pkt_src", PktSrcToString(p->pkt_src));
+
     if (eve_ctx != NULL) {
         EveAddCommonOptions(&eve_ctx->cfg, p, f, js);
     }
