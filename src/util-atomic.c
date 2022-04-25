@@ -61,12 +61,33 @@ static int SCAtomicTest01(void)
     return result;
 }
 
+static int SCAtomicTest02(void)
+{
+    int temp_int = 0;
+
+    SC_ATOMIC_DECLARE(int, temp);
+    SC_ATOMIC_INIT(temp);
+
+    temp_int = SC_ATOMIC_GET(temp);
+    FAIL_IF(temp_int != 0);
+
+    /* Returns value following add */
+    int cur = SC_ATOMIC_ADD(temp, 1);
+    FAIL_IF(cur != 1);
+
+    /* Returns value prior to add */
+    cur = SC_ATOMIC_FETCH_AND_ADD(temp, 1);
+    FAIL_IF(cur != 1);
+
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void SCAtomicRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("SCAtomicTest01", SCAtomicTest01);
+    UtRegisterTest("SCAtomicTest02", SCAtomicTest02);
 #endif
 
     return;
