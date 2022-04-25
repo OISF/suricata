@@ -87,4 +87,6 @@ alert http any any -> any any (msg:"SURICATA HTTP invalid Range header value"; f
 
 alert http any any -> any any (msg:"SURICATA HTTP file name too long"; flow:established; app-layer-event:http.file_name_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221052; rev:1;)
 
-# next sid 2221053
+alert http any any -> any any (msg:"SURICATA HTTP failed protocol change"; flow:established; app-layer-event:http.failed_protocol_change; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221053; rev:1;)
+
+# next sid 2221054

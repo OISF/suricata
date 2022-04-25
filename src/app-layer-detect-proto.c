@@ -1948,13 +1948,13 @@ void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_
  *  \param expect_proto expected protocol. AppLayer event will be set if
  *                      detected protocol differs from this.
  */
-void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
+bool AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
 {
     if (FlowChangeProto(f)) {
         // If we are already changing protocols, from SMTP to TLS for instance,
         // and that we do not get TLS but HTTP1, which is requesting whange to HTTP2,
         // we do not proceed the new protocol change
-        return;
+        return false;
     }
     FlowSetChangeProtoFlag(f);
     f->protodetect_dp = dp;
@@ -1968,6 +1968,7 @@ void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
     if (f->alproto_tc == ALPROTO_UNKNOWN) {
         f->alproto_tc = f->alproto;
     }
+    return true;
 }
 
 /** \brief request applayer to wrap up this protocol and rerun protocol
@@ -1978,9 +1979,9 @@ void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
  *
  *  \param f flow to act on
  */
-void AppLayerRequestProtocolTLSUpgrade(Flow *f)
+bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
 {
-    AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
+    return AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
 
 void AppLayerProtoDetectReset(Flow *f)
