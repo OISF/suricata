@@ -388,7 +388,7 @@ extern {
                                                      pp_min_depth: u16, pp_max_depth: u16) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
-    pub fn AppLayerRequestProtocolTLSUpgrade(flow: *const Flow);
+    pub fn AppLayerRequestProtocolTLSUpgrade(flow: *const Flow) -> bool;
 }
 
 // Defined in app-layer-parser.h

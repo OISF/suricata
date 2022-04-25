@@ -145,6 +145,7 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "NO_SERVER_WELCOME_MESSAGE", SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE },
     { "TLS_REJECTED", SMTP_DECODER_EVENT_TLS_REJECTED },
     { "DATA_COMMAND_REJECTED", SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED },
+    { "FAILED_PROTOCOL_CHANGE", SMTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE },
 
     /* MIME Events */
     { "MIME_PARSE_FAILED", SMTP_DECODER_EVENT_MIME_PARSE_FAILED },
@@ -944,7 +945,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-            AppLayerRequestProtocolTLSUpgrade(f);
+            if (!AppLayerRequestProtocolTLSUpgrade(f)) {
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+            }
             if (state->curr_tx) {
                 SMTPTransactionComplete(state);
             }
