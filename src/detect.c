@@ -1291,6 +1291,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
 
+        bool do_sort = false; // do we need to sort the tx candidate list?
         uint32_t array_idx = 0;
         uint32_t total_rules = det_ctx->match_array_cnt;
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
@@ -1341,8 +1342,9 @@ static void DetectRunTx(ThreadVars *tv,
                         tx.tx_ptr, tx.tx_id, s->id, id);
             }
         }
-        SCLogDebug("%p/%"PRIu64" rules added from 'match' list: %u",
-                tx.tx_ptr, tx.tx_id, array_idx - x); (void)x;
+        do_sort = (array_idx > x); // sort if match added anything
+        SCLogDebug("%p/%" PRIu64 " rules added from 'match' list: %u", tx.tx_ptr, tx.tx_id,
+                array_idx - x);
 
         /* merge stored state into results */
         if (tx.de_state != NULL) {
@@ -1382,13 +1384,13 @@ static void DetectRunTx(ThreadVars *tv,
                     array_idx++;
                 }
             }
-            if (old && old != array_idx) {
-                qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
-                        DetectRunTxSortHelper);
-
-                SCLogDebug("%p/%"PRIu64" rules added from 'continue' list: %u",
-                        tx.tx_ptr, tx.tx_id, array_idx - old);
-            }
+            do_sort |= (old && old != array_idx); // sort if continue list adds sids
+            SCLogDebug("%p/%" PRIu64 " rules added from 'continue' list: %u", tx.tx_ptr, tx.tx_id,
+                    array_idx - old);
+        }
+        if (do_sort) {
+            qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
+                    DetectRunTxSortHelper);
         }
 
         det_ctx->tx_id = tx.tx_id;
