@@ -172,6 +172,7 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "MULTIPART_INVALID_HEADER", HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER },
 
     { "TOO_MANY_WARNINGS", HTTP_DECODER_EVENT_TOO_MANY_WARNINGS },
+    { "FAILED_PROTOCOL_CHANGE", HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE },
 
     { NULL, -1 },
 };
@@ -968,7 +969,10 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                     }
                     consumed = htp_connp_res_data_consumed(hstate->connp);
                     hstate->slice = NULL;
-                    AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
+                    if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2)) {
+                        HTPSetEvent(hstate, NULL, STREAM_TOCLIENT,
+                                HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+                    }
                     // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                     // and we need to parser the remaining part with HTTP2
                     if (consumed > 0 && consumed < input_len) {
@@ -2282,7 +2286,10 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
                 dp = (uint16_t)tx->request_port_number;
             }
             // both ALPROTO_HTTP1 and ALPROTO_TLS are normal options
-            AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
+            if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN)) {
+                HTPSetEvent(
+                        hstate, htud, STREAM_TOCLIENT, HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+            }
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
         }
