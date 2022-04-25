@@ -8,3 +8,4 @@ Suricata Internals
    threading/index.rst
    datastructs/index.rst
    engines/index.rst
+   engines/alerts-flow.rst
