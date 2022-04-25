@@ -114,6 +114,16 @@
     } while(0); \
     var ; \
 })
+#define SC_ATOMIC_FETCH_AND_ADD(name, val) ({\
+    typeof(name ## _sc_atomic__) var; \
+    do { \
+        SCSpinLock(&(name ## _sc_lock__)); \
+        var = (name ## _sc_atomic__); \
+        (name ## _sc_atomic__) += (val); \
+        SCSpinUnlock(&(name ## _sc_lock__)); \
+    } while(0); \
+    var ; \
+})
 
 /**
  *  \brief sub a value from our atomic variable
@@ -396,6 +406,8 @@
 #define SC_ATOMIC_ADD(name, val) \
     SCAtomicAddAndFetch(&(name ## _sc_atomic__), (val))
 
+#define SC_ATOMIC_FETCH_AND_ADD(name, val) \
+    SCAtomicFetchAndAdd(&(name ## _sc_atomic__), (val))
 /**
  *  \brief sub a value from our atomic variable
  *
