@@ -52,19 +52,25 @@ impl Frame {
     ) -> Option<Self> {
         let offset = frame_start.as_ptr() as usize - stream_slice.as_slice().as_ptr() as usize;
         SCLogDebug!("offset {} stream_slice.len() {} frame_start.len() {}", offset, stream_slice.len(), frame_start.len());
-        let frame = unsafe {
-            AppLayerFrameNewByRelativeOffset(
-                flow,
-                stream_slice,
-                offset as u32,
-                frame_len,
-                dir,
-                frame_type,
-            )
-        };
-        let id = unsafe { AppLayerFrameGetId(frame) };
-        if id > 0 {
-            Some(Self { id })
+        // If running Rust unit tests this won't be compiled and None will be returned, as we don't
+        // have the Suricata C code available for linkage.
+        if cfg!(not(test)) {
+            let frame = unsafe {
+                AppLayerFrameNewByRelativeOffset(
+                    flow,
+                    stream_slice,
+                    offset as u32,
+                    frame_len,
+                    dir,
+                    frame_type,
+                )
+            };
+            let id = unsafe { AppLayerFrameGetId(frame) };
+            if id > 0 {
+                Some(Self { id })
+            } else {
+                None
+            }
         } else {
             None
         }
