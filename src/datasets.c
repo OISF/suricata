@@ -84,12 +84,15 @@ static Dataset *DatasetSearchByName(const char *name)
 
 static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
 {
+    if (ins < 2)
+        return -1;
     if (ins % 2 != 0)
         return -1;
     if (outs != ins / 2)
         return -1;
 
     uint8_t hash[outs];
+    memset(hash, 0, outs);
     size_t i, x;
     for (x = 0, i = 0; i < ins; i+=2, x++) {
         char buf[3] = { 0, 0, 0 };
