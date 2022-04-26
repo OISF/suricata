@@ -106,8 +106,12 @@ pub struct MQTTState {
 }
 
 impl State<MQTTTransaction> for MQTTState {
-    fn get_transactions(&self) -> &[MQTTTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&MQTTTransaction> {
+        self.transactions.get(index)
     }
 }
 

@@ -51,8 +51,12 @@ pub struct SIPState {
 }
 
 impl State<SIPTransaction> for SIPState {
-    fn get_transactions(&self) -> &[SIPTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&SIPTransaction> {
+        self.transactions.get(index)
     }
 }
 

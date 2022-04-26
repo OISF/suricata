@@ -795,8 +795,12 @@ pub struct SMBState<> {
 }
 
 impl State<SMBTransaction> for SMBState {
-    fn get_transactions(&self) -> &[SMBTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&SMBTransaction> {
+        self.transactions.get(index)
     }
 }
 

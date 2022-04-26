@@ -325,8 +325,12 @@ pub struct NFSState {
 }
 
 impl State<NFSTransaction> for NFSState {
-    fn get_transactions(&self) -> &[NFSTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&NFSTransaction> {
+        self.transactions.get(index)
     }
 }
 

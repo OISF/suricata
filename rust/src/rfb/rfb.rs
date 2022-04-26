@@ -84,9 +84,14 @@ pub struct RFBState {
 }
 
 impl State<RFBTransaction> for RFBState {
-    fn get_transactions(&self) -> &[RFBTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
     }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&RFBTransaction> {
+        self.transactions.get(index)
+    }
+
 }
 
 impl RFBState {

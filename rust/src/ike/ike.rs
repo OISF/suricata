@@ -144,8 +144,12 @@ pub struct IKEState {
 }
 
 impl State<IKETransaction> for IKEState {
-    fn get_transactions(&self) -> &[IKETransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&IKETransaction> {
+        self.transactions.get(index)
     }
 }
 
