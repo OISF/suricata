@@ -1356,7 +1356,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
-            fprintf(rule_engine_analysis_FD, "    Rule contains %d content options, %d http content options, %d pcre options, and %d pcre options with http modifiers.\n", rule_content, rule_content_http, rule_pcre, rule_pcre_http);
+            fprintf(rule_engine_analysis_FD,
+                    "    Rule contains %u content options, %u http content options, %u pcre "
+                    "options, and %u pcre options with http modifiers.\n",
+                    rule_content, rule_content_http, rule_pcre, rule_pcre_http);
         }
 
         /* print fast pattern info */
