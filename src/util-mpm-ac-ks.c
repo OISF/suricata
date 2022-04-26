@@ -603,7 +603,7 @@ static void SCACTileSetState4Bytes(SCACTileCtx *ctx, int state, int aa,
     }
 
     if (outputs == 0)
-        encoded_next_state |= (1 << 31);
+        encoded_next_state |= (1UL << 31);
 
     state_table[state * ctx->alphabet_storage + aa] = encoded_next_state;
 }
@@ -1449,7 +1449,7 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
-    printf("Total states in the state table:    %d\n", ctx->state_count);
+    printf("Total states in the state table:    %u\n", ctx->state_count);
     printf("\n");
 }
 
