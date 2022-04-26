@@ -407,7 +407,7 @@ pub struct DNSState {
     pub tx_id: u64,
 
     // Transactions.
-    pub transactions: Vec<DNSTransaction>,
+    pub transactions: VecDeque<DNSTransaction>,
 
     config: Option<ConfigTracker>,
 
@@ -419,7 +419,7 @@ impl DNSState {
     pub fn new() -> DNSState {
         return DNSState{
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             config: None,
             gap: false,
         };
@@ -428,7 +428,7 @@ impl DNSState {
     pub fn new_tcp() -> DNSState {
         return DNSState{
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             config: None,
             gap: false,
         };
@@ -530,7 +530,7 @@ impl DNSState {
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
                 tx.tx_data.set_inspect_direction(STREAM_TOSERVER);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
@@ -594,7 +594,7 @@ impl DNSState {
                 }
                 tx.response = Some(response);
                 tx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
