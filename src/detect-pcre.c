@@ -370,8 +370,11 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
             cut_capture = fcap - regexstr;
         else if (pcap && !fcap)
             cut_capture = pcap - regexstr;
-        else
+        else {
+            BUG_ON(pcap == NULL); // added to assist cppcheck
+            BUG_ON(fcap == NULL);
             cut_capture = MIN((pcap - regexstr), (fcap - regexstr));
+        }
 
         SCLogDebug("cut_capture %d", cut_capture);
 
