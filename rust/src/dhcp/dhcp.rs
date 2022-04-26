@@ -109,8 +109,12 @@ pub struct DHCPState {
 }
 
 impl State<DHCPTransaction> for DHCPState {
-    fn get_transactions(&self) -> &[DHCPTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&DHCPTransaction> {
+        self.transactions.get(index)
     }
 }
 

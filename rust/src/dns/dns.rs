@@ -321,8 +321,12 @@ pub struct DNSState {
 }
 
 impl State<DNSTransaction> for DNSState {
-    fn get_transactions(&self) -> &[DNSTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&DNSTransaction> {
+        self.transactions.get(index)
     }
 }
 

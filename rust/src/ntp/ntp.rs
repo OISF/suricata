@@ -74,8 +74,12 @@ impl NTPState {
 }
 
 impl State<NTPTransaction> for NTPState {
-    fn get_transactions(&self) -> &[NTPTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&NTPTransaction> {
+        self.transactions.get(index)
     }
 }
 

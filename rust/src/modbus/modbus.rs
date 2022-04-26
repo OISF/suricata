@@ -96,8 +96,12 @@ pub struct ModbusState {
 }
 
 impl State<ModbusTransaction> for ModbusState {
-    fn get_transactions(&self) -> &[ModbusTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&ModbusTransaction> {
+        self.transactions.get(index)
     }
 }
 
