@@ -2050,7 +2050,7 @@ static int InitSignalHandler(SCInstance *suri)
 #if HAVE_LIBUNWIND
     int enabled;
     if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
-        enabled = 1;
+        enabled = 0;
     }
 
     if (enabled) {
