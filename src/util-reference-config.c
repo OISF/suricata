@@ -176,7 +176,6 @@ static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL) {
         fclose(fd);
-        fd = NULL;
     }
 
     return;
