@@ -2290,22 +2290,6 @@ static int InitSignalHandler(SCInstance *suri)
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-#if HAVE_LIBUNWIND
-    int enabled;
-    if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
-        enabled = 1;
-    }
-
-    if (enabled) {
-        SCLogInfo("Preparing unexpected signal handling");
-        struct sigaction stacktrace_action;
-        memset(&stacktrace_action, 0, sizeof(stacktrace_action));
-        stacktrace_action.sa_sigaction = SignalHandlerUnexpected;
-        stacktrace_action.sa_flags = SA_SIGINFO;
-        sigaction(SIGSEGV, &stacktrace_action, NULL);
-        sigaction(SIGABRT, &stacktrace_action, NULL);
-    }
-#endif /* HAVE_LIBUNWIND */
 #endif
 #ifndef OS_WIN32
     UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
