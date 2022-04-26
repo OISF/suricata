@@ -270,9 +270,7 @@ Example::
 
     alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
 
-``http.protocol`` replaces the previous keyword name: ```http_protocol``. You may continue
-+to use the previous name, but it's recommended that rules be converted to use
-+the new name.
+``http.protocol`` replaces the previous keyword name: ```http_protocol``. You may continue to use the previous name, but it's recommended that rules be converted to use the new name.
 
 Example::
 
