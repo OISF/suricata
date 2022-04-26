@@ -186,7 +186,6 @@ static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL) {
         fclose(fd);
-        fd = NULL;
     }
 }
 
