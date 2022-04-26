@@ -185,8 +185,8 @@ int RunModeErfFileAutoFp(void)
     }
 
     for (thread = 0; thread < (uint16_t)thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread + 1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread + 1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
