@@ -340,7 +340,8 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     det_ctx->alert_queue[pos].action = s->action;
     det_ctx->alert_queue[pos].flags = alert_flags;
     det_ctx->alert_queue[pos].s = s;
-    det_ctx->alert_queue[pos].tx_id = tx_id;
+    /* set the tx_id if the frame has it */
+    det_ctx->alert_queue[pos].tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
     det_ctx->alert_queue[pos].frame_id =
             (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
 
