@@ -311,7 +311,7 @@ pub struct DNSState {
     pub tx_id: u64,
 
     // Transactions.
-    pub transactions: Vec<DNSTransaction>,
+    pub transactions: VecDeque<DNSTransaction>,
 
     pub events: u16,
 
@@ -401,7 +401,7 @@ impl DNSState {
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
@@ -445,7 +445,7 @@ impl DNSState {
                     }
                 }
                 tx.response = Some(response);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
 
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
