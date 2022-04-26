@@ -403,8 +403,12 @@ pub struct HTTP2State {
 }
 
 impl State<HTTP2Transaction> for HTTP2State {
-    fn get_transactions(&self) -> &[HTTP2Transaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&HTTP2Transaction> {
+        self.transactions.get(index)
     }
 }
 

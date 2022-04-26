@@ -52,8 +52,12 @@ pub struct KRB5State {
 }
 
 impl State<KRB5Transaction> for KRB5State {
-    fn get_transactions(&self) -> &[KRB5Transaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&KRB5Transaction> {
+        self.transactions.get(index)
     }
 }
 

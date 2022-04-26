@@ -125,8 +125,12 @@ pub struct PgsqlState {
 }
 
 impl State<PgsqlTransaction> for PgsqlState {
-    fn get_transactions(&self) -> &[PgsqlTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&PgsqlTransaction> {
+        self.transactions.get(index)
     }
 }
 
