@@ -60,7 +60,7 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
             }
             return 0;
         default:
-            BUG_ON("unknown mode");
+            BUG_ON(1); // unknown mode
     }
     return 0;
 }
@@ -255,7 +255,7 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
             }
             return 0;
         default:
-            BUG_ON("unknown mode");
+            BUG_ON(1); // unknown mode
     }
     return 0;
 }
