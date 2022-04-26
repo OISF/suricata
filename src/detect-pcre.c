@@ -288,7 +288,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                                 (uint8_t *)str_ptr, capture_len,
                                 DETECT_VAR_TYPE_FLOW_POSTMATCH);
                     } else {
-                        BUG_ON("Impossible captype");
+                        BUG_ON(1); // Impossible captype
                         SCFree(str_ptr);
                     }
                 }
