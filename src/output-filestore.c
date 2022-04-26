@@ -64,13 +64,6 @@ typedef struct OutputFilestoreLogThread_ {
  * issued. */
 static thread_local bool once_errs[SC_ERR_MAX];
 
-#define WARN_ONCE(err_code, ...)  do {                   \
-        if (!once_errs[err_code]) {                      \
-            once_errs[err_code] = true;                  \
-            SCLogWarning(err_code, __VA_ARGS__);         \
-        }                                                \
-    } while (0)
-
 static uint64_t OutputFilestoreOpenFilesCounter(void)
 {
     return SC_ATOMIC_GET(filestore_open_file_cnt);
@@ -143,14 +136,13 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         OutputFilestoreUpdateFileTime(tmp_filename, final_filename);
         if (unlink(tmp_filename) != 0) {
             StatsIncr(tv, oft->fs_error_counter);
-            WARN_ONCE(SC_WARN_REMOVE_FILE,
-                    "Failed to remove temporary file %s: %s", tmp_filename,
-                    strerror(errno));
+            WARN_ONCE(SC_WARN_REMOVE_FILE, once_errs, "Failed to remove temporary file %s: %s",
+                    tmp_filename, strerror(errno));
         }
     } else if (rename(tmp_filename, final_filename) != 0) {
         StatsIncr(tv, oft->fs_error_counter);
-        WARN_ONCE(SC_WARN_RENAMING_FILE, "Failed to rename %s to %s: %s",
-                tmp_filename, final_filename, strerror(errno));
+        WARN_ONCE(SC_WARN_RENAMING_FILE, once_errs, "Failed to rename %s to %s: %s", tmp_filename,
+                final_filename, strerror(errno));
         if (unlink(tmp_filename) != 0) {
             /* Just increment, don't log as has_fs_errors would
              * already be set above. */
@@ -165,8 +157,8 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
                         "%s.%"PRIuMAX".%u.json", final_filename,
                         (uintmax_t)p->ts.tv_sec, ff->file_store_id)
                 == (int)sizeof(js_metadata_filename)) {
-            WARN_ONCE(SC_ERR_SPRINTF,
-                "Failed to write file info record. Output filename truncated.");
+            WARN_ONCE(SC_ERR_SPRINTF, once_errs,
+                    "Failed to write file info record. Output filename truncated.");
         } else {
             JsonBuilder *js_fileinfo =
                     JsonBuildFileInfoRecord(p, ff, true, dir, ctx->xff_cfg, NULL);
@@ -236,9 +228,8 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
             if (file_fd == -1) {
                 StatsIncr(tv, aft->fs_error_counter);
-                WARN_ONCE(SC_ERR_OPENING_FILE,
-                        "Filestore (v2) failed to open file %s: %s",
-                        filename, strerror(errno));
+                WARN_ONCE(SC_ERR_OPENING_FILE, once_errs,
+                        "Filestore (v2) failed to open file %s: %s", filename, strerror(errno));
                 return -1;
             }
         } else {
@@ -250,8 +241,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
             StatsIncr(tv, aft->fs_error_counter);
-            WARN_ONCE(SC_ERR_FWRITE,
-                    "Filestore (v2) failed to write to %s: %s",
+            WARN_ONCE(SC_ERR_FWRITE, once_errs, "Filestore (v2) failed to write to %s: %s",
                     filename, strerror(errno));
             if (ff->fd != -1) {
                 SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
