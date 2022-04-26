@@ -1632,13 +1632,11 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 
                     const uint8_t alert_flags =
                             (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
-                    // TODO set tx id if the frame has it
                     det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
-                    // TODO tx id frame field
-                    AlertQueueAppend(det_ctx, s, p, 0, alert_flags);
+                    AlertQueueAppend(det_ctx, s, p, frame->tx_id, alert_flags);
                 }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
