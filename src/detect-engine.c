@@ -3361,7 +3361,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
     DetectEngineCtx *de_ctx = NULL;
     char prefix[64];
 
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+    snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
 
 #ifdef OS_WIN32
     struct _stat st;
@@ -3425,7 +3425,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     }
 
     char prefix[64];
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
+    snprintf(prefix, sizeof(prefix), "multi-detect.%u.reload.%d", tenant_id, reload_cnt);
     reload_cnt++;
     SCLogDebug("prefix %s", prefix);
 
@@ -3804,7 +3804,7 @@ int DetectEngineMultiTenantSetup(void)
                 /* setup the yaml in this loop so that it's not done by the loader
                  * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
                 char prefix[64];
-                snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+                snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
                 if (ConfYamlLoadFileWithPrefix(yaml_node->val, prefix) != 0) {
                     SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", yaml_node->val);
                     goto bad_tenant;
