@@ -1252,14 +1252,10 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        if (gh != NULL) {
-            DetectAddressHeadFree(gh);
-            gh = NULL;
-        }
-        if (ghn != NULL) {
-            DetectAddressHeadFree(ghn);
-            ghn = NULL;
-        }
+        DetectAddressHeadFree(gh);
+        gh = NULL;
+        DetectAddressHeadFree(ghn);
+        ghn = NULL;
     }
 
     return 0;
