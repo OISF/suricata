@@ -249,7 +249,7 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
 
 void CreateFormattedTimeString (const struct tm *t, const char *fmt, char *str, size_t size)
 {
-    if (likely(t != NULL && fmt != NULL && str != NULL)) {
+    if (likely(t != NULL)) {
         strftime(str, size, fmt, t);
     } else {
         snprintf(str, size, "ts-error");
