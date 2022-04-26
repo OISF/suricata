@@ -298,16 +298,18 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * negation flag. */
             SCLogDebug("found %p cd negated %s", found, cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
-            if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                if ((cd->flags & (DETECT_CONTENT_DISTANCE|DETECT_CONTENT_WITHIN)) == 0) {
-                    /* independent match from previous matches, so failure is fatal */
-                    det_ctx->discontinue_matching = 1;
-                }
+            if (found == NULL) {
+                if (!(cd->flags & DETECT_CONTENT_NEGATED)) {
+                    if ((cd->flags & (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN)) == 0) {
+                        /* independent match from previous matches, so failure is fatal */
+                        det_ctx->discontinue_matching = 1;
+                    }
 
-                goto no_match;
-            } else if (found == NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
-                goto match;
-            } else if (found != NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
+                    goto no_match;
+                } else {
+                    goto match;
+                }
+            } else if (cd->flags & DETECT_CONTENT_NEGATED) {
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
                 /* don't bother carrying recursive matches now, for preceding
                  * relative keywords */
