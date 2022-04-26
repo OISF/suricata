@@ -291,6 +291,19 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
         __FILE__, __FUNCTION__, __LINE__, \
         err_code, __VA_ARGS__)
 
+/**
+ * \brief Macro used to log WARNING messages ONCE per thread
+ *
+ * Invokes SCLogWarning if !once_errs[err_code]
+ * \param once_errs must be a local global array of err_codes
+ */
+#define WARN_ONCE(err_code, once_errors, ...)                                                      \
+    do {                                                                                           \
+        if (!once_errors[err_code]) {                                                              \
+            once_errors[err_code] = true;                                                          \
+            SCLogWarning(err_code, __VA_ARGS__);                                                   \
+        }                                                                                          \
+    } while (0)
 
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
