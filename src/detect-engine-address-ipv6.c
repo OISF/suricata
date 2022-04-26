@@ -368,8 +368,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
     uint32_t b_ip2[4] = { SCNtohl(b->ip2.addr_data32[0]), SCNtohl(b->ip2.addr_data32[1]),
                           SCNtohl(b->ip2.addr_data32[2]), SCNtohl(b->ip2.addr_data32[3]) };
 
-    DetectAddress *tmp = NULL;
-
     /* default to NULL */
     *c = NULL;
 
@@ -377,12 +375,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
-
-    /* get a place to temporary put sigs lists */
-    tmp = DetectAddressInit();
-    if (tmp == NULL)
-        goto error;
-    memset(tmp,0,sizeof(DetectAddress));
 
     /* we have 3 parts: [aaa[abab]bbb]
      * part a: a_ip1 <-> b_ip1 - 1
@@ -522,14 +514,9 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
         }
     }
 
-    if (tmp != NULL)
-        DetectAddressFree(tmp);
-
     return 0;
 
 error:
-    if (tmp != NULL)
-        DetectAddressFree(tmp);
     return -1;
 }
 
