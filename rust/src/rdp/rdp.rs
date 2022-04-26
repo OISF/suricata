@@ -113,8 +113,12 @@ pub struct RdpState {
 }
 
 impl State<RdpTransaction> for RdpState {
-    fn get_transactions(&self) -> &[RdpTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&RdpTransaction> {
+        self.transactions.get(index)
     }
 }
 

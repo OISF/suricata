@@ -60,8 +60,12 @@ pub struct TemplateState {
 }
 
 impl State<TemplateTransaction> for TemplateState {
-    fn get_transactions(&self) -> &[TemplateTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&TemplateTransaction> {
+        self.transactions.get(index)
     }
 }
 

@@ -108,8 +108,12 @@ impl<'a> Default for SNMPPduInfo<'a> {
 }
 
 impl<'a> State<SNMPTransaction<'a>> for SNMPState<'a> {
-    fn get_transactions(&self) -> &[SNMPTransaction<'a>] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&SNMPTransaction<'a>> {
+        self.transactions.get(index)
     }
 }
 

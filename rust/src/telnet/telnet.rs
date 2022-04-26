@@ -82,8 +82,12 @@ pub struct TelnetState {
 }
 
 impl State<TelnetTransaction> for TelnetState {
-    fn get_transactions(&self) -> &[TelnetTransaction] {
-        &self.transactions
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&TelnetTransaction> {
+        self.transactions.get(index)
     }
 }
 

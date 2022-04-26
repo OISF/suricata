@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -535,14 +535,17 @@ pub trait Transaction {
 }
 
 pub trait State<Tx: Transaction> {
-    fn get_transactions(&self) -> &[Tx];
+    /// Return the number of transactions in the state's transaction collection.
+    fn get_transaction_count(&self) -> usize;
+
+    /// Return a transaction by its index in the container.
+    fn get_transaction_by_index(&self, index: usize) -> Option<&Tx>;
 
     fn get_transaction_iterator(&self, min_tx_id: u64, state: &mut u64) -> AppLayerGetTxIterTuple {
         let mut index = *state as usize;
-        let transactions = self.get_transactions();
-        let len = transactions.len();
+        let len = self.get_transaction_count();
         while index < len {
-            let tx = &transactions[index];
+            let tx = self.get_transaction_by_index(index).unwrap();
             if tx.id() < min_tx_id + 1 {
                 index += 1;
                 continue;
