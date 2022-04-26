@@ -612,7 +612,7 @@ void LiveDevAddBypassSuccess(LiveDevice *dev, uint64_t cnt, int family)
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
 {
-    LiveDevice *ldev = NULL, *ndev;
+    LiveDevice *ldev = NULL, *ndev = NULL;
 
     json_t *ifaces = NULL;
     while(LiveDeviceForEach(&ldev, &ndev)) {
