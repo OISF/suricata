@@ -34,6 +34,10 @@ static Signature g_tag_signature;
 /** tag packet alert structure for tag alerts */
 static PacketAlert g_tag_pa;
 
+/* For WARN_ONCE, a record of warnings that have already been
+ * issued. */
+static thread_local bool once_err[SC_ERR_MAX];
+
 /** prototypes */
 static int AlertQueueSortHelper(const void *a, const void *b);
 
@@ -219,20 +223,29 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
 }
 
 /** \internal
+ * \retval the new capacity
  */
-static void AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
+static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 {
-    det_ctx->alert_queue_capacity *= 2;
-    void *tmp_queue = SCRealloc(
-            det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
-    if (tmp_queue == NULL) {
-        SCLogWarning(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIuMAX " bytes",
+    uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
+    void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
+    if (unlikely(tmp_queue == NULL)) {
+        /* if first realloc fail, try to grow just 50% */
+        new_cap = (uint16_t)(det_ctx->alert_queue_capacity * 3 / 2);
+        tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
+        if (unlikely(tmp_queue == NULL)) {
+            WARN_ONCE(SC_ERR_MEM_ALLOC, once_err, "failed to allocate %" PRIuMAX " bytes",
                     (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
-        return;
+            /* queue capacity didn't change */
+            return det_ctx->alert_queue_capacity;
+        }
     }
     det_ctx->alert_queue = tmp_queue;
-    SCLogDebug("Alert queue size doubled. %u, bytes: %" PRIuMAX "", det_ctx->alert_queue_capacity,
+    det_ctx->alert_queue_capacity = new_cap;
+    SCLogNotice("Alert queue size doubled: %u elements, bytes: %" PRIuMAX "",
+            det_ctx->alert_queue_capacity,
             (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
+    return new_cap;
 }
 
 /**
@@ -241,11 +254,24 @@ static void AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
         uint8_t alert_flags)
 {
-    if (det_ctx->alert_queue_size == det_ctx->alert_queue_capacity) {
-        /* we must grow the alert queue */
-        AlertQueueExpand(det_ctx);
+    /* first time we see a drop action signature, set that in the packet */
+    /* we do that even before inserting into the queue, so we save it even if appending fails */
+    if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
+        p->alerts.drop.num = s->num;
+        p->alerts.drop.action = s->action;
+        p->alerts.drop.s = (Signature *)s;
+        SCLogDebug("Set PacketAlert drop action. s->num %" PRIu32 "", s->num);
     }
+
     uint16_t pos = det_ctx->alert_queue_size;
+    if (pos == det_ctx->alert_queue_capacity) {
+        /* we must grow the alert queue */
+        if (pos == AlertQueueExpand(det_ctx)) {
+            /* this means we failed to expand the queue */
+            det_ctx->p->alerts.discarded++;
+            return;
+        }
+    }
     det_ctx->alert_queue[pos].num = s->num;
     det_ctx->alert_queue[pos].action = s->action;
     det_ctx->alert_queue[pos].flags = alert_flags;
@@ -253,14 +279,6 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     det_ctx->alert_queue[pos].tx_id = tx_id;
     det_ctx->alert_queue[pos].frame_id =
             (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
-
-    /* first time we see a drop action signature, set that in the packet */
-    if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
-        p->alerts.drop.num = s->num;
-        p->alerts.drop.action = s->action;
-        p->alerts.drop.s = (Signature *)s;
-        SCLogDebug("Set PacketAlert drop action. s->num %" PRIu32 "", s->num);
-    }
 
     SCLogDebug("Appending sid %" PRIu32 ", s->num %" PRIu32 " to alert queue", s->id, s->num);
     det_ctx->alert_queue_size++;
