@@ -276,7 +276,6 @@ Example::
 
     alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
 
-
 http.request_line
 -----------------
 
