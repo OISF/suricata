@@ -25,6 +25,7 @@ use crate::conf::*;
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom7::{Err, IResult};
 use std;
+use std::collections::VecDeque;
 use std::ffi::CString;
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
@@ -116,7 +117,7 @@ pub enum PgsqlStateProgress {
 #[derive(Debug)]
 pub struct PgsqlState {
     tx_id: u64,
-    transactions: Vec<PgsqlTransaction>,
+    transactions: VecDeque<PgsqlTransaction>,
     request_gap: bool,
     response_gap: bool,
     backend_secret_key: u32,
@@ -138,7 +139,7 @@ impl PgsqlState {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             request_gap: false,
             response_gap: false,
             backend_secret_key: 0,
@@ -200,11 +201,11 @@ impl PgsqlState {
             || self.state_progress == PgsqlStateProgress::ConnectionTerminated
         {
             let tx = self.new_tx();
-            self.transactions.push(tx);
+            self.transactions.push_back(tx);
         }
         // If we don't need a new transaction, just return the current one
         SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
-        return self.transactions.last_mut();
+        return self.transactions.back_mut();
     }
 
     /// Process State progress to decide if PgsqlTransaction is finished
@@ -385,7 +386,7 @@ impl PgsqlState {
             PgsqlBEMessage::RowDescription(_) => Some(PgsqlStateProgress::RowDescriptionReceived),
             PgsqlBEMessage::ConsolidatedDataRow(msg) => {
                 // Increment tx.data_size here, since we know msg type, so that we can later on log that info
-                self.transactions.last_mut()?.sum_data_size(msg.data_size);
+                self.transactions.back_mut()?.sum_data_size(msg.data_size);
                 Some(PgsqlStateProgress::DataRowReceived)
             }
             PgsqlBEMessage::CommandComplete(_) => {
