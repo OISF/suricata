@@ -1549,37 +1549,6 @@ again:
     return;
 }
 
-TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
-{
-    ThreadVars *tv = NULL;
-    TmSlot *slots = NULL;
-
-    SCMutexLock(&tv_root_lock);
-
-    /* all receive threads are part of packet processing threads */
-    tv = tv_root[TVT_PPT];
-
-    while (tv) {
-        slots = tv->tm_slots;
-
-        while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
-
-            char *found = strstr(tm->name, tm_name);
-            if (found != NULL)
-                goto end;
-
-            slots = slots->slot_next;
-        }
-
-        tv = tv->next;
-    }
-
- end:
-    SCMutexUnlock(&tv_root_lock);
-    return slots;
-}
-
 #define MIN_WAIT_TIME 100
 #define MAX_WAIT_TIME 999999
 void TmThreadKillThreadsFamily(int family)
