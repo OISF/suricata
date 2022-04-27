@@ -310,7 +310,7 @@ failure:
 
 static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx,
-        Packet *p, TcpSession *ssn, TcpStream *stream)
+        Packet *p, TcpSession *ssn, const TcpStream *stream)
 {
     TcpStream *opposing_stream = NULL;
     if (stream == &ssn->client) {
@@ -985,7 +985,7 @@ void AppLayerRegisterGlobalCounters(void)
 #define IPPROTOS_MAX 2
 void AppLayerSetupCounters()
 {
-    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
+    const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
     AppProto alprotos[ALPROTO_MAX];
     const char *str = "app_layer.flow.";
     const char *estr = "app_layer.error.";
@@ -1065,7 +1065,7 @@ void AppLayerSetupCounters()
 
 void AppLayerRegisterThreadCounters(ThreadVars *tv)
 {
-    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
+    const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
     AppProto alprotos[ALPROTO_MAX];
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
