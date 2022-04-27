@@ -70,7 +70,7 @@ static inline int InclusiveCompare(StreamingBufferBlock *lookup, StreamingBuffer
     const uint64_t tre = intree->offset + intree->len;
     if (lre <= intree->offset)   // entirely before
         return -1;
-    else if (lre >= intree->offset && lookup->offset < tre && lre <= tre)   // (some) overlap
+    else if (lookup->offset < tre && lre <= tre) // (some) overlap
         return 0;
     else
         return 1;   // entirely after
