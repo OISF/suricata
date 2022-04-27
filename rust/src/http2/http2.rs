@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,6 +27,7 @@ use crate::filecontainer::*;
 use crate::filetracker::*;
 use nom7::Err;
 use std;
+use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
@@ -397,7 +398,7 @@ pub struct HTTP2State {
     response_frame_size: u32,
     dynamic_headers_ts: HTTP2DynTable,
     dynamic_headers_tc: HTTP2DynTable,
-    transactions: Vec<HTTP2Transaction>,
+    transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: Files,
 }
@@ -423,7 +424,7 @@ impl HTTP2State {
             // a variable number of dynamic headers
             dynamic_headers_ts: HTTP2DynTable::new(),
             dynamic_headers_tc: HTTP2DynTable::new(),
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             files: Files::default(),
         }
@@ -538,8 +539,8 @@ impl HTTP2State {
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         tx.state = HTTP2TransactionState::HTTP2StateGlobal;
-        self.transactions.push(tx);
-        return self.transactions.last_mut().unwrap();
+        self.transactions.push_back(tx);
+        return self.transactions.back_mut().unwrap();
     }
 
     pub fn find_or_create_tx(
@@ -591,8 +592,8 @@ impl HTTP2State {
                     }
                 }
             }
-            self.transactions.push(tx);
-            return self.transactions.last_mut().unwrap();
+            self.transactions.push_back(tx);
+            return self.transactions.back_mut().unwrap();
         }
     }
 
