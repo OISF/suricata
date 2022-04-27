@@ -132,7 +132,7 @@ uint32_t ftp_max_line_len = 4096;
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
-static FTPTransaction *FTPGetOldestTx(FtpState *, FTPTransaction *);
+static FTPTransaction *FTPGetOldestTx(const FtpState *, FTPTransaction *);
 
 static void FTPParseMemcap(void)
 {
@@ -952,7 +952,7 @@ static void FTPStateFree(void *s)
  *
  * \retval transaction pointer when a transaction was found; NULL otherwise.
  */
-static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state, FTPTransaction *starttx)
+static FTPTransaction *FTPGetOldestTx(const FtpState *ftp_state, FTPTransaction *starttx)
 {
     if (unlikely(!ftp_state)) {
         SCLogDebug("NULL state object; no transactions available");
