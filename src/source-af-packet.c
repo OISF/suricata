@@ -261,7 +261,7 @@ static int AFPXDPBypassCallback(Packet *p);
 typedef struct AFPThreadVars_
 {
     union AFPRing {
-        char *v2;
+        union thdr **v2;
         struct iovec *v3;
     } ring;
 
@@ -2010,12 +2010,11 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     } else {
 #endif
         /* allocate a ring for each frame header pointer*/
-        ptv->ring.v2 = SCMalloc(ptv->req.v2.tp_frame_nr * sizeof (union thdr *));
+        ptv->ring.v2 = SCCalloc(ptv->req.v2.tp_frame_nr, sizeof(union thdr *));
         if (ptv->ring.v2 == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
             goto postmmap_err;
         }
-        memset(ptv->ring.v2, 0, ptv->req.v2.tp_frame_nr * sizeof (union thdr *));
         /* fill the header ring with proper frame ptr*/
         ptv->frame_offset = 0;
         for (i = 0; i < ptv->req.v2.tp_block_nr; ++i) {
