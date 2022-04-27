@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -118,24 +118,6 @@ void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t e
     }
 
     (*sevents)->events[(*sevents)->cnt++] = event;
-}
-
-/**
- * \brief Set an app layer decoder event.
- *
- * \param f            Pointer to a flow containing DecoderEvents pointer head.  If
- *                     the head points to a DecoderEvents instance, a
- *                     new instance would be created and the pointer head would
- *                     would be updated with this new instance
- * \param event        The event to be stored.
- */
-void AppLayerDecoderEventsSetEvent(Flow *f, uint8_t event)
-{
-    AppLayerDecoderEvents *events = AppLayerParserGetDecoderEvents(f->alparser);
-    AppLayerDecoderEvents *new = events;
-    AppLayerDecoderEventsSetEventRaw(&events, event);
-    if (events != new)
-        AppLayerParserSetDecoderEvents(f->alparser, events);
 }
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)
