@@ -477,9 +477,6 @@ void ByteRegisterTests(void);
 /** ------ Inline functions ----- */
 static inline int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
-    uint64_t b = 0;
-    int i;
-
     if ((e != BYTE_BIG_ENDIAN) && (e != BYTE_LITTLE_ENDIAN)) {
         /** \todo Need standard return values */
         return -1;
@@ -489,8 +486,8 @@ static inline int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t 
 
     /* Go through each byte and merge it into the result in the correct order */
     /** \todo Probably a more efficient way to do this. */
-    for (i = 0; i < len; i++) {
-
+    for (int i = 0; i < len; i++) {
+        uint64_t b;
         if (e == BYTE_LITTLE_ENDIAN) {
             b = bytes[i];
         }
@@ -499,12 +496,9 @@ static inline int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t 
         }
 
         *res |= (b << ((i & 7) << 3));
-
     }
 
     return len;
 }
 
-
 #endif /* __UTIL_BYTE_H__ */
-
