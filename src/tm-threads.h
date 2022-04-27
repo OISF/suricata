@@ -125,7 +125,6 @@ TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisablePacketThreads(void);
 void TmThreadDisableReceiveThreads(void);
-TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
