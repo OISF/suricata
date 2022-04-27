@@ -234,7 +234,6 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
 static void SMTPConfigure(void) {
 
     SCEnter();
-    int ret = 0, val;
     intmax_t imval;
     uint32_t content_limit = 0;
     uint32_t content_inspect_min_size = 0;
@@ -244,7 +243,8 @@ static void SMTPConfigure(void) {
     if (config != NULL) {
         ConfNode *extract_urls_schemes = NULL;
 
-        ret = ConfGetChildValueBool(config, "decode-mime", &val);
+        int val;
+        int ret = ConfGetChildValueBool(config, "decode-mime", &val);
         if (ret) {
             smtp_config.decode_mime = val;
         }
