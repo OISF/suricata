@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,6 +18,7 @@
 use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use std::mem::transmute;
+use std::collections::VecDeque;
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
@@ -65,7 +66,7 @@ impl Drop for TemplateTransaction {
 
 pub struct TemplateState {
     tx_id: u64,
-    transactions: Vec<TemplateTransaction>,
+    transactions: VecDeque<TemplateTransaction>,
     request_gap: bool,
     #[allow(dead_code)]
     response_gap: bool,
@@ -75,7 +76,7 @@ impl TemplateState {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             request_gap: false,
             response_gap: false,
         }
@@ -152,7 +153,7 @@ impl TemplateState {
                     SCLogNotice!("Request: {}", request);
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
-                    self.transactions.push(tx);
+                    self.transactions.push_back(tx);
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     // Not enough data. This parser doesn't give us a good indication
