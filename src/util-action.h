@@ -28,6 +28,7 @@
 
 int ActionInitConfig(void);
 uint8_t ActionOrderVal(uint8_t);
+#ifdef UNITTESTS
 void UtilActionRegisterTests(void);
-
+#endif
 #endif /* __ACTION_ORDER_H__ */
