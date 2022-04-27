@@ -1420,10 +1420,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                 compression_str ? compression_str : "none");
     }
 
-    if (filename) {
-        if (ParseFilename(pl, filename) != 0)
-            exit(EXIT_FAILURE);
-    }
+    if (ParseFilename(pl, filename) != 0)
+        exit(EXIT_FAILURE);
 
     SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
               "Sguil compatible" : (pl->mode == LOGMODE_MULTI ? "multi" : "normal"));
