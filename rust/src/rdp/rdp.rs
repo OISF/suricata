@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@ use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
 use nom;
 use std;
+use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
@@ -107,7 +108,7 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 #[derive(Debug, PartialEq)]
 pub struct RdpState {
     next_id: u64,
-    transactions: Vec<RdpTransaction>,
+    transactions: VecDeque<RdpTransaction>,
     tls_parsing: bool,
     bypass_parsing: bool,
 }
@@ -126,7 +127,7 @@ impl RdpState {
     fn new() -> Self {
         Self {
             next_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             tls_parsing: false,
             bypass_parsing: false,
         }
@@ -208,7 +209,7 @@ impl RdpState {
                             T123TpktChild::X224ConnectionRequest(x224) => {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionRequest(x224));
-                                self.transactions.push(tx);
+                                self.transactions.push_back(tx);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -217,7 +218,7 @@ impl RdpState {
                                     X223DataChild::McsConnectRequest(mcs) => {
                                         let tx =
                                             self.new_tx(RdpTransactionItem::McsConnectRequest(mcs));
-                                        self.transactions.push(tx);
+                                        self.transactions.push_back(tx);
                                     }
                                     // unknown message in X.223, skip
                                     _ => (),
@@ -287,7 +288,7 @@ impl RdpState {
                                     }
                                     let tx =
                                         self.new_tx(RdpTransactionItem::TlsCertificateChain(chain));
-                                    self.transactions.push(tx);
+                                    self.transactions.push_back(tx);
                                     self.bypass_parsing = true;
                                 }
                                 _ => {}
@@ -320,7 +321,7 @@ impl RdpState {
                             T123TpktChild::X224ConnectionConfirm(x224) => {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionConfirm(x224));
-                                self.transactions.push(tx);
+                                self.transactions.push_back(tx);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -329,7 +330,7 @@ impl RdpState {
                                     X223DataChild::McsConnectResponse(mcs) => {
                                         let tx = self
                                             .new_tx(RdpTransactionItem::McsConnectResponse(mcs));
-                                        self.transactions.push(tx);
+                                        self.transactions.push_back(tx);
                                         self.bypass_parsing = true;
                                         return AppLayerResult::ok();
                                     }
@@ -606,8 +607,8 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         assert_eq!(2, state.next_id);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
         assert_eq!(2, state.transactions.len());
         assert_eq!(1, state.transactions[0].id);
         assert_eq!(2, state.transactions[1].id);
@@ -651,9 +652,9 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         let tx2 = state.new_tx(item2);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
-        state.transactions.push(tx2);
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
+        state.transactions.push_back(tx2);
         state.free_tx(1);
         assert_eq!(3, state.next_id);
         assert_eq!(2, state.transactions.len());
