@@ -294,6 +294,28 @@ static int AlertQueueSortHelper(const void *a, const void *b)
         return pa0->num > pa1->num ? 1 : -1;
 }
 
+/** \internal
+ * \brief Check if Signature action should be applied to flow and apply
+ *
+ */
+static inline void FlowApplySignatureActions(
+        Packet *p, PacketAlert *pa, const Signature *s, uint8_t alert_flags)
+{
+    /* For DROP and PASS sigs we need to apply the action to the flow if
+     * - sig is IP or PD only
+     * - match is in applayer
+     * - match is in stream */
+    if (s->action & (ACTION_DROP | ACTION_PASS)) {
+        if ((pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
+                (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY | SIG_FLAG_APPLAYER))) {
+            pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+            SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
+                       "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
+                    p->pcap_cnt, s->id, s->action, pa->flags);
+        }
+    }
+}
+
 /**
  * \brief Check the threshold of the sigs that match, set actions, break on pass action
  *        This function iterate the packet alerts array, removing those that didn't match
@@ -335,20 +357,9 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            /* For DROP and PASS sigs we need to apply the action to the flow if
-             * - sig is IP or PD only
-             * - match is in applayer
-             * - match is in stream */
-            if (s->action & (ACTION_DROP | ACTION_PASS)) {
-                if ((det_ctx->alert_queue[i].flags &
-                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
-                        (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY | SIG_FLAG_APPLAYER))) {
-                    det_ctx->alert_queue[i].flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
-                    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
-                               "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
-                            p->pcap_cnt, s->id, s->action, det_ctx->alert_queue[i].flags);
-                }
-            }
+            /* set actions on the flow */
+            FlowApplySignatureActions(
+                    p, &det_ctx->alert_queue[i], s, det_ctx->alert_queue[i].flags);
 
             /* set actions on packet */
             PacketApplySignatureActions(p, s, det_ctx->alert_queue[i].flags);
