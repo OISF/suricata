@@ -124,7 +124,8 @@ static void DeStateSignatureAppend(DetectEngineState *state,
 {
     SCEnter();
 
-    DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
+    DetectEngineStateDirection *dir_state =
+            &state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
     BUG_ON(DeStateSearchState(state, direction, s->num));
@@ -191,14 +192,15 @@ void DetectEngineStateFree(DetectEngineState *state)
 
 static void StoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
 {
-    de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt += file_no_match;
+    de_state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1].filestore_cnt += file_no_match;
 
     return;
 }
 
 static bool StoreFilestoreSigsCantMatch(const SigGroupHead *sgh, const DetectEngineState *de_state, uint8_t direction)
 {
-    if (de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt == sgh->filestore_cnt)
+    if (de_state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1].filestore_cnt ==
+            sgh->filestore_cnt)
         return true;
     else
         return false;
