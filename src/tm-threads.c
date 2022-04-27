@@ -616,27 +616,6 @@ error:
     return TM_ECODE_FAILED;
 }
 
-ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
-{
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv) {
-            TmSlot *slots = tv->tm_slots;
-            while (slots != NULL) {
-                if (slots == tm_slot) {
-                    SCMutexUnlock(&tv_root_lock);
-                    return tv;
-                }
-                slots = slots->slot_next;
-            }
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-    return NULL;
-}
-
 /**
  * \brief Appends a new entry to the slots.
  *
@@ -689,34 +668,6 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
         }
     }
     return;
-}
-
-/**
- * \brief Returns the slot holding a TM with the particular tm_id.
- *
- * \param tm_id TM id of the TM whose slot has to be returned.
- *
- * \retval slots Pointer to the slot.
- */
-TmSlot *TmSlotGetSlotForTM(int tm_id)
-{
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv) {
-            TmSlot *slots = tv->tm_slots;
-            while (slots != NULL) {
-                if (slots->tm_id == tm_id) {
-                    SCMutexUnlock(&tv_root_lock);
-                    return slots;
-                }
-                slots = slots->slot_next;
-            }
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-    return NULL;
 }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
@@ -1484,6 +1435,10 @@ again:
     return;
 }
 
+#ifdef DEBUG_VALIDATION
+static void TmThreadDumpThreads(void);
+#endif
+
 static void TmThreadDebugValidateNoMorePackets(void)
 {
 #ifdef DEBUG_VALIDATION
@@ -1839,35 +1794,6 @@ void TmThreadContinueThreads()
 }
 
 /**
- * \brief Pauses a thread
- *
- * \param tv Pointer to a TV instance that has to be paused
- */
-void TmThreadPause(ThreadVars *tv)
-{
-    TmThreadsSetFlag(tv, THV_PAUSE);
-    return;
-}
-
-/**
- * \brief Pauses all threads present in tv_root
- */
-void TmThreadPauseThreads()
-{
-    TmThreadsListThreads();
-
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv != NULL) {
-            TmThreadPause(tv);
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-}
-
-/**
  * \brief Used to check the thread for certain conditions of failure.
  */
 void TmThreadCheckThreadState(void)
@@ -2003,31 +1929,6 @@ again:
 }
 
 /**
- * \brief Returns the TV for the calling thread.
- *
- * \retval tv Pointer to the ThreadVars instance for the calling thread;
- *            NULL on no match
- */
-ThreadVars *TmThreadsGetCallingThread(void)
-{
-    pthread_t self = pthread_self();
-
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv) {
-            if (pthread_equal(self, tv->t)) {
-                SCMutexUnlock(&tv_root_lock);
-                return tv;
-            }
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-    return NULL;
-}
-
-/**
  * \brief returns a count of all the threads that match the flag
  */
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
@@ -2047,6 +1948,7 @@ uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
     return cnt;
 }
 
+#ifdef DEBUG_VALIDATION
 static void TmThreadDoDumpSlots(const ThreadVars *tv)
 {
     for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
@@ -2056,7 +1958,7 @@ static void TmThreadDoDumpSlots(const ThreadVars *tv)
     }
 }
 
-void TmThreadDumpThreads(void)
+static void TmThreadDumpThreads(void)
 {
     SCMutexLock(&tv_root_lock);
     for (int i = 0; i < TVT_MAX; i++) {
@@ -2084,6 +1986,7 @@ void TmThreadDumpThreads(void)
     SCMutexUnlock(&tv_root_lock);
     TmThreadsListThreads();
 }
+#endif
 
 typedef struct Thread_ {
     ThreadVars *tv;     /**< threadvars structure */
@@ -2321,40 +2224,6 @@ static inline void ThreadBreakLoop(ThreadVars *tv)
             tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
         }
     }
-}
-
-/**
- *  \retval r 1 if packet was accepted, 0 otherwise
- *  \note if packet was not accepted, it's still the responsibility
- *        of the caller.
- */
-int TmThreadsInjectPacketsById(Packet **packets, const int id)
-{
-    if (id <= 0 || id > (int)thread_store.threads_size)
-        return 0;
-
-    int idx = id - 1;
-
-    Thread *t = &thread_store.threads[idx];
-    ThreadVars *tv = t->tv;
-
-    if (tv == NULL || tv->stream_pq == NULL)
-        return 0;
-
-    SCMutexLock(&tv->stream_pq->mutex_q);
-    while (*packets != NULL) {
-        PacketEnqueue(tv->stream_pq, *packets);
-        packets++;
-    }
-    SCMutexUnlock(&tv->stream_pq->mutex_q);
-
-    /* wake up listening thread(s) if necessary */
-    if (tv->inq != NULL) {
-        SCCondSignal(&tv->inq->pq->cond_q);
-    } else if (tv->break_loop) {
-        ThreadBreakLoop(tv);
-    }
-    return 1;
 }
 
 /** \brief inject a flow into a threads flow queue
