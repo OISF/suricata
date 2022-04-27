@@ -1590,12 +1590,9 @@ done:
     return res;
 }
 
-#endif
-
 /* Register unittests */
 void UtilActionRegisterTests(void)
 {
-#ifdef UNITTESTS
     /* Generic tests */
     UtRegisterTest("UtilActionTest01", UtilActionTest01);
     UtRegisterTest("UtilActionTest02", UtilActionTest02);
@@ -1622,5 +1619,5 @@ void UtilActionRegisterTests(void)
     UtRegisterTest("UtilActionTest22", UtilActionTest22);
     UtRegisterTest("UtilActionTest23", UtilActionTest23);
     UtRegisterTest("UtilActionTest24", UtilActionTest24);
-#endif
 }
+#endif

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2671,12 +2671,9 @@ static int SpmSearchTest02(void) {
     return ret;
 }
 
-#endif
-
 /* Register unittests */
 void UtilSpmSearchRegistertests(void)
 {
-#ifdef UNITTESTS
     /* Generic tests */
     UtRegisterTest("UtilSpmBasicSearchTest01", UtilSpmBasicSearchTest01);
     UtRegisterTest("UtilSpmBasicSearchNocaseTest01",
@@ -2744,5 +2741,5 @@ void UtilSpmSearchRegistertests(void)
                    UtilSpmNocaseSearchStatsTest07);
 
 #endif
-#endif
 }
+#endif
