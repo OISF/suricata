@@ -631,9 +631,9 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         let tx2 = state.new_tx(item2);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
-        state.transactions.push(tx2);
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
+        state.transactions.push_back(tx2);
         assert_eq!(Some(&state.transactions[1]), state.get_tx(2));
     }
 
