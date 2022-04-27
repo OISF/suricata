@@ -537,10 +537,9 @@ static void PrefilterTxFilemagic(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     FileContainer *ffc = AppLayerParserGetFiles(f, flags);
-    int local_file_id = 0;
     if (ffc != NULL) {
-        File *file = ffc->head;
-        for (; file != NULL; file = file->next) {
+        int local_file_id = 0;
+        for (File *file = ffc->head; file != NULL; file = file->next) {
             if (file->txid != idx)
                 continue;
 
