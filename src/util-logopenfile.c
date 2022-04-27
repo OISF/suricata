@@ -738,7 +738,7 @@ static bool LogFileThreadedName(
         tname[dotpos] = '\0';
         char *ext = tname + dotpos + 1;
         if (strlen(tname) && strlen(ext)) {
-            snprintf(threaded_name, len, "%s.%d.%s", tname, unique_id, ext);
+            snprintf(threaded_name, len, "%s.%u.%s", tname, unique_id, ext);
         } else {
             FatalError(SC_ERR_FATAL,
                     "Invalid filename for threaded mode \"%s\"; "
@@ -747,7 +747,7 @@ static bool LogFileThreadedName(
         }
         SCFree(tname);
     } else {
-        snprintf(threaded_name, len, "%s.%d", original_name, unique_id);
+        snprintf(threaded_name, len, "%s.%u", original_name, unique_id);
     }
     return true;
 }
