@@ -346,7 +346,6 @@ void THashConsolidateMemcap(THashTableContext *ctx)
 void THashShutdown(THashTableContext *ctx)
 {
     THashData *h;
-    uint32_t u;
 
     /* free spare queue */
     while ((h = THashDataDequeue(&ctx->spare_q))) {
@@ -356,7 +355,7 @@ void THashShutdown(THashTableContext *ctx)
 
     /* clear and free the hash */
     if (ctx->array != NULL) {
-        for (u = 0; u < ctx->config.hash_size; u++) {
+        for (uint32_t u = 0; u < ctx->config.hash_size; u++) {
             h = ctx->array[u].head;
             while (h) {
                 THashData *n = h->next;
