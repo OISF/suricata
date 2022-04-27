@@ -189,6 +189,7 @@ void TmModuleRegisterTests(void)
 #endif /* UNITTESTS */
 }
 
+#ifdef PROFILING
 #define CASE_CODE(E)  case E: return #E
 
 /**
@@ -246,3 +247,4 @@ const char * TmModuleTmmIdToString(TmmId id)
     }
     return "<unknown>";
 }
+#endif
