@@ -829,7 +829,7 @@ app-layer:
       enabled: yes
       # memcap: 64mb
     rdp:
-      #enabled: yes
+      enabled: yes
     ssh:
       enabled: yes
       #hassh: yes
@@ -1057,7 +1057,7 @@ app-layer:
       enabled: yes
 
     sip:
-      #enabled: no
+      enabled: yes
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
