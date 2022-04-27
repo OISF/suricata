@@ -237,9 +237,9 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
-    char time_fmt[64] = { 0 };
 
     if (likely(t != NULL)) {
+        char time_fmt[64] = { 0 };
         strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
         snprintf(str, size, time_fmt, ts->tv_usec);
     } else {
