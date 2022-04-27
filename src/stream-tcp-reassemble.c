@@ -1110,14 +1110,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     const uint8_t *mydata;
     uint32_t mydata_len;
-    bool gap_ahead = false;
     bool last_was_gap = false;
 
     while (1) {
         const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         bool check_for_gap_ahead = ((*stream)->data_required > 0);
-        gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
-                app_progress, check_for_gap_ahead);
+        bool gap_ahead =
+                GetAppBuffer(*stream, &mydata, &mydata_len, app_progress, check_for_gap_ahead);
         if (last_was_gap && mydata_len == 0) {
             break;
         }
