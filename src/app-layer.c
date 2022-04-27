@@ -959,6 +959,7 @@ void AppLayerDestroyCtxThread(AppLayerThreadCtx *app_tctx)
     SCReturn;
 }
 
+#ifdef PROFILING
 void AppLayerProfilingResetInternal(AppLayerThreadCtx *app_tctx)
 {
     PACKET_PROFILING_APP_RESET(app_tctx);
@@ -968,6 +969,7 @@ void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p)
 {
     PACKET_PROFILING_APP_STORE(app_tctx, p);
 }
+#endif
 
 /** \brief HACK to work around our broken unix manager (re)init loop
  */
