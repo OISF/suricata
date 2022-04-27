@@ -202,6 +202,7 @@ static void RegisterUnittests(void)
     SourceWinDivertRegisterTests();
 #endif
     SCProtoNameRegisterTests();
+    UtilCIDRTests();
 }
 #endif
 
