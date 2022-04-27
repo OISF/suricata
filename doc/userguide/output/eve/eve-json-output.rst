@@ -211,11 +211,12 @@ x_bluecoat_via          x-bluecoat-via
 In the ``custom`` option values from both columns can be used. The
 ``HTTP Header`` column is case insensitive.
 
+.. _output-eve-dns:
+
 DNS
 ~~~
 
-.. note:: As of Suricata 5.0, the version 2 format of the EVE DNS log
-          is the default.
+.. note:: As of Suricata 7.0 the v1 EVE DNS format has been removed.
 
 DNS records are logged as one entry for the request, and one entry for
 the response.
@@ -223,8 +224,6 @@ the response.
 YAML::
 
         - dns:
-            # As of Suricata 5.0, version 2 of the eve dns output
-            # format is the default.
             #version: 2
 
             # Enable/disable this logger. Default: enabled.
@@ -246,29 +245,6 @@ YAML::
             # Types to log, based on the query type.
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
-
-DNS v1 Format
-~~~~~~~~~~~~~
-
-The version 1 DNS output has been obsoleted by the version 2 output
-above. The v1 format logs a record per answer in the response possibly
-resulting in much more than 2 log records per request and response.
-
-YAML::
-
-        - dns:
-            # Must set the version to 1 to get the old style format.
-            version: 1
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-
-To reduce verbosity the output can be filtered by supplying the record types
-to be logged under ``custom``.
 
 TLS
 ~~~
