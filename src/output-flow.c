@@ -101,8 +101,6 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
     DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
-    logger = list;
-    store = op_thread_data->store;
     while (logger && store) {
         DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
