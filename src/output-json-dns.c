@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -185,13 +185,6 @@ typedef enum {
     DNS_RRTYPE_MAX,
 } DnsRRTypes;
 
-typedef enum {
-    DNS_VERSION_1 = 1,
-    DNS_VERSION_2
-} DnsVersion;
-
-#define DNS_VERSION_DEFAULT DNS_VERSION_2
-
 static struct {
     const char *config_rrtype;
     uint64_t flags;
@@ -258,7 +251,6 @@ static struct {
 
 typedef struct LogDnsFileCtx_ {
     uint64_t flags; /** Store mode */
-    DnsVersion version;
     OutputJsonCtx *eve_ctx;
 } LogDnsFileCtx;
 
@@ -266,8 +258,6 @@ typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
-
-static bool v1_deprecation_warned = false;
 
 JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
 {
@@ -347,58 +337,17 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    if (td->dnslog_ctx->version == DNS_VERSION_2) {
-        if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
-            if (unlikely(jb == NULL)) {
-                return TM_ECODE_OK;
-            }
-
-            jb_open_object(jb, "dns");
-            rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
-            jb_close(jb);
-            OutputJsonBuilderBuffer(jb, td->ctx);
-            jb_free(jb);
+    if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
+        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        if (unlikely(jb == NULL)) {
+            return TM_ECODE_OK;
         }
-    } else {
-        /* Log answers. */
-        for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
-            if (unlikely(jb == NULL)) {
-                return TM_ECODE_OK;
-            }
 
-            JsonBuilder *answer = rs_dns_log_json_answer_v1(txptr, i,
-                    td->dnslog_ctx->flags);
-            if (answer == NULL) {
-                jb_free(jb);
-                break;
-            }
-            jb_set_object(jb, "dns", answer);
-            jb_free(answer);
-
-            OutputJsonBuilderBuffer(jb, td->ctx);
-            jb_free(jb);
-        }
-        /* Log authorities. */
-        for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
-            if (unlikely(jb == NULL)) {
-                return TM_ECODE_OK;
-            }
-
-            JsonBuilder *answer = rs_dns_log_json_authority_v1(txptr, i,
-                    td->dnslog_ctx->flags);
-            if (answer == NULL) {
-                jb_free(jb);
-                break;
-            }
-            jb_set_object(jb, "dns", answer);
-            jb_free(answer);
-
-            OutputJsonBuilderBuffer(jb, td->ctx);
-            jb_free(jb);
-        }
+        jb_open_object(jb, "dns");
+        rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
+        jb_close(jb);
+        OutputJsonBuilderBuffer(jb, td->ctx);
+        jb_free(jb);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -477,9 +426,7 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
             dnslog_ctx->flags &= ~LOG_QUERIES;
         }
     } else {
-        if (dnslog_ctx->version == DNS_VERSION_2) {
-            dnslog_ctx->flags |= LOG_QUERIES;
-        }
+        dnslog_ctx->flags |= LOG_QUERIES;
     }
 
     const char *response = ConfNodeLookupChildValue(conf, answer_key);
@@ -490,9 +437,7 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
             dnslog_ctx->flags &= ~LOG_ANSWERS;
         }
     } else {
-        if (dnslog_ctx->version == DNS_VERSION_2) {
-            dnslog_ctx->flags |= LOG_ANSWERS;
-        }
+        dnslog_ctx->flags |= LOG_ANSWERS;
     }
 
     ConfNode *custom;
@@ -516,31 +461,31 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
             }
         }
     } else {
-        if (dnslog_ctx->version == DNS_VERSION_2) {
-            dnslog_ctx->flags |= LOG_ALL_RRTYPES;
-        }
+        dnslog_ctx->flags |= LOG_ALL_RRTYPES;
     }
 }
 
-static DnsVersion JsonDnsParseVersion(ConfNode *conf)
+static void JsonDnsCheckVersion(ConfNode *conf)
 {
     if (conf == NULL) {
-        return DNS_VERSION_DEFAULT;
+        return;
     }
 
-    DnsVersion version = DNS_VERSION_DEFAULT;
-    intmax_t config_version;
+    static bool v1_deprecation_warned = false;
     const ConfNode *has_version = ConfNodeLookupChild(conf, "version");
-
     if (has_version != NULL) {
         bool invalid = false;
+        intmax_t config_version;
         if (ConfGetChildValueInt(conf, "version", &config_version)) {
             switch(config_version) {
-                case 1:
-                    version = DNS_VERSION_1;
-                    break;
                 case 2:
-                    version = DNS_VERSION_2;
+                    break;
+                case 1:
+                    if (!v1_deprecation_warned) {
+                        SCLogError(SC_WARN_DEPRECATED,
+                                "DNS EVE v1 logging has been removed, will use v2");
+                        v1_deprecation_warned = true;
+                    }
                     break;
                 default:
                     invalid = true;
@@ -550,23 +495,10 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
             invalid = true;
         }
         if (invalid) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                    "invalid eve-log dns version option: %s, "
-                    "defaulting to version %u",
-                    has_version->val, version);
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid EVE DNS version \"%s\", will use v2",
+                    has_version->val);
         }
-    } else {
-        SCLogConfig("eve-log dns version not set, defaulting to version %u",
-                version);
     }
-
-    if (!v1_deprecation_warned && version == DNS_VERSION_1) {
-        SCLogWarning(SC_WARN_DEPRECATED, "DNS EVE v1 style logs have been "
-                                         "deprecated and will be removed by May 2022");
-        v1_deprecation_warned = true;
-    }
-
-    return version;
 }
 
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
@@ -574,26 +506,21 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
     dnslog_ctx->flags = ~0ULL;
 
     if (conf) {
-        if (dnslog_ctx->version == DNS_VERSION_1) {
-            JsonDnsLogParseConfig(dnslog_ctx, conf, "query", "answer", "custom");
-        } else {
-            JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
-
-            if (dnslog_ctx->flags & LOG_ANSWERS) {
-                ConfNode *format;
-                if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
-                    dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
-                    ConfNode *field;
-                    TAILQ_FOREACH(field, &format->head, next) {
-                        if (strcasecmp(field->val, "detailed") == 0) {
-                            dnslog_ctx->flags |= LOG_FORMAT_DETAILED;
-                        } else if (strcasecmp(field->val, "grouped") == 0) {
-                            dnslog_ctx->flags |= LOG_FORMAT_GROUPED;
-                        }
+        JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
+        if (dnslog_ctx->flags & LOG_ANSWERS) {
+            ConfNode *format;
+            if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
+                dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
+                ConfNode *field;
+                TAILQ_FOREACH (field, &format->head, next) {
+                    if (strcasecmp(field->val, "detailed") == 0) {
+                        dnslog_ctx->flags |= LOG_FORMAT_DETAILED;
+                    } else if (strcasecmp(field->val, "grouped") == 0) {
+                        dnslog_ctx->flags |= LOG_FORMAT_GROUPED;
                     }
-                } else {
-                    dnslog_ctx->flags |= LOG_FORMAT_ALL;
                 }
+            } else {
+                dnslog_ctx->flags |= LOG_FORMAT_ALL;
             }
         }
     }
@@ -608,7 +535,9 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
 
-    DnsVersion version = JsonDnsParseVersion(conf);
+    /* As only a single version of logging is supported, this exists to warn about
+     * unsupported versions. */
+    JsonDnsCheckVersion(conf);
 
     OutputJsonCtx *ojc = parent_ctx->data;
 
@@ -629,7 +558,6 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtxSub;
 
-    dnslog_ctx->version = version;
     JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log sub-module initialized");
