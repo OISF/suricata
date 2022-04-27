@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -180,7 +180,6 @@ typedef struct IPV4Vars_
 void DecodeIPV4RegisterTests(void);
 
 /** ----- Inline functions ----- */
-static inline uint16_t IPV4Checksum(uint16_t *, uint16_t, uint16_t);
 
 /**
  * \brief Calculateor validate the checksum for the IP packet
@@ -192,7 +191,7 @@ static inline uint16_t IPV4Checksum(uint16_t *, uint16_t, uint16_t);
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t IPV4Checksum(uint16_t *pkt, uint16_t hlen, uint16_t init)
+static inline uint16_t IPV4Checksum(const uint16_t *pkt, uint16_t hlen, uint16_t init)
 {
     uint32_t csum = init;
 
@@ -243,4 +242,3 @@ static inline uint16_t IPV4Checksum(uint16_t *pkt, uint16_t hlen, uint16_t init)
 }
 
 #endif /* __DECODE_IPV4_H__ */
-

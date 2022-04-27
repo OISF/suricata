@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -292,7 +292,6 @@ typedef struct ICMPV4Timestamp_ {
 void DecodeICMPV4RegisterTests(void);
 
 /** ------ Inline functions ------ */
-static inline uint16_t ICMPV4CalculateChecksum(uint16_t *, uint16_t);
 
 /**
  * \brief Calculates the checksum for the ICMP packet
@@ -302,7 +301,7 @@ static inline uint16_t ICMPV4CalculateChecksum(uint16_t *, uint16_t);
  *
  * \retval csum Checksum for the ICMP packet
  */
-static inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
+static inline uint16_t ICMPV4CalculateChecksum(const uint16_t *pkt, uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = pkt[0];
@@ -350,4 +349,3 @@ static inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
 int ICMPv4GetCounterpart(uint8_t type);
 
 #endif /* __DECODE_ICMPV4_H__ */
-

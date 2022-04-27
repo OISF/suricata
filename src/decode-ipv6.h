@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -243,4 +243,3 @@ typedef struct IPV6ExtHdrs_
 void DecodeIPV6RegisterTests(void);
 
 #endif /* __DECODE_IPV6_H__ */
-

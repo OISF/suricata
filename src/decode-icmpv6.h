@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -195,7 +195,6 @@ void DecodeICMPV6RegisterTests(void);
 int ICMPv6GetCounterpart(uint8_t type);
 
 /** -------- Inline functions --------- */
-static inline uint16_t ICMPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
 
 /**
  * \brief Calculates the checksum for the ICMPV6 packet
@@ -207,8 +206,8 @@ static inline uint16_t ICMPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t)
  *
  * \retval csum Checksum for the ICMPV6 packet
  */
-static inline uint16_t ICMPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                        uint16_t tlen)
+static inline uint16_t ICMPV6CalculateChecksum(
+        const uint16_t *shdr, const uint16_t *pkt, uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
@@ -269,6 +268,4 @@ static inline uint16_t ICMPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     return (uint16_t) ~csum;
 }
 
-
 #endif /* __DECODE_ICMPV6_H__ */
-
