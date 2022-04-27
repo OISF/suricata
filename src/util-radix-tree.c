@@ -506,7 +506,6 @@ static SCRadixNode *SCRadixAddKey(
 
     uint16_t i = 0;
     uint16_t j = 0;
-    int temp = 0;
 
     if (tree == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"tree\" NULL");
@@ -594,6 +593,7 @@ static SCRadixNode *SCRadixAddKey(
     /* get the first bit position where the ips differ */
     check_bit = (node->bit < bitlen)? node->bit: bitlen;
     for (i = 0; (i * 8) < check_bit; i++) {
+        int temp;
         if ((temp = (stream[i] ^ bottom_node->prefix->stream[i])) == 0) {
             differ_bit = (i + 1) * 8;
             continue;
