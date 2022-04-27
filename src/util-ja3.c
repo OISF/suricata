@@ -194,13 +194,11 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
     }
 
     if ((*buffer)->used == 0) {
-        (*buffer)->used += snprintf((*buffer)->data, (*buffer)->size, "%d",
-                                    value);
+        (*buffer)->used += snprintf((*buffer)->data, (*buffer)->size, "%u", value);
     }
     else {
-        (*buffer)->used += snprintf((*buffer)->data + (*buffer)->used,
-                                    (*buffer)->size - (*buffer)->used, "-%d",
-                                    value);
+        (*buffer)->used += snprintf(
+                (*buffer)->data + (*buffer)->used, (*buffer)->size - (*buffer)->used, "-%u", value);
     }
 
     return 0;
