@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -113,13 +113,13 @@ void PacketPoolWait(void)
 void PacketPoolWaitForN(int n)
 {
     PktPool *my_pool = GetThreadPacketPool();
-    Packet *p, *pp;
 
     while (1) {
         PacketPoolWait();
 
         /* count packets in our stack */
         int i = 0;
+        Packet *p, *pp;
         pp = p = my_pool->head;
         while (p != NULL) {
             if (++i == n)
