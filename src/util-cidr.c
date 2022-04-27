@@ -31,25 +31,24 @@
  */
 int CIDRFromMask(uint32_t netmask)
 {
+    netmask = ntohl(netmask);
     if (netmask == 0) {
         return 0;
     }
-    int lead_1 = 0;
-    bool seen_0 = false;
-    for (int i = 0; i < 32; i++) {
-        if (!seen_0) {
-            if ((netmask & BIT_U32(i)) != 0) {
-                lead_1++;
-            } else {
-                seen_0 = true;
-            }
+    int p = 0;
+    bool seen_1 = false;
+    while (netmask > 0) {
+        if (netmask & 1) {
+            seen_1 = true;
+            p++;
         } else {
-            if ((netmask & BIT_U32(i)) != 0) {
+            if (seen_1) {
                 return -1;
             }
         }
+        netmask >>= 1;
     }
-    return lead_1;
+    return p;
 }
 
 uint32_t CIDRGet(int cidr)
