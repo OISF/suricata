@@ -40,6 +40,7 @@ Major changes
 Removals
 ~~~~~~~~
 - The libprelude output plugin has been removed.
+- EVE DNS v1 logging support has been removed. If still using EVE DNS v1 logging, see the manual section on DNS logging configuration for the current configuration options: :ref:`DNS EVE Configuration <output-eve-dns>`
 
 Logging changes
 ~~~~~~~~~~~~~~~
