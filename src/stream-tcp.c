@@ -760,13 +760,11 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
  */
 void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 {
-    int ret = 0;
-
     if (PKT_IS_IPV4(p)) {
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
-        ret = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
+        int ret = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
         if (ret > 0)
             stream->os_policy = (uint8_t)ret;
         else
@@ -776,7 +774,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
-        ret = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
+        int ret = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
         if (ret > 0)
             stream->os_policy = (uint8_t)ret;
         else
@@ -5153,12 +5151,10 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5171,12 +5167,10 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5204,12 +5198,10 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5222,12 +5214,10 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -6318,16 +6308,13 @@ void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Pack
  */
 int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
-    TcpSession *ssn = NULL;
     TcpStream *stream = NULL;
-    int ret = 0;
     int cnt = 0;
 
     if (p->flow == NULL)
         return 0;
 
-    ssn = (TcpSession *)p->flow->protoctx;
-
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL) {
         return 0;
     }
@@ -6356,7 +6343,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         uint32_t seg_datalen;
         StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
-        ret = CallbackFunc(p, data, seg_data, seg_datalen);
+        int ret = CallbackFunc(p, data, seg_data, seg_datalen);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             return -1;
