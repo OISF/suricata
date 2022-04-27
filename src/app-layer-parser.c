@@ -272,12 +272,9 @@ int AppLayerParserSetup(void)
 
 void AppLayerParserPostStreamSetup(void)
 {
-    AppProto alproto = 0;
-    int flow_proto = 0;
-
     /* lets set a default value for stream_depth */
-    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (int flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (!(alp_ctx.ctxs[flow_proto][alproto].internal_flags &
                         APP_LAYER_PARSER_INT_STREAM_DEPTH_SET)) {
                 alp_ctx.ctxs[flow_proto][alproto].stream_depth =
@@ -301,17 +298,12 @@ AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void)
 {
     SCEnter();
 
-    AppProto alproto = 0;
-    uint8_t flow_proto = 0;
-    AppLayerParserThreadCtx *tctx;
-
-    tctx = SCMalloc(sizeof(*tctx));
+    AppLayerParserThreadCtx *tctx = SCCalloc(1, sizeof(*tctx));
     if (tctx == NULL)
         goto end;
-    memset(tctx, 0, sizeof(*tctx));
 
-    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (uint8_t flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
 
             tctx->alproto_local_storage[flow_proto][alproto] =
@@ -327,11 +319,8 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx)
 {
     SCEnter();
 
-    AppProto alproto = 0;
-    uint8_t flow_proto = 0;
-
-    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (uint8_t flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
 
             AppLayerParserDestroyProtocolParserLocalStorage(ipproto, alproto,
@@ -739,7 +728,7 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     if (pstate == NULL)
         SCReturnCT(0ULL, "uint64_t");
 
-    SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
+    SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
 }
 
 static inline uint64_t GetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir)
@@ -1172,7 +1161,7 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
 
     uint64_t active_id;
     uint64_t log_id = pstate->log_id;
-    uint64_t inspect_id = pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
+    uint64_t inspect_id = pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1];
     if (alp_ctx.ctxs[f->protomap][f->alproto].logger == true) {
         active_id = MIN(log_id, inspect_id);
     } else {
