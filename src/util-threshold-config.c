@@ -625,12 +625,10 @@ error:
     return -1;
 }
 
-static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
-    uint32_t *ret_id, uint32_t *ret_gid,
-    uint8_t *ret_parsed_type, uint8_t *ret_parsed_track,
-    uint32_t *ret_parsed_count, uint32_t *ret_parsed_seconds, uint32_t *ret_parsed_timeout,
-    uint8_t *ret_parsed_new_action,
-    char **ret_th_ip)
+static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint32_t *ret_id,
+        uint32_t *ret_gid, uint8_t *ret_parsed_type, uint8_t *ret_parsed_track,
+        uint32_t *ret_parsed_count, uint32_t *ret_parsed_seconds, uint32_t *ret_parsed_timeout,
+        uint8_t *ret_parsed_new_action, char **ret_th_ip)
 {
     char th_rule_type[32];
     char th_gid[16];
