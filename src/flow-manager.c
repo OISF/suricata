@@ -358,6 +358,24 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
 
         counters->flows_timeout++;
+        switch (f->flow_state) {
+            case FLOW_STATE_NEW:
+            default:
+                counters->new ++;
+                break;
+            case FLOW_STATE_ESTABLISHED:
+                counters->est++;
+                break;
+            case FLOW_STATE_CLOSED:
+                counters->clo++;
+                break;
+            case FLOW_STATE_LOCAL_BYPASSED:
+#ifdef CAPTURE_OFFLOAD
+            case FLOW_STATE_CAPTURE_BYPASSED:
+#endif
+                counters->byp++;
+                break;
+        }
 
         RemoveFromHash(f, prev_f);
 
