@@ -148,7 +148,7 @@ int LiveRegisterDevice(const char *dev)
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
-    pd->id = (uint16_t) id;
+    pd->id = (uint16_t)id;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Device \"%s\" registered and created.", dev);
