@@ -41,7 +41,7 @@ typedef struct LiveDevice_ {
     char dev_short[MAX_DEVNAME + 1];
     bool tenant_id_set;
 
-    int id;
+    uint16_t id;
 
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
