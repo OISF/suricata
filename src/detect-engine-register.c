@@ -73,6 +73,7 @@
 
 #include "detect-config.h"
 
+#include "detect-smb-filename.h"
 #include "detect-smb-share.h"
 
 #include "detect-base64-decode.h"
@@ -579,6 +580,7 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
+    DetectSmbFilenameRegister();
     DetectSmbNamedPipeRegister();
     DetectSmbShareRegister();
     DetectTlsRegister();
