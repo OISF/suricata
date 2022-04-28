@@ -207,9 +207,9 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         }
     }
 
-    for (int thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread + 1);
-        snprintf(qname, sizeof(qname), "pickup%d", thread + 1);
+    for (uint16_t thread = 0; thread < thread_max; thread++) {
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, (uint16_t)(thread + 1));
+        snprintf(qname, sizeof(qname), "pickup%u", (uint16_t)(thread + 1));
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
@@ -453,9 +453,9 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     }
     for (int thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread + 1);
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, (uint16_t)(thread + 1));
         char qname[TM_QUEUE_NAME_MAX];
-        snprintf(qname, sizeof(qname), "pickup%d", thread + 1);
+        snprintf(qname, sizeof(qname), "pickup%u", (uint16_t)(thread + 1));
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
