@@ -16,14 +16,23 @@ The format of the keyword::
   dcerpc.iface:<uuid>;
   dcerpc.iface:<uuid>,[>,<,!,=]<iface_version>;
   dcerpc.iface:<uuid>,any_frag;
-  dcerpc.iface:<uuid>,[>,<,!,=]<iface_version>,any_frag;
+  dcerpc.iface:<uuid>,preack;
+  dcerpc.iface:<uuid>,[>,<,!,=]<iface_version>,any_frag,preack;
+
+The `preack` option only works on DCERPC over SMB traffic, where some machines
+will submit requests before receiving the bind_ack response. If you want that
+your request match after the bind is issue without waiting for the bind_ack,
+then you can use `preack`. Keep in mind that if the next bind_ack rejects the
+bind context you want to match, it will stop matching.
 
 Examples::
 
   dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003;
   dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003,!10;
   dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003,any_frag;
+  dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003,preack;
   dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003,>1,any_frag;
+  dcerpc.iface:367abb81-9844-35f1-ad32-98f038001003,>1,any_frag,preack;
 
 ET Open rule example:
 
