@@ -312,6 +312,7 @@ typedef struct FlowKey_
     Port sp, dp;
     uint8_t proto;
     uint8_t recursion_level;
+    struct LiveDevice_ *livedev;
     uint16_t vlan_id[VLAN_MAX_LAYERS];
 } FlowKey;
 
