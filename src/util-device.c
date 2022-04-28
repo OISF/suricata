@@ -132,6 +132,12 @@ int LiveRegisterDevice(const char *dev)
         return -1;
     }
 
+    int id = LiveGetDeviceCount();
+    if (id > UINT16_MAX) {
+        SCFree(pd);
+        return -1;
+    }
+
     pd->dev = SCStrdup(dev);
     if (unlikely(pd->dev == NULL)) {
         SCFree(pd);
@@ -143,7 +149,7 @@ int LiveRegisterDevice(const char *dev)
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
-    pd->id = LiveGetDeviceCount();
+    pd->id = (uint16_t)id;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Device \"%s\" registered and created.", dev);
