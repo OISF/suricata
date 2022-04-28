@@ -116,11 +116,6 @@ void FlowTimeoutsEmergency(void)
 #define NEW_FLOW_COUNT_COND 10
 
 typedef struct FlowTimeoutCounters_ {
-    uint32_t new;
-    uint32_t est;
-    uint32_t clo;
-    uint32_t byp;
-
     uint32_t rows_checked;
     uint32_t rows_skipped;
     uint32_t rows_empty;
@@ -609,10 +604,6 @@ typedef struct FlowCounters_ {
     uint16_t flow_mgr_full_pass;
     uint16_t flow_mgr_rows_sec;
 
-    uint16_t flow_mgr_cnt_clo;
-    uint16_t flow_mgr_cnt_new;
-    uint16_t flow_mgr_cnt_est;
-    uint16_t flow_mgr_cnt_byp;
     uint16_t flow_mgr_spare;
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
@@ -649,10 +640,6 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->flow_mgr_full_pass = StatsRegisterCounter("flow.mgr.full_hash_pass", t);
     fc->flow_mgr_rows_sec = StatsRegisterCounter("flow.mgr.rows_per_sec", t);
 
-    fc->flow_mgr_cnt_clo = StatsRegisterCounter("flow.mgr.closed_pruned", t);
-    fc->flow_mgr_cnt_new = StatsRegisterCounter("flow.mgr.new_pruned", t);
-    fc->flow_mgr_cnt_est = StatsRegisterCounter("flow.mgr.est_pruned", t);
-    fc->flow_mgr_cnt_byp = StatsRegisterCounter("flow.mgr.bypassed_pruned", t);
     fc->flow_mgr_spare = StatsRegisterCounter("flow.spare", t);
     fc->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
     fc->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
@@ -676,11 +663,6 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 static void FlowCountersUpdate(
         ThreadVars *th_v, const FlowManagerThreadData *ftd, const FlowTimeoutCounters *counters)
 {
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters->clo);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters->new);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters->est);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters->byp);
-
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters->flows_checked);
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters->flows_notimeout);
 
@@ -849,7 +831,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             }
 
             /* try to time out flows */
-            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
