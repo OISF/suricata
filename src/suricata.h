@@ -169,6 +169,7 @@ void GlobalsInitPreConfig(void);
 extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 extern uint16_t g_vlan_mask;
+extern uint16_t g_livedev_mask;
 
 /* Flag to disable hashing (almost) globally. */
 extern bool g_disable_hashing;

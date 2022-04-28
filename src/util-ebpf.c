@@ -778,6 +778,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
+        flow_key.livedev = dev;
         dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                      ctime, pkts_cnt, bytes_cnt,
                                      mapfd, tcfg->cpus_count);
@@ -895,6 +896,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
+        flow_key.livedev = dev;
         pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                     ctime, pkts_cnt, bytes_cnt,
                                     mapfd, tcfg->cpus_count);

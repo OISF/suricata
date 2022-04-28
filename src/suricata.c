@@ -243,6 +243,10 @@ int g_disable_randomness = 1;
   * comparing flows */
 uint16_t g_vlan_mask = 0xffff;
 
+/** determine (without branching) if we include the livedev ids when hashing or
+ * comparing flows */
+uint16_t g_livedev_mask = 0xffff;
+
 /* flag to disable hashing almost globally, to be similar to disabling nss
  * support */
 bool g_disable_hashing = false;
@@ -2881,13 +2885,16 @@ int SuricataMain(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    int vlan_tracking = 1;
-    if (ConfGetBool("vlan.use-for-tracking", &vlan_tracking) == 1 && !vlan_tracking) {
+    int tracking = 1;
+    if (ConfGetBool("vlan.use-for-tracking", &tracking) == 1 && !tracking) {
         /* Ignore vlan_ids when comparing flows. */
         g_vlan_mask = 0x0000;
     }
-    SCLogDebug("vlan tracking is %s", vlan_tracking == 1 ? "enabled" : "disabled");
-
+    SCLogDebug("vlan tracking is %s", tracking == 1 ? "enabled" : "disabled");
+    if (ConfGetBool("livedev.use-for-tracking", &tracking) == 1 && !tracking) {
+        /* Ignore livedev id when comparing flows. */
+        g_livedev_mask = 0x0000;
+    }
     SetupUserMode(&suricata);
     InitRunAs(&suricata);
 

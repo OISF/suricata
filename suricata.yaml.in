@@ -1322,6 +1322,12 @@ flow:
 vlan:
   use-for-tracking: true
 
+# This option controls the use of livedev ids in the flow (and defrag)
+# hashing. This is enabled by default and should be disabled if
+# multiple live devices are used to capture traffic from the same network
+livedev:
+  use-for-tracking: true
+
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
 # protocol. The value of "new" determines the seconds to wait after a handshake or
