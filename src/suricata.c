@@ -772,6 +772,7 @@ static void PrintBuildInfo(void)
 #if defined(SC_ADDRESS_SANITIZER)
     strlcat(features, "ASAN ", sizeof(features));
 #endif
+    strlcat(features, "RULE_TYPES ", sizeof(features));
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
