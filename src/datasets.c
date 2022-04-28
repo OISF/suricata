@@ -1012,8 +1012,8 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
  *  \retval 0 data was not added to the hash as it is already there
  *  \retval -1 failed to add data to the hash
  */
-static int DatasetAddStringwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddStringwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
@@ -1046,8 +1046,8 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
     return -1;
 }
 
-static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddMd5wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
@@ -1065,8 +1065,8 @@ static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t d
     return -1;
 }
 
-static int DatasetAddSha256wRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddSha256wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
