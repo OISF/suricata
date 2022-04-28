@@ -4682,15 +4682,6 @@
                         "mgr": {
                             "type": "object",
                             "properties": {
-                                "bypassed_pruned": {
-                                    "type": "integer"
-                                },
-                                "closed_pruned": {
-                                    "type": "integer"
-                                },
-                                "est_pruned": {
-                                    "type": "integer"
-                                },
                                 "flows_checked": {
                                     "type": "integer"
                                 },
@@ -4710,9 +4701,6 @@
                                     "type": "integer"
                                 },
                                 "full_hash_pass": {
-                                    "type": "integer"
-                                },
-                                "new_pruned": {
                                     "type": "integer"
                                 },
                                 "rows_maxlen": {
