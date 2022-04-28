@@ -294,6 +294,7 @@ noinst_HEADERS = \
 	detect-sip-uri.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
+	detect-smb-version.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
 	detect-snmp-usm.h \
@@ -907,6 +908,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sip-uri.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
+	detect-smb-version.c \
 	detect-snmp-community.c \
 	detect-snmp-pdu_type.c \
 	detect-snmp-usm.c \
