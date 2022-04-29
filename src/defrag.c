@@ -626,6 +626,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
     /* Update timeout. */
+    if (p->ts.tv_sec > INT_MAX - ((time_t)tracker->host_timeout)) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Timestamp overflow.");
+        return NULL;
+    }
     tracker->timeout.tv_sec = p->ts.tv_sec + tracker->host_timeout;
     tracker->timeout.tv_usec = p->ts.tv_usec;
 
