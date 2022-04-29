@@ -522,8 +522,8 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-        let slice: &[u8];
-        slice = build_slice!(input, input_len as usize);
+
+        let slice: &[u8] = build_slice!(input, input_len as usize);
         if probe_ts(slice) {
             return ALPROTO_PGSQL;
         }
@@ -537,8 +537,8 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-        let slice: &[u8];
-        slice = build_slice!(input, input_len as usize);
+
+        let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
             return ALPROTO_PGSQL;
@@ -597,8 +597,8 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
         }
     }
 
-    let state_safe: &mut PgsqlState;
-    state_safe = cast_pointer!(state, PgsqlState);
+
+    let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
     if stream_slice.is_gap() {
         state_safe.on_request_gap(stream_slice.gap_size());
@@ -618,8 +618,8 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
     } else {
         false
     };
-    let state_safe: &mut PgsqlState;
-    state_safe = cast_pointer!(state, PgsqlState);
+
+    let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
     if stream_slice.is_gap() {
         state_safe.on_response_gap(stream_slice.gap_size());
