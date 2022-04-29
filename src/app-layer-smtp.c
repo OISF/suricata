@@ -40,6 +40,7 @@
 
 #include "util-mpm.h"
 #include "util-debug.h"
+#include "util-print.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -561,7 +562,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         } else {
             /* Append data chunk to file */
             SCLogDebug("Appending file...%u bytes", len);
-
             /* 0 is ok, -2 is not stored, -1 is error */
             ret = FileAppendData(files, (uint8_t *) chunk, len);
             if (ret == -2) {
@@ -1116,7 +1116,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     SMTPTransaction *tx = state->curr_tx;
 
     /* Line with just LF */
-    if (state->current_line_len == 0 && state->consumed == 1) {
+    if (state->current_line_len == 0 && state->consumed == 1 &&
+            state->current_line_delimiter_len == 0) {
         return 0; // to continue processing further
     }
 
@@ -1277,43 +1278,44 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
-    // By this time we should have had the command line parsed
-    uint8_t *lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
-    const uint32_t orig_input_len = state->input_len;
-    // Both DATA and BDAT set SMTP_PARSER_STATE_COMMAND_DATA_MODE, so this while
-    // loop should be valid for both
-    while (state->input_len > 0 && (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        uint8_t delim_len = 0;
-        uint32_t consumed_line = 0;
-        if (lf_idx == NULL) {
-            if ((state->input_len == 1 && state->input[state->consumed] == '-') ||
-                    (state->input_len > 1 && state->input[state->consumed] == '-' &&
+    bool line_complete = false;
+    int32_t input_len = state->input_len;
+    for (int32_t i = 0;
+            i < input_len && (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE); i++) {
+        if (state->input[i] == 0x0d) {
+            if (i < input_len - 1 && state->input[i + 1] == 0x0a) {
+                i++;
+                state->current_line_delimiter_len++;
+            }
+            /* Line is just ending in CR */
+            state->current_line_delimiter_len++;
+            line_complete = true;
+        } else if (state->input[i] == 0x0a) {
+            /* Line is just ending in LF */
+            state->current_line_delimiter_len++;
+            line_complete = true;
+        }
+        /* Either line is complete or fragmented */
+        if (line_complete || (i == input_len - 1)) {
+            if ((input_len == 1 && state->input[state->consumed] == '-') ||
+                    (input_len > 1 && state->input[state->consumed] == '-' &&
                             state->input[state->consumed + 1] == '-')) {
-                SCLogDebug("possible boundary, yield to getline");
+                SCLogDebug("Possible boundary, yield to GetLine");
                 return 1;
             }
+            int32_t total_consumed = i + 1;
+            int32_t current_line_consumed = total_consumed - state->consumed;
             state->current_line = state->input + state->consumed;
-            state->consumed = state->input_len;
-            consumed_line = state->input_len;
-        } else {
-            state->current_line = state->input + state->consumed;
-            ptrdiff_t idx = lf_idx - state->input;
-            state->consumed = idx + 1;
-            consumed_line = lf_idx - state->current_line + 1;
-            if (orig_input_len >= idx && idx > 0 && state->input[idx - 1] == 0x0d) {
-                delim_len = 2;
-            } else if (orig_input_len == 1 ||
-                       (orig_input_len >= idx && idx > 0 && state->input[idx - 1] != 0x0d)) {
-                delim_len = 1;
+            state->current_line_len = current_line_consumed - state->current_line_delimiter_len;
+            state->consumed = total_consumed;
+            state->input_len -= current_line_consumed;
+            BUG_ON(state->consumed + state->input_len != state->orig_input_len);
+            if (SMTPProcessRequest(state, f, pstate) == -1) {
+                return -1;
             }
+            line_complete = false;
+            state->current_line_delimiter_len = 0;
         }
-        state->current_line_delimiter_len = delim_len;
-        state->current_line_len = consumed_line - delim_len;
-        state->input_len -= (state->current_line_len + delim_len);
-        if (SMTPProcessRequest(state, f, pstate) == -1) {
-            return -1;
-        }
-        lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
     }
     return 0;
 }
@@ -1338,13 +1340,14 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     state->orig_input_len = input_len;
     state->input_len = input_len;
     state->consumed = 0;
+    state->current_line_delimiter_len = 0;
     state->direction = direction;
     if (direction == 0) {
         if (((state->current_command == SMTP_COMMAND_DATA) ||
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
             int ret = SMTPPreProcessCommands(state, f, pstate);
-            if (ret == 0 && state->consumed == state->input_len) {
+            if (ret == 0 && state->consumed == state->orig_input_len) {
                 SCReturnStruct(APP_LAYER_OK);
             }
         }
@@ -1356,7 +1359,8 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         while (res.status == 0) {
             BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
-                if ((state->current_line_len > 0) && (SMTPProcessRequest(state, f, pstate) == -1))
+                if ((state->current_line_delimiter_len > 0) &&
+                        (SMTPProcessRequest(state, f, pstate) == -1))
                     SCReturnStruct(APP_LAYER_ERROR);
                 if (state->current_line_delimiter_len == 0 &&
                         state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
@@ -1375,7 +1379,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         while (res.status == 0) {
             BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
-                if ((state->current_line_len > 0) &&
+                if ((state->current_line_delimiter_len > 0) &&
                         (SMTPProcessReply(state, f, pstate, thread_data) == -1))
                     SCReturnStruct(APP_LAYER_ERROR);
                 if (state->current_line_delimiter_len == 0 &&
