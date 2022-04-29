@@ -1267,7 +1267,7 @@ suricata_SOURCES = main.c
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
-suricata_DEPENDENCIES = libsuricata_c.a
+suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 
 if BUILD_SHARED_LIBRARY
 libsuricata.so.$(VERSION): libsuricata_c.a
