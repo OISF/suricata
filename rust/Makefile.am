@@ -81,9 +81,8 @@ vendor:
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
-	rm -f gen/rust-bindings.h
 	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
-		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
+		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
 else
 gen/rust-bindings.h:
 endif
