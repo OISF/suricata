@@ -1364,6 +1364,44 @@ static void FTPFreeMpmState(void)
     }
 }
 
+/** \brief FTP tx iterator, specialized for its linked list
+ *
+ *  \retval txptr or NULL if no more txs in list
+ */
+static AppLayerGetTxIterTuple FTPGetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id, AppLayerGetTxIterState *state)
+{
+    FtpState *ftp_state = (FtpState *)alstate;
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    if (ftp_state) {
+        FTPTransaction *tx_ptr;
+        if (state->un.ptr == NULL) {
+            tx_ptr = TAILQ_FIRST(&ftp_state->tx_list);
+        } else {
+            tx_ptr = (FTPTransaction *)state->un.ptr;
+        }
+        if (tx_ptr) {
+            while (tx_ptr->tx_id < min_tx_id) {
+                tx_ptr = TAILQ_NEXT(tx_ptr, next);
+                if (!tx_ptr) {
+                    return no_tuple;
+                }
+            }
+            if (tx_ptr->tx_id >= max_tx_id) {
+                return no_tuple;
+            }
+            state->un.ptr = TAILQ_NEXT(tx_ptr, next);
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx_ptr,
+                .tx_id = tx_ptr->tx_id,
+                .has_next = (state->un.ptr != NULL),
+            };
+            return tuple;
+        }
+    }
+    return no_tuple;
+}
+
 void RegisterFTPParsers(void)
 {
     const char *proto_name = "ftp";
@@ -1392,6 +1430,7 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxData);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxIterator);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_FTP, FTPLocalStorageAlloc,
                                                FTPLocalStorageFree);
