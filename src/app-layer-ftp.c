@@ -555,6 +555,7 @@ struct FtpTransferCmd {
     uint64_t flow_id;
     uint8_t *file_name;
     uint16_t file_len;
+    uint8_t direction; /**< direction in which the data will flow */
     FtpRequestCommand cmd;
 };
 
@@ -710,6 +711,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                     memcpy(data->file_name, state->current_line + 5, file_name_len);
                     data->cmd = state->command;
                     data->flow_id = FlowGetId(f);
+                    data->direction = direction;
                     int ret = AppLayerExpectationCreate(f, direction,
                                             0, state->dyn_port, ALPROTO_FTPDATA, data);
                     if (ret == -1) {
@@ -1091,16 +1093,29 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
-    uint16_t flags = FileFlowToFlags(f, direction);
+    uint16_t flags = FileFlowToFlags(f, direction) | FILE_USE_DETECT;
     int ret = 0;
+    const bool eof = (flags & STREAM_TOSERVER)
+                             ? AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) != 0
+                             : AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
 
-    /* we depend on detection engine for file pruning */
-    flags |= FILE_USE_DETECT;
-    if (ftpdata_state->files == NULL) {
+    SCLogDebug("FTP-DATA input_len %u flags %04x dir %d/%s EOF %s", input_len, flags, direction,
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient", eof ? "true" : "false");
+    if (input_len && ftpdata_state->files == NULL) {
         struct FtpTransferCmd *data =
                 (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
+        }
+
+        /* we shouldn't get data in the wrong dir. Don't set things up for this dir */
+        if ((direction & data->direction) == 0) {
+            // TODO set event for data in wrong direction
+            SCLogDebug("input %u not for our direction (%s): %s/%s", input_len,
+                    (direction & STREAM_TOSERVER) ? "toserver" : "toclient",
+                    data->cmd == FTP_COMMAND_STOR ? "STOR" : "RETR",
+                    (data->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+            SCReturnStruct(APP_LAYER_OK);
         }
 
         ftpdata_state->files = FileContainerAlloc();
@@ -1117,10 +1132,14 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         ftpdata_state->command = data->cmd;
         switch (data->cmd) {
             case FTP_COMMAND_STOR:
-                ftpdata_state->direction = STREAM_TOSERVER;
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("STOR data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
             case FTP_COMMAND_RETR:
-                ftpdata_state->direction = STREAM_TOCLIENT;
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("RETR data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
             default:
                 break;
@@ -1138,6 +1157,21 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         FlowFreeStorageById(f, AppLayerExpectationGetFlowId());
         ftpdata_state->tx_data.files_opened = 1;
     } else {
+        if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
+            SCLogDebug("state is already finished");
+            DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
+            SCReturnStruct(APP_LAYER_OK);
+        }
+        if ((direction & ftpdata_state->direction) == 0) {
+            if (input_len) {
+                // TODO set event for data in wrong direction
+            }
+            SCLogDebug("input %u not for us (%s): %s/%s", input_len,
+                    (direction & STREAM_TOSERVER) ? "toserver" : "toclient",
+                    ftpdata_state->command == FTP_COMMAND_STOR ? "STOR" : "RETR",
+                    (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+            SCReturnStruct(APP_LAYER_OK);
+        }
         if (input_len != 0) {
             ret = FileAppendData(ftpdata_state->files, input, input_len);
             if (ret == -2) {
@@ -1149,22 +1183,15 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 ret = -2;
                 goto out;
             }
-        } else {
-            ret = FileCloseFile(ftpdata_state->files, NULL, 0, flags);
-            ftpdata_state->state = FTPDATA_STATE_FINISHED;
-            if (ret < 0)
-                goto out;
         }
     }
 
-    const bool eof_flag = flags & STREAM_TOSERVER ?
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) != 0 :
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
-    if (input_len && eof_flag) {
-        ret = FileCloseFile(ftpdata_state->files, (uint8_t *) NULL, 0, flags);
+    BUG_ON((direction & ftpdata_state->direction) == 0); // should be unreachble
+    if (eof) {
+        ret = FileCloseFile(ftpdata_state->files, NULL, 0, flags);
         ftpdata_state->state = FTPDATA_STATE_FINISHED;
+        SCLogDebug("closed because of eof");
     }
-
 out:
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -1256,7 +1283,10 @@ static uint64_t FTPDataGetTxCnt(void *state)
 static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)tx;
-    return ftpdata_state->state;
+    if (direction == ftpdata_state->direction)
+        return ftpdata_state->state;
+    else
+        return FTPDATA_STATE_FINISHED;
 }
 
 static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
