@@ -1058,30 +1058,6 @@ void DecodeGlobalConfig(void);
 void PacketAlertGetMaxConfig(void);
 void DecodeUnregisterCounters(void);
 
-/** \brief Set the No payload inspection Flag for the packet.
- *
- * \param p Packet to set the flag in
- */
-#define DecodeSetNoPayloadInspectionFlag(p) do { \
-        (p)->flags |= PKT_NOPAYLOAD_INSPECTION;  \
-    } while (0)
-
-#define DecodeUnsetNoPayloadInspectionFlag(p) do { \
-        (p)->flags &= ~PKT_NOPAYLOAD_INSPECTION;  \
-    } while (0)
-
-/** \brief Set the No packet inspection Flag for the packet.
- *
- * \param p Packet to set the flag in
- */
-#define DecodeSetNoPacketInspectionFlag(p) do { \
-        (p)->flags |= PKT_NOPACKET_INSPECTION;  \
-    } while (0)
-#define DecodeUnsetNoPacketInspectionFlag(p) do { \
-        (p)->flags &= ~PKT_NOPACKET_INSPECTION;  \
-    } while (0)
-
-
 #define ENGINE_SET_EVENT(p, e) do { \
     SCLogDebug("p %p event %d", (p), e); \
     if ((p)->events.cnt < PACKET_ENGINE_EVENT_MAX) { \
@@ -1267,6 +1243,24 @@ static inline bool PacketIncreaseCheckLayers(Packet *p)
         return false;
     }
     return true;
+}
+
+/** \brief Set the No payload inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+static inline void DecodeSetNoPayloadInspectionFlag(Packet *p)
+{
+    p->flags |= PKT_NOPAYLOAD_INSPECTION;
+}
+
+/** \brief Set the No packet inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+static inline void DecodeSetNoPacketInspectionFlag(Packet *p)
+{
+    p->flags |= PKT_NOPACKET_INSPECTION;
 }
 
 /** \brief return true if *this* packet needs to trigger a verdict.
