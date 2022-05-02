@@ -45,8 +45,8 @@ pub type AppProto = std::os::raw::c_int;
 pub const ALPROTO_UNKNOWN : AppProto = 0;
 pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 
-pub const IPPROTO_TCP : i32 = 6;
-pub const IPPROTO_UDP : i32 = 17;
+pub const IPPROTO_TCP : u8 = 6;
+pub const IPPROTO_UDP : u8 = 17;
 
 macro_rules!BIT_U8 {
     ($x:expr) => (1 << $x);

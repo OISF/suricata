@@ -179,7 +179,7 @@ pub struct RustParser {
     pub default_port:       *const c_char,
 
     /// IP Protocol (core::IPPROTO_UDP, core::IPPROTO_TCP, etc.)
-    pub ipproto:            c_int,
+    pub ipproto:            u8,
 
     /// Probing function, for packets going to server
     pub probe_ts:           Option<ProbeFn>,
