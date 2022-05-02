@@ -936,6 +936,11 @@ static inline void PacketDrop(Packet *p, enum PacketDropReason r)
     PACKET_SET_ACTION(p, ACTION_DROP);
 }
 
+static inline void PacketPass(Packet *p)
+{
+    PACKET_SET_ACTION(p, ACTION_PASS);
+}
+
 static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
 {
     if (likely(p->root == NULL)) {
