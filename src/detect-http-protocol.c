@@ -128,6 +128,30 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static bool DetectHttpProtocolValidateCallback(const Signature *s, const char **sigerror)
+{
+#ifdef HAVE_HTP_CONFIG_SET_ALLOW_SPACE_URI
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_buffer_id)
+            continue;
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
+            for (size_t i = 0; i < cd->content_len; ++i) {
+                if (cd->content[i] == ' ') {
+                    *sigerror = "Invalid http.protocol string containing a space";
+                    SCLogWarning("rule %u: %s", s->id, *sigerror);
+                    return false;
+                }
+            }
+        }
+    }
+#endif
+    return true;
+}
+
 /**
  * \brief Registers the keyword handlers for the "http.protocol" keyword.
  */
@@ -160,6 +184,7 @@ void DetectHttpProtocolRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectHttpProtocolValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
