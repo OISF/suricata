@@ -772,6 +772,9 @@ Flash decompression must be enabled under ``libhtp`` configuration:
 Notes
 ~~~~~
 
+-  file.data is the preferred notation, however, file_data is still
+   recognized by the engine and works as well.
+
 -  If a HTTP body is using gzip or deflate, ``file.data`` will match
    on the decompressed data.
 
