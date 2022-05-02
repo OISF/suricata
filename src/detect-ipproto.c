@@ -1913,10 +1913,9 @@ static int DetectIPProtoTestSig2(void)
         0x4a, 0xea, 0x7a, 0x8e,
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
