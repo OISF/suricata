@@ -428,7 +428,8 @@ impl DNSState {
     pub fn new_tcp() -> DNSState {
         return DNSState{
             tx_id: 0,
-            transactions: VecDeque::new(),
+            transactions: VecDeque
+            ::new(),
             config: None,
             gap: false,
         };
