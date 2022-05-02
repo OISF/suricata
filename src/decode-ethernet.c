@@ -134,7 +134,7 @@ static int DecodeEthernetTest01 (void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -142,7 +142,6 @@ static int DecodeEthernetTest01 (void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
@@ -160,14 +159,13 @@ static int DecodeEthernetTestDceTooSmall(void)
         0x94, 0x56, 0x00, 0x01, 0x89, 0x03,
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
@@ -196,14 +194,13 @@ static int DecodeEthernetTestDceNextTooSmall(void)
         0x94, 0x56, 0x00, 0x01,
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 

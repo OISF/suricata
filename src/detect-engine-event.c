@@ -340,7 +340,7 @@ static int EngineEventTestParse05 (void)
  */
 static int EngineEventTestParse06 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -350,7 +350,6 @@ static int EngineEventTestParse06 (void)
 
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 

@@ -873,7 +873,7 @@ static int FlowBitsTestSig06(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
     ThreadVars th_v;
@@ -884,7 +884,6 @@ static int FlowBitsTestSig06(void)
     int result = 0;
     uint32_t idx = 0;
 
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
@@ -947,7 +946,7 @@ static int FlowBitsTestSig07(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
     ThreadVars th_v;
@@ -958,7 +957,6 @@ static int FlowBitsTestSig07(void)
     int result = 0;
     uint32_t idx = 0;
 
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
@@ -1023,7 +1021,7 @@ static int FlowBitsTestSig08(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
@@ -1035,7 +1033,6 @@ static int FlowBitsTestSig08(void)
     int result = 0;
     uint32_t idx = 0;
 
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
