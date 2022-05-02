@@ -260,7 +260,7 @@ static int IpOptsTestParse02 (void)
  */
 static int IpOptsTestParse03 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -270,7 +270,6 @@ static int IpOptsTestParse03 (void)
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
@@ -310,7 +309,7 @@ error:
  */
 static int IpOptsTestParse04 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -320,7 +319,6 @@ static int IpOptsTestParse04 (void)
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;

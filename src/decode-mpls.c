@@ -142,7 +142,7 @@ static int DecodeMPLSTestHeaderTooSmall(void)
         0x00, 0x00, 0x11
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL)) {
         return 0;
     }
@@ -151,7 +151,6 @@ static int DecodeMPLSTestHeaderTooSmall(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
@@ -230,7 +229,7 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL)) {
         return 0;
     }
@@ -239,7 +238,6 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
@@ -270,7 +268,7 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL)) {
         return 0;
     }
@@ -279,7 +277,6 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
@@ -310,7 +307,7 @@ static int DecodeMPLSTestBadLabelReserved(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL)) {
         return 0;
     }
@@ -319,7 +316,6 @@ static int DecodeMPLSTestBadLabelReserved(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
@@ -354,7 +350,7 @@ static int DecodeMPLSTestUnknownPayloadType(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL)) {
         return 0;
     }
@@ -363,7 +359,6 @@ static int DecodeMPLSTestUnknownPayloadType(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 

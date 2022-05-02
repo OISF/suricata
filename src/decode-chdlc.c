@@ -77,15 +77,13 @@ static int DecodeCHDLCTest01 (void)
         0x00,0x00,0x70,0x02,0x40,0x00,0x11,0x47,0x00,0x00,
         0x02,0x04,0x05,0xb4,0x01,0x01,0x04,0x02 };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     DecodeCHDLC(&tv, &dtv, p, raw, sizeof(raw));
 
