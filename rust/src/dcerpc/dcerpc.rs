@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@ use nom7::{Err, IResult, Needed};
 use std;
 use std::cmp;
 use std::ffi::CString;
+use std::collections::VecDeque;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -296,7 +297,7 @@ pub struct DCERPCState {
     pub header: Option<DCERPCHdr>,
     pub bind: Option<DCERPCBind>,
     pub bindack: Option<DCERPCBindAck>,
-    pub transactions: Vec<DCERPCTransaction>,
+    pub transactions: VecDeque<DCERPCTransaction>,
     pub buffer_ts: Vec<u8>,
     pub buffer_tc: Vec<u8>,
     pub pad: u8,
@@ -687,7 +688,7 @@ impl DCERPCState {
                     sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                 }
                 tx.frag_cnt_ts = 1;
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
                 // Bytes parsed with `parse_dcerpc_bind` + (bytes parsed per bindctxitem [44] * number
                 // of bindctxitems)
                 (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32
@@ -867,7 +868,7 @@ impl DCERPCState {
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
-                        self.transactions.push(tx);
+                        self.transactions.push_back(tx);
                     }
                 }
                 let parsed = self.handle_common_stub(
@@ -1010,8 +1011,8 @@ impl DCERPCState {
                     } else {
                         let mut tx = self.create_tx(current_call_id);
                         tx.resp_cmd = x;
-                        self.transactions.push(tx);
-                        self.transactions.last_mut().unwrap()
+                        self.transactions.push_back(tx);
+                        self.transactions.back_mut().unwrap()
                     };
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
@@ -1036,7 +1037,7 @@ impl DCERPCState {
                         None => {
                             let mut tx = self.create_tx(current_call_id);
                             tx.resp_cmd = x;
-                            self.transactions.push(tx);
+                            self.transactions.push_back(tx);
                         }
                     };
                     retval = self.handle_common_stub(
