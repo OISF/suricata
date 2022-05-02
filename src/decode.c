@@ -814,7 +814,7 @@ void PacketAlertGetMaxConfig(void)
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "Invalid value for packet-alert-max, default value set instead");
         } else {
-            packet_alert_max = max;
+            packet_alert_max = (uint16_t)max;
         }
     }
     SCLogDebug("detect->packet_alert_max set to %d", packet_alert_max);
