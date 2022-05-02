@@ -377,7 +377,7 @@ static int DetectFragOffsetParseTest03 (void)
 static int DetectFragOffsetMatchTest01 (void)
 {
     int result = 0;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
@@ -386,7 +386,6 @@ static int DetectFragOffsetMatchTest01 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     IPV4Hdr ip4h;
 
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
