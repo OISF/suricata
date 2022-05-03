@@ -35,7 +35,7 @@ while IFS= read -r requirement; do
             rm -rf libhtp
             git clone "${repo}" -b "${branch}" libhtp
             ;;
-        \#)
+        \#*)
             # Ignore comment.
             ;;
         "")
