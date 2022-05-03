@@ -95,7 +95,14 @@ typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
     AppLayerParserFPtr Parser[2];
+
     bool logger;
+
+    /* Indicates the direction the parser is ready to see the data
+     * the first time for a flow.  Values accepted -
+     * STREAM_TOSERVER, STREAM_TOCLIENT */
+    uint8_t first_data_dir;
+
     uint32_t logger_bits;   /**< registered loggers for this proto */
 
     void *(*StateAlloc)(void *, AppProto);
@@ -128,11 +135,6 @@ typedef struct AppLayerParserProtoCtx_
 
     /* each app-layer has its own value */
     uint32_t stream_depth;
-
-    /* Indicates the direction the parser is ready to see the data
-     * the first time for a flow.  Values accepted -
-     * STREAM_TOSERVER, STREAM_TOCLIENT */
-    uint8_t first_data_dir;
 
     /* Option flags such as supporting gaps or not. */
     uint32_t option_flags;
