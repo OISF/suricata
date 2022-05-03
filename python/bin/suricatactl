@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2017 Open Information Security Foundation
+# Copyright (C) 2017-2022 Open Information Security Foundation
 #
 # You can copy, redistribute or modify this Program under the terms of
 # the GNU General Public License version 2 as published by the Free
@@ -26,13 +26,12 @@ if os.path.exists(os.path.join(exec_dir, "..", "suricata", "ctl", "main.py")):
     # Looks like we're running from the development directory.
     sys.path.insert(0, ".")
 else:
-    # This is to find the suricata module in the case of being installed
-    # to a non-standard prefix.
+    # Check if the Python modules are installed in the Suricata installation
+    # prefix.
     version_info = sys.version_info
     pyver = "%d.%d" % (version_info.major, version_info.minor)
-    path = os.path.join(
-        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
-        "suricata")
+    path = os.path.realpath(os.path.join(
+        exec_dir, "..", "lib", "suricata", "python", "suricata"))
     if os.path.exists(path):
         sys.path.insert(0, os.path.dirname(path))
 

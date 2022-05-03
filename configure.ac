@@ -117,42 +117,6 @@
        pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info[[0]]);')"
     fi
 
-    # Check for python-distutils (setup).
-    have_python_distutils="no"
-    if test "x$enable_python" = "xyes"; then
-        AC_MSG_CHECKING([for python-distutils])
-	if $HAVE_PYTHON -c "import distutils; from distutils.core import setup" 2>/dev/null; then
-	   AC_MSG_RESULT([yes])
-	   have_python_distutils="yes"
-	else
-	   AC_MSG_RESULT([no])
-	fi
-    fi
-    AM_CONDITIONAL([HAVE_PYTHON_DISTUTILS],
-	[test "x$have_python_distutils" = "xyes"])
-    if test "$have_python_distutils" = "no"; then
-       echo ""
-       echo "    Warning: Python distutils not found. Python tools will"
-       echo "        not be installed."
-       echo ""
-       echo "    Install the distutils module for Python ${pymv} to enable"
-       echo "    the Python tools."
-       echo ""
-    fi
-
-    # Check for python-yaml.
-    have_python_yaml="no"
-    if test "x$enable_python" = "xyes"; then
-        AC_MSG_CHECKING([for python-yaml])
-	if $HAVE_PYTHON -c "import yaml" 2>/dev/null; then
-	   have_python_yaml="yes"
-	   AC_MSG_RESULT([yes])
-	else
-	   AC_MSG_RESULT([no])
-	fi
-    fi
-    AM_CONDITIONAL([HAVE_PYTHON_YAML], [test "x$have_python_yaml" = "xyes"])
-
     AC_PATH_PROG(HAVE_WGET, wget, "no")
     if test "$HAVE_WGET" = "no"; then
         AC_PATH_PROG(HAVE_CURL, curl, "no")
@@ -1440,13 +1404,11 @@
     fi
 
     if test "$have_suricata_update" = "yes"; then
-        if test "$have_python_yaml" != "yes"; then
+        if test "$enable_python" != "yes"; then
 	    echo ""
-	    echo "    Warning: suricata-update will not be installed as the"
-	    echo "        Python yaml module is not installed.."
+	    echo "    Warning: suricata-update will not be installed as"
+	    echo "        Python is not installed."
 	    echo ""
-            echo "    Install the yaml module for Python ${pymv} to enable"
-            echo "    suricata-update."
 	    echo
 	else
             SURICATA_UPDATE_DIR="suricata-update"
@@ -1459,8 +1421,6 @@
     # Test to see if suricatactl (and suricatasc) can be installed.
     if test "x$enable_python" != "xyes"; then
         install_suricatactl="requires python"
-    elif test "x$have_python_distutils" != "xyes"; then
-        install_suricatactl="no, requires distutils"
     else
         install_suricatactl="yes"
     fi
@@ -1472,12 +1432,6 @@
     elif test "x$enable_python" != "xyes"; then
         install_suricata_update="no, "
         install_suricata_update_reason="requires python"
-    elif test "x$have_python_distutils" != "xyes"; then
-        install_suricata_update="no, "
-        install_suricata_update_reason="requires distutils"
-    elif test "x$have_python_yaml" != "xyes"; then
-        install_suricata_update="no, "
-        install_suricata_update_reason="requires pyyaml"
     else
         install_suricata_update="yes"
     fi
@@ -2569,8 +2523,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
-  Python distutils                         ${have_python_distutils}
-  Python yaml                              ${have_python_yaml}
   Install suricatactl:                     ${install_suricatactl}
   Install suricatasc:                      ${install_suricatactl}
   Install suricata-update:                 ${install_suricata_update}${install_suricata_update_reason}
