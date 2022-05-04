@@ -68,16 +68,22 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
         return NULL;
     }
 
-    if (strlen(de_ctx->config_prefix) > 0) {
+    /* If we have a configuration prefix, only use it if the primary configuration node
+     * is not marked as final, as that means it was provided on the command line with
+     * a --set. */
+    ConfNode *default_rule_path = ConfGetNode("default-rule-path");
+    if ((!default_rule_path || !default_rule_path->final) && strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.default-rule-path",
                 de_ctx->config_prefix);
-    } else {
-        snprintf(varname, sizeof(varname), "default-rule-path");
+        default_rule_path = ConfGetNode(varname);
+    }
+    if (default_rule_path) {
+        defaultpath = default_rule_path->val;
     }
 
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
-        if (ConfGet(varname, &defaultpath) == 1) {
+        if (defaultpath) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
@@ -93,7 +99,7 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
                 strlcat(path, "/", path_len);
 #endif
             strlcat(path, sig_file, path_len);
-       } else {
+        } else {
             path = SCStrdup(sig_file);
             if (unlikely(path == NULL))
                 return NULL;
