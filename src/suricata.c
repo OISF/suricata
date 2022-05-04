@@ -336,7 +336,7 @@ static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
 
 terminate:
     // Propagate signal to watchers, if any
-    kill(0, sig_num);
+    kill(getpid(), sig_num);
 }
 #undef UNW_LOCAL_ONLY
 #endif /* HAVE_LIBUNWIND */
