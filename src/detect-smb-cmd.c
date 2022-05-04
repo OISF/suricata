@@ -37,9 +37,7 @@ static void DetectSmbCmdFree(DetectEngineCtx *de_ctx, void *ptr)
 
     SCLogDebug("smb_cmd: DetectSmbCmdFree");
 
-    if (ptr != NULL) {
-        rs_smb_cmd_free(ptr);
-    }
+    rs_smb_cmd_free(ptr);
     SCReturn;
 }
 
