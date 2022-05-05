@@ -17,7 +17,7 @@ content is, and what buffer it is looking in. Generally, the longer
 and more varied the better. For full details on how Suricata
 determines the fast pattern match, see :doc:`fast-pattern-explained`.
 
-Sometimes a signature writer concludes he wants Suricata to use
+Sometimes a signature writer concludes they want Suricata to use
 another content than it does by default.
 
 For instance::
