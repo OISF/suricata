@@ -2515,7 +2515,7 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
         cfg_prec->request.inspect_window += (int)(cfg_prec->request.inspect_window *
                                                   ((double)r / RAND_MAX - 0.5) * rdrange / 100);
         SCLogConfig("'%s' server has 'request-body-minimal-inspect-size' set to"
-                  " %d and 'request-body-inspect-window' set to %d after"
+                  " %u and 'request-body-inspect-window' set to %u after"
                   " randomization.",
                   name,
                   cfg_prec->request.inspect_min_size,
@@ -2531,7 +2531,7 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
                                                    ((double)r / RAND_MAX - 0.5) * rdrange / 100);
 
         SCLogConfig("'%s' server has 'response-body-minimal-inspect-size' set to"
-                  " %d and 'response-body-inspect-window' set to %d after"
+                  " %u and 'response-body-inspect-window' set to %u after"
                   " randomization.",
                   name,
                   cfg_prec->response.inspect_min_size,
