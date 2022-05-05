@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Memcmp implementations for SSE3, SSE4.1, SSE4.2 and TILE-Gx SIMD.
+ * Memcmp implementations for SSE3, SSE4.1, SSE4.2.
  *
  * Both SCMemcmp and SCMemcmpLowercase return 0 on a exact match,
  * 1 on a failed match.
@@ -166,17 +166,8 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
         b2 = _mm_loadu_si128((const __m128i *) s2);
         c = _mm_cmpeq_epi8(b1, b2);
 
-        int diff = len - offset;
-        if (diff < 16) {
-            int rmask = ~(0xFFFFFFFF << diff);
-
-            if ((_mm_movemask_epi8(c) & rmask) != rmask) {
-                return 1;
-            }
-        } else {
-            if (_mm_movemask_epi8(c) != 0x0000FFFF) {
-                return 1;
-            }
+        if (_mm_movemask_epi8(c) != 0x0000FFFF) {
+            return 1;
         }
 
         offset += SCMEMCMP_BYTES;
@@ -227,17 +218,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
         mask1 = _mm_cmpeq_epi8(b1, b2);
 
-        int diff = len - offset;
-        if (diff < 16) {
-            int rmask = ~(0xFFFFFFFF << diff);
-
-            if ((_mm_movemask_epi8(mask1) & rmask) != rmask) {
-                return 1;
-            }
-        } else {
-            if (_mm_movemask_epi8(mask1) != 0x0000FFFF) {
-                return 1;
-            }
+        if (_mm_movemask_epi8(mask1) != 0x0000FFFF) {
+            return 1;
         }
 
         offset += SCMEMCMP_BYTES;
@@ -275,17 +257,8 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
         b2 = _mm_loadu_si128((const __m128i *) s2);
         c = _mm_cmpeq_epi8(b1, b2);
 
-        int diff = len - offset;
-        if (diff < 16) {
-            int rmask = ~(0xFFFFFFFF << diff);
-
-            if ((_mm_movemask_epi8(c) & rmask) != rmask) {
-                return 1;
-            }
-        } else {
-            if (_mm_movemask_epi8(c) != 0x0000FFFF) {
-                return 1;
-            }
+        if (_mm_movemask_epi8(c) != 0x0000FFFF) {
+            return 1;
         }
 
         offset += SCMEMCMP_BYTES;
@@ -338,17 +311,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
         mask1 = _mm_cmpeq_epi8(b1, b2);
 
-        int diff = len - offset;
-        if (diff < 16) {
-            int rmask = ~(0xFFFFFFFF << diff);
-
-            if ((_mm_movemask_epi8(mask1) & rmask) != rmask) {
-                return 1;
-            }
-        } else {
-            if (_mm_movemask_epi8(mask1) != 0x0000FFFF) {
-                return 1;
-            }
+        if (_mm_movemask_epi8(mask1) != 0x0000FFFF) {
+            return 1;
         }
 
         offset += SCMEMCMP_BYTES;
