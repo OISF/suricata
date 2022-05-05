@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use digest::Digest;
+use digest::{Digest, Update};
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
