@@ -16,6 +16,7 @@
  */
 
 use digest::Digest;
+use digest::Update;
 use md5::Md5;
 use nom7::branch::alt;
 use nom7::bytes::streaming::{is_not, tag, take};

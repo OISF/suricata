@@ -16,6 +16,7 @@
  */
 
 use digest::Digest;
+use digest::Update;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
