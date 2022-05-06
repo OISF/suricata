@@ -55,37 +55,30 @@ MemcmpLowercase(const void *s1, const void *s2, size_t n)
 }
 
 #if defined(__SSE4_2__)
-
 #include <nmmintrin.h>
-
-/* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
+#define SCMEMCMP_BYTES 16
 
 static inline int SCMemcmp(const void *s1, const void *s2, size_t n)
 {
-    __m128i b1, b2;
-
-    int r;
+    int r = 0;
     /* counter for how far we already matched in the buffer */
     size_t m = 0;
-
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(n - m < 16)) {
+        if (likely(n - m < SCMEMCMP_BYTES)) {
             return memcmp(s1, s2, n - m) ? 1 : 0;
         }
 
         /* load the buffers into the 128bit vars */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
+        __m128i b1 = _mm_loadu_si128((const __m128i *)s1);
+        __m128i b2 = _mm_loadu_si128((const __m128i *)s2);
 
-        /* do the actual compare */
-        m += (r = _mm_cmpestri(b1, n - m, b2, 16,
-                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
-
-        s1 += 16;
-        s2 += 16;
-    } while (r == 16);
+        /* do the actual compare: _mm_cmpestri() returns the number of matching bytes */
+        r = _mm_cmpestri(b1, SCMEMCMP_BYTES, b2, SCMEMCMP_BYTES,
+                _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY);
+        m += r;
+        s1 += SCMEMCMP_BYTES;
+        s2 += SCMEMCMP_BYTES;
+    } while (r == SCMEMCMP_BYTES);
 
     return ((m == n) ? 0 : 1);
 }
@@ -100,29 +93,23 @@ static char scmemcmp_uppercase[16] __attribute__((aligned(16))) = {
  */
 static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
 {
-    __m128i b1, b2, mask;
-
-    int r;
     /* counter for how far we already matched in the buffer */
     size_t m = 0;
-
+    int r = 0;
     __m128i ucase = _mm_load_si128((const __m128i *) scmemcmp_uppercase);
     __m128i uplow = _mm_set1_epi8(0x20);
 
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(n - m < 16)) {
-            return MemcmpLowercase(s1, s2, n - m);
+        const size_t len = n - m;
+        if (likely(len < SCMEMCMP_BYTES)) {
+            return MemcmpLowercase(s1, s2, len);
         }
 
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
-        size_t len = n - m;
-
+        __m128i b1 = _mm_loadu_si128((const __m128i *)s1);
+        __m128i b2 = _mm_loadu_si128((const __m128i *)s2);
         /* The first step is creating a mask that is FF for all uppercase
          * characters, 00 for all others */
-        mask = _mm_cmpestrm(ucase, 2, b2, len, _SIDD_CMP_RANGES | _SIDD_UNIT_MASK);
+        __m128i mask = _mm_cmpestrm(ucase, 2, b2, len, _SIDD_CMP_RANGES | _SIDD_UNIT_MASK);
         /* Next we use that mask to create a new: this one has 0x20 for
          * the uppercase chars, 00 for all other. */
         mask = _mm_and_si128(uplow, mask);
@@ -130,41 +117,33 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
          * uppercase to lowercase */
         b2 = _mm_add_epi8(b2, mask);
 
-        /* search using our converted buffer */
-        m += (r = _mm_cmpestri(b1, len, b2, 16,
-                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
-
-        s1 += 16;
-        s2 += 16;
-    } while (r == 16);
+        /* search using our converted buffer, return number of matching bytes */
+        r = _mm_cmpestri(b1, SCMEMCMP_BYTES, b2, SCMEMCMP_BYTES,
+                _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY);
+        m += r;
+        s1 += SCMEMCMP_BYTES;
+        s2 += SCMEMCMP_BYTES;
+    } while (r == SCMEMCMP_BYTES);
 
     return ((m == n) ? 0 : 1);
 }
 
 #elif defined(__SSE4_1__)
-
 #include <smmintrin.h>
-
 #define SCMEMCMP_BYTES  16
 
 static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
 {
     size_t offset = 0;
-    __m128i b1, b2, c;
-
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(len - offset < 16)) {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
             return memcmp(s1, s2, len - offset) ? 1 : 0;
         }
 
-        /* do unaligned loads using _mm_loadu_si128. On my Core2 E6600 using
-         * _mm_lddqu_si128 was about 2% slower even though it's supposed to
-         * be faster. */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
-        c = _mm_cmpeq_epi8(b1, b2);
+        /* unaligned loads */
+        __m128i b1 = _mm_loadu_si128((const __m128i *)s1);
+        __m128i b2 = _mm_loadu_si128((const __m128i *)s2);
+        __m128i c = _mm_cmpeq_epi8(b1, b2);
 
         if (_mm_movemask_epi8(c) != 0x0000FFFF) {
             return 1;
@@ -184,7 +163,7 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
 static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 {
     size_t offset = 0;
-    __m128i b1, b2, mask1, mask2, upper1, upper2, nulls, uplow;
+    __m128i b1, b2, mask1, mask2, upper1, upper2, uplow;
 
     /* setup registers for upper to lower conversion */
     upper1 = _mm_set1_epi8(UPPER_LOW);
@@ -192,9 +171,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     uplow = _mm_set1_epi8(0x20);
 
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(len - offset < 16)) {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
             return MemcmpLowercase(s1, s2, len - offset);
         }
 
@@ -211,10 +188,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         /* Next we use that mask to create a new: this one has 0x20 for
          * the uppercase chars, 00 for all other. */
         mask1 = _mm_and_si128(uplow, mask1);
-
         /* add to b2, converting uppercase to lowercase */
         b2 = _mm_add_epi8(b2, mask1);
-
         /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
         mask1 = _mm_cmpeq_epi8(b1, b2);
 
@@ -230,12 +205,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     return 0;
 }
 
-
-
 #elif defined(__SSE3__)
-
 #include <pmmintrin.h> /* for SSE3 */
-
 #define SCMEMCMP_BYTES  16
 
 static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
@@ -244,15 +215,11 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
     __m128i b1, b2, c;
 
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(len - offset < 16)) {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
             return memcmp(s1, s2, len - offset) ? 1 : 0;
         }
 
-        /* do unaligned loads using _mm_loadu_si128. On my Core2 E6600 using
-         * _mm_lddqu_si128 was about 2% slower even though it's supposed to
-         * be faster. */
+        /* unaligned loads */
         b1 = _mm_loadu_si128((const __m128i *) s1);
         b2 = _mm_loadu_si128((const __m128i *) s2);
         c = _mm_cmpeq_epi8(b1, b2);
@@ -284,9 +251,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     delta  = _mm_set1_epi8(UPPER_DELTA);
 
     do {
-        /* apparently we can't just read 16 bytes even though
-         * it almost always works fine :) */
-        if (likely(len - offset < 16)) {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
             return MemcmpLowercase(s1, s2, len - offset);
         }
 
@@ -300,11 +265,9 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         mask2 = _mm_cmplt_epi8(b2, upper2);
         /* merge the two, leaving only those that are true in both */
         mask1 = _mm_cmpeq_epi8(mask1, mask2);
-
         /* sub delta leaves 0x20 only for uppercase positions, the
            rest is 0x00 due to the saturation (reuse mask1 reg)*/
         mask1 = _mm_subs_epu8(mask1, delta);
-
         /* add to b2, converting uppercase to lowercase */
         b2 = _mm_add_epi8(b2, mask1);
 
