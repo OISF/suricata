@@ -107,7 +107,6 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
     size_t m = 0;
 
     __m128i ucase = _mm_load_si128((const __m128i *) scmemcmp_uppercase);
-    __m128i nulls = _mm_setzero_si128();
     __m128i uplow = _mm_set1_epi8(0x20);
 
     do {
@@ -126,7 +125,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
         mask = _mm_cmpestrm(ucase, 2, b2, len, _SIDD_CMP_RANGES | _SIDD_UNIT_MASK);
         /* Next we use that mask to create a new: this one has 0x20 for
          * the uppercase chars, 00 for all other. */
-        mask = _mm_blendv_epi8(nulls, uplow, mask);
+        mask = _mm_and_si128(uplow, mask);
         /* finally, merge the mask and the buffer converting the
          * uppercase to lowercase */
         b2 = _mm_add_epi8(b2, mask);
@@ -199,7 +198,6 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     /* setup registers for upper to lower conversion */
     upper1 = _mm_set1_epi8(UPPER_LOW);
     upper2 = _mm_set1_epi8(UPPER_HIGH);
-    nulls = _mm_setzero_si128();
     uplow = _mm_set1_epi8(0x20);
 
     do {
@@ -221,7 +219,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         mask1 = _mm_cmpeq_epi8(mask1, mask2);
         /* Next we use that mask to create a new: this one has 0x20 for
          * the uppercase chars, 00 for all other. */
-        mask1 = _mm_blendv_epi8(nulls, uplow, mask1);
+        mask1 = _mm_and_si128(uplow, mask1);
 
         /* add to b2, converting uppercase to lowercase */
         b2 = _mm_add_epi8(b2, mask1);
