@@ -894,6 +894,7 @@ static void PrintBuildInfo(void)
 int coverage_unittests;
 int g_ut_modules;
 int g_ut_covered;
+bool is_alert_queue_fail_mode;
 
 void RegisterAllModules(void)
 {
@@ -1280,6 +1281,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int conf_test = 0;
     int engine_analysis = 0;
     int ret = TM_ECODE_OK;
+    is_alert_queue_fail_mode = false;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1351,6 +1353,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"disable-alert-queue-expand", 0, 0, 0},
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1719,6 +1722,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            } else if (strcmp((long_opts[option_index]).name, "disable-alert-queue-expand") == 0) {
+                is_alert_queue_fail_mode = true;
+                SCLogInfo("Running Suricata with alert queue expansion disabled");
             }
             break;
         case 'c':

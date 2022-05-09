@@ -37,4 +37,6 @@ int PacketAlertCheck(Packet *, uint32_t);
 void PacketAlertTagInit(void);
 PacketAlert *PacketAlertGetTag(void);
 
+extern bool is_alert_queue_fail_mode;
+
 #endif /* __DETECT_ENGINE_ALERT_H__ */
