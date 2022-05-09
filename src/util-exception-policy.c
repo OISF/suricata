@@ -123,6 +123,7 @@ uint64_t g_eps_stream_ssn_memcap = UINT64_MAX;
 uint64_t g_eps_stream_reassembly_memcap = UINT64_MAX;
 uint64_t g_eps_flow_memcap = UINT64_MAX;
 uint64_t g_eps_defrag_memcap = UINT64_MAX;
+bool g_eps_is_alert_queue_fail_mode = false;
 
 /* 1: parsed, 0: not for us, -1: error */
 int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
@@ -176,6 +177,8 @@ int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
             return TM_ECODE_FAILED;
         }
         g_eps_defrag_memcap = pkt_num;
+    } else if (strcmp(name, "simulate-alert-queue-realloc-failure") == 0) {
+        g_eps_is_alert_queue_fail_mode = true;
     } else {
         // not for us
         return 0;
