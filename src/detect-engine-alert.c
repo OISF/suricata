@@ -266,7 +266,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
         /* we must grow the alert queue */
         if (pos == AlertQueueExpand(det_ctx)) {
             /* this means we failed to expand the queue */
-            det_ctx->p->alerts.discarded++;
+            p->alerts.discarded++;
             return;
         }
     }
