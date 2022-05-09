@@ -221,7 +221,10 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
 static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 {
     uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
-    void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
+    void *tmp_queue = NULL;
+    if (!is_alert_queue_fail_mode) {
+        tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
+    }
     if (unlikely(tmp_queue == NULL)) {
         /* queue capacity didn't change */
         return det_ctx->alert_queue_capacity;
