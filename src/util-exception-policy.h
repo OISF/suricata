@@ -43,6 +43,7 @@ extern uint64_t g_eps_stream_ssn_memcap;
 extern uint64_t g_eps_stream_reassembly_memcap;
 extern uint64_t g_eps_flow_memcap;
 extern uint64_t g_eps_defrag_memcap;
+extern bool g_eps_is_alert_queue_fail_mode;
 #endif
 
 int ExceptionSimulationCommandlineParser(const char *name, const char *arg);

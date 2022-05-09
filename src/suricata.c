@@ -1303,6 +1303,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"simulate-packet-tcp-reassembly-memcap", required_argument, 0, 0},
         {"simulate-packet-tcp-ssn-memcap", required_argument, 0, 0},
         {"simulate-packet-defrag-memcap", required_argument, 0, 0},
+        {"simulate-alert-queue-realloc-failure", 0, 0, 0},
 
         {NULL, 0, NULL, 0}
     };
