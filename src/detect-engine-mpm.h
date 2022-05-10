@@ -66,7 +66,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx);
 MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
 
 /**
- * \brief Figured out the FP and their respective content ids for all the
+ * \brief Figure out the FP and their respective content ids for all the
  *        sigs in the engine.
  *
  * \param de_ctx Detection engine context.
