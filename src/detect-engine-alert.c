@@ -172,9 +172,26 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
     }
 }
 
+/** \internal
+ */
+static inline PacketAlert PacketAlertSet(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, uint64_t tx_id, uint8_t alert_flags)
+{
+    PacketAlert pa;
+    pa.num = s->num;
+    pa.action = s->action;
+    pa.s = (Signature *)s;
+    pa.flags = alert_flags;
+    /* Set tx_id if the frame has it */
+    pa.tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
+    pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+    return pa;
+}
+
 /** \brief Apply action(s) and Set 'drop' sig info,
  *         if applicable */
-static void PacketApplySignatureActions(Packet *p, const Signature *s, const uint8_t alert_flags)
+static void PacketApplySignatureActions(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const uint8_t alert_flags)
 {
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, alert_flags);
@@ -182,9 +199,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
 
     if (s->action & ACTION_DROP) {
         if (p->alerts.drop.action == 0) {
-            p->alerts.drop.num = s->num;
-            p->alerts.drop.action = s->action;
-            p->alerts.drop.s = (Signature *)s;
+            p->alerts.drop = PacketAlertSet(det_ctx, s, 0, alert_flags);
         }
         if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(s->action, p->flow);
@@ -237,22 +252,6 @@ static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
             det_ctx->alert_queue_capacity,
             (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
     return new_cap;
-}
-
-/** \internal
- */
-static inline PacketAlert PacketAlertSet(
-        DetectEngineThreadCtx *det_ctx, const Signature *s, uint64_t tx_id, uint8_t alert_flags)
-{
-    PacketAlert pa;
-    pa.num = s->num;
-    pa.action = s->action;
-    pa.s = (Signature *)s;
-    pa.flags = alert_flags;
-    /* Set tx_id if the frame has it */
-    pa.tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
-    pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
-    return pa;
 }
 
 /**
@@ -369,7 +368,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     p, &det_ctx->alert_queue[i], s, det_ctx->alert_queue[i].flags);
 
             /* set actions on packet */
-            PacketApplySignatureActions(p, s, det_ctx->alert_queue[i].flags);
+            PacketApplySignatureActions(det_ctx, p, s, det_ctx->alert_queue[i].flags);
         }
 
         /* Thresholding removes this alert */
