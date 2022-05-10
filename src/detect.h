@@ -592,7 +592,7 @@ typedef struct Signature_ {
 #endif
 
     /** netblocks and hosts specified at the sid, in CIDR format */
-    IPOnlyCIDRItem *CidrSrc, *CidrDst;
+    IPOnlyCIDRItem *cidr_src, *cidr_dst;
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;
