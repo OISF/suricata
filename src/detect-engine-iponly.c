@@ -842,15 +842,15 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_SRC_ANY;
 
-            if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, (char *)"0.0.0.0/0") < 0)
                 goto error;
 
             if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"::/0") < 0)
                 goto error;
 
-            s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
+            s->cidr_src = IPOnlyCIDRItemInsert(s->cidr_src, tmp);
 
-        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, (char *)addrstr) < 0) {
             goto error;
         }
 
@@ -862,12 +862,12 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
             if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"0.0.0.0/0") < 0)
                 goto error;
 
-            if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)"::/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, (char *)"::/0") < 0)
                 goto error;
 
-            s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
+            s->cidr_dst = IPOnlyCIDRItemInsert(s->cidr_dst, tmp);
 
-        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, (char *)addrstr) < 0) {
             goto error;
         }
 
@@ -1562,23 +1562,23 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
         return;
 
     /* Set the internal signum to the list before merging */
-    IPOnlyCIDRListSetSigNum(s->CidrSrc, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_src, s->num);
 
-    IPOnlyCIDRListSetSigNum(s->CidrDst, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_dst, s->num);
 
     /**
      * ipv4 and ipv6 are mixed, but later we will separate them into
      * different trees
      */
-    io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->CidrSrc);
-    io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->CidrDst);
+    io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->cidr_src);
+    io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->cidr_dst);
 
     if (s->num > io_ctx->max_idx)
         io_ctx->max_idx = s->num;
 
     /** no longer ref to this, it's in the table now */
-    s->CidrSrc = NULL;
-    s->CidrDst = NULL;
+    s->cidr_src = NULL;
+    s->cidr_dst = NULL;
 }
 
 #ifdef UNITTESTS

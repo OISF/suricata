@@ -1391,11 +1391,11 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s == NULL)
         return;
 
-    if (s->CidrDst != NULL)
-        IPOnlyCIDRListFree(s->CidrDst);
+    if (s->cidr_dst != NULL)
+        IPOnlyCIDRListFree(s->cidr_dst);
 
-    if (s->CidrSrc != NULL)
-        IPOnlyCIDRListFree(s->CidrSrc);
+    if (s->cidr_src != NULL)
+        IPOnlyCIDRListFree(s->cidr_src);
 
     int i;
 
