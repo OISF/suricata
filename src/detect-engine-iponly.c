@@ -623,8 +623,8 @@ static void SigNumArrayFree(void *tmp)
  * \retval 0 if success
  * \retval -1 if fails
  */
-static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
-                                            char *s, int negate)
+static IPOnlyCIDRItem *IPOnlyCIDRListParse2(
+        const DetectEngineCtx *de_ctx, const char *s, int negate)
 {
     size_t x = 0;
     size_t u = 0;
@@ -799,8 +799,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx,
-                               IPOnlyCIDRItem **gh, char *str)
+static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx, IPOnlyCIDRItem **gh, const char *str)
 {
     SCLogDebug("gh %p, str %s", gh, str);
 
@@ -835,20 +834,13 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
                           Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
-    IPOnlyCIDRItem *tmp = NULL;
 
     /* pass on to the address(list) parser */
     if (flag == 0) {
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_SRC_ANY;
-
-            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, "[0.0.0.0/0,::/0]") < 0)
                 goto error;
-
-            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"::/0") < 0)
-                goto error;
-
-            s->cidr_src = IPOnlyCIDRItemInsert(s->cidr_src, tmp);
 
         } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, (char *)addrstr) < 0) {
             goto error;
@@ -858,14 +850,8 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
     } else {
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_DST_ANY;
-
-            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, "[0.0.0.0/0,::/0]") < 0)
                 goto error;
-
-            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, (char *)"::/0") < 0)
-                goto error;
-
-            s->cidr_dst = IPOnlyCIDRItemInsert(s->cidr_dst, tmp);
 
         } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, (char *)addrstr) < 0) {
             goto error;
