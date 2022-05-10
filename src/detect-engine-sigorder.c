@@ -776,7 +776,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
 /**
  * \brief Lets you register the Signature ordering functions.  The order in
- *        which the functions are registered, show the priority.  The first
+ *        which the functions are registered shows the priority.  The first
  *        function registered provides more priority than the function
  *        registered after it.  To add a new registration function, register
  *        it by listing it in the correct position in the below sequence,

@@ -2235,7 +2235,7 @@ static void PatternFreeFunc(void *ptr)
 }
 
 /**
- * \brief Figured out the FP and their respective content ids for all the
+ * \brief Figure out the FP and their respective content ids for all the
  *        sigs in the engine.
  *
  * \param de_ctx Detection engine context.
