@@ -217,6 +217,9 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6)  /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_IPONLY                 BIT_U32(7)  /**< ip only signature */
+#define SIG_FLAG_LIKE_IPONLY                                                                       \
+    BIT_U32(8) /**< signature that is almost ip only, but contains negation prevening some iponly  \
+                  optimizations */
 
 // vacancy
 

@@ -219,13 +219,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
-    /* if any of the addresses uses negation, we don't support
-     * it in ip-only */
-    if (s->init_data->src_contains_negation)
-        return 0;
-    if (s->init_data->dst_contains_negation)
-        return 0;
-
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         goto iponly;
@@ -242,12 +235,16 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     }
 
 iponly:
+    if (s->init_data->src_contains_negation || s->init_data->dst_contains_negation) {
+        /* Rule is IP only, but contains negated addresses. */
+        return SIG_FLAG_LIKE_IPONLY;
+    }
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
                    s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
                    s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     }
-    return 1;
+    return SIG_FLAG_IPONLY;
 }
 
 /** \internal
@@ -1319,13 +1316,15 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
 {
+    uint32_t flags = 0;
+
     /* see if the sig is dp only */
     if (SignatureIsPDOnly(de_ctx, s) == 1) {
         s->flags |= SIG_FLAG_PDONLY;
 
     /* see if the sig is ip only */
-    } else if (SignatureIsIPOnly(de_ctx, s) == 1) {
-        s->flags |= SIG_FLAG_IPONLY;
+    } else if ((flags = SignatureIsIPOnly(de_ctx, s)) > 0) {
+        s->flags |= flags;
 
     } else if (SignatureIsDEOnly(de_ctx, s) == 1) {
         s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
