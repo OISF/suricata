@@ -184,6 +184,7 @@ int SignatureIsFilesizeInspecting(const Signature *s)
  *  \param de_ctx detection engine ctx
  *  \param s the signature
  *  \retval 1 sig is ip only
+ *  \retval 2 sig is like ip only
  *  \retval 0 sig is not ip only
  */
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
@@ -218,13 +219,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
-    /* if any of the addresses uses negation, we don't support
-     * it in ip-only */
-    if (s->init_data->src_contains_negation)
-        return 0;
-    if (s->init_data->dst_contains_negation)
-        return 0;
-
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for (; sm != NULL; sm = sm->next) {
         if (!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
@@ -248,6 +242,10 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
 
+    if (s->init_data->src_contains_negation || s->init_data->dst_contains_negation) {
+        /* Rule is IP only, but contains negated addresses. */
+        return 2;
+    }
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
                    s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
@@ -1287,14 +1285,19 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
 {
+    int iponly = 0;
+
     /* see if the sig is dp only */
     if (SignatureIsPDOnly(de_ctx, s) == 1) {
         s->flags |= SIG_FLAG_PDONLY;
 
     /* see if the sig is ip only */
-    } else if (SignatureIsIPOnly(de_ctx, s) == 1) {
-        s->flags |= SIG_FLAG_IPONLY;
-
+    } else if ((iponly = SignatureIsIPOnly(de_ctx, s)) > 0) {
+        if (iponly == 1) {
+            s->flags |= SIG_FLAG_IPONLY;
+        } else if (iponly == 2) {
+            s->flags |= SIG_FLAG_LIKE_IPONLY;
+        }
     } else if (SignatureIsDEOnly(de_ctx, s) == 1) {
         s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
     }
