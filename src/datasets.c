@@ -319,7 +319,8 @@ static int DatasetLoadString(Dataset *set)
             SCLogDebug("line: '%s'", line);
 
             uint8_t decoded[strlen(line)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
+            uint32_t len =
+                    DecodeBase64(decoded, (const uint8_t *)line, strlen(line), BASE64_MODE_STRICT);
             if (len == 0)
                 FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
                         set->name, set->load);
@@ -335,7 +336,8 @@ static int DatasetLoadString(Dataset *set)
             *r = '\0';
 
             uint8_t decoded[strlen(line)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
+            uint32_t len =
+                    DecodeBase64(decoded, (const uint8_t *)line, strlen(line), BASE64_MODE_STRICT);
             if (len == 0)
                 FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
                         set->name, set->load);
@@ -1023,7 +1025,8 @@ int DatasetAddSerialized(Dataset *set, const char *string)
     switch (set->type) {
         case DATASET_TYPE_STRING: {
             uint8_t decoded[strlen(string)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
+            uint32_t len = DecodeBase64(
+                    decoded, (const uint8_t *)string, strlen(string), BASE64_MODE_STRICT);
             if (len == 0) {
                 return -2;
             }
@@ -1104,7 +1107,8 @@ int DatasetRemoveSerialized(Dataset *set, const char *string)
     switch (set->type) {
         case DATASET_TYPE_STRING: {
             uint8_t decoded[strlen(string)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
+            uint32_t len = DecodeBase64(
+                    decoded, (const uint8_t *)string, strlen(string), BASE64_MODE_STRICT);
             if (len == 0) {
                 return -2;
             }
