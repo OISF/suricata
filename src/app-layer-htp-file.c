@@ -333,11 +333,12 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     result = FileAppendData(files, data, data_len);
+    if (result <= -1 && result >= -2) {
+        retval = result;
+    }
+
     if (result == -1) {
         SCLogDebug("appending data failed");
-        retval = -1;
-    } else if (result == -2) {
-        retval = -2;
     }
 
 end:
@@ -415,10 +416,8 @@ int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t
     }
 
     result = FileCloseFile(files, data, data_len, flags);
-    if (result == -1) {
-        retval = -1;
-    } else if (result == -2) {
-        retval = -2;
+    if (result <= -1 && result >= -2) {
+        retval = result;
     }
 
     if (s->file_range != NULL) {
