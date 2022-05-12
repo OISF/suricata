@@ -1,0 +1,4853 @@
+{
+    "type": "object",
+    "properties": {
+        "app_proto": {
+            "type": "string",
+            "optional": true
+        },
+        "app_proto_expected": {
+            "type": "string"
+        },
+        "app_proto_orig": {
+            "type": "string"
+        },
+        "app_proto_tc": {
+            "type": "string"
+        },
+        "app_proto_ts": {
+            "type": "string"
+        },
+        "community_id": {
+            "type": "string"
+        },
+        "dest_ip": {
+            "type": "string",
+            "optional": true
+        },
+        "dest_port": {
+            "type": "integer",
+            "optional": true
+        },
+        "event_type": {
+            "type": "string",
+            "optional": false
+        },
+        "flow_id": {
+            "type": "integer",
+            "optional": true
+        },
+        "icmp_code": {
+            "type": "integer"
+        },
+        "icmp_type": {
+            "type": "integer"
+        },
+        "log_level": {
+            "type": "string"
+        },
+        "packet": {
+            "type": "string"
+        },
+        "parent_id": {
+            "type": "integer"
+        },
+        "payload": {
+            "type": "string"
+        },
+        "payload_printable": {
+            "type": "string"
+        },
+        "pcap_cnt": {
+            "type": "integer",
+            "optional": true
+        },
+        "pkt_src": {
+            "type": "string"
+        },
+        "proto": {
+            "type": "string",
+            "optional": true
+        },
+        "response_icmp_code": {
+            "type": "integer"
+        },
+        "response_icmp_type": {
+            "type": "integer"
+        },
+        "spi": {
+            "type": "integer"
+        },
+        "src_ip": {
+            "type": "string",
+            "optional": true
+        },
+        "src_port": {
+            "type": "integer",
+            "optional": true
+        },
+        "stream": {
+            "type": "integer"
+        },
+        "timestamp": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+[+\\-]\\d+$",
+            "optional": false
+        },
+        "tx_id": {
+            "type": "integer",
+            "optional": true
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "optional": true,
+                "properties": {
+                    "end": {
+                        "type": "integer"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "gaps": {
+                        "type": "boolean"
+                    },
+                    "md5": {
+                        "type": "string"
+                    },
+                    "sha1": {
+                        "type": "string"
+                    },
+                    "sha256": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    },
+                    "start": {
+                        "type": "integer"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "stored": {
+                        "type": "boolean"
+                    },
+                    "tx_id": {
+                        "type": "integer"
+                    },
+                    "sid": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "vlan": {
+            "type": "array",
+            "items": {
+                "type": "number"
+            }
+        },
+        "alert": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "gid": {
+                    "type": "integer"
+                },
+                "rev": {
+                    "type": "integer"
+                },
+                "rule": {
+                    "type": "string"
+                },
+                "severity": {
+                    "type": "integer"
+                },
+                "signature": {
+                    "type": "string"
+                },
+                "signature_id": {
+                    "type": "integer"
+                },
+                "xff": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "properties": {
+                        "affected_product": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "attack_target": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "created_at": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "deployment": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "signature_severity": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "tag": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "updated_at": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "source": {
+                    "type": "object",
+                    "properties": {
+                        "ip": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "target": {
+                    "type": "object",
+                    "properties": {
+                        "ip": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "anomaly": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "app_proto": {
+                    "type": "string"
+                },
+                "event": {
+                    "type": "string"
+                },
+                "layer": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "dcerpc": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "activityuuid": {
+                    "type": "string"
+                },
+                "call_id": {
+                    "type": "integer"
+                },
+                "request": {
+                    "type": "string"
+                },
+                "response": {
+                    "type": "string"
+                },
+                "rpc_version": {
+                    "type": "string"
+                },
+                "seqnum": {
+                    "type": "integer"
+                },
+                "interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ack_result": {
+                                "type": "integer"
+                            },
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "req": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "frag_cnt": {
+                            "type": "integer"
+                        },
+                        "opnum": {
+                            "type": "integer"
+                        },
+                        "stub_data_size": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "res": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "frag_cnt": {
+                            "type": "integer"
+                        },
+                        "stub_data_size": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "dhcp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "assigned_ip": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "client_mac": {
+                    "type": "string"
+                },
+                "dhcp_type": {
+                    "type": "string"
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lease_time": {
+                    "type": "integer"
+                },
+                "next_server_ip": {
+                    "type": "string"
+                },
+                "rebinding_time": {
+                    "type": "integer"
+                },
+                "relay_ip": {
+                    "type": "string"
+                },
+                "renewal_time": {
+                    "type": "integer"
+                },
+                "subnet_mask": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "dns_servers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "routers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "dnp3": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "dst": {
+                    "type": "integer"
+                },
+                "src": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "application": {
+                    "type": "object",
+                    "properties": {
+                        "complete": {
+                            "type": "boolean"
+                        },
+                        "function_code": {
+                            "type": "integer"
+                        },
+                        "objects": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "count": {
+                                        "type": "integer"
+                                    },
+                                    "group": {
+                                        "type": "integer"
+                                    },
+                                    "prefix_code": {
+                                        "type": "integer"
+                                    },
+                                    "qualifier": {
+                                        "type": "integer"
+                                    },
+                                    "range_code": {
+                                        "type": "integer"
+                                    },
+                                    "start": {
+                                        "type": "integer"
+                                    },
+                                    "stop": {
+                                        "type": "integer"
+                                    },
+                                    "variation": {
+                                        "type": "integer"
+                                    },
+                                    "points": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "control": {
+                            "type": "object",
+                            "properties": {
+                                "con": {
+                                    "type": "boolean"
+                                },
+                                "fin": {
+                                    "type": "boolean"
+                                },
+                                "fir": {
+                                    "type": "boolean"
+                                },
+                                "sequence": {
+                                    "type": "integer"
+                                },
+                                "uns": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "control": {
+                    "type": "object",
+                    "properties": {
+                        "dir": {
+                            "type": "boolean"
+                        },
+                        "fcb": {
+                            "type": "boolean"
+                        },
+                        "fcv": {
+                            "type": "boolean"
+                        },
+                        "function_code": {
+                            "type": "integer"
+                        },
+                        "pri": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "iin": {
+                    "type": "object",
+                    "properties": {
+                        "indicators": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "dst": {
+                            "type": "integer"
+                        },
+                        "src": {
+                            "type": "integer"
+                        },
+                        "type": {
+                            "type": "string"
+                        },
+                        "application": {
+                            "type": "object",
+                            "properties": {
+                                "complete": {
+                                    "type": "boolean"
+                                },
+                                "function_code": {
+                                    "type": "integer"
+                                },
+                                "objects": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "count": {
+                                                "type": "integer"
+                                            },
+                                            "group": {
+                                                "type": "integer"
+                                            },
+                                            "prefix_code": {
+                                                "type": "integer"
+                                            },
+                                            "qualifier": {
+                                                "type": "integer"
+                                            },
+                                            "range_code": {
+                                                "type": "integer"
+                                            },
+                                            "start": {
+                                                "type": "integer"
+                                            },
+                                            "stop": {
+                                                "type": "integer"
+                                            },
+                                            "variation": {
+                                                "type": "integer"
+                                            },
+                                            "points": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": true
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "control": {
+                                    "type": "object",
+                                    "properties": {
+                                        "con": {
+                                            "type": "boolean"
+                                        },
+                                        "fin": {
+                                            "type": "boolean"
+                                        },
+                                        "fir": {
+                                            "type": "boolean"
+                                        },
+                                        "sequence": {
+                                            "type": "integer"
+                                        },
+                                        "uns": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "control": {
+                            "type": "object",
+                            "properties": {
+                                "dir": {
+                                    "type": "boolean"
+                                },
+                                "fcb": {
+                                    "type": "boolean"
+                                },
+                                "fcv": {
+                                    "type": "boolean"
+                                },
+                                "function_code": {
+                                    "type": "integer"
+                                },
+                                "pri": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "dst": {
+                            "type": "integer"
+                        },
+                        "src": {
+                            "type": "integer"
+                        },
+                        "type": {
+                            "type": "string"
+                        },
+                        "application": {
+                            "type": "object",
+                            "properties": {
+                                "complete": {
+                                    "type": "boolean"
+                                },
+                                "function_code": {
+                                    "type": "integer"
+                                },
+                                "objects": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "count": {
+                                                "type": "integer"
+                                            },
+                                            "group": {
+                                                "type": "integer"
+                                            },
+                                            "prefix_code": {
+                                                "type": "integer"
+                                            },
+                                            "qualifier": {
+                                                "type": "integer"
+                                            },
+                                            "range_code": {
+                                                "type": "integer"
+                                            },
+                                            "start": {
+                                                "type": "integer"
+                                            },
+                                            "stop": {
+                                                "type": "integer"
+                                            },
+                                            "variation": {
+                                                "type": "integer"
+                                            },
+                                            "points": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": true
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "control": {
+                                    "type": "object",
+                                    "properties": {
+                                        "con": {
+                                            "type": "boolean"
+                                        },
+                                        "fin": {
+                                            "type": "boolean"
+                                        },
+                                        "fir": {
+                                            "type": "boolean"
+                                        },
+                                        "sequence": {
+                                            "type": "integer"
+                                        },
+                                        "uns": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "control": {
+                            "type": "object",
+                            "properties": {
+                                "dir": {
+                                    "type": "boolean"
+                                },
+                                "fcb": {
+                                    "type": "boolean"
+                                },
+                                "fcv": {
+                                    "type": "boolean"
+                                },
+                                "function_code": {
+                                    "type": "integer"
+                                },
+                                "pri": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "iin": {
+                            "type": "object",
+                            "properties": {
+                                "indicators": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "dns": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "aa": {
+                    "type": "boolean"
+                },
+                "flags": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "qr": {
+                    "type": "boolean"
+                },
+                "ra": {
+                    "type": "boolean"
+                },
+                "rcode": {
+                    "type": "string"
+                },
+                "rd": {
+                    "type": "boolean"
+                },
+                "rrname": {
+                    "type": "string"
+                },
+                "rrtype": {
+                    "type": "string"
+                },
+                "tx_id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "optional": true,
+                        "properties": {
+                            "rdata": {
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "rrtype": {
+                                "type": "string"
+                            },
+                            "ttl": {
+                                "type": "integer"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "type": "integer"
+                                    },
+                                    "priority": {
+                                        "type": "integer"
+                                    },
+                                    "weight": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "authorities": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "optional": true,
+                        "properties": {
+                            "rdata": {
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "rrtype": {
+                                "type": "string"
+                            },
+                            "ttl": {
+                                "type": "integer"
+                            },
+                            "soa": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "expire": {
+                                        "type": "integer"
+                                    },
+                                    "minimum": {
+                                        "type": "integer"
+                                    },
+                                    "mname": {
+                                        "type": "string"
+                                    },
+                                    "refresh": {
+                                        "type": "integer"
+                                    },
+                                    "retry": {
+                                        "type": "integer"
+                                    },
+                                    "rname": {
+                                        "type": "string"
+                                    },
+                                    "serial": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "query": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "optional": true,
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "rrtype": {
+                                "type": "string"
+                            },
+                            "tx_id": {
+                                "type": "integer"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "z": {
+                                "type": "boolean"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "answer": {
+                    "type": "object",
+                    "properties": {
+                        "flags": {
+                            "type": "string"
+                        },
+                        "id": {
+                            "type": "integer"
+                        },
+                        "qr": {
+                            "type": "boolean"
+                        },
+                        "ra": {
+                            "type": "boolean"
+                        },
+                        "rcode": {
+                            "type": "string"
+                        },
+                        "rd": {
+                            "type": "boolean"
+                        },
+                        "rrname": {
+                            "type": "string"
+                        },
+                        "rrtype": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "grouped": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "A": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "AAAA": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "CNAME": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "MX": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NULL": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "PTR": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "SRV": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "type": "integer"
+                                    },
+                                    "priority": {
+                                        "type": "integer"
+                                    },
+                                    "weight": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "TXT": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "z": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "drop": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "ack": {
+                    "type": "boolean"
+                },
+                "fin": {
+                    "type": "boolean"
+                },
+                "icmp_id": {
+                    "type": "integer"
+                },
+                "icmp_seq": {
+                    "type": "integer"
+                },
+                "ipid": {
+                    "type": "integer"
+                },
+                "len": {
+                    "type": "integer"
+                },
+                "psh": {
+                    "type": "boolean"
+                },
+                "rst": {
+                    "type": "boolean"
+                },
+                "syn": {
+                    "type": "boolean"
+                },
+                "tcpack": {
+                    "type": "integer"
+                },
+                "tcpres": {
+                    "type": "integer"
+                },
+                "tcpseq": {
+                    "type": "integer"
+                },
+                "tcpurgp": {
+                    "type": "integer"
+                },
+                "tcpwin": {
+                    "type": "integer"
+                },
+                "tos": {
+                    "type": "integer"
+                },
+                "ttl": {
+                    "type": "integer"
+                },
+                "urg": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "email": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "body_md5": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "subject_md5": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "attachment": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "engine": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "error_code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ether": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "dest_mac": {
+                    "type": "string"
+                },
+                "src_mac": {
+                    "type": "string"
+                },
+                "dest_macs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "src_macs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "fileinfo": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "file_id": {
+                    "type": "integer"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "gaps": {
+                    "type": "boolean"
+                },
+                "magic": {
+                    "type": "string"
+                },
+                "md5": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "sha256": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "stored": {
+                    "type": "boolean"
+                },
+                "tx_id": {
+                    "type": "integer"
+                },
+                "sid": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "flow": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "age": {
+                    "type": "integer"
+                },
+                "alerted": {
+                    "type": "boolean"
+                },
+                "bypass": {
+                    "type": "string"
+                },
+                "bypassed": {
+                    "type": "object",
+                    "optional": false,
+                    "properties": {
+                        "pkts_toserver": {
+                            "type": "integer"
+                        },
+                        "pkts_toclient": {
+                            "type": "integer"
+                        },
+                        "bytes_toserver": {
+                            "type": "integer"
+                        },
+                        "bytes_toclient": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperites": false
+                },
+                "bytes_toclient": {
+                    "type": "integer"
+                },
+                "bytes_toserver": {
+                    "type": "integer"
+                },
+                "end": {
+                    "type": "string"
+                },
+                "pkts_toclient": {
+                    "type": "integer"
+                },
+                "pkts_toserver": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "start": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "frame": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "stream_offset": {
+                    "type": "integer"
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "complete": {
+                    "type": "boolean"
+                },
+                "payload": {
+                    "type": "string"
+                },
+                "payload_printable": {
+                    "type": "string"
+                },
+                "tx_id": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ftp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "command_data": {
+                    "type": "string"
+                },
+                "command_truncated": {
+                    "type": "boolean"
+                },
+                "dynamic_port": {
+                    "type": "integer"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "reply_received": {
+                    "type": "string"
+                },
+                "reply_truncated": {
+                    "type": "boolean"
+                },
+                "completion_code": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "reply": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "ftp_data": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "http": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "hostname": {
+                    "type": "string"
+                },
+                "http_content_type": {
+                    "type": "string"
+                },
+                "http_method": {
+                    "type": "string"
+                },
+                "http_port": {
+                    "type": "integer"
+                },
+                "http_refer": {
+                    "type": "string"
+                },
+                "http_user_agent": {
+                    "type": "string"
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "redirect": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "xff": {
+                    "type": "string"
+                },
+                "request_headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "table_size_update": {
+                                "type": "integer"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "response_headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "table_size_update": {
+                                "type": "integer"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "content_range": {
+                    "type": "object",
+                    "properties": {
+                        "end": {
+                            "type": "integer"
+                        },
+                        "raw": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "integer"
+                        },
+                        "start": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "http2": {
+                    "type": "object",
+                    "properties": {
+                        "stream_id": {
+                            "type": "integer"
+                        },
+                        "request": {
+                            "type": "object",
+                            "properties": {
+                                "error_code": {
+                                    "type": "string"
+                                },
+                                "priority": {
+                                    "type": "integer"
+                                },
+                                "settings": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "settings_id": {
+                                                "type": "string"
+                                            },
+                                            "settings_value": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "response": {
+                            "type": "object",
+                            "properties": {
+                                "error_code": {
+                                    "type": "string"
+                                },
+                                "settings": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "settings_id": {
+                                                "type": "string"
+                                            },
+                                            "settings_value": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "http2": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "http_method": {
+                    "type": "string"
+                },
+                "http_user_agent": {
+                    "type": "string"
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "request_headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "table_size_update": {
+                                "type": "integer"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "response_headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "table_size_update": {
+                                "type": "integer"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "http2": {
+                    "type": "object",
+                    "properties": {
+                        "stream_id": {
+                            "type": "integer"
+                        },
+                        "request": {
+                            "type": "object",
+                            "properties": {
+                                "priority": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "response": {
+                            "type": "object",
+                            "properties": {
+                                "error_code": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "ike": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "alg_auth": {
+                    "type": "string"
+                },
+                "alg_auth_raw": {
+                    "type": "integer"
+                },
+                "alg_dh": {
+                    "type": "string"
+                },
+                "alg_dh_raw": {
+                    "type": "integer"
+                },
+                "alg_enc": {
+                    "type": "string"
+                },
+                "alg_enc_raw": {
+                    "type": "integer"
+                },
+                "alg_hash": {
+                    "type": "string"
+                },
+                "alg_hash_raw": {
+                    "type": "integer"
+                },
+                "exchange_type": {
+                    "type": "integer"
+                },
+                "exchange_type_verbose": {
+                    "type": "string"
+                },
+                "init_spi": {
+                    "type": "string"
+                },
+                "message_id": {
+                    "type": "integer"
+                },
+                "resp_spi": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "sa_key_length": {
+                    "type": "string"
+                },
+                "sa_key_length_raw": {
+                    "type": "integer"
+                },
+                "sa_life_duration": {
+                    "type": "string"
+                },
+                "sa_life_duration_raw": {
+                    "type": "integer"
+                },
+                "sa_life_type": {
+                    "type": "string"
+                },
+                "sa_life_type_raw": {
+                    "type": "integer"
+                },
+                "version_major": {
+                    "type": "integer"
+                },
+                "version_minor": {
+                    "type": "integer"
+                },
+                "payload": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ikev1": {
+                    "type": "object",
+                    "properties": {
+                        "doi": {
+                            "type": "integer"
+                        },
+                        "encrypted_payloads": {
+                            "type": "boolean"
+                        },
+                        "vendor_ids": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "client": {
+                            "type": "object",
+                            "properties": {
+                                "key_exchange_payload": {
+                                    "type": "string"
+                                },
+                                "key_exchange_payload_length": {
+                                    "type": "integer"
+                                },
+                                "nonce_payload": {
+                                    "type": "string"
+                                },
+                                "nonce_payload_length": {
+                                    "type": "integer"
+                                },
+                                "proposals": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "alg_auth": {
+                                                "type": "string"
+                                            },
+                                            "alg_auth_raw": {
+                                                "type": "integer"
+                                            },
+                                            "alg_dh": {
+                                                "type": "string"
+                                            },
+                                            "alg_dh_raw": {
+                                                "type": "integer"
+                                            },
+                                            "alg_enc": {
+                                                "type": "string"
+                                            },
+                                            "alg_enc_raw": {
+                                                "type": "integer"
+                                            },
+                                            "alg_hash": {
+                                                "type": "string"
+                                            },
+                                            "alg_hash_raw": {
+                                                "type": "integer"
+                                            },
+                                            "sa_key_length": {
+                                                "type": "string"
+                                            },
+                                            "sa_key_length_raw": {
+                                                "type": "integer"
+                                            },
+                                            "sa_life_duration": {
+                                                "type": "string"
+                                            },
+                                            "sa_life_duration_raw": {
+                                                "type": "integer"
+                                            },
+                                            "sa_life_type": {
+                                                "type": "string"
+                                            },
+                                            "sa_life_type_raw": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "server": {
+                            "type": "object",
+                            "properties": {
+                                "key_exchange_payload": {
+                                    "type": "string"
+                                },
+                                "key_exchange_payload_length": {
+                                    "type": "integer"
+                                },
+                                "nonce_payload": {
+                                    "type": "string"
+                                },
+                                "nonce_payload_length": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ikev2": {
+                    "type": "object",
+                    "properties": {
+                        "errors": {
+                            "type": "integer"
+                        },
+                        "notify": {
+                            "type": "array"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "krb5": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "cname": {
+                    "type": "string"
+                },
+                "encryption": {
+                    "type": "string"
+                },
+                "error_code": {
+                    "type": "string"
+                },
+                "failed_request": {
+                    "type": "string"
+                },
+                "msg_type": {
+                    "type": "string"
+                },
+                "realm": {
+                    "type": "string"
+                },
+                "sname": {
+                    "type": "string"
+                },
+                "weak_encryption": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "metadata": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "flowbits": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "flowvars": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "gid": {
+                                "type": "string"
+                            },
+                            "key": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "pktvars": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "uid": {
+                                "type": "string"
+                            },
+                            "username": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "flowints": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": false
+        },
+        "modbus": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "access_type": {
+                            "type": "string"
+                        },
+                        "category": {
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "string"
+                        },
+                        "error_flags": {
+                            "type": "string"
+                        },
+                        "function_code": {
+                            "type": "string"
+                        },
+                        "function_raw": {
+                            "type": "integer"
+                        },
+                        "protocol_id": {
+                            "type": "integer"
+                        },
+                        "transaction_id": {
+                            "type": "integer"
+                        },
+                        "unit_id": {
+                            "type": "integer"
+                        },
+                        "diagnostic": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "data": {
+                                    "type": "string"
+                                },
+                                "raw": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "mei": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "data": {
+                                    "type": "string"
+                                },
+                                "raw": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "read": {
+                            "type": "object",
+                            "properties": {
+                                "address": {
+                                    "type": "integer"
+                                },
+                                "quantity": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "write": {
+                            "type": "object",
+                            "properties": {
+                                "address": {
+                                    "type": "integer"
+                                },
+                                "data": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "access_type": {
+                            "type": "string"
+                        },
+                        "category": {
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "string"
+                        },
+                        "error_flags": {
+                            "type": "string"
+                        },
+                        "function_code": {
+                            "type": "string"
+                        },
+                        "function_raw": {
+                            "type": "integer"
+                        },
+                        "protocol_id": {
+                            "type": "integer"
+                        },
+                        "transaction_id": {
+                            "type": "integer"
+                        },
+                        "unit_id": {
+                            "type": "integer"
+                        },
+                        "diagnostic": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "data": {
+                                    "type": "string"
+                                },
+                                "raw": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "exception": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "raw": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "read": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "write": {
+                            "type": "object",
+                            "properties": {
+                                "address": {
+                                    "type": "integer"
+                                },
+                                "data": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "mqtt": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "connack": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "return_code": {
+                            "type": "integer"
+                        },
+                        "session_present": {
+                            "type": "boolean"
+                        },
+                        "properties": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "connect": {
+                    "type": "object",
+                    "properties": {
+                        "client_id": {
+                            "type": "string"
+                        },
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "password": {
+                            "type": "string"
+                        },
+                        "protocol_string": {
+                            "type": "string"
+                        },
+                        "protocol_version": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "username": {
+                            "type": "string"
+                        },
+                        "flags": {
+                            "type": "object",
+                            "properties": {
+                                "clean_session": {
+                                    "type": "boolean"
+                                },
+                                "password": {
+                                    "type": "boolean"
+                                },
+                                "username": {
+                                    "type": "boolean"
+                                },
+                                "will": {
+                                    "type": "boolean"
+                                },
+                                "will_retain": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "properties": {
+                            "type": "object",
+                            "additionalProperties": true
+                        },
+                        "will": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "topic": {
+                                    "type": "string"
+                                },
+                                "properties": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "disconnect": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "reason_code": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "properties": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "pingreq": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "pingresp": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "puback": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "reason_code": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "pubcomp": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "reason_code": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "publish": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "skipped_length": {
+                            "type": "integer"
+                        },
+                        "topic": {
+                            "type": "string"
+                        },
+                        "truncated": {
+                            "type": "boolean"
+                        },
+                        "properties": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "pubrec": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "reason_code": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "pubrel": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "reason_code": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "suback": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "qos_granted": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "subscribe": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "topics": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "qos": {
+                                        "type": "integer"
+                                    },
+                                    "topic": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "unsuback": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "reason_codes": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "unsubscribe": {
+                    "type": "object",
+                    "properties": {
+                        "dup": {
+                            "type": "boolean"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "qos": {
+                            "type": "integer"
+                        },
+                        "retain": {
+                            "type": "boolean"
+                        },
+                        "topics": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "netflow": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bytes": {
+                    "type": "integer"
+                },
+                "end": {
+                    "type": "string"
+                },
+                "max_ttl": {
+                    "type": "integer"
+                },
+                "min_ttl": {
+                    "type": "integer"
+                },
+                "pkts": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "nfs": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "file_tx": {
+                    "type": "boolean"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "hhash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "procedure": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "read": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "chunks": {
+                            "type": "integer"
+                        },
+                        "first": {
+                            "type": "boolean"
+                        },
+                        "last": {
+                            "type": "boolean"
+                        },
+                        "last_xid": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "rename": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "from": {
+                            "type": "string"
+                        },
+                        "to": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "write": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "chunks": {
+                            "type": "integer"
+                        },
+                        "first": {
+                            "type": "boolean"
+                        },
+                        "last": {
+                            "type": "boolean"
+                        },
+                        "last_xid": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "packet_info": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "linktype": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
+        "pgsql": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        },
+                        "password_message": {
+                            "type": "string"
+                        },
+                        "protocol_version": {
+                            "type": "string"
+                        },
+                        "sasl_authentication_mechanism": {
+                            "type": "string"
+                        },
+                        "sasl_param": {
+                            "type": "string"
+                        },
+                        "sasl_response": {
+                            "type": "string"
+                        },
+                        "simple_query": {
+                            "type": "string"
+                        },
+                        "startup_parameters": {
+                            "type": "object",
+                            "properties": {
+                                "database": {
+                                    "type": "string"
+                                },
+                                "optional_parameters": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "application_name": {
+                                                "type": "string"
+                                            },
+                                            "client_encoding": {
+                                                "type": "string"
+                                            },
+                                            "replication": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "user": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "authentication_md5_password": {
+                            "type": "string"
+                        },
+                        "authentication_sasl_final": {
+                            "type": "string"
+                        },
+                        "code": {
+                            "type": "string"
+                        },
+                        "command_completed": {
+                            "type": "string"
+                        },
+                        "data_rows": {
+                            "type": "integer"
+                        },
+                        "data_size": {
+                            "type": "integer"
+                        },
+                        "field_count": {
+                            "type": "integer"
+                        },
+                        "file": {
+                            "type": "string"
+                        },
+                        "line": {
+                            "type": "string"
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "parameter_status": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "application_name": {
+                                        "type": "string"
+                                    },
+                                    "client_encoding": {
+                                        "type": "string"
+                                    },
+                                    "date_style": {
+                                        "type": "string"
+                                    },
+                                    "integer_datetimes": {
+                                        "type": "string"
+                                    },
+                                    "interval_style": {
+                                        "type": "string"
+                                    },
+                                    "is_superuser": {
+                                        "type": "string"
+                                    },
+                                    "server_encoding": {
+                                        "type": "string"
+                                    },
+                                    "server_version": {
+                                        "type": "string"
+                                    },
+                                    "session_authorization": {
+                                        "type": "string"
+                                    },
+                                    "standard_conforming_strings": {
+                                        "type": "string"
+                                    },
+                                    "time_zone": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "process_id": {
+                            "type": "integer"
+                        },
+                        "routine": {
+                            "type": "string"
+                        },
+                        "secret_key": {
+                            "type": "integer"
+                        },
+                        "severity_localizable": {
+                            "type": "string"
+                        },
+                        "severity_non_localizable": {
+                            "type": "string"
+                        },
+                        "ssl_accepted": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "tx_id": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
+        "quic": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "cyu": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "hash": {
+                                "type": "string"
+                            },
+                            "string": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "sni": {
+                    "type": "string"
+                },
+                "ua": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "rdp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "cookie": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
+                "tx_id": {
+                    "type": "integer"
+                },
+                "channels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "client": {
+                    "type": "object",
+                    "properties": {
+                        "build": {
+                            "type": "string"
+                        },
+                        "client_name": {
+                            "type": "string"
+                        },
+                        "color_depth": {
+                            "type": "integer"
+                        },
+                        "desktop_height": {
+                            "type": "integer"
+                        },
+                        "desktop_width": {
+                            "type": "integer"
+                        },
+                        "function_keys": {
+                            "type": "integer"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "keyboard_layout": {
+                            "type": "string"
+                        },
+                        "keyboard_type": {
+                            "type": "string"
+                        },
+                        "product_id": {
+                            "type": "integer"
+                        },
+                        "version": {
+                            "type": "string"
+                        },
+                        "capabilities": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "rfb": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "screen_shared": {
+                    "type": "boolean"
+                },
+                "authentication": {
+                    "type": "object",
+                    "properties": {
+                        "security_result": {
+                            "type": "string"
+                        },
+                        "security_type": {
+                            "type": "integer"
+                        },
+                        "vnc": {
+                            "type": "object",
+                            "properties": {
+                                "challenge": {
+                                    "type": "string"
+                                },
+                                "response": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "client_protocol_version": {
+                    "type": "object",
+                    "properties": {
+                        "major": {
+                            "type": "string"
+                        },
+                        "minor": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "framebuffer": {
+                    "type": "object",
+                    "properties": {
+                        "height": {
+                            "type": "integer"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "width": {
+                            "type": "integer"
+                        },
+                        "pixel_format": {
+                            "type": "object",
+                            "properties": {
+                                "big_endian": {
+                                    "type": "boolean"
+                                },
+                                "bits_per_pixel": {
+                                    "type": "integer"
+                                },
+                                "blue_max": {
+                                    "type": "integer"
+                                },
+                                "blue_shift": {
+                                    "type": "integer"
+                                },
+                                "depth": {
+                                    "type": "integer"
+                                },
+                                "green_max": {
+                                    "type": "integer"
+                                },
+                                "green_shift": {
+                                    "type": "integer"
+                                },
+                                "red_max": {
+                                    "type": "integer"
+                                },
+                                "red_shift": {
+                                    "type": "integer"
+                                },
+                                "true_color": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "server_protocol_version": {
+                    "type": "object",
+                    "properties": {
+                        "major": {
+                            "type": "string"
+                        },
+                        "minor": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "rpc": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "auth_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "xid": {
+                    "type": "integer"
+                },
+                "creds": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "gid": {
+                            "type": "integer"
+                        },
+                        "machine_name": {
+                            "type": "string"
+                        },
+                        "uid": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "sip": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "request_line": {
+                    "type": "string"
+                },
+                "response_line": {
+                    "type": "string"
+                },
+                "uri": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "smb": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "access": {
+                    "type": "string"
+                },
+                "accessed": {
+                    "type": "integer"
+                },
+                "changed": {
+                    "type": "integer"
+                },
+                "client_guid": {
+                    "type": "string"
+                },
+                "command": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "dialect": {
+                    "type": "string"
+                },
+                "directory": {
+                    "type": "string"
+                },
+                "disposition": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "fuid": {
+                    "type": "string"
+                },
+                "function": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "max_read_size": {
+                    "type": "integer"
+                },
+                "max_write_size": {
+                    "type": "integer"
+                },
+                "modified": {
+                    "type": "integer"
+                },
+                "named_pipe": {
+                    "type": "string"
+                },
+                "request_done": {
+                    "type": "boolean"
+                },
+                "response_done": {
+                    "type": "boolean"
+                },
+                "server_guid": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "integer"
+                },
+                "share": {
+                    "type": "string"
+                },
+                "share_type": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "string"
+                },
+                "tree_id": {
+                    "type": "integer"
+                },
+                "client_dialects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dcerpc": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "call_id": {
+                            "type": "integer"
+                        },
+                        "opnum": {
+                            "type": "integer"
+                        },
+                        "request": {
+                            "type": "string"
+                        },
+                        "response": {
+                            "type": "string"
+                        },
+                        "interfaces": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "ack_reason": {
+                                        "type": "integer"
+                                    },
+                                    "ack_result": {
+                                        "type": "integer"
+                                    },
+                                    "uuid": {
+                                        "type": "string"
+                                    },
+                                    "version": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "req": {
+                            "type": "object",
+                            "optional": true,
+                            "properties": {
+                                "frag_cnt": {
+                                    "type": "integer"
+                                },
+                                "stub_data_size": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "res": {
+                            "type": "object",
+                            "optional": true,
+                            "properties": {
+                                "frag_cnt": {
+                                    "type": "integer"
+                                },
+                                "stub_data_size": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "kerberos": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "realm": {
+                            "type": "string"
+                        },
+                        "snames": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ntlmssp": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "domain": {
+                            "type": "string"
+                        },
+                        "host": {
+                            "type": "string"
+                        },
+                        "user": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "request": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "native_lm": {
+                            "type": "string"
+                        },
+                        "native_os": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "native_lm": {
+                            "type": "string"
+                        },
+                        "native_os": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "service": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "request": {
+                            "type": "string"
+                        },
+                        "response": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "smtp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "helo": {
+                    "type": "string"
+                },
+                "mail_from": {
+                    "type": "string"
+                },
+                "rcpt_to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "snmp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "community": {
+                    "type": "string"
+                },
+                "pdu_type": {
+                    "type": "string"
+                },
+                "usm": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "vars": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "ssh": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "client": {
+                    "type": "object",
+                    "properties": {
+                        "proto_version": {
+                            "type": "string"
+                        },
+                        "software_version": {
+                            "type": "string"
+                        },
+                        "hassh": {
+                            "type": "object",
+                            "properties": {
+                                "hash": {
+                                    "type": "string"
+                                },
+                                "string": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "server": {
+                    "type": "object",
+                    "properties": {
+                        "proto_version": {
+                            "type": "string"
+                        },
+                        "software_version": {
+                            "type": "string"
+                        },
+                        "hassh": {
+                            "type": "object",
+                            "properties": {
+                                "hash": {
+                                    "type": "string"
+                                },
+                                "string": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "stats": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "uptime": {
+                    "type": "integer"
+                },
+                "app_layer": {
+                    "type": "object",
+                    "properties": {
+                        "expectations": {
+                            "type": "integer"
+                        },
+                        "error": {
+                            "type": "object",
+                            "properties": {
+                                "dcerpc_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "dcerpc_udp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "dhcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "dnp3": { "$ref": "#/$defs/stats_applayer_error" },
+                                "dns_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "dns_udp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "enip_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "enip_udp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "failed_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "ftp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "ftp-data": { "$ref": "#/$defs/stats_applayer_error" },
+                                "http": { "$ref": "#/$defs/stats_applayer_error" },
+                                "http2": { "$ref": "#/$defs/stats_applayer_error" },
+                                "ike": { "$ref": "#/$defs/stats_applayer_error" },
+                                "imap": { "$ref": "#/$defs/stats_applayer_error" },
+                                "krb5_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "krb5_udp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "mqtt": { "$ref": "#/$defs/stats_applayer_error" },
+                                "nfs_tcp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "nfs_udp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "ntp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "pgsql": { "$ref": "#/$defs/stats_applayer_error" },
+                                "quic": { "$ref": "#/$defs/stats_applayer_error" },
+                                "rdp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "rfb": { "$ref": "#/$defs/stats_applayer_error" },
+                                "sip": { "$ref": "#/$defs/stats_applayer_error" },
+                                "smb": { "$ref": "#/$defs/stats_applayer_error" },
+                                "smtp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "snmp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "ssh": { "$ref": "#/$defs/stats_applayer_error" },
+                                "telnet": { "$ref": "#/$defs/stats_applayer_error" },
+                                "tftp": { "$ref": "#/$defs/stats_applayer_error" },
+                                "tls": { "$ref": "#/$defs/stats_applayer_error" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "flow": {
+                            "type": "object",
+                            "properties": {
+                                "dcerpc_tcp": {
+                                    "type": "integer"
+                                },
+                                "dcerpc_udp": {
+                                    "type": "integer"
+                                },
+                                "dhcp": {
+                                    "type": "integer"
+                                },
+                                "dnp3": {
+                                    "type": "integer"
+                                },
+                                "dns_tcp": {
+                                    "type": "integer"
+                                },
+                                "dns_udp": {
+                                    "type": "integer"
+                                },
+                                "enip_tcp": {
+                                    "type": "integer"
+                                },
+                                "enip_udp": {
+                                    "type": "integer"
+                                },
+                                "failed_tcp": {
+                                    "type": "integer"
+                                },
+                                "failed_udp": {
+                                    "type": "integer"
+                                },
+                                "ftp": {
+                                    "type": "integer"
+                                },
+                                "ftp-data": {
+                                    "type": "integer"
+                                },
+                                "http": {
+                                    "type": "integer"
+                                },
+                                "http2": {
+                                    "type": "integer"
+                                },
+                                "ike": {
+                                    "type": "integer"
+                                },
+                                "ikev2": {
+                                    "type": "integer"
+                                },
+                                "imap": {
+                                    "type": "integer"
+                                },
+                                "krb5_tcp": {
+                                    "type": "integer"
+                                },
+                                "krb5_udp": {
+                                    "type": "integer"
+                                },
+                                "modbus": {
+                                    "type": "integer"
+                                },
+                                "mqtt": {
+                                    "type": "integer"
+                                },
+                                "nfs_tcp": {
+                                    "type": "integer"
+                                },
+                                "nfs_udp": {
+                                    "type": "integer"
+                                },
+                                "ntp": {
+                                    "type": "integer"
+                                },
+                                "pgsql": {
+                                    "type": "integer"
+                                },
+                                "quic": {
+                                    "type": "integer"
+                                },
+                                "rdp": {
+                                    "type": "integer"
+                                },
+                                "rfb": {
+                                    "type": "integer"
+                                },
+                                "sip": {
+                                    "type": "integer"
+                                },
+                                "smb": {
+                                    "type": "integer"
+                                },
+                                "smtp": {
+                                    "type": "integer"
+                                },
+                                "snmp": {
+                                    "type": "integer"
+                                },
+                                "ssh": {
+                                    "type": "integer"
+                                },
+                                "telnet": {
+                                    "type": "integer"
+                                },
+                                "tftp": {
+                                    "type": "integer"
+                                },
+                                "tls": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "tx": {
+                            "type": "object",
+                            "properties": {
+                                "dcerpc_tcp": {
+                                    "type": "integer"
+                                },
+                                "dcerpc_udp": {
+                                    "type": "integer"
+                                },
+                                "dhcp": {
+                                    "type": "integer"
+                                },
+                                "dnp3": {
+                                    "type": "integer"
+                                },
+                                "dns_tcp": {
+                                    "type": "integer"
+                                },
+                                "dns_udp": {
+                                    "type": "integer"
+                                },
+                                "enip_tcp": {
+                                    "type": "integer"
+                                },
+                                "enip_udp": {
+                                    "type": "integer"
+                                },
+                                "ftp": {
+                                    "type": "integer"
+                                },
+                                "ftp-data": {
+                                    "type": "integer"
+                                },
+                                "http": {
+                                    "type": "integer"
+                                },
+                                "http2": {
+                                    "type": "integer"
+                                },
+                                "ike": {
+                                    "type": "integer"
+                                },
+                                "ikev2": {
+                                    "type": "integer"
+                                },
+                                "imap": {
+                                    "type": "integer"
+                                },
+                                "krb5_tcp": {
+                                    "type": "integer"
+                                },
+                                "krb5_udp": {
+                                    "type": "integer"
+                                },
+                                "modbus": {
+                                    "type": "integer"
+                                },
+                                "mqtt": {
+                                    "type": "integer"
+                                },
+                                "nfs_tcp": {
+                                    "type": "integer"
+                                },
+                                "nfs_udp": {
+                                    "type": "integer"
+                                },
+                                "ntp": {
+                                    "type": "integer"
+                                },
+                                "pgsql": {
+                                    "type": "integer"
+                                },
+                                "quic": {
+                                    "type": "integer"
+                                },
+                                "rdp": {
+                                    "type": "integer"
+                                },
+                                "rfb": {
+                                    "type": "integer"
+                                },
+                                "sip": {
+                                    "type": "integer"
+                                },
+                                "smb": {
+                                    "type": "integer"
+                                },
+                                "smtp": {
+                                    "type": "integer"
+                                },
+                                "snmp": {
+                                    "type": "integer"
+                                },
+                                "ssh": {
+                                    "type": "integer"
+                                },
+                                "telnet": {
+                                    "type": "integer"
+                                },
+                                "tftp": {
+                                    "type": "integer"
+                                },
+                                "tls": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "decoder": {
+                    "type": "object",
+                    "properties": {
+                        "avg_pkt_size": {
+                            "type": "integer"
+                        },
+                        "bytes": {
+                            "type": "integer"
+                        },
+                        "chdlc": {
+                            "type": "integer"
+                        },
+                        "erspan": {
+                            "type": "integer"
+                        },
+                        "esp": {
+                            "type": "integer"
+                        },
+                        "ethernet": {
+                            "type": "integer"
+                        },
+                        "geneve": {
+                            "type": "integer"
+                        },
+                        "gre": {
+                            "type": "integer"
+                        },
+                        "icmpv4": {
+                            "type": "integer"
+                        },
+                        "icmpv6": {
+                            "type": "integer"
+                        },
+                        "ieee8021ah": {
+                            "type": "integer"
+                        },
+                        "invalid": {
+                            "type": "integer"
+                        },
+                        "ipv4": {
+                            "type": "integer"
+                        },
+                        "ipv4_in_ipv6": {
+                            "type": "integer"
+                        },
+                        "ipv6": {
+                            "type": "integer"
+                        },
+                        "ipv6_in_ipv6": {
+                            "type": "integer"
+                        },
+                        "max_mac_addrs_dst": {
+                            "type": "integer"
+                        },
+                        "max_mac_addrs_src": {
+                            "type": "integer"
+                        },
+                        "max_pkt_size": {
+                            "type": "integer"
+                        },
+                        "mpls": {
+                            "type": "integer"
+                        },
+                        "nsh": {
+                            "type": "integer"
+                        },
+                        "null": {
+                            "type": "integer"
+                        },
+                        "pkts": {
+                            "type": "integer"
+                        },
+                        "ppp": {
+                            "type": "integer"
+                        },
+                        "pppoe": {
+                            "type": "integer"
+                        },
+                        "raw": {
+                            "type": "integer"
+                        },
+                        "sctp": {
+                            "type": "integer"
+                        },
+                        "sll": {
+                            "type": "integer"
+                        },
+                        "tcp": {
+                            "type": "integer"
+                        },
+                        "teredo": {
+                            "type": "integer"
+                        },
+                        "too_many_layers": {
+                            "type": "integer"
+                        },
+                        "udp": {
+                            "type": "integer"
+                        },
+                        "vlan": {
+                            "type": "integer"
+                        },
+                        "vlan_qinq": {
+                            "type": "integer"
+                        },
+                        "vntag": {
+                            "type": "integer"
+                        },
+                        "vxlan": {
+                            "type": "integer"
+                        },
+                        "event": {
+                            "type": "object",
+                            "properties": {
+                                "chdlc": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "dce": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "erspan": {
+                                    "type": "object",
+                                    "properties": {
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "too_many_vlan_layers": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_version": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "esp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ethernet": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "geneve": {
+                                    "type": "object",
+                                    "properties": {
+                                        "unknown_payload_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "gre": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "version0_flags": {
+                                            "type": "integer"
+                                        },
+                                        "version0_hdr_too_big": {
+                                            "type": "integer"
+                                        },
+                                        "version0_malformed_sre_hdr": {
+                                            "type": "integer"
+                                        },
+                                        "version0_recur": {
+                                            "type": "integer"
+                                        },
+                                        "version1_chksum": {
+                                            "type": "integer"
+                                        },
+                                        "version1_flags": {
+                                            "type": "integer"
+                                        },
+                                        "version1_hdr_too_big": {
+                                            "type": "integer"
+                                        },
+                                        "version1_malformed_sre_hdr": {
+                                            "type": "integer"
+                                        },
+                                        "version1_no_key": {
+                                            "type": "integer"
+                                        },
+                                        "version1_recur": {
+                                            "type": "integer"
+                                        },
+                                        "version1_route": {
+                                            "type": "integer"
+                                        },
+                                        "version1_ssr": {
+                                            "type": "integer"
+                                        },
+                                        "version1_wrong_protocol": {
+                                            "type": "integer"
+                                        },
+                                        "wrong_version": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "icmpv4": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ipv4_trunc_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "ipv4_unknown_ver": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_code": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "icmpv6": {
+                                    "type": "object",
+                                    "properties": {
+                                        "experimentation_type": {
+                                            "type": "integer"
+                                        },
+                                        "ipv6_trunc_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "ipv6_unknown_version": {
+                                            "type": "integer"
+                                        },
+                                        "mld_message_with_invalid_hl": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unassigned_type": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_code": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ieee8021ah": {
+                                    "type": "object",
+                                    "properties": {
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ipraw": {
+                                    "type": "object",
+                                    "properties": {
+                                        "invalid_ip_version": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ipv4": {
+                                    "type": "object",
+                                    "properties": {
+                                        "frag_ignored": {
+                                            "type": "integer"
+                                        },
+                                        "frag_overlap": {
+                                            "type": "integer"
+                                        },
+                                        "frag_pkt_too_large": {
+                                            "type": "integer"
+                                        },
+                                        "hlen_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "icmpv6": {
+                                            "type": "integer"
+                                        },
+                                        "iplen_smaller_than_hlen": {
+                                            "type": "integer"
+                                        },
+                                        "opt_duplicate": {
+                                            "type": "integer"
+                                        },
+                                        "opt_eol_required": {
+                                            "type": "integer"
+                                        },
+                                        "opt_invalid": {
+                                            "type": "integer"
+                                        },
+                                        "opt_invalid_len": {
+                                            "type": "integer"
+                                        },
+                                        "opt_malformed": {
+                                            "type": "integer"
+                                        },
+                                        "opt_pad_required": {
+                                            "type": "integer"
+                                        },
+                                        "opt_unknown": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "trunc_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "wrong_ip_version": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ipv6": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data_after_none_header": {
+                                            "type": "integer"
+                                        },
+                                        "dstopts_only_padding": {
+                                            "type": "integer"
+                                        },
+                                        "dstopts_unknown_opt": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_ah_res_not_null": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_ah": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_dh": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_eh": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_fh": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_hh": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_dupl_rh": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_invalid_optlen": {
+                                            "type": "integer"
+                                        },
+                                        "exthdr_useless_fh": {
+                                            "type": "integer"
+                                        },
+                                        "fh_non_zero_reserved_field": {
+                                            "type": "integer"
+                                        },
+                                        "frag_ignored": {
+                                            "type": "integer"
+                                        },
+                                        "frag_invalid_length": {
+                                            "type": "integer"
+                                        },
+                                        "frag_overlap": {
+                                            "type": "integer"
+                                        },
+                                        "frag_pkt_too_large": {
+                                            "type": "integer"
+                                        },
+                                        "hopopts_only_padding": {
+                                            "type": "integer"
+                                        },
+                                        "hopopts_unknown_opt": {
+                                            "type": "integer"
+                                        },
+                                        "icmpv4": {
+                                            "type": "integer"
+                                        },
+                                        "ipv4_in_ipv6_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "ipv4_in_ipv6_wrong_version": {
+                                            "type": "integer"
+                                        },
+                                        "ipv6_in_ipv6_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "ipv6_in_ipv6_wrong_version": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "rh_type_0": {
+                                            "type": "integer"
+                                        },
+                                        "trunc_exthdr": {
+                                            "type": "integer"
+                                        },
+                                        "trunc_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_next_header": {
+                                            "type": "integer"
+                                        },
+                                        "wrong_ip_version": {
+                                            "type": "integer"
+                                        },
+                                        "zero_len_padn": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ltnull": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "mpls": {
+                                    "type": "object",
+                                    "properties": {
+                                        "bad_label_implicit_null": {
+                                            "type": "integer"
+                                        },
+                                        "bad_label_reserved": {
+                                            "type": "integer"
+                                        },
+                                        "bad_label_router_alert": {
+                                            "type": "integer"
+                                        },
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_payload_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "nsh": {
+                                    "type": "object",
+                                    "properties": {
+                                        "bad_header_length": {
+                                            "type": "integer"
+                                        },
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "reserved_type": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_payload": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_type": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_version": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "ppp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ip4_pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "ip6_pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unsup_proto": {
+                                            "type": "integer"
+                                        },
+                                        "vju_pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "wrong_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "pppoe": {
+                                    "type": "object",
+                                    "properties": {
+                                        "malformed_tags": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "wrong_code": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "sctp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "sll": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "tcp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "hlen_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "invalid_optlen": {
+                                            "type": "integer"
+                                        },
+                                        "opt_duplicate": {
+                                            "type": "integer"
+                                        },
+                                        "opt_invalid_len": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "udp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "hlen_invalid": {
+                                            "type": "integer"
+                                        },
+                                        "hlen_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "vlan": {
+                                    "type": "object",
+                                    "properties": {
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "too_many_layers": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "vntag": {
+                                    "type": "object",
+                                    "properties": {
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "vxlan": {
+                                    "type": "object",
+                                    "properties": {
+                                        "unknown_payload_type": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "defrag": {
+                    "type": "object",
+                    "properties": {
+                        "max_frag_hits": {
+                            "type": "integer"
+                        },
+                        "ipv4": {
+                            "type": "object",
+                            "properties": {
+                                "fragments": {
+                                    "type": "integer"
+                                },
+                                "reassembled": {
+                                    "type": "integer"
+                                },
+                                "timeouts": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "ipv6": {
+                            "type": "object",
+                            "properties": {
+                                "fragments": {
+                                    "type": "integer"
+                                },
+                                "reassembled": {
+                                    "type": "integer"
+                                },
+                                "timeouts": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "detect": {
+                    "type": "object",
+                    "properties": {
+                        "alert": {
+                            "type": "integer"
+                        },
+                        "alert_queue_overflow": {
+                            "type": "integer"
+                        },
+                        "alerts_suppressed": {
+                            "type": "integer"
+                        },
+                        "engines": {
+                            "type": "array",
+                            "items": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "last_reload": {
+                                            "type": "string"
+                                        },
+                                        "rules_loaded": {
+                                            "type": "integer"
+                                        },
+                                        "rules_failed": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "file_store": {
+                    "type": "object",
+                    "properties": {
+                        "fs_errors": {
+                            "type": "integer"
+                        },
+                        "open_files": {
+                            "type": "integer"
+                        },
+                        "open_files_max_hit": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "flow": {
+                    "type": "object",
+                    "properties": {
+                        "emerg_mode_entered": {
+                            "type": "integer"
+                        },
+                        "emerg_mode_over": {
+                            "type": "integer"
+                        },
+                        "get_used": {
+                            "type": "integer"
+                        },
+                        "get_used_eval": {
+                            "type": "integer"
+                        },
+                        "get_used_eval_busy": {
+                            "type": "integer"
+                        },
+                        "get_used_eval_reject": {
+                            "type": "integer"
+                        },
+                        "get_used_failed": {
+                            "type": "integer"
+                        },
+                        "icmpv4": {
+                            "type": "integer"
+                        },
+                        "icmpv6": {
+                            "type": "integer"
+                        },
+                        "memcap": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
+                        },
+                        "spare": {
+                            "type": "integer"
+                        },
+                        "tcp": {
+                            "type": "integer"
+                        },
+                        "tcp_reuse": {
+                            "type": "integer"
+                        },
+                        "udp": {
+                            "type": "integer"
+                        },
+                        "mgr": {
+                            "type": "object",
+                            "properties": {
+                                "bypassed_pruned": {
+                                    "type": "integer"
+                                },
+                                "closed_pruned": {
+                                    "type": "integer"
+                                },
+                                "est_pruned": {
+                                    "type": "integer"
+                                },
+                                "flows_checked": {
+                                    "type": "integer"
+                                },
+                                "flows_evicted": {
+                                    "type": "integer"
+                                },
+                                "flows_evicted_needs_work": {
+                                    "type": "integer"
+                                },
+                                "flows_notimeout": {
+                                    "type": "integer"
+                                },
+                                "flows_timeout": {
+                                    "type": "integer"
+                                },
+                                "flows_timeout_inuse": {
+                                    "type": "integer"
+                                },
+                                "full_hash_pass": {
+                                    "type": "integer"
+                                },
+                                "new_pruned": {
+                                    "type": "integer"
+                                },
+                                "rows_maxlen": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "wrk": {
+                            "type": "object",
+                            "properties": {
+                                "flows_evicted": {
+                                    "type": "integer"
+                                },
+                                "flows_evicted_needs_work": {
+                                    "type": "integer"
+                                },
+                                "flows_evicted_pkt_inject": {
+                                    "type": "integer"
+                                },
+                                "flows_injected": {
+                                    "type": "integer"
+                                },
+                                "spare_sync": {
+                                    "type": "integer"
+                                },
+                                "spare_sync_avg": {
+                                    "type": "integer"
+                                },
+                                "spare_sync_empty": {
+                                    "type": "integer"
+                                },
+                                "spare_sync_incomplete": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "flow_bypassed": {
+                    "type": "object",
+                    "properties": {
+                        "bytes": {
+                            "type": "integer"
+                        },
+                        "closed": {
+                            "type": "integer"
+                        },
+                        "local_bytes": {
+                            "type": "integer"
+                        },
+                        "local_capture_bytes": {
+                            "type": "integer"
+                        },
+                        "local_capture_pkts": {
+                            "type": "integer"
+                        },
+                        "local_pkts": {
+                            "type": "integer"
+                        },
+                        "pkts": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "flow_mgr": {
+                    "type": "object",
+                    "properties": {
+                        "bypassed_pruned": {
+                            "type": "integer"
+                        },
+                        "closed_pruned": {
+                            "type": "integer"
+                        },
+                        "est_pruned": {
+                            "type": "integer"
+                        },
+                        "flows_checked": {
+                            "type": "integer"
+                        },
+                        "flows_notimeout": {
+                            "type": "integer"
+                        },
+                        "flows_removed": {
+                            "type": "integer"
+                        },
+                        "flows_timeout": {
+                            "type": "integer"
+                        },
+                        "flows_timeout_inuse": {
+                            "type": "integer"
+                        },
+                        "new_pruned": {
+                            "type": "integer"
+                        },
+                        "rows_busy": {
+                            "type": "integer"
+                        },
+                        "rows_checked": {
+                            "type": "integer"
+                        },
+                        "rows_empty": {
+                            "type": "integer"
+                        },
+                        "rows_maxlen": {
+                            "type": "integer"
+                        },
+                        "rows_skipped": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ftp": {
+                    "type": "object",
+                    "properties": {
+                        "memcap": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "http": {
+                    "type": "object",
+                    "properties": {
+                        "memcap": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "tcp": {
+                    "type": "object",
+                    "properties": {
+                        "insert_data_normal_fail": {
+                            "type": "integer"
+                        },
+                        "insert_data_overlap_fail": {
+                            "type": "integer"
+                        },
+                        "insert_list_fail": {
+                            "type": "integer"
+                        },
+                        "invalid_checksum": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
+                        },
+                        "midstream_pickups": {
+                            "type": "integer"
+                        },
+                        "no_flow": {
+                            "type": "integer"
+                        },
+                        "overlap": {
+                            "type": "integer"
+                        },
+                        "overlap_diff_data": {
+                            "type": "integer"
+                        },
+                        "pkt_on_wrong_thread": {
+                            "type": "integer"
+                        },
+                        "pseudo": {
+                            "type": "integer"
+                        },
+                        "pseudo_failed": {
+                            "type": "integer"
+                        },
+                        "reassembly_gap": {
+                            "type": "integer"
+                        },
+                        "reassembly_memuse": {
+                            "type": "integer"
+                        },
+                        "rst": {
+                            "type": "integer"
+                        },
+                        "segment_memcap_drop": {
+                            "type": "integer"
+                        },
+                        "sessions": {
+                            "type": "integer"
+                        },
+                        "ssn_memcap_drop": {
+                            "type": "integer"
+                        },
+                        "stream_depth_reached": {
+                            "type": "integer"
+                        },
+                        "syn": {
+                            "type": "integer"
+                        },
+                        "synack": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "tcp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "ack": {
+                    "type": "boolean"
+                },
+                "cwr": {
+                    "type": "boolean"
+                },
+                "ecn": {
+                    "type": "boolean"
+                },
+                "fin": {
+                    "type": "boolean"
+                },
+                "psh": {
+                    "type": "boolean"
+                },
+                "rst": {
+                    "type": "boolean"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "syn": {
+                    "type": "boolean"
+                },
+                "tcp_flags": {
+                    "type": "string"
+                },
+                "tcp_flags_tc": {
+                    "type": "string"
+                },
+                "tcp_flags_ts": {
+                    "type": "string"
+                },
+                "urg": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "template": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "request": {
+                    "type": "string"
+                },
+                "response": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "tftp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "file": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "packet": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "tls": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "fingerprint": {
+                    "type": "string"
+                },
+                "from_proto": {
+                    "type": "string"
+                },
+                "issuerdn": {
+                    "type": "string"
+                },
+                "notafter": {
+                    "type": "string"
+                },
+                "notbefore": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "string"
+                },
+                "session_resumed": {
+                    "type": "boolean"
+                },
+                "sni": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "ja3": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "hash": {
+                            "type": "string"
+                        },
+                        "string": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ja3s": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "hash": {
+                            "type": "string"
+                        },
+                        "string": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "traffic": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "id": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "label": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "tunnel": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "depth": {
+                    "type": "integer"
+                },
+                "dest_ip": {
+                    "type": "string"
+                },
+                "dest_port": {
+                    "type": "integer"
+                },
+                "pcap_cnt": {
+                    "type": "integer"
+                },
+                "pkt_src": {
+                    "type": "string"
+                },
+                "proto": {
+                    "type": "string"
+                },
+                "src_ip": {
+                    "type": "string"
+                },
+                "src_port": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false,
+    "$defs": {
+        "stats_applayer_error": {
+            "type": "object",
+            "properties": {
+                "gap": {
+                    "type": "integer"
+                },
+                "alloc": {
+                    "type": "integer"
+                },
+                "parser": {
+                    "type": "integer"
+                },
+                "internal": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}
