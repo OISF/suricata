@@ -87,8 +87,8 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     PrintRawDataFp(stdout, payload, decode_len);
 #endif
 
-    det_ctx->base64_decoded_len = DecodeBase64(det_ctx->base64_decoded,
-        payload, decode_len, 0);
+    det_ctx->base64_decoded_len =
+            DecodeBase64(det_ctx->base64_decoded, payload, decode_len, BASE64_MODE_STRICT);
     SCLogDebug("Decoded %d bytes from base64 data.",
         det_ctx->base64_decoded_len);
 #if 0

@@ -23,7 +23,7 @@
  */
 
 #include "util-base64.h"
-
+#include "util-unittest.h"
 /* Constants */
 #define BASE64_TABLE_MAX  122
 
@@ -88,8 +88,7 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
  *
  * \return Number of bytes decoded, or 0 if no data is decoded or it fails
  */
-uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
-    int strict)
+uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len, Base64Mode mode)
 {
     int val;
     uint32_t padding = 0, numDecoded = 0, bbidx = 0, valid = 1, i;
@@ -102,11 +101,13 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
         /* Get decimal representation */
         val = GetBase64Value(src[i]);
         if (val < 0) {
-
+            if (mode == BASE64_MODE_RFC2045 && src[i] == ' ') {
+                continue;
+            }
             /* Invalid character found, so decoding fails */
             if (src[i] != '=') {
                 valid = 0;
-                if (strict) {
+                if (mode != BASE64_MODE_RELAX) {
                     numDecoded = 0;
                 }
                 break;
@@ -149,3 +150,28 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
 
     return numDecoded;
 }
+
+#ifdef UNITTESTS
+
+static int DecodeString(void)
+{
+    /*
+     * SGV sbG8= : Hello
+     * SGVsbG8gV29ybGQ= : Hello World
+     * */
+
+    const char *src = "SGVs bG8 gV29y bGQ=";
+    uint8_t *dst = SCMalloc(sizeof(src) * 30);
+    int res = DecodeBase64(dst, (const uint8_t *)src, 30, 1);
+    printf("%d\n", res);
+    printf("dst str = \"%s\"", (const char *)dst);
+    FAIL_IF(res <= 0);
+    SCFree(dst);
+    PASS;
+}
+
+void Base64RegisterTests(void)
+{
+    UtRegisterTest("DecodeString", DecodeString);
+}
+#endif
