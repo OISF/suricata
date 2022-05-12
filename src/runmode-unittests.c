@@ -177,6 +177,7 @@ static void RegisterUnittests(void)
     ThreadMacrosRegisterTests();
     UtilSpmSearchRegistertests();
     UtilActionRegisterTests();
+    Base64RegisterTests();
     SCClassConfRegisterTests();
     SCThresholdConfRegisterTests();
     SCRConfRegisterTests();
