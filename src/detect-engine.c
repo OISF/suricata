@@ -965,7 +965,7 @@ static void DetectBufferTypeFreeFunc(void *data)
     }
 
     /* Release transformation option memory, if any */
-    for (int i = 0; i < map->transforms.cnt; i++) {
+    for (uint8_t i = 0; i < map->transforms.cnt; i++) {
         if (map->transforms.transforms[i].options == NULL)
             continue;
         if (sigmatch_table[map->transforms.transforms[i].transform].Free == NULL) {
@@ -1528,7 +1528,7 @@ bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_lis
     const DetectBufferType *dbt = DetectEngineBufferTypeGetById(de_ctx, sm_list);
     BUG_ON(dbt == NULL);
 
-    for (int i = 0; i < dbt->transforms.cnt; i++) {
+    for (uint8_t i = 0; i < dbt->transforms.cnt; i++) {
         const TransformData *t = &dbt->transforms.transforms[i];
         if (!sigmatch_table[t->transform].TransformValidate)
             continue;
@@ -1661,7 +1661,7 @@ void DetectBufferTypeCloseRegistration(void)
 }
 
 int DetectEngineBufferTypeGetByIdTransforms(
-        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt)
+        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, uint8_t transform_cnt)
 {
     const DetectBufferType *base_map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (!base_map) {
@@ -1677,7 +1677,7 @@ int DetectEngineBufferTypeGetByIdTransforms(
 
     DetectEngineTransforms t;
     memset(&t, 0, sizeof(t));
-    for (int i = 0; i < transform_cnt; i++) {
+    for (uint8_t i = 0; i < transform_cnt; i++) {
         t.transforms[i] = transforms[i];
     }
     t.cnt = transform_cnt;

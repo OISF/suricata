@@ -1915,8 +1915,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             EngineAnalysisRules2(de_ctx, s);
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
-        uint32_t i;
-        for (i = 0; i < s->init_data->smlists_array_size; i++) {
+        for (uint32_t i = 0; i < s->init_data->smlists_array_size; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -1926,7 +1925,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         }
         SCFree(s->init_data->smlists);
         SCFree(s->init_data->smlists_tail);
-        for (i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
+        for (uint8_t i = 0; i < s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
                 int transform = s->init_data->transforms.transforms[i].transform;
                 sigmatch_table[transform].Free(

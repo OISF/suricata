@@ -1397,10 +1397,8 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s->cidr_src != NULL)
         IPOnlyCIDRListFree(s->cidr_src);
 
-    int i;
-
     if (s->init_data && s->init_data->transforms.cnt) {
-        for(i = 0; i < s->init_data->transforms.cnt; i++) {
+        for (uint8_t i = 0; i < s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
                 int transform = s->init_data->transforms.transforms[i].transform;
                 sigmatch_table[transform].Free(
@@ -1411,7 +1409,7 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     }
     if (s->init_data) {
         const int nlists = s->init_data->smlists_array_size;
-        for (i = 0; i < nlists; i++) {
+        for (int i = 0; i < nlists; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;

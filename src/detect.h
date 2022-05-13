@@ -380,7 +380,7 @@ typedef struct TransformData_ {
 
 typedef struct DetectEngineTransforms {
     TransformData transforms[DETECT_TRANSFORMS_MAX];
-    int cnt;
+    uint8_t cnt;
 } DetectEngineTransforms;
 
 /** callback for getting the buffer we need to prefilter/inspect */

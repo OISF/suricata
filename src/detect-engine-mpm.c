@@ -177,7 +177,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
                  * transforms and then shorten it if necessary. Finally
                  * use it to construct the 'profile' name for the engine */
                 char xforms[1024] = "";
-                for (int i = 0; i < transforms->cnt; i++) {
+                for (uint8_t i = 0; i < transforms->cnt; i++) {
                     char ttstr[64];
                     (void)snprintf(ttstr,sizeof(ttstr), "%s,",
                             sigmatch_table[transforms->transforms[i].transform].name);

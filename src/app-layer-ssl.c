@@ -1399,7 +1399,7 @@ static uint32_t GetCertsLen(SSLStateConnp *curr_connp, const uint8_t *input,
                 i++;
             }
             for (; i < 3; i++) {
-                buf[i] = input[curr_connp->trec_pos+i];
+                buf[i] = input[curr_connp->trec_pos + i];
             }
             uint32_t len = (buf[0] << 16 | buf[1] << 8 | buf[2]) + 3;
             SCLogDebug("length %u (part trec, part input)", len);

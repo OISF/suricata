@@ -74,7 +74,7 @@ bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, 
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 int DetectEngineBufferTypeGetByIdTransforms(
-        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt);
+        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, uint8_t transform_cnt);
 void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int id, Signature *s);
 bool DetectEngineBufferRunValidateCallback(
         const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
