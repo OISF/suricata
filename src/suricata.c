@@ -30,6 +30,12 @@
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
+#ifndef OS_WIN32
+#ifdef HAVE_SYS_RESOURCE_H
+// setrlimit
+#include <sys/resource.h>
+#endif
+#endif
 
 #if HAVE_LIBSYSTEMD
 #include <systemd/sd-daemon.h>
@@ -2901,6 +2907,26 @@ int SuricataMain(int argc, char **argv)
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
         FatalError(SC_ERR_FATAL, "Engine initialization failed, "
                    "aborting...");
+    }
+
+    int limit_nproc = 0;
+    if (ConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
+        limit_nproc = 0;
+    }
+    if (limit_nproc) {
+#ifdef HAVE_SYS_RESOURCE_H
+#ifdef linux
+        if (geteuid() == 0) {
+            SCLogWarning(SC_ERR_SYSCONF, "setrlimit has no effet when running as root.");
+        }
+#endif
+        struct rlimit r = { 0, 0 };
+        if (setrlimit(RLIMIT_NPROC, &r) != 0) {
+            SCLogWarning(SC_ERR_SYSCONF, "setrlimit failed to prevent process creation.");
+        }
+#else
+        SCLogWarning(SC_ERR_SYSCONF, "setrlimit unavailable.");
+#endif
     }
 
     SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
