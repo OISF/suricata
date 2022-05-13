@@ -30,6 +30,12 @@
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
+#ifndef OS_WIN32
+#ifdef HAVE_SYS_RESOURCE_H
+// setrlimit
+#include <sys/resource.h>
+#endif
+#endif
 
 #include "suricata.h"
 #include "decode.h"
@@ -2108,6 +2114,20 @@ static int InitRunAs(SCInstance *suri)
         }
 
         sc_set_caps = TRUE;
+    }
+    int limit_nproc = 0;
+    if (ConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
+        limit_nproc = 0;
+    }
+    if (limit_nproc) {
+#ifdef HAVE_SYS_RESOURCE_H
+        struct rlimit r = { 0, 0 };
+        if (setrlimit(RLIMIT_NPROC, &r) != 0) {
+            SCLogWarning(SC_ERR_SYSCONF, "setrlimit failed to prevent process creation.");
+        }
+#else
+        SCLogWarning(SC_ERR_SYSCONF, "setrlimit unavailable.");
+#endif
     }
 #endif
     return TM_ECODE_OK;

@@ -1991,6 +1991,11 @@ napatech:
     #
     hashmode: hash5tuplesorted
 
+security:
+  # if true, prevents process creation from Suricata by calling
+  # setrlimit(RLIMIT_NPROC, 0)
+  limit-noproc: yes
+
 ##
 ## Configure Suricata to load Suricata-Update managed rules.
 ##
