@@ -37,6 +37,11 @@ Major changes
 ~~~~~~~~~~~~~
 - Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
 
+Security changes
+~~~~~~~~~~~~~~~~
+- suricata.yaml now prevents process creation by Suricata by default with `security.limit-noproc`.
+  For more info, see :ref:`suricata-yaml-config-hardening`
+
 Removals
 ~~~~~~~~
 - The libprelude output plugin has been removed.
