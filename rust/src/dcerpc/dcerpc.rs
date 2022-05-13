@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::applayer::*;
+use crate::applayer::{self, *};
 use crate::core::{self, *};
 use crate::dcerpc::parser;
 use nom7::error::{Error, ErrorKind};
@@ -186,6 +186,13 @@ pub struct DCERPCTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Transaction for DCERPCTransaction {
+    fn id(&self) -> u64 {
+        // need +1 to match state.tx_id
+        self.id + 1
+    }
+}
+
 impl DCERPCTransaction {
     pub fn new() -> Self {
         return Self {
@@ -314,6 +321,16 @@ pub struct DCERPCState {
     pub ts_ssn_trunc: bool, /// true if Truncated in this direction
     pub tc_ssn_trunc: bool,
     pub flow: Option<*const core::Flow>,
+}
+
+impl State<DCERPCTransaction> for DCERPCState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&DCERPCTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl DCERPCState {
@@ -1349,7 +1366,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCState, DCERPCTransaction>),
         get_tx_data: rs_dcerpc_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
