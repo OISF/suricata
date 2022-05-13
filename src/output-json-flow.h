@@ -27,5 +27,8 @@
 void JsonFlowLogRegister(void);
 void EveAddFlow(Flow *f, JsonBuilder *js);
 void EveAddAppProto(Flow *f, JsonBuilder *js);
+#if defined(ENABLE_ETM)
+void EveAddEncryptedTrafficMetaData(const Flow *f, JsonBuilder *js);
+#endif
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */

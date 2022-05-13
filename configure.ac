@@ -570,6 +570,13 @@
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
 
+  # enable response time calculations
+    AC_ARG_ENABLE(detection,
+           AS_HELP_STRING([--enable-etm], [Enable Encrypted Traffic Monitoring]), [enable_etm="$enableval"],[enable_etm=no])
+    AS_IF([test "x$enable_etm" = "xyes"], [
+        AC_DEFINE([ENABLE_ETM], [1], [Encrypted Traffic Monitoring is enabled])
+    ])
+
 # libraries
 
   # zlib

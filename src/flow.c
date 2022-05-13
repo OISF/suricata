@@ -378,6 +378,89 @@ static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
+#if defined(ENABLE_ETM)
+#include <math.h>
+#include <float.h>
+
+inline void FlowEncryptedTrafficFinalize(const Flow *f)
+{
+    FlowSPLT *const splt = (FlowSPLT *const)&f->splt;
+    if (splt->bd_entropy || (splt->splt_count == 0))
+        return;
+
+    /* final calculation of bd variance */
+    if (splt->bd_count == 1) {
+        splt->bd_variance = 0.0;
+    } else {
+        double variance = sqrt(splt->bd_variance / (splt->bd_count - 1));
+        splt->bd_variance = (float)variance;
+    }
+
+    /* final calculation of entropy */
+    uint32_t i;
+    float entropy = 0.0;
+    for (i = 0; i < FLOW_SPLT_BD_SIZE; i++) {
+        float frequency = (float)splt->bd[i] / (float)splt->bd_count;
+        if (frequency > FLT_EPSILON) {
+            entropy -= (frequency * logf(frequency));
+        }
+    }
+    splt->bd_entropy = (entropy / logf(2.0));
+
+    /* final calculation of producer/consumer ratio (pcr) */
+    float nvalue = ((float)splt->sapp_bytes - splt->dapp_bytes);
+    float dvalue = ((float)splt->sapp_bytes + splt->dapp_bytes);
+
+    if (dvalue > 0)
+        splt->pcr = (nvalue / dvalue);
+    else
+        splt->pcr = -0.0;
+}
+
+static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
+{
+    /* Updated appbytes for producer/consumer ratio */
+    if (f->splt.seq[f->splt.splt_count].dir == TOSERVER)
+        f->splt.dapp_bytes = p->payload_len;
+    else
+        f->splt.sapp_bytes = p->payload_len;
+
+    if (f->flow_state == FLOW_STATE_ESTABLISHED) {
+
+        if (f->splt.splt_count < FLOW_SPLT_MAX_COUNT) {
+            /* Update sequence of packet length & time (SPLT) */
+            f->splt.seq[f->splt.splt_count].dir = FlowGetPacketDirection(f, p);
+            f->splt.seq[f->splt.splt_count].len =
+                    (p->payload_len > FLOW_SPLT_MAX_LEN) ? FLOW_SPLT_MAX_LEN : p->payload_len;
+            uint64_t now_epoch_msec = (p->ts.tv_sec * 1000) + (p->ts.tv_usec / 1000);
+            if (f->splt.first_epoch_msec == 0) {
+                f->splt.first_epoch_msec = now_epoch_msec;
+                f->splt.last_epoch_msec = now_epoch_msec;
+                f->splt.seq[f->splt.splt_count].delta = 0;
+            } else {
+                uint64_t delta_epoch_msec = now_epoch_msec - f->splt.last_epoch_msec;
+                f->splt.seq[f->splt.splt_count].delta =
+                        (delta_epoch_msec > FLOW_SPLT_MAX_MSEC) ? FLOW_SPLT_MAX_MSEC : delta_epoch_msec;
+                f->splt.last_epoch_msec = now_epoch_msec;
+            }
+            f->splt.splt_count++;
+
+            /* Update byte distribution */
+            uint32_t i;
+            float delta;
+            for (i = 0; i < p->payload_len; i++) {
+                f->splt.bd_count++;
+                f->splt.bd[p->payload[i]]++;
+
+                delta = ((float)p->payload[i] - f->splt.bd_mean);
+                f->splt.bd_mean += (delta / (float)f->splt.bd_count);
+                f->splt.bd_variance += delta * ((float)p->payload[i] - f->splt.bd_mean);
+            }
+        }
+    }
+}
+#endif
+
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
@@ -494,6 +577,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
+#if defined(ENABLE_ETM)
+    FlowEncryptedTrafficUpdate(f, p);
+#endif
 }
 
 /** \brief Entry point for packet flow handling

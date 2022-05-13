@@ -213,6 +213,44 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     jb_set_string(js, "start", timebuf1);
 }
 
+
+#if defined(ENABLE_ETM)
+void EveAddEncryptedTrafficMetaData(const Flow *f, JsonBuilder *js)
+{
+    if ((f->splt.first_epoch_msec > 0) && (f->splt.splt_count > 0)) {
+        uint32_t i = 0;
+        FlowEncryptedTrafficFinalize(f);
+        JsonBuilder *js_splt = jb_new_object();
+        jb_open_array(js_splt, "dir");
+        for (i = 0; i < f->splt.splt_count; i++) {
+            jb_append_uint(js_splt, f->splt.seq[i].dir);
+        }
+        jb_close(js_splt); /* close array */
+
+        jb_open_array(js_splt, "len");
+        for (i = 0; i < f->splt.splt_count; i++) {
+            jb_append_uint(js_splt, f->splt.seq[i].len);
+        }
+        jb_close(js_splt); /* close array */
+
+        jb_open_array(js_splt, "delta");
+        for (i = 0; i < f->splt.splt_count; i++) {
+            jb_append_uint(js_splt, f->splt.seq[i].delta);
+        }
+        jb_close(js_splt); /* close array */
+
+        jb_set_float(js_splt, "pcr", f->splt.pcr);
+        jb_set_float(js_splt, "bd_mean", f->splt.bd_mean);
+        jb_set_float(js_splt, "bd_variance", f->splt.bd_variance);
+        jb_set_float(js_splt, "entropy", f->splt.bd_entropy);
+
+        jb_close(js_splt);
+        jb_set_object(js, "etm", js_splt);
+        jb_free(js_splt);
+    }
+}
+#endif
+
 /* Eve format logging */
 static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 {
@@ -314,6 +352,12 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
         /* Close tcp. */
         jb_close(jb);
     }
+
+#if defined(ENABLE_ETM)
+    if (aft->ctx->cfg.include_etm) {
+        EveAddEncryptedTrafficMetaData(f, jb);
+    }
+#endif
 }
 
 static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)

@@ -302,6 +302,40 @@ typedef struct FlowCnf_
     SC_ATOMIC_DECLARE(uint64_t, memcap);
 } FlowConfig;
 
+#if defined(ENABLE_ETM)
+
+#define FLOW_SPLT_MAX_COUNT       32
+#define FLOW_SPLT_MAX_BD_COUNT    65536
+#define FLOW_SPLT_TOCLIENT 0
+#define FLOW_SPLT_TOSERVER 1
+#define FLOW_SPLT_MAX_MSEC 262144  // 2^18
+#define FLOW_SPLT_MAX_LEN 8192    // 2^13
+#define FLOW_SPLT_BD_SIZE 256
+typedef struct PacketSequence_
+{
+    uint32_t dir: 1;
+    uint32_t len: 13;
+    uint32_t delta: 18;
+} PacketSequence;
+
+typedef struct FlowSPLT_
+{
+    uint64_t first_epoch_msec;
+    uint64_t last_epoch_msec;
+    uint32_t sapp_bytes;
+    uint32_t dapp_bytes;
+    uint32_t splt_count;
+    uint32_t bd_count;
+    float pcr;
+    float bd_entropy;
+    float bd_mean;
+    float bd_variance;
+    uint8_t bd[FLOW_SPLT_BD_SIZE];
+    PacketSequence seq [FLOW_SPLT_MAX_COUNT];
+} FlowSPLT;
+
+#endif
+
 /* Hash key for the flow hash */
 typedef struct FlowKey_
 {
@@ -503,6 +537,9 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+#if defined(ENABLE_ETM)
+    FlowSPLT splt;
+#endif
 } Flow;
 
 enum FlowState {
@@ -593,6 +630,10 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
 uint32_t FlowGetFlags(Flow *flow);
 uint16_t FlowGetSourcePort(Flow *flow);
 uint16_t FlowGetDestinationPort(Flow *flow);
+
+#if defined(ENABLE_ETM)
+void FlowEncryptedTrafficFinalize(const Flow *flow);
+#endif
 
 /** ----- Inline functions ----- */
 
