@@ -1306,7 +1306,7 @@ static void FTPSetMpmState(void)
     memset(ftp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(ftp_mpm_ctx, FTP_MPM);
 
-    for (uint8_t i = 0; i < sizeof(FtpCommands)/sizeof(FtpCommand) - 1; i++) {
+    for (uint8_t i = 0; i < sizeof(FtpCommands) / sizeof(FtpCommand) - 1; i++) {
         const FtpCommand *cmd = &FtpCommands[i];
         if (cmd->command_length == 0)
             continue;
