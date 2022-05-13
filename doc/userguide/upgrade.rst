@@ -37,6 +37,12 @@ Major changes
 ~~~~~~~~~~~~~
 - Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
 
+Security changes
+~~~~~~~~~~~~~~~~
+- Process creation by Suricata is now disabled by default, this can be configured with `security.limit-noproc` (for LUA scripts for instance)
+  This is done through the call of `setrlimit(RLIMIT_NPROC` cf `man setrlimit`.
+  This prevents potential exploits against Suricata to fork a new process, even if it does not prevent the call of `exec`.
+
 Removals
 ~~~~~~~~
 - The libprelude output plugin has been removed.
