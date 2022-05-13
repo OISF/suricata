@@ -80,7 +80,7 @@ void LogCustomFormatFree(LogCustomFormat *cf)
     if (cf==NULL)
         return;
 
-    for (size_t i = 0; i < cf->cf_n; ++i) {
+    for (uint8_t i = 0; i < cf->cf_n; ++i) {
         LogCustomFormatNodeFree(cf->cf_nodes[i]);
     }
     SCFree(cf);
