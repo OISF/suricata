@@ -245,6 +245,7 @@
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
     AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
     AC_CHECK_FUNCS([socket setenv select putenv dup2 endgrent endpwent atexit munmap])
+    AC_CHECK_FUNCS([setrlimit])
 
     AC_CHECK_FUNCS([fwrite_unlocked])
 
