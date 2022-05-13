@@ -2609,3 +2609,25 @@ detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
 .. _deprecation policy: https://suricata.io/about/deprecation-policy/
+
+.. _suricata-yaml-config-hardening:
+
+Configuration hardening
+-----------------------
+
+The `security` section of suricata.yaml is meant to provide in-depth security configuration options.
+
+Besides landlock, (see :ref:`landlock`), one setting is available.
+`limit-noproc` is a boolean to prevent process creation by Suricata.
+If you do not need Suricata to create other processes or threads
+(you may need it for LUA scripts for instance or plugins), enable this to
+call `setrlimit` with `RLIMIT_NPROC` argument (see `man setrlimit`).
+This prevents potential exploits against Suricata to fork a new process,
+even if it does not prevent the call of `exec`.
+
+Warning! This has no effect on Linux when running as root. If you want a hardened configuration,
+you probably want to set `run-as` configuration parameter so as to drop root privileges.
+
+Beyond suricata.yaml, other ways to harden Suricata are
+- compilation : enabling ASLR and other exploit mitigation techniques.
+- environment : running Suricata on a device that has no direct access to Internet.

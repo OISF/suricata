@@ -1,3 +1,5 @@
+.. _landlock:
+
 Using Landlock LSM
 ==================
 
