@@ -131,7 +131,6 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                             char *srcip, Port sp, char *dstip, Port dp)
 {
     LogHttpFileCtx *httplog_ctx = aft->httplog_ctx;
-    uint32_t i;
     uint32_t datalen;
     char buf[128];
 
@@ -141,7 +140,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
     htp_header_t *h_request_hdr;
     htp_header_t *h_response_hdr;
 
-    for (i = 0; i < httplog_ctx->cf->cf_n; i++) {
+    for (uint8_t i = 0; i < httplog_ctx->cf->cf_n; i++) {
         h_request_hdr = NULL;
         h_response_hdr = NULL;
 

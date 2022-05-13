@@ -71,7 +71,7 @@ typedef struct LogCustomFormatNode_ {
 
 
 typedef struct LogCustomFormat_ {
-    uint32_t cf_n;                                  /**< Total number of custom string format nodes */
+    uint8_t cf_n; /**< Total number of custom string format nodes */
     LogCustomFormatNode *cf_nodes[LOG_MAXN_NODES];  /**< Custom format string nodes */
 } LogCustomFormat;
 

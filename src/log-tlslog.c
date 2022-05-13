@@ -379,11 +379,9 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
                             char *dstip, Port dp)
 {
     LogTlsFileCtx *tlslog_ctx = aft->tlslog_ctx;
-    uint32_t i;
     char buf[64];
 
-    for (i = 0; i < tlslog_ctx->cf->cf_n; i++)
-    {
+    for (uint8_t i = 0; i < tlslog_ctx->cf->cf_n; i++) {
         LogCustomFormatNode *node = tlslog_ctx->cf->cf_nodes[i];
         if (!node) /* Should never happen */
             continue;
