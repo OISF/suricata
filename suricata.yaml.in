@@ -1104,6 +1104,9 @@ asn1-max-frames: 256
 #  group: suri
 
 security:
+  # if true, prevents process creation from Suricata by calling
+  # setrlimit(RLIMIT_NPROC, 0)
+  limit-noproc: true
   # Use landlock security module under Linux
   landlock:
     enabled: no
