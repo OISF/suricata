@@ -460,6 +460,9 @@ The ``community-id-seed`` option specifies a unsigned 16 bit value that
 is used a seed to the hash that is calculated for the ``community-id``
 output. This must be set to the same value on all tools that output this
 record.
+The ``encrypted-traffic-metadata`` option is boolean. If set to ``true`` it 
+is enabled. If this option is enabled it will output additonal fields that
+can be used for encrypted traffic analysis.
 
 YAML::
 
@@ -476,6 +479,8 @@ YAML::
       community-id: false
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
+      # enable/disable encrypted traffic metadata feature.
+      encrypted-traffic-metadata: false
 
 Multi Tenancy
 -------------
