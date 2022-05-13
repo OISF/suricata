@@ -35,9 +35,8 @@ TmModule tmm_modules[TMM_SIZE];
 void TmModuleDebugList(void)
 {
     TmModule *t;
-    uint16_t i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
@@ -53,9 +52,8 @@ void TmModuleDebugList(void)
 TmModule *TmModuleGetByName(const char *name)
 {
     TmModule *t;
-    uint16_t i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
@@ -109,9 +107,8 @@ TmModule *TmModuleGetById(int id)
 int TmModuleGetIDForTM(TmModule *tm)
 {
     TmModule *t;
-    int i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
@@ -128,9 +125,8 @@ int TmModuleGetIDForTM(TmModule *tm)
 void TmModuleRunInit(void)
 {
     TmModule *t;
-    uint16_t i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
@@ -146,9 +142,8 @@ void TmModuleRunInit(void)
 void TmModuleRunDeInit(void)
 {
     TmModule *t;
-    uint16_t i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
@@ -166,9 +161,8 @@ void TmModuleRegisterTests(void)
 {
 #ifdef UNITTESTS
     TmModule *t;
-    uint16_t i;
 
-    for (i = 0; i < TMM_SIZE; i++) {
+    for (uint8_t i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
