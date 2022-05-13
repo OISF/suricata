@@ -1393,12 +1393,13 @@ static uint32_t GetCertsLen(SSLStateConnp *curr_connp, const uint8_t *input,
             return len;
         } else if (input_len + curr_connp->trec_pos >= 3) {
             uint8_t buf[3] = { 0, 0, 0, }; // init to 0 to make scan-build happy
-            uint32_t i = 0;
-            for (uint32_t x = 0; x < curr_connp->trec_pos && i < 3;  x++) {
-                buf[i++] = curr_connp->trec[x];
+            uint8_t i = 0;
+            for (uint32_t x = 0; x < curr_connp->trec_pos && i < 3; x++) {
+                buf[i] = curr_connp->trec[i];
+                i++;
             }
-            for (uint32_t x = 0; x < input_len && i < 3;  x++) {
-                buf[i++] = input[x];
+            for (; i < 3; i++) {
+                buf[i] = input[curr_connp->trec_pos+i];
             }
             uint32_t len = (buf[0] << 16 | buf[1] << 8 | buf[2]) + 3;
             SCLogDebug("length %u (part trec, part input)", len);
