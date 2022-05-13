@@ -30,6 +30,10 @@
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
+#ifndef OS_WIN32
+// setrlimit
+#include <sys/resource.h>
+#endif
 
 #include "suricata.h"
 #include "decode.h"
@@ -2089,6 +2093,17 @@ static int InitRunAs(SCInstance *suri)
         }
 
         sc_set_caps = TRUE;
+    }
+    int limit_nproc = 0;
+    if (ConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
+        /* Ignore vlan_ids when comparing flows. */
+        limit_nproc = 0;
+    }
+    if (limit_nproc) {
+        struct rlimit r = { 0, 0 };
+        if (setrlimit(RLIMIT_NPROC, &r) != 0) {
+            SCLogWarning(SC_ERR_SYSCONF, "setrlimit failed to prevent process creation.");
+        }
     }
 #endif
     return TM_ECODE_OK;
