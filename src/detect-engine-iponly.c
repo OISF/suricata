@@ -889,15 +889,6 @@ error:
  */
 void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
 {
-    io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-
-    if ( (io_ctx->sig_init_array = SCMalloc(io_ctx->sig_init_size)) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in IPOnlyInit. Exiting...");
-    }
-
-    memset(io_ctx->sig_init_array, 0, io_ctx->sig_init_size);
-
     io_ctx->tree_ipv4src = SCRadixCreateRadixTree(SigNumArrayFree,
                                                   SigNumArrayPrint);
     io_ctx->tree_ipv4dst = SCRadixCreateRadixTree(SigNumArrayFree,
@@ -965,10 +956,6 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     if (io_ctx->tree_ipv6dst != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
     io_ctx->tree_ipv6dst = NULL;
-
-    if (io_ctx->sig_init_array)
-        SCFree(io_ctx->sig_init_array);
-    io_ctx->sig_init_array = NULL;
 }
 
 /**
@@ -1588,9 +1575,6 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
     if (s->num > io_ctx->max_idx)
         io_ctx->max_idx = s->num;
-
-    /* enable the sig in the bitarray */
-    io_ctx->sig_init_array[(s->num/8)] |= 1 << (s->num % 8);
 
     /** no longer ref to this, it's in the table now */
     s->CidrSrc = NULL;
