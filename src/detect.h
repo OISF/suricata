@@ -717,31 +717,13 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
 
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
-    /* lookup hashes */
-    HashListTable *ht16_src, *ht16_dst;
-    HashListTable *ht24_src, *ht24_dst;
-
     /* Lookup trees */
     SCRadixTree *tree_ipv4src, *tree_ipv4dst;
     SCRadixTree *tree_ipv6src, *tree_ipv6dst;
 
     /* Used to build the radix trees */
     IPOnlyCIDRItem *ip_src, *ip_dst;
-
-    /* counters */
-    uint32_t a_src_uniq16, a_src_total16;
-    uint32_t a_dst_uniq16, a_dst_total16;
-    uint32_t a_src_uniq24, a_src_total24;
-    uint32_t a_dst_uniq24, a_dst_total24;
-
     uint32_t max_idx;
-
-    uint8_t *sig_init_array; /* bit array of sig nums */
-    uint32_t sig_init_size;  /* size in bytes of the array */
-
-    /* number of sigs in this head */
-    uint32_t sig_cnt;
-    uint32_t *match_array;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
