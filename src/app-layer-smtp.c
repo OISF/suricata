@@ -315,6 +315,7 @@ static void SMTPConfigure(void) {
             if (unlikely(seq_node->name == NULL)) {
                 FatalError(SC_ERR_FATAL, "SCStrdup failure.");
             }
+            scheme->name = SCStrdup("0");
             scheme->val = SCStrdup("http");
             if (unlikely(scheme->val == NULL)) {
                 FatalError(SC_ERR_FATAL, "SCStrdup failure.");
