@@ -154,6 +154,8 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                     *type = DATASET_TYPE_SHA256;
                 } else if (strcmp(val, "string") == 0) {
                     *type = DATASET_TYPE_STRING;
+                } else if (strcmp(val, "ipv4") == 0) {
+                    *type = DATASET_TYPE_IPV4;
                 } else {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "bad type %s", val);
                     return -1;
