@@ -3,15 +3,20 @@ name: commit-check
 on:
   - pull_request
 
+permissions: read-all
+
+env:
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   check-commits:
     name: Commit Check
     runs-on: ubuntu-latest
-    container: ubuntu:18.04
+    container: ubuntu:20.04
     steps:
       - name: Caching ~/.cargo
-        uses: actions/cache@v1
+        uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09
         with:
           path: ~/.cargo
           key: commit-check-cargo
@@ -19,13 +24,10 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
-                ccache \
                 curl \
                 git \
                 jq \
@@ -44,7 +46,7 @@ jobs:
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
-                libevent-pthreads-2.1.6 \
+                libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
                 libssl-dev \
@@ -63,13 +65,16 @@ jobs:
           mkdir -p "$HOME/.cargo/bin"
           (cd "$HOME/.cargo/bin" && tar xvf /tmp/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz --strip-components=1 --wildcards '*/sccache')
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-      - run: echo "/usr/lib/ccache" >> $GITHUB_PATH
       - name: Install cbindgen
         run: |
           cd $HOME/.cargo/bin
           curl -OL https://github.com/eqrion/cbindgen/releases/download/v0.15.0/cbindgen
           chmod 755 cbindgen
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+        with:
+          fetch-depth: 0
+      # The action above is supposed to do this for us, but it doesn't appear to stick.
+      - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       - run: git fetch
       - run: git clone https://github.com/cccs-rtmorti/libhtp-rs -b master
       - name: Building all commits
@@ -79,7 +84,7 @@ jobs:
               git checkout $rev
               echo "Building rev ${rev}" | tee -a build_log.txt
               ./autogen.sh >> build_log.txt 2>&1
-              ./configure --enable-unittests >> build_log.txt 2>&1
+              CC="sccache gcc" ./configure --enable-unittests >> build_log.txt 2>&1
               if ! make -j2 >> build_log.txt 2>&1; then
                   echo "::error ::Failed to build rev ${rev}"
                   tail -n 50 build_log.txt
@@ -88,7 +93,7 @@ jobs:
               make -ik distclean > /dev/null
           done
       - run: sccache -s
-      - uses: actions/upload-artifact@v2-preview
+      - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         name: Uploading build log
         if: always()
         with:

@@ -20,6 +20,7 @@
 #include "util-device.h"
 #include "util-ioctl.h"
 #include "util-misc.h"
+#include "util-dpdk.h"
 
 #include "device-storage.h"
 
@@ -351,15 +352,15 @@ int LiveDeviceListClean()
 
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
-            SCLogNotice("Stats for '%s':  pkts: %" PRIu64", drop: %" PRIu64 " (%.2f%%), invalid chksum: %" PRIu64,
-                    pd->dev,
-                    SC_ATOMIC_GET(pd->pkts),
-                    SC_ATOMIC_GET(pd->drop),
-                    100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
+            SCLogNotice("Stats for '%s':  pkts: %" PRIu64 ", drop: %" PRIu64
+                        " (%.2f%%), invalid chksum: %" PRIu64,
+                    pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->drop),
+                    100 * ((double)SC_ATOMIC_GET(pd->drop)) / (double)SC_ATOMIC_GET(pd->pkts),
                     SC_ATOMIC_GET(pd->invalid_checksums));
         }
 
         RestoreIfaceOffloading(pd);
+        DPDKCloseDevice(pd);
 
         if (pd->dev)
             SCFree(pd->dev);
@@ -611,7 +612,7 @@ void LiveDevAddBypassSuccess(LiveDevice *dev, uint64_t cnt, int family)
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
 {
-    LiveDevice *ldev = NULL, *ndev;
+    LiveDevice *ldev = NULL, *ndev = NULL;
 
     json_t *ifaces = NULL;
     while(LiveDeviceForEach(&ldev, &ndev)) {

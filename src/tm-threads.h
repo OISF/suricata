@@ -78,7 +78,6 @@ extern ThreadVars *tv_root[TVT_MAX];
 extern SCMutex tv_root_lock;
 
 void TmSlotSetFuncAppend(ThreadVars *, TmModule *, const void *);
-TmSlot *TmSlotGetSlotForTM(int);
 
 ThreadVars *TmThreadCreate(const char *, const char *, const char *, const char *, const char *, const char *,
                            void *(fn_p)(void *), int);
@@ -96,7 +95,6 @@ void TmThreadKillThreads(void);
 void TmThreadClearThreadsFamily(int family);
 void TmThreadAppend(ThreadVars *, int);
 void TmThreadSetGroupName(ThreadVars *tv, const char *name);
-void TmThreadDumpThreads(void);
 
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
@@ -109,11 +107,8 @@ void TmThreadInitMC(ThreadVars *);
 void TmThreadTestThreadUnPaused(ThreadVars *);
 void TmThreadContinue(ThreadVars *);
 void TmThreadContinueThreads(void);
-void TmThreadPause(ThreadVars *);
-void TmThreadPauseThreads(void);
 void TmThreadCheckThreadState(void);
 TmEcode TmThreadWaitOnThreadInit(void);
-ThreadVars *TmThreadsGetCallingThread(void);
 
 int TmThreadsCheckFlag(ThreadVars *, uint32_t);
 void TmThreadsSetFlag(ThreadVars *, uint32_t);
@@ -122,10 +117,8 @@ void TmThreadWaitForFlag(ThreadVars *, uint32_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
-ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisablePacketThreads(void);
 void TmThreadDisableReceiveThreads(void);
-TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
@@ -159,7 +152,7 @@ static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, TmSlot *s, Packet
  *         manager.
  *  \param s pipeline to run on these packets.
  */
-static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv)
+static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
 {
     PacketQueue *pq = tv->stream_pq_local;
     if (pq && pq->len > 0) {
@@ -176,6 +169,9 @@ static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv)
             }
             tv->tmqh_out(tv, extra_p);
         }
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -221,24 +217,39 @@ static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, Packet *p)
     }
 }
 
+/** \brief handle capture timeout
+ *  When a capture method times out we check for house keeping
+ *  tasks in the capture thread.
+ *
+ *  \param p packet. Capture method may have taken a packet from
+ *           the pool prior to the timing out call. We will then
+ *           use that packet. Otherwise we can get our own.
+ */
 static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
 {
     if (TmThreadsCheckFlag(tv, THV_CAPTURE_INJECT_PKT)) {
-        TmThreadsCaptureInjectPacket(tv, p);
-    } else {
-        TmThreadsHandleInjectedPackets(tv);
+        TmThreadsCaptureInjectPacket(tv, p); /* consumes 'p' */
+        return;
 
-        /* packet could have been passed to us that we won't use
-         * return it to the pool. */
-        if (p != NULL)
-            tv->tmqh_out(tv, p);
+    } else {
+        if (TmThreadsHandleInjectedPackets(tv) == false) {
+            /* see if we have to do some house keeping */
+            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty) == true) {
+                TmThreadsCaptureInjectPacket(tv, p); /* consumes 'p' */
+                return;
+            }
+        }
     }
+
+    /* packet could have been passed to us that we won't use
+     * return it to the pool. */
+    if (p != NULL)
+        tv->tmqh_out(tv, p);
 }
 
 void TmThreadsListThreads(void);
 int TmThreadsRegisterThread(ThreadVars *tv, const int type);
 void TmThreadsUnregisterThread(const int id);
-int TmThreadsInjectPacketsById(Packet **, int id);
 void TmThreadsInjectFlowById(Flow *f, const int id);
 
 void TmThreadsInitThreadsTimestamp(const struct timeval *ts);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,11 +28,11 @@
 
 #include "decode.h"
 
-/** packet logger function pointer type */
+/** tx logger function pointer type */
 typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
 
-/** packet logger condition function pointer type,
- *  must return true for packets that should be logged
+/** tx logger condition function pointer type,
+ *  must return true for tx that should be logged
  */
 typedef int (*TxLoggerCondition)(ThreadVars *, const Packet *, void *state, void *tx, uint64_t tx_id);
 
@@ -47,4 +47,4 @@ void OutputTxLoggerRegister (void);
 
 void OutputTxShutdown(void);
 
-#endif /* __OUTPUT_PACKET_H__ */
+#endif /* __OUTPUT_TX_H__ */

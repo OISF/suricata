@@ -10,12 +10,14 @@
 #include "flow-util.h"
 #include "app-layer-parser.h"
 #include "util-unittest-helper.h"
-
+#include "conf-yaml-loader.h"
 
 #define HEADER_LEN 6
 
 //rule of thumb constant, so as not to timeout target
 #define PROTO_DETECT_MAX_LEN 1024
+
+#include "confyaml.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -37,6 +39,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //global init
         InitGlobal();
         run_mode = RUNMODE_UNITTEST;
+        if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
+            abort();
+        }
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();
@@ -45,7 +50,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
     }
 
-    f = TestHelperBuildFlow(AF_INET, "1.2.3.4", "5.6.7.8", (data[2] << 8) | data[3], (data[4] << 8) | data[5]);
+    f = TestHelperBuildFlow(AF_INET, "1.2.3.4", "5.6.7.8", (uint16_t)((data[2] << 8) | data[3]),
+            (uint16_t)((data[4] << 8) | data[5]));
     if (f == NULL) {
         return 0;
     }
@@ -54,16 +60,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     f->protoctx = &ssn;
     f->protomap = FlowGetProtoMapping(f->proto);
 
-    alproto = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, size-HEADER_LEN, f->proto, data[0], &reverse);
-    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP &&
-            (data[0] & STREAM_MIDSTREAM) == 0) {
+    uint8_t flags = STREAM_TOCLIENT;
+    if (data[0] & STREAM_TOSERVER) {
+        flags = STREAM_TOSERVER;
+    }
+    alproto = AppLayerProtoDetectGetProto(
+            alpd_tctx, f, data + HEADER_LEN, size - HEADER_LEN, f->proto, flags, &reverse);
+    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
         /* If we find a valid protocol at the start of a stream :
          * check that with smaller input
          * we find the same protocol or ALPROTO_UNKNOWN.
          * Otherwise, we have evasion with TCP splitting
          */
         for (size_t i = 0; i < size-HEADER_LEN && i < PROTO_DETECT_MAX_LEN; i++) {
-            alproto2 = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, i, f->proto, data[0], &reverse);
+            // reset detection at each try cf probing_parser_toserver_alproto_masks
+            AppLayerProtoDetectReset(f);
+            alproto2 = AppLayerProtoDetectGetProto(
+                    alpd_tctx, f, data + HEADER_LEN, i, f->proto, flags, &reverse);
             if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
                 printf("Failed with input length %" PRIuMAX " versus %" PRIuMAX
                        ", found %s instead of %s\n",

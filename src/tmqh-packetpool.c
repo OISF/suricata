@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -113,13 +113,13 @@ void PacketPoolWait(void)
 void PacketPoolWaitForN(int n)
 {
     PktPool *my_pool = GetThreadPacketPool();
-    Packet *p, *pp;
 
     while (1) {
         PacketPoolWait();
 
         /* count packets in our stack */
         int i = 0;
+        Packet *p, *pp;
         pp = p = my_pool->head;
         while (p != NULL) {
             if (++i == n)
@@ -225,14 +225,14 @@ Packet *PacketPoolGetPacket(void)
 void PacketPoolReturnPacket(Packet *p)
 {
     PktPool *my_pool = GetThreadPacketPool();
-
-    PACKET_RELEASE_REFS(p);
-
     PktPool *pool = p->pool;
     if (pool == NULL) {
         PacketFree(p);
         return;
     }
+
+    PACKET_RELEASE_REFS(p);
+
 #ifdef DEBUG_VALIDATION
     BUG_ON(pool->initialized == 0);
     BUG_ON(pool->destroyed == 1);
@@ -338,7 +338,7 @@ void PacketPoolDestroy(void)
     PktPool *my_pool = GetThreadPacketPool();
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(my_pool->destroyed);
+    BUG_ON(my_pool && my_pool->destroyed);
 #endif /* DEBUG_VALIDATION */
 
     if (my_pool && my_pool->pending_pool != NULL) {

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,7 @@ enum RunModes {
     RUNMODE_DAG,
     RUNMODE_AFP_DEV,
     RUNMODE_NETMAP,
+    RUNMODE_DPDK,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
     RUNMODE_UNIX_SOCKET,
@@ -110,9 +111,11 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
 #include "runmode-windivert.h"
+#include "runmode-dpdk.h"
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
+extern uint64_t threading_set_stack_size;
 
 extern int debuglog_enabled;
 

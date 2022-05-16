@@ -163,7 +163,8 @@ void HttpRangeContainersInit(void)
         }
     }
     if (ConfGetValue("app-layer.protocols.http.byterange.timeout", &str) == 1) {
-        if (StringParseUint32(&timeout, 10, strlen(str), str) <= 0) {
+        size_t slen = strlen(str);
+        if (slen > UINT16_MAX || StringParseUint32(&timeout, 10, (uint16_t)slen, str) <= 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "timeout value cannot be deduced: %s,"
                     " resetting to default",
@@ -421,11 +422,12 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
         SCLogDebug("update files (FileAppendData)");
         return FileAppendData(c->files, data, len);
     }
-    // If we are not in the previous cases, only one case remains
-    DEBUG_VALIDATE_BUG_ON(c->current == NULL);
-    // So we have a current allocated buffer to copy to
-    // in the case of an unordered range being handled
+    // Maybe we were in the skipping case,
+    // but we get more data than expected and had set c->toskip = 0
+    // so we need to check for last case with something to do
     if (c->current) {
+        // So we have a current allocated buffer to copy to
+        // in the case of an unordered range being handled
         SCLogDebug("update current: adding %u bytes to block %p", len, c);
         // GAP "data"
         if (data == NULL) {
@@ -491,11 +493,17 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                 (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
                 SCFree(c->current->buffer);
                 SCFree(c->current);
+                c->current = NULL;
+                return NULL;
             }
             SCLogDebug("inserted range fragment");
             c->current = NULL;
             if (c->container->files == NULL) {
                 // we have to wait for the flow owning the file
+                return NULL;
+            }
+            if (c->container->files->tail == NULL) {
+                // file has already been closed meanwhile
                 return NULL;
             }
             // keep on going, maybe this out of order chunk
@@ -505,6 +513,11 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     } else if (c->toskip > 0) {
         // was only an overlapping range, truncated before new bytes
         SCLogDebug("c->toskip %" PRIu64, c->toskip);
+        if (c->files) {
+            // if we expected new bytes after overlap
+            c->container->files = c->files;
+            c->files = NULL;
+        }
         return NULL;
     } else {
         // we just finished an in-order block

@@ -1,0 +1,18 @@
+# MSC Sequence Diagram Example: Template transaction
+
+msc {
+    # Chart Options
+    arcgradient = "10";
+
+    # Entities
+    a [ label = "Client" ], b [ label = "Server" ];
+
+    # Message Flow
+    a =>> b [ label = "Request ('12:HelloWorld!')" ];
+    b =>> a [ label = "Response ('3:Bye')" ];
+    |||;
+    --- [ label = "Transaction Completed" ];
+
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
+}

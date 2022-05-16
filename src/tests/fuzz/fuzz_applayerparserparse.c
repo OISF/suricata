@@ -33,7 +33,7 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
 
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
 SCInstance surifuzz;
-uint64_t forceLayer = 0;
+AppProto forceLayer = 0;
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
@@ -42,14 +42,14 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
         AppProto applayer = StringToAppProto(target_suffix + 1);
         if (applayer != ALPROTO_UNKNOWN) {
             forceLayer = applayer;
-            printf("Forcing %s=%" PRIu64 "\n", AppProtoToString(forceLayer), forceLayer);
+            printf("Forcing %s=%" PRIu16 "\n", AppProtoToString(forceLayer), forceLayer);
             return 0;
         }
     }
     // else
     const char *forceLayerStr = getenv("FUZZ_APPLAYER");
     if (forceLayerStr) {
-        if (ByteExtractStringUint64(&forceLayer, 10, 0, forceLayerStr) < 0) {
+        if (ByteExtractStringUint16(&forceLayer, 10, 0, forceLayerStr) < 0) {
             forceLayer = 0;
             printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
         } else {
@@ -58,6 +58,9 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
     }
     return 0;
 }
+
+// arbitrary value
+#define ALPROTO_MAXTX 4096
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -105,8 +108,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     f->flags |= FLOW_IPV4;
     f->src.addr_data32[0] = 0x01020304;
     f->dst.addr_data32[0] = 0x05060708;
-    f->sp = (data[2] << 8) | data[3];
-    f->dp = (data[4] << 8) | data[5];
+    f->sp = (uint16_t)((data[2] << 8) | data[3]);
+    f->dp = (uint16_t)((data[4] << 8) | data[5]);
     f->proto = data[1];
     memset(&ssn, 0, sizeof(TcpSession));
     f->protoctx = &ssn;
@@ -117,6 +120,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         f->alproto = data[0];
     }
 
+    FLOWLOCK_WRLOCK(f);
     /*
      * We want to fuzz multiple calls to AppLayerParserParse
      * because some parts of the code are only reached after
@@ -163,6 +167,33 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 alsize = 0;
                 break;
             }
+
+            AppLayerParserTransactionsCleanup(f);
+
+            if (f->alstate && f->alparser) {
+                // check if we have too many open transactions
+                const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
+                uint64_t min = 0;
+                AppLayerGetTxIterState state;
+                memset(&state, 0, sizeof(state));
+                uint64_t nbtx = 0;
+                AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
+                while (1) {
+                    AppLayerGetTxIterTuple ires =
+                            IterFunc(f->proto, f->alproto, f->alstate, min, total_txs, &state);
+                    if (ires.tx_ptr == NULL)
+                        break;
+                    min = ires.tx_id + 1;
+                    nbtx++;
+                    if (nbtx > ALPROTO_MAXTX) {
+                        printf("Too many open transactions for protocol %s\n",
+                                AppProtoToString(f->alproto));
+                        printf("Assertion failure: %s\n", AppProtoToString(f->alproto));
+                        fflush(stdout);
+                        abort();
+                    }
+                }
+            }
         }
         alsize -= alnext - albuffer + 4;
         albuffer = alnext + 4;
@@ -191,6 +222,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         free(isolatedBuffer);
     }
 
+    FLOWLOCK_UNLOCK(f);
     FlowFree(f);
 
     return 0;

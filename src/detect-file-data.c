@@ -111,6 +111,10 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_HTTP2, HTTP2StateDataServer);
+    DetectAppLayerMpmRegister2(
+            "file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_NFS, 0);
+    DetectAppLayerMpmRegister2(
+            "file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_NFS, 0);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
             NULL, ALPROTO_FTPDATA, 0);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
@@ -139,6 +143,10 @@ void DetectFiledataRegister(void)
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
             DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "file_data", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "file_data", ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2(
             "file_data", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2(
@@ -198,7 +206,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
             (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP1 &&
                     s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
                     s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_FTP &&
-                    s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP)) {
+                    s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP &&
+                    s->alproto != ALPROTO_NFS)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
@@ -366,7 +375,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
-    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, base_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
     body->body_inspected = body->content_len_so_far;
     SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
@@ -666,10 +675,9 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     FileContainer *ffc = AppLayerParserGetFiles(f, flags);
-    int local_file_id = 0;
     if (ffc != NULL) {
-        File *file = ffc->head;
-        for (; file != NULL; file = file->next) {
+        int local_file_id = 0;
+        for (File *file = ffc->head; file != NULL; file = file->next) {
             if (file->txid != idx)
                 continue;
 

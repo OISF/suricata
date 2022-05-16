@@ -31,6 +31,7 @@
 
 #include "util-unittest.h"
 
+#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
@@ -71,15 +72,10 @@ static int TFTPStateGetEventInfo(const char *event_name, int *event_id,
     return -1;
 }
 
-static AppLayerDecoderEvents *TFTPGetEvents(void *tx)
-{
-    return NULL;
-}
-
 /**
- * \brief Probe the input to see if it looks like echo.
+ * \brief Probe the input to see if it looks like tftp.
  *
- * \retval ALPROTO_TFTP if it looks like echo, otherwise
+ * \retval ALPROTO_TFTP if it looks like tftp, otherwise
  *     ALPROTO_UNKNOWN.
  */
 static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
@@ -96,11 +92,13 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static AppLayerResult TFTPParseRequest(Flow *f, void *state,
-    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-    void *local_data, const uint8_t flags)
+static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, void *local_data)
 {
-    SCLogDebug("Parsing echo request: len=%"PRIu32, input_len);
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+
+    SCLogDebug("Parsing tftp request: len=%" PRIu32, input_len);
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
@@ -125,8 +123,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state,
  * \brief Response parsing is not implemented
  */
 static AppLayerResult TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCReturnStruct(APP_LAYER_OK);
 }
@@ -144,7 +141,7 @@ static void *TFTPGetTx(void *state, uint64_t tx_id)
 /**
  * \brief Return the state of a transaction in a given direction.
  *
- * In the case of the echo protocol, the existence of a transaction
+ * In the case of the tftp protocol, the existence of a transaction
  * means that the request is done. However, some protocols that may
  * need multiple chunks of data to complete the request may need more
  * than just the existence of a transaction for the request to be
@@ -157,17 +154,6 @@ static void *TFTPGetTx(void *state, uint64_t tx_id)
 static int TFTPGetStateProgress(void *tx, uint8_t direction)
 {
     return 1;
-}
-
-static DetectEngineState *TFTPGetTxDetectState(void *vtx)
-{
-    return NULL;
-}
-
-static int TFTPSetTxDetectState(void *vtx,
-    DetectEngineState *s)
-{
-    return 0;
 }
 
 void RegisterTFTPParsers(void)
@@ -183,7 +169,7 @@ void RegisterTFTPParsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TFTP, proto_name);
 
         if (RunmodeIsUnittests()) {
-            SCLogDebug("Unittest mode, registeringd default configuration.");
+            SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, TFTP_DEFAULT_PORT,
                                           ALPROTO_TFTP, 0, TFTP_MIN_FRAME_LEN,
                                           STREAM_TOSERVER, TFTPProbingParser,
@@ -193,9 +179,9 @@ void RegisterTFTPParsers(void)
                                                      proto_name, ALPROTO_TFTP,
                                                      0, TFTP_MIN_FRAME_LEN,
                                                      TFTPProbingParser, TFTPProbingParser)) {
-                SCLogDebug("No echo app-layer configuration, enabling echo"
+                SCLogDebug("No tftp app-layer configuration, enabling tftp"
                            " detection UDP detection on port %s.",
-                           TFTP_DEFAULT_PORT);
+                        TFTP_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                                               TFTP_DEFAULT_PORT, ALPROTO_TFTP,
                                               0, TFTP_MIN_FRAME_LEN,
@@ -204,7 +190,7 @@ void RegisterTFTPParsers(void)
             }
         }
     } else {
-        SCLogDebug("Protocol detecter and parser disabled for TFTP.");
+        SCLogDebug("Protocol detector and parser disabled for TFTP.");
         return;
     }
 
@@ -242,15 +228,8 @@ void RegisterTFTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP,
                                     TFTPGetTx);
 
-        /* What is this being registered for? */
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                               TFTPGetTxDetectState,
-                                               TFTPSetTxDetectState);
-
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP,
                                            TFTPStateGetEventInfo);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
-                                            TFTPGetEvents);
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                          rs_tftp_get_tx_data);

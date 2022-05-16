@@ -185,6 +185,7 @@
     AC_CHECK_HEADERS([libgen.h])
     AC_CHECK_HEADERS([mach/mach.h])
     AC_CHECK_HEADERS([stdatomic.h])
+    AC_CHECK_HEADERS([sys/queue.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
@@ -277,7 +278,6 @@
 
     e_magic_file=""
     e_magic_file_comment="#"
-    PCAP_LIB_NAME="pcap"
     case "$host" in
         *-*-*freebsd*)
             LUA_LIB_NAME="lua-5.1"
@@ -307,14 +307,14 @@
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
             WINDOWS_PATH="yes"
-            PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
-            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh"
+            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh -lbcrypt"
+            TRY_WPCAP="yes"
             ;;
         *-*-cygwin)
             LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
-            PCAP_LIB_NAME="wpcap"
+            TRY_WPCAP="yes"
             ;;
         *-*-solaris*)
             AC_MSG_WARN([support for Solaris/Illumos/SunOS is experimental])
@@ -738,6 +738,11 @@
     fi
 
     AC_CHECK_FUNCS([pthread_spin_unlock])
+
+    AS_IF([test "x$enable_debug" = "xyes"], [
+        # Debug only function used for diagnostic display
+        AC_CHECK_FUNCS([pthread_getattr_np])
+    ])
 
   # libjansson
     AC_ARG_WITH(libjansson_includes,
@@ -1175,38 +1180,36 @@
                 #define _DEFAULT_SOURCE 1
             ]])
 
-    LIBPCAP=""
-    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_open_live,, LIBPCAP="no")
-    if test "$LIBPCAP" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library not found, go get it"
-        echo "   from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
+    have_wpcap=""
+    if test "$TRY_WPCAP" = "yes"; then
+        AC_CHECK_LIB(wpcap, pcap_activate, [], have_wpcap="no")
+        if test "$have_wpcap" = "no"; then
+            echo ""
+            echo "    Warning: NPCap was not found. Live capture will not be available."
+            echo ""
+        else
+            PCAP_LIB_NAME="wpcap"
+            have_wpcap="yes"
+        fi
     fi
 
-    # pcap_activate and pcap_create only exists in libpcap >= 1.0
-    LIBPCAPVTEST=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_activate,, LPCAPVTEST="no")
-    if test "$LPCAPVTEST" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library too old, need at least 1+, "
-        echo "   go get it from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
+    if test "$have_wpcap" != "yes"; then
+        AC_CHECK_LIB(pcap, pcap_open_dead, [], [
+            echo
+            echo "   ERROR!  libpcap library not found, go get it"
+            echo "   from http://www.tcpdump.org or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libpcap-dev"
+            echo "   Fedora: dnf install libpcap-devel"
+            echo "   CentOS/RHEL: yum install libpcap-devel"
+            echo
+            exit 1
+        ])
+        PCAP_LIB_NAME="pcap"
     fi
+
+    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
+
     AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
     if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
         AC_MSG_RESULT(no pcap-config is use)
@@ -1214,7 +1217,6 @@
         PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
         AC_SUBST(PCAP_CFLAGS)
     fi
-    LIBS="${TMPLIBS}"
 
     #Appears as if pcap_set_buffer_size is linux only?
     LIBPCAPSBUFF=""
@@ -1330,18 +1332,65 @@
             [[#include <linux/net_tstamp.h>]])
     ])
 
+  # DPDK support
+    AC_ARG_ENABLE(dpdk,
+            AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
+                        [enable_dpdk=$enableval],[enable_dpdk=no])
+    AS_IF([test "x$enable_dpdk" = "xyes"], [
+        AC_CHECK_LIB(numa, numa_available,, [numa_found="no"])
+        if test "$numa_found" = "no"; then
+            echo
+            echo "  ERROR! libnuma not found by pkg-config, go get it"
+            echo "      from http://github.com/numactl/numactl or your distribution:"
+            echo "          Ubuntu: apt-get install libnuma-dev"
+            echo "          Fedora: dnf install numactl-devel"
+            echo "          CentOS/RHEL: yum install numactl-devel"
+            echo
+            exit 1
+        fi
+
+        AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
+        PKG_CHECK_EXISTS(libdpdk >= 20.11, [pkgconfig_libdpdk_above20=yes], )
+        if test "$pkgconfig_libdpdk_above20" = "yes"; then
+            AC_DEFINE([HAVE_STRLCAT],[1],[STRLCAT is predefined by DPDK 20.11+])
+            AC_DEFINE([HAVE_STRLCPY],[1],[STRLCPY is predefined by DPDK 20.11+])
+        fi
+
+        PKG_CHECK_EXISTS(libdpdk >= 19.11, , [with_pkgconfig_libdpdk=no])
+        if test "$with_pkgconfig_libdpdk" = "no"; then
+            echo
+            echo "   ERROR! libdpdk >= 19.11 not found by pkg-config, go get it"
+            echo "   from https://www.dpdk.org/ or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install dpdk-dev"
+            echo "   Fedora: dnf install dpdk-devel"
+            echo "   CentOS/RHEL: yum install dpdk-devel"
+            echo
+            exit 1
+        fi
+        CFLAGS="${CFLAGS} `pkg-config --cflags libdpdk`"
+        LIBS="${LIBS} -Wl,-R,`pkg-config --libs-only-L libdpdk | cut -c 3-` -lnuma `pkg-config --libs libdpdk`"
+    ])
+
   # Netmap support
     AC_ARG_ENABLE(netmap,
             AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),[enable_netmap=$enableval],[enable_netmap=no])
     AC_ARG_WITH(netmap_includes,
             [  --with-netmap-includes=DIR netmap include directory],
             [with_netmap_includes="$withval"],[with_netmap_includes=no])
+    AC_ARG_WITH(netmap_libraries,
+            [  --with-netmap-libraries=DIR netmap library directory],
+            [with_netmap_libraries="$withval"],[with_netmap_libraries=no])
 
     AS_IF([test "x$enable_netmap" = "xyes"], [
         AC_DEFINE([HAVE_NETMAP],[1],(NETMAP support enabled))
 
         if test "$with_netmap_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_netmap_includes}"
+        fi
+
+        if test "$with_netmap_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_netmap_libraries}"
         fi
 
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_MSG_ERROR(net/netmap_user.h not found ...)],)
@@ -1351,61 +1400,29 @@
         #include <net/netmap_user.h>
         ],[
         #ifndef NETMAP_API
-        #error "outdated netmap, need one with NETMAP_API"
+        #error "Outdated netmap, need one with NETMAP_API"
         #endif
-        #if NETMAP_API < 11
-        #error "outdated netmap, need at least api version 11"
+        #if NETMAP_API < 14
+        #error "Outdated netmap, need at least API version 14"
         #endif
         ])], [have_recent_netmap="yes"])
         if test "x$have_recent_netmap" != "xyes"; then
-            echo "ERROR: outdated netmap"
+            echo "ERROR: outdated netmap; need at least v14"
             exit 1
         fi
-        have_netmap_version="unknown"
-        have_v11_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 11
-        #error "not 11"
-        #endif
-        ])], [have_v11_netmap="yes"])
-        if test "x$have_v11_netmap" = "xyes"; then
-            have_netmap_version="v11"
+        have_netmap_version="v14+"
+        AC_CHECK_HEADER(libnetmap.h,,[AC_MSG_ERROR(libnetmap.h not found ...)],)
+        LIBNETMAP=""
+        AC_SEARCH_LIBS([nmport_open],[netmap],,[LIBNETMAP="no"])
+        if test "$LIBNETMAP" = "no"; then
+            echo
+            echo "   ERROR!  libnetmap library not found!"
+            echo "   Go get it from https://github.com/luigirizzo/netmap"
+            echo "   or your distribution."
+            echo
+            exit 1
         fi
-        have_v12_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 12
-        #error "not 12"
-        #endif
-        ])], [have_v12_netmap="yes"])
-        if test "x$have_v12_netmap" = "xyes"; then
-            have_netmap_version="v12"
-        fi
-        have_v13_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 13
-        #error "not 13"
-        #endif
-        ])], [have_v13_netmap="yes"])
-        if test "x$have_v13_netmap" = "xyes"; then
-            have_netmap_version="v13"
-        fi
-        have_gtv13_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API <= 13
-        #error "not gt 13"
-        #endif
-        ])], [have_gtv13_netmap="yes"])
-        if test "x$have_gtv13_netmap" = "xyes"; then
-            have_netmap_version="> v13"
-        fi
+        AC_DEFINE([HAVE_NETMAP_V14],[1],(NETMAP API v14 support enabled))
   ])
 
   # Suricata-Update.
@@ -1415,7 +1432,6 @@
 
     # Assume suircata-update will not be installed.
     have_suricata_update="no"
-    ruledirprefix="$sysconfdir"
 
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
@@ -1437,7 +1453,6 @@
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
-            ruledirprefix="$localstatedir/lib"
 	fi
     fi
 
@@ -1506,12 +1521,12 @@
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.36],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.40],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.36, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.40, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
@@ -1610,6 +1625,13 @@
     ;;
     esac
 
+    AC_CHECK_LIB(unwind,unw_backtrace,,LIBUNW="no")
+    if test "$LIBUNW" = "no"; then
+        echo
+        echo "   libunwind library and development headers not found"
+        echo "   stacktrace on unexpected termination due to signal not possible"
+        echo
+    fi;
 
     AC_ARG_ENABLE(ebpf,
 	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
@@ -2137,7 +2159,7 @@ fi
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
         CLS=$(getconf LEVEL1_DCACHE_LINESIZE)
-        if [test "$CLS" != "" && test "$CLS" != "0"]; then
+        if [test "$CLS" != "undefined" && test "$CLS" != "" && test "$CLS" != "0"]; then
             AC_DEFINE_UNQUOTED([CLS],[${CLS}],[L1 cache line size])
         else
             AC_DEFINE([CLS],[64],[L1 cache line size])
@@ -2195,7 +2217,7 @@ fi
     cargo_version_output=$($CARGO --version)
     cargo_version=$(echo "$cargo_version_output" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
 
-    MIN_RUSTC_VERSION="1.34.2"
+    MIN_RUSTC_VERSION="1.41.1"
     AC_MSG_CHECKING(for Rust version $MIN_RUSTC_VERSION or newer)
     AS_VERSION_COMPARE([$rustc_version], [$MIN_RUSTC_VERSION],
         [
@@ -2211,10 +2233,6 @@ fi
     AC_MSG_RESULT(yes)
 
     RUST_FEATURES=""
-    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
-        [],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"])
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
@@ -2280,21 +2298,6 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
-    # With Rust/Cargo 1.37 and greater, cargo-vendor is built-in.
-    AC_MSG_CHECKING(for cargo vendor support)
-    AS_VERSION_COMPARE([$cargo_version], [1.37.0],
-        [have_cargo_vendor="no"],
-        [have_cargo_vendor="yes"],
-        [have_cargo_vendor="yes"])
-    AC_MSG_RESULT($have_cargo_vendor)
-
-    # If Rust is older than 1.37, check for cargo-vendor as an
-    # external sub-command.
-    if test "x$have_cargo_vendor" != "xyes"; then
-        AC_CHECK_PROG(have_cargo_vendor_bin, cargo-vendor, yes, no)
-        have_cargo_vendor=$have_cargo_vendor_bin
-    fi
-
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
     if test -f "$srcdir/rust/dist/rust-bindings.h"; then
@@ -2313,7 +2316,7 @@ fi
 
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
-      cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
+      cbindgen_version=$(cbindgen --version 2>&1 | cut -d' ' -f2-)
       min_cbindgen_version="0.10.0"
       AS_VERSION_COMPARE([$cbindgen_version], [$min_cbindgen_version],
           [cbindgen_ok="no"],
@@ -2343,7 +2346,6 @@ fi
 
     AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
     AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
-    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
            AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])
@@ -2482,7 +2484,7 @@ else
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
-    EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
+    EXPAND_VARIABLE(localstatedir, e_defaultruledir, "/lib/suricata/rules")
 
     e_abs_srcdir=$(cd $srcdir && pwd)
     EXPAND_VARIABLE(e_abs_srcdir, e_rustdir, "/rust")
@@ -2520,7 +2522,7 @@ AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [tes
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
-AC_CONFIG_FILES(rules/Makefile doc/Makefile doc/userguide/Makefile doc/devguide/Makefile)
+AC_CONFIG_FILES(rules/Makefile doc/Makefile doc/userguide/Makefile)
 AC_CONFIG_FILES(contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile)
 AC_CONFIG_FILES(suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service)
 AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
@@ -2530,6 +2532,7 @@ AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
+  DPDK support:                            ${enable_dpdk}
   eBPF support:                            ${enable_ebpf}
   XDP support:                             ${have_xdp}
   PF_RING support:                         ${enable_pfring}
@@ -2563,7 +2566,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler version:                   ${rust_compiler_version}
   Cargo path:                              ${CARGO}
   Cargo version:                           ${cargo_version_output}
-  Cargo vendor:                            ${have_cargo_vendor}
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
@@ -2583,6 +2585,7 @@ Development settings:
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
+  Fuzz targets enabled:                    ${enable_fuzztargets}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}

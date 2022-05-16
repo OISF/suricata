@@ -1,0 +1,9 @@
+# Required by Read The Docs
+version: 2
+
+python:
+  version: "3.8"
+
+  # Use an empty install section to avoid RTD from picking up a non-python
+  # requirements.txt file.
+  install: []

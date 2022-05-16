@@ -16,11 +16,12 @@
  */
 
 use crate::applayer::*;
-use crate::core;
+use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use nom7::Err;
 use std;
 use std::ffi::CString;
 use crate::dcerpc::parser;
@@ -189,7 +190,7 @@ impl DCERPCUDPState {
                     return AppLayerResult::err();
                 }
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC request");
                 return AppLayerResult::err();
@@ -207,12 +208,12 @@ impl DCERPCUDPState {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
-    if input_len > 0 && input != std::ptr::null_mut() {
-        let buf = build_slice!(input, input_len as usize);
-        return state.handle_input_data(buf);
+    if !stream_slice.is_gap() {
+        return state.handle_input_data(stream_slice.as_slice());
     }
     AppLayerResult::err()
 }
@@ -236,26 +237,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     SCLogDebug!("freeing tx {}", tx_id as u64);
     dce_state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
-    match dce_state.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
-    dce_state.de_state = Some(de_state);
-    0
 }
 
 #[no_mangle]
@@ -314,14 +295,16 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
     //is_incomplete is checked by caller
     let (is_dcerpc, is_request) = probe(slice);
     if is_dcerpc {
-        let dir = if is_request {
-            core::STREAM_TOSERVER
+        let dir: Direction = (direction & DIR_BOTH).into();
+        if is_request {
+            if dir != Direction::ToServer {
+                *rdir = Direction::ToServer.into();
+            }
         } else {
-            core::STREAM_TOCLIENT
+            if dir != Direction::ToClient {
+                *rdir = Direction::ToClient.into();
+            }
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            *rdir = dir;
-        }
         return ALPROTO_DCERPC;
     }
     return core::ALPROTO_FAILED;
@@ -331,7 +314,7 @@ fn register_pattern_probe() -> i8 {
     unsafe {
         if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP as u8, ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_udp, 0, 0) < 0 {
+                                                     Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -359,9 +342,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
-        get_de_state: rs_dcerpc_udp_get_tx_detect_state,
-        set_de_state: rs_dcerpc_udp_set_tx_detect_state,
-        get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
@@ -372,6 +352,8 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

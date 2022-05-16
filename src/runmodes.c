@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -58,6 +58,7 @@
 
 int debuglog_enabled = 0;
 int threading_set_cpu_affinity = FALSE;
+uint64_t threading_set_stack_size = 0;
 
 /* Runmode Global Thread Names */
 const char *thread_name_autofp = "RX";
@@ -156,6 +157,13 @@ static const char *RunModeTranslateModeToName(int runmode)
 #else
             return "WINDIVERT(DISABLED)";
 #endif
+        case RUNMODE_DPDK:
+#ifdef HAVE_DPDK
+            return "DPDK";
+#else
+            return "DPDK(DISABLED)";
+#endif
+
         default:
             FatalError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
     }
@@ -227,6 +235,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsNflogRegister();
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
+    RunModeDpdkRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -347,6 +356,11 @@ void RunModeDispatch(int runmode, const char *custom_mode,
 #ifdef WINDIVERT
             case RUNMODE_WINDIVERT:
                 custom_mode = RunModeIpsWinDivertGetDefaultMode();
+                break;
+#endif
+#ifdef HAVE_DPDK
+            case RUNMODE_DPDK:
+                custom_mode = RunModeDpdkGetDefaultMode();
                 break;
 #endif
             default:
@@ -889,7 +903,7 @@ void RunModeInitializeOutputs(void)
     }
 
     /* register the logger bits to the app-layer */
-    int a;
+    AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {
         if (logger_bits[a] == 0)
             continue;
@@ -932,4 +946,20 @@ void RunModeInitialize(void)
     }
 
     SCLogDebug("threading.detect-thread-ratio %f", threading_detect_ratio);
+
+    /*
+     * Check if there's a configuration setting for the per-thread stack size
+     * in case the default per-thread stack size is to be adjusted
+     */
+    const char *ss = NULL;
+    if ((ConfGetValue("threading.stack-size", &ss)) == 1) {
+        if (ss != NULL) {
+            if (ParseSizeStringU64(ss, &threading_set_stack_size) < 0) {
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "Failed to initialize thread_stack_size output, invalid limit: %s", ss);
+            }
+        }
+    }
+
+    SCLogDebug("threading.stack-size %" PRIu64, threading_set_stack_size);
 }

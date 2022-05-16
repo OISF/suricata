@@ -202,7 +202,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
  *  \brief Write meta data on a single line json record
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff,
-        uint32_t dir, OutputJsonCtx *eve_ctx)
+        uint8_t dir, OutputJsonCtx *eve_ctx)
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;

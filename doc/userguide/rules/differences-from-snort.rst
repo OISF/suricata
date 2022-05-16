@@ -492,7 +492,7 @@ Lua Scripting
    HTTP buffers, etc.
 -  Provides powerful flexibility and capabilities that Snort does
    not have.
--  :doc:`rule-lua-scripting`
+-  More details in: :ref:`lua-detection`
 
 Fast Pattern
 ------------

@@ -43,7 +43,6 @@
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
-#include "util-crypt.h"
 
 #include "output-json.h"
 #include "output-json-stats.h"
@@ -65,7 +64,7 @@ typedef enum OutputEngineInfo_ {
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t flags; /** Store mode */
+    uint8_t flags; /** Store mode */
 } OutputStatsCtx;
 
 typedef struct JsonStatsLogThread_ {

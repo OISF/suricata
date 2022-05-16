@@ -90,6 +90,7 @@ enum {
 
     HTTP_DECODER_EVENT_TOO_MANY_WARNINGS = 203,
     HTTP_DECODER_EVENT_RANGE_INVALID = 204,
+    HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG = 205,
 };
 
 typedef enum HtpSwfCompressType_ {
@@ -165,6 +166,13 @@ typedef struct HtpTxUserData_ {
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
 
+    uint8_t boundary_len;
+
+    uint8_t tsflags;
+    uint8_t tcflags;
+
+    uint8_t request_body_type;
+
     HtpBody request_body;
     HtpBody response_body;
 
@@ -173,20 +181,11 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
-    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
-
     /** Holds the boundary identification string if any (used on
      *  multipart/form-data only)
      */
     uint8_t *boundary;
-    uint8_t boundary_len;
 
-    uint8_t tsflags;
-    uint8_t tcflags;
-
-    uint8_t request_body_type;
-
-    DetectEngineState *de_state;
     AppLayerTxData tx_data;
 } HtpTxUserData;
 
@@ -208,6 +207,9 @@ typedef struct HtpState_ {
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
+    StreamSlice *slice;
+    FrameId request_frame_id;
+    FrameId response_frame_id;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

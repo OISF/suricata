@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2021 Open Information Security Foundation
+/* Copyright (C) 2013-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
+#include "detect-engine-enip.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -200,6 +201,8 @@ static void RegisterUnittests(void)
 #ifdef WINDIVERT
     SourceWinDivertRegisterTests();
 #endif
+    SCProtoNameRegisterTests();
+    UtilCIDRTests();
 }
 #endif
 
@@ -235,8 +238,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
-
-    CIDRInit();
 
     TagInitCtx();
     SCReferenceConfInit();

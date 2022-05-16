@@ -33,6 +33,7 @@
 #include "detect-dsize.h"
 #include "detect-tcp-flags.h"
 #include "detect-flow.h"
+#include "detect-config.h"
 #include "detect-flowbits.h"
 
 #include "util-profiling.h"
@@ -194,6 +195,10 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
+    // may happen for 'config' keyword, postmatch
+    if (s->flags & SIG_FLAG_APPLAYER)
+        return 0;
+
     /* if flow dir is set we can't process it in ip-only */
     if (!(((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) ||
             (s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) ==
@@ -205,7 +210,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -265,7 +270,7 @@ static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -352,7 +357,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -563,6 +568,18 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_CONFIG: {
+                DetectConfigData *fd = (DetectConfigData *)sm->ctx;
+                if (fd->scope == CONFIG_SCOPE_FLOW) {
+                    s->mask |= SIG_MASK_REQUIRE_FLOW;
+                }
+                break;
+            }
+        }
+    }
+
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
@@ -594,7 +611,7 @@ static int RuleGetMpmPatternSize(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return -1;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+    int mpm_list = s->init_data->mpm_sm_list;
     if (mpm_list < 0)
         return -1;
     const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
@@ -607,7 +624,7 @@ static int RuleMpmIsNegated(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return 0;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+    int mpm_list = s->init_data->mpm_sm_list;
     if (mpm_list < 0)
         return 0;
     const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
@@ -629,7 +646,6 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     uint32_t payload_no_mpm_cnt = 0;
     uint32_t syn_cnt = 0;
 
-    uint32_t mpms_total = 0;
     uint32_t mpms_min = 0;
     uint32_t mpms_max = 0;
 
@@ -711,7 +727,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             }
 
         } else {
-            int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+            int mpm_list = s->init_data->mpm_sm_list;
             BUG_ON(mpm_list < 0);
             const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
@@ -741,7 +757,6 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             }
 
             uint32_t w = PatternStrength(cd->content, cd->content_len);
-            mpms_total += w;
             if (mpms_min == 0)
                 mpms_min = w;
             if (w < mpms_min)
@@ -823,7 +838,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 if (y < DETECT_SM_LIST_DYNAMIC_START)
                     name = DetectListToHumanString(y);
                 else
-                    name = DetectBufferTypeGetNameById(de_ctx, y);
+                    name = DetectEngineBufferTypeGetNameById(de_ctx, y);
 
                 json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
             }
@@ -862,7 +877,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 if (i < DETECT_SM_LIST_DYNAMIC_START)
                     name = DetectListToHumanString(i);
                 else
-                    name = DetectBufferTypeGetNameById(de_ctx, i);
+                    name = DetectEngineBufferTypeGetNameById(de_ctx, i);
 
                 json_object_set_new(mpm_js, name, buf);
             }
@@ -1139,15 +1154,13 @@ static int RuleSetWhitelist(Signature *s)
 
             /* one byte pattern in packet/stream payloads */
         } else if (s->init_data->mpm_sm != NULL &&
-                   SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH &&
-                   RuleGetMpmPatternSize(s) == 1)
-        {
+                   s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH &&
+                   RuleGetMpmPatternSize(s) == 1) {
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
             wl = 55;
 
         } else if (DetectFlagsSignatureNeedsSynPackets(s) &&
-                   DetectFlagsSignatureNeedsSynOnlyPackets(s))
-        {
+                   DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
             SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
             wl = 33;
         }
@@ -1446,7 +1459,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         /* run buffer type callbacks if any */
         for (int x = 0; x < (int)s->init_data->smlists_array_size; x++) {
             if (s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(de_ctx, x, s);
+                DetectEngineBufferRunSetupCallback(de_ctx, x, s);
         }
 
         de_ctx->sig_cnt++;
@@ -1892,6 +1905,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         DetectEnginePktInspectionSetup(s);
 
         if (rule_engine_analysis_set) {
+            EngineAnalysisAddAllRulePatterns(de_ctx, s);
             EngineAnalysisRules2(de_ctx, s);
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
@@ -1970,6 +1984,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     int r = DetectMpmPrepareBuiltinMpms(de_ctx);
     r |= DetectMpmPrepareAppMpms(de_ctx);
     r |= DetectMpmPreparePktMpms(de_ctx);
+    r |= DetectMpmPrepareFrameMpms(de_ctx);
     if (r != 0) {
         FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
     }

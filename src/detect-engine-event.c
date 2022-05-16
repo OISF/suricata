@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -265,14 +265,13 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 static int EngineEventTestParse01 (void)
 {
-    DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("decoder.ipv4.pkt_too_small");
-    if (de) {
-        DetectEngineEventFree(NULL, de);
-        return 1;
-    }
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.ipv4.pkt_too_small");
 
-    return 0;
+    FAIL_IF_NULL(de);
+
+    DetectEngineEventFree(NULL, de);
+
+    PASS;
 }
 
 
@@ -281,14 +280,13 @@ static int EngineEventTestParse01 (void)
  */
 static int EngineEventTestParse02 (void)
 {
-    DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("decoder.PPP.pkt_too_small");
-    if (de) {
-        DetectEngineEventFree(NULL, de);
-        return 1;
-    }
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.PPP.pkt_too_small");
 
-    return 0;
+    FAIL_IF_NULL(de);
+
+    DetectEngineEventFree(NULL, de);
+
+    PASS;
 }
 
 /**
@@ -296,14 +294,13 @@ static int EngineEventTestParse02 (void)
  */
 static int EngineEventTestParse03 (void)
 {
-    DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("decoder.IPV6.PKT_TOO_SMALL");
-    if (de) {
-        DetectEngineEventFree(NULL, de);
-        return 1;
-    }
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV6.PKT_TOO_SMALL");
 
-    return 0;
+    FAIL_IF_NULL(de);
+
+    DetectEngineEventFree(NULL, de);
+
+    PASS;
 }
 
 /**
@@ -311,14 +308,13 @@ static int EngineEventTestParse03 (void)
  */
 static int EngineEventTestParse04 (void)
 {
-    DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
-    if (de) {
-        DetectEngineEventFree(NULL, de);
-        return 0;
-    }
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
 
-    return 1;
+    FAIL_IF_NOT_NULL(de);
+
+    DetectEngineEventFree(NULL, de);
+
+    PASS;
 }
 
 /**
@@ -326,14 +322,13 @@ static int EngineEventTestParse04 (void)
  */
 static int EngineEventTestParse05 (void)
 {
-    DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
-    if (de) {
-        DetectEngineEventFree(NULL, de);
-        return 0;
-    }
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
 
-    return 1;
+    FAIL_IF_NOT_NULL(de);
+
+    DetectEngineEventFree(NULL, de);
+
+    PASS;
 }
 
 /**
@@ -341,45 +336,33 @@ static int EngineEventTestParse05 (void)
  */
 static int EngineEventTestParse06 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    ThreadVars tv;
-    int ret = 0;
-    DetectEngineEventData *de = NULL;
-    SigMatch *sm = NULL;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
 
+    ThreadVars tv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
-    de = DetectEngineEventParse("decoder.ppp.pkt_too_small");
-    if (de == NULL)
-        goto error;
+    DetectEngineEventData *de = DetectEngineEventParse("decoder.ppp.pkt_too_small");
+    FAIL_IF_NULL(de);
 
     de->event = PPP_PKT_TOO_SMALL;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    FAIL_IF_NULL(sm);
 
     sm->type = DETECT_DECODE_EVENT;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectEngineEventMatch(NULL,p,NULL,sm->ctx);
+    FAIL_IF_NOT(DetectEngineEventMatch(NULL, p, NULL, sm->ctx));
 
-    if(ret) {
-        SCFree(p);
-        return 1;
-    }
-
-error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    SCFree(de);
+    SCFree(sm);
+
+    PASS;
 }
 
 /**

@@ -127,8 +127,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
 
-typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const uint32_t input_len);
+typedef int (*StreamReassembleRawFunc)(
+        void *data, const uint8_t *input, const uint32_t input_len, const uint64_t offset);
 
+int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembleRawFunc Callback,
+        void *cb_data, const uint64_t offset, const bool eof);
 int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         StreamReassembleRawFunc Callback, void *cb_data,
         uint64_t progress_in,
@@ -175,7 +178,7 @@ enum {
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
-int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
+uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);
@@ -197,6 +200,9 @@ int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn
 
 void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
         const uint32_t progress);
+
+uint64_t StreamTcpGetAcked(const TcpStream *stream);
+uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof);
 
 #endif /* __STREAM_TCP_H__ */
 

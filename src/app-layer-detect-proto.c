@@ -72,11 +72,10 @@ typedef struct AppLayerProtoDetectProbingParserElement_ {
     uint16_t port;
     /* \todo calculate at runtime and get rid of this var */
     uint32_t alproto_mask;
-    /* \todo check if we can reduce the bottom 2 vars to uint16_t */
     /* the min length of data that has to be supplied to invoke the parser */
-    uint32_t min_depth;
+    uint16_t min_depth;
     /* the max length of data after which this parser won't be invoked */
-    uint32_t max_depth;
+    uint16_t max_depth;
 
     /* the to_server probing parser function */
     ProbingParserFPtr ProbingParserTs;
@@ -194,7 +193,7 @@ static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
  *  \param searchlen pattern matching portion of buffer */
 static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMSignature *s,
         AppLayerProtoDetectThreadCtx *tctx, Flow *f, uint8_t flags, const uint8_t *buf,
-        uint16_t buflen, uint16_t searchlen, bool *rflow)
+        uint32_t buflen, uint16_t searchlen, bool *rflow)
 {
     SCEnter();
 
@@ -267,11 +266,12 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
  */
 static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
         AppLayerProtoDetectPMCtx *pm_ctx, MpmThreadCtx *mpm_tctx, Flow *f, const uint8_t *buf,
-        uint16_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
+        uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
 {
     int pm_matches = 0;
 
-    uint16_t searchlen = MIN(buflen, pm_ctx->mpm_ctx.maxdepth);
+    // maxdepth is u16, so minimum is u16
+    uint16_t searchlen = (uint16_t)MIN(buflen, pm_ctx->mpm_ctx.maxdepth);
     SCLogDebug("searchlen %u buflen %u", searchlen, buflen);
 
     /* do the mpm search */
@@ -319,7 +319,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
  *  \param direction direction for the patterns
  *  \param pm_results[out] AppProto array of size ALPROTO_MAX */
 static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f,
-        const uint8_t *buf, uint16_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
+        const uint8_t *buf, uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
 {
     SCEnter();
 
@@ -896,6 +896,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_KRB5\n");
                     else if (pp_pe->alproto == ALPROTO_DHCP)
                         printf("            alproto: ALPROTO_DHCP\n");
+                    else if (pp_pe->alproto == ALPROTO_QUIC)
+                        printf("            alproto: ALPROTO_QUIC\n");
                     else if (pp_pe->alproto == ALPROTO_SNMP)
                         printf("            alproto: ALPROTO_SNMP\n");
                     else if (pp_pe->alproto == ALPROTO_SIP)
@@ -906,6 +908,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_RFB\n");
                     else if (pp_pe->alproto == ALPROTO_MQTT)
                         printf("            alproto: ALPROTO_MQTT\n");
+                    else if (pp_pe->alproto == ALPROTO_PGSQL)
+                        printf("            alproto: ALPROTO_PGSQL\n");
+                    else if (pp_pe->alproto == ALPROTO_TELNET)
+                        printf("            alproto: ALPROTO_TELNET\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -971,6 +977,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_IKE\n");
                 else if (pp_pe->alproto == ALPROTO_KRB5)
                     printf("            alproto: ALPROTO_KRB5\n");
+                else if (pp_pe->alproto == ALPROTO_QUIC)
+                    printf("            alproto: ALPROTO_QUIC\n");
                 else if (pp_pe->alproto == ALPROTO_DHCP)
                     printf("            alproto: ALPROTO_DHCP\n");
                 else if (pp_pe->alproto == ALPROTO_SNMP)
@@ -983,6 +991,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_RFB\n");
                 else if (pp_pe->alproto == ALPROTO_MQTT)
                     printf("            alproto: ALPROTO_MQTT\n");
+                else if (pp_pe->alproto == ALPROTO_PGSQL)
+                    printf("            alproto: ALPROTO_PGSQL\n");
+                else if (pp_pe->alproto == ALPROTO_TELNET)
+                    printf("            alproto: ALPROTO_TELNET\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -1276,7 +1288,7 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
 {
     SCEnter();
 
-    for (int i = 0; i < FLOW_PROTO_DEFAULT; i++) {
+    for (uint8_t i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         uint8_t ipproto = FlowGetReverseProtoMapping(i);
         for (int j = 0; j < 2; j++) {
             AppLayerProtoDetectPMCtx *pm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j];
@@ -1308,7 +1320,7 @@ static int AppLayerProtoDetectPMSetContentIDs(AppLayerProtoDetectPMCtx *ctx)
     /* array hash buffer */
     uint8_t *ahb = NULL;
     uint8_t *content = NULL;
-    uint8_t content_len = 0;
+    uint16_t content_len = 0;
     PatIntId max_id = 0;
     TempContainer *struct_offset = NULL;
     uint8_t *content_offset = NULL;
@@ -1688,7 +1700,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     DetectPortParse(NULL,&head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
-        uint32_t port = temp_dp->port;
+        uint16_t port = temp_dp->port;
         if (port == 0 && temp_dp->port2 != 0)
             port++;
         for ( ; port <= temp_dp->port2; port++) {
@@ -1833,7 +1845,7 @@ int AppLayerProtoDetectSetup(void)
     memset(&alpd_ctx, 0, sizeof(alpd_ctx));
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    uint16_t mpm_matcher = PatternMatchDefaultMatcher();
+    uint8_t mpm_matcher = PatternMatchDefaultMatcher();
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
@@ -1938,6 +1950,12 @@ void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_
  */
 void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
 {
+    if (FlowChangeProto(f)) {
+        // If we are already changing protocols, from SMTP to TLS for instance,
+        // and that we do not get TLS but HTTP1, which is requesting whange to HTTP2,
+        // we do not proceed the new protocol change
+        return;
+    }
     FlowSetChangeProtoFlag(f);
     f->protodetect_dp = dp;
     f->alproto_expect = expect_proto;
@@ -1984,8 +2002,8 @@ void AppLayerProtoDetectReset(Flow *f)
     f->alproto_tc = ALPROTO_UNKNOWN;
 }
 
-int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
-                                                 const char *alproto)
+int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        const char *ipproto, const char *alproto, bool default_enabled)
 {
     SCEnter();
 
@@ -2021,7 +2039,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         node = ConfGetNode(param);
         if (node == NULL) {
             SCLogDebug("Entry for %s not found.", param);
-            goto enabled;
+            if (default_enabled) {
+                goto enabled;
+            } else {
+                goto disabled;
+            }
         }
     }
 
@@ -2043,6 +2065,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     enabled = 0;
  enabled:
     SCReturnInt(enabled);
+}
+
+int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto, const char *alproto)
+{
+    return AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto, alproto, true);
 }
 
 AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
@@ -2169,6 +2196,18 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 
 const char *AppLayerProtoDetectGetProtoName(AppProto alproto)
 {
+    // Special case for http (any version) :
+    // returns "http" if both versions are enabled
+    // and returns "http1" or "http2" if only one version is enabled
+    if (alproto == ALPROTO_HTTP) {
+        if (alpd_ctx.alproto_names[ALPROTO_HTTP1]) {
+            if (alpd_ctx.alproto_names[ALPROTO_HTTP2]) {
+                return "http";
+            } // else
+            return alpd_ctx.alproto_names[ALPROTO_HTTP1];
+        } // else
+        return alpd_ctx.alproto_names[ALPROTO_HTTP2];
+    }
     return alpd_ctx.alproto_names[alproto];
 }
 

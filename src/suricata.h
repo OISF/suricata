@@ -137,9 +137,9 @@ typedef struct SCInstance_ {
     const char *group_name;
     uint8_t do_setuid;
     uint8_t do_setgid;
+#endif /* OS_WIN32 */
     uint32_t userid;
     uint32_t groupid;
-#endif /* OS_WIN32 */
 
     bool system;
     bool set_logdir;
@@ -175,8 +175,8 @@ extern uint16_t g_vlan_mask;
 extern bool g_disable_hashing;
 
 #include <ctype.h>
-#define u8_tolower(c) tolower((uint8_t)(c))
-#define u8_toupper(c) toupper((uint8_t)(c))
+#define u8_tolower(c) ((uint8_t)tolower((uint8_t)(c)))
+#define u8_toupper(c) ((uint8_t)toupper((uint8_t)(c)))
 
 void EngineStop(void);
 void EngineDone(void);

@@ -14,7 +14,7 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 * 02110-1301, USA.
 */
-use crate::applayer::*;
+use crate::applayer::{self, *};
 use crate::core::{self, AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 
 use std::ffi::CString;
@@ -47,9 +47,13 @@ pub struct ModbusTransaction {
     pub request: Option<Message>,
     pub response: Option<Message>,
 
-    pub events: *mut core::AppLayerDecoderEvents,
-    pub de_state: Option<*mut core::DetectEngineState>,
     pub tx_data: AppLayerTxData,
+}
+
+impl Transaction for ModbusTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 impl ModbusTransaction {
@@ -58,14 +62,12 @@ impl ModbusTransaction {
             id,
             request: None,
             response: None,
-            events: std::ptr::null_mut(),
-            de_state: None,
             tx_data: AppLayerTxData::new(),
         }
     }
 
     fn set_event(&mut self, event: ModbusEvent) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
+        self.tx_data.set_event(event as u8);
     }
 
     fn set_events_from_flags(&mut self, flags: &Flags<ErrorFlags>) {
@@ -87,22 +89,20 @@ impl ModbusTransaction {
     }
 }
 
-impl Drop for ModbusTransaction {
-    fn drop(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
-        }
-    }
-}
-
 pub struct ModbusState {
     pub transactions: Vec<ModbusTransaction>,
     tx_id: u64,
     givenup: bool, // Indicates flood
+}
+
+impl State<ModbusTransaction> for ModbusState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&ModbusTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl ModbusState {
@@ -310,9 +310,11 @@ pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_voi
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    if input_len == 0 {
+    let buf = stream_slice.as_slice();
+    if buf.len() == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             return AppLayerResult::ok();
         } else {
@@ -321,17 +323,17 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-
     state.parse(buf, Direction::ToServer)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    if input_len == 0 {
+    let buf = stream_slice.as_slice();
+    if buf.len() == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             return AppLayerResult::ok();
         } else {
@@ -340,8 +342,6 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-
     state.parse(buf, Direction::ToClient)
 }
 
@@ -368,34 +368,6 @@ pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
     tx.response.is_some() as std::os::raw::c_int
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    tx.events
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    tx.de_state = Some(de_state);
-    0
 }
 
 #[no_mangle]
@@ -427,23 +399,22 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_modbus_tx_get_alstate_progress,
-        get_events: Some(rs_modbus_state_get_events),
         get_eventinfo: Some(ModbusEvent::get_event_info),
         get_eventinfo_byid: Some(ModbusEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
-        get_de_state: rs_modbus_state_get_tx_detect_state,
-        set_de_state: rs_modbus_state_set_tx_detect_state,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<ModbusState, ModbusTransaction>),
         get_tx_data: rs_modbus_state_get_tx_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(ip_proto_str.as_ptr(), parser.name, false) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MODBUS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

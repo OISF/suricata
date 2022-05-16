@@ -30,11 +30,12 @@ Suricata Rules
    mqtt-keywords
    ike-keywords
    http2-keywords
+   quic-keywords
    app-layer
    xbits
    thresholding
    ip-reputation-rules
    config
    datasets
-   rule-lua-scripting
+   lua-detection
    differences-from-snort

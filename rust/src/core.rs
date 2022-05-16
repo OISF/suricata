@@ -19,6 +19,7 @@
 
 use std;
 use crate::filecontainer::*;
+use crate::debug_validate_fail;
 
 /// Opaque C types.
 pub enum DetectEngineState {}
@@ -30,7 +31,6 @@ pub type AppLayerEventType = std::os::raw::c_int;
 pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
 pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
 
-// From stream.h.
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
 pub const STREAM_TOSERVER: u8 = 0x04;
@@ -38,6 +38,43 @@ pub const STREAM_TOCLIENT: u8 = 0x08;
 pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
+pub const STREAM_FLUSH:    u8 = 0x80;
+pub const DIR_BOTH:        u8 = 0b0000_1100;
+const DIR_TOSERVER:        u8 = 0b0000_0100;
+const DIR_TOCLIENT:        u8 = 0b0000_1000;
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Direction {
+    ToServer = 0x04,
+    ToClient = 0x08,
+}
+
+impl Default for Direction {
+    fn default() -> Self { Direction::ToServer }
+}
+
+impl From<u8> for Direction {
+    fn from(d: u8) -> Self {
+        if d & (DIR_TOSERVER | DIR_TOCLIENT) == (DIR_TOSERVER | DIR_TOCLIENT) {
+            debug_validate_fail!("Both directions are set");
+            Direction::ToServer
+        } else if d & DIR_TOSERVER != 0 {
+            Direction::ToServer
+        } else if d & DIR_TOCLIENT != 0 {
+            Direction::ToClient
+        } else {
+            debug_validate_fail!("Unknown direction!!");
+            Direction::ToServer
+        }
+    }
+}
+
+impl From<Direction> for u8 {
+    fn from(d: Direction) -> u8 {
+        d as u8
+    }
+}
 
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = u16;
@@ -45,8 +82,8 @@ pub type AppProto = u16;
 pub const ALPROTO_UNKNOWN : AppProto = 0;
 pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 
-pub const IPPROTO_TCP : i32 = 6;
-pub const IPPROTO_UDP : i32 = 17;
+pub const IPPROTO_TCP : u8 = 6;
+pub const IPPROTO_UDP : u8 = 17;
 
 macro_rules!BIT_U8 {
     ($x:expr) => (1 << $x);
@@ -109,7 +146,7 @@ pub type SCHTPFileCloseHandleRange = extern "C" fn (
         flags: u16,
         c: *mut HttpRangeContainerBlock,
         data: *const u8,
-        data_len: u32);
+        data_len: u32) -> bool;
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
         sbcfg: &StreamingBufferConfig,

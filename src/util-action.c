@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -432,8 +432,8 @@ action-order:\n\
 static int UtilActionTest08(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -497,8 +497,8 @@ end:
 static int UtilActionTest09(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -573,10 +573,10 @@ end:
 static int UtilActionTest10(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
-    uint8_t *buf2 = (uint8_t *)"wo!";
-    uint16_t buflen2 = strlen((char *)buf2);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
+    uint8_t buf2[] = "wo!";
+    uint16_t buflen2 = sizeof(buf2) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -640,10 +640,10 @@ end:
 static int UtilActionTest11(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
-    uint8_t *buf2 = (uint8_t *)"Hi all wo!";
-    uint16_t buflen2 = strlen((char *)buf2);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
+    uint8_t buf2[] = "Hi all wo!";
+    uint16_t buflen2 = sizeof(buf2) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -718,8 +718,8 @@ end:
 static int UtilActionTest12(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -781,8 +781,8 @@ end:
 static int UtilActionTest13(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -814,8 +814,8 @@ static int UtilActionTest13(void)
                               {0, 0, 1},
                               {0, 0, 1},
                               {0, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop has more
-      * priority than pass, it should alert on each packet */
+    /* All the packets should match the 3 sigs. As drop has more
+     * priority than pass, it should alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -856,8 +856,8 @@ end:
 static int UtilActionTest14(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -889,9 +889,9 @@ static int UtilActionTest14(void)
                               {1, 0, 1},
                               {1, 0, 1},
                               {1, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -930,8 +930,8 @@ end:
 static int UtilActionTest15(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -958,9 +958,9 @@ static int UtilActionTest15(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -994,8 +994,8 @@ end:
 static int UtilActionTest16(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -1022,9 +1022,9 @@ static int UtilActionTest16(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1058,8 +1058,8 @@ end:
 static int UtilActionTest17(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -1086,9 +1086,9 @@ static int UtilActionTest17(void)
                               {0, 0, 0},
                               {0, 0, 0},
                               {0, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1122,8 +1122,8 @@ end:
 static int UtilActionTest18(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1155,9 +1155,9 @@ static int UtilActionTest18(void)
                               {0, 0, 1},
                               {0, 0, 1},
                               {0, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1197,8 +1197,8 @@ end:
 static int UtilActionTest19(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1230,9 +1230,9 @@ static int UtilActionTest19(void)
                               {1, 0, 0},
                               {1, 0, 0},
                               {1, 0, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1272,8 +1272,8 @@ end:
 static int UtilActionTest20(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1305,9 +1305,9 @@ static int UtilActionTest20(void)
                               {0, 1, 0},
                               {0, 1, 0},
                               {0, 1, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1341,8 +1341,8 @@ end:
 static int UtilActionTest21(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1374,9 +1374,9 @@ static int UtilActionTest21(void)
                               {1, 0, 1},
                               {1, 0, 1},
                               {1, 0, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1416,8 +1416,8 @@ end:
 static int UtilActionTest22(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1449,9 +1449,9 @@ static int UtilActionTest22(void)
                               {1, 1, 0},
                               {1, 1, 0},
                               {1, 1, 0} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1491,8 +1491,8 @@ end:
 static int UtilActionTest23(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1524,9 +1524,9 @@ static int UtilActionTest23(void)
                               {0, 1, 1},
                               {0, 1, 1},
                               {0, 1, 1} };
-     /* All the patckets should match the 3 sigs. As drop
-      * and alert have more priority than pass, both should
-      * alert on each packet */
+    /* All the packets should match the 3 sigs. As drop
+     * and alert have more priority than pass, both should
+     * alert on each packet */
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1590,12 +1590,9 @@ done:
     return res;
 }
 
-#endif
-
 /* Register unittests */
 void UtilActionRegisterTests(void)
 {
-#ifdef UNITTESTS
     /* Generic tests */
     UtRegisterTest("UtilActionTest01", UtilActionTest01);
     UtRegisterTest("UtilActionTest02", UtilActionTest02);
@@ -1622,5 +1619,5 @@ void UtilActionRegisterTests(void)
     UtRegisterTest("UtilActionTest22", UtilActionTest22);
     UtRegisterTest("UtilActionTest23", UtilActionTest23);
     UtRegisterTest("UtilActionTest24", UtilActionTest24);
-#endif
 }
+#endif

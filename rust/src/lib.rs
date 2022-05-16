@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,7 +41,6 @@
 #![allow(clippy::for_loops_over_fallibles)]
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::single_match)]
-#![allow(clippy::cmp_null)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::ptr_arg)]
 #![allow(clippy::new_without_default)]
@@ -51,7 +50,6 @@
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::enum_variant_names)]
 #![allow(clippy::if_same_then_else)]
-#![allow(clippy::match_single_binding)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::extra_unused_lifetimes)]
 #![allow(clippy::mixed_case_hex_literals)]
@@ -64,9 +62,7 @@
 #![allow(clippy::branches_sharing_code)]
 #![allow(clippy::while_let_loop)]
 #![allow(clippy::redundant_pattern_matching)]
-#![allow(clippy::inherent_to_string)]
 #![allow(clippy::field_reassign_with_default)]
-#![allow(clippy::collapsible_match)]
 
 #[macro_use]
 extern crate nom;
@@ -100,6 +96,8 @@ pub mod conf;
 pub mod jsonbuilder;
 #[macro_use]
 pub mod applayer;
+/// cbindgen:ignore
+pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
@@ -124,12 +122,16 @@ pub mod dhcp;
 pub mod sip;
 pub mod rfb;
 pub mod mqtt;
+pub mod pgsql;
+pub mod telnet;
 pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
 pub mod asn1;
+pub mod mime;
 pub mod ssh;
 pub mod http2;
+pub mod quic;
 pub mod plugin;
 pub mod util;
 pub mod ffi;

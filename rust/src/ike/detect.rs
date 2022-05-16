@@ -166,39 +166,37 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
                 }
             }
         } else if tx.ike_version == 2 {
-            'outer2: for server_transform in tx.hdr.ikev2_transforms.iter() {
-                for attr in server_transform {
-                    match attr {
-                        IkeV2Transform::Encryption(e) => {
-                            if sa == "alg_enc" {
-                                ret_val = e.0 as u32;
-                                ret_code = 1;
-                                break 'outer2;
-                            }
+            for attr in tx.hdr.ikev2_transforms.iter() {
+                match attr {
+                    IkeV2Transform::Encryption(e) => {
+                        if sa == "alg_enc" {
+                            ret_val = e.0 as u32;
+                            ret_code = 1;
+                            break;
                         }
-                        IkeV2Transform::Auth(e) => {
-                            if sa == "alg_auth" {
-                                ret_val = e.0 as u32;
-                                ret_code = 1;
-                                break 'outer2;
-                            }
-                        }
-                        IkeV2Transform::PRF(ref e) => {
-                            if sa == "alg_prf" {
-                                ret_val = e.0 as u32;
-                                ret_code = 1;
-                                break 'outer2;
-                            }
-                        }
-                        IkeV2Transform::DH(ref e) => {
-                            if sa == "alg_dh" {
-                                ret_val = e.0 as u32;
-                                ret_code = 1;
-                                break 'outer2;
-                            }
-                        }
-                        _ => (),
                     }
+                    IkeV2Transform::Auth(e) => {
+                        if sa == "alg_auth" {
+                            ret_val = e.0 as u32;
+                            ret_code = 1;
+                            break;
+                        }
+                    }
+                    IkeV2Transform::PRF(ref e) => {
+                        if sa == "alg_prf" {
+                            ret_val = e.0 as u32;
+                            ret_code = 1;
+                            break;
+                        }
+                    }
+                    IkeV2Transform::DH(ref e) => {
+                        if sa == "alg_dh" {
+                            ret_val = e.0 as u32;
+                            ret_code = 1;
+                            break;
+                        }
+                    }
+                    _ => (),
                 }
             }
         }

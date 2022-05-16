@@ -1,0 +1,34 @@
+# MSC Sequence Diagram Example: TLS Handshake Transaction
+
+msc {
+    # Chart Options
+    arcgradient = "10";
+
+    # Entities
+    a [ label = "Client" ], b [ label = "Server" ];
+
+    # Message Flow
+    # TLS_STATE_IN_PROGRESS = 0,
+    a abox b [ label = "TLS_STATE_IN_PROGRESS" ];
+    a =>> b [ label = "ClientHello" ];
+    b =>> a [ label = "ServerHello" ];
+    b =>> a [ label = "ServerCertificate" ];
+    b =>> a [ label = "ServerHello Done" ];
+
+    a =>> b [ label = "ClientCertificate" ];
+    # TLS_STATE_CERT_READY = 1,
+    a abox b [ label = "TLS_STATE_CERT_READY" ];
+    a =>> b [ label = "ClientKeyExchange" ];
+
+    a =>> b [ label = "Finished" ];
+    b =>> a [ label = "Finished" ];
+    # TLS_HANDSHAKE_DONE = 2,
+    a abox b [ label = "TLS_HANDSHAKE_DONE" ];
+    ...;
+    # TLS_STATE_FINISHED = 3
+    a abox b [ label = "TLS_STATE_FINISHED" ];
+    --- [ label = "Transaction Completed" ];
+
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
+}

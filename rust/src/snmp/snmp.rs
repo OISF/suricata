@@ -18,8 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::snmp::snmp_parser::*;
-use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
+use crate::core::{self, *};
 use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
@@ -78,16 +77,14 @@ pub struct SNMPTransaction<'a> {
     /// The internal transaction id
     id: u64,
 
-    /// The detection engine state, if present
-    de_state: Option<*mut core::DetectEngineState>,
-
-    /// The events associated with this transaction
-    events: *mut core::AppLayerDecoderEvents,
-
     tx_data: applayer::AppLayerTxData,
 }
 
-
+impl<'a> Transaction for SNMPTransaction<'a> {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
 
 impl<'a> SNMPState<'a> {
     pub fn new() -> SNMPState<'a> {
@@ -107,6 +104,16 @@ impl<'a> Default for SNMPPduInfo<'a> {
             trap_type: None,
             vars: Vec::new()
         }
+    }
+}
+
+impl<'a> State<SNMPTransaction<'a>> for SNMPState<'a> {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&SNMPTransaction<'a>> {
+        self.transactions.get(index)
     }
 }
 
@@ -131,7 +138,7 @@ impl<'a> SNMPState<'a> {
         tx.info = Some(pdu_info);
     }
 
-    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: u8) -> i32 {
+    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: Direction) -> i32 {
         let mut tx = self.new_tx();
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
@@ -144,7 +151,7 @@ impl<'a> SNMPState<'a> {
         0
     }
 
-    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: u8) -> i32 {
+    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> i32 {
         let mut tx = self.new_tx();
         if self.version != msg.version {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
@@ -173,7 +180,7 @@ impl<'a> SNMPState<'a> {
     /// Parse an SNMP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &'a [u8], direction: u8) -> i32 {
+    fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
         if self.version == 0 {
             match parse_pdu_enveloppe_version(i) {
                 Ok((_,x)) => self.version = x,
@@ -218,36 +225,13 @@ impl<'a> SNMPState<'a> {
     /// Set an event. The event is set on the most recent transaction.
     fn set_event(&mut self, event: SNMPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.tx_data.set_event(event as u8);
         }
     }
 
     /// Set an event on a specific transaction.
     fn set_event_tx(&self, tx: &mut SNMPTransaction, event: SNMPEvent) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
-    }
-
-    // for use with the C API call StateGetTxIterator
-    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&SNMPTransaction, u64, bool)>
-    {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        // find tx that is >= min_tx_id
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64 + 1;
-            //SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
-            //        tx.id - 1, (len - index) > 1, len, index, tx);
-            return Some((tx, tx.id - 1, (len - index) > 1));
-        }
-        return None;
+        tx.tx_data.set_event(event as u8);
     }
 }
 
@@ -260,29 +244,10 @@ impl<'a> SNMPTransaction<'a> {
             usm: None,
             encrypted: false,
             id: id,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
-
-    fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
 }
-
-impl<'a> Drop for SNMPTransaction<'a> {
-    fn drop(&mut self) {
-        self.free();
-    }
-}
-
-
-
-
-
 
 /// Returns *mut SNMPState
 #[no_mangle]
@@ -304,26 +269,22 @@ pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
 pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOSERVER).into()
+    state.parse(stream_slice.as_slice(), Direction::ToServer).into()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOCLIENT).into()
+    state.parse(stream_slice.as_slice(), Direction::ToClient).into()
 }
 
 #[no_mangle]
@@ -361,81 +322,6 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 {
     1
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,SNMPTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,SNMPTransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
-                                           -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, SNMPTransaction);
-    return tx.events;
-}
-
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_get_tx_iterator(
-                                      state: &mut SNMPState,
-                                      min_tx_id: u64,
-                                      istate: &mut u64)
-                                      -> applayer::AppLayerGetTxIterTuple
-{
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
-                                          _alproto: AppProto,
-                                          alstate: *mut std::os::raw::c_void,
-                                          min_tx_id: u64,
-                                          _max_tx_id: u64,
-                                          istate: &mut u64) -> applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(alstate,SNMPState);
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-
 
 static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
@@ -506,19 +392,18 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_snmp_tx_get_alstate_progress,
-        get_de_state       : rs_snmp_state_get_tx_detect_state,
-        set_de_state       : rs_snmp_state_set_tx_detect_state,
-        get_events         : Some(rs_snmp_state_get_events),
         get_eventinfo      : Some(SNMPEvent::get_event_info),
         get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
         get_tx_data        : rs_snmp_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -529,7 +414,6 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterGetTxIterator(core::IPPROTO_UDP as u8, alproto, rs_snmp_get_tx_iterator);
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();

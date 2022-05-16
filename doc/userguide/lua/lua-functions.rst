@@ -3,6 +3,35 @@
 Lua functions
 =============
 
+Differences between `output` and `detect`:
+------------------------------------------
+
+Currently, the ``needs`` key initialization varies, depending on what is the goal of the script: output or detection.
+
+If the script is for detection, the ``needs`` initialization should be as seen in the example below (see :ref:`lua-detection` for a complete example of a detection script):
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["packet"] = tostring(true)
+      return needs
+  end
+
+For output logs, follow the pattern below. (The complete script structure can be seen at :ref:`lua-output`:)
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["protocol"] = "http"
+      return needs
+  end
+
+
+Do notice that the functions and protocols available for ``log`` and ``match`` may also vary. DNP3, for instance, is not
+available for logging.
+
 packet
 ------
 
@@ -159,13 +188,23 @@ notation. To avoid that, simply do:
 http
 ----
 
-Init with:
+For output, init with:
 
 ::
 
   function init (args)
       local needs = {}
       needs["protocol"] = "http"
+      return needs
+  end
+
+For detection, use the specific buffer (cf :ref:`lua-detection` for a complete list), as with:
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["http.uri"] = tostring(true)
       return needs
   end
 
@@ -297,6 +336,27 @@ HttpGetResponseHeaders
 DNS
 ---
 
+If your purpose is to create a logging script, initialize the buffer as:
+
+::
+
+  function init (args)
+     local needs = {}
+     needs["protocol"] = "dns"
+     return needs
+  end
+
+If you are going to use the script for rule matching, choose one of the available DNS buffers listed in
+:ref:`lua-detection` and follow the pattern:
+
+::
+
+  function init (args)
+     local needs = {}
+     needs["dns.rrname"] = tostring(true)
+     return needs
+  end
+
 DnsGetQueries
 ~~~~~~~~~~~~~
 
@@ -383,13 +443,23 @@ returns a bool
 TLS
 ---
 
-Initialize with:
+For log output, initialize with:
 
 ::
 
   function init (args)
       local needs = {}
       needs["protocol"] = "tls"
+      return needs
+  end
+
+For detection, initialization is as follows:
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["tls"] = tostring(true)
       return needs
   end
 
@@ -519,13 +589,23 @@ JA3
 
 JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
 
-Initialize with:
+For log output, initialize with:
 
 ::
 
   function init (args)
       local needs = {}
       needs["protocol"] = "tls"
+      return needs
+  end
+
+For detection, initialization is as follows:
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["tls"] = tostring(true)
       return needs
   end
 
@@ -566,7 +646,7 @@ Ja3SGetHash
 
 Get the JA3S hash (md5sum of JA3S string) through JA3SGetHash.
 
-Example:
+Examples:
 
 ::
 
@@ -577,12 +657,27 @@ Example:
       end
   end
 
+Or, for detection:
+
+::
+
+  function match (args)
+      hash = Ja3SGetHash()
+      if hash == nil then
+        return 0
+      end
+
+      // matching code
+
+      return 0
+  end
+
 JA3SGetString
 ~~~~~~~~~~~~~
 
 Get the JA3S string through Ja3SGetString.
 
-Example:
+Examples:
 
 ::
 
@@ -593,13 +688,27 @@ Example:
       end
   end
 
+Or, for detection:
+
+::
+
+  function match (args)
+    str = Ja3SGetString()
+    if str == nil then
+      return 0
+    end
+
+    // matching code
+
+    return 0
+  end
+
 SSH
 ---
 
 Initialize with:
 
 ::
-
 
   function init (args)
       local needs = {}
@@ -631,7 +740,6 @@ Get SSH software used by the server through SshGetServerSoftwareVersion.
 Example:
 
 ::
-
 
   function log (args)
       software = SshGetServerSoftwareVersion()

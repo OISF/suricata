@@ -24,8 +24,8 @@ use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::nfs3_records::*;
 
-use nom::IResult;
-use nom::number::streaming::be_u32;
+use nom7::IResult;
+use nom7::number::streaming::be_u32;
 
 impl NFSState {
     /// complete NFS3 request record
@@ -73,7 +73,7 @@ impl NFSState {
                 self.set_event(NFSEvent::MalformedData);
             };
         } else if r.procedure == NFSPROC3_WRITE {
-            if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data) {
+            if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
                 self.process_write_record(r, &rd);
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -118,7 +118,7 @@ impl NFSState {
             SCLogDebug!("COMMIT, closing shop");
             if let Ok((_, rd)) = parse_nfs3_request_commit(r.prog_data) {
                 let file_handle = rd.handle.value.to_vec();
-                if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+                if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
                     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         tdf.chunk_count += 1;
                         tdf.file_additional_procs.push(NFSPROC3_COMMIT);
@@ -165,12 +165,12 @@ impl NFSState {
 
         } else if r.procedure == NFSPROC3_READ {
 
-            let found = match self.get_file_tx_by_handle(&xidmap.file_handle, STREAM_TOCLIENT) {
+            let found = match self.get_file_tx_by_handle(&xidmap.file_handle, Direction::ToClient) {
                 Some((_, _, _)) => true,
                 None => false,
             };
             if !found {
-                let (tx, _, _) = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, STREAM_TOCLIENT);
+                let (tx, _, _) = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, Direction::ToClient);
                 tx.procedure = NFSPROC3_READ;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
@@ -220,7 +220,7 @@ impl NFSState {
                 self.set_event(NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_READ {
-            if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data) {
+            if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
                 self.process_read_record(r, &rd, Some(xidmap));
                 nfs_status = rd.status;
             } else {

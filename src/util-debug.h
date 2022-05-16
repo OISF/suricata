@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -118,7 +118,7 @@ typedef struct SCLogOPIfaceCtx_ {
     SCLogOPIface iface;
 
     int16_t use_color;
-    int16_t type;
+    SCLogOPType type;
 
     /* the output file to be used if the interface is SC_LOG_IFACE_FILE */
     const char *file;
@@ -573,7 +573,7 @@ int SCLogDebugEnabled(void);
 
 void SCLogRegisterTests(void);
 
-void SCLogLoadConfig(int daemon, int verbose);
+void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid);
 
 SCLogLevel SCLogGetLogLevel(void);
 

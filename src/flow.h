@@ -555,6 +555,7 @@ void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
 void FlowPrintQueueInfo (void);
+void FlowReset(void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
 void FlowSetHasAlertsFlag(Flow *);
@@ -705,6 +706,18 @@ static inline void FlowSetEndFlags(Flow *f)
     else if (state == FLOW_STATE_CAPTURE_BYPASSED)
         f->flow_end_flags = FLOW_END_FLAG_STATE_BYPASSED;
 #endif
+}
+
+static inline bool FlowIsBypassed(const Flow *f)
+{
+    if (
+#ifdef CAPTURE_OFFLOAD
+            f->flow_state == FLOW_STATE_CAPTURE_BYPASSED ||
+#endif
+            f->flow_state == FLOW_STATE_LOCAL_BYPASSED) {
+        return true;
+    }
+    return false;
 }
 
 int FlowClearMemory(Flow *,uint8_t );

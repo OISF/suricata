@@ -17,8 +17,8 @@
 
 use super::parser;
 use crate::applayer::*;
-use crate::core::STREAM_TOSERVER;
-use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::*;
+use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -82,8 +82,6 @@ pub struct SSHTransaction {
     pub srv_hdr: SshHeader,
     pub cli_hdr: SshHeader,
 
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -92,25 +90,8 @@ impl SSHTransaction {
         SSHTransaction {
             srv_hdr: SshHeader::new(),
             cli_hdr: SshHeader::new(),
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
-    }
-
-    pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
-        }
-    }
-}
-
-impl Drop for SSHTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -126,8 +107,7 @@ impl SSHState {
     }
 
     fn set_event(&mut self, event: SSHEvent) {
-        let ev = event as u8;
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.transaction.events, ev);
+        self.transaction.tx_data.set_event(event as u8);
     }
 
     fn parse_record(
@@ -200,7 +180,7 @@ impl SSHState {
                     input = rem;
                     //header and complete data (not returned)
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     match parser::ssh_parse_record_header(input) {
                         Ok((rem, head)) => {
                             SCLogDebug!("SSH valid record header {}", head);
@@ -231,7 +211,7 @@ impl SSHState {
                             }
                             return AppLayerResult::ok();
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             //we may have consumed data from previous records
                             if input.len() < SSH_RECORD_HEADER_LEN {
                                 //do not trust nom incomplete value
@@ -351,18 +331,7 @@ impl SSHState {
 
 // C exports.
 
-export_tx_get_detect_state!(rs_ssh_tx_get_detect_state, SSHTransaction);
-export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
-
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, SSHTransaction);
-    return tx.events;
-}
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
@@ -384,10 +353,11 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, false, pstate);
@@ -399,10 +369,11 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, true, pstate);
@@ -429,7 +400,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_flags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
-    if direction == STREAM_TOSERVER {
+    if direction == Direction::ToServer.into() {
         return tx.cli_hdr.flags;
     } else {
         return tx.srv_hdr.flags;
@@ -448,7 +419,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
         return SSHConnectionState::SshStateFinished as i32;
     }
 
-    if direction == STREAM_TOSERVER {
+    if direction == Direction::ToServer.into() {
         if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
@@ -485,9 +456,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
         tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
-        get_de_state: rs_ssh_tx_get_detect_state,
-        set_de_state: rs_ssh_tx_set_detect_state,
-        get_events: Some(rs_ssh_state_get_events),
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
         localstorage_new: None,
@@ -498,6 +466,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         apply_tx_config: None,
         flags: 0,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

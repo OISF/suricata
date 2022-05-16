@@ -180,7 +180,7 @@ static int HTPParseAndCheckContentRange(
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
-        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("parsing range failed, going back to normal file");
         return r;
@@ -196,6 +196,11 @@ static int HTPParseAndCheckContentRange(
     } else if (range->end == range->size - 1 && range->start == 0) {
         SCLogDebug("range without all information");
         return -3;
+    } else if (range->start > range->end || range->end > range->size - 1) {
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        s->events++;
+        SCLogDebug("invalid range");
+        return -4;
     }
     return r;
 }
@@ -222,8 +227,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     HTTPContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
-        return HTPFileOpen(
-                s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
     flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
     if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
@@ -340,9 +344,14 @@ end:
     SCReturnInt(retval);
 }
 
-void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
+/** \brief close range, add reassembled file if possible
+ *  \retval true if reassembled file was added
+ *  \retval false if no reassembled file was added
+ */
+bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
+    bool added = false;
     if (HttpRangeAppendData(c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
@@ -357,10 +366,12 @@ void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
         if (ranged && files) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
+            added = true;
         }
-        SCLogDebug("c->container->files->tail %p", c->container->files->tail);
+        DEBUG_VALIDATE_BUG_ON(ranged && !files);
         THashDataUnlock(c->container->hdata);
     }
+    return added;
 }
 
 /**
@@ -379,7 +390,7 @@ void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
+int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t data_len,
         uint8_t flags, uint8_t direction)
 {
     SCEnter();
@@ -411,7 +422,10 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     if (s->file_range != NULL) {
-        HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+        bool added = HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+        if (added) {
+            htud->tx_data.files_opened++;
+        }
         HttpRangeFreeBlock(s->file_range);
         s->file_range = NULL;
     }

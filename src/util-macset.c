@@ -375,14 +375,13 @@ static int MacSetTest02(void)
 static int MacSetTest03(void)
 {
     MacSet *ms = NULL;
-    int i = 0;
     SC_ATOMIC_SET(flow_config.memcap, 10000);
 
     ms = MacSetInit(10);
     FAIL_IF_NULL(ms);
     FAIL_IF_NOT(MacSetSize(ms) == 0);
 
-    for (i = 1; i < 100; i++) {
+    for (uint8_t i = 1; i < 100; i++) {
         MacAddr addr1 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x1},
                 addr2 = {0x1, 0x0, 0x0, 0x0, 0x0, 0x1};
         addr1[5] = i;
@@ -409,14 +408,14 @@ static int MacSetTest04(void)
 static int MacSetTest05(void)
 {
     MacSet *ms = NULL;
-    int ret = 0, i = 0;
+    int ret = 0;
     SC_ATOMIC_SET(flow_config.memcap, 64);
 
     ms = MacSetInit(10);
     FAIL_IF_NULL(ms);
     FAIL_IF_NOT(MacSetSize(ms) == 0);
 
-    for (i = 1; i < 100; i++) {
+    for (uint8_t i = 1; i < 100; i++) {
         MacAddr addr1 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x1},
                 addr2 = {0x1, 0x0, 0x0, 0x0, 0x0, 0x1};
         addr1[5] = i;
@@ -425,7 +424,8 @@ static int MacSetTest05(void)
     }
     FAIL_IF_NOT(MacSetSize(ms) == 2);
 
-    ret = MacSetForEach(ms, CheckTest1Membership, &i);
+    int i2 = 100;
+    ret = MacSetForEach(ms, CheckTest1Membership, &i2);
     FAIL_IF_NOT(ret == 0);
 
     MacSetFree(ms);

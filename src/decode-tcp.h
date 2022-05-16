@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,6 +54,8 @@
 #define TCP_OPT_TFO                          0x22   /* TCP Fast Open */
 #define TCP_OPT_EXP1                         0xfd   /* Experimental, could be TFO */
 #define TCP_OPT_EXP2                         0xfe   /* Experimental, could be TFO */
+#define TCP_OPT_MD5                          0x13   /* 19: RFC 2385 TCP MD5 option */
+#define TCP_OPT_AO                           0x1d   /* 29: RFC 5925 TCP AO option */
 
 #define TCP_OPT_SACKOK_LEN                   2
 #define TCP_OPT_WS_LEN                       3
@@ -107,7 +109,7 @@
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
 #define TCP_GET_X2(p)                        TCP_GET_RAW_X2((p)->tcph)
-#define TCP_GET_HLEN(p)                      (TCP_GET_OFFSET((p)) << 2)
+#define TCP_GET_HLEN(p)                      ((uint8_t)(TCP_GET_OFFSET((p)) << 2))
 #define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT((p)->tcph)
 #define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT((p)->tcph)
 #define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ((p)->tcph)
@@ -153,6 +155,8 @@ typedef struct TCPHdr_
 typedef struct TCPVars_
 {
     /* commonly used and needed opts */
+    bool md5_option_present;
+    bool ao_option_present;
     bool ts_set;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
@@ -172,8 +176,6 @@ typedef struct TCPVars_
 void DecodeTCPRegisterTests(void);
 
 /** -------- Inline functions ------- */
-static inline uint16_t TCPChecksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
-static inline uint16_t TCPV6Checksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
 
 /**
  * \brief Calculate or validate the checksum for the TCP packet
@@ -187,8 +189,8 @@ static inline uint16_t TCPV6Checksum(uint16_t *, uint16_t *, uint16_t, uint16_t)
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t TCPChecksum(uint16_t *shdr, uint16_t *pkt,
-                                   uint16_t tlen, uint16_t init)
+static inline uint16_t TCPChecksum(
+        const uint16_t *shdr, const uint16_t *pkt, uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
@@ -252,8 +254,8 @@ static inline uint16_t TCPChecksum(uint16_t *shdr, uint16_t *pkt,
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t TCPV6Checksum(uint16_t *shdr, uint16_t *pkt,
-                                     uint16_t tlen, uint16_t init)
+static inline uint16_t TCPV6Checksum(
+        const uint16_t *shdr, const uint16_t *pkt, uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
@@ -305,6 +307,4 @@ static inline uint16_t TCPV6Checksum(uint16_t *shdr, uint16_t *pkt,
     return (uint16_t)~csum;
 }
 
-
 #endif /* __DECODE_TCP_H__ */
-

@@ -53,12 +53,19 @@ will be generated.
 It is possible to use flowbits several times in a rule and combine the
 different functions.
 
+It is also possible to perform an `OR` operation with flowbits with `|` op.
+
+Example::
+  alert http any any -> any any (msg: "User1 or User2 logged in"; content:"login"; flowbits:isset,user1|user2; sid:1;)
+
+This can be used with either `isset` or `isnotset` action.
+
 flow
 ----
 
 The flow keyword can be used to match on direction of the flow, so to/from
 client or to/from server. It can also match if the flow is established or not.
-The flow keyword can also be use to say the signature has to match on stream
+The flow keyword can also be used to say the signature has to match on stream
 only (only_stream) or on packet only (no_stream).
 
 So with the flow keyword you can match on:

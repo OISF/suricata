@@ -30,7 +30,6 @@
 #include "datasets-reputation.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
 #include "util-byte.h"
 #include "util-misc.h"
@@ -84,12 +83,15 @@ static Dataset *DatasetSearchByName(const char *name)
 
 static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
 {
+    if (ins < 2)
+        return -1;
     if (ins % 2 != 0)
         return -1;
     if (outs != ins / 2)
         return -1;
 
     uint8_t hash[outs];
+    memset(hash, 0, outs);
     size_t i, x;
     for (x = 0, i = 0; i < ins; i+=2, x++) {
         char buf[3] = { 0, 0, 0 };
@@ -1010,8 +1012,8 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
  *  \retval 0 data was not added to the hash as it is already there
  *  \retval -1 failed to add data to the hash
  */
-static int DatasetAddStringwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddStringwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
@@ -1044,8 +1046,8 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
     return -1;
 }
 
-static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddMd5wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
@@ -1063,8 +1065,8 @@ static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t d
     return -1;
 }
 
-static int DatasetAddSha256wRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+static int DatasetAddSha256wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;

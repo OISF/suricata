@@ -646,6 +646,22 @@ void FlowInitConfig(bool quiet)
     return;
 }
 
+void FlowReset(void)
+{
+    // resets the flows (for reuse by fuzzing)
+    for (uint32_t u = 0; u < flow_config.hash_size; u++) {
+        Flow *f = flow_hash[u].head;
+        while (f) {
+            Flow *n = f->next;
+            uint8_t proto_map = FlowGetProtoMapping(f->proto);
+            FlowClearMemory(f, proto_map);
+            FlowFree(f);
+            f = n;
+        }
+        flow_hash[u].head = NULL;
+    }
+}
+
 /** \brief shutdown the flow engine
  *  \warning Not thread safe */
 void FlowShutdown(void)
@@ -1143,7 +1159,8 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 {
     if (s != f->flow_state) {
         /* set the state */
-        f->flow_state = s;
+        // Explicit cast from the enum type to the compact version
+        f->flow_state = (FlowStateType)s;
 
         /* update timeout policy and value */
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);

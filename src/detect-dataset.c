@@ -39,9 +39,6 @@
 #include "util-print.h"
 #include "util-misc.h"
 
-#define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
-static DetectParseRegex parse_regex;
-
 int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
@@ -54,8 +51,6 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /*
@@ -134,13 +129,13 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
         }
 
         if (!cmd_set) {
-            if (val) {
+            if (val && strlen(val) != 0) {
                 return -1;
             }
             strlcpy(cmd, key, cmd_len);
             cmd_set = true;
         } else if (!name_set) {
-            if (val) {
+            if (val && strlen(val) != 0) {
                 return -1;
             }
             strlcpy(name, key, name_len);

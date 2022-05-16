@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,57 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
+
+// Make the AppLayerEvent derive macro available to users importing
+// AppLayerEvent from this module.
+pub use suricata_derive::AppLayerEvent;
+
+#[repr(C)]
+pub struct StreamSlice {
+    input: *const u8,
+    input_len: u32,
+    /// STREAM_* flags
+    flags: u8,
+    offset: u64,
+}
+
+impl StreamSlice {
+
+    /// Create a StreamSlice from a Rust slice. Useful in unit tests.
+    pub fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
+        Self {
+            input: slice.as_ptr() as *const u8,
+            input_len: slice.len() as u32,
+            flags,
+            offset
+        }
+    }
+
+    pub fn is_gap(&self) -> bool {
+        self.input.is_null() && self.input_len > 0
+    }
+    pub fn gap_size(&self) -> u32 {
+        self.input_len
+    }
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
+    }
+    pub fn len(&self) -> u32 {
+        self.input_len
+    }
+    pub fn offset_from(&self, slice: &[u8]) -> u32 {
+        self.len() - slice.len() as u32
+    }
+    pub fn flags(&self) -> u8 {
+        self.flags
+    }
+}
 
 #[repr(C)]
 #[derive(Default, Debug,PartialEq)]
@@ -51,7 +96,7 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
@@ -67,6 +112,26 @@ pub struct AppLayerTxData {
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
+
+    de_state: *mut DetectEngineState,
+    pub events: *mut core::AppLayerDecoderEvents,
+}
+
+impl Default for AppLayerTxData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for AppLayerTxData {
+    fn drop(&mut self) {
+        if self.de_state != std::ptr::null_mut() {
+            core::sc_detect_engine_state_free(self.de_state);
+        }
+        if self.events != std::ptr::null_mut() {
+            core::sc_app_layer_decoder_events_free_events(&mut self.events);
+        }
+    }
 }
 
 impl AppLayerTxData {
@@ -79,6 +144,8 @@ impl AppLayerTxData {
             files_stored: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
+            de_state: std::ptr::null_mut(),
+            events: std::ptr::null_mut(),
         }
     }
     pub fn init_files_opened(&mut self) {
@@ -86,6 +153,10 @@ impl AppLayerTxData {
     }
     pub fn incr_files_opened(&mut self) {
         self.files_opened += 1;
+    }
+
+    pub fn set_event(&mut self, event: u8) {
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
     }
 }
 
@@ -176,7 +247,7 @@ pub struct RustParser {
     pub default_port:       *const c_char,
 
     /// IP Protocol (core::IPPROTO_UDP, core::IPPROTO_TCP, etc.)
-    pub ipproto:            c_int,
+    pub ipproto:            u8,
 
     /// Probing function, for packets going to server
     pub probe_ts:           Option<ProbeFn>,
@@ -210,13 +281,6 @@ pub struct RustParser {
     /// Function returning the current transaction progress
     pub tx_get_progress:    StateGetProgressFn,
 
-    /// Function called to get a detection state
-    pub get_de_state:       GetDetectStateFn,
-    /// Function called to set a detection state
-    pub set_de_state:       SetDetectStateFn,
-
-    /// Function to get events
-    pub get_events:         Option<GetEventsFn>,
     /// Function to get an event id from a description
     pub get_eventinfo:      Option<GetEventInfoFn>,
     /// Function to get an event description from an event id
@@ -246,6 +310,9 @@ pub struct RustParser {
     /// Function to handle the end of data coming on one of the sides
     /// due to the stream reaching its 'depth' limit.
     pub truncate: Option<TruncateFn>,
+
+    pub get_frame_id_by_name: Option<GetFrameIdByName>,
+    pub get_frame_name_by_id: Option<GetFrameNameById>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -267,10 +334,8 @@ macro_rules! cast_pointer {
 pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       data: *const c_void,
-                                       flags: u8) -> AppLayerResult;
+                                       stream_slice: StreamSlice,
+                                       data: *const c_void) -> AppLayerResult;
 pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
 pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
@@ -278,11 +343,8 @@ pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetDetectStateFn   = unsafe extern "C" fn (*mut c_void) -> *mut DetectEngineState;
-pub type SetDetectStateFn   = unsafe extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
-pub type GetEventsFn        = unsafe extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetFilesFn         = unsafe
@@ -296,6 +358,8 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
+pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
+pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
@@ -323,6 +387,8 @@ extern {
                                                      offset: u16, direction: u8, ppfn: ProbeFn,
                                                      pp_min_depth: u16, pp_max_depth: u16) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
+    pub fn AppLayerRequestProtocolTLSUpgrade(flow: *const Flow);
 }
 
 // Defined in app-layer-parser.h
@@ -395,42 +461,6 @@ impl LoggerFlags {
 
 }
 
-/// Export a function to get the DetectEngineState on a struct.
-#[macro_export]
-macro_rules!export_tx_get_detect_state {
-    ($name:ident, $type:ty) => (
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut core::DetectEngineState
-        {
-            let tx = cast_pointer!(tx, $type);
-            match tx.de_state {
-                Some(ds) => {
-                    return ds;
-                },
-                None => {
-                    return std::ptr::null_mut();
-                }
-            }
-        }
-    )
-}
-
-/// Export a function to set the DetectEngineState on a struct.
-#[macro_export]
-macro_rules!export_tx_set_detect_state {
-    ($name:ident, $type:ty) => (
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void,
-                de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-        {
-            let tx = cast_pointer!(tx, $type);
-            tx.de_state = Some(de_state);
-            0
-        }
-    )
-}
-
 /// AppLayerEvent trait that will be implemented on enums that
 /// derive AppLayerEvent.
 pub trait AppLayerEvent {
@@ -478,7 +508,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
+    if event_name.is_null() {
         return -1;
     }
 
@@ -505,4 +535,98 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
         return 0;
     }
     return -1;
+}
+
+/// Transaction trait.
+///
+/// This trait defines methods that a Transaction struct must implement
+/// in order to define some generic helper functions.
+pub trait Transaction {
+    fn id(&self) -> u64;
+}
+
+pub trait State<Tx: Transaction> {
+    /// Return the number of transactions in the state's transaction collection.
+    fn get_transaction_count(&self) -> usize;
+
+    /// Return a transaction by its index in the container.
+    fn get_transaction_by_index(&self, index: usize) -> Option<&Tx>;
+
+    fn get_transaction_iterator(&self, min_tx_id: u64, state: &mut u64) -> AppLayerGetTxIterTuple {
+        let mut index = *state as usize;
+        let len = self.get_transaction_count();
+        while index < len {
+            let tx = self.get_transaction_by_index(index).unwrap();
+            if tx.id() < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+            return AppLayerGetTxIterTuple::with_values(
+                tx as *const _ as *mut _,
+                tx.id() - 1,
+                len - index > 1,
+            );
+        }
+        return AppLayerGetTxIterTuple::not_found();
+    }
+}
+
+pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, S);
+    state.get_transaction_iterator(min_tx_id, istate)
+}
+
+/// AppLayerFrameType trait.
+///
+/// This is the behavior expected from an enum of frame types. For most instances
+/// this behavior can be derived.
+///
+/// Example:
+///
+/// #[derive(AppLayerFrameType)]
+/// enum SomeProtoFrameType {
+///     PDU,
+///     Data,
+/// }
+pub trait AppLayerFrameType {
+    /// Create a frame type variant from a u8.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_u8(value: u8) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return the u8 value of the enum where the first entry has the value of 0.
+    fn as_u8(&self) -> u8;
+
+    /// Create a frame type variant from a &str.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_str(s: &str) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return a pointer to a C string of the enum variant suitable as-is for
+    /// FFI.
+    fn to_cstring(&self) -> *const std::os::raw::c_char;
+
+    /// Converts a C string formatted name to a frame type ID.
+    extern "C" fn ffi_id_from_name(name: *const std::os::raw::c_char) -> i32 where Self: Sized {
+        if name.is_null() {
+            return -1;
+        }
+        unsafe {
+            let frame_id = if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
+                Self::from_str(s).map(|t| t.as_u8() as i32).unwrap_or(-1)
+            } else {
+                -1
+            };
+            frame_id
+        }
+    }
+
+    /// Converts a variant ID to an FFI safe name.
+    extern "C" fn ffi_name_from_id(id: u8) -> *const std::os::raw::c_char where Self: Sized {
+        Self::from_u8(id).map(|s| s.to_cstring()).unwrap_or_else(|| std::ptr::null())
+    }
 }

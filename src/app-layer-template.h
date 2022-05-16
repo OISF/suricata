@@ -38,10 +38,6 @@ typedef struct TemplateTransaction
     /** Internal transaction ID. */
     uint64_t tx_id;
 
-    /** Application layer events that occurred
-     *  while parsing this transaction. */
-    AppLayerDecoderEvents *decoder_events;
-
     uint8_t *request_buffer;
     uint32_t request_buffer_len;
 
@@ -50,8 +46,6 @@ typedef struct TemplateTransaction
 
     uint8_t response_done; /*<< Flag to be set when the response is
                             * seen. */
-
-    DetectEngineState *de_state;
 
     AppLayerTxData tx_data;
 

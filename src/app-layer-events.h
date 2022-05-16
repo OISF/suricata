@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,7 +63,6 @@ int AppLayerGetPktEventInfo(const char *event_name, int *event_id);
 int AppLayerGetEventInfoById(int event_id, const char **event_name,
                              AppLayerEventType *event_type);
 void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event);
-void AppLayerDecoderEventsSetEvent(Flow *f, uint8_t event);
 
 static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents,
                                                   uint8_t event)

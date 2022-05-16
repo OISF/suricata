@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,7 +16,8 @@
  */
 
 use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use std::collections::VecDeque;
+use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
@@ -32,8 +33,6 @@ pub struct TemplateTransaction {
     pub request: Option<String>,
     pub response: Option<String>,
 
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -43,40 +42,39 @@ impl TemplateTransaction {
             tx_id: 0,
             request: None,
             response: None,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
-    }
-
-    pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
 
-impl Drop for TemplateTransaction {
-    fn drop(&mut self) {
-        self.free();
+impl Transaction for TemplateTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
     }
 }
 
 pub struct TemplateState {
     tx_id: u64,
-    transactions: Vec<TemplateTransaction>,
+    transactions: VecDeque<TemplateTransaction>,
     request_gap: bool,
     response_gap: bool,
+}
+
+impl State<TemplateTransaction> for TemplateState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&TemplateTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl TemplateState {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             request_gap: false,
             response_gap: false,
         }
@@ -153,7 +151,7 @@ impl TemplateState {
                     SCLogNotice!("Request: {}", request);
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
-                    self.transactions.push(tx);
+                    self.transactions.push_back(tx);
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     // Not enough data. This parser doesn't give us a good indication
@@ -221,27 +219,6 @@ impl TemplateState {
         return AppLayerResult::ok();
     }
 
-    fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
-    ) -> Option<(&TemplateTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
-
     fn on_request_gap(&mut self, _size: u32) {
         self.request_gap = true;
     }
@@ -268,15 +245,6 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 
 // C exports.
 
-export_tx_get_detect_state!(
-    rs_template_tx_get_detect_state,
-    TemplateTransaction
-);
-export_tx_set_detect_state!(
-    rs_template_tx_set_detect_state,
-    TemplateTransaction
-);
-
 /// C entry point for a probing parser.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_probing_parser(
@@ -287,7 +255,7 @@ pub unsafe extern "C" fn rs_template_probing_parser(
     _rdir: *mut u8
 ) -> AppProto {
     // Need at least 2 bytes.
-    if input_len > 1 && input != std::ptr::null_mut() {
+    if input_len > 1 && !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice).is_ok() {
             return ALPROTO_TEMPLATE;
@@ -322,10 +290,8 @@ pub unsafe extern "C" fn rs_template_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
         true
@@ -340,13 +306,13 @@ pub unsafe extern "C" fn rs_template_parse_request(
 
     let state = cast_pointer!(state, TemplateState);
 
-    if input == std::ptr::null_mut() && input_len > 0 {
+    if stream_slice.is_gap() {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
-        state.on_request_gap(input_len);
+        state.on_request_gap(stream_slice.gap_size());
         AppLayerResult::ok()
     } else {
-        let buf = build_slice!(input, input_len as usize);
+        let buf = stream_slice.as_slice();
         state.parse_request(buf)
     }
 }
@@ -356,10 +322,8 @@ pub unsafe extern "C" fn rs_template_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
         true
@@ -368,13 +332,13 @@ pub unsafe extern "C" fn rs_template_parse_response(
     };
     let state = cast_pointer!(state, TemplateState);
 
-    if input == std::ptr::null_mut() && input_len > 0 {
+    if stream_slice.is_gap() {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
-        state.on_response_gap(input_len);
+        state.on_response_gap(stream_slice.gap_size());
         AppLayerResult::ok()
     } else {
-        let buf = build_slice!(input, input_len as usize);
+        let buf = stream_slice.as_slice();
         state.parse_response(buf)
     }
 }
@@ -415,40 +379,6 @@ pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
         return 1;
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_events(
-    tx: *mut std::os::raw::c_void
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, TemplateTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, TemplateState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx,
-                out_tx_id,
-                has_next,
-            );
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
 }
 
 /// Get the request buffer for a transaction from C.
@@ -518,19 +448,18 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_template_tx_get_alstate_progress,
-        get_de_state: rs_template_tx_get_detect_state,
-        set_de_state: rs_template_tx_set_detect_state,
-        get_events: Some(rs_template_state_get_events),
         get_eventinfo: Some(TemplateEvent::get_event_info),
         get_eventinfo_byid : Some(TemplateEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(rs_template_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>),
         get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

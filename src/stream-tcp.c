@@ -86,14 +86,6 @@
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
 
-#define STREAMTCP_NEW_TIMEOUT                   60
-#define STREAMTCP_EST_TIMEOUT                   3600
-#define STREAMTCP_CLOSED_TIMEOUT                120
-
-#define STREAMTCP_EMERG_NEW_TIMEOUT             10
-#define STREAMTCP_EMERG_EST_TIMEOUT             300
-#define STREAMTCP_EMERG_CLOSED_TIMEOUT          20
-
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *, PacketQueueNoLock *);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(bool);
@@ -597,8 +589,8 @@ void StreamTcpInitConfig(bool quiet)
     if (randomize) {
         long int r = RandomGetWrap();
         stream_config.reassembly_toserver_chunk_size +=
-            (int) (stream_config.reassembly_toserver_chunk_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                (int)(stream_config.reassembly_toserver_chunk_size * ((double)r / RAND_MAX - 0.5) *
+                        rdrange / 100);
     }
     const char *temp_stream_reassembly_toclient_chunk_size_str;
     if (ConfGetValue("stream.reassembly.toclient-chunk-size",
@@ -619,8 +611,8 @@ void StreamTcpInitConfig(bool quiet)
     if (randomize) {
         long int r = RandomGetWrap();
         stream_config.reassembly_toclient_chunk_size +=
-            (int) (stream_config.reassembly_toclient_chunk_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                (int)(stream_config.reassembly_toclient_chunk_size * ((double)r / RAND_MAX - 0.5) *
+                        rdrange / 100);
     }
     if (!quiet) {
         SCLogConfig("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
@@ -696,7 +688,8 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
-        p->flow->protoctx = PoolThreadGetById(ssn_pool, id);
+        DEBUG_VALIDATE_BUG_ON(id < 0 || id > UINT16_MAX);
+        p->flow->protoctx = PoolThreadGetById(ssn_pool, (uint16_t)id);
 #ifdef DEBUG
         SCMutexLock(&ssn_pool_mutex);
         if (p->flow->protoctx != NULL)
@@ -767,15 +760,13 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
  */
 void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 {
-    int ret = 0;
-
     if (PKT_IS_IPV4(p)) {
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
-        ret = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
+        int ret = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
         if (ret > 0)
-            stream->os_policy = ret;
+            stream->os_policy = (uint8_t)ret;
         else
             stream->os_policy = OS_POLICY_DEFAULT;
 
@@ -783,9 +774,9 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
-        ret = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
+        int ret = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
         if (ret > 0)
-            stream->os_policy = ret;
+            stream->os_policy = (uint8_t)ret;
         else
             stream->os_policy = OS_POLICY_DEFAULT;
     }
@@ -2813,6 +2804,11 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
             return -1;
         }
 
+        if (p->tcph->th_flags & TH_SYN) {
+            SCLogDebug("ssn %p: FIN+SYN", ssn);
+            StreamTcpSetEvent(p, STREAM_FIN_SYN);
+            return -1;
+        }
         StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
         SCLogDebug("ssn %p: state changed to TCP_CLOSE_WAIT", ssn);
 
@@ -4433,6 +4429,9 @@ static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
         if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
             if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->pstate) < 0)
                 return -1;
+            /* if state is still "closed", it wasn't updated by our dispatch. */
+            if (ssn->state == TCP_CLOSED)
+                ssn->state = ssn->pstate;
         }
     }
     return 0;
@@ -5152,12 +5151,10 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5170,12 +5167,10 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5203,12 +5198,10 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5221,12 +5214,10 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state == TCP_NONE) {
+        } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
-        }
-        if (ssn->state < TCP_LAST_ACK) {
+        } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
             return 0;
         }
@@ -5410,7 +5401,6 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 
 static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
-
     uint8_t os_policy;
 
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -5446,6 +5436,21 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
         }
+    }
+
+    /* RFC 2385 md5 signature header or RFC 5925 TCP AO headerpresent. Since we can't
+     * validate these (requires key that is set/transfered out of band), we can't know
+     * if the RST will be accepted or rejected by the end host. We accept it, but keep
+     * tracking if the sender of it ignores it, which would be a sign of injection. */
+    if (p->tcpvars.md5_option_present || p->tcpvars.ao_option_present) {
+        TcpStream *receiver_stream;
+        if (PKT_IS_TOSERVER(p)) {
+            receiver_stream = &ssn->server;
+        } else {
+            receiver_stream = &ssn->client;
+        }
+        SCLogDebug("ssn %p: setting STREAMTCP_STREAM_FLAG_RST_RECV on receiver stream", ssn);
+        receiver_stream->flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
     }
 
     if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
@@ -6303,16 +6308,13 @@ void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Pack
  */
 int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
-    TcpSession *ssn = NULL;
     TcpStream *stream = NULL;
-    int ret = 0;
     int cnt = 0;
 
     if (p->flow == NULL)
         return 0;
 
-    ssn = (TcpSession *)p->flow->protoctx;
-
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL) {
         return 0;
     }
@@ -6326,15 +6328,22 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg;
     RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
-        if (!((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
-                    || SEQ_LT(seg->seq, stream->last_ack)))
-            break;
+        if (!(stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)) {
+            if (PKT_IS_PSEUDOPKT(p)) {
+                /* use un-ACK'd data as well */
+            } else {
+                /* in IDS mode, use ACK'd data */
+                if (SEQ_GEQ(seg->seq, stream->last_ack)) {
+                    break;
+                }
+            }
+        }
 
         const uint8_t *seg_data;
         uint32_t seg_datalen;
         StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
-        ret = CallbackFunc(p, data, seg_data, seg_datalen);
+        int ret = CallbackFunc(p, data, seg_data, seg_datalen);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             return -1;

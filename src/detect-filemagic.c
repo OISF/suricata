@@ -361,8 +361,8 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (filemagic == NULL)
         return -1;
 
-    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
-            DetectFilemagicThreadInit, (void *)filemagic, DetectFilemagicThreadFree, 1);
+    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(
+            de_ctx, "filemagic", DetectFilemagicThreadInit, NULL, DetectFilemagicThreadFree, 1);
     if (g_magic_thread_ctx_id == -1)
         goto error;
 
@@ -537,10 +537,9 @@ static void PrefilterTxFilemagic(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     FileContainer *ffc = AppLayerParserGetFiles(f, flags);
-    int local_file_id = 0;
     if (ffc != NULL) {
-        File *file = ffc->head;
-        for (; file != NULL; file = file->next) {
+        int local_file_id = 0;
+        for (File *file = ffc->head; file != NULL; file = file->next) {
             if (file->txid != idx)
                 continue;
 

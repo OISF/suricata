@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,7 +47,10 @@ int ParseSizeStringU8(const char *, uint8_t *);
 int ParseSizeStringU16(const char *, uint16_t *);
 int ParseSizeStringU32(const char *, uint32_t *);
 int ParseSizeStringU64(const char *, uint64_t *);
+
+#ifdef UNITTESTS
 void UtilMiscRegisterTests(void);
+#endif /* UNITTESTS */
 
 void ParseSizeInit(void);
 void ParseSizeDeinit(void);

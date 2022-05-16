@@ -93,8 +93,9 @@ int TmModuleGetIDForTM(TmModule *tm);
 TmEcode TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, void *));
 void TmModuleDebugList(void);
 void TmModuleRegisterTests(void);
+#ifdef PROFILING
 const char * TmModuleTmmIdToString(TmmId id);
-
+#endif
 void TmModuleRunInit(void);
 void TmModuleRunDeInit(void);
 

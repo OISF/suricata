@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,19 +36,14 @@
 
 bool g_file_logger_enabled = false;
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputLoggerThreadData_ {
+typedef struct OutputFileLoggerThreadData_ {
     OutputLoggerThreadStore *store;
 #ifdef HAVE_MAGIC
     magic_t magic_ctx;
 #endif
-} OutputLoggerThreadData;
+} OutputFileLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
@@ -101,20 +96,20 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
 
 static void CloseFile(const Packet *p, Flow *f, File *file)
 {
+    DEBUG_VALIDATE_BUG_ON((file->flags & FILE_LOGGED) != 0);
     void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
     if (txv) {
         AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
-        if (txd)
+        if (txd) {
             txd->files_logged++;
+            DEBUG_VALIDATE_BUG_ON(txd->files_logged > txd->files_opened);
+        }
     }
     file->flags |= FILE_LOGGED;
 }
 
-static void OutputFileLogFfc(ThreadVars *tv,
-        OutputLoggerThreadData *op_thread_data,
-        Packet *p,
-        FileContainer *ffc, const bool file_close, const bool file_trunc,
-        uint8_t dir)
+static void OutputFileLogFfc(ThreadVars *tv, OutputFileLoggerThreadData *op_thread_data, Packet *p,
+        FileContainer *ffc, const bool file_close, const bool file_trunc, uint8_t dir)
 {
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
@@ -175,7 +170,7 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
     }
 
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFileLoggerThreadData *op_thread_data = (OutputFileLoggerThreadData *)thread_data;
 
     /* no flow, no files */
     Flow * const f = p->flow;
@@ -210,7 +205,7 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
  *  loggers */
 static TmEcode OutputFileLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
-    OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputFileLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
@@ -260,7 +255,7 @@ static TmEcode OutputFileLogThreadInit(ThreadVars *tv, const void *initdata, voi
 
 static TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFileLoggerThreadData *op_thread_data = (OutputFileLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFileLogger *logger = list;
 
@@ -285,7 +280,7 @@ static TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
 static void OutputFileLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFileLoggerThreadData *op_thread_data = (OutputFileLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFileLogger *logger = list;
 

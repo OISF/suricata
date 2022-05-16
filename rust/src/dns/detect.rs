@@ -16,7 +16,7 @@
  */
 
 use super::dns::DNSTransaction;
-use crate::core;
+use crate::core::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 
@@ -62,13 +62,13 @@ pub extern "C" fn rs_dns_opcode_match(
     detect: &mut DetectDnsOpcode,
     flags: u8,
 ) -> u8 {
-    let header_flags = if flags & core::STREAM_TOSERVER != 0 {
+    let header_flags = if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
             request.header.flags
         } else {
             return 0;
         }
-    } else if flags & core::STREAM_TOCLIENT != 0 {
+    } else if flags & Direction::ToClient as u8 != 0 {
         if let Some(response) = &tx.response {
             response.header.flags
         } else {
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
-    if ptr != std::ptr::null_mut() {
+    if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
     }
 }

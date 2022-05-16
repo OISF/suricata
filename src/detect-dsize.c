@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -494,400 +494,131 @@ void SigParseApplyDsizeToContent(Signature *s)
 /**
  * \test this is a test for a valid dsize value 1
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse01 (void)
+static int DsizeTestParse01(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 1;
-    }
+    DetectDsizeData *dd = DetectDsizeParse("1");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 1);
+    FAIL_IF_NOT(dd->dsize2 == 0);
 
-    return 0;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is a test for a valid dsize value >10
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse02 (void)
+static int DsizeTestParse02(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse(">10");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 1;
-    }
-
-    return 0;
+    DetectDsizeData *dd = DetectDsizeParse(">10");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 10);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_GT);
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is a test for a valid dsize value <100
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse03 (void)
+static int DsizeTestParse03(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("<100");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 1;
-    }
+    DetectDsizeData *dd = DetectDsizeParse("<100");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 100);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_LT);
 
-    return 0;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is a test for a valid dsize value 1<>2
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse04 (void)
+static int DsizeTestParse04(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1<>2");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 1;
-    }
+    DetectDsizeData *dd = DetectDsizeParse("1<>2");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 1);
+    FAIL_IF_NOT(dd->dsize2 == 2);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_RA);
 
-    return 0;
-}
-
-/**
- * \test this is a test for a valid dsize value 1
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse05 (void)
-{
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1");
-    if (dd) {
-        if (dd->dsize == 1)
-            result = 1;
-
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
-}
-
-/**
- * \test this is a test for a valid dsize value >10
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse06 (void)
-{
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse(">10");
-    if (dd) {
-        if (dd->dsize == 10 && dd->mode == DETECTDSIZE_GT)
-            result = 1;
-
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
-}
-
-/**
- * \test this is a test for a valid dsize value <100
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse07 (void)
-{
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("<100");
-    if (dd) {
-        if (dd->dsize == 100 && dd->mode == DETECTDSIZE_LT)
-            result = 1;
-
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
-}
-
-/**
- * \test this is a test for a valid dsize value 1<>2
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse08 (void)
-{
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1<>2");
-    if (dd) {
-        if (dd->dsize == 1 && dd->dsize2 == 2 && dd->mode == DETECTDSIZE_RA)
-            result = 1;
-
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
-}
-
-/**
- * \test this is a test for a invalid dsize value A
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse09 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("A");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a invalid dsize value >10<>10
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse10 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse(">10<>10");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a invalid dsize value <>10
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse11 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("<>10");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a invalid dsize value 1<>
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse12 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1<>");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a valid dsize value 1
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse13 (void)
-{
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1");
-    if (dd) {
-        if (dd->dsize2 == 0)
-            result = 1;
-
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
-}
-
-/**
- * \test this is a test for a invalid dsize value ""
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse14 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a invalid dsize value " "
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse15 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse(" ");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test this is a test for a invalid dsize value 2<>1
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
- */
-static int DsizeTestParse16 (void)
-{
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("2<>1");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        return 0;
-    }
-
-    return 1;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is a test for a valid dsize value 1 <> 2
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse17 (void)
+static int DsizeTestParse05(void)
 {
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse(" 1 <> 2 ");
-    if (dd) {
-        if (dd->dsize == 1 && dd->dsize2 == 2 && dd->mode == DETECTDSIZE_RA)
-            result = 1;
+    DetectDsizeData *dd = DetectDsizeParse(" 1 <> 2 ");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 1);
+    FAIL_IF_NOT(dd->dsize2 == 2);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_RA);
 
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is test for a valid dsize value > 2
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse18 (void)
+static int DsizeTestParse06(void)
 {
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("> 2 ");
-    if (dd) {
-        if (dd->dsize == 2 && dd->mode == DETECTDSIZE_GT)
-            result = 1;
+    DetectDsizeData *dd = DetectDsizeParse("> 2 ");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 2);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_GT);
 
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test test for a valid dsize value <   12
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse19 (void)
+static int DsizeTestParse07(void)
 {
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("<   12 ");
-    if (dd) {
-        if (dd->dsize == 12 && dd->mode == DETECTDSIZE_LT)
-            result = 1;
+    DetectDsizeData *dd = DetectDsizeParse("<   12 ");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 12);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_LT);
 
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test test for a valid dsize value    12
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
-static int DsizeTestParse20 (void)
+static int DsizeTestParse08(void)
 {
-    int result = 0;
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("   12 ");
-    if (dd) {
-        if (dd->dsize == 12 && dd->mode == DETECTDSIZE_EQ)
-            result = 1;
+    DetectDsizeData *dd = DetectDsizeParse("   12 ");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->dsize == 12);
+    FAIL_IF_NOT(dd->mode == DETECTDSIZE_EQ);
 
-        DetectDsizeFree(NULL, dd);
-    }
-
-    return result;
+    DetectDsizeFree(NULL, dd);
+    PASS;
 }
 
 /**
  * \test this is a test for a valid dsize value !1
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
-static int DsizeTestParse21(void)
+static int DsizeTestParse09(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("!1");
+    DetectDsizeData *dd = DetectDsizeParse("!1");
     FAIL_IF_NULL(dd);
     DetectDsizeFree(NULL, dd);
     PASS;
@@ -896,69 +627,59 @@ static int DsizeTestParse21(void)
 /**
  * \test this is a test for a valid dsize value ! 1
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
-static int DsizeTestParse22(void)
+static int DsizeTestParse10(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("! 1");
+    DetectDsizeData *dd = DetectDsizeParse("! 1");
     FAIL_IF_NULL(dd);
     DetectDsizeFree(NULL, dd);
     PASS;
 }
 
 /**
- * \test this is a test for a invalid dsize value 1!
+ * \test this is a test for invalid dsize values
+ * A, >10<>10, <>10, 1<>, "", " ", 2<>1, 1!
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
-static int DsizeTestParse23(void)
+static int DsizeTestParse11(void)
 {
-    DetectDsizeData *dd = NULL;
-    dd = DetectDsizeParse("1!");
-    if (dd) {
-        DetectDsizeFree(NULL, dd);
-        FAIL;
+    const char *strings[] = { "A", ">10<>10", "<>10", "1<>", "", " ", "2<>1", "1!", NULL };
+    for (int i = 0; strings[i]; i++) {
+        DetectDsizeData *dd = DetectDsizeParse(strings[i]);
+        FAIL_IF_NOT_NULL(dd);
     }
+
     PASS;
 }
 
 /**
  * \test this is a test for positive ! dsize matching
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DsizeTestMatch01(void)
 {
     uint16_t psize = 1;
     uint16_t dsizelow = 2;
     uint16_t dsizehigh = 0;
-    int result = 0;
 
-    result = DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh);
+    FAIL_IF_NOT(DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh));
 
-    PASS_IF(result);
+    PASS;
 }
 
 /**
  * \test this is a test for negative ! dsize matching
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DsizeTestMatch02(void)
 {
     uint16_t psize = 1;
     uint16_t dsizelow = 1;
     uint16_t dsizehigh = 0;
-    int result = 0;
 
-    result = !DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh);
+    FAIL_IF(DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh));
 
-    PASS_IF(result);
+    PASS;
 }
 
 /**
@@ -966,10 +687,8 @@ static int DsizeTestMatch02(void)
  *       dsize keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-static int DetectDsizeIcmpv6Test01 (void)
+static int DetectDsizeIcmpv6Test01(void)
 {
-    int result = 0;
-
     static uint8_t raw_icmpv6[] = {
         0x60, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3a, 0xff,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -983,18 +702,16 @@ static int DetectDsizeIcmpv6Test01 (void)
         0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+
     IPV6Hdr ip6h;
     ThreadVars tv;
     DecodeThreadVars dtv;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip6h, 0, sizeof(IPV6Hdr));
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -1007,51 +724,35 @@ static int DetectDsizeIcmpv6Test01 (void)
     DecodeIPV6(&tv, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert icmp any any -> any any "
             "(msg:\"ICMP Large ICMP Packet\"; dsize:>8; sid:1; rev:4;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx,
+            "alert icmp any any -> any any "
             "(msg:\"ICMP Large ICMP Packet\"; dsize:>800; sid:2; rev:4;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) == 0) {
-        printf("sid 1 did not alert, but should have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 2)) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF(PacketAlertCheck(p, 1) == 0);
+    FAIL_IF(PacketAlertCheck(p, 2));
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     PACKET_RECYCLE(p);
     FlowShutdown();
-end:
     SCFree(p);
-    return result;
 
+    PASS;
 }
 
 /**
@@ -1070,18 +771,6 @@ static void DsizeRegisterTests(void)
     UtRegisterTest("DsizeTestParse09", DsizeTestParse09);
     UtRegisterTest("DsizeTestParse10", DsizeTestParse10);
     UtRegisterTest("DsizeTestParse11", DsizeTestParse11);
-    UtRegisterTest("DsizeTestParse12", DsizeTestParse12);
-    UtRegisterTest("DsizeTestParse13", DsizeTestParse13);
-    UtRegisterTest("DsizeTestParse14", DsizeTestParse14);
-    UtRegisterTest("DsizeTestParse15", DsizeTestParse15);
-    UtRegisterTest("DsizeTestParse16", DsizeTestParse16);
-    UtRegisterTest("DsizeTestParse17", DsizeTestParse17);
-    UtRegisterTest("DsizeTestParse18", DsizeTestParse18);
-    UtRegisterTest("DsizeTestParse19", DsizeTestParse19);
-    UtRegisterTest("DsizeTestParse20", DsizeTestParse20);
-    UtRegisterTest("DsizeTestParse21", DsizeTestParse21);
-    UtRegisterTest("DsizeTestParse22", DsizeTestParse22);
-    UtRegisterTest("DsizeTestParse23", DsizeTestParse23);
     UtRegisterTest("DsizeTestMatch01", DsizeTestMatch01);
     UtRegisterTest("DsizeTestMatch02", DsizeTestMatch02);
 

@@ -63,6 +63,7 @@ outputs:\n\
             enabled: yes\n\
             extended: yes\n\
         - ssh\n\
+        - pgsql\n\
         - flow\n\
         - netflow\n\
         - metadata\n\
@@ -77,6 +78,10 @@ outputs:\n\
 app-layer:\n\
   protocols:\n\
     rdp:\n\
+      enabled: yes\n\
+    template:\n\
+      enabled: yes\n\
+    template-rust:\n\
       enabled: yes\n\
     modbus:\n\
       enabled: yes\n\
@@ -98,6 +103,10 @@ app-layer:\n\
       hassh: yes\n\
     mqtt:\n\
       enabled: yes\n\
+    pgsql:\n\
+      enabled: yes\n\
     http2:\n\
+      enabled: yes\n\
+    quic:\n\
       enabled: yes\n\
 ";

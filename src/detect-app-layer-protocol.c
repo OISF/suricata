@@ -43,7 +43,7 @@ static int DetectAppLayerProtocolPacketMatch(
 {
     SCEnter();
 
-    int r = 0;
+    bool r = false;
     const DetectAppLayerProtocolData *data = (const DetectAppLayerProtocolData *)ctx;
 
     /* if the sig is PD-only we only match when PD packet flags are set */
@@ -67,16 +67,14 @@ static int DetectAppLayerProtocolPacketMatch(
         SCLogDebug("toserver packet %"PRIu64": looking for %u/neg %u, got %u",
                 p->pcap_cnt, data->alproto, data->negated, f->alproto_ts);
 
-        r = (data->negated) ? (f->alproto_ts != data->alproto) :
-            (f->alproto_ts == data->alproto);
+        r = AppProtoEquals(data->alproto, f->alproto_ts);
 
     } else if ((f->alproto_tc != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOCLIENT))
     {
         SCLogDebug("toclient packet %"PRIu64": looking for %u/neg %u, got %u",
                 p->pcap_cnt, data->alproto, data->negated, f->alproto_tc);
 
-        r = (data->negated) ? (f->alproto_tc != data->alproto) :
-            (f->alproto_tc == data->alproto);
+        r = AppProtoEquals(data->alproto, f->alproto_tc);
     }
     else {
         SCLogDebug("packet %"PRIu64": default case: direction %02x, approtos %u/%u/%u",
@@ -84,8 +82,11 @@ static int DetectAppLayerProtocolPacketMatch(
             p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER),
             f->alproto, f->alproto_ts, f->alproto_tc);
     }
-
-    SCReturnInt(r);
+    r = r ^ data->negated;
+    if (r) {
+        SCReturnInt(1);
+    }
+    SCReturnInt(0);
 }
 
 static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, bool negate)

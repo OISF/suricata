@@ -189,6 +189,7 @@ void TmModuleRegisterTests(void)
 #endif /* UNITTESTS */
 }
 
+#ifdef PROFILING
 #define CASE_CODE(E)  case E: return #E
 
 /**
@@ -213,6 +214,8 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_DECODEPCAPFILE);
         CASE_CODE (TMM_RECEIVEPFRING);
         CASE_CODE (TMM_DECODEPFRING);
+        CASE_CODE(TMM_RECEIVEDPDK);
+        CASE_CODE(TMM_DECODEDPDK);
         CASE_CODE (TMM_RECEIVEPLUGIN);
         CASE_CODE (TMM_DECODEPLUGIN);
         CASE_CODE (TMM_RESPONDREJECT);
@@ -244,3 +247,4 @@ const char * TmModuleTmmIdToString(TmmId id)
     }
     return "<unknown>";
 }
+#endif

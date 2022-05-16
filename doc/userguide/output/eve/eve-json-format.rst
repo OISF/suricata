@@ -436,6 +436,7 @@ Outline of fields seen in the different kinds of DNS events:
 * "tc": Indicating in case of DNS answer flag, Truncation flag (ex: true if set)
 * "rd": Indicating in case of DNS answer flag, Recursion Desired flag (ex: true if set)
 * "ra": Indicating in case of DNS answer flag, Recursion Available flag (ex: true if set)
+* "z": Indicating in case of DNS answer flag, Reserved bit (ex: true if set)
 * "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
@@ -1850,6 +1851,141 @@ Example of HTTP2 logging, of a request and response:
     }
   }
 
+Event type: PGSQL
+-----------------
+
+PGSQL eve-logs reflect the bidirectional nature of the protocol transactions. Each PGSQL event lists at most one
+"Request" message field and one or more "Response" messages.
+
+The PGSQL parser merges individual messages into one EVE output item if they belong to the same transaction. In such cases, the source and destination information (IP/port) reflect the direction of the initial request, but contain messages from both sides.
+
+
+Example of ``pgsql`` event for a SimpleQuery transaction complete with request with a ``SELECT`` statement and its response::
+
+  {
+    "timestamp": "2021-11-24T16:56:24.403417+0000",
+    "flow_id": 1960113262002448,
+    "pcap_cnt": 780,
+    "event_type": "pgsql",
+    "src_ip": "172.18.0.1",
+    "src_port": 54408,
+    "dest_ip": "172.18.0.2",
+    "dest_port": 5432,
+    "proto": "TCP",
+    "pgsql": {
+      "tx_id": 4,
+      "request": {
+        "simple_query": "select * from rule limit 5000;"
+      },
+      "response": {
+        "field_count": 7,
+        "data_rows": 5000,
+        "data_size": 3035751,
+        "command_completed": "SELECT 5000"
+      }
+    }
+  }
+
+While on the wire PGSQL messages follow basically two types (startup messages and regular messages), those may have different subfields and/or meanings, based on the message type. Messages are logged based on their type and relevant fields.
+
+We list a few possible message types and what they mean in Suricata. For more details on message types and formats as well as what each message and field mean for PGSQL, check  `PostgreSQL's official documentation <https://www.postgresql.org/docs/14/protocol-message-formats.html>`_.
+
+Fields
+~~~~~~
+
+* "tx_id": internal transaction id.
+* "request":  each PGSQL transaction may have up to one request message. The possible messages will be described in another section.
+* "response": even when there are several "Response" messages, there is one ``response`` field that summarizes all responses for that transaction. The possible messages will be described in another section.
+
+Request Messages
+~~~~~~~~~~~~~~~~
+
+Some of the possible request messages are:
+
+* "startup_message": message sent by a frontend/client process to start a new PostgreSQL connection
+* "password_message": if password output for PGSQL is enabled in suricata.yaml, carries the password sent during Authentication phase
+* "simple_query": issued SQL command during simple query subprotocol. PostgreSQL identifies specific sets of commands that change the set of expected messages to be exchanged as subprotocols.
+* "message": frontend responses which do not have meaningful payloads are logged like this, where the field value is the message type
+
+There are several different authentication messages possible, based on selected authentication method. (e.g. the SASL authentication will have a set of authentication messages different from when ``md5`` authentication is chosen).
+
+Response Messages
+~~~~~~~~~~~~~~~~~
+
+Some of the possible request messages are:
+
+* "authentication_sasl_final": final SCRAM ``server-final-message``, as explained at https://www.postgresql.org/docs/14/sasl-authentication.html#SASL-SCRAM-SHA-256
+* "message": Backend responses which do not have meaningful payloads are logged like this, where the field value is the message type
+* "error_response"
+* "notice_response"
+* "notification_response"
+* "authentication_md5_password": a string with the ``md5`` salt value
+* "parameter_status": logged as an array
+* "backend_key_data"
+* "data_rows": integer. When one or many ``DataRow`` messages are parsed, the total returned rows
+* "data_size": in bytes. When one or many ``DataRow`` messages are parsed, the total size in bytes of the data returned
+* "command_completed": string. Informs the command just completed by the backend
+* "ssl_accepted": bool. With this event, the initial PGSQL SSL Handshake negotiation is complete in terms of tracking and logging. The session will be upgraded to use TLS encryption
+
+Examples
+~~~~~~~~
+
+The two ``pgsql`` events in this example reprensent a rejected ``SSL handshake`` and a following connection request where the authentication method indicated by the backend was ``md5``::
+
+  {
+    "timestamp": "2021-11-24T16:56:19.435242+0000",
+    "flow_id": 1960113262002448,
+    "pcap_cnt": 21,
+    "event_type": "pgsql",
+    "src_ip": "172.18.0.1",
+    "src_port": 54408,
+    "dest_ip": "172.18.0.2",
+    "dest_port": 5432,
+    "proto": "TCP",
+    "pgsql": {
+      "tx_id": 1,
+      "request": {
+        "message": "SSL Request"
+      },
+      "response": {
+        "accepted": false
+      }
+    }
+  }
+  {
+    "timestamp": "2021-11-24T16:56:19.436228+0000",
+    "flow_id": 1960113262002448,
+    "pcap_cnt": 25,
+    "event_type": "pgsql",
+    "src_ip": "172.18.0.1",
+    "src_port": 54408,
+    "dest_ip": "172.18.0.2",
+    "dest_port": 5432,
+    "proto": "TCP",
+    "pgsql": {
+      "tx_id": 2,
+      "request": {
+        "protocol_version": "3.0",
+        "startup_parameters": {
+          "user": "rules",
+          "database": "rules",
+          "optional_parameters": [
+            {
+              "application_name": "psql"
+            },
+            {
+              "client_encoding": "UTF8"
+            }
+          ]
+        }
+      },
+      "response": {
+        "authentication_md5_password": "Z\\xdc\\xfdf"
+      }
+    }
+  }
+
+
 Event type: IKE
 ---------------
 
@@ -2065,4 +2201,33 @@ Example of Modbus logging of a request and response:
       "category": "PUBLIC_ASSIGNED",
       "error_flags": "DATA_VALUE",
     },
+  }
+
+Event type: QUIC
+-----------------
+
+Fields
+~~~~~~
+
+* "version": Version of the QUIC packet if contained in the packet, 0 if not
+* "cyu": List of found CYUs in the packet
+* "cyu[].hash": CYU hash
+* "cyu[].string": CYU string
+
+Examples
+~~~~~~~~
+
+Example of QUIC logging with a CYU hash:
+
+::
+
+
+  "quic": {
+    "version": 1362113590,
+    "cyu": [
+        {
+            "hash": "7b3ceb1adc974ad360cfa634e8d0a730",
+            "string": "46,PAD-SNI-STK-SNO-VER-CCS-NONC-AEAD-UAID-SCID-TCID-PDMD-SMHL-ICSL-NONP-PUBS-MIDS-SCLS-KEXS-XLCT-CSCT-COPT-CCRT-IRTT-CFCW-SFCW"
+        }
+    ]
   }

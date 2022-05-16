@@ -34,6 +34,7 @@
 #include "util-random.h"
 #include "util-misc.h"
 #include "util-byte.h"
+#include "util-validate.h"
 
 #include "host-queue.h"
 
@@ -156,12 +157,13 @@ error:
 void HostClearMemory(Host *h)
 {
     if (h->iprep != NULL) {
-        SCFree(h->iprep);
-        h->iprep = NULL;
+        SRepFreeHostData(h);
     }
 
     if (HostStorageSize() > 0)
         HostFreeStorage(h);
+
+    BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -173,8 +175,10 @@ void HostClearMemory(Host *h)
 void HostInitConfig(bool quiet)
 {
     SCLogDebug("initializing host engine...");
-    if (HostStorageSize() > 0)
-        g_host_size = sizeof(Host) + HostStorageSize();
+    if (HostStorageSize() > 0) {
+        DEBUG_VALIDATE_BUG_ON(sizeof(Host) + HostStorageSize() > UINT16_MAX);
+        g_host_size = (uint16_t)(sizeof(Host) + HostStorageSize());
+    }
 
     memset(&host_config,  0, sizeof(host_config));
     //SC_ATOMIC_INIT(flow_flags);
@@ -311,7 +315,6 @@ void HostShutdown(void)
 
     /* free spare queue */
     while((h = HostDequeue(&host_spare_q))) {
-        BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
         HostFree(h);
     }
 

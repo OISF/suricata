@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -69,6 +69,9 @@ enum PktSrcEnum {
 #include "source-af-packet.h"
 #include "source-netmap.h"
 #include "source-windivert.h"
+#ifdef HAVE_DPDK
+#include "source-dpdk.h"
+#endif
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
 #endif
@@ -276,10 +279,11 @@ typedef uint16_t Port;
  * found in this packet */
 typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
-    uint8_t action; /* Internal num, used for sorting */
+    uint8_t action; /* Internal num, used for thresholding */
     uint8_t flags;
     const struct Signature_ *s;
-    uint64_t tx_id;
+    uint64_t tx_id; /* Used for sorting */
+    int64_t frame_id;
 } PacketAlert;
 
 /* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
@@ -292,16 +296,25 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_TX            0x08
 /** action was changed by rate_filter */
 #define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
+/** alert is in a frame, frame_id set */
+#define PACKET_ALERT_FLAG_FRAME 0x20
 
+extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
 
 typedef struct PacketAlerts_ {
     uint16_t cnt;
-    PacketAlert alerts[PACKET_ALERT_MAX];
+    uint16_t discarded;
+    uint16_t suppressed;
+    PacketAlert *alerts;
     /* single pa used when we're dropping,
      * so we can log it out in the drop log. */
     PacketAlert drop;
 } PacketAlerts;
+
+PacketAlert *PacketAlertCreate(void);
+
+void PacketAlertFree(PacketAlert *pa);
 
 /** number of decoder events we support per packet. Power of 2 minus 1
  *  for memory layout */
@@ -481,6 +494,9 @@ typedef struct Packet_
 #ifdef WINDIVERT
         WinDivertPacketVars windivert_v;
 #endif /* WINDIVERT */
+#ifdef HAVE_DPDK
+        DPDKPacketVars dpdk_v;
+#endif
 
         /* A chunk of memory that a plugin can use for its packet vars. */
         uint8_t plugin_v[PLUGIN_VAR_SIZE];
@@ -751,11 +767,13 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Initialize a packet structure for use.
  */
-#define PACKET_INITIALIZE(p) {         \
-    SCMutexInit(&(p)->tunnel_mutex, NULL); \
-    PACKET_RESET_CHECKSUMS((p)); \
-    (p)->livedev = NULL; \
-}
+#define PACKET_INITIALIZE(p)                                                                       \
+    {                                                                                              \
+        SCMutexInit(&(p)->tunnel_mutex, NULL);                                                     \
+        (p)->alerts.alerts = PacketAlertCreate();                                                  \
+        PACKET_RESET_CHECKSUMS((p));                                                               \
+        (p)->livedev = NULL;                                                                       \
+    }
 
 #define PACKET_RELEASE_REFS(p) do {              \
         FlowDeReference(&((p)->flow));          \
@@ -823,6 +841,8 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->BypassPacketsFlow = NULL;                                                             \
         (p)->pktlen = 0;                                                                           \
         (p)->alerts.cnt = 0;                                                                       \
+        (p)->alerts.discarded = 0;                                                                 \
+        (p)->alerts.suppressed = 0;                                                                \
         (p)->alerts.drop.action = 0;                                                               \
         (p)->pcap_cnt = 0;                                                                         \
         (p)->tunnel_rtv_cnt = 0;                                                                   \
@@ -847,16 +867,18 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
-#define PACKET_DESTRUCTOR(p) do {                  \
-        if ((p)->pktvar != NULL) {              \
-            PktVarFree((p)->pktvar);            \
-        }                                       \
-        PACKET_FREE_EXTDATA((p));               \
-        SCMutexDestroy(&(p)->tunnel_mutex);     \
-        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
-        PACKET_PROFILING_RESET((p));            \
+#define PACKET_DESTRUCTOR(p)                                                                       \
+    do {                                                                                           \
+        PACKET_RELEASE_REFS((p));                                                                  \
+        if ((p)->pktvar != NULL) {                                                                 \
+            PktVarFree((p)->pktvar);                                                               \
+        }                                                                                          \
+        PacketAlertFree((p)->alerts.alerts);                                                       \
+        PACKET_FREE_EXTDATA((p));                                                                  \
+        SCMutexDestroy(&(p)->tunnel_mutex);                                                        \
+        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events);                                   \
+        PACKET_PROFILING_RESET((p));                                                               \
     } while (0)
-
 
 /* macro's for setting the action
  * handle the case of a root packet
@@ -1007,6 +1029,7 @@ void AddressDebugPrint(Address *);
 typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
          const uint8_t *pkt, uint32_t len);
 void DecodeGlobalConfig(void);
+void PacketAlertGetMaxConfig(void);
 void DecodeUnregisterCounters(void);
 
 /** \brief Set the No payload inspection Flag for the packet.

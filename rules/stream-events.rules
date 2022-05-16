@@ -91,5 +91,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; f
 # Packet on wrong thread. Fires at most once per flow.
 alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; sid:2210059; rev:1;)
 
-# next sid 2210060
+# Packet with FIN+SYN set
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:fin_syn; classtype:protocol-command-decode; sid:2210060; rev:1;)
+
+# next sid 2210061
 

@@ -50,7 +50,6 @@
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
-#include "util-crypt.h"
 #include "util-time.h"
 #include "log-cf-common.h"
 

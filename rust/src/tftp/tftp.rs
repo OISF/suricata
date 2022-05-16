@@ -21,7 +21,10 @@ extern crate nom;
 
 use std::str;
 use std;
-use nom::*;
+use nom7::IResult;
+use nom7::combinator::map_res;
+use nom7::bytes::streaming::{tag, take_while};
+use nom7::number::streaming::be_u8;
 
 use crate::applayer::AppLayerTxData;
 
@@ -63,8 +66,8 @@ impl TFTPState {
 impl TFTPTransaction {
     pub fn new(opcode : u8, filename : String, mode : String) -> TFTPTransaction {
         TFTPTransaction {
-            opcode : opcode,
-            filename : filename,
+            opcode,
+            filename,
             mode : mode.to_lowercase(),
             id : 0,
             tx_data: AppLayerTxData::new(),
@@ -116,23 +119,23 @@ pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
     return state.tx_id as u64;
 }
 
-named!(getstr<&str>, map_res!(
-        take_while!(call!(|c| c != 0)),
+fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(
+        take_while(|c| c != 0),
         str::from_utf8
-    )
-);
+    )(i)
+}
 
 fn tftp_request<'a>(slice: &'a [u8]) -> IResult<&[u8], TFTPTransaction> {
-       do_parse!(slice,
-           tag!([0]) >>
-           opcode: take!(1) >>
-           filename: getstr >>
-           tag!([0]) >>
-           mode: getstr >>
-           (
-               TFTPTransaction::new(opcode[0], String::from(filename), String::from(mode))
-            )
+    let (i, _) = tag([0])(slice)?;
+    let (i, opcode) = be_u8(i)?;
+    let (i, filename) = getstr(i)?;
+    let (i, _) = tag([0])(i)?;
+    let (i, mode) = getstr(i)?;
+    Ok((i,
+        TFTPTransaction::new(opcode, String::from(filename), String::from(mode))
        )
+      )
 }
 
 fn parse_tftp_request(input: &[u8]) -> Option<TFTPTransaction> {

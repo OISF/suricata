@@ -28,7 +28,7 @@ use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
+use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -51,6 +51,16 @@ pub struct KRB5State {
     tx_id: u64,
 }
 
+impl State<KRB5Transaction> for KRB5State {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&KRB5Transaction> {
+        self.transactions.get(index)
+    }
+}
+
 pub struct KRB5Transaction {
     /// The message type: AS-REQ, AS-REP, etc.
     pub msg_type: MessageType,
@@ -71,13 +81,13 @@ pub struct KRB5Transaction {
     /// The internal transaction id
     id: u64,
 
-    /// The detection engine state, if present
-    de_state: Option<*mut core::DetectEngineState>,
-
-    /// The events associated with this transaction
-    events: *mut core::AppLayerDecoderEvents,
-
     tx_data: applayer::AppLayerTxData,
+}
+
+impl Transaction for KRB5Transaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 pub fn to_hex_string(bytes: &[u8]) -> String {
@@ -104,7 +114,7 @@ impl KRB5State {
     /// Parse a Kerberos request message
     ///
     /// Returns 0 in case of success, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
+    fn parse(&mut self, i: &[u8], _direction: Direction) -> i32 {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
@@ -210,8 +220,7 @@ impl KRB5State {
     /// Set an event. The event is set on the most recent transaction.
     fn set_event(&mut self, event: KRB5Event) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.tx_data.set_event(event as u8);
         }
     }
 }
@@ -226,20 +235,7 @@ impl KRB5Transaction {
             etype: None,
             error_code: None,
             id: id,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
-        }
-    }
-}
-
-impl Drop for KRB5Transaction {
-    fn drop(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            sc_detect_engine_state_free(state);
         }
     }
 }
@@ -313,36 +309,6 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
     1
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, KRB5Transaction);
-    return tx.events;
-}
-
 static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
@@ -411,13 +377,12 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
 pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
+    let buf = stream_slice.as_slice();
     let state = cast_pointer!(state,KRB5State);
-    if state.parse(buf, STREAM_TOSERVER) < 0 {
+    if state.parse(buf, Direction::ToServer) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -427,13 +392,12 @@ pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
+    let buf = stream_slice.as_slice();
     let state = cast_pointer!(state,KRB5State);
-    if state.parse(buf, STREAM_TOCLIENT) < 0 {
+    if state.parse(buf, Direction::ToClient) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -443,12 +407,11 @@ pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,KRB5State);
+    let buf = stream_slice.as_slice();
 
     let mut v : Vec<u8>;
     let tcp_buffer = match state.record_ts {
@@ -484,7 +447,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
             }
         }
         if cur_i.len() >= state.record_ts {
-            if state.parse(cur_i, STREAM_TOSERVER) < 0 {
+            if state.parse(cur_i, Direction::ToServer) < 0 {
                 return AppLayerResult::err();
             }
             state.record_ts = 0;
@@ -502,12 +465,11 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,KRB5State);
+    let buf = stream_slice.as_slice();
 
     let mut v : Vec<u8>;
     let tcp_buffer = match state.record_tc {
@@ -543,7 +505,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
             }
         }
         if cur_i.len() >= state.record_tc {
-            if state.parse(cur_i, STREAM_TOCLIENT) < 0 {
+            if state.parse(cur_i, Direction::ToClient) < 0 {
                 return AppLayerResult::err();
             }
             state.record_tc = 0;
@@ -582,19 +544,18 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
-        get_de_state       : rs_krb5_state_get_tx_detect_state,
-        set_de_state       : rs_krb5_state_set_tx_detect_state,
-        get_events         : Some(rs_krb5_state_get_events),
         get_eventinfo      : Some(KRB5Event::get_event_info),
         get_eventinfo_byid : Some(KRB5Event::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
         get_tx_data        : rs_krb5_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();

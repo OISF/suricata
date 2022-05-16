@@ -206,7 +206,7 @@ int SetIfaceFlags(const char *ifname, int flags)
     ifr.ifr_flags = flags & 0xffff;
     ifr.ifr_flagshigh = flags >> 16;
 #else
-    ifr.ifr_flags = flags;
+    ifr.ifr_flags = (uint16_t)flags;
 #endif
 
     if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1) {

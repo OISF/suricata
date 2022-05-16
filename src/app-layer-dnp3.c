@@ -23,6 +23,7 @@
 
 #include "util-print.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
@@ -96,9 +97,6 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     {"UNKNOWN_OBJECT",    DNP3_DECODER_EVENT_UNKNOWN_OBJECT},
     {NULL, -1},
 };
-
-/* Some DNP3 servers start with a banner. */
-static const char banner[] = "DNP3";
 
 /* Calculate the next transport sequence number. */
 #define NEXT_TH_SEQNO(current) ((current + 1) % DNP3_MAX_TRAN_SEQNO)
@@ -251,6 +249,9 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
         header->start_byte1 == DNP3_START_BYTE1;
 }
 
+/* Some DNP3 servers start with a banner. */
+#define DNP3_BANNER "DNP3"
+
 /**
  * \brief Check if a frame contains a banner.
  *
@@ -261,7 +262,7 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
  */
 static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 {
-    return BasicSearch(input, len, (uint8_t *)banner, strlen(banner)) != NULL;
+    return BasicSearch(input, len, (uint8_t *)DNP3_BANNER, strlen(DNP3_BANNER)) != NULL;
 }
 
 /**
@@ -466,7 +467,7 @@ static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
 {
     if (dnp3 && dnp3->curr) {
-        AppLayerDecoderEventsSetEventRaw(&dnp3->curr->decoder_events, event);
+        AppLayerDecoderEventsSetEventRaw(&dnp3->curr->tx_data.events, event);
         dnp3->events++;
     }
     else {
@@ -479,7 +480,7 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
  */
 static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 {
-    AppLayerDecoderEventsSetEventRaw(&tx->decoder_events, event);
+    AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, event);
     tx->dnp3->events++;
 }
 
@@ -1131,13 +1132,15 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->request_buffer;
     int processed = 0;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input_len == 0) {
         SCReturnStruct(APP_LAYER_OK);
@@ -1271,14 +1274,16 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
 
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->response_buffer;
     int processed;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
@@ -1327,11 +1332,6 @@ error:
      * buffer as we can't be assured that they are valid anymore. */
     DNP3BufferReset(buffer);
     SCReturnStruct(APP_LAYER_ERROR);
-}
-
-static AppLayerDecoderEvents *DNP3GetEvents(void *tx)
-{
-    return ((DNP3Transaction *) tx)->decoder_events;
 }
 
 static void *DNP3GetTx(void *alstate, uint64_t tx_id)
@@ -1390,10 +1390,10 @@ static void DNP3TxFree(DNP3Transaction *tx)
         SCFree(tx->response_buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
-    if (tx->de_state != NULL) {
-        DetectEngineStateFree(tx->de_state);
+    if (tx->tx_data.de_state != NULL) {
+        DetectEngineStateFree(tx->tx_data.de_state);
     }
 
     DNP3TxFreeObjectList(&tx->request_objects);
@@ -1426,11 +1426,10 @@ static void DNP3StateTxFree(void *state, uint64_t tx_id)
             dnp3->curr = NULL;
         }
 
-        if (tx->decoder_events != NULL) {
-            if (tx->decoder_events->cnt <= dnp3->events) {
-                dnp3->events -= tx->decoder_events->cnt;
-            }
-            else {
+        if (tx->tx_data.events != NULL) {
+            if (tx->tx_data.events->cnt <= dnp3->events) {
+                dnp3->events -= tx->tx_data.events->cnt;
+            } else {
                 dnp3->events = 0;
             }
         }
@@ -1535,25 +1534,6 @@ static int DNP3StateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
-/**
- * \brief App-layer support.
- */
-static DetectEngineState *DNP3GetTxDetectState(void *vtx)
-{
-    DNP3Transaction *tx = vtx;
-    return tx->de_state;
-}
-
-/**
- * \brief App-layer support.
- */
-static int DNP3SetTxDetectState(void *vtx, DetectEngineState *s)
-{
-    DNP3Transaction *tx = vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 static AppLayerTxData *DNP3GetTxData(void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
@@ -1587,8 +1567,7 @@ void RegisterDNP3Parsers(void)
 
     const char *proto_name = "dnp3";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
-    {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNP3, proto_name);
 
         if (RunmodeIsUnittests()) {
@@ -1604,8 +1583,7 @@ void RegisterDNP3Parsers(void)
             }
         }
 
-    }
-    else {
+    } else {
         SCLogConfig("Protocol detection and parser disabled for DNP3.");
         SCReturn;
     }
@@ -1621,11 +1599,6 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateAlloc, DNP3StateFree);
-
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxDetectState, DNP3SetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,11 +36,6 @@
 typedef int (*FiledataLogger)(ThreadVars *, void *thread_data, const Packet *,
         File *, const uint8_t *, uint32_t, uint8_t, uint8_t dir);
 
-/** packet logger condition function pointer type,
- *  must return true for packets that should be logged
- */
-//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
-
 int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     FiledataLogger LogFunc, OutputCtx *, ThreadInitFunc ThreadInit,
     ThreadDeinitFunc ThreadDeinit,
@@ -50,4 +45,4 @@ void OutputFiledataLoggerRegister(void);
 
 void OutputFiledataShutdown(void);
 
-#endif /* __OUTPUT_FILE_H__ */
+#endif /* __OUTPUT_FILEDATA_H__ */

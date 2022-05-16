@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -116,7 +116,6 @@ typedef struct FlowTimeoutCounters_ {
     uint32_t rows_checked;
     uint32_t rows_skipped;
     uint32_t rows_empty;
-    uint32_t rows_busy;
     uint32_t rows_maxlen;
 
     uint32_t flows_checked;
@@ -265,60 +264,6 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
     return 1;
 }
 
-/** \internal
- *  \brief See if we can really discard this flow. Check use_cnt reference
- *         counter and force reassembly if necessary.
- *
- *  \param f flow
- *  \param ts timestamp
- *
- *  \retval 0 not timed out just yet
- *  \retval 1 fully timed out, lets kill it
- */
-#if 0
-static inline int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts,
-                                   FlowTimeoutCounters *counters)
-{
-    /* never prune a flow that is used by a packet we
-     * are currently processing in one of the threads */
-    if (f->use_cnt > 0) {
-        return 0;
-    }
-
-    if (!FlowBypassedTimeout(f, ts, counters)) {
-        return 0;
-    }
-
-    int server = 0, client = 0;
-
-    if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
-#ifdef CAPTURE_OFFLOAD
-            f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
-#endif
-            f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-            FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
-        FlowForceReassemblyForFlow(f, server, client);
-        return 0;
-    }
-#ifdef DEBUG
-    /* this should not be possible */
-    BUG_ON(f->use_cnt > 0);
-#endif
-
-    return 1;
-}
-#endif
-
-static inline int FMTryLockBucket(FlowBucket *fb)
-{
-    int r = FBLOCK_TRYLOCK(fb);
-    return r;
-}
-static inline void FMFlowLock(Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-}
-
 typedef struct FlowManagerTimeoutThread {
     /* used to temporarily store flows that have timed out and are
      * removed from the hash */
@@ -336,11 +281,7 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
         /* flow is still locked */
 
         if (f->proto == IPPROTO_TCP && !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
-#ifdef CAPTURE_OFFLOAD
-                f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
-#endif
-                f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-                FlowForceReassemblyNeedReassembly(f) == 1) {
+                !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) == 1) {
             /* Send the flow to its thread */
             FlowForceReassemblyForFlow(f);
             FLOWLOCK_UNLOCK(f);
@@ -398,7 +339,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
             continue;
         }
 
-        FMFlowLock(f); //FLOWLOCK_WRLOCK(f);
+        FLOWLOCK_WRLOCK(f);
 
         Flow *next_flow = f->next;
 
@@ -468,7 +409,6 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td,
     const int emergency = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY));
     const uint32_t rows_checked = hash_max - hash_min;
     uint32_t rows_skipped = 0;
-    uint32_t rows_busy = 0;
     uint32_t rows_empty = 0;
 
 #if __WORDSIZE==64
@@ -492,43 +432,33 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td,
         for (uint32_t i = 0; i < check; i++) {
             FlowBucket *fb = &flow_hash[idx+i];
             if ((check_bits & ((TYPE)1 << (TYPE)i)) != 0 && SC_ATOMIC_GET(fb->next_ts) <= (int32_t)ts->tv_sec) {
-                if (FMTryLockBucket(fb) == 0) {
-                    Flow *evicted = NULL;
-                    if (fb->evicted != NULL || fb->head != NULL) {
-                        /* if evicted is set, we only process that list right now.
-                         * Since its set we've had traffic that touched this row
-                         * very recently, and there is a good chance more of it will
-                         * come in in the near future. So unlock the row asap and leave
-                         * the possible eviction of flows to the packet lookup path. */
-                        if (fb->evicted != NULL) {
-                            /* transfer out of bucket so we can do additional work outside
-                             * of the bucket lock */
-                            evicted = fb->evicted;
-                            fb->evicted = NULL;
-                        } else if (fb->head != NULL) {
-                            int32_t next_ts = 0;
-                            FlowManagerHashRowTimeout(td,
-                                    fb->head, ts, emergency, counters, &next_ts);
-
-                            if (SC_ATOMIC_GET(fb->next_ts) != next_ts)
-                                SC_ATOMIC_SET(fb->next_ts, next_ts);
-                        }
-                        if (fb->evicted == NULL && fb->head == NULL) {
-                            SC_ATOMIC_SET(fb->next_ts, INT_MAX);
-                        } else if (fb->evicted != NULL && fb->head == NULL) {
-                            SC_ATOMIC_SET(fb->next_ts, 0);
-                        }
-                    } else {
-                        SC_ATOMIC_SET(fb->next_ts, INT_MAX);
-                        rows_empty++;
+                FBLOCK_LOCK(fb);
+                Flow *evicted = NULL;
+                if (fb->evicted != NULL || fb->head != NULL) {
+                    if (fb->evicted != NULL) {
+                        /* transfer out of bucket so we can do additional work outside
+                         * of the bucket lock */
+                        evicted = fb->evicted;
+                        fb->evicted = NULL;
                     }
-                    FBLOCK_UNLOCK(fb);
-                    /* processed evicted list */
-                    if (evicted) {
-                        FlowManagerHashRowClearEvictedList(td, evicted, ts, counters);
+                    if (fb->head != NULL) {
+                        int32_t next_ts = 0;
+                        FlowManagerHashRowTimeout(td, fb->head, ts, emergency, counters, &next_ts);
+
+                        if (SC_ATOMIC_GET(fb->next_ts) != next_ts)
+                            SC_ATOMIC_SET(fb->next_ts, next_ts);
+                    }
+                    if (fb->evicted == NULL && fb->head == NULL) {
+                        SC_ATOMIC_SET(fb->next_ts, INT_MAX);
                     }
                 } else {
-                    rows_busy++;
+                    SC_ATOMIC_SET(fb->next_ts, INT_MAX);
+                    rows_empty++;
+                }
+                FBLOCK_UNLOCK(fb);
+                /* processed evicted list */
+                if (evicted) {
+                    FlowManagerHashRowClearEvictedList(td, evicted, ts, counters);
                 }
             } else {
                 rows_skipped++;
@@ -541,7 +471,6 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td,
 
     counters->rows_checked += rows_checked;
     counters->rows_skipped += rows_skipped;
-    counters->rows_busy += rows_busy;
     counters->rows_empty += rows_empty;
 
     if (td->aside_queue.len) {
@@ -663,8 +592,6 @@ typedef struct FlowQueueTimeoutCounters {
     uint32_t flows_timeout;
 } FlowQueueTimeoutCounters;
 
-extern int g_detect_disabled;
-
 typedef struct FlowCounters_ {
     uint16_t flow_mgr_full_pass;
     uint16_t flow_mgr_cnt_clo;
@@ -735,14 +662,13 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     /* set the min and max value used for hash row walking
      * each thread has it's own section of the flow hash */
     uint32_t range = flow_config.hash_size / flowmgr_number;
-    if (ftd->instance == 0)
-        ftd->max = range;
-    else if ((ftd->instance + 1) == flowmgr_number) {
-        ftd->min = (range * ftd->instance) + 1;
+
+    ftd->min = ftd->instance * range;
+    ftd->max = (ftd->instance + 1) * range;
+
+    /* last flow-manager takes on hash_size % flowmgr_number extra rows */
+    if ((ftd->instance + 1) == flowmgr_number) {
         ftd->max = flow_config.hash_size;
-    } else {
-        ftd->min = (range * ftd->instance) + 1;
-        ftd->max = (range * (ftd->instance + 1));
     }
     BUG_ON(ftd->min > flow_config.hash_size || ftd->max > flow_config.hash_size);
 
@@ -807,8 +733,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 */
     memset(&ts, 0, sizeof(ts));
     uint32_t hash_passes = 0;
+#ifdef FM_PROFILE
     uint32_t hash_row_checks = 0;
     uint32_t hash_passes_chunks = 0;
+#endif
     uint32_t hash_full_passes = 0;
 
     const uint32_t min_timeout = FlowTimeoutsMin();
@@ -897,16 +825,18 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             const uint32_t secs_passed = rt - flow_last_sec;
 
             /* try to time out flows */
-            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
                 FlowTimeoutHash(&ftd->timeout, &ts, ftd->min, ftd->max, &counters);
                 hash_passes++;
                 hash_full_passes++;
-                hash_passes_chunks += 1;
                 hash_passes++;
+#ifdef FM_PROFILE
+                hash_passes_chunks += 1;
                 hash_row_checks += counters.rows_checked;
+#endif
                 StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
             } else {
                 /* non-emergency mode: scan part of the hash */
@@ -922,8 +852,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                     }
                 }
                 hash_passes++;
+#ifdef FM_PROFILE
                 hash_row_checks += counters.rows_checked;
                 hash_passes_chunks += chunks;
+#endif
             }
             flow_last_sec = rt;
 

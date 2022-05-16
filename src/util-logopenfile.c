@@ -41,6 +41,8 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
+#define LOGFILE_NAME_MAX 255
+
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 
 // Threaded eve.json identifier
@@ -399,7 +401,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
                    filename, strerror(errno));
     } else {
         if (mode != 0) {
-            int r = chmod(filename, mode);
+            int r = chmod(filename, (mode_t)mode);
             if (r < 0) {
                 SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
                              filename, mode, strerror(errno));
@@ -492,9 +494,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
-    if (filemode != NULL &&
-            StringParseUint32(&mode, 8, strlen(filemode),
-                                    filemode) > 0) {
+    if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
         log_ctx->filemode = mode;
     }
 
@@ -711,6 +711,11 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
 static bool LogFileThreadedName(
         const char *original_name, char *threaded_name, size_t len, uint32_t unique_id)
 {
+    if (strcmp("/dev/null", original_name) == 0) {
+        strlcpy(threaded_name, original_name, len);
+        return true;
+    }
+
     const char *base = SCBasename(original_name);
     if (!base) {
         FatalError(SC_ERR_FATAL,
@@ -735,7 +740,7 @@ static bool LogFileThreadedName(
         tname[dotpos] = '\0';
         char *ext = tname + dotpos + 1;
         if (strlen(tname) && strlen(ext)) {
-            snprintf(threaded_name, len, "%s.%d.%s", tname, unique_id, ext);
+            snprintf(threaded_name, len, "%s.%u.%s", tname, unique_id, ext);
         } else {
             FatalError(SC_ERR_FATAL,
                     "Invalid filename for threaded mode \"%s\"; "
@@ -744,7 +749,7 @@ static bool LogFileThreadedName(
         }
         SCFree(tname);
     } else {
-        snprintf(threaded_name, len, "%s.%d", original_name, unique_id);
+        snprintf(threaded_name, len, "%s.%u", original_name, unique_id);
     }
     return true;
 }
@@ -765,7 +770,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 
     *thread = *parent_ctx;
     if (parent_ctx->type == LOGFILE_TYPE_FILE) {
-        char fname[NAME_MAX];
+        char fname[LOGFILE_NAME_MAX];
         if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
             goto error;

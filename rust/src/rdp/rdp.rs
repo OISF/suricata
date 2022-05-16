@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,11 +19,12 @@
 
 //! RDP application layer
 
-use crate::applayer::*;
-use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::applayer::{self, *};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
 use nom;
 use std;
+use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
@@ -51,8 +52,13 @@ pub struct RdpTransaction {
     pub id: u64,
     pub item: RdpTransactionItem,
     // managed by macros `export_tx_get_detect_state!` and `export_tx_set_detect_state!`
-    de_state: Option<*mut DetectEngineState>,
     tx_data: AppLayerTxData,
+}
+
+impl Transaction for RdpTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 impl RdpTransaction {
@@ -60,21 +66,8 @@ impl RdpTransaction {
         Self {
             id,
             item,
-            de_state: None,
             tx_data: AppLayerTxData::new(),
         }
-    }
-
-    fn free(&mut self) {
-        if let Some(de_state) = self.de_state {
-            core::sc_detect_engine_state_free(de_state);
-        }
-    }
-}
-
-impl Drop for RdpTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -115,16 +108,26 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 #[derive(Debug, PartialEq)]
 pub struct RdpState {
     next_id: u64,
-    transactions: Vec<RdpTransaction>,
+    transactions: VecDeque<RdpTransaction>,
     tls_parsing: bool,
     bypass_parsing: bool,
+}
+
+impl State<RdpTransaction> for RdpState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&RdpTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl RdpState {
     fn new() -> Self {
         Self {
             next_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             tls_parsing: false,
             bypass_parsing: false,
         }
@@ -157,8 +160,8 @@ impl RdpState {
     }
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
-        let tx = RdpTransaction::new(self.next_id, item);
         self.next_id += 1;
+        let tx = RdpTransaction::new(self.next_id, item);
         return tx;
     }
 
@@ -206,7 +209,7 @@ impl RdpState {
                             T123TpktChild::X224ConnectionRequest(x224) => {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionRequest(x224));
-                                self.transactions.push(tx);
+                                self.transactions.push_back(tx);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -215,7 +218,7 @@ impl RdpState {
                                     X223DataChild::McsConnectRequest(mcs) => {
                                         let tx =
                                             self.new_tx(RdpTransactionItem::McsConnectRequest(mcs));
-                                        self.transactions.push(tx);
+                                        self.transactions.push_back(tx);
                                     }
                                     // unknown message in X.223, skip
                                     _ => (),
@@ -285,7 +288,7 @@ impl RdpState {
                                     }
                                     let tx =
                                         self.new_tx(RdpTransactionItem::TlsCertificateChain(chain));
-                                    self.transactions.push(tx);
+                                    self.transactions.push_back(tx);
                                     self.bypass_parsing = true;
                                 }
                                 _ => {}
@@ -318,7 +321,7 @@ impl RdpState {
                             T123TpktChild::X224ConnectionConfirm(x224) => {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionConfirm(x224));
-                                self.transactions.push(tx);
+                                self.transactions.push_back(tx);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -327,7 +330,7 @@ impl RdpState {
                                     X223DataChild::McsConnectResponse(mcs) => {
                                         let tx = self
                                             .new_tx(RdpTransactionItem::McsConnectResponse(mcs));
-                                        self.transactions.push(tx);
+                                        self.transactions.push_back(tx);
                                         self.bypass_parsing = true;
                                         return AppLayerResult::ok();
                                     }
@@ -390,13 +393,6 @@ pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, 
 }
 
 //
-// detection state
-//
-
-export_tx_get_detect_state!(rs_rdp_tx_get_detect_state, RdpTransaction);
-export_tx_set_detect_state!(rs_rdp_tx_set_detect_state, RdpTransaction);
-
-//
 // probe
 //
 
@@ -410,7 +406,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
-    if input != std::ptr::null_mut() {
+    if !input.is_null() {
         // probe bytes for `rdp` protocol pattern
         let slice = build_slice!(input, input_len as usize);
 
@@ -436,10 +432,11 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
     return state.parse_ts(buf);
 }
@@ -447,10 +444,11 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
     return state.parse_tc(buf);
 }
@@ -484,19 +482,18 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rdp_tx_get_progress,
-        get_de_state: rs_rdp_tx_get_detect_state,
-        set_de_state: rs_rdp_tx_set_detect_state,
-        get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<RdpState, RdpTransaction>),
         get_tx_data: rs_rdp_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
@@ -610,11 +607,11 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         assert_eq!(2, state.next_id);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
         assert_eq!(2, state.transactions.len());
-        assert_eq!(0, state.transactions[0].id);
-        assert_eq!(1, state.transactions[1].id);
+        assert_eq!(1, state.transactions[0].id);
+        assert_eq!(2, state.transactions[1].id);
         assert_eq!(false, state.tls_parsing);
         assert_eq!(false, state.bypass_parsing);
     }
@@ -634,10 +631,10 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         let tx2 = state.new_tx(item2);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
-        state.transactions.push(tx2);
-        assert_eq!(Some(&state.transactions[1]), state.get_tx(1));
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
+        state.transactions.push_back(tx2);
+        assert_eq!(Some(&state.transactions[1]), state.get_tx(2));
     }
 
     #[test]
@@ -655,14 +652,14 @@ mod tests {
         let tx0 = state.new_tx(item0);
         let tx1 = state.new_tx(item1);
         let tx2 = state.new_tx(item2);
-        state.transactions.push(tx0);
-        state.transactions.push(tx1);
-        state.transactions.push(tx2);
+        state.transactions.push_back(tx0);
+        state.transactions.push_back(tx1);
+        state.transactions.push_back(tx2);
         state.free_tx(1);
         assert_eq!(3, state.next_id);
         assert_eq!(2, state.transactions.len());
-        assert_eq!(0, state.transactions[0].id);
-        assert_eq!(2, state.transactions[1].id);
+        assert_eq!(2, state.transactions[0].id);
+        assert_eq!(3, state.transactions[1].id);
         assert_eq!(None, state.get_tx(1));
     }
 }

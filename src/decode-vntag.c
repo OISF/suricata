@@ -93,8 +93,6 @@ int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t 
 /**
  * \test DecodeVNTagTest01 test if vntag header is too small.
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DecodeVNTagtest01(void)
 {
@@ -110,14 +108,14 @@ static int DecodeVNTagtest01(void)
 
     FAIL_IF(TM_ECODE_OK == DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
 
-    PASS_IF(ENGINE_ISSET_EVENT(p, VNTAG_HEADER_TOO_SMALL));
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, VNTAG_HEADER_TOO_SMALL));
+    PacketFree(p);
+    PASS;
 }
 
 /**
  * \test DecodeVNTagt02 test if vntag header has unknown type.
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DecodeVNTagtest02(void)
 {
@@ -138,14 +136,14 @@ static int DecodeVNTagtest02(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    PASS_IF(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    FAIL_IF_NOT(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    PacketFree(p);
+    PASS;
 }
 
 /**
  * \test DecodeVNTagTest03 test a good vntag header.
  *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DecodeVNTagtest03(void)
 {
@@ -170,8 +168,7 @@ static int DecodeVNTagtest03(void)
 
     PACKET_RECYCLE(p);
     FlowShutdown();
-    SCFree(p);
-
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */

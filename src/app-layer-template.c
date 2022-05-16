@@ -36,6 +36,7 @@
 #include "suricata-common.h"
 #include "stream.h"
 #include "conf.h"
+#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-template.h"
@@ -100,7 +101,7 @@ static void TemplateTxFree(void *txv)
         SCFree(tx->response_buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
     SCFree(tx);
 }
@@ -190,11 +191,6 @@ static int TemplateStateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
-static AppLayerDecoderEvents *TemplateGetEvents(void *tx)
-{
-    return ((TemplateTransaction *)tx)->decoder_events;
-}
-
 /**
  * \brief Probe the input to server to see if it looks like template.
  *
@@ -237,11 +233,13 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
-    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-    void *local_data, const uint8_t flags)
+static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParserState *pstate,
+        StreamSlice stream_slice, void *local_data)
 {
     TemplateState *state = statev;
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+    const uint8_t flags = StreamSliceGetFlags(&stream_slice);
 
     SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
 
@@ -303,8 +301,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
     if ((input_len == 1 && tx->request_buffer[0] == '\n') ||
         (input_len == 2 && tx->request_buffer[0] == '\r')) {
         SCLogNotice("Creating event for empty message.");
-        AppLayerDecoderEventsSetEventRaw(&tx->decoder_events,
-            TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
+        AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
     }
 
 end:
@@ -312,11 +309,12 @@ end:
 }
 
 static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     TemplateState *state = statev;
     TemplateTransaction *tx = NULL, *ttx;
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     SCLogNotice("Parsing Template response.");
 
@@ -392,17 +390,16 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
     TemplateState *state = statev;
     TemplateTransaction *tx;
 
-    SCLogNotice("Requested tx ID %"PRIu64".", tx_id);
+    SCLogDebug("Requested tx ID %" PRIu64 ".", tx_id);
 
     TAILQ_FOREACH(tx, &state->tx_list, next) {
         if (tx->tx_id == tx_id) {
-            SCLogNotice("Transaction %"PRIu64" found, returning tx object %p.",
-                tx_id, tx);
+            SCLogDebug("Transaction %" PRIu64 " found, returning tx object %p.", tx_id, tx);
             return tx;
         }
     }
 
-    SCLogNotice("Transaction ID %"PRIu64" not found.", tx_id);
+    SCLogDebug("Transaction ID %" PRIu64 " not found.", tx_id);
     return NULL;
 }
 
@@ -447,40 +444,15 @@ static AppLayerTxData *TemplateGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
-/**
- * \brief retrieve the detection engine per tx state
- */
-static DetectEngineState *TemplateGetTxDetectState(void *vtx)
-{
-    TemplateTransaction *tx = vtx;
-    return tx->de_state;
-}
-
-/**
- * \brief get the detection engine per tx state
- */
-static int TemplateSetTxDetectState(void *vtx,
-    DetectEngineState *s)
-{
-    TemplateTransaction *tx = vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 void RegisterTemplateParsers(void)
 {
     const char *proto_name = "template";
 
-    /* TEMPLATE_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.template") == NULL) {
-        return;
-    }
-    /* TEMPLATE_END_REMOVE */
     /* Check if Template TCP detection is enabled. If it does not exist in
-     * the configuration file then it will be enabled by default. */
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+     * the configuration file then it will be disabled by default. */
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
 
-        SCLogNotice("Template TCP protocol detection enabled.");
+        SCLogDebug("Template TCP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TEMPLATE, proto_name);
 
@@ -497,9 +469,9 @@ void RegisterTemplateParsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
                     TemplateProbingParserTs, TemplateProbingParserTc)) {
-                SCLogNotice("No template app-layer configuration, enabling echo"
-                    " detection TCP detection on port %s.",
-                    TEMPLATE_DEFAULT_PORT);
+                SCLogDebug("No template app-layer configuration, enabling echo"
+                           " detection TCP detection on port %s.",
+                        TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     TEMPLATE_DEFAULT_PORT, ALPROTO_TEMPLATE, 0,
                     TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
@@ -511,7 +483,7 @@ void RegisterTemplateParsers(void)
     }
 
     else {
-        SCLogNotice("Protocol detector and parser disabled for Template.");
+        SCLogDebug("Protocol detector and parser disabled for Template.");
         return;
     }
 
@@ -550,16 +522,10 @@ void RegisterTemplateParsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTxData);
 
-        /* What is this being registered for? */
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateGetTxDetectState, TemplateSetTxDetectState);
-
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfoById);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateGetEvents);
 
         /* Leave this is if your parser can handle gaps, otherwise
          * remove. */
@@ -567,7 +533,7 @@ void RegisterTemplateParsers(void)
             APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
-        SCLogNotice("Template protocol parsing disabled.");
+        SCLogDebug("Template protocol parsing disabled.");
     }
 
 #ifdef UNITTESTS

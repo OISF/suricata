@@ -72,11 +72,14 @@ documentation_style = "doxy"
 #
 # default: []
 include = [
+    "StreamSlice",
     "AppLayerGetTxIterTuple",
     "RdpState",
     "SIPState",
     "ModbusState",
     "CMark",
+    "QuicState",
+    "QuicTransaction"
 ]
 
 # A list of items to not include in the generated bindings
@@ -104,6 +107,8 @@ exclude = [
     "TFTPState",
     "TFTPTransaction",
     "free",
+    "IPPROTO_TCP",
+    "IPPROTO_UDP",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
@@ -119,7 +124,7 @@ exclude = [
 # * "functions":
 #
 # default: []
-item_types = ["enums","structs","opaque","functions"]
+item_types = ["enums","structs","opaque","functions","constants"]
 
 # Whether applying rules in export.rename prevents export.prefix from applying.
 #

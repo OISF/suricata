@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,11 +23,12 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 
 use crate::applayer::*;
-use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
+use crate::core::{self, *};
 use crate::dns::parser;
+use crate::frames::Frame;
 
-use nom::IResult;
-use nom::number::streaming::be_u16;
+use nom7::{Err, IResult};
+use nom7::number::streaming::be_u16;
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
@@ -114,6 +115,15 @@ pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
 
 static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
+
+#[derive(AppLayerFrameType)]
+pub enum DnsFrameType {
+    /// DNS PDU frame. For UDP DNS this is the complete UDP payload, for TCP
+    /// this is the DNS payload not including the leading length field allowing
+    /// this frame to be used for UDP and TCP DNS.
+    Pdu,
+}
+
 
 #[derive(Debug, PartialEq, AppLayerEvent)]
 pub enum DNSEvent {
@@ -231,9 +241,13 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
-    pub de_state: Option<*mut core::DetectEngineState>,
-    pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
+}
+
+impl Transaction for DNSTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 impl DNSTransaction {
@@ -243,21 +257,7 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
-    }
-
-    pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        match self.de_state {
-            Some(state) => {
-                core::sc_detect_engine_state_free(state);
-            }
-            None => { },
         }
     }
 
@@ -283,12 +283,6 @@ impl DNSTransaction {
         return 0;
     }
 
-}
-
-impl Drop for DNSTransaction {
-    fn drop(&mut self) {
-        self.free();
-    }
 }
 
 struct ConfigTracker {
@@ -327,13 +321,23 @@ pub struct DNSState {
     pub tx_id: u64,
 
     // Transactions.
-    pub transactions: Vec<DNSTransaction>,
+    pub transactions: VecDeque<DNSTransaction>,
 
     pub events: u16,
 
     config: Option<ConfigTracker>,
 
     gap: bool,
+}
+
+impl State<DNSTransaction> for DNSState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&DNSTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl DNSState {
@@ -390,12 +394,11 @@ impl DNSState {
         }
 
         let tx = &mut self.transactions[len - 1];
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
-                                                        event as u8);
+        tx.tx_data.set_event(event as u8);
         self.events += 1;
     }
 
-    pub fn parse_request(&mut self, input: &[u8]) -> bool {
+    fn parse_request(&mut self, input: &[u8]) -> bool {
         match parser::dns_parse_request(input) {
             Ok((_, request)) => {
                 if request.header.flags & 0x8000 != 0 {
@@ -404,18 +407,20 @@ impl DNSState {
                     return false;
                 }
 
-                if request.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = request.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS request");
                 self.set_event(DNSEvent::MalformedData);
@@ -430,6 +435,18 @@ impl DNSState {
         }
     }
 
+    fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new_ts(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        self.parse_request(input)
+    }
+
+    fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new_tc(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        self.parse_response(input)
+    }
+
     pub fn parse_response(&mut self, input: &[u8]) -> bool {
         match parser::dns_parse_response(input) {
             Ok((_, response)) => {
@@ -441,11 +458,7 @@ impl DNSState {
                     self.set_event(DNSEvent::NotResponse);
                 }
 
-                if response.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = response.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 if let Some(ref mut config) = &mut self.config {
@@ -454,10 +467,16 @@ impl DNSState {
                     }
                 }
                 tx.response = Some(response);
-                self.transactions.push(tx);
+                self.transactions.push_back(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS response");
                 self.set_event(DNSEvent::MalformedData);
@@ -476,7 +495,8 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_request_tcp(&mut self, input: &[u8]) -> AppLayerResult {
+    pub fn parse_request_tcp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
             if is_dns || is_incomplete {
@@ -499,8 +519,9 @@ impl DNSState {
             SCLogDebug!("[request] Have {} bytes, need {} to parse",
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
-                let msg = &cur_i[0..(size + 2)];
-                if self.parse_request(&msg[2..]) {
+                let msg = &cur_i[2..(size + 2)];
+                let _pdu = Frame::new_ts(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                if self.parse_request(msg) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size  + 2;
                 } else {
@@ -523,7 +544,8 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_response_tcp(&mut self, input: &[u8]) -> AppLayerResult {
+    pub fn parse_response_tcp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
             if is_dns || is_incomplete {
@@ -546,8 +568,9 @@ impl DNSState {
             SCLogDebug!("[response] Have {} bytes, need {} to parse",
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
-                let msg = &cur_i[0..(size + 2)];
-                if self.parse_response(&msg[2..]) {
+                let msg = &cur_i[2..(size + 2)];
+                let _pdu = Frame::new_tc(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                if self.parse_response(msg) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
                 } else {
@@ -605,18 +628,32 @@ fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
 }
 
 /// Probe input to see if it looks like DNS.
+///
+/// Returns a tuple of booleans: (is_dns, is_request, incomplete)
 fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
-    let i2 = if input.len() <= dlen { input } else { &input[..dlen] };
-    match parser::dns_parse_request(i2) {
+    // Trim input to dlen if larger.
+    let input = if input.len() <= dlen { input } else { &input[..dlen] };
+
+    // If input is less than dlen then we know we don't have enough data to
+    // parse a complete message, so perform header validation only.
+    if input.len() < dlen {
+        if let Ok((_, header)) = parser::dns_parse_header(input) {
+            return probe_header_validity(header, dlen);
+        } else {
+            return (false, false, false);
+        }
+    }
+
+    match parser::dns_parse_request(input) {
         Ok((_, request)) => {
             return probe_header_validity(request.header, dlen);
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             match parser::dns_parse_header(input) {
                 Ok((_, header)) => {
                     return probe_header_validity(header, dlen);
                 }
-                Err(nom::Err::Incomplete(_)) => (false, false, true),
+                Err(Err::Incomplete(_)) => (false, false, true),
                 Err(_) => (false, false, false),
             }
         }
@@ -630,7 +667,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
         Ok((rem, dlen)) => {
             return probe(rem, dlen as usize);
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return (false, false, true);
         }
         _ => {}
@@ -672,17 +709,15 @@ pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_request(flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8)
+                                       )
                                        -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_request(buf) {
+    if state.parse_request_udp(flow, stream_slice) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -690,17 +725,15 @@ pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_response(flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
-                                        input: *const u8,
-                                        input_len: u32,
+                                        stream_slice: StreamSlice,
                                         _data: *const std::os::raw::c_void,
-                                        _flags: u8)
+                                        )
                                         -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_response(buf) {
+    if state.parse_response_udp(flow, stream_slice) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -709,41 +742,35 @@ pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_request_tcp(flow: *const core::Flow,
                                            state: *mut std::os::raw::c_void,
                                            _pstate: *mut std::os::raw::c_void,
-                                           input: *const u8,
-                                           input_len: u32,
+                                           stream_slice: StreamSlice,
                                            _data: *const std::os::raw::c_void,
-                                           _flags: u8)
+                                           )
                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if input != std::ptr::null_mut() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_request_tcp(buf);
-        }
-        state.request_gap(input_len);
+    if stream_slice.is_gap() {
+        state.request_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_request_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
                                             state: *mut std::os::raw::c_void,
                                             _pstate: *mut std::os::raw::c_void,
-                                            input: *const u8,
-                                            input_len: u32,
+                                            stream_slice: StreamSlice,
                                             _data: *const std::os::raw::c_void,
-                                            _flags: u8)
+                                            )
                                             -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if input != std::ptr::null_mut() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_response_tcp(buf);
-        }
-        state.response_gap(input_len);
+    if stream_slice.is_gap() {
+        state.response_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_response_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
 }
@@ -794,41 +821,6 @@ pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    tx.de_state = Some(de_state);
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    match tx.de_state {
-        Some(ds) => {
-            return ds;
-        },
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
@@ -909,11 +901,11 @@ pub unsafe extern "C" fn rs_dns_probe(
     let (is_dns, is_request, _) = probe(slice, slice.len());
     if is_dns {
         let dir = if is_request {
-            core::STREAM_TOSERVER
+            Direction::ToServer
         } else {
-            core::STREAM_TOCLIENT
+            Direction::ToClient
         };
-        *rdir = dir;
+        *rdir = dir as u8;
         return ALPROTO_DNS;
     }
     return 0;
@@ -935,12 +927,12 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
     let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
         let dir = if is_request {
-            core::STREAM_TOSERVER
+            Direction::ToServer
         } else {
-            core::STREAM_TOCLIENT
+            Direction::ToClient
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            *rdir = dir;
+        if (direction & DIR_BOTH) != dir.into() {
+            *rdir = dir as u8;
         }
         return ALPROTO_DNS;
     }
@@ -985,19 +977,18 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
-        get_de_state: rs_dns_state_get_tx_detect_state,
-        set_de_state: rs_dns_state_set_tx_detect_state,
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(DnsFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -1031,19 +1022,18 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
-        get_de_state: rs_dns_state_get_tx_detect_state,
-        set_de_state: rs_dns_state_set_tx_detect_state,
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(DnsFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -1092,7 +1082,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(&request)
+            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
         );
     }
 
@@ -1128,7 +1118,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 52),
-            state.parse_request_tcp(&request)
+            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
         );
     }
 
@@ -1169,7 +1159,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_response_tcp(&request)
+            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
         );
     }
 
@@ -1213,7 +1203,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 103),
-            state.parse_response_tcp(&request)
+            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
         );
     }
 
@@ -1412,15 +1402,22 @@ mod tests {
             0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
             0x00, 0x01
         ];
+
+        // A NULL flow.
+        let flow = std::ptr::null();
+
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(buf)
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf, 0, 0))
         );
     }
 
     #[test]
     fn test_dns_tcp_parser_split_payload() {
+        // A NULL flow.
+        let flow = std::ptr::null();
+
         /* incomplete payload */
         let buf1: &[u8] = &[
             0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
@@ -1449,15 +1446,15 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 30),
-            state.parse_request_tcp(buf1)
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf1, 0, 0))
         );
         assert_eq!(
             AppLayerResult::incomplete(30, 30),
-            state.parse_request_tcp(buf2)
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf2, 0, 0))
         );
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(buf3)
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf3, 0, 0))
         );
     }
 

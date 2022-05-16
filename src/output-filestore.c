@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2021 Open Information Security Foundation
+/* Copyright (C) 2018-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -409,7 +409,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     intmax_t version = 0;
     if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
         SCLogWarning(SC_WARN_DEPRECATED,
-            "File-store v1 been removed. Please update to file-store v2.");
+                "File-store v1 has been removed. Please update to file-store v2.");
         return result;
     }
 

@@ -22,6 +22,7 @@
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"
+#include "flow-util.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -122,6 +123,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (DetectEngineReload(&surifuzz) < 0) {
         return 0;
     }
+    DetectEngineThreadCtx *old_det_ctx = FlowWorkerGetDetectCtxPtr(fwd);
+
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    de_ctx->ref_cnt--;
+    DetectEngineThreadCtx *new_det_ctx = DetectEngineThreadCtxInitForReload(&tv, de_ctx, 1);
+    FlowWorkerReplaceDetectCtx(fwd, new_det_ctx);
+
+    DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
+
     if (pos < size) {
         //skip zero
         pos++;
@@ -144,7 +154,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
     p->ts.tv_sec = header->ts.tv_sec;
-    p->ts.tv_usec = header->ts.tv_usec;
+    p->ts.tv_usec = header->ts.tv_usec % 1000000;
     p->datalink = pcap_datalink(pkts);
     while (r > 0) {
         if (PacketCopyData(p, pkt, header->caplen) == 0) {
@@ -168,7 +178,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         r = pcap_next_ex(pkts, &header, &pkt);
         PACKET_RECYCLE(p);
         p->ts.tv_sec = header->ts.tv_sec;
-        p->ts.tv_usec = header->ts.tv_usec;
+        p->ts.tv_usec = header->ts.tv_usec % 1000000;
         p->datalink = pcap_datalink(pkts);
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
@@ -176,6 +186,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //close structure
     pcap_close(pkts);
     PacketFree(p);
+    FlowReset();
 
     return 0;
 }

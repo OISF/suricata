@@ -294,9 +294,9 @@ void AffinitySetupLoadFromConfig()
  * \brief Return next cpu to use for a given thread family
  * \retval the cpu to used given by its id
  */
-int AffinityGetNextCPU(ThreadsAffinityType *taf)
+uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
-    int ncpu = 0;
+    uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     int iter = 0;
     SCMutexLock(&taf->taf_mutex);

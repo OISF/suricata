@@ -1,5 +1,6 @@
 name: CIFuzz
 on: [pull_request]
+permissions: read-all
 jobs:
  Fuzzing:
    runs-on: ubuntu-latest
@@ -22,7 +23,7 @@ jobs:
        dry-run: false
        sanitizer: ${{ matrix.sanitizer }}
    - name: Upload Crash
-     uses: actions/upload-artifact@v1
+     uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
      if: failure()
      with:
        name: ${{ matrix.sanitizer }}-artifacts

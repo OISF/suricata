@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -217,139 +217,98 @@ void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 #ifdef UNITTESTS
 /**
  * \test IpOptsTestParse01 is a test for a  valid ipopts value
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int IpOptsTestParse01 (void)
 {
-    DetectIpOptsData *de = NULL;
-    de = DetectIpOptsParse("lsrr");
-    if (de) {
-        DetectIpOptsFree(NULL, de);
-        return 1;
-    }
+    DetectIpOptsData *de = DetectIpOptsParse("lsrr");
 
-    return 0;
+    FAIL_IF_NULL(de);
+
+    DetectIpOptsFree(NULL, de);
+
+    PASS;
 }
 
 /**
  * \test IpOptsTestParse02 is a test for an invalid ipopts value
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int IpOptsTestParse02 (void)
 {
-    DetectIpOptsData *de = NULL;
-    de = DetectIpOptsParse("invalidopt");
-    if (de) {
-        DetectIpOptsFree(NULL, de);
-        return 0;
-    }
+    DetectIpOptsData *de = DetectIpOptsParse("invalidopt");
 
-    return 1;
+    FAIL_IF_NOT_NULL(de);
+
+    DetectIpOptsFree(NULL, de);
+
+    PASS;
 }
 
 /**
  * \test IpOptsTestParse03 test the match function on a packet that needs to match
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int IpOptsTestParse03 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
     ThreadVars tv;
-    int ret = 0;
-    DetectIpOptsData *de = NULL;
-    SigMatch *sm = NULL;
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
     p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
-    de = DetectIpOptsParse("rr");
+    DetectIpOptsData *de = DetectIpOptsParse("rr");
+    FAIL_IF_NULL(de);
 
-    if (de == NULL)
-        goto error;
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    FAIL_IF_NULL(sm);
 
     sm->type = DETECT_IPOPTS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(NULL, p, NULL, sm->ctx);
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, sm->ctx));
 
-    if(ret) {
-        SCFree(p);
-        return 1;
-    }
-
-error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    SCFree(de);
+    SCFree(sm);
     SCFree(p);
-    return 0;
+
+    PASS;
 }
 
 /**
  * \test IpOptsTestParse04 test the match function on a packet that needs to not match
- *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int IpOptsTestParse04 (void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
     ThreadVars tv;
-    int ret = 0;
-    DetectIpOptsData *de = NULL;
-    SigMatch *sm = NULL;
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
     p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
-    de = DetectIpOptsParse("lsrr");
+    DetectIpOptsData *de = DetectIpOptsParse("lsrr");
+    FAIL_IF_NULL(de);
 
-    if (de == NULL)
-        goto error;
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    FAIL_IF_NULL(sm);
 
     sm->type = DETECT_IPOPTS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(NULL, p, NULL, sm->ctx);
+    FAIL_IF(DetectIpOptsMatch(NULL, p, NULL, sm->ctx));
 
-    if(ret) {
-        SCFree(p);
-        return 0;
-    }
-
-    /* Error expected. */
-error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    SCFree(de);
+    SCFree(sm);
     SCFree(p);
-    return 1;
+
+    PASS;
 }
 
 /**

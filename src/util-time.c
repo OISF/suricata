@@ -222,8 +222,9 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
         WinStrftime(ts, t, str, size);
 #else
         char time_fmt[64] = { 0 };
-        strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06u%z", t);
-        snprintf(str, size, time_fmt, ts->tv_usec);
+        int64_t usec = ts->tv_usec;
+        strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06" PRIi64 "%z", t);
+        snprintf(str, size, time_fmt, usec);
 #endif
     } else {
         snprintf(str, size, "ts-error");
@@ -236,9 +237,9 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
-    char time_fmt[64] = { 0 };
 
     if (likely(t != NULL)) {
+        char time_fmt[64] = { 0 };
         strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
         snprintf(str, size, time_fmt, ts->tv_usec);
     } else {
@@ -248,7 +249,7 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
 
 void CreateFormattedTimeString (const struct tm *t, const char *fmt, char *str, size_t size)
 {
-    if (likely(t != NULL && fmt != NULL && str != NULL)) {
+    if (likely(t != NULL)) {
         strftime(str, size, fmt, t);
     } else {
         snprintf(str, size, "ts-error");

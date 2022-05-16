@@ -78,13 +78,6 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Mark {
-    position: usize,
-    state_index: usize,
-    state: State,
-}
-
 /// A "mark" or saved state for a JsonBuilder object.
 ///
 /// The name is full, and the types are u64 as this object is used
@@ -311,6 +304,30 @@ impl JsonBuilder {
         }
     }
 
+    /// Add a string to an array.
+    pub fn append_base64(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ArrayFirst => {
+                self.buf.push('"');
+                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+                self.buf.push('"');
+                self.set_state(State::ArrayNth);
+                Ok(self)
+            }
+            State::ArrayNth => {
+                self.buf.push(',');
+                self.buf.push('"');
+                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+                self.buf.push('"');
+                Ok(self)
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                Err(JsonError::InvalidState)
+            }
+        }
+    }
+
     /// Add an unsigned integer to an array.
     pub fn append_uint(&mut self, val: u64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
@@ -432,6 +449,29 @@ impl JsonBuilder {
             Ok(s) => self.set_string(key, s),
             Err(_) => self.set_string(key, &string_from_bytes(val)),
         }
+    }
+
+    /// Set a key and a string field as the base64 encoded string of the value.
+    pub fn set_base64(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.buf.push(',');
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.buf.push('"');
+        self.buf.push_str(key);
+        self.buf.push_str("\":\"");
+        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        self.buf.push('"');
+
+        Ok(self)
     }
 
     /// Set a key and an unsigned integer type on an object.
@@ -637,7 +677,7 @@ pub unsafe extern "C" fn jb_open_array(js: &mut JsonBuilder, key: *const c_char)
 pub unsafe extern "C" fn jb_set_string(
     js: &mut JsonBuilder, key: *const c_char, val: *const c_char,
 ) -> bool {
-    if val == std::ptr::null() {
+    if val.is_null() {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -652,12 +692,26 @@ pub unsafe extern "C" fn jb_set_string(
 pub unsafe extern "C" fn jb_set_string_from_bytes(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_string_from_bytes(key, val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_set_base64(
+    js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
+) -> bool {
+    if bytes == std::ptr::null() || len == 0 {
+        return false;
+    }
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        let val = std::slice::from_raw_parts(bytes, len as usize);
+        return js.set_base64(key, val).is_ok();
     }
     return false;
 }
@@ -687,7 +741,7 @@ pub unsafe extern "C" fn jb_set_object(
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_char) -> bool {
-    if val == std::ptr::null() {
+    if val.is_null() {
         return false;
     }
     if let Ok(val) = CStr::from_ptr(val).to_str() {
@@ -700,11 +754,22 @@ pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_ch
 pub unsafe extern "C" fn jb_append_string_from_bytes(
     js: &mut JsonBuilder, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     let val = std::slice::from_raw_parts(bytes, len as usize);
     return js.append_string_from_bytes(val).is_ok();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_append_base64(
+    js: &mut JsonBuilder, bytes: *const u8, len: u32,
+) -> bool {
+    if bytes == std::ptr::null() || len == 0 {
+        return false;
+    }
+    let val = std::slice::from_raw_parts(bytes, len as usize);
+    return js.append_base64(val).is_ok();
 }
 
 #[no_mangle]

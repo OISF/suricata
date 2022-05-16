@@ -19,10 +19,10 @@
 
 use crate::applayer::*;
 use crate::common::to_hex;
-use crate::core::STREAM_TOSERVER;
+use crate::core::Direction;
 use crate::ike::ike::{IKEState, IkeEvent};
 use crate::ike::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::HashSet;
 
@@ -72,7 +72,7 @@ pub struct Ikev1Container {
 }
 
 pub fn handle_ikev1(
-    state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: u8,
+    state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
     let mut tx = state.new_tx();
 
@@ -114,7 +114,7 @@ pub fn handle_ikev1(
                 if payload_types.contains(&(IsakmpPayloadType::SecurityAssociation as u8)) {
                     // clear transforms on a new SA in case there is happening a new key exchange
                     // on the same flow, elsewise properties would be added to the old/other SA
-                    if direction == STREAM_TOSERVER {
+                    if direction == Direction::ToServer {
                         state.ikev1_container.client.reset();
                     } else {
                         state.ikev1_container.server.reset();
@@ -122,7 +122,7 @@ pub fn handle_ikev1(
                 }
 
                 // add transaction values to state values
-                if direction == STREAM_TOSERVER {
+                if direction == Direction::ToServer {
                     state.ikev1_container.client.update(
                         &to_hex(tx.hdr.ikev1_header.key_exchange.as_ref()),
                         &to_hex(tx.hdr.ikev1_header.nonce.as_ref()),
@@ -153,7 +153,7 @@ pub fn handle_ikev1(
                     state.set_event(IkeEvent::PayloadExtraData);
                 }
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKEV1");
                 return AppLayerResult::err();
             }

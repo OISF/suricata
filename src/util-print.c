@@ -54,7 +54,7 @@ void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t 
  *  Prints in the format "00 AA BB"
  *
  *  \param retbuf pointer to the buffer which will have the result
- *  \param rebuflen lenght of the buffer
+ *  \param rebuflen length of the buffer
  *  \param buf buffer to print from
  *  \param buflen length of the input buffer
  */
@@ -229,12 +229,13 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                           const uint8_t *src_buf, const uint32_t src_buf_len)
 {
     uint32_t ch = 0;
-    for (ch = 0; ch < src_buf_len; ch++) {
-        PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
-                        "%c",
-                        (isprint((uint8_t)src_buf[ch]) ||
-                        src_buf[ch] == '\n' ||
-                        src_buf[ch] == '\r') ? (uint8_t)src_buf[ch] : '.');
+    for (ch = 0; ch < src_buf_len && *dst_buf_offset_ptr < dst_buf_size;
+            ch++, (*dst_buf_offset_ptr)++) {
+        if (isprint((uint8_t)src_buf[ch]) || src_buf[ch] == '\n' || src_buf[ch] == '\r') {
+            dst_buf[*dst_buf_offset_ptr] = src_buf[ch];
+        } else {
+            dst_buf[*dst_buf_offset_ptr] = '.';
+        }
     }
     dst_buf[dst_buf_size - 1] = 0;
 

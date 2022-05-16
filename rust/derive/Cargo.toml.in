@@ -8,6 +8,7 @@ proc-macro = true
 path = "@e_rustdir@/derive/src/lib.rs"
 
 [dependencies]
-proc-macro2 = "1.0"
+proc-macro-crate = "= 1.1.0"
+proc-macro2 = "1.0.36"
 quote = "1.0"
 syn = "1.0"

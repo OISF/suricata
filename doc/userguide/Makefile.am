@@ -6,6 +6,7 @@ EXTRA_DIST = \
 	command-line-options.rst \
 	conf.py \
 	configuration \
+	devguide \
 	file-extraction \
 	index.rst \
 	upgrade \

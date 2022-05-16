@@ -481,8 +481,8 @@ static int LuaDecrFlowint(lua_State *luastate)
 
 }
 
-void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngineThreadCtx *det_ctx,
-        Flow *f, Packet *p, uint8_t flags)
+void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
+        DetectEngineThreadCtx *det_ctx, Flow *f, Packet *p, const Signature *s, uint8_t flags)
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
@@ -490,6 +490,8 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
     lua_pushlightuserdata(lua_state, (void *)&luaext_key_ld);
     lua_pushlightuserdata(lua_state, (void *)ld);
     lua_settable(lua_state, LUA_REGISTRYINDEX);
+
+    LuaStateSetSignature(lua_state, s);
 
     LuaStateSetFlow(lua_state, f);
 

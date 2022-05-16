@@ -38,6 +38,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-memcpy.h"
+#include "util-validate.h"
 
 static int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs);
 static void PreBmBc(const uint8_t *x, uint16_t m, uint16_t *bmBc);
@@ -137,7 +138,7 @@ void BoyerMooreCtxDeInit(BmCtx *bmctx)
  */
 static void PreBmBc(const uint8_t *x, uint16_t m, uint16_t *bmBc)
 {
-    int32_t i;
+    uint16_t i;
 
     for (i = 0; i < 256; ++i) {
         bmBc[i] = m;
@@ -168,7 +169,8 @@ static void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff)
             f = i;
             while (g >= 0 && x[g] == x[g + m - 1 - f])
                 --g;
-            suff[i] = f - g;
+            DEBUG_VALIDATE_BUG_ON(f - g < 0 || f - g > UINT16_MAX);
+            suff[i] = (uint16_t)(f - g);
         }
     }
 }
@@ -197,10 +199,10 @@ static int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs)
         if (i == -1 || suff[i] == i + 1)
             for (; j < m - 1 - i; ++j)
                 if (bmGs[j] == m)
-                    bmGs[j] = m - 1 - i;
+                    bmGs[j] = (uint16_t)(m - 1 - i);
 
     for (i = 0; i <= m - 2; ++i)
-        bmGs[m - 1 - suff[i]] = m - 1 - i;
+        bmGs[m - 1 - suff[i]] = (uint16_t)(m - 1 - i);
     return 0;
 }
 
@@ -214,14 +216,14 @@ static int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs)
  */
 static void PreBmBcNocase(const uint8_t *x, uint16_t m, uint16_t *bmBc)
 {
-    int32_t i;
+    uint16_t i;
 
     for (i = 0; i < 256; ++i) {
         bmBc[i] = m;
     }
     for (i = 0; i < m - 1; ++i) {
-        bmBc[u8_tolower((unsigned char)x[i])] = m - 1 - i;
-        bmBc[u8_toupper((unsigned char)x[i])] = m - 1 - i;
+        bmBc[u8_tolower(x[i])] = m - 1 - i;
+        bmBc[u8_toupper(x[i])] = m - 1 - i;
     }
 }
 
@@ -243,7 +245,8 @@ static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m,
             while (g >= 0 && u8_tolower(x[g]) == u8_tolower(x[g + m - 1 - f])) {
                 --g;
             }
-            suff[i] = f - g;
+            DEBUG_VALIDATE_BUG_ON(f - g < 0 || f - g > UINT16_MAX);
+            suff[i] = (uint16_t)(f - g);
         }
     }
 }
@@ -258,7 +261,7 @@ static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m,
  */
 static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs)
 {
-    int32_t i, j;
+    uint16_t i, j;
     uint16_t suff[m + 1];
 
     BoyerMooreSuffixesNocase(x, m, suff);
@@ -267,11 +270,11 @@ static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs)
         bmGs[i] = m;
     }
     j = 0;
-    for (i = m - 1; i >= 0; --i) {
-        if (i == -1 || suff[i] == i + 1) {
-            for (; j < m - 1 - i; ++j) {
+    for (i = m; i > 0; --i) {
+        if (suff[i - 1] == i) {
+            for (; j < m - i; ++j) {
                 if (bmGs[j] == m) {
-                    bmGs[j] = m - 1 - i;
+                    bmGs[j] = m - i;
                 }
             }
         }

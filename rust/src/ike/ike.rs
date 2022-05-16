@@ -22,13 +22,11 @@ use self::ipsec_parser::*;
 
 use crate::applayer;
 use crate::applayer::*;
-use crate::core::{
-    self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, STREAM_TOCLIENT, STREAM_TOSERVER,
-};
+use crate::core::{self, *};
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -57,7 +55,7 @@ pub struct IkeHeaderWrapper {
     pub msg_id: u32,
     pub flags: u8,
     pub ikev1_transforms: Vec<Vec<SaAttribute>>,
-    pub ikev2_transforms: Vec<Vec<IkeV2Transform>>,
+    pub ikev2_transforms: Vec<IkeV2Transform>,
     pub ikev1_header: IkeV1Header,
     pub ikev2_header: IkeV2Header,
 }
@@ -107,9 +105,13 @@ pub struct IKETransaction {
     pub errors: u32,
 
     logged: LoggerFlags,
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
+}
+
+impl Transaction for IKETransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
 }
 
 impl IKETransaction {
@@ -121,26 +123,14 @@ impl IKETransaction {
             payload_types: Default::default(),
             notify_types: vec![],
             logged: LoggerFlags::new(),
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
             errors: 0,
         }
     }
 
-    pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
-        }
-    }
-}
-
-impl Drop for IKETransaction {
-    fn drop(&mut self) {
-        self.free();
+    /// Set an event.
+    pub fn set_event(&mut self, event: IkeEvent) {
+        self.tx_data.set_event(event as u8);
     }
 }
 
@@ -151,6 +141,16 @@ pub struct IKEState {
 
     pub ikev1_container: Ikev1Container,
     pub ikev2_container: Ikev2Container,
+}
+
+impl State<IKETransaction> for IKEState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&IKETransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl IKEState {
@@ -185,8 +185,7 @@ impl IKEState {
     /// Set an event. The event is set on the most recent transaction.
     pub fn set_event(&mut self, event: IkeEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.set_event(event);
         } else {
             SCLogDebug!(
                 "IKE: trying to set event {} on non-existing transaction",
@@ -195,7 +194,7 @@ impl IKEState {
         }
     }
 
-    fn handle_input(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
+    fn handle_input(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -220,7 +219,7 @@ impl IKEState {
                 }
                 return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKE");
                 return AppLayerResult::err();
             }
@@ -230,36 +229,16 @@ impl IKEState {
             }
         }
     }
-
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&IKETransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
 }
 
 /// Probe to see if this input looks like a request or response.
-fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
+fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> bool {
     match parse_isakmp_header(input) {
         Ok((_, isakmp_header)) => {
             if isakmp_header.maj_ver == 1 {
-                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                if isakmp_header.resp_spi == 0 && direction != Direction::ToServer {
                     unsafe {
-                        *rdir = STREAM_TOSERVER;
+                        *rdir = Direction::ToServer.into();
                     }
                 }
                 return true;
@@ -282,9 +261,9 @@ fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
                     return false;
                 }
 
-                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                if isakmp_header.resp_spi == 0 && direction != Direction::ToServer {
                     unsafe {
-                        *rdir = STREAM_TOSERVER;
+                        *rdir = Direction::ToServer.into();
                     }
                 }
                 return true;
@@ -297,8 +276,6 @@ fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
 }
 
 // C exports.
-export_tx_get_detect_state!(rs_ike_tx_get_detect_state, IKETransaction);
-export_tx_set_detect_state!(rs_ike_tx_set_detect_state, IKETransaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
@@ -310,10 +287,10 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
         return ALPROTO_FAILED;
     }
 
-    if input != std::ptr::null_mut() {
+    if !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
-        if probe(slice, direction, rdir) {
-            return ALPROTO_IKE ;
+        if probe(slice, direction.into(), rdir) {
+            return ALPROTO_IKE;
         }
     }
     return ALPROTO_FAILED;
@@ -343,22 +320,21 @@ pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    let buf = build_slice!(input, input_len as usize);
-
-    return state.handle_input(buf, STREAM_TOSERVER);
+    return state.handle_input(stream_slice.as_slice(), Direction::ToServer);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.handle_input(buf, STREAM_TOCLIENT);
+    return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
 }
 
 #[no_mangle]
@@ -411,33 +387,7 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
     tx.logged.set(logged);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, IKETransaction);
-    return tx.events;
-}
-
 static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, IKEState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
 
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ike\0";
@@ -466,19 +416,18 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_ike_tx_get_alstate_progress,
-        get_de_state       : rs_ike_tx_get_detect_state,
-        set_de_state       : rs_ike_tx_set_detect_state,
-        get_events         : Some(rs_ike_state_get_events),
         get_eventinfo      : Some(IkeEvent::get_event_info),
         get_eventinfo_byid : Some(IkeEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
         get_tx_data        : rs_ike_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

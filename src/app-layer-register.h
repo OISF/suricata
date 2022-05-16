@@ -27,7 +27,7 @@
 typedef struct AppLayerParser {
     const char *name;
     const char *default_port;
-    int ip_proto;
+    uint8_t ip_proto;
 
     ProbingParserFPtr ProbeTS;
     ProbingParserFPtr ProbeTC;
@@ -49,10 +49,6 @@ typedef struct AppLayerParser {
     const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
-    DetectEngineState *(*GetTxDetectState)(void *tx);
-    int (*SetTxDetectState)(void *tx, DetectEngineState *);
-
-    AppLayerDecoderEvents *(*StateGetEvents)(void *);
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
     int (*StateGetEventInfoById)(int event_id, const char **event_name,
@@ -73,6 +69,9 @@ typedef struct AppLayerParser {
     uint32_t flags;
 
     void (*Truncate)(void *state, uint8_t direction);
+
+    AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
+    AppLayerParserGetFrameNameByIdFn GetFrameNameById;
 
 } AppLayerParser;
 

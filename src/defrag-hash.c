@@ -341,11 +341,9 @@ void DefragHashShutdown(void)
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely
  *           what you are looking for.
  */
-static inline int DefragHashRawAddressIPv6GtU32(uint32_t *a, uint32_t *b)
+static inline int DefragHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t *b)
 {
-    int i;
-
-    for (i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (a[i] > b[i])
             return 1;
         if (a[i] < b[i])

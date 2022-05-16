@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -84,6 +84,8 @@ static inline void DetectRulePacketRules(ThreadVars * const tv,
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
+static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectRunScratchpad *scratch);
 static inline void DetectRunPostRules(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow,
         DetectRunScratchpad *scratch);
@@ -136,6 +138,17 @@ static void DetectRun(ThreadVars *th_v,
 
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
+        if (p->proto == IPPROTO_TCP) {
+            const TcpSession *ssn = p->flow->protoctx;
+            if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
+                // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
+                DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+                // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
+            }
+        } else if (p->proto == IPPROTO_UDP) {
+            DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+        }
+
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
         DetectRunTx(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
@@ -749,6 +762,9 @@ static inline void DetectRulePacketRules(
         if (s->app_inspect != NULL) {
             goto next; // handle sig in DetectRunTx
         }
+        if (s->frame_inspect != NULL) {
+            goto next; // handle sig in DetectRunFrame
+        }
 
         /* don't run mask check for stateful rules.
          * There we depend on prefilter */
@@ -788,7 +804,7 @@ static inline void DetectRulePacketRules(
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
+        AlertQueueAppend(det_ctx, s, p, 0, alert_flags);
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
@@ -812,11 +828,16 @@ static DetectRunScratchpad DetectRunSetup(
 
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
+    p->alerts.discarded = 0;
+    p->alerts.suppressed = 0;
 #endif
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
+
+    det_ctx->alert_queue_size = 0;
+    p->alerts.drop.action = 0;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
@@ -916,6 +937,12 @@ static inline void DetectRunPostRules(
     PacketAlertFinalize(de_ctx, det_ctx, p);
     if (p->alerts.cnt > 0) {
         StatsAddUI64(tv, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
+    }
+    if (p->alerts.discarded > 0) {
+        StatsAddUI64(tv, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
+    }
+    if (p->alerts.suppressed > 0) {
+        StatsAddUI64(tv, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 }
@@ -1235,7 +1262,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
 
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     const int dir_int = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
-    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(ipproto, alproto, tx_ptr);
+    DetectEngineState *tx_de_state = txd->de_state;
     DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
     uint64_t prefilter_flags = detect_flags & APP_LAYER_TX_PREFILTER_MASK;
     DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);
@@ -1304,6 +1331,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
 
+        bool do_sort = false; // do we need to sort the tx candidate list?
         uint32_t array_idx = 0;
         uint32_t total_rules = det_ctx->match_array_cnt;
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
@@ -1354,8 +1382,9 @@ static void DetectRunTx(ThreadVars *tv,
                         tx.tx_ptr, tx.tx_id, s->id, id);
             }
         }
-        SCLogDebug("%p/%"PRIu64" rules added from 'match' list: %u",
-                tx.tx_ptr, tx.tx_id, array_idx - x); (void)x;
+        do_sort = (array_idx > x); // sort if match added anything
+        SCLogDebug("%p/%" PRIu64 " rules added from 'match' list: %u", tx.tx_ptr, tx.tx_id,
+                array_idx - x);
 
         /* merge stored state into results */
         if (tx.de_state != NULL) {
@@ -1395,20 +1424,21 @@ static void DetectRunTx(ThreadVars *tv,
                     array_idx++;
                 }
             }
-            if (old && old != array_idx) {
-                qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
-                        DetectRunTxSortHelper);
-
-                SCLogDebug("%p/%"PRIu64" rules added from 'continue' list: %u",
-                        tx.tx_ptr, tx.tx_id, array_idx - old);
-            }
+            do_sort |= (old && old != array_idx); // sort if continue list adds sids
+            SCLogDebug("%p/%" PRIu64 " rules added from 'continue' list: %u", tx.tx_ptr, tx.tx_id,
+                    array_idx - old);
         }
+        if (do_sort) {
+            qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
+                    DetectRunTxSortHelper);
+        }
+
 #ifdef PROFILING
         if (array_idx >= de_ctx->profile_match_logging_threshold)
             RulesDumpTxMatchArray(det_ctx, scratch->sgh, p, tx.tx_id, array_idx, x);
 #endif
         det_ctx->tx_id = tx.tx_id;
-        det_ctx->tx_id_set = 1;
+        det_ctx->tx_id_set = true;
         det_ctx->p = p;
 
         /* run rules: inspect the match candidates */
@@ -1469,14 +1499,14 @@ static void DetectRunTx(ThreadVars *tv,
 
                 const uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
-                PacketAlertAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
         }
 
         det_ctx->tx_id = 0;
-        det_ctx->tx_id_set = 0;
+        det_ctx->tx_id_set = false;
         det_ctx->p = NULL;
 
         /* see if we have any updated state to store in the tx */
@@ -1514,6 +1544,113 @@ next:
 
         if (!ires.has_next)
             break;
+    }
+}
+
+static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectRunScratchpad *scratch)
+{
+    const SigGroupHead *const sgh = scratch->sgh;
+    const AppProto alproto = f->alproto;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    if (frames_container == NULL) {
+        return;
+    }
+    Frames *frames;
+    if (PKT_IS_TOSERVER(p)) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+
+    for (uint32_t idx = 0; idx < frames->cnt; idx++) {
+        SCLogDebug("frame %u", idx);
+        const Frame *frame = FrameGetByIndex(frames, idx);
+        if (frame == NULL) {
+            continue;
+        }
+
+        uint32_t array_idx = 0;
+        uint32_t total_rules = det_ctx->match_array_cnt;
+
+        /* run prefilter engines and merge results into a candidates array */
+        if (sgh->frame_engines) {
+            //            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
+            DetectRunPrefilterFrame(det_ctx, sgh, p, frames, frame, alproto, idx);
+            //            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
+            SCLogDebug("%p/%" PRIi64 " rules added from prefilter: %u candidates", frame, frame->id,
+                    det_ctx->pmq.rule_id_array_cnt);
+
+            total_rules += det_ctx->pmq.rule_id_array_cnt;
+
+            if (!(RuleMatchCandidateTxArrayHasSpace(
+                        det_ctx, total_rules))) { // TODO is it safe to overload?
+                RuleMatchCandidateTxArrayExpand(det_ctx, total_rules);
+            }
+
+            for (uint32_t i = 0; i < det_ctx->pmq.rule_id_array_cnt; i++) {
+                const Signature *s = de_ctx->sig_array[det_ctx->pmq.rule_id_array[i]];
+                const SigIntId id = s->num;
+                det_ctx->tx_candidates[array_idx].s = s;
+                det_ctx->tx_candidates[array_idx].id = id;
+                det_ctx->tx_candidates[array_idx].flags = NULL;
+                det_ctx->tx_candidates[array_idx].stream_reset = 0;
+                array_idx++;
+            }
+            PMQ_RESET(&det_ctx->pmq);
+        }
+        /* merge 'state' rules from the regular prefilter */
+        uint32_t x = array_idx;
+        for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
+            const Signature *s = det_ctx->match_array[i];
+            if (s->frame_inspect != NULL) {
+                const SigIntId id = s->num;
+                det_ctx->tx_candidates[array_idx].s = s;
+                det_ctx->tx_candidates[array_idx].id = id;
+                det_ctx->tx_candidates[array_idx].flags = NULL;
+                det_ctx->tx_candidates[array_idx].stream_reset = 0;
+                array_idx++;
+
+                SCLogDebug("%p/%" PRIi64 " rule %u (%u) added from 'match' list", frame, frame->id,
+                        s->id, id);
+            }
+        }
+        SCLogDebug("%p/%" PRIi64 " rules added from 'match' list: %u", frame, frame->id,
+                array_idx - x);
+        (void)x;
+
+        /* run rules: inspect the match candidates */
+        for (uint32_t i = 0; i < array_idx; i++) {
+            const Signature *s = det_ctx->tx_candidates[i].s;
+
+            SCLogDebug("%p/%" PRIi64 " inspecting: sid %u (%u)", frame, frame->id, s->id, s->num);
+
+            /* start new inspection */
+            SCLogDebug("%p/%" PRIi64 " Start sid %u", frame, frame->id, s->id);
+
+            /* call individual rule inspection */
+            RULE_PROFILING_START(p);
+            int r = DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags);
+            if (r == 1) {
+                r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame, idx);
+                if (r == 1) {
+                    /* match */
+                    DetectRunPostMatch(tv, det_ctx, p, s);
+
+                    const uint8_t alert_flags =
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
+                    det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
+                    det_ctx->frame_id = frame->id;
+                    SCLogDebug(
+                            "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
+                    AlertQueueAppend(det_ctx, s, p, frame->tx_id, alert_flags);
+                }
+            }
+            DetectVarProcessList(det_ctx, p->flow, p);
+            RULE_PROFILING_END(det_ctx, s, r, p);
+        }
+        InspectionBufferClean(det_ctx);
     }
 }
 

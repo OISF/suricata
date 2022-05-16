@@ -185,8 +185,8 @@ int RunModeErfFileAutoFp(void)
     }
 
     for (thread = 0; thread < (uint16_t)thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread + 1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread + 1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
@@ -210,7 +210,7 @@ int RunModeErfFileAutoFp(void)
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         if (threading_set_cpu_affinity) {
-            TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+            TmThreadSetCPUAffinity(tv_detect_ncpu, cpu);
             /* If we have more than one core/cpu, the first Detect thread
              * (at cpu 0) will have less priority (higher 'nice' value)
              * In this case we will set the thread priority to +10 (default is 0)

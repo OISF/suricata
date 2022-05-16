@@ -132,6 +132,7 @@ static TmEcode JsonModbusLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

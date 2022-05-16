@@ -137,10 +137,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     AppLayerParserRegisterGetTx(p->ip_proto, alproto,
         p->StateGetTx);
 
-    /* What is this being registered for? */
-    AppLayerParserRegisterDetectStateFuncs(p->ip_proto, alproto,
-        p->GetTxDetectState, p->SetTxDetectState);
-
     if (p->StateGetEventInfo) {
         AppLayerParserRegisterGetEventInfo(p->ip_proto, alproto,
                 p->StateGetEventInfo);
@@ -148,10 +144,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     if (p->StateGetEventInfoById) {
         AppLayerParserRegisterGetEventInfoById(p->ip_proto, alproto,
                 p->StateGetEventInfoById);
-    }
-    if (p->StateGetEvents) {
-        AppLayerParserRegisterGetEventsFunc(p->ip_proto, alproto,
-                p->StateGetEvents);
     }
     if (p->LocalStorageAlloc && p->LocalStorageFree) {
         AppLayerParserRegisterLocalStorageFunc(p->ip_proto, alproto,
@@ -185,6 +177,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
 
     if (p->Truncate) {
         AppLayerParserRegisterTruncateFunc(p->ip_proto, alproto, p->Truncate);
+    }
+
+    if (p->GetFrameIdByName && p->GetFrameNameById) {
+        AppLayerParserRegisterGetFrameFuncs(
+                p->ip_proto, alproto, p->GetFrameIdByName, p->GetFrameNameById);
     }
 
     return 0;

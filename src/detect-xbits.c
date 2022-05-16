@@ -152,9 +152,6 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
             return DetectIPPairbitMatchUnset(p,xd);
         case DETECT_XBITS_CMD_TOGGLE:
             return DetectIPPairbitMatchToggle(p,xd);
-        default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
-            return 0;
     }
     return 0;
 }
@@ -304,7 +301,6 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         case DETECT_XBITS_CMD_SET:
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
-        default:
             if (strlen(fb_name) == 0)
                 return -1;
             break;
@@ -466,7 +462,7 @@ static int XBitsTestSig01(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
     ThreadVars th_v;
@@ -474,7 +470,6 @@ static int XBitsTestSig01(void)
     DetectEngineCtx *de_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;

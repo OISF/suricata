@@ -43,6 +43,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
@@ -74,7 +75,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     p->icmpv4vars.emb_ip4_src = IPV4_GET_RAW_IPSRC(icmp4_ip4h);
     p->icmpv4vars.emb_ip4_dst = IPV4_GET_RAW_IPDST(icmp4_ip4h);
 
-    p->icmpv4vars.emb_ip4_hlen=IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2;
+    p->icmpv4vars.emb_ip4_hlen = (uint8_t)(IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2);
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
@@ -193,8 +194,11 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             } else {
                 /* parse IP header plus 64 bytes */
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     (void)DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
-                                            len - ICMPV4_HEADER_PKT_OFFSET );
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -208,7 +212,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -222,7 +227,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -244,7 +250,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -258,7 +265,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -341,7 +349,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     }
 
     p->payload = (uint8_t *)pkt + p->icmpv4vars.hlen;
-    p->payload_len = len - p->icmpv4vars.hlen;
+    DEBUG_VALIDATE_BUG_ON(len - p->icmpv4vars.hlen > UINT16_MAX);
+    p->payload_len = (uint16_t)(len - p->icmpv4vars.hlen);
 
     FlowSetupPacket(p);
     return TM_ECODE_OK;
@@ -379,7 +388,7 @@ static int DecodeICMPV4test01(void)
         0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
         0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
         0xab };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -389,7 +398,6 @@ static int DecodeICMPV4test01(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
@@ -431,7 +439,7 @@ static int DecodeICMPV4test02(void)
         0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
         0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -441,7 +449,6 @@ static int DecodeICMPV4test02(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -480,7 +487,7 @@ static int DecodeICMPV4test03(void)
         0x01, 0x11, 0xde, 0xfd, 0xc0, 0xa8, 0x01, 0x0d,
         0xd1, 0x55, 0xe3, 0x93, 0x8b, 0x12, 0x82, 0xaa,
         0x00, 0x28, 0x7c, 0xdd };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -490,7 +497,6 @@ static int DecodeICMPV4test03(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -560,7 +566,7 @@ static int DecodeICMPV4test04(void)
         0x3e, 0x36, 0x38, 0x7c, 0x00, 0x00, 0x00, 0x00,
         0xa0, 0x02, 0x16, 0xd0, 0x72, 0x04, 0x00, 0x00,
         0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08, 0x0a };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -570,7 +576,6 @@ static int DecodeICMPV4test04(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -630,7 +635,7 @@ static int DecodeICMPV4test05(void)
 	0xd6, 0xbd, 0xc0, 0xa8, 0x02, 0x05, 0x3d, 0x23, 0xa1,
 	0x23, 0x04, 0x18, 0x00, 0x50, 0xd2, 0x08, 0xc2, 0x48,
          };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -640,7 +645,6 @@ static int DecodeICMPV4test05(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -737,7 +741,7 @@ static int ICMPV4InvalidType07(void)
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
         0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38};
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
@@ -747,7 +751,6 @@ static int ICMPV4InvalidType07(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -781,7 +784,7 @@ static int DecodeICMPV4test08(void)
     uint8_t raw_icmpv4[] = {
         0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00
     };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -791,7 +794,6 @@ static int DecodeICMPV4test08(void)
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);

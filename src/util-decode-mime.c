@@ -1,5 +1,5 @@
 /* Copyright (C) 2012 BAE Systems
- * Copyright (C) 2020 Open Information Security Foundation
+ * Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -65,14 +65,11 @@
 #define CTNT_DISP_STR     "content-disposition"
 #define CTNT_TRAN_STR     "content-transfer-encoding"
 #define MSG_ID_STR        "message-id"
-#define BND_START_STR     "boundary="
-#define TOK_END_STR       "\""
 #define MSG_STR           "message/"
 #define MULTIPART_STR     "multipart/"
 #define QP_STR            "quoted-printable"
 #define TXT_STR           "text/plain"
 #define HTML_STR          "text/html"
-#define URL_STR           "http://"
 
 /* Memory Usage Constants */
 #define STACK_FREE_NODES  10
@@ -82,7 +79,7 @@
 #define MAX_IP6_CHARS  39
 
 /* Globally hold configuration data */
-static MimeDecConfig mime_dec_config = { 1, 1, 1, 0, MAX_HEADER_VALUE };
+static MimeDecConfig mime_dec_config = { true, true, true, NULL, false, false, MAX_HEADER_VALUE };
 
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
@@ -450,7 +447,7 @@ static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
         /* convert to lowercase and store */
         uint32_t u;
         for (u = 0; u < nlen; u++)
-            name[u] = tolower(name[u]);
+            name[u] = u8_tolower(name[u]);
 
         field->name = (uint8_t *)name;
         field->name_len = nlen;
@@ -686,7 +683,8 @@ static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
  *
  * \return Pointer to the position it was found, otherwise NULL if not found
  */
-static inline uint8_t * FindBuffer(const uint8_t *src, uint32_t len, const uint8_t *find, uint32_t find_len)
+static inline uint8_t *FindBuffer(
+        const uint8_t *src, uint32_t len, const uint8_t *find, uint16_t find_len)
 {
     /* Use utility search function */
     return BasicSearchNocase(src, len, find, find_len);
@@ -889,7 +887,7 @@ static int IsExeUrl(const uint8_t *url, uint32_t len)
     /* Now check for executable extensions and if not found, cut off at first '/' */
     for (i = 0; UrlExeExts[i] != NULL; i++) {
         extLen = strlen(UrlExeExts[i]);
-        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], strlen(UrlExeExts[i]));
+        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], (uint16_t)strlen(UrlExeExts[i]));
         if (ext != NULL && (ext + extLen - url == (int)len || ext[extLen] == '?')) {
             isExeUrl = 1;
             break;
@@ -1005,12 +1003,11 @@ static MimeDecUrl *FindExistingUrl(MimeDecEntity *entity, uint8_t *url, uint32_t
 /**
  * \brief This function searches a text or html line for a URL string
  *
- * URLS are generally truncated to the 'host.domain' format because
- * some email messages contain dozens or even hundreds of URLs with
- * the same host, but with only small variations in path.
+ * The URL strings are searched for using the URL schemes defined in the global
+ * MIME config e.g. "http", "https".
  *
- * The exception is that URLs with executable file extensions are stored
- * with the full path. They are stored in lowercase.
+ * The found URL strings are stored in lowercase and with their schemes
+ * stripped unless the MIME config flag for log_url_scheme is set.
  *
  * Numeric IPs, malformed numeric IPs, and URLs pointing to executables are
  * also flagged as URLs of interest.
@@ -1026,88 +1023,103 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
 {
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
-    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
-    uint32_t tokLen = 0, i, tempUrlLen;
-    uint8_t urlStrLen = 0, flags = 0;
+    MimeDecConfig *mdcfg = MimeDecGetConfig();
+    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl, *urlHost;
+    uint32_t tokLen = 0, i, tempUrlLen, urlHostLen;
+    uint16_t schemeStrLen = 0;
+    uint8_t flags = 0;
+    ConfNode *scheme = NULL;
+    char *schemeStr = NULL;
 
-    remptr = (uint8_t *)line;
-    do {
-        SCLogDebug("Looking for URL String starting with: %s", URL_STR);
+    if (mdcfg != NULL && mdcfg->extract_urls_schemes == NULL) {
+        SCLogDebug("Error: MIME config extract_urls_schemes was NULL.");
+        return MIME_DEC_ERR_DATA;
+    }
 
-        /* Check for token definition */
-        fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)URL_STR, strlen(URL_STR));
-        if (fptr != NULL) {
+    TAILQ_FOREACH (scheme, &mdcfg->extract_urls_schemes->head, next) {
+        schemeStr = scheme->val;
+        // checked against UINT16_MAX when setting in SMTPConfigure
+        schemeStrLen = (uint16_t)strlen(schemeStr);
 
-            urlStrLen = strlen(URL_STR);
-            fptr += urlStrLen; /* Start at end of start string */
-            tok = GetToken(fptr, len - (fptr - line), " \"\'<>]\t", &remptr,
-                    &tokLen);
-            if (tok == fptr) {
-                SCLogDebug("Found url string");
+        remptr = (uint8_t *)line;
+        do {
+            SCLogDebug("Looking for URL String starting with: %s", schemeStr);
 
-                /* First copy to temp URL string */
-                tempUrl = SCMalloc(urlStrLen + tokLen);
-                if (unlikely(tempUrl == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
-                    return MIME_DEC_ERR_MEM;
+            /* Check for token definition */
+            fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)schemeStr, schemeStrLen);
+            if (fptr != NULL) {
+                if (!mdcfg->log_url_scheme) {
+                    fptr += schemeStrLen; /* Strip scheme from stored URL */
                 }
+                tok = GetToken(fptr, len - (fptr - line), " \"\'<>]\t", &remptr, &tokLen);
+                if (tok == fptr) {
+                    SCLogDebug("Found url string");
 
-                PrintChars(SC_LOG_DEBUG, "RAW URL", tok, tokLen);
-
-                /* Copy over to temp URL while decoding */
-                tempUrlLen = 0;
-                for (i = 0; i < tokLen && tok[i] != 0; i++) {
-
-                    // URL decoding would probably go here
-
-                    /* url is all lowercase */
-                    tempUrl[tempUrlLen] = tolower(tok[i]);
-                    tempUrlLen++;
-                }
-
-                /* Determine if URL points to an EXE */
-                if (IsExeUrl(tempUrl, tempUrlLen)) {
-                    flags |= URL_IS_EXE;
-
-                    PrintChars(SC_LOG_DEBUG, "EXE URL", tempUrl, tempUrlLen);
-                } else {
-                    /* Not an EXE URL */
-                    /* Cut off length at first '/' */
-                    /* If seems that BAESystems had done the following
-                       in support of PEScan.  We don't want it for logging.
-                       Therefore its been removed.
-                    tok = FindString(tempUrl, tempUrlLen, "/");
-                    if (tok != NULL) {
-                        tempUrlLen = tok - tempUrl;
+                    /* First copy to temp URL string */
+                    tempUrl = SCMalloc(tokLen);
+                    if (unlikely(tempUrl == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+                        return MIME_DEC_ERR_MEM;
                     }
-                    */
-                }
 
-                /* Make sure remaining URL exists */
-                if (tempUrlLen > 0) {
-                    if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
-                        /* Now look for numeric IP */
-                        if (IsIpv4Host(tempUrl, tempUrlLen)) {
-                            flags |= URL_IS_IP4;
+                    PrintChars(SC_LOG_DEBUG, "RAW URL", tok, tokLen);
 
-                            PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
-                        } else if (IsIpv6Host(tempUrl, tempUrlLen)) {
-                            flags |= URL_IS_IP6;
+                    /* Copy over to temp URL while decoding */
+                    tempUrlLen = 0;
+                    for (i = 0; i < tokLen && tok[i] != 0; i++) {
+                        /* url is all lowercase */
+                        tempUrl[tempUrlLen] = u8_tolower(tok[i]);
+                        tempUrlLen++;
+                    }
 
-                            PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
+                    urlHost = tempUrl;
+                    urlHostLen = tempUrlLen;
+                    if (mdcfg->log_url_scheme) {
+                        /* tempUrl contains the scheme in the string but
+                         * IsIpv4Host & IsPv6Host methods below require
+                         * an input URL string with scheme stripped. Get a
+                         * reference sub-string urlHost which starts with
+                         * the host instead of the scheme. */
+                        urlHost += schemeStrLen;
+                        urlHostLen -= schemeStrLen;
+                    }
+
+                    /* Determine if URL points to an EXE */
+                    if (IsExeUrl(tempUrl, tempUrlLen)) {
+                        flags |= URL_IS_EXE;
+
+                        PrintChars(SC_LOG_DEBUG, "EXE URL", tempUrl, tempUrlLen);
+                    }
+
+                    /* Make sure remaining URL exists */
+                    if (tempUrlLen > 0) {
+                        if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
+                            /* Now look for numeric IP */
+                            if (IsIpv4Host(urlHost, urlHostLen)) {
+                                flags |= URL_IS_IP4;
+
+                                PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
+                            } else if (IsIpv6Host(urlHost, urlHostLen)) {
+                                flags |= URL_IS_IP6;
+
+                                PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
+                            }
+
+                            /* Add URL list item */
+                            MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
+                        } else {
+                            SCFree(tempUrl);
                         }
-
-                        /* Add URL list item */
-                        MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
                     } else {
                         SCFree(tempUrl);
                     }
-                } else {
-                    SCFree(tempUrl);
+
+                    /* Reset flags for next URL */
+                    flags = 0;
                 }
             }
-        }
-    } while (fptr != NULL);
+        } while (fptr != NULL);
+    }
 
     return ret;
 }
@@ -1208,11 +1220,12 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \return Number of bytes pulled from the current buffer
  */
-static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state, int force)
+static uint8_t ProcessBase64Remainder(
+        const uint8_t *buf, uint8_t len, MimeDecParseState *state, int force)
 {
     uint32_t ret;
-    uint8_t remainder = 0, remdec = 0;
+    uint8_t remainder = 0;
+    uint32_t remdec = 0;
 
     SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
@@ -1304,7 +1317,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
         /* Process remainder and return number of bytes pulled from current buffer */
-        rem1 = ProcessBase64Remainder(buf, len, state, 0);
+        rem1 = ProcessBase64Remainder(buf, (uint8_t)len, state, 0);
     }
 
     /* No error and at least some more data needs to be decoded */
@@ -1392,9 +1405,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
  *
  * \return byte value on success, -1 if failed
  **/
-static int16_t DecodeQPChar(char h)
+static int8_t DecodeQPChar(char h)
 {
-    uint16_t res = 0;
+    int8_t res = 0;
 
     /* 0-9 */
     if (h >= 48 && h <= 57) {
@@ -1450,8 +1463,8 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
             state->data_chunk_len++;
             entity->decoded_body_len += 1;
 
-            /* Add CRLF sequence if end of line */
-            if (remaining == 1) {
+            /* Add CRLF sequence if end of line, unless its a partial line */
+            if (remaining == 1 && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
                 entity->decoded_body_len += EOL_LEN;
@@ -1473,7 +1486,7 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                     state->msg->anomaly_flags |= ANOM_INVALID_QP;
                     SCLogDebug("Error: Quoted-printable decoding failed");
                 } else {
-                    val = (res << 4); /* Shift result left */
+                    val = (uint8_t)(res << 4); /* Shift result left */
                     h2 = *(buf + offset + 2);
                     res = DecodeQPChar(h2);
                     if (res < 0) {
@@ -1488,8 +1501,8 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                         state->data_chunk_len++;
                         entity->decoded_body_len++;
 
-                        /* Add CRLF sequence if end of line */
-                        if (remaining == 3) {
+                        /* Add CRLF sequence if end of line, unless for partial lines */
+                        if (remaining == 3 && state->current_line_delimiter_len > 0) {
                             memcpy(state->data_chunk + state->data_chunk_len,
                                     CRLF, EOL_LEN);
                             state->data_chunk_len += EOL_LEN;
@@ -1578,8 +1591,8 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
             memcpy(state->data_chunk + state->data_chunk_len, buf + offset, tobuf);
             state->data_chunk_len += tobuf;
 
-            /* Now always add a CRLF to the end */
-            if (tobuf == remaining) {
+            /* Now always add a CRLF to the end, unless its a partial line */
+            if (tobuf == remaining && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
             }
@@ -1827,70 +1840,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 }
 
 /**
- * \brief Finds a mime header token within the specified field
- *
- * \param field The current field
- * \param search_start The start of the search (ie. boundary=\")
- * \param search_end The end of the search (ie. \")
- * \param tlen The output length of the token (if found)
- * \param max_len The maximum offset in which to search
- * \param toolong Set if the field value was truncated to max_len.
- *
- * \return A pointer to the token if found, otherwise NULL if not found
- */
-static uint8_t * FindMimeHeaderTokenRestrict(MimeDecField *field, const char *search_start,
-        const char *search_end, uint32_t *tlen, uint32_t max_len, bool *toolong)
-{
-    uint8_t *fptr, *tptr = NULL, *tok = NULL;
-
-    if (toolong)
-        *toolong = false;
-
-    SCLogDebug("Looking for token: %s", search_start);
-
-    /* Check for token definition */
-    size_t ss_len = strlen(search_start);
-    fptr = FindBuffer(field->value, field->value_len, (const uint8_t *)search_start, ss_len);
-    if (fptr != NULL) {
-        fptr += ss_len; /* Start at end of start string */
-        uint32_t offset = fptr - field->value;
-        if (offset > field->value_len) {
-            return tok;
-        }
-        tok = GetToken(fptr, field->value_len - offset, search_end, &tptr, tlen);
-        if (tok == NULL) {
-            return tok;
-        }
-        SCLogDebug("Found mime token");
-
-        /* Compare the actual token length against the maximum */
-        if (toolong && max_len && *tlen > max_len) {
-            SCLogDebug("Token length %d exceeds length restriction %d; truncating", *tlen, max_len);
-            *toolong = true;
-            *tlen = max_len;
-        }
-    }
-
-    return tok;
-}
-
-/**
- * \brief Finds a mime header token within the specified field
- *
- * \param field The current field
- * \param search_start The start of the search (ie. boundary=\")
- * \param search_end The end of the search (ie. \")
- * \param tlen The output length of the token (if found)
- *
- * \return A pointer to the token if found, otherwise NULL if not found
- */
-static uint8_t * FindMimeHeaderToken(MimeDecField *field, const char *search_start,
-        const char *search_end, uint32_t *tlen)
-{
-    return FindMimeHeaderTokenRestrict(field, search_start, search_end, tlen, 0, NULL);
-}
-
-/**
  * \brief Processes the current line for mime headers and also does post-processing
  * when all headers found
  *
@@ -1905,9 +1854,10 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 {
     int ret = MIME_DEC_OK;
     MimeDecField *field;
-    uint8_t *bptr = NULL, *rptr = NULL;
+    uint8_t *rptr = NULL;
     uint32_t blen = 0;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
+    uint8_t bptr[RS_MIME_MAX_TOKEN_LEN];
 
     /* Look for mime header in current line */
     ret = FindMimeHeader(buf, len, state);
@@ -1922,10 +1872,12 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TRAN_STR);
         if (field != NULL) {
             /* Look for base64 */
-            if (FindBuffer(field->value, field->value_len, (const uint8_t *)BASE64_STR, strlen(BASE64_STR))) {
+            if (FindBuffer(field->value, field->value_len, (const uint8_t *)BASE64_STR,
+                        (uint16_t)strlen(BASE64_STR))) {
                 SCLogDebug("Base64 encoding found");
                 entity->ctnt_flags |= CTNT_IS_BASE64;
-            } else if (FindBuffer(field->value, field->value_len, (const uint8_t *)QP_STR, strlen(QP_STR))) {
+            } else if (FindBuffer(field->value, field->value_len, (const uint8_t *)QP_STR,
+                               (uint16_t)strlen(QP_STR))) {
                 /* Look for quoted-printable */
                 SCLogDebug("quoted-printable encoding found");
                 entity->ctnt_flags |= CTNT_IS_QP;
@@ -1936,10 +1888,15 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
             bool truncated_name = false;
-            bptr = FindMimeHeaderTokenRestrict(field, "filename=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
-            if (bptr != NULL) {
+            if (rs_mime_find_header_token(field->value, field->value_len,
+                        (const uint8_t *)"filename", strlen("filename"), &bptr, &blen)) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+                if (blen > RS_MIME_MAX_TOKEN_LEN) {
+                    blen = RS_MIME_MAX_TOKEN_LEN;
+                    truncated_name = true;
+                }
 
                 /* Copy over using dynamic memory */
                 entity->filename = SCMalloc(blen);
@@ -1961,8 +1918,9 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TYPE_STR);
         if (field != NULL) {
             /* Check if child entity boundary definition found */
-            bptr = FindMimeHeaderToken(field, BND_START_STR, TOK_END_STR, &blen);
-            if (bptr != NULL) {
+            // RS_MIME_MAX_TOKEN_LEN is RS_MIME_MAX_TOKEN_LEN on the rust side
+            if (rs_mime_find_header_token(field->value, field->value_len,
+                        (const uint8_t *)"boundary", strlen("boundary"), &bptr, &blen)) {
                 state->found_child = 1;
                 entity->ctnt_flags |= CTNT_IS_MULTIPART;
 
@@ -1978,16 +1936,21 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     return MIME_DEC_ERR_MEM;
                 }
                 memcpy(state->stack->top->bdef, bptr, blen);
-                state->stack->top->bdef_len = blen;
+                state->stack->top->bdef_len = (uint16_t)blen;
             }
 
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
                 bool truncated_name = false;
-                bptr = FindMimeHeaderTokenRestrict(field, "name=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
-                if (bptr != NULL) {
+                if (rs_mime_find_header_token(field->value, field->value_len,
+                            (const uint8_t *)"name", strlen("name"), &bptr, &blen)) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+                    if (blen > RS_MIME_MAX_TOKEN_LEN) {
+                        blen = RS_MIME_MAX_TOKEN_LEN;
+                        truncated_name = true;
+                    }
 
                     /* Copy over using dynamic memory */
                     entity->filename = SCMalloc(blen);
@@ -2010,9 +1973,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     &rptr, &entity->ctnt_type_len);
             if (entity->ctnt_type != NULL) {
                 /* Check for encapsulated message */
-                if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                            (const uint8_t *)MSG_STR, strlen(MSG_STR)))
-                {
+                if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len, (const uint8_t *)MSG_STR,
+                            (uint16_t)strlen(MSG_STR))) {
                     SCLogDebug("Found encapsulated message entity");
 
                     entity->ctnt_flags |= CTNT_IS_ENV;
@@ -2031,20 +1993,18 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     /* Ready to parse headers */
                     state->state_flag = HEADER_READY;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)MULTIPART_STR, strlen(MULTIPART_STR)))
-                {
+                                   (const uint8_t *)MULTIPART_STR,
+                                   (uint16_t)strlen(MULTIPART_STR))) {
                     /* Check for multipart */
                     SCLogDebug("Found multipart entity");
                     entity->ctnt_flags |= CTNT_IS_MULTIPART;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)TXT_STR, strlen(TXT_STR)))
-                {
+                                   (const uint8_t *)TXT_STR, (uint16_t)strlen(TXT_STR))) {
                     /* Check for plain text */
                     SCLogDebug("Found plain text entity");
                     entity->ctnt_flags |= CTNT_IS_TEXT;
                 } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
-                        (const uint8_t *)HTML_STR, strlen(HTML_STR)))
-                {
+                                   (const uint8_t *)HTML_STR, (uint16_t)strlen(HTML_STR))) {
                     /* Check for html */
                     SCLogDebug("Found html entity");
                     entity->ctnt_flags |= CTNT_IS_HTML;
@@ -2119,8 +2079,8 @@ static int ProcessBodyComplete(MimeDecParseState *state)
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_len,
-        MimeDecParseState *state)
+static int ProcessMimeBoundary(
+        const uint8_t *buf, uint32_t len, uint16_t bdef_len, MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
     uint8_t *rptr;
@@ -2262,7 +2222,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     uint8_t temp[BOUNDARY_BUF];
     uint8_t *bstart;
     int body_found = 0;
-    uint32_t tlen;
+    uint16_t tlen;
 
     if (!g_disable_hashing) {
         if (MimeDecGetConfig()->body_md5) {
@@ -2642,10 +2602,14 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
 
             line = tok;
 
-            state->current_line_delimiter_len = (remainPtr - tok) - tokLen;
+            if ((remainPtr - tok) - tokLen > UINT8_MAX) {
+                SCLogDebug("Error: MimeDecParseLine() overflow: %ld", (remainPtr - tok) - tokLen);
+                ret = MIME_DEC_ERR_OVERFLOW;
+                break;
+            }
+            state->current_line_delimiter_len = (uint8_t)((remainPtr - tok) - tokLen);
             /* Parse the line */
-            ret = MimeDecParseLine(line, tokLen,
-                                   (remainPtr - tok) - tokLen, state);
+            ret = MimeDecParseLine(line, tokLen, state->current_line_delimiter_len, state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("Error: MimeDecParseLine() function failed: %d",
                         ret);
@@ -2791,9 +2755,20 @@ static int MimeDecParseLineTest02(void)
     uint32_t expected_count = 2;
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -2839,6 +2814,9 @@ static int MimeDecParseLineTest02(void)
     /* De Init parser */
     MimeDecDeInitParser(state);
 
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
     SCLogInfo("LINE COUNT FINISHED: %d", line_count);
 
     if (expected_count != line_count) {
@@ -2848,6 +2826,272 @@ static int MimeDecParseLineTest02(void)
     }
 
     return 1;
+}
+
+/* Test error case where no url schemes set in config */
+static int MimeFindUrlStringsTest01(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "test";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    /* Expected error since extract_url_schemes is NULL */
+    FAIL_IF_NOT(ret == MIME_DEC_ERR_DATA);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+/* Test simple case of URL extraction */
+static int MimeFindUrlStringsTest02(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    FAIL_IF_NOT(msg->url_list->url_flags & URL_IS_EXE);
+    FAIL_IF_NOT(
+            memcmp("www.test.com/malware.exe?", msg->url_list->url, msg->url_list->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction with multiple schemes and URLs */
+static int MimeFindUrlStringsTest03(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme1 = ConfNodeNew();
+    ConfNode *scheme2 = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme1);
+    FAIL_IF_NULL(scheme2);
+
+    url_schemes->is_seq = 1;
+    scheme1->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme1->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme1, next);
+    scheme2->val = SCStrdup("https://");
+    FAIL_IF_NULL(scheme2->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link, or "
+                      "you can go to http://www.test.com/test/01.html and "
+                      "https://www.test.com/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(memcmp("www.test.com/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("www.test.com/test/01.html", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("www.test.com/malware.exe?", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction with multiple schemes and URLs with
+ * log_url_scheme enabled in the MIME config */
+static int MimeFindUrlStringsTest04(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme1 = ConfNodeNew();
+    ConfNode *scheme2 = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme1);
+    FAIL_IF_NULL(scheme2);
+
+    url_schemes->is_seq = 1;
+    scheme1->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme1->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme1, next);
+    scheme2->val = SCStrdup("https://");
+    FAIL_IF_NULL(scheme2->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link, or "
+                      "you can go to http://www.test.com/test/01.html and "
+                      "https://www.test.com/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(memcmp("https://www.test.com/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("http://www.test.com/test/01.html", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("http://www.test.com/malware.exe?", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction of IPV4 and IPV6 URLs with log_url_scheme
+ * enabled in the MIME config */
+static int MimeFindUrlStringsTest05(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://192.168.1.1/test/01.html "
+                      "hahah hopefully you click this link or this one "
+                      "http://0:0:0:0:0:0:0:0/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(url->url_flags & URL_IS_IP6);
+    FAIL_IF_NOT(memcmp("http://0:0:0:0:0:0:0:0/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(url->url_flags & URL_IS_IP4);
+    FAIL_IF_NOT(memcmp("http://192.168.1.1/test/01.html", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
 }
 
 /* Test full message with linebreaks */
@@ -3033,9 +3277,9 @@ static int MimeDecParseLongFilename01(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -3066,7 +3310,7 @@ static int MimeDecParseLongFilename01(void)
     FAIL_IF_NOT(msg);
 
     FAIL_IF_NOT(msg->anomaly_flags & ANOM_LONG_FILENAME);
-    FAIL_IF_NOT(msg->filename_len == NAME_MAX);
+    FAIL_IF_NOT(msg->filename_len == RS_MIME_MAX_TOKEN_LEN);
 
     MimeDecFreeEntity(msg);
 
@@ -3097,9 +3341,9 @@ static int MimeDecParseLongFilename02(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -3147,6 +3391,11 @@ void MimeDecRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01);
     UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02);
+    UtRegisterTest("MimeFindUrlStringsTest01", MimeFindUrlStringsTest01);
+    UtRegisterTest("MimeFindUrlStringsTest02", MimeFindUrlStringsTest02);
+    UtRegisterTest("MimeFindUrlStringsTest03", MimeFindUrlStringsTest03);
+    UtRegisterTest("MimeFindUrlStringsTest04", MimeFindUrlStringsTest04);
+    UtRegisterTest("MimeFindUrlStringsTest05", MimeFindUrlStringsTest05);
     UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01);
     UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02);
     UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01);

@@ -5,7 +5,7 @@ if BUILD_FUZZTARGETS
     fuzz_confyamlloadstring fuzz_decodepcapfile \
     fuzz_sigpcap fuzz_mimedecparseline
 if HAS_FUZZPCAP
-    bin_PROGRAMS += fuzz_sigpcap_aware
+    bin_PROGRAMS += fuzz_sigpcap_aware fuzz_predefpcap_aware
 endif
 endif
 
@@ -22,6 +22,7 @@ noinst_HEADERS = \
 	app-layer-enip.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
+	app-layer-frames.h \
 	app-layer-ftp.h \
 	app-layer.h \
 	app-layer-htp-body.h \
@@ -34,6 +35,7 @@ noinst_HEADERS = \
 	app-layer-ike.h \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
+	app-layer-quic.h \
 	app-layer-mqtt.h \
 	app-layer-nbss.h \
 	app-layer-nfs-tcp.h \
@@ -133,10 +135,10 @@ noinst_HEADERS = \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
 	detect-engine-dcepayload.h \
-	detect-engine-dns.h \
 	detect-engine-enip.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
+	detect-engine-frame.h \
 	detect-engine.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
@@ -171,6 +173,7 @@ noinst_HEADERS = \
 	detect-flowvar.h \
 	detect-fragbits.h \
 	detect-fragoffset.h \
+	detect-frame.h \
 	detect-ftpbounce.h \
 	detect-ftpdata.h \
 	detect-geoip.h \
@@ -238,6 +241,11 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	detect-modbus.h \
+	detect-quic-sni.h \
+	detect-quic-ua.h \
+	detect-quic-version.h \
+	detect-quic-cyu-hash.h \
+	detect-quic-cyu-string.h \
 	detect-mqtt-connack-sessionpresent.h \
 	detect-mqtt-connect-clientid.h \
 	detect-mqtt-connect-flags.h \
@@ -333,6 +341,7 @@ noinst_HEADERS = \
 	detect-transform-sha256.h \
 	detect-transform-strip-whitespace.h \
 	detect-transform-urldecode.h \
+	detect-transform-xor.h \
 	detect-ttl.h \
 	detect-udphdr.h \
 	detect-uricontent.h \
@@ -387,6 +396,7 @@ noinst_HEADERS = \
 	output-json-email-common.h \
 	output-json-file.h \
 	output-json-flow.h \
+	output-json-frame.h \
 	output-json-ftp.h \
 	output-json.h \
 	output-json-http2.h \
@@ -395,9 +405,11 @@ noinst_HEADERS = \
 	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-modbus.h \
+	output-json-quic.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
+	output-json-pgsql.h \
 	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
@@ -423,6 +435,7 @@ noinst_HEADERS = \
 	respond-reject.h \
 	respond-reject-libnet11.h \
 	runmode-af-packet.h \
+	runmode-dpdk.h \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
@@ -440,6 +453,7 @@ noinst_HEADERS = \
 	rust-context.h \
 	rust.h \
 	source-af-packet.h \
+	source-dpdk.h \
 	source-erf-dag.h \
 	source-erf-file.h \
 	source-ipfw.h \
@@ -497,13 +511,16 @@ noinst_HEADERS = \
 	util-config.h \
 	util-coredump-config.h \
 	util-cpu.h \
-	util-crypt.h \
 	util-daemon.h \
 	util-debug-filters.h \
 	util-debug.h \
 	util-decode-mime.h \
 	util-detect.h \
 	util-device.h \
+	util-dpdk.h \
+	util-dpdk-i40e.h \
+	util-dpdk-ice.h \
+	util-dpdk-ixgbe.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
@@ -605,6 +622,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-events.c \
 	app-layer-expectation.c \
 	app-layer-ftp.c \
+	app-layer-frames.c \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
 	app-layer-htp-file.c \
@@ -615,6 +633,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ike.c \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
+	app-layer-quic.c \
 	app-layer-mqtt.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
@@ -711,10 +730,10 @@ libsuricata_c_a_SOURCES = \
 	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
-	detect-engine-dns.c \
 	detect-engine-enip.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
+	detect-engine-frame.c \
 	detect-engine-iponly.c \
 	detect-engine-loader.c \
 	detect-engine-mpm.c \
@@ -748,6 +767,7 @@ libsuricata_c_a_SOURCES = \
 	detect-flowvar.c \
 	detect-fragbits.c \
 	detect-fragoffset.c \
+	detect-frame.c \
 	detect-ftpbounce.c \
 	detect-ftpdata.c \
 	detect-geoip.c \
@@ -813,6 +833,11 @@ libsuricata_c_a_SOURCES = \
 	detect-mark.c \
 	detect-metadata.c \
 	detect-modbus.c \
+	detect-quic-sni.c \
+	detect-quic-ua.c \
+	detect-quic-version.c \
+	detect-quic-cyu-hash.c \
+	detect-quic-cyu-string.c \
 	detect-mqtt-connack-sessionpresent.c \
 	detect-mqtt-connect-clientid.c \
 	detect-mqtt-connect-flags.c \
@@ -908,6 +933,7 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-sha256.c \
 	detect-transform-strip-whitespace.c \
 	detect-transform-urldecode.c \
+	detect-transform-xor.c \
 	detect-ttl.c \
 	detect-udphdr.c \
 	detect-uricontent.c \
@@ -963,6 +989,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-email-common.c \
 	output-json-file.c \
 	output-json-flow.c \
+	output-json-frame.c \
 	output-json-ftp.c \
 	output-json-http2.c \
 	output-json-http.c \
@@ -970,9 +997,11 @@ libsuricata_c_a_SOURCES = \
 	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-modbus.c \
+	output-json-quic.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
+	output-json-pgsql.c \
 	output-json-rdp.c \
 	output-json-rfb.c \
 	output-json-sip.c \
@@ -997,6 +1026,7 @@ libsuricata_c_a_SOURCES = \
 	respond-reject.c \
 	respond-reject-libnet11.c \
 	runmode-af-packet.c \
+	runmode-dpdk.c \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
 	runmode-ipfw.c \
@@ -1013,6 +1043,7 @@ libsuricata_c_a_SOURCES = \
 	runmode-windivert.c \
 	rust-context.c \
 	source-af-packet.c \
+	source-dpdk.c \
 	source-erf-dag.c \
 	source-erf-file.c \
 	source-ipfw.c \
@@ -1058,13 +1089,16 @@ libsuricata_c_a_SOURCES = \
 	util-conf.c \
 	util-coredump-config.c \
 	util-cpu.c \
-	util-crypt.c \
 	util-daemon.c \
 	util-debug.c \
 	util-debug-filters.c \
 	util-decode-mime.c \
 	util-detect.c \
 	util-device.c \
+	util-dpdk.c \
+	util-dpdk-i40e.c \
+	util-dpdk-ice.c \
+	util-dpdk-ixgbe.c \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
@@ -1173,6 +1207,7 @@ EXTRA_DIST = \
 	tests/detect-tcpmss.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
+	tests/detect-transform-xor.c \
 	tests/detect-ttl.c \
 	tests/source-pcap.c \
 	tests/app-layer-htp-file.c \
@@ -1342,6 +1377,17 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
+
+fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c
+fuzz_predefpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_predefpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
+if HAS_FUZZLDFLAGS
+    fuzz_predefpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    fuzz_predefpcap_aware_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_predefpcap_aware_SOURCES = force-cxx-linking.cxx
 endif
 
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c

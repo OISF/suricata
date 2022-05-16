@@ -1,0 +1,20 @@
+# MSC Sequence Diagram for an HTTP2 Transaction, which is bidirectional in Suricata
+
+msc {
+
+    # Chart options
+    arcgradient = "10";
+
+    # Entities
+    a [ label = "Client" ], b [ label = "Server" ];
+
+    # Message flow
+    a =>> b [ label = "Request" ];
+    b =>> a [ label = "Response" ];
+    |||;
+    --- [ label = "Transaction Completed" ];
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
+}
+
+# Reference: https://tools.ietf.org/html/rfc7540#section-8.1

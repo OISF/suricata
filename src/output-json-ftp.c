@@ -66,7 +66,14 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
                 "command_data",
                 (const uint8_t *)tx->request + min_length,
                 tx->request_length - min_length - 1);
+        if (tx->request_truncated) {
+            JB_SET_TRUE(jb, "command_truncated");
+        } else {
+            JB_SET_FALSE(jb, "command_truncated");
+        }
     }
+
+    bool reply_truncated = false;
 
     if (!TAILQ_EMPTY(&tx->response_list)) {
         int resp_code_cnt = 0;
@@ -76,8 +83,16 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
         TAILQ_FOREACH(response, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
             uint8_t *where = response->str;
-            uint16_t length = response->len ? response->len -1 : 0;
+            uint16_t length = 0;
             uint16_t pos;
+            if (response->len > 0 && response->len <= UINT16_MAX) {
+                length = (uint16_t)response->len - 1;
+            } else if (response->len > UINT16_MAX) {
+                length = UINT16_MAX;
+            }
+            if (!reply_truncated && response->truncated) {
+                reply_truncated = true;
+            }
             while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
                 uint16_t offset = 0;
                 /* Try to find a completion code for this line */
@@ -131,6 +146,12 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
         JB_SET_STRING(jb, "reply_received", "yes");
     } else {
         JB_SET_STRING(jb, "reply_received", "no");
+    }
+
+    if (reply_truncated) {
+        JB_SET_TRUE(jb, "reply_truncated");
+    } else {
+        JB_SET_FALSE(jb, "reply_truncated");
     }
 }
 

@@ -25,7 +25,7 @@ use crate::smb::smb::*;
 /// File tracking transaction. Single direction only.
 #[derive(Default, Debug)]
 pub struct SMBTransactionFile {
-    pub direction: u8,
+    pub direction: Direction,
     pub fuid: Vec<u8>,
     pub file_name: Vec<u8>,
     pub share_name: Vec<u8>,
@@ -47,18 +47,18 @@ impl SMBTransactionFile {
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
-        chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
+        chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
         Some(sfcm) => {
             ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
-                    chunk_size, fill_bytes, is_last, xid); }
+                    chunk_size, 0, is_last, xid); }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
+    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
         -> (&mut SMBTransaction, &mut FileContainer, u16)
     {
         let mut tx = self.new_tx();
@@ -81,7 +81,7 @@ impl SMBState {
         return (tx_ref.unwrap(), files, flags)
     }
 
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: u8)
+    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: Direction)
         -> Option<(&mut SMBTransaction, &mut FileContainer, u16)>
     {
         let f = fuid.to_vec();
@@ -103,17 +103,17 @@ impl SMBState {
         return None;
     }
 
-    fn getfiles(&mut self, direction: u8) -> * mut FileContainer {
-        //SCLogDebug!("direction: {}", direction);
-        if direction == STREAM_TOCLIENT {
+    fn getfiles(&mut self, direction: Direction) -> * mut FileContainer {
+        //SCLogDebug!("direction: {:?}", direction);
+        if direction == Direction::ToClient {
             &mut self.files.files_tc as *mut FileContainer
         } else {
             &mut self.files.files_ts as *mut FileContainer
         }
     }
-    fn setfileflags(&mut self, direction: u8, flags: u16) {
-        SCLogDebug!("direction: {}, flags: {}", direction, flags);
-        if direction == STREAM_TOCLIENT {
+    fn setfileflags(&mut self, direction: Direction, flags: u16) {
+        SCLogDebug!("direction: {:?}, flags: {}", direction, flags);
+        if direction == Direction::ToClient {
             self.files.flags_tc = flags;
         } else {
             self.files.flags_ts = flags;
@@ -122,8 +122,8 @@ impl SMBState {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    pub fn filetracker_update(&mut self, direction: u8, data: &[u8], gap_size: u32) -> u32 {
-        let mut chunk_left = if direction == STREAM_TOSERVER {
+    pub fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+        let mut chunk_left = if direction == Direction::ToServer {
             self.file_ts_left
         } else {
             self.file_tc_left
@@ -132,7 +132,7 @@ impl SMBState {
             return 0
         }
         SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
-        let file_handle = if direction == STREAM_TOSERVER {
+        let file_handle = if direction == Direction::ToServer {
             self.file_ts_guid.to_vec()
         } else {
             self.file_tc_guid.to_vec()
@@ -150,7 +150,7 @@ impl SMBState {
             chunk_left -= data.len() as u32;
         }
 
-        if direction == STREAM_TOSERVER {
+        if direction == Direction::ToServer {
             self.file_ts_left = chunk_left;
         } else {
             self.file_tc_left = chunk_left;
@@ -194,7 +194,7 @@ impl SMBState {
 pub unsafe extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = cast_pointer!(ptr, SMBState);
-    parser.getfiles(direction)
+    parser.getfiles(direction.into())
 }
 
 #[no_mangle]
@@ -202,5 +202,5 @@ pub unsafe extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, 
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = &mut *ptr;
     SCLogDebug!("direction {} flags {}", direction, flags);
-    parser.setfileflags(direction, flags)
+    parser.setfileflags(direction.into(), flags)
 }

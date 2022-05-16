@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,8 +43,19 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
         _ => panic!("AppLayerEvent can only be derived for enums"),
     }
 
+    // If we're being used from within Suricata we have to reference the internal name space with
+    // "crate", but if we're being used by a library or plugin user we need to reference the
+    // Suricata name space as "suricata". Check the CARGO_PKG_NAME environment variable to
+    // determine what identifier to setup.
+    let is_suricata = std::env::var("CARGO_PKG_NAME").map(|var| var == "suricata").unwrap_or(false);
+    let crate_id = if is_suricata {
+        syn::Ident::new("crate", proc_macro2::Span::call_site())
+    } else {
+        syn::Ident::new("suricata", proc_macro2::Span::call_site())
+    };
+
     let expanded = quote! {
-        impl crate::applayer::AppLayerEvent for #name {
+        impl #crate_id::applayer::AppLayerEvent for #name {
             fn from_id(id: i32) -> Option<#name> {
                 match id {
                     #( #vals => Some(#name::#fields) ,)*
@@ -74,17 +85,17 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
             unsafe extern "C" fn get_event_info(
                 event_name: *const std::os::raw::c_char,
                 event_id: *mut std::os::raw::c_int,
-                event_type: *mut crate::core::AppLayerEventType,
+                event_type: *mut #crate_id::core::AppLayerEventType,
             ) -> std::os::raw::c_int {
-                crate::applayer::get_event_info::<#name>(event_name, event_id, event_type)
+                #crate_id::applayer::get_event_info::<#name>(event_name, event_id, event_type)
             }
 
             unsafe extern "C" fn get_event_info_by_id(
                 event_id: std::os::raw::c_int,
                 event_name: *mut *const std::os::raw::c_char,
-                event_type: *mut crate::core::AppLayerEventType,
+                event_type: *mut #crate_id::core::AppLayerEventType,
             ) -> i8 {
-                crate::applayer::get_event_info_by_id::<#name>(event_id, event_name, event_type)
+                #crate_id::applayer::get_event_info_by_id::<#name>(event_id, event_name, event_type)
             }
 
         }

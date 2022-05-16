@@ -153,8 +153,9 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     int fast_pattern_set = 0;
     int fast_pattern_only_set = 0;
     int fast_pattern_chop_set = 0;
-    DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const DetectContentData *fp_cd = NULL;
+    const SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const int mpm_sm_list = s->init_data->mpm_sm_list;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -186,12 +187,12 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     }
 
     fprintf(fp_engine_analysis_FD, "        Fast pattern matcher: ");
-    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
-        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
+        const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
         }
@@ -473,8 +474,9 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
 
 static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Signature *s)
 {
-    DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const DetectContentData *fp_cd = NULL;
+    const SigMatch *mpm_sm = s->init_data->mpm_sm;
+    const int mpm_sm_list = s->init_data->mpm_sm_list;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -511,7 +513,7 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
 
     fprintf(rule_engine_analysis_FD, "\" on \"");
 
-    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    const int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH) {
         int payload = 0;
         int stream = 0;
@@ -523,8 +525,8 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
-        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
+        const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
         } else if (desc || name) {
@@ -534,9 +536,9 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     }
 
     fprintf(rule_engine_analysis_FD, "\" ");
-    if (de_ctx->buffer_type_map[list_type] && de_ctx->buffer_type_map[list_type]->transforms.cnt) {
-        fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ",
-                de_ctx->buffer_type_map[list_type]->transforms.cnt);
+    const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, list_type);
+    if (bt && bt->transforms.cnt) {
+        fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ", bt->transforms.cnt);
     }
     fprintf(rule_engine_analysis_FD, "buffer.\n");
 
@@ -681,14 +683,10 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
     jb_close(js);
 }
 
-static void EngineAnalysisRulePatterns(const DetectEngineCtx *de_ctx, const Signature *s);
-
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     SCEnter();
-
-    EngineAnalysisRulePatterns(de_ctx, s);
 
     RuleAnalyzer ctx = { NULL, NULL, NULL };
 
@@ -804,7 +802,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_open_array(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
-        const char *name = DetectBufferTypeGetNameById(de_ctx, pkt->sm_list);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, pkt->sm_list);
         if (name == NULL) {
             switch (pkt->sm_list) {
                 case DETECT_SM_LIST_PMATCH:
@@ -828,6 +826,17 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
     jb_close(ctx.js);
+    jb_open_array(ctx.js, "frame_engines");
+    const DetectEngineFrameInspectionEngine *frame = s->frame_inspect;
+    for (; frame != NULL; frame = frame->next) {
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, frame->sm_list);
+        jb_start_object(ctx.js);
+        jb_set_string(ctx.js, "name", name);
+        jb_set_bool(ctx.js, "is_mpm", frame->mpm);
+        DumpMatches(&ctx, ctx.js, frame->smd);
+        jb_close(ctx.js);
+    }
+    jb_close(ctx.js);
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         bool has_stream = false;
@@ -837,7 +846,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_open_array(ctx.js, "engines");
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {
-            const char *name = DetectBufferTypeGetNameById(de_ctx, app->sm_list);
+            const char *name = DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list);
             if (name == NULL) {
                 switch (app->sm_list) {
                     case DETECT_SM_LIST_PMATCH:
@@ -896,7 +905,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (mpm_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(mpm_list);
         else
-            name = DetectBufferTypeGetNameById(de_ctx, mpm_list);
+            name = DetectEngineBufferTypeGetNameById(de_ctx, mpm_list);
         jb_set_string(ctx.js, "buffer", name);
 
         SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
@@ -926,7 +935,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(prefilter_list);
         else
-            name = DetectBufferTypeGetNameById(de_ctx, prefilter_list);
+            name = DetectEngineBufferTypeGetNameById(de_ctx, prefilter_list);
         jb_set_string(ctx.js, "buffer", name);
         const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
         jb_set_string(ctx.js, "name", mname);
@@ -964,113 +973,21 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     SCReturn;
 }
 
-struct PatternItem {
-    const DetectContentData *cd;
-    int sm_list;
-    uint32_t cnt;
-    uint32_t mpm;
-};
-
-static inline uint32_t ContentFlagsForHash(const DetectContentData *cd)
-{
-    return cd->flags & (DETECT_CONTENT_NOCASE | DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH |
-                               DETECT_CONTENT_NEGATED | DETECT_CONTENT_ENDS_WITH);
-}
-
-/** \internal
- *  \brief The hash function for Pattern
- *
- *  \param ht      Pointer to the hash table.
- *  \param data    Pointer to the Pattern.
- *  \param datalen Not used in our case.
- *
- *  \retval hash The generated hash value.
- */
-static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
-{
-    struct PatternItem *p = (struct PatternItem *)data;
-    uint32_t hash = p->sm_list + ContentFlagsForHash(p->cd);
-
-    for (uint32_t b = 0; b < p->cd->content_len; b++)
-        hash += p->cd->content[b];
-
-    return hash % ht->array_size;
-}
-
-/**
- * \brief The Compare function for Pattern
- *
- * \param data1 Pointer to the first Pattern.
- * \param len1  Not used.
- * \param data2 Pointer to the second Pattern.
- * \param len2  Not used.
- *
- * \retval 1 If the 2 Patterns sent as args match.
- * \retval 0 If the 2 Patterns sent as args do not match.
- */
-static char PatternCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
-{
-    const struct PatternItem *p1 = (struct PatternItem *)data1;
-    const struct PatternItem *p2 = (struct PatternItem *)data2;
-
-    if (p1->sm_list != p2->sm_list)
-        return 0;
-
-    if (ContentFlagsForHash(p1->cd) != ContentFlagsForHash(p2->cd))
-        return 0;
-
-    if (p1->cd->content_len != p2->cd->content_len)
-        return 0;
-
-    if (memcmp(p1->cd->content, p2->cd->content, p1->cd->content_len) != 0) {
-        return 0;
-    }
-
-    return 1;
-}
-
-static void PatternFreeFunc(void *ptr)
-{
-    SCFree(ptr);
-}
-
-/**
- * \brief Initializes the Pattern mpm hash table to be used by the detection
- *        engine context.
- *
- * \param de_ctx Pointer to the detection engine context.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-static int PatternInit(DetectEngineCtx *de_ctx)
-{
-    de_ctx->pattern_hash_table =
-            HashListTableInit(4096, PatternHashFunc, PatternCompareFunc, PatternFreeFunc);
-    if (de_ctx->pattern_hash_table == NULL)
-        goto error;
-
-    return 0;
-
-error:
-    return -1;
-}
-
 void DumpPatterns(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->buffer_type_map_elements == 0 || de_ctx->pattern_hash_table == NULL)
+    if (de_ctx->pattern_hash_table == NULL)
         return;
 
     JsonBuilder *root_jb = jb_new_object();
-    JsonBuilder *arrays[de_ctx->buffer_type_map_elements];
-    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_map_elements);
+    JsonBuilder *arrays[de_ctx->buffer_type_id];
+    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_id);
 
     jb_open_array(root_jb, "buffers");
 
     for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->pattern_hash_table);
             htb != NULL; htb = HashListTableGetListNext(htb)) {
         char str[1024] = "";
-        struct PatternItem *p = HashListTableGetListData(htb);
+        DetectPatternTracker *p = HashListTableGetListData(htb);
         DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
 
         JsonBuilder *jb = arrays[p->sm_list];
@@ -1080,7 +997,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
             if (p->sm_list < DETECT_SM_LIST_DYNAMIC_START)
                 name = DetectListToHumanString(p->sm_list);
             else
-                name = DetectBufferTypeGetNameById(de_ctx, p->sm_list);
+                name = DetectEngineBufferTypeGetNameById(de_ctx, p->sm_list);
             jb_set_string(jb, "name", name);
             jb_set_uint(jb, "list_id", p->sm_list);
 
@@ -1102,7 +1019,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
         jb_close(jb);
     }
 
-    for (uint32_t i = 0; i < de_ctx->buffer_type_map_elements; i++) {
+    for (uint32_t i = 0; i < de_ctx->buffer_type_id; i++) {
         JsonBuilder *jb = arrays[i];
         if (jb == NULL)
             continue;
@@ -1133,119 +1050,6 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->pattern_hash_table);
     de_ctx->pattern_hash_table = NULL;
-}
-
-static void EngineAnalysisRulePatterns(const DetectEngineCtx *de_ctx, const Signature *s)
-{
-    SCEnter();
-
-    if (de_ctx->pattern_hash_table == NULL)
-        PatternInit((DetectEngineCtx *)de_ctx); // TODO hack const
-
-    if (s->sm_arrays[DETECT_SM_LIST_PMATCH]) {
-        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_PMATCH];
-        do {
-            switch (smd->type) {
-                case DETECT_CONTENT: {
-                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
-                    struct PatternItem lookup = {
-                        .cd = cd, .sm_list = DETECT_SM_LIST_PMATCH, .cnt = 0, .mpm = 0
-                    };
-                    struct PatternItem *res =
-                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
-                    if (res) {
-                        res->cnt++;
-                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                    } else {
-                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
-                        BUG_ON(add == NULL);
-                        add->cd = cd;
-                        add->sm_list = DETECT_SM_LIST_PMATCH;
-                        add->cnt = 1;
-                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
-                    }
-                    break;
-                }
-            }
-            if (smd->is_last)
-                break;
-            smd++;
-        } while (1);
-    }
-
-    const DetectEngineAppInspectionEngine *app = s->app_inspect;
-    for (; app != NULL; app = app->next) {
-        SigMatchData *smd = app->smd;
-        do {
-            switch (smd->type) {
-                case DETECT_CONTENT: {
-                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
-
-                    struct PatternItem lookup = {
-                        .cd = cd, .sm_list = app->sm_list, .cnt = 0, .mpm = 0
-                    };
-                    struct PatternItem *res =
-                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
-                    if (res) {
-                        res->cnt++;
-                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                    } else {
-                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
-                        BUG_ON(add == NULL);
-                        add->cd = cd;
-                        add->sm_list = app->sm_list;
-                        add->cnt = 1;
-                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
-                    }
-                    break;
-                }
-            }
-            if (smd->is_last)
-                break;
-            smd++;
-        } while (1);
-    }
-    const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
-    for (; pkt != NULL; pkt = pkt->next) {
-        SigMatchData *smd = pkt->smd;
-        do {
-            if (smd == NULL) {
-                BUG_ON(!(pkt->sm_list < DETECT_SM_LIST_DYNAMIC_START));
-                smd = s->sm_arrays[pkt->sm_list];
-            }
-            switch (smd->type) {
-                case DETECT_CONTENT: {
-                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
-
-                    struct PatternItem lookup = {
-                        .cd = cd, .sm_list = pkt->sm_list, .cnt = 0, .mpm = 0
-                    };
-                    struct PatternItem *res =
-                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
-                    if (res) {
-                        res->cnt++;
-                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                    } else {
-                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
-                        BUG_ON(add == NULL);
-                        add->cd = cd;
-                        add->sm_list = pkt->sm_list;
-                        add->cnt = 1;
-                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
-                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
-                    }
-                    break;
-                }
-            }
-            if (smd->is_last)
-                break;
-            smd++;
-        } while (1);
-    }
-
-    SCReturn;
 }
 
 static void EngineAnalysisItemsReset(void)
@@ -1468,9 +1272,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     if (rule_content == 1) {
          //todo: warning if content is weak, separate warning for pcre + weak content
     }
-    if (rule_flow == 0 && rule_flags == 0
-        && !(s->proto.flags & DETECT_PROTO_ANY) && DetectProtoContainsProto(&s->proto, IPPROTO_TCP)
-        && (rule_content || rule_content_http || rule_pcre || rule_pcre_http || rule_flowbits)) {
+    if (rule_flow == 0 && rule_flags == 0 && !(s->proto.flags & DETECT_PROTO_ANY) &&
+            DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
+            (rule_content || rule_content_http || rule_pcre || rule_pcre_http || rule_flowbits ||
+                    rule_flowint)) {
         rule_warning += 1;
         warn_tcp_no_flow = 1;
     }
@@ -1510,7 +1315,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         warn_offset_depth_alproto = 1;
     }
     if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP1 &&
-            SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+            s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
@@ -1537,7 +1342,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
         if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
         if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
-        if (!rule_flow_nostream && stream_buf && (rule_flow || rule_flowbits || rule_content || rule_pcre)) {
+        if (!rule_flow_nostream && stream_buf &&
+                (rule_flow || rule_flowbits || rule_flowint || rule_content || rule_pcre)) {
             fprintf(rule_engine_analysis_FD, "    Rule matches on reassembled stream.\n");
         }
         for(size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
@@ -1550,7 +1356,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
-            fprintf(rule_engine_analysis_FD, "    Rule contains %d content options, %d http content options, %d pcre options, and %d pcre options with http modifiers.\n", rule_content, rule_content_http, rule_pcre, rule_pcre_http);
+            fprintf(rule_engine_analysis_FD,
+                    "    Rule contains %u content options, %u http content options, %u pcre "
+                    "options, and %u pcre options with http modifiers.\n",
+                    rule_content, rule_content_http, rule_pcre, rule_pcre_http);
         }
 
         /* print fast pattern info */

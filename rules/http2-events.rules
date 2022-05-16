@@ -16,3 +16,5 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 stream identifier reuse"; fl
 alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid HTTP1 settings during upgrade"; flow:established; app-layer-event:http2.invalid_http1_settings; classtype:protocol-command-decode; sid:2290008; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 failed decompression"; flow:established; app-layer-event:http2.failed_decompression; classtype:protocol-command-decode; sid:2290009; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid range header"; flow:established; app-layer-event:http2.invalid_range; classtype:protocol-command-decode; sid:2290010; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 variable-length integer overflow"; flow:established; app-layer-event:http2.header_integer_overflow; classtype:protocol-command-decode; sid:2290011; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 too many streams"; flow:established; app-layer-event:http2.too_many_streams; classtype:protocol-command-decode; sid:2290012; rev:1;)

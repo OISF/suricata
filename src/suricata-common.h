@@ -126,16 +126,16 @@
 #endif
 
 #ifdef HAVE_TYPE_U_LONG_NOT_DEFINED
-typedef unsigned long int u_long
+typedef unsigned long int u_long;
 #endif
 #ifdef HAVE_TYPE_U_INT_NOT_DEFINED
-typedef unsigned int u_int
+typedef unsigned int u_int;
 #endif
 #ifdef HAVE_TYPE_U_SHORT_NOT_DEFINED
-typedef unsigned short u_short
+typedef unsigned short u_short;
 #endif
 #ifdef HAVE_TYPE_U_CHAR_NOT_DEFINED
-typedef unsigned char u_char
+typedef unsigned char u_char;
 #endif
 
 #include <pcre2.h>
@@ -175,6 +175,10 @@ typedef unsigned char u_char
 
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
+
+#if HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
 #endif
 
 #if HAVE_SYS_MMAN_H
@@ -418,6 +422,7 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_PF_PKT,
     PROF_DETECT_PF_PAYLOAD,
     PROF_DETECT_PF_TX,
+    PROF_DETECT_PF_RECORD,
     PROF_DETECT_PF_SORT1,
     PROF_DETECT_PF_SORT2,
     PROF_DETECT_NONMPMLIST,
@@ -449,6 +454,7 @@ typedef enum {
     LOGGER_JSON_SMB,
     LOGGER_JSON_IKE,
     LOGGER_JSON_KRB5,
+    LOGGER_JSON_QUIC,
     LOGGER_JSON_MODBUS,
     LOGGER_JSON_DHCP,
     LOGGER_JSON_SNMP,
@@ -456,6 +462,7 @@ typedef enum {
     LOGGER_JSON_TEMPLATE_RUST,
     LOGGER_JSON_RFB,
     LOGGER_JSON_MQTT,
+    LOGGER_JSON_PGSQL,
     LOGGER_JSON_TEMPLATE,
     LOGGER_JSON_RDP,
     LOGGER_JSON_DCERPC,
@@ -481,6 +488,7 @@ typedef enum {
     LOGGER_JSON_STATS,
     LOGGER_PCAP,
     LOGGER_JSON_METADATA,
+    LOGGER_JSON_FRAME,
     LOGGER_SIZE,
 } LoggerId;
 
@@ -525,10 +533,6 @@ extern int g_ut_modules;
 extern int g_ut_covered;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
-
-#ifndef NAME_MAX
-#define NAME_MAX 255
-#endif
 
 #endif /* __SURICATA_COMMON_H__ */
 

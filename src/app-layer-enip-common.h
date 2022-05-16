@@ -120,8 +120,8 @@ typedef struct ENIPEncapAddresItem_
 {
     uint16_t type;
     uint16_t length;
-    uint16_t conn_id;
-    uint16_t sequence_num;
+    uint32_t conn_id;
+    uint32_t sequence_num;
 } ENIPEncapAddresItem;
 
 /**
@@ -182,7 +182,7 @@ typedef struct CIPServiceEntry_
         } request;
         struct
         {
-            uint8_t status;
+            uint16_t status;
         } response;
     };
 
@@ -195,7 +195,7 @@ typedef struct CIPServiceEntry_
 typedef struct ENIPTransaction_
 {
     struct ENIPState_ *enip;
-    uint16_t tx_num;                            /**< internal: id */
+    uint64_t tx_num;                            /**< internal: id */
     uint16_t tx_id;                             /**< transaction id */
     uint16_t service_count;
 
@@ -206,10 +206,7 @@ typedef struct ENIPTransaction_
 
     TAILQ_HEAD(, CIPServiceEntry_) service_list; /**< list for CIP  */
 
-    AppLayerDecoderEvents *decoder_events;      /**< per tx events */
-
     TAILQ_ENTRY(ENIPTransaction_) next;
-    DetectEngineState *de_state;
     AppLayerTxData tx_data;
 } ENIPTransaction;
 

@@ -121,13 +121,14 @@ typedef struct FtpLineState_ {
     uint8_t *db;
     uint32_t db_len;
     uint8_t current_line_db;
-    /** we have see LF for the currently parsed line */
+    /** we have seen LF for the currently parsed line */
     uint8_t current_line_lf_seen;
 } FtpLineState;
 
 typedef struct FTPString_ {
     uint8_t *str;
-    uint16_t len;
+    uint32_t len;
+    bool truncated;
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
@@ -140,6 +141,7 @@ typedef struct FTPTransaction_  {
     /* for the request */
     uint32_t request_length;
     uint8_t *request;
+    bool request_truncated;
 
     /* for the command description */
     const FtpCommand *command_descriptor;
@@ -152,8 +154,6 @@ typedef struct FTPTransaction_  {
 
     /* Handle multiple responses */
     TAILQ_HEAD(, FTPString_) response_list;
-
-    DetectEngineState *de_state;
 
     TAILQ_ENTRY(FTPTransaction_) next;
 } FTPTransaction;
@@ -175,6 +175,7 @@ typedef struct FtpState_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     uint32_t current_line_len;
     uint8_t current_line_delimiter_len;
+    bool current_line_truncated;
 
     /* 0 for toserver, 1 for toclient */
     FtpLineState line_state[2];
@@ -201,7 +202,6 @@ typedef struct FtpDataState_ {
     uint8_t *input;
     uint8_t *file_name;
     FileContainer *files;
-    DetectEngineState *de_state;
     int32_t input_len;
     int16_t file_len;
     FtpRequestCommand command;

@@ -57,7 +57,7 @@ void RegisterHTTP2Parsers(void)
 {
     const char *proto_name = "http2";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, true)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP2, proto_name);
         if (HTTP2RegisterPatternsForProtocolDetection() < 0)
             return;
@@ -81,9 +81,13 @@ void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
         // may happen if we only got the reply, not the HTTP1 request
         return;
     }
-
+    // else
     rs_http2_tx_set_method(h2s, bstr_ptr(htp_tx_request_method(h1tx)), bstr_len(htp_tx_request_method(h1tx)));
-    rs_http2_tx_set_uri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)), bstr_len(htp_tx_request_uri(h1tx)));
+    if (htp_tx_request_uri(h1tx) != NULL) {
+        // A request line without spaces gets interpreted as a request_method
+        // and has request_uri=NULL
+        rs_http2_tx_set_uri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)), bstr_len(htp_tx_request_uri(h1tx)));
+    }
     size_t nbheaders = htp_tx_request_headers_size(h1tx);
     for (size_t i = 0; i < nbheaders; i++) {
         const htp_header_t *h = htp_tx_request_header_index(h1tx, i);

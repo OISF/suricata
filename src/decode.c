@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,12 +67,33 @@
 #include "output.h"
 #include "output-flow.h"
 #include "flow-storage.h"
+#include "util-validate.h"
 
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
+uint16_t packet_alert_max = PACKET_ALERT_MAX;
+
+/**
+ * \brief Initialize PacketAlerts with dynamic alerts array size
+ *
+ */
+PacketAlert *PacketAlertCreate(void)
+{
+    PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
+    BUG_ON(pa_array == NULL);
+
+    return pa_array;
+}
+
+void PacketAlertFree(PacketAlert *pa)
+{
+    if (pa != NULL) {
+        SCFree(pa);
+    }
+}
 
 static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
         enum DecodeTunnelProto) WARN_UNUSED;
@@ -84,10 +105,12 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
         case DECODE_TUNNEL_PPP:
             return DecodePPP(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_IPV4:
-            return DecodeIPV4(tv, dtv, p, pkt, len);
+            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+            return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_IPV6:
         case DECODE_TUNNEL_IPV6_TEREDO:
-            return DecodeIPV6(tv, dtv, p, pkt, len);
+            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+            return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ETHERNET:
@@ -172,8 +195,10 @@ void PacketFreeOrRelease(Packet *p)
 {
     if (p->flags & PKT_ALLOC)
         PacketFree(p);
-    else
+    else {
+        p->ReleasePacket = PacketPoolReturnPacket;
         PacketPoolReturnPacket(p);
+    }
 }
 
 /**
@@ -192,6 +217,7 @@ Packet *PacketGetFromQueueOrAlloc(void)
         /* non fatal, we're just not processing a packet then */
         p = PacketGetFromAlloc();
     } else {
+        DEBUG_VALIDATE_BUG_ON(p->ReleasePacket != PacketPoolReturnPacket);
         PACKET_PROFILING_START(p);
     }
 
@@ -372,7 +398,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     else
         p->root = parent;
 
-    /* copy packet and set lenght, proto */
+    /* copy packet and set length, proto */
     if (pkt && len) {
         PacketCopyData(p, pkt, len);
     }
@@ -774,9 +800,24 @@ void DecodeGlobalConfig(void)
         if (value < 0 || value > UINT8_MAX) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for decoder.max-layers");
         } else {
-            decoder_max_layers = value;
+            decoder_max_layers = (uint8_t)value;
         }
     }
+    PacketAlertGetMaxConfig();
+}
+
+void PacketAlertGetMaxConfig(void)
+{
+    intmax_t max = 0;
+    if (ConfGetInt("packet-alert-max", &max) == 1) {
+        if (max <= 0 || max > UINT8_MAX) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "Invalid value for packet-alert-max, default value set instead");
+        } else {
+            packet_alert_max = max;
+        }
+    }
+    SCLogDebug("detect->packet_alert_max set to %d", packet_alert_max);
 }
 
 /**

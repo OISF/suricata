@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -366,10 +366,7 @@ static void *StatsMgmtThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv_local->name);
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);
@@ -449,10 +446,7 @@ static void *StatsWakeupThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
 
-    /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    SCSetThreadName(tv_local->name);
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);
@@ -1024,7 +1018,7 @@ static uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
     int len = strlen(t->string);
 
     for (int i = 0; i < len; i++)
-        hash += tolower((unsigned char)t->string[i]);
+        hash += u8_tolower((unsigned char)t->string[i]);
 
     hash = hash % ht->array_size;
     return hash;
@@ -1406,7 +1400,6 @@ static int StatsTestCntArraySize07(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
-    int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1421,12 +1414,12 @@ static int StatsTestCntArraySize07(void)
     StatsIncr(&tv, 1);
     StatsIncr(&tv, 2);
 
-    result = pca->size;
+    FAIL_IF_NOT(pca->size == 2);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    PASS_IF(result == 2);
+    PASS;
 }
 
 static int StatsTestUpdateCounter08(void)

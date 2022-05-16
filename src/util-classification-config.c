@@ -186,7 +186,6 @@ static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL) {
         fclose(fd);
-        fd = NULL;
     }
 }
 
@@ -220,7 +219,7 @@ static char *SCClassConfStringToLowercase(const char *str)
 
     temp_str = new_str;
     while (*temp_str != '\0') {
-        *temp_str = tolower((unsigned char)*temp_str);
+        *temp_str = u8_tolower((unsigned char)*temp_str);
         temp_str++;
     }
 
@@ -453,7 +452,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
     int len = strlen(ct->classtype);
 
     for (i = 0; i < len; i++)
-        hash += tolower((unsigned char)(ct->classtype)[i]);
+        hash += u8_tolower((unsigned char)(ct->classtype)[i]);
 
     hash = hash % ht->array_size;
 
@@ -560,7 +559,7 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
     char name[strlen(ct_name) + 1];
     size_t s;
     for (s = 0; s < strlen(ct_name); s++)
-        name[s] = tolower((unsigned char)ct_name[s]);
+        name[s] = u8_tolower((unsigned char)ct_name[s]);
     name[s] = '\0';
 
     SCClassConfClasstype ct_lookup = {0, 0, name, NULL };

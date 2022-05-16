@@ -26,15 +26,6 @@
 
 #include "flow.h"
 
-#define STREAM_START        BIT_U8(0)
-#define STREAM_EOF          BIT_U8(1)
-#define STREAM_TOSERVER     BIT_U8(2)
-#define STREAM_TOCLIENT     BIT_U8(3)
-#define STREAM_GAP          BIT_U8(4)   /**< data gap encountered */
-#define STREAM_DEPTH        BIT_U8(5)   /**< depth reached */
-#define STREAM_MIDSTREAM    BIT_U8(6)
-#define STREAM_FLUSH        BIT_U8(7)
-
 #define STREAM_FLAGS_FOR_PACKET(p) PKT_IS_TOSERVER((p)) ? STREAM_TOSERVER : STREAM_TOCLIENT
 
 typedef int (*StreamSegmentCallback)(const Packet *, void *, const uint8_t *, uint32_t);

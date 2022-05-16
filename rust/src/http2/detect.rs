@@ -19,14 +19,14 @@ use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
 };
 use super::parser;
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::Direction;
 use std::ffi::CStr;
 use std::str::FromStr;
 
 fn http2_tx_has_frametype(
-    tx: &mut HTTP2Transaction, direction: u8, value: u8,
+    tx: &mut HTTP2Transaction, direction: Direction, value: u8,
 ) -> std::os::raw::c_int {
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             if tx.frames_ts[i].header.ftype as u8 == value {
                 return 1;
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn rs_http2_tx_has_frametype(
     tx: *mut std::os::raw::c_void, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_frametype(tx, direction, value);
+    return http2_tx_has_frametype(tx, direction.into(), value);
 }
 
 #[no_mangle]
@@ -64,9 +64,9 @@ pub unsafe extern "C" fn rs_http2_parse_frametype(
 }
 
 fn http2_tx_has_errorcode(
-    tx: &mut HTTP2Transaction, direction: u8, code: u32,
+    tx: &mut HTTP2Transaction, direction: Direction, code: u32,
 ) -> std::os::raw::c_int {
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
@@ -107,7 +107,7 @@ pub unsafe extern "C" fn rs_http2_tx_has_errorcode(
     tx: *mut std::os::raw::c_void, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_errorcode(tx, direction, code);
+    return http2_tx_has_errorcode(tx, direction.into(), code);
 }
 
 #[no_mangle]
@@ -124,10 +124,10 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
 }
 
 fn http2_tx_get_next_priority(
-    tx: &mut HTTP2Transaction, direction: u8, nb: u32,
+    tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
     let mut pos = 0 as u32;
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::PRIORITY(prio) => {
@@ -180,14 +180,14 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_priority(tx, direction, nb);
+    return http2_tx_get_next_priority(tx, direction.into(), nb);
 }
 
 fn http2_tx_get_next_window(
-    tx: &mut HTTP2Transaction, direction: u8, nb: u32,
+    tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
     let mut pos = 0 as u32;
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
                 HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_window(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_window(tx, direction, nb);
+    return http2_tx_get_next_window(tx, direction.into(), nb);
 }
 
 #[no_mangle]
@@ -283,9 +283,9 @@ fn http2_detect_settings_match(
 }
 
 fn http2_detect_settingsctx_match(
-    ctx: &mut parser::DetectHTTP2settingsSigCtx, tx: &mut HTTP2Transaction, direction: u8,
+    ctx: &mut parser::DetectHTTP2settingsSigCtx, tx: &mut HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_detect_settingsctx_match(ctx, tx, direction);
+    return http2_detect_settingsctx_match(ctx, tx, direction.into());
 }
 
 #[no_mangle]
@@ -396,9 +396,9 @@ fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderB
 }
 
 fn http2_detect_sizeupdatectx_match(
-    ctx: &mut parser::DetectU64Data, tx: &mut HTTP2Transaction, direction: u8,
+    ctx: &mut parser::DetectU64Data, tx: &mut HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
-    if direction & STREAM_TOSERVER != 0 {
+    if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
                 if http2_detect_sizeupdate_match(blocks, ctx) != 0 {
@@ -424,7 +424,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectU64Data);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_detect_sizeupdatectx_match(ctx, tx, direction);
+    return http2_detect_sizeupdatectx_match(ctx, tx, direction.into());
 }
 
 //TODOask better syntax between rs_http2_tx_get_header_name in argument
@@ -434,29 +434,32 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut pos = 0 as u32;
-    if direction & STREAM_TOSERVER != 0 {
-        for i in 0..tx.frames_ts.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
-                if nb < pos + blocks.len() as u32 {
-                    let value = &blocks[(nb - pos) as usize].name;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                } else {
-                    pos = pos + blocks.len() as u32;
+    match direction.into() {
+        Direction::ToServer => {
+            for i in 0..tx.frames_ts.len() {
+                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+                    if nb < pos + blocks.len() as u32 {
+                        let value = &blocks[(nb - pos) as usize].name;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + blocks.len() as u32;
+                    }
                 }
             }
         }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
-                if nb < pos + blocks.len() as u32 {
-                    let value = &blocks[(nb - pos) as usize].name;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                } else {
-                    pos = pos + blocks.len() as u32;
+        Direction::ToClient => {
+            for i in 0..tx.frames_tc.len() {
+                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+                    if nb < pos + blocks.len() as u32 {
+                        let value = &blocks[(nb - pos) as usize].name;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + blocks.len() as u32;
+                    }
                 }
             }
         }
@@ -465,9 +468,9 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
 }
 
 fn http2_frames_get_header_firstvalue<'a>(
-    tx: &'a mut HTTP2Transaction, direction: u8, name: &str,
+    tx: &'a mut HTTP2Transaction, direction: Direction, name: &str,
 ) -> Result<&'a [u8], ()> {
-    let frames = if direction == STREAM_TOSERVER {
+    let frames = if direction == Direction::ToServer {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -487,11 +490,11 @@ fn http2_frames_get_header_firstvalue<'a>(
 // same as http2_frames_get_header_value but returns a new Vec
 // instead of using the transation to store the result slice
 pub fn http2_frames_get_header_value_vec(
-    tx: &HTTP2Transaction, direction: u8, name: &str,
+    tx: &HTTP2Transaction, direction: Direction, name: &str,
 ) -> Result<Vec<u8>, ()> {
     let mut found = 0;
     let mut vec = Vec::new();
-    let frames = if direction == STREAM_TOSERVER {
+    let frames = if direction == Direction::ToServer {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -523,12 +526,12 @@ pub fn http2_frames_get_header_value_vec(
 }
 
 fn http2_frames_get_header_value<'a>(
-    tx: &'a mut HTTP2Transaction, direction: u8, name: &str,
+    tx: &'a mut HTTP2Transaction, direction: Direction, name: &str,
 ) -> Result<&'a [u8], ()> {
     let mut found = 0;
     let mut vec = Vec::new();
     let mut single: Result<&[u8], ()> = Err(());
-    let frames = if direction == STREAM_TOSERVER {
+    let frames = if direction == Direction::ToServer {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -563,7 +566,7 @@ fn http2_frames_get_header_value<'a>(
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];
-        return Ok(&value);
+        return Ok(value);
     }
 }
 
@@ -571,7 +574,7 @@ fn http2_frames_get_header_value<'a>(
 pub unsafe extern "C" fn rs_http2_tx_get_uri(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_firstvalue(tx, STREAM_TOSERVER, ":path") {
+    if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
         return 1;
@@ -583,7 +586,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_uri(
 pub unsafe extern "C" fn rs_http2_tx_get_method(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_firstvalue(tx, STREAM_TOSERVER, ":method") {
+    if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":method") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
         return 1;
@@ -595,7 +598,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_method(
 pub unsafe extern "C" fn rs_http2_tx_get_host(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_value(tx, STREAM_TOSERVER, ":authority") {
+    if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToServer, ":authority") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
         return 1;
@@ -634,7 +637,7 @@ fn http2_normalize_host(value: &[u8]) -> (Option<Vec<u8>>, usize) {
 pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_value(tx, STREAM_TOSERVER, ":authority") {
+    if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToServer, ":authority") {
         let r = http2_normalize_host(value);
         // r is a tuple with the value and its size
         // this is useful when we only take a substring (before the port)
@@ -663,7 +666,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
 pub unsafe extern "C" fn rs_http2_tx_get_useragent(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_value(tx, STREAM_TOSERVER, "user-agent") {
+    if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToServer, "user-agent") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
         return 1;
@@ -675,7 +678,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_useragent(
 pub unsafe extern "C" fn rs_http2_tx_get_status(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if let Ok(value) = http2_frames_get_header_firstvalue(tx, STREAM_TOCLIENT, ":status") {
+    if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToClient, ":status") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
         return 1;
@@ -687,14 +690,14 @@ pub unsafe extern "C" fn rs_http2_tx_get_status(
 pub unsafe extern "C" fn rs_http2_tx_get_cookie(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if direction == STREAM_TOSERVER {
-        if let Ok(value) = http2_frames_get_header_value(tx, STREAM_TOSERVER, "cookie") {
+    if direction == Direction::ToServer.into() {
+        if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToServer, "cookie") {
             *buffer = value.as_ptr(); //unsafe
             *buffer_len = value.len() as u32;
             return 1;
         }
     } else {
-        if let Ok(value) = http2_frames_get_header_value(tx, STREAM_TOCLIENT, "set-cookie") {
+        if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToClient, "set-cookie") {
             *buffer = value.as_ptr(); //unsafe
             *buffer_len = value.len() as u32;
             return 1;
@@ -710,7 +713,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_value(
 ) -> u8 {
     let hname: &CStr = CStr::from_ptr(strname); //unsafe
     if let Ok(s) = hname.to_str() {
-        if let Ok(value) = http2_frames_get_header_value(tx, direction, &s.to_lowercase()) {
+        if let Ok(value) = http2_frames_get_header_value(tx, direction.into(), &s.to_lowercase()) {
             *buffer = value.as_ptr(); //unsafe
             *buffer_len = value.len() as u32;
             return 1;
@@ -744,7 +747,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut vec = vec![b'\r', b'\n'];
-    let frames = if direction & STREAM_TOSERVER != 0 {
+    let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -770,9 +773,9 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
     return 0;
 }
 
-fn http2_header_iscookie(direction: u8, hname: &[u8]) -> bool {
+fn http2_header_iscookie(direction: Direction, hname: &[u8]) -> bool {
     if let Ok(s) = std::str::from_utf8(hname) {
-        if direction & STREAM_TOSERVER != 0 {
+        if direction == Direction::ToServer {
             if s.to_lowercase() == "cookie" {
                 return true;
             }
@@ -810,7 +813,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut vec = Vec::new();
-    let frames = if direction & STREAM_TOSERVER != 0 {
+    let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -818,7 +821,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
     for i in 0..frames.len() {
         if let Some(blocks) = http2_header_blocks(&frames[i]) {
             for block in blocks.iter() {
-                if !http2_header_iscookie(direction, &block.name) {
+                if !http2_header_iscookie(direction.into(), &block.name) {
                     // we do not escape linefeeds nor : in headers names
                     vec.extend_from_slice(&block.name);
                     vec.extend_from_slice(&[b':', b' ']);
@@ -844,7 +847,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut vec = Vec::new();
-    let frames = if direction & STREAM_TOSERVER != 0 {
+    let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
         &tx.frames_tc
@@ -876,40 +879,42 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut pos = 0 as u32;
-    if direction & STREAM_TOSERVER != 0 {
-        for i in 0..tx.frames_ts.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
-                if nb < pos + blocks.len() as u32 {
-                    let ehdr = http2_escape_header(&blocks, nb - pos);
-                    tx.escaped.push(ehdr);
-                    let idx = tx.escaped.len() - 1;
-                    let value = &tx.escaped[idx];
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                } else {
-                    pos = pos + blocks.len() as u32;
+    match direction.into() {
+        Direction::ToServer => {
+            for i in 0..tx.frames_ts.len() {
+                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+                    if nb < pos + blocks.len() as u32 {
+                        let ehdr = http2_escape_header(blocks, nb - pos);
+                        tx.escaped.push(ehdr);
+                        let idx = tx.escaped.len() - 1;
+                        let value = &tx.escaped[idx];
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + blocks.len() as u32;
+                    }
                 }
             }
         }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
-                if nb < pos + blocks.len() as u32 {
-                    let ehdr = http2_escape_header(&blocks, nb - pos);
-                    tx.escaped.push(ehdr);
-                    let idx = tx.escaped.len() - 1;
-                    let value = &tx.escaped[idx];
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                } else {
-                    pos = pos + blocks.len() as u32;
+        Direction::ToClient => {
+            for i in 0..tx.frames_tc.len() {
+                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+                    if nb < pos + blocks.len() as u32 {
+                        let ehdr = http2_escape_header(blocks, nb - pos);
+                        tx.escaped.push(ehdr);
+                        let idx = tx.escaped.len() - 1;
+                        let value = &tx.escaped[idx];
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + blocks.len() as u32;
+                    }
                 }
             }
         }
     }
-
     return 0;
 }
 
@@ -935,7 +940,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         blocks: blocks,
     };
     let txdata = HTTP2FrameTypeData::HEADERS(hs);
-    let tx = state.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
+    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer);
     tx.frames_ts.push(HTTP2Frame {
         header: head,
         data: txdata,
@@ -960,108 +965,8 @@ pub unsafe extern "C" fn rs_http2_tx_set_uri(
     http2_tx_set_header(state, ":path".as_bytes(), slice)
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Http2Base64Error {
-    InvalidBase64,
-}
-
-impl std::error::Error for Http2Base64Error {}
-
-impl std::fmt::Display for Http2Base64Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "invalid base64")
-    }
-}
-
-fn http2_base64_map(input: u8) -> Result<u8, Http2Base64Error> {
-    match input {
-        43 => Ok(62),  // +
-        47 => Ok(63),  // /
-        48 => Ok(52),  // 0
-        49 => Ok(53),  // 1
-        50 => Ok(54),  // 2
-        51 => Ok(55),  // 3
-        52 => Ok(56),  // 4
-        53 => Ok(57),  // 5
-        54 => Ok(58),  // 6
-        55 => Ok(59),  // 7
-        56 => Ok(60),  // 8
-        57 => Ok(61),  // 9
-        65 => Ok(0),   // A
-        66 => Ok(1),   // B
-        67 => Ok(2),   // C
-        68 => Ok(3),   // D
-        69 => Ok(4),   // E
-        70 => Ok(5),   // F
-        71 => Ok(6),   // G
-        72 => Ok(7),   // H
-        73 => Ok(8),   // I
-        74 => Ok(9),   // J
-        75 => Ok(10),  // K
-        76 => Ok(11),  // L
-        77 => Ok(12),  // M
-        78 => Ok(13),  // N
-        79 => Ok(14),  // O
-        80 => Ok(15),  // P
-        81 => Ok(16),  // Q
-        82 => Ok(17),  // R
-        83 => Ok(18),  // S
-        84 => Ok(19),  // T
-        85 => Ok(20),  // U
-        86 => Ok(21),  // V
-        87 => Ok(22),  // W
-        88 => Ok(23),  // X
-        89 => Ok(24),  // Y
-        90 => Ok(25),  // Z
-        97 => Ok(26),  // a
-        98 => Ok(27),  // b
-        99 => Ok(28),  // c
-        100 => Ok(29), // d
-        101 => Ok(30), // e
-        102 => Ok(31), // f
-        103 => Ok(32), // g
-        104 => Ok(33), // h
-        105 => Ok(34), // i
-        106 => Ok(35), // j
-        107 => Ok(36), // k
-        108 => Ok(37), // l
-        109 => Ok(38), // m
-        110 => Ok(39), // n
-        111 => Ok(40), // o
-        112 => Ok(41), // p
-        113 => Ok(42), // q
-        114 => Ok(43), // r
-        115 => Ok(44), // s
-        116 => Ok(45), // t
-        117 => Ok(46), // u
-        118 => Ok(47), // v
-        119 => Ok(48), // w
-        120 => Ok(49), // x
-        121 => Ok(50), // y
-        122 => Ok(51), // z
-        _ => Err(Http2Base64Error::InvalidBase64),
-    }
-}
-
-fn http2_decode_base64(input: &[u8]) -> Result<Vec<u8>, Http2Base64Error> {
-    if input.len() % 4 != 0 {
-        return Err(Http2Base64Error::InvalidBase64);
-    }
-    let mut r = vec![0; (input.len() * 3) / 4];
-    for i in 0..input.len() / 4 {
-        let i1 = http2_base64_map(input[4 * i])?;
-        let i2 = http2_base64_map(input[4 * i + 1])?;
-        let i3 = http2_base64_map(input[4 * i + 2])?;
-        let i4 = http2_base64_map(input[4 * i + 3])?;
-        r[3 * i] = (i1 << 2) | (i2 >> 4);
-        r[3 * i + 1] = (i2 << 4) | (i3 >> 2);
-        r[3 * i + 2] = (i3 << 6) | i4;
-    }
-    return Ok(r);
-}
-
 fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
-    match http2_decode_base64(input) {
+    match base64::decode(input) {
         Ok(dec) => {
             if dec.len() % 6 != 0 {
                 state.set_event(HTTP2Event::InvalidHTTP1Settings);
@@ -1078,7 +983,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
             match parser::http2_parse_frame_settings(&dec) {
                 Ok((_, set)) => {
                     let txdata = HTTP2FrameTypeData::SETTINGS(set);
-                    let tx = state.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
+                    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer);
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
@@ -1202,7 +1107,7 @@ mod tests {
             header: head,
             data: txdata,
         });
-        match http2_frames_get_header_value(&mut tx, STREAM_TOSERVER, "Host") {
+        match http2_frames_get_header_value(&mut tx, Direction::ToServer, "Host") {
             Ok(x) => {
                 assert_eq!(x, "abc.com, efg.net".as_bytes());
             }

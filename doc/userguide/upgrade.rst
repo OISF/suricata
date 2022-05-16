@@ -40,15 +40,20 @@ Major changes
 Removals
 ~~~~~~~~
 - The libprelude output plugin has been removed.
+- EVE DNS v1 logging support has been removed. If still using EVE DNS v1 logging, see the manual section on DNS logging configuration for the current configuration options: :ref:`DNS EVE Configuration <output-eve-dns>`
 
 Logging changes
 ~~~~~~~~~~~~~~~
 - IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
   ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
+- FTP DATA metadata for alerts are now logged in ``ftp_data`` instead of root.
+- Alert ``xff`` field is now logged as ``alert.xff`` for alerts instead of at the root.
 
 Other changes
 ~~~~~~~~~~~~~
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
+- If installing Suricata without the bundled Suricata-Update, the ``default-rule-path`` has been changed from ``/etc/suricata/rules`` to ``/var/lib/suricata/rules`` to be consistent with Suricata when installed with Suricata-Update.
+- FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.
 
 Logging changes
 ~~~~~~~~~~~~~~~
@@ -103,4 +108,4 @@ Removals
 - ``file-log``, the non-EVE JSON file log. Use EVE.files instead.
 - ``drop-log``, the non-EVE JSON drop log.
 
-See https://suricata-ids.org/about/deprecation-policy/
+See https://suricata.io/about/deprecation-policy/

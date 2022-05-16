@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,17 +38,12 @@
 #include "stream-tcp-reassemble.h"
 #include "util-validate.h"
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputLoggerThreadData_ {
+typedef struct OutputStreamingLoggerThreadData_ {
     OutputLoggerThreadStore *store;
     uint32_t loggers;
-} OutputLoggerThreadData;
+} OutputStreamingLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
@@ -258,7 +253,8 @@ struct StreamLogData {
     Flow *f;
 };
 
-static int StreamLogFunc(void *cb_data, const uint8_t *data, const uint32_t data_len)
+static int StreamLogFunc(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t _offset)
 {
     struct StreamLogData *log = cb_data;
 
@@ -304,7 +300,8 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
     }
 
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputStreamingLoggerThreadData *op_thread_data =
+            (OutputStreamingLoggerThreadData *)thread_data;
     OutputStreamingLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
@@ -369,7 +366,7 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
  *  This will run the thread init functions for the individual registered
  *  loggers */
 static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata, void **data) {
-    OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputStreamingLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
@@ -412,7 +409,8 @@ static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata
 }
 
 static TmEcode OutputStreamingLogThreadDeinit(ThreadVars *tv, void *thread_data) {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputStreamingLoggerThreadData *op_thread_data =
+            (OutputStreamingLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputStreamingLogger *logger = list;
 
@@ -432,7 +430,8 @@ static TmEcode OutputStreamingLogThreadDeinit(ThreadVars *tv, void *thread_data)
 }
 
 static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputStreamingLoggerThreadData *op_thread_data =
+            (OutputStreamingLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputStreamingLogger *logger = list;
 

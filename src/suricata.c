@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -92,6 +92,8 @@
 #include "source-af-packet.h"
 #include "source-netmap.h"
 
+#include "source-dpdk.h"
+
 #include "source-windivert.h"
 #include "source-windivert-prototypes.h"
 
@@ -171,6 +173,8 @@
 #include "util-lua.h"
 
 #include "util-plugin.h"
+
+#include "util-dpdk.h"
 
 #include "rust.h"
 
@@ -294,6 +298,55 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
 }
+#ifndef OS_WIN32
+#if HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
+{
+    char msg[SC_LOG_MAX_LOG_MSG_LEN];
+    unw_cursor_t cursor;
+    /* Restore defaults for signals to avoid loops */
+    signal(SIGABRT, SIG_DFL);
+    signal(SIGSEGV, SIG_DFL);
+    int r;
+    if ((r = unw_init_local(&cursor, (unw_context_t *)(context)) != 0)) {
+        fprintf(stderr, "unable to obtain stack trace: unw_init_local: %s\n", unw_strerror(r));
+        goto terminate;
+    }
+
+    char *temp = msg;
+    int cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "stacktrace:sig %d:", sig_num);
+    temp += cw;
+    r = 1;
+    while (r > 0) {
+        if (unw_is_signal_frame(&cursor) == 0) {
+            unw_word_t off;
+            char name[256];
+            if (unw_get_proc_name(&cursor, name, sizeof(name), &off) == UNW_ENOMEM) {
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "[unknown]:");
+            } else {
+                cw = snprintf(
+                        temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "%s+0x%08" PRIx64, name, off);
+            }
+            temp += cw;
+        }
+
+        r = unw_step(&cursor);
+        if (r > 0) {
+            cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), ";");
+            temp += cw;
+        }
+    }
+    SCLogError(SC_ERR_SIGNAL, "%s", msg);
+
+terminate:
+    // Propagate signal to watchers, if any
+    kill(getpid(), sig_num);
+}
+#undef UNW_LOCAL_ONLY
+#endif /* HAVE_LIBUNWIND */
+#endif /* !OS_WIN32 */
 #endif
 
 #ifndef OS_WIN32
@@ -322,6 +375,7 @@ void GlobalsInitPreConfig(void)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
     SCThresholdConfGlobalInit();
+    SCProtoNameInit();
 }
 
 static void GlobalsDestroy(SCInstance *suri)
@@ -349,6 +403,7 @@ static void GlobalsDestroy(SCInstance *suri)
     LiveDeviceListClean();
     OutputDeregisterAll();
     FeatureTrackingRelease();
+    SCProtoNameRelease();
     TimeDeinit();
     if (!suri->disabled_detect) {
         SCReferenceConfDeinit();
@@ -357,6 +412,10 @@ static void GlobalsDestroy(SCInstance *suri)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
+
+#ifdef HAVE_DPDK
+    DPDKCleanupEAL();
+#endif
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
@@ -601,6 +660,10 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
+#ifdef HAVE_DPDK
+    printf("\t--dpdk                               : run in dpdk mode, uses interfaces from "
+           "suricata.yaml\n");
+#endif
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
@@ -895,6 +958,10 @@ void RegisterAllModules(void)
     TmModuleReceiveWinDivertRegister();
     TmModuleVerdictWinDivertRegister();
     TmModuleDecodeWinDivertRegister();
+
+    /* Dpdk */
+    TmModuleReceiveDPDKRegister();
+    TmModuleDecodeDPDKRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
@@ -937,6 +1004,16 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
             /* not an error condition if we have a 1.0 config */
             LiveBuildDeviceList("pfring");
         }
+#ifdef HAVE_DPDK
+    } else if (runmode == RUNMODE_DPDK) {
+        char iface_selector[] = "dpdk.interfaces";
+        int ret = LiveBuildDeviceList(iface_selector);
+        if (ret == 0) {
+            SCLogError(
+                    SC_ERR_INITIALIZATION, "No interface found in config for %s", iface_selector);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+#endif
 #ifdef HAVE_AF_PACKET
     } else if (runmode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
@@ -1002,9 +1079,9 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
     suri->group_name = NULL;
     suri->do_setuid = FALSE;
     suri->do_setgid = FALSE;
+#endif /* OS_WIN32 */
     suri->userid = 0;
     suri->groupid = 0;
-#endif /* OS_WIN32 */
     suri->delayed_detect = 0;
     suri->daemon = 0;
     suri->offline = 0;
@@ -1115,8 +1192,35 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
 #endif
 }
 
+static int ParseCommandLineDpdk(SCInstance *suri, const char *in_arg)
+{
+#ifdef HAVE_DPDK
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_DPDK;
+    } else if (suri->run_mode == RUNMODE_DPDK) {
+        SCLogInfo("Multiple dpdk options have no effect on Suricata");
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                             "has been specified");
+        PrintUsage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+#else
+    SCLogError(SC_ERR_NO_DPDK, "DPDK not enabled. On Linux "
+                               "host, make sure to pass --enable-dpdk to "
+                               "configure when building.");
+    return TM_ECODE_FAILED;
+#endif
+}
+
 static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 {
+#if defined(OS_WIN32) && !defined(HAVE_LIBWPCAP)
+    /* If running on Windows without Npcap, bail early as live capture is not supported. */
+    FatalError(SC_ERR_FATAL,
+            "Live capture not available. To support live capture compile against Npcap.");
+#endif
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
     if (in_arg != NULL) {
@@ -1192,6 +1296,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
+#ifdef HAVE_DPDK
+        {"dpdk", 0, 0, 0},
+#endif
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
@@ -1304,13 +1411,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
                 suri->capture_plugin_args = optarg;
-            }
-            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
-            {
+            } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
+                if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+            } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
                 if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
-            } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
 #ifdef HAVE_NETMAP
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
@@ -1348,14 +1457,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_NFLOG_NOSUPPORT, "NFLOG not enabled.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_NFLOG */
-            } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "pcap") == 0) {
                 if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
-            } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
                 EngineModeSetIPS();
-            } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     return TM_ECODE_FAILED;
@@ -1946,18 +2055,10 @@ static int MayDaemonize(SCInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int InitSignalHandler(SCInstance *suri)
+/* Initialize the user and group Suricata is to run as. */
+static int InitRunAs(SCInstance *suri)
 {
-    /* registering signals we use */
-#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-#endif
 #ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
-    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
-    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
-
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
     if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
@@ -1989,6 +2090,37 @@ static int InitSignalHandler(SCInstance *suri)
 
         sc_set_caps = TRUE;
     }
+#endif
+    return TM_ECODE_OK;
+}
+
+static int InitSignalHandler(SCInstance *suri)
+{
+    /* registering signals we use */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#if HAVE_LIBUNWIND
+    int enabled;
+    if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
+        enabled = 1;
+    }
+
+    if (enabled) {
+        SCLogInfo("Preparing unexpected signal handling");
+        struct sigaction stacktrace_action;
+        memset(&stacktrace_action, 0, sizeof(stacktrace_action));
+        stacktrace_action.sa_sigaction = SignalHandlerUnexpected;
+        stacktrace_action.sa_flags = SA_SIGINFO;
+        sigaction(SIGSEGV, &stacktrace_action, NULL);
+        sigaction(SIGABRT, &stacktrace_action, NULL);
+    }
+#endif /* HAVE_LIBUNWIND */
+#endif
+#ifndef OS_WIN32
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
+    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
+    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
 #endif /* OS_WIN32 */
 
     return TM_ECODE_OK;
@@ -2000,8 +2132,6 @@ static int InitSignalHandler(SCInstance *suri)
  * Will be run once per pcap in unix-socket mode */
 void PreRunInit(const int runmode)
 {
-    /* Initialize Datasets to be able to use them with unix socket */
-    DatasetsInit();
     HttpRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
@@ -2029,6 +2159,7 @@ void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
+    DatasetsInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {
         /* As the above did some necessary startup initialization, it
@@ -2500,8 +2631,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     const char *custom_umask;
     if (ConfGet("umask", &custom_umask) == 1) {
         uint16_t mask;
-        if (StringParseUint16(&mask, 8, strlen(custom_umask),
-                                    custom_umask) > 0) {
+        if (StringParseUint16(&mask, 8, (uint16_t)strlen(custom_umask), custom_umask) > 0) {
             umask((mode_t)mask);
         }
     }
@@ -2534,8 +2664,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     SigTableSetup(); /* load the rule keywords */
     SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
-
-    CIDRInit();
 
     TagInitCtx();
     PacketAlertTagInit();
@@ -2687,7 +2815,7 @@ int InitGlobal(void) {
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
-    (void)SCSetThreadName("Suricata-Main");
+    SCSetThreadName("Suricata-Main");
 
     /* Ignore SIGUSR2 as early as possble. We redeclare interest
      * once we're done launching threads. The goal is to either die
@@ -2761,10 +2889,11 @@ int SuricataMain(int argc, char **argv)
     SCLogDebug("vlan tracking is %s", vlan_tracking == 1 ? "enabled" : "disabled");
 
     SetupUserMode(&suricata);
+    InitRunAs(&suricata);
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(suricata.daemon, suricata.verbose);
+    SCLogLoadConfig(suricata.daemon, suricata.verbose, suricata.userid, suricata.groupid);
 
     LogVersion(&suricata);
     UtilCpuPrintSummary();

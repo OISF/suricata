@@ -32,6 +32,8 @@
 
 #include "stream.h"
 
+void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx);
+int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
@@ -41,7 +43,7 @@ int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
 
 uint32_t PatternStrength(uint8_t *, uint16_t);
 
-uint16_t PatternMatchDefaultMatcher(void);
+uint8_t PatternMatchDefaultMatcher(void);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
@@ -112,11 +114,24 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
+void DetectFrameMpmRegister(const char *name, int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type);
+void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
+        DetectEngineTransforms *transforms);
+void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int direction,
+        int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type);
 
 int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
          SigGroupHead *sgh, MpmCtx *mpm_ctx,
          const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
+int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 typedef struct PrefilterMpmListId {
     int list_id;
@@ -128,6 +143,8 @@ struct MpmListIdDataArgs {
     uint32_t local_id; /**< used as index into thread inspect array */
     void *txv;
 };
+
+void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

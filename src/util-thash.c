@@ -231,8 +231,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     GET_VAR(cnf_prefix, "hash-size");
     if ((ConfGet(varname, &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.hash_size = configval;
         }
     }
@@ -240,8 +239,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     GET_VAR(cnf_prefix, "prealloc");
     if ((ConfGet(varname, &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.prealloc = configval;
         } else {
             WarnInvalidConfEntry(varname, "%"PRIu32, ctx->config.prealloc);
@@ -348,7 +346,6 @@ void THashConsolidateMemcap(THashTableContext *ctx)
 void THashShutdown(THashTableContext *ctx)
 {
     THashData *h;
-    uint32_t u;
 
     /* free spare queue */
     while ((h = THashDataDequeue(&ctx->spare_q))) {
@@ -358,7 +355,7 @@ void THashShutdown(THashTableContext *ctx)
 
     /* clear and free the hash */
     if (ctx->array != NULL) {
-        for (u = 0; u < ctx->config.hash_size; u++) {
+        for (uint32_t u = 0; u < ctx->config.hash_size; u++) {
             h = ctx->array[u].head;
             while (h) {
                 THashData *n = h->next;

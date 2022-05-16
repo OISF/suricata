@@ -154,7 +154,7 @@ static DetectFileextData *DetectFileextParse (DetectEngineCtx *de_ctx, const cha
     }
     uint16_t u;
     for (u = 0; u < fileext->len; u++)
-        fileext->ext[u] = tolower(fileext->ext[u]);
+        fileext->ext[u] = u8_tolower(fileext->ext[u]);
 
     if (negate) {
         fileext->flags |= DETECT_CONTENT_NEGATED;
