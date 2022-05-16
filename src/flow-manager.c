@@ -131,6 +131,51 @@ typedef struct FlowTimeoutCounters_ {
     uint64_t bypassed_bytes;
 } FlowTimeoutCounters;
 
+typedef struct FlowQueueTimeoutCounters {
+    uint32_t flows_removed;
+    uint32_t flows_timeout;
+} FlowQueueTimeoutCounters;
+
+typedef struct FlowCounters_ {
+    uint16_t flow_mgr_full_pass;
+    uint16_t flow_mgr_cnt_clo;
+    uint16_t flow_mgr_cnt_new;
+    uint16_t flow_mgr_cnt_est;
+    uint16_t flow_mgr_cnt_byp;
+    uint16_t flow_mgr_spare;
+    uint16_t flow_emerg_mode_enter;
+    uint16_t flow_emerg_mode_over;
+
+    uint16_t flow_mgr_flows_checked;
+    uint16_t flow_mgr_flows_notimeout;
+    uint16_t flow_mgr_flows_timeout;
+    uint16_t flow_mgr_flows_timeout_inuse;
+    uint16_t flow_mgr_flows_aside;
+    uint16_t flow_mgr_flows_aside_needs_work;
+
+    uint16_t flow_mgr_rows_maxlen;
+
+    uint16_t flow_bypassed_cnt_clo;
+    uint16_t flow_bypassed_pkts;
+    uint16_t flow_bypassed_bytes;
+} FlowCounters;
+
+typedef struct FlowManagerTimeoutThread {
+    /* used to temporarily store flows that have timed out and are
+     * removed from the hash */
+    FlowQueuePrivate aside_queue;
+} FlowManagerTimeoutThread;
+
+typedef struct FlowManagerThreadData_ {
+    uint32_t instance;
+    uint32_t min;
+    uint32_t max;
+
+    FlowCounters cnt;
+
+    FlowManagerTimeoutThread timeout;
+} FlowManagerThreadData;
+
 /**
  * \brief Used to disable flow manager thread(s).
  *
@@ -263,12 +308,6 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
 #endif /* CAPTURE_OFFLOAD */
     return 1;
 }
-
-typedef struct FlowManagerTimeoutThread {
-    /* used to temporarily store flows that have timed out and are
-     * removed from the hash */
-    FlowQueuePrivate aside_queue;
-} FlowManagerTimeoutThread;
 
 static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCounters *counters)
 {
@@ -586,45 +625,6 @@ static void Recycler(ThreadVars *tv, void *output_thread_data, Flow *f)
     FLOWLOCK_UNLOCK(f);
     FlowSparePoolReturnFlow(f);
 }
-
-typedef struct FlowQueueTimeoutCounters {
-    uint32_t flows_removed;
-    uint32_t flows_timeout;
-} FlowQueueTimeoutCounters;
-
-typedef struct FlowCounters_ {
-    uint16_t flow_mgr_full_pass;
-    uint16_t flow_mgr_cnt_clo;
-    uint16_t flow_mgr_cnt_new;
-    uint16_t flow_mgr_cnt_est;
-    uint16_t flow_mgr_cnt_byp;
-    uint16_t flow_mgr_spare;
-    uint16_t flow_emerg_mode_enter;
-    uint16_t flow_emerg_mode_over;
-
-    uint16_t flow_mgr_flows_checked;
-    uint16_t flow_mgr_flows_notimeout;
-    uint16_t flow_mgr_flows_timeout;
-    uint16_t flow_mgr_flows_timeout_inuse;
-    uint16_t flow_mgr_flows_aside;
-    uint16_t flow_mgr_flows_aside_needs_work;
-
-    uint16_t flow_mgr_rows_maxlen;
-
-    uint16_t flow_bypassed_cnt_clo;
-    uint16_t flow_bypassed_pkts;
-    uint16_t flow_bypassed_bytes;
-} FlowCounters;
-
-typedef struct FlowManagerThreadData_ {
-    uint32_t instance;
-    uint32_t min;
-    uint32_t max;
-
-    FlowCounters cnt;
-
-    FlowManagerTimeoutThread timeout;
-} FlowManagerThreadData;
 
 static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 {
