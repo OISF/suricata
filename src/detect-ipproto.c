@@ -35,7 +35,6 @@
 #include "detect-engine-mpm.h"
 
 #include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
 
 #include "util-byte.h"
 #include "util-proto-name.h"

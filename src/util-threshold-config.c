@@ -35,7 +35,6 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-address.h"
 #include "detect-engine-threshold.h"
 #include "detect-threshold.h"
 #include "detect-parse.h"

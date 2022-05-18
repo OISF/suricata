@@ -20,7 +20,6 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 
-#include "detect-engine-address.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-mpm.h"

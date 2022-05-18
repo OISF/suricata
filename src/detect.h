@@ -116,48 +116,6 @@ enum DetectSigmatchListEnum {
  * file_data */
 #define DETECT_SM_LIST_NOTSET INT_MAX
 
-/*
- * DETECT ADDRESS
- */
-
-/* a is ... than b */
-enum {
-    ADDRESS_ER = -1, /**< error e.g. compare ipv4 and ipv6 */
-    ADDRESS_LT,      /**< smaller              [aaa] [bbb] */
-    ADDRESS_LE,      /**< smaller with overlap [aa[bab]bb] */
-    ADDRESS_EQ,      /**< exactly equal        [abababab]  */
-    ADDRESS_ES,      /**< within               [bb[aaa]bb] and [[abab]bbb] and [bbb[abab]] */
-    ADDRESS_EB,      /**< completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
-    ADDRESS_GE,      /**< bigger with overlap  [bb[aba]aa] */
-    ADDRESS_GT,      /**< bigger               [bbb] [aaa] */
-};
-
-#define ADDRESS_FLAG_NOT            0x01 /**< address is negated */
-
-/** \brief address structure for use in the detection engine.
- *
- *  Contains the address information and matching information.
- */
-typedef struct DetectAddress_ {
-    /** address data for this group */
-    Address ip;
-    Address ip2;
-
-    /** flags affecting this address */
-    uint8_t flags;
-
-    /** ptr to the previous address in the list */
-    struct DetectAddress_ *prev;
-    /** ptr to the next address in the list */
-    struct DetectAddress_ *next;
-} DetectAddress;
-
-/** Address grouping head. IPv4 and IPv6 are split out */
-typedef struct DetectAddressHead_ {
-    DetectAddress *ipv4_head;
-    DetectAddress *ipv6_head;
-} DetectAddressHead;
-
 struct DetectAddresses {
     SCRadix4Tree ipv4;
     SCRadix6Tree ipv6;
@@ -166,16 +124,6 @@ struct DetectAddresses {
     {                                                                                              \
         .ipv4 = SC_RADIX4_TREE_INITIALIZER, .ipv6 = SC_RADIX6_TREE_INITIALIZER                     \
     }
-
-typedef struct DetectMatchAddressIPv4_ {
-    uint32_t ip;    /**< address in host order, start of range */
-    uint32_t ip2;   /**< address in host order, end of range */
-} DetectMatchAddressIPv4;
-
-typedef struct DetectMatchAddressIPv6_ {
-    uint32_t ip[4];
-    uint32_t ip2[4];
-} DetectMatchAddressIPv6;
 
 /*
  * DETECT PORT
@@ -570,17 +518,6 @@ typedef struct Signature_ {
     uint16_t class_id;
 
     struct DetectAddresses ip_src, ip_dst;
-
-    /** ipv4 match arrays */
-    uint16_t addr_dst_match4_cnt;
-    uint16_t addr_src_match4_cnt;
-    uint16_t addr_dst_match6_cnt;
-    uint16_t addr_src_match6_cnt;
-    DetectMatchAddressIPv4 *addr_dst_match4;
-    DetectMatchAddressIPv4 *addr_src_match4;
-    /** ipv6 match arrays */
-    DetectMatchAddressIPv6 *addr_dst_match6;
-    DetectMatchAddressIPv6 *addr_src_match6;
 
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     uint32_t gid; /**< generator id */

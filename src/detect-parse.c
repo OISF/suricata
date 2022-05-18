@@ -28,7 +28,6 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-ip.h"
 #include "detect-engine-mpm.h"
