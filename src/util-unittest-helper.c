@@ -622,11 +622,7 @@ int UTHGenericTest(Packet **pkt, int numpkts, const char *sigs[], uint32_t sids[
     result = UTHMatchPacketsWithResults(de_ctx, pkt, numpkts, sids, results, numsigs);
 
 cleanup:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
@@ -680,29 +676,23 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
  */
 int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 {
-    if (de_ctx == NULL || numsigs <= 0 || sigs == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if sigs or de_ctx are NULL, and if the array contain sigs");
-        return 0;
-    }
-    //SCLogDebug("Adding %d signatures for the current unittest", numsigs);
+    BUG_ON(de_ctx == NULL);
+    BUG_ON(numsigs <= 0);
+    BUG_ON(sigs == NULL);
 
-    Signature *s;
-    int i = 0;
-
-    for ( ; i < numsigs; i++) {
+    for (int i = 0; i < numsigs; i++) {
         if (sigs[i] == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature"
                        " at position %d", i);
             return 0;
         }
-        s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        Signature *s = DetectEngineAppendSig(de_ctx, sigs[i]);
         if (s == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature at"
                        " position %d (%s)", i, sigs[i]);
             return 0;
         }
     }
-    //SCLogDebug("Added %d signatures to the de_ctx of the unittest", i);
     return 1;
 }
 
@@ -719,39 +709,28 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
  */
 int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_packets, uint32_t sids[], uint32_t *results, int numsigs)
 {
+    BUG_ON(de_ctx == NULL);
+    BUG_ON(p == NULL);
+
     int result = 0;
-
-    if (de_ctx == NULL || p == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
-        result = 0;
-        goto end;
-    }
-
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
-    //de_ctx->flags |= DE_QUIET;
-
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int i = 0;
-    for (; i < num_packets; i++) {
+    for (int i = 0; i < num_packets; i++) {
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
         if (UTHCheckPacketMatchResults(p[i], sids, &results[(i * numsigs)], numsigs) == 0)
             goto cleanup;
     }
 
-    /* so far, so good ;) */
     result = 1;
-
 cleanup:
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-end:
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     return result;
 }
 
@@ -769,42 +748,29 @@ end:
  */
 int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
 {
+    BUG_ON(de_ctx == NULL);
+    BUG_ON(p == NULL);
     int result = 1;
-
-    if (de_ctx == NULL || p == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
-        result = 0;
-        goto end;
-    }
-
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-
-    //de_ctx->flags |= DE_QUIET;
-
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int i = 0;
-    for (; i < num_packets; i++)
+    for (int i = 0; i < num_packets; i++)
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
 
     /* Here we don't check if the packet matched or not, because
      * the de_ctx can have multiple signatures, and some of them may match
      * and others may not. That check will be outside
      */
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-end:
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-
     return result;
 }
 
@@ -857,15 +823,8 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 
     result = 1;
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     SCReturnInt(result);
 }
 
