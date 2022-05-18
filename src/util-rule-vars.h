@@ -31,6 +31,8 @@ typedef enum {
 } SCRuleVarsType;
 
 const char *SCRuleVarsGetConfVar(const DetectEngineCtx *, const char *, SCRuleVarsType);
+int DetectAddressTestConfVars(void);
+#ifdef UNITTESTS
 void SCRuleVarsRegisterTests(void);
-
+#endif
 #endif /* __UTIL_RULE_VARS_H__ */

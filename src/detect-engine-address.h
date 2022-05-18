@@ -41,8 +41,6 @@ int DetectAddressCmp(DetectAddress *, DetectAddress *);
 int DetectAddressMatchIPv4(const DetectMatchAddressIPv4 *, uint16_t, const Address *);
 int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *, uint16_t, const Address *);
 
-int DetectAddressTestConfVars(void);
-
 void DetectAddressTests(void);
 
 int DetectAddressMapInit(DetectEngineCtx *de_ctx);

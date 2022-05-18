@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,7 +31,9 @@
 #include "detect-content.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect-engine-ip.h"
+#include "detect-engine-iponly.h"
+#include "detect-engine-port.h"
 
 #include "util-rule-vars.h"
 #include "util-enum.h"
@@ -110,6 +112,42 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
     SCReturnCharPtr(conf_var_full_name_value);
 }
 
+int DetectAddressTestConfVars(void)
+{
+    SCLogDebug("Testing address conf vars for any misconfigured values");
+
+    ConfNode *address_vars_node = ConfGetNode("vars.address-groups");
+    if (address_vars_node == NULL) {
+        return 0;
+    }
+
+    ConfNode *seq_node;
+    TAILQ_FOREACH (seq_node, &address_vars_node->head, next) {
+        SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
+
+        if (seq_node->val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "Address var \"%s\" probably has a sequence(something "
+                    "in brackets) value set without any quotes. Please "
+                    "quote it using \"..\".",
+                    seq_node->name);
+            return -1;
+        }
+
+        struct DetectAddresses a = { .ipv4 = SC_RADIX4_TREE_INITIALIZER,
+            .ipv6 = SC_RADIX6_TREE_INITIALIZER };
+        int r = DetectParseAddressesValidate(&a, seq_node->val);
+        if (r < 0 || (a.ipv4.head == NULL && a.ipv6.head == NULL)) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "failed to parse address var \"%s\" with value \"%s\". "
+                    "Please check syntax and make sure its not fully negated",
+                    seq_node->name, seq_node->val);
+            return -1;
+        }
+        DetectAddressesClear(&a);
+    }
+    return 0;
+}
 
 /**********************************Unittests***********************************/
 #ifdef UNITTESTS
@@ -416,18 +454,450 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
+static int AddressConfVarsTest01(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"!any\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"!any\"\n"
+                                           "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+static int AddressConfVarsTest02(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"any\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"!any\"\n"
+                                           "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+static int AddressConfVarsTest03(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"!$HOME_NET\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"!$HTTP_PORTS\"\n"
+                                           "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+static int AddressConfVarsTest04(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"$HOME_NET\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"$HTTP_PORTS\"\n"
+                                           "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() == 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+static int AddressConfVarsTest05(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: [192.168.0.1]\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: [80]\n"
+                                           "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() != -1 && DetectPortTestConfVars() != -1)
+        goto end;
+
+    result = 1;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+static int AddressConfVarsTest06(void)
+{
+    // HOME_NET value size = 10261 bytes
+    static const char *dummy_conf_string =
+            "%YAML 1.1\n"
+            "---\n"
+            "\n"
+            "vars:\n"
+            "\n"
+            "  address-groups:\n"
+            "\n"
+            "    HOME_NET: "
+            "\"[2002:0000:3238:DFE1:63:0000:0000:FEFB,2002:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2004:0000:3238:DFE1:63:0000:0000:FEFB,2005:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2006:0000:3238:DFE1:63:0000:0000:FEFB,2007:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB]\"\n"
+            "\n"
+            "    EXTERNAL_NET: \"any\"\n"
+            "\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    FAIL_IF(0 != DetectAddressTestConfVars());
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    PASS;
+}
+
+static int AddressConfVarsTest07(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"$EXTERNAL_NET\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"$HOME_NET\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"any\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"!any\"\n"
+                                           "\n";
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    FAIL_IF_NOT(DetectAddressTestConfVars() < 0);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    PASS;
+}
+
+static int AddressConfVarsTest08(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"any\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"any\"\n"
+                                           "\n"
+                                           "  port-groups:\n"
+                                           "\n"
+                                           "    HTTP_PORTS: \"$SHELLCODE_PORTS\"\n"
+                                           "\n"
+                                           "    SHELLCODE_PORTS: \"$HTTP_PORTS\"\n"
+                                           "\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    FAIL_IF_NOT(DetectPortTestConfVars() < 0);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    PASS;
+}
+
+static int AddressConfVarsTest09(void)
+{
+    static const char *dummy_conf_string = "%YAML 1.1\n"
+                                           "---\n"
+                                           "\n"
+                                           "vars:\n"
+                                           "\n"
+                                           "  address-groups:\n"
+                                           "\n"
+                                           "    HOME_NET: \"10.0.0.0/8,$EXTERNAL_NET\"\n"
+                                           "\n"
+                                           "    EXTERNAL_NET: \"$HOME_NET, 123.45.67.0/24\"\n"
+                                           "\n";
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    FAIL_IF_NOT(DetectAddressTestConfVars() < 0);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    PASS;
+}
 
 void SCRuleVarsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("SCRuleVarsPositiveTest01", SCRuleVarsPositiveTest01);
     UtRegisterTest("SCRuleVarsNegativeTest02", SCRuleVarsNegativeTest02);
     UtRegisterTest("SCRuleVarsPositiveTest03", SCRuleVarsPositiveTest03);
     UtRegisterTest("SCRuleVarsNegativeTest04", SCRuleVarsNegativeTest04);
 
     UtRegisterTest("SCRuleVarsMTest01", SCRuleVarsMTest01);
-#endif
 
+    UtRegisterTest("AddressConfVarsTest01 ", AddressConfVarsTest01);
+    UtRegisterTest("AddressConfVarsTest02 ", AddressConfVarsTest02);
+    UtRegisterTest("AddressConfVarsTest03 ", AddressConfVarsTest03);
+    UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04);
+    UtRegisterTest("AddressConfVarsTest05 ", AddressConfVarsTest05);
+    UtRegisterTest("AddressConfVarsTest06 ", AddressConfVarsTest06);
+    UtRegisterTest("AddressConfVarsTest07 ", AddressConfVarsTest07);
+    UtRegisterTest("AddressConfVarsTest08 ", AddressConfVarsTest08);
+    UtRegisterTest("AddressConfVarsTest09 ", AddressConfVarsTest09);
     return;
 }
+#endif /* UNITTESTS */
