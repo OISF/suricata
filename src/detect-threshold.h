@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,22 +62,8 @@ typedef struct DetectThresholdData_ {
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
-    DetectAddressHead addrs;
+    struct DetectAddresses addrs;
 } DetectThresholdData;
-
-typedef struct DetectThresholdEntry_ {
-    uint32_t sid;           /**< Signature id */
-    uint32_t gid;           /**< Signature group id */
-
-    uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
-                                 its not "seconds", that define the time interval */
-    uint32_t seconds;       /**< Event seconds */
-    uint32_t current_count; /**< Var for count control */
-    int track;          /**< Track type: by_src, by_src */
-
-    struct timeval tv1;     /**< Var for time control */
-    struct DetectThresholdEntry_ *next;
-} DetectThresholdEntry;
 
 
 /**
@@ -86,5 +72,6 @@ typedef struct DetectThresholdEntry_ {
 
 void DetectThresholdRegister(void);
 DetectThresholdData *DetectThresholdDataCopy(DetectThresholdData *);
+void DetectThresholdFree(DetectEngineCtx *de_ctx, DetectThresholdData *de);
 
 #endif /*__DETECT_THRESHOLD_H__ */
