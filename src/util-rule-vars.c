@@ -274,122 +274,23 @@ static int SCRuleVarsNegativeTest02(void)
  */
 static int SCRuleVarsPositiveTest03(void)
 {
-    int result = 0;
-    Signature *s = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-/*
-    s = SigInit(de_ctx, "alert tcp $HTTP_SERVERS any -> any any (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
 
-    s = SigInit(de_ctx, "alert tcp $SMTP_SERVERS any -> $HTTP_SERVERS any (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp [$HTTP_SERVERS,$HOME_NET,192.168.2.5] $HTTP_PORTS -> $EXTERNAL_NET "
+            "[80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s = SigInit(de_ctx, "alert tcp $AIM_SERVERS any -> $AIM_SERVERS any (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp $TELNET_SERVERS any -> any $SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp $TELNET_SERVERS any -> any !$SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp $TELNET_SERVERS 80 -> any !$SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp $TELNET_SERVERS !80 -> any !$SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp !$HTTP_SERVERS !80 -> any !$SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp 192.168.1.2 any -> any $HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp !192.168.1.2 any -> any $HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp !192.168.1.2 any -> any !$HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp !192.168.1.2 any -> !$HTTP_SERVERS !$HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp !192.168.1.2 $HTTP_PORTS -> !$HTTP_SERVERS !$HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp [!192.168.24.0/23,!167.12.0.0/24] any -> any $HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp ![192.168.24.0/23,!167.12.0.0/24] any -> any $HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp [$HOME_NET,!192.168.1.2] $HTTP_PORTS -> !$HTTP_SERVERS !$HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp [[192.168.1.3,$EXTERNAL_NET],192.168.2.5] $HTTP_PORTS -> !$HTTP_SERVERS !$HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-
-    s = SigInit(de_ctx, "alert tcp [[192.168.1.3,$EXTERNAL_NET],192.168.2.5] $HTTP_PORTS -> !$HTTP_SERVERS [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(s);
-*/
-    s = SigInit(de_ctx, "alert tcp [$HTTP_SERVERS,$HOME_NET,192.168.2.5] $HTTP_PORTS -> $EXTERNAL_NET [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
-    if (s == NULL)
-        goto end;
-    SigFree(de_ctx, s);
-
-    result = 1;
-
-end:
     ConfDeInit();
     ConfRestoreContextBackup();
-
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
