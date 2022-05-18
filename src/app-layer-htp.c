@@ -76,7 +76,16 @@
 //#define PRINT
 
 /** Fast lookup tree (radix) for the various HTP configurations */
-static SCRadixTree *cfgtree;
+static struct HTPConfigTree {
+    SCRadix4Tree ipv4;
+    SCRadix6Tree ipv6;
+} cfgtree = {
+    .ipv4 = SC_RADIX4_TREE_INITIALIZER,
+    .ipv6 = SC_RADIX6_TREE_INITIALIZER,
+};
+SCRadix4Config htp_radix4_cfg = { NULL, NULL };
+SCRadix6Config htp_radix6_cfg = { NULL, NULL };
+
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
 
@@ -791,11 +800,12 @@ static int Setup(Flow *f, HtpState *hstate)
 
     if (FLOW_IS_IPV4(f)) {
         SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
-        (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree, &user_data);
+        (void)SCRadix4TreeFindBestMatch(
+                &cfgtree.ipv4, (uint8_t *)GET_IPV4_DST_ADDR_PTR(f), &user_data);
     }
     else if (FLOW_IS_IPV6(f)) {
         SCLogDebug("Looking up HTP config for ipv6");
-        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree, &user_data);
+        (void)SCRadix6TreeFindBestMatch(&cfgtree.ipv6, (uint8_t *)GET_IPV6_DST_ADDR(f), &user_data);
     }
     else {
         SCLogError("unknown address family, bug!");
@@ -1659,8 +1669,6 @@ void HTPFreeConfig(void)
     }
 
     HTPCfgRec *nextrec = cfglist.next;
-    SCRadixReleaseRadixTree(cfgtree);
-    cfgtree = NULL;
     htp_config_destroy(cfglist.cfg);
     while (nextrec != NULL) {
         HTPCfgRec *htprec = nextrec;
@@ -1669,6 +1677,8 @@ void HTPFreeConfig(void)
         htp_config_destroy(htprec->cfg);
         SCFree(htprec);
     }
+    SCRadix4TreeRelease(&cfgtree.ipv4, &htp_radix4_cfg);
+    SCRadix6TreeRelease(&cfgtree.ipv6, &htp_radix6_cfg);
     SCReturn;
 }
 
@@ -2162,8 +2172,7 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 }
 
-static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
-                                     SCRadixTree *tree)
+static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HTPConfigTree *tree)
 {
     if (cfg_prec == NULL || s == NULL || tree == NULL)
         return;
@@ -2171,31 +2180,26 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
     ConfNode *p = NULL;
 
     /* Default Parameters */
-    TAILQ_FOREACH(p, &s->head, next) {
-
+    TAILQ_FOREACH (p, &s->head, next) {
         if (strcasecmp("address", p->name) == 0) {
             ConfNode *pval;
             /* Addresses */
             TAILQ_FOREACH(pval, &p->head, next) {
-                SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name,
-                           pval->val);
-
+                SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name, pval->val);
                 /* IPV6 or IPV4? */
                 if (strchr(pval->val, ':') != NULL) {
                     SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
-                    if (!SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec)) {
-                        SCLogWarning("LIBHTP failed to "
-                                     "add ipv6 server %s, ignoring",
-                                pval->val);
+                    if (!SCRadix6AddKeyIPV6String(
+                                &tree->ipv6, &htp_radix6_cfg, pval->val, cfg_prec)) {
+                        SCLogWarning("LIBHTP failed to add ipv6 server %s, ignoring", pval->val);
                     }
                 } else {
                     SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
-                    if (!SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec)) {
-                        SCLogWarning("LIBHTP failed "
-                                     "to add ipv4 server %s, ignoring",
-                                pval->val);
+                    if (!SCRadix4AddKeyIPV4String(
+                                &tree->ipv4, &htp_radix4_cfg, pval->val, cfg_prec)) {
+                        SCLogWarning("LIBHTP failed to add ipv4 server %s, ignoring", pval->val);
                     }
                 } /* else - if (strchr(pval->val, ':') != NULL) */
             } /* TAILQ_FOREACH(pval, &p->head, next) */
@@ -2563,10 +2567,6 @@ void HTPConfigure(void)
     htp_sbcfg.Realloc = HTPRealloc;
     htp_sbcfg.Free = HTPFree;
 
-    cfgtree = SCRadixCreateRadixTree(NULL, NULL);
-    if (NULL == cfgtree)
-        exit(EXIT_FAILURE);
-
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
@@ -2575,10 +2575,10 @@ void HTPConfigure(void)
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
     HTPConfigSetDefaultsPhase1(&cfglist);
     if (ConfGetNode("app-layer.protocols.http.libhtp") == NULL) {
-        HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"),
-                                 cfgtree);
+        HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"), &cfgtree);
     } else {
-        HTPConfigParseParameters(&cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), cfgtree);
+        HTPConfigParseParameters(
+                &cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), &cfgtree);
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
 
@@ -2621,7 +2621,7 @@ void HTPConfigure(void)
         }
 
         HTPConfigSetDefaultsPhase1(htprec);
-        HTPConfigParseParameters(htprec, s, cfgtree);
+        HTPConfigParseParameters(htprec, s, &cfgtree);
         HTPConfigSetDefaultsPhase2(s->name, htprec);
     }
 
@@ -3957,14 +3957,11 @@ libhtp:\n\
     ConfCreateContextBackup();
     ConfInit();
     HtpConfigCreateBackup();
-
     ConfYamlLoadString(input, strlen(input));
-
     HTPConfigure();
-
     FAIL_IF_NULL(cfglist.cfg);
-
-    FAIL_IF_NULL(cfgtree);
+    FAIL_IF_NULL(cfgtree.ipv4.head);
+    FAIL_IF_NULL(cfgtree.ipv6.head);
 
     htp_cfg_t *htp = cfglist.cfg;
     uint8_t buf[128];
@@ -3973,7 +3970,7 @@ libhtp:\n\
 
     addr = "192.168.10.42";
     FAIL_IF(inet_pton(AF_INET, addr, buf) != 1);
-    (void)SCRadixFindKeyIPV4BestMatch(buf, cfgtree, &user_data);
+    (void)SCRadix4TreeFindBestMatch(&cfgtree.ipv4, buf, &user_data);
     FAIL_IF_NULL(user_data);
     HTPCfgRec *htp_cfg_rec = user_data;
     htp = htp_cfg_rec->cfg;
@@ -3983,7 +3980,7 @@ libhtp:\n\
     user_data = NULL;
     addr = "::1";
     FAIL_IF(inet_pton(AF_INET6, addr, buf) != 1);
-    (void)SCRadixFindKeyIPV6BestMatch(buf, cfgtree, &user_data);
+    (void)SCRadix6TreeFindBestMatch(&cfgtree.ipv6, buf, &user_data);
     FAIL_IF_NULL(user_data);
     htp_cfg_rec = user_data;
     htp = htp_cfg_rec->cfg;
@@ -4049,15 +4046,16 @@ libhtp:\n\
     f->alproto = ALPROTO_HTTP1;
 
     htp_cfg_t *htp = cfglist.cfg;
+    FAIL_IF_NULL(htp);
 
     void *user_data = NULL;
-    (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)f->dst.addr_data32, cfgtree, &user_data);
+    (void)SCRadix4TreeFindBestMatch(&cfgtree.ipv4, (uint8_t *)f->dst.addr_data32, &user_data);
     FAIL_IF_NULL(user_data);
+
     HTPCfgRec *htp_cfg_rec = user_data;
     htp = htp_cfg_rec->cfg;
+    FAIL_IF_NULL(user_data);
     SCLogDebug("LIBHTP using config: %p", htp);
-
-    FAIL_IF_NULL(htp);
 
     StreamTcpInitConfig(true);
 
