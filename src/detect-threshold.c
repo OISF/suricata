@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,6 +41,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-ip.h"
+#include "detect-engine-iponly.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -66,7 +68,7 @@ static DetectParseRegex parse_regex;
 static int DetectThresholdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectThresholdFree(DetectEngineCtx *, void *);
+static void DetectThresholdDoFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void ThresholdRegisterTests(void);
 #endif
@@ -82,7 +84,7 @@ void DetectThresholdRegister(void)
     sigmatch_table[DETECT_THRESHOLD].url = "/rules/thresholding.html#threshold";
     sigmatch_table[DETECT_THRESHOLD].Match = DetectThresholdMatch;
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;
-    sigmatch_table[DETECT_THRESHOLD].Free  = DetectThresholdFree;
+    sigmatch_table[DETECT_THRESHOLD].Free = DetectThresholdDoFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
 #endif
@@ -277,13 +279,18 @@ error:
  *
  * \param de pointer to DetectThresholdData
  */
-static void DetectThresholdFree(DetectEngineCtx *de_ctx, void *de_ptr)
+static void DetectThresholdDoFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
     if (de) {
-        DetectAddressHeadCleanup(&de->addrs);
+        DetectAddressesClear(&de->addrs);
         SCFree(de);
     }
+}
+
+void DetectThresholdFree(DetectEngineCtx *de_ctx, DetectThresholdData *de)
+{
+    DetectThresholdDoFree(de_ctx, de);
 }
 
 /**
@@ -298,34 +305,9 @@ DetectThresholdData *DetectThresholdDataCopy(DetectThresholdData *de)
         return NULL;
 
     *new_de = *de;
-    new_de->addrs.ipv4_head = NULL;
-    new_de->addrs.ipv6_head = NULL;
-
-    for (DetectAddress *last = NULL, *tmp_ad = de->addrs.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
-        DetectAddress *n_addr = DetectAddressCopy(tmp_ad);
-        if (n_addr == NULL)
-            goto error;
-        if (last == NULL) {
-            new_de->addrs.ipv4_head = n_addr;
-        } else {
-            last->next = n_addr;
-            n_addr->prev = last;
-        }
-        last = n_addr;
-    }
-    for (DetectAddress *last = NULL, *tmp_ad = de->addrs.ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
-        DetectAddress *n_addr = DetectAddressCopy(tmp_ad);
-        if (n_addr == NULL)
-            goto error;
-        if (last == NULL) {
-            new_de->addrs.ipv6_head = n_addr;
-        } else {
-            last->next = n_addr;
-            n_addr->prev = last;
-        }
-        last = n_addr;
-    }
-
+    new_de->addrs = DetectAddressesCopy(&de->addrs);
+    if (new_de->addrs.ipv4.head == NULL && new_de->addrs.ipv6.head == NULL) // TODO helper
+        goto error;
     return new_de;
 
 error:

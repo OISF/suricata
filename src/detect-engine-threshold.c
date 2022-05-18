@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -258,24 +258,22 @@ static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
 static int ThresholdHandlePacketSuppress(Packet *p,
         const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
-    int ret = 0;
-    DetectAddress *m = NULL;
+    bool m = false;
     switch (td->track) {
         case TRACK_DST:
-            m = DetectAddressLookupInHead(&td->addrs, &p->dst);
+            m = CheckAddress(&p->dst, &td->addrs);
             SCLogDebug("TRACK_DST");
             break;
         case TRACK_SRC:
-            m = DetectAddressLookupInHead(&td->addrs, &p->src);
+            m = CheckAddress(&p->src, &td->addrs);
             SCLogDebug("TRACK_SRC");
             break;
         /* suppress if either src or dst is a match on the suppress
          * address list */
         case TRACK_EITHER:
-            m = DetectAddressLookupInHead(&td->addrs, &p->src);
-            if (m == NULL) {
-                m = DetectAddressLookupInHead(&td->addrs, &p->dst);
-            }
+            m = CheckAddress(&p->src, &td->addrs);
+            if (!m)
+                m = CheckAddress(&p->dst, &td->addrs);
             break;
         case TRACK_RULE:
         default:
@@ -283,12 +281,10 @@ static int ThresholdHandlePacketSuppress(Packet *p,
                     "track mode %d is not supported", td->track);
             break;
     }
-    if (m == NULL)
-        ret = 1;
+    if (!m)
+        return 1;
     else
-        ret = 2; /* suppressed but still need actions */
-
-    return ret;
+        return 2;
 }
 
 static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_action)

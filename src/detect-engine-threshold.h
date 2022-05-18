@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,6 +26,7 @@
 #define __DETECT_ENGINE_THRESHOLD_H__
 
 #include "detect.h"
+#include "detect-threshold.h"
 #include "host.h"
 #include "ippair.h"
 #include "host-storage.h"

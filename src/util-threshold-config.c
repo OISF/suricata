@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,8 +25,6 @@
  *
  * \author Breno Silva Pinto <breno.silva@gmail.com>
  *
- * \todo Need to support suppress
- *
  * Implements Threshold support
  */
 
@@ -41,6 +39,7 @@
 #include "detect-engine-threshold.h"
 #include "detect-threshold.h"
 #include "detect-parse.h"
+#include "detect-engine-iponly.h"
 
 #include "conf.h"
 #include "util-threshold-config.h"
@@ -322,8 +321,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         orig_de->seconds = parsed_seconds;
         orig_de->new_action = parsed_new_action;
         orig_de->timeout = parsed_timeout;
-        if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &orig_de->addrs, (char *)th_ip) <
-                0) {
+        if (DetectParseAddresses(de_ctx, &orig_de->addrs, th_ip) < 0) {
             SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
             goto error;
         }
@@ -421,20 +419,11 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
     }
 
 end:
-    if (orig_de != NULL) {
-        DetectAddressHeadCleanup(&orig_de->addrs);
-        SCFree(orig_de);
-    }
+    DetectThresholdFree(de_ctx, orig_de);
     return 0;
 error:
-    if (orig_de != NULL) {
-        DetectAddressHeadCleanup(&orig_de->addrs);
-        SCFree(orig_de);
-    }
-    if (de != NULL) {
-        DetectAddressHeadCleanup(&de->addrs);
-        SCFree(de);
-    }
+    DetectThresholdFree(de_ctx, orig_de);
+    DetectThresholdFree(de_ctx, de);
     return -1;
 }
 
@@ -618,10 +607,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 end:
     return 0;
 error:
-    if (de != NULL) {
-        DetectAddressHeadCleanup(&de->addrs);
-        SCFree(de);
-    }
+    DetectThresholdFree(de_ctx, de);
     return -1;
 }
 
