@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,13 +27,15 @@
 #define __REPUTATION_H__
 
 #include "host.h"
+#include "util-radix4-tree.h"
+#include "util-radix6-tree.h"
 
 #define SREP_MAX_CATS 60
 #define SREP_MAX_VAL 127
 
 typedef struct SRepCIDRTree_ {
-    SCRadixTree *srepIPV4_tree[SREP_MAX_CATS];
-    SCRadixTree *srepIPV6_tree[SREP_MAX_CATS];
+    SCRadix4Tree srep_ipv4_tree[SREP_MAX_CATS];
+    SCRadix6Tree srep_ipv6_tree[SREP_MAX_CATS];
 } SRepCIDRTree;
 
 typedef struct SReputation_ {
