@@ -35,7 +35,6 @@
 
 #include "detect-engine-alert.h"
 #include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"

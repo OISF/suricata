@@ -128,9 +128,6 @@ noinst_HEADERS = \
 	detect-dns-opcode.h \
 	detect-dns-query.h \
 	detect-dsize.h \
-	detect-engine-address.h \
-	detect-engine-address-ipv4.h \
-	detect-engine-address-ipv6.h \
 	detect-engine-alert.h \
 	detect-engine-analyzer.h \
 	detect-engine-build.h \
@@ -728,9 +725,6 @@ libsuricata_c_a_SOURCES = \
 	detect-dns-opcode.c \
 	detect-dns-query.c \
 	detect-dsize.c \
-	detect-engine-address.c \
-	detect-engine-address-ipv4.c \
-	detect-engine-address-ipv6.c \
 	detect-engine-alert.c \
 	detect-engine-analyzer.c \
 	detect-engine-build.c \

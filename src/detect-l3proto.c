@@ -36,7 +36,6 @@
 #include "detect-engine-mpm.h"
 
 #include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
 
 #include "detect-l3proto.h"
 
