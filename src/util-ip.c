@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -112,68 +112,6 @@ bool IPv6AddressStringIsValid(const char *str)
         return false;
     }
     return true;
-}
-
-/**
- * \brief Validates an IPV4 address and returns the network endian arranged
- *        version of the IPV4 address
- *
- * \param addr Pointer to a character string containing an IPV4 address.  A
- *             valid IPV4 address is a character string containing a dotted
- *             format of "ddd.ddd.ddd.ddd"
- *
- * \retval Pointer to an in_addr instance containing the network endian format
- *         of the IPV4 address
- * \retval NULL if the IPV4 address is invalid
- */
-struct in_addr *ValidateIPV4Address(const char *addr_str)
-{
-    struct in_addr *addr = NULL;
-
-    if (!IPv4AddressStringIsValid(addr_str))
-        return NULL;
-
-    if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in ValidateIPV4Address. Exiting...");
-    }
-
-    if (inet_pton(AF_INET, addr_str, addr) <= 0) {
-        SCFree(addr);
-        return NULL;
-    }
-
-    return addr;
-}
-
-/**
- * \brief Validates an IPV6 address and returns the network endian arranged
- *        version of the IPV6 addresss
- *
- * \param addr Pointer to a character string containing an IPV6 address
- *
- * \retval Pointer to a in6_addr instance containing the network endian format
- *         of the IPV6 address
- * \retval NULL if the IPV6 address is invalid
- */
-struct in6_addr *ValidateIPV6Address(const char *addr_str)
-{
-    struct in6_addr *addr = NULL;
-
-    if (!IPv6AddressStringIsValid(addr_str))
-        return NULL;
-
-    if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in ValidateIPV6Address. Exiting...");
-    }
-
-    if (inet_pton(AF_INET6, addr_str, addr) <= 0) {
-        SCFree(addr);
-        return NULL;
-    }
-
-    return addr;
 }
 
 /**
