@@ -33,7 +33,6 @@
 
 #include "util-print.h"
 #include "util-pool.h"
-#include "util-radix-tree.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"

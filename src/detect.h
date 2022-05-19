@@ -41,7 +41,6 @@
 #include "util-hashlist.h"
 #include "util-debug.h"
 #include "util-error.h"
-#include "util-radix-tree.h"
 #include "util-radix4-tree.h"
 #include "util-radix6-tree.h"
 #include "util-file.h"
