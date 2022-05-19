@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,7 +28,8 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-ip.h"
-#include "util-radix-tree.h"
+#include "util-radix4-tree.h"
+#include "util-radix6-tree.h"
 #include "util-byte.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -58,9 +59,9 @@ SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
     { NULL,          -1 },
 };
 
-/** Radix tree that holds the host OS information */
-static SCRadixTree *sc_hinfo_tree = NULL;
-
+/** Radix trees that hold the host OS information */
+static SCRadix4Tree sc_hinfo_tree4 = SC_RADIX4_TREE_INITIALIZER;
+static SCRadix6Tree sc_hinfo_tree6 = SC_RADIX6_TREE_INITIALIZER;
 
 /**
  * \brief Allocates the host_os flavour wrapped in user_data variable to be sent
@@ -75,20 +76,18 @@ static SCRadixTree *sc_hinfo_tree = NULL;
  */
 static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
 {
-    int *user_data = NULL;
-
-    if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
-        FatalError("Error allocating memory. Exiting");
-    }
-
     /* the host os flavour that has to be sent as user data */
-    if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {
-        SCLogError("Invalid enum map inside "
-                   "SCHInfoAddHostOSInfo()");
-        SCFree(user_data);
+    int v = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map);
+    if (v == -1) {
+        SCLogError("Invalid enum map inside SCHInfoAddHostOSInfo()");
         return NULL;
     }
 
+    int *user_data = SCMalloc(sizeof(int));
+    if (user_data == NULL) {
+        FatalError("Error allocating memory. Exiting");
+    }
+    *user_data = v;
     return (void *)user_data;
 }
 
@@ -102,6 +101,9 @@ static void SCHInfoFreeUserDataOSPolicy(void *data)
     if (data != NULL)
         SCFree(data);
 }
+
+static const SCRadix4Config ospolicy_radix4_config = { SCHInfoFreeUserDataOSPolicy, NULL };
+static const SCRadix6Config ospolicy_radix6_config = { SCHInfoFreeUserDataOSPolicy, NULL };
 
 /**
  * \brief Used to add the host-os-info data obtained from the conf
@@ -121,10 +123,6 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
 {
     char *ip_str = NULL;
     char *ip_str_rem = NULL;
-    struct in_addr *ipv4_addr = NULL;
-    struct in6_addr *ipv6_addr = NULL;
-    char *netmask_str = NULL;
-    uint8_t netmask_value = 0;
     int *user_data = NULL;
     bool recursive = false;
 
@@ -133,10 +131,6 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
         SCLogError("Invalid arguments");
         return -1;
     }
-
-    /* create the radix tree that would hold all the host os info */
-    if (sc_hinfo_tree == NULL)
-        sc_hinfo_tree = SCRadixCreateRadixTree(SCHInfoFreeUserDataOSPolicy, NULL);
 
     /* the host os flavour that has to be sent as user data */
     if ( (user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {
@@ -164,63 +158,29 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
         recursive = true;
     }
 
-    /* check if we have received a netblock */
-    if ( (netmask_str = strchr(ip_str, '/')) != NULL) {
-        netmask_str[0] = '\0';
-        netmask_str++;
-    }
-
     if (strchr(ip_str, ':') == NULL) {
-        /* if we are here, we have an IPV4 address */
-        if ( (ipv4_addr = ValidateIPV4Address(ip_str)) == NULL) {
-            SCLogError("Invalid IPV4 address");
+        if (!SCRadix4AddKeyIPV4String(
+                    &sc_hinfo_tree4, &ospolicy_radix4_config, ip_str, user_data)) {
+            if (sc_errno == SC_EEXIST) {
+                SCLogError("duplicate ipv4 address '%s'", ip_str);
+            } else {
+                SCLogError("invalid ipv4 address '%s'", ip_str);
+            }
             SCHInfoFreeUserDataOSPolicy(user_data);
             SCFree(ip_str);
             return -1;
-        }
-
-        if (netmask_str == NULL) {
-            SCRadixAddKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree,
-                              (void *)user_data);
-        } else {
-            if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 32) <
-                    0) {
-                SCLogError("Invalid IPV4 Netblock");
-                SCHInfoFreeUserDataOSPolicy(user_data);
-                SCFree(ipv4_addr);
-                SCFree(ip_str);
-                return -1;
-            }
-
-            MaskIPNetblock((uint8_t *)ipv4_addr, netmask_value, 32);
-            SCRadixAddKeyIPV4Netblock((uint8_t *)ipv4_addr, sc_hinfo_tree,
-                                      (void *)user_data, netmask_value);
         }
     } else {
-        /* if we are here, we have an IPV6 address */
-        if ( (ipv6_addr = ValidateIPV6Address(ip_str)) == NULL) {
-            SCLogError("Invalid IPV6 address inside");
+        if (!SCRadix6AddKeyIPV6String(
+                    &sc_hinfo_tree6, &ospolicy_radix6_config, ip_str, user_data)) {
+            if (sc_errno == SC_EEXIST) {
+                SCLogError("duplicate ipv6 address '%s'", ip_str);
+            } else {
+                SCLogError("invalid ipv6 address '%s'", ip_str);
+            }
             SCHInfoFreeUserDataOSPolicy(user_data);
             SCFree(ip_str);
             return -1;
-        }
-
-        if (netmask_str == NULL) {
-            SCRadixAddKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree,
-                              (void *)user_data);
-        } else {
-            if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 128) <
-                    0) {
-                SCLogError("Invalid IPV6 Netblock");
-                SCHInfoFreeUserDataOSPolicy(user_data);
-                SCFree(ipv6_addr);
-                SCFree(ip_str);
-                return -1;
-            }
-
-            MaskIPNetblock((uint8_t *)ipv6_addr, netmask_value, 128);
-            SCRadixAddKeyIPV6Netblock((uint8_t *)ipv6_addr, sc_hinfo_tree,
-                                      (void *)user_data, netmask_value);
         }
     }
 
@@ -229,13 +189,10 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     }
 
     SCFree(ip_str);
-    if (ipv4_addr != NULL)
-        SCFree(ipv4_addr);
-    if (ipv6_addr != NULL)
-        SCFree(ipv6_addr);
     return *user_data;
 }
 
+#ifdef UNITTESTS
 /**
  * \brief Retrieves the host os flavour, given an ipv4/ipv6 address as a string.
  *
@@ -243,41 +200,38 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
  *
  * \retval The OS flavour on success; -1 on failure, or on not finding the key
  */
-int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
+static int SCHInfoGetHostOSFlavour(const char *str)
 {
-    struct in_addr *ipv4_addr = NULL;
-    struct in6_addr *ipv6_addr = NULL;
     void *user_data = NULL;
 
-    if (ip_addr_str == NULL || strchr(ip_addr_str, '/') != NULL)
+    if (str == NULL || strchr(str, '/') != NULL)
         return -1;
 
-    if (strchr(ip_addr_str, ':') != NULL) {
-        if ( (ipv6_addr = ValidateIPV6Address(ip_addr_str)) == NULL) {
-            SCLogError("Invalid IPV4 address");
+    if (strchr(str, ':') != NULL) {
+        struct in6_addr addr;
+        if (inet_pton(AF_INET6, str, &addr) <= 0) {
+            SCLogError("Invalid IPV6 address");
             return -1;
         }
-
-        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)ipv6_addr, sc_hinfo_tree, &user_data);
-        SCFree(ipv6_addr);
+        (void)SCRadix6TreeFindBestMatch(&sc_hinfo_tree6, (uint8_t *)&addr.s6_addr, &user_data);
         if (user_data == NULL)
             return -1;
         else
             return *((int *)user_data);
     } else {
-        if ( (ipv4_addr = ValidateIPV4Address(ip_addr_str)) == NULL) {
+        struct in_addr addr;
+        if (inet_pton(AF_INET, str, &addr) <= 0) {
             SCLogError("Invalid IPV4 address");
             return -1;
         }
-
-        (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)ipv4_addr, sc_hinfo_tree, &user_data);
-        SCFree(ipv4_addr);
+        (void)SCRadix4TreeFindBestMatch(&sc_hinfo_tree4, (uint8_t *)&addr.s_addr, &user_data);
         if (user_data == NULL)
             return -1;
         else
             return *((int *)user_data);
     }
 }
+#endif
 
 /**
  * \brief Retrieves the host os flavour, given an ipv4 address in the raw
@@ -287,14 +241,13 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
  *
  * \retval The OS flavour on success; -1 on failure, or on not finding the key
  */
-int SCHInfoGetIPv4HostOSFlavour(uint8_t *ipv4_addr)
+int SCHInfoGetIPv4HostOSFlavour(uint8_t *addr)
 {
     void *user_data = NULL;
-    (void)SCRadixFindKeyIPV4BestMatch(ipv4_addr, sc_hinfo_tree, &user_data);
+    (void)SCRadix4TreeFindBestMatch(&sc_hinfo_tree4, addr, &user_data);
     if (user_data == NULL)
         return -1;
-    else
-        return *((int *)user_data);
+    return *((int *)user_data);
 }
 
 /**
@@ -305,22 +258,19 @@ int SCHInfoGetIPv4HostOSFlavour(uint8_t *ipv4_addr)
  *
  * \retval The OS flavour on success; -1 on failure, or on not finding the key
  */
-int SCHInfoGetIPv6HostOSFlavour(uint8_t *ipv6_addr)
+int SCHInfoGetIPv6HostOSFlavour(uint8_t *addr)
 {
     void *user_data = NULL;
-    (void)SCRadixFindKeyIPV6BestMatch(ipv6_addr, sc_hinfo_tree, &user_data);
+    (void)SCRadix6TreeFindBestMatch(&sc_hinfo_tree6, addr, &user_data);
     if (user_data == NULL)
         return -1;
-    else
-        return *((int *)user_data);
+    return *((int *)user_data);
 }
 
 void SCHInfoCleanResources(void)
 {
-    if (sc_hinfo_tree != NULL) {
-        SCRadixReleaseRadixTree(sc_hinfo_tree);
-        sc_hinfo_tree = NULL;
-    }
+    SCRadix4TreeRelease(&sc_hinfo_tree4, &ospolicy_radix4_config);
+    SCRadix6TreeRelease(&sc_hinfo_tree6, &ospolicy_radix6_config);
 }
 
 /**
@@ -342,10 +292,9 @@ void SCHInfoLoadFromConfig(void)
             if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;
             if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
-                SCLogError("Failed to add host \"%s\" with policy \"%s\" to host "
+                FatalError("Failed to add host \"%s\" with policy \"%s\" to host "
                            "info database",
                         host->val, policy->name);
-                exit(EXIT_FAILURE);
             }
         }
     }
@@ -354,18 +303,23 @@ void SCHInfoLoadFromConfig(void)
 /*------------------------------------Unit_Tests------------------------------*/
 
 #ifdef UNITTESTS
-static SCRadixTree *sc_hinfo_tree_backup = NULL;
+static SCRadix4Tree sc_hinfo_tree_backup4 = SC_RADIX4_TREE_INITIALIZER;
+static SCRadix6Tree sc_hinfo_tree_backup6 = SC_RADIX6_TREE_INITIALIZER;
 
 static void SCHInfoCreateContextBackup(void)
 {
-    sc_hinfo_tree_backup = sc_hinfo_tree;
-    sc_hinfo_tree = NULL;
+    sc_hinfo_tree_backup4 = sc_hinfo_tree4;
+    sc_hinfo_tree4 = SCRadix4TreeInitialize();
+    sc_hinfo_tree_backup6 = sc_hinfo_tree6;
+    sc_hinfo_tree6 = SCRadix6TreeInitialize();
 }
 
 static void SCHInfoRestoreContextBackup(void)
 {
-    sc_hinfo_tree = sc_hinfo_tree_backup;
-    sc_hinfo_tree_backup = NULL;
+    sc_hinfo_tree4 = sc_hinfo_tree_backup4;
+    sc_hinfo_tree_backup4 = SCRadix4TreeInitialize();
+    sc_hinfo_tree6 = sc_hinfo_tree_backup6;
+    sc_hinfo_tree_backup6 = SCRadix6TreeInitialize();
 }
 
 /**
@@ -377,27 +331,27 @@ static int SCHInfoTestInvalidOSFlavour01(void)
     SCHInfoCreateContextBackup();
 
     FAIL_IF(SCHInfoAddHostOSInfo("bamboo", "192.168.1.1", SC_HINFO_IS_IPV4) != -1);
-    FAIL_IF(SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("linux", "192.168.1.2", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("windows", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("windows", "192.168.1.3", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("solaris", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("solaris", "192.168.1.4", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("hpux10", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("hpux10", "192.168.1.5", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("hpux11", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("hpux11", "192.168.1.6", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("irix", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("irix", "192.168.1.7", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("bsd", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("bsd", "192.168.1.8", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("bsd", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("old_linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("old_linux", "192.168.1.9", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("old_linux", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("macos", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("macos", "192.168.1.10", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("vista", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("vista", "192.168.1.11", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
-    FAIL_IF(SCHInfoAddHostOSInfo("windows2k3", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+    FAIL_IF(SCHInfoAddHostOSInfo("windows2k3", "192.168.1.12", SC_HINFO_IS_IPV4) !=
             SCMapEnumNameToValue("windows2k3", sc_hinfo_os_policy_map));
 
     SCHInfoCleanResources();
@@ -1218,114 +1172,26 @@ static int SCHInfoTestValidIPV4Address09(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 0;
+    FAIL_IF(SCHInfoAddHostOSInfo("linux", "192.168.1.0", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoAddHostOSInfo("windows", "192.192.1.2", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("192.168.1.0") !=
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("solaris", "192.168.1.0/16", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoAddHostOSInfo("macos", "192.168.1.0/20", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("192.168.1.0") !=
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("vista", "192.168.50.128/25", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("192.168.50.128") !=
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("irix", "192.168.50.128", SC_HINFO_IS_IPV4) == -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("192.168.50.128") !=
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoGetHostOSFlavour("192.168.1.100") !=
+            SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map));
 
-    if (SCHInfoAddHostOSInfo("linux", "192.168.1.0", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("windows", "192.192.1.2", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("192.168.1.0") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("solaris", "192.168.1.0/16", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("macos", "192.168.1.0/20", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("192.168.1.0") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("vista", "192.168.50.128/25", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("192.168.50.128") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("irix", "192.168.50.128", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("192.168.50.128") !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    struct sockaddr_in servaddr;
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
-        goto end;
-    }
-
-    SCRadixRemoveKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, sc_hinfo_tree, 16);
-
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
-        goto end;
-    }
-    SCRadixRemoveKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, sc_hinfo_tree, 20);
-
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") != -1) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("solaris", "192.168.1.0/16", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("macos", "192.168.1.0/20", SC_HINFO_IS_IPV4) == -1) {
-        goto end;
-    }
-
-    /* 192.168.1.100 should match "macos" as its more specific than
-     * "solaris". */
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    /* Remove the 192.168.1.0/20 -> macos entry. */
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
-        goto end;
-    }
-    SCRadixRemoveKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, sc_hinfo_tree, 20);
-
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    /* Remove the 192.168.1.0/16 -> solaris entry. */
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
-        goto end;
-    }
-    SCRadixRemoveKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, sc_hinfo_tree, 16);
-
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") != -1) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
-
-    return result;
+    PASS;
 }
 
 /**
