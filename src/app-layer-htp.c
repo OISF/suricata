@@ -43,7 +43,6 @@
 
 #include "util-print.h"
 #include "util-pool.h"
-#include "util-radix-tree.h"
 #include "util-file.h"
 #include "util-byte.h"
 

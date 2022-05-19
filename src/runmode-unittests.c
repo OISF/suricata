@@ -64,7 +64,6 @@
 #include "app-layer-smtp.h"
 
 #include "util-action.h"
-#include "util-radix-tree.h"
 #include "util-radix4-tree.h"
 #include "util-radix6-tree.h"
 #include "util-host-os-info.h"
@@ -165,7 +164,6 @@ static void RegisterUnittests(void)
     HostRegisterUnittests();
     IPPairRegisterUnittests();
     SCSigRegisterSignatureOrderingTests();
-    SCRadixRegisterTests();
     SCRadix4RegisterTests();
     SCRadix6RegisterTests();
     DefragRegisterTests();

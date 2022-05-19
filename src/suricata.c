@@ -129,7 +129,6 @@
 #include "output-filestore.h"
 
 #include "util-ebpf.h"
-#include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
 #include "util-unittest.h"
