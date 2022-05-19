@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,7 +28,6 @@
 #define SC_HINFO_IS_IPV4 1
 
 int SCHInfoAddHostOSInfo(const char *, const char *, int);
-int SCHInfoGetHostOSFlavour(const char *);
 int SCHInfoGetIPv4HostOSFlavour(uint8_t *);
 int SCHInfoGetIPv6HostOSFlavour(uint8_t *);
 void SCHInfoCleanResources(void);
