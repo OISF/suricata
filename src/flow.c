@@ -420,7 +420,7 @@ inline void FlowEncryptedTrafficFinalize(const Flow *f)
 static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
 {
     /* Updated appbytes for producer/consumer ratio */
-    if (f->splt.seq[f->splt.splt_count].dir == TOSERVER)
+    if (FlowGetPacketDirection(f, p) == TOSERVER)
         f->splt.dapp_bytes = p->payload_len;
     else
         f->splt.sapp_bytes = p->payload_len;
