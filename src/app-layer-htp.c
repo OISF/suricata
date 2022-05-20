@@ -2538,7 +2538,6 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     cfg_prec->request.sbcfg.buf_size = cfg_prec->request.inspect_window ?
                                        cfg_prec->request.inspect_window : 256;
     cfg_prec->request.sbcfg.buf_slide = 0;
-    cfg_prec->request.sbcfg.Malloc = HTPMalloc;
     cfg_prec->request.sbcfg.Calloc = HTPCalloc;
     cfg_prec->request.sbcfg.Realloc = HTPRealloc;
     cfg_prec->request.sbcfg.Free = HTPFree;
@@ -2546,7 +2545,6 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     cfg_prec->response.sbcfg.buf_size = cfg_prec->response.inspect_window ?
                                         cfg_prec->response.inspect_window : 256;
     cfg_prec->response.sbcfg.buf_slide = 0;
-    cfg_prec->response.sbcfg.Malloc = HTPMalloc;
     cfg_prec->response.sbcfg.Calloc = HTPCalloc;
     cfg_prec->response.sbcfg.Realloc = HTPRealloc;
     cfg_prec->response.sbcfg.Free = HTPFree;

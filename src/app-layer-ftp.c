@@ -1391,7 +1391,6 @@ void RegisterFTPParsers(void)
                 ALPROTO_FTPDATA, FTPDATA_STATE_FINISHED, FTPDATA_STATE_FINISHED);
 
         sbcfg.buf_size = 4096;
-        sbcfg.Malloc = FTPMalloc;
         sbcfg.Calloc = FTPCalloc;
         sbcfg.Realloc = FTPRealloc;
         sbcfg.Free = FTPFree;
