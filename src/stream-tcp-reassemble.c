@@ -410,7 +410,6 @@ static int StreamTcpReassemblyConfig(bool quiet)
     }
 
     stream_config.sbcnf.buf_size = 2048;
-    stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = ReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
