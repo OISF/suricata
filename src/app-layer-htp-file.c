@@ -348,10 +348,9 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
+void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
-    bool added = false;
     if (HttpRangeAppendData(c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
@@ -366,12 +365,10 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
         if (ranged && files) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
-            added = true;
         }
-        DEBUG_VALIDATE_BUG_ON(ranged && !files);
+        SCLogDebug("c->container->files->tail %p", c->container->files->tail);
         THashDataUnlock(c->container->hdata);
     }
-    return added;
 }
 
 /**
@@ -422,10 +419,7 @@ int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t
     }
 
     if (s->file_range != NULL) {
-        bool added = HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
-        if (added) {
-            htud->tx_data.files_opened++;
-        }
+        HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
         HttpRangeFreeBlock(s->file_range);
         s->file_range = NULL;
     }

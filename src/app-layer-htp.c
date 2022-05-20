@@ -1881,7 +1881,7 @@ end:
             if ((uint64_t)htp_conn_request_data_counter(hstate->conn) > hstate->last_request_data_stamp &&
                 (uint64_t)htp_conn_request_data_counter(hstate->conn) - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)htp_conn_request_data_counter(hstate->conn) - hstate->last_request_data_stamp);
+                uint32_t data_size = (uint32_t)((uint64_t)htp_conn_request_data_counter(hstate->conn) - hstate->last_request_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->request.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -1972,7 +1972,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
             if ((uint64_t)htp_conn_response_data_counter(hstate->conn) > hstate->last_response_data_stamp &&
                 (uint64_t)htp_conn_response_data_counter(hstate->conn) - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)htp_conn_response_data_counter(hstate->conn) - hstate->last_response_data_stamp);
+                uint32_t data_size = (uint32_t)((uint64_t)htp_conn_response_data_counter(hstate->conn) - hstate->last_response_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->response.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -2056,10 +2056,9 @@ static int HTPCallbackRequestStart(const htp_connp_t *connp, htp_tx_t *tx)
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
-    uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+    uint64_t consumed = hstate->slice->offset + htp_connp_request_data_consumed(hstate->connp);
     SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->in_data_counter);
-
+            (uint64_t)htp_conn_request_data_counter(hstate->conn));
     /* app-layer-frame-documentation tag start: frame registration http request */
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 0, HTTP_FRAME_REQUEST);
@@ -2096,9 +2095,9 @@ static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
-    uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+    uint64_t consumed = hstate->slice->offset + htp_connp_response_data_consumed(hstate->connp);
     SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->out_data_counter);
+            (uint64_t)htp_conn_response_data_counter(hstate->conn));
 
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 1, HTTP_FRAME_RESPONSE);
@@ -2130,7 +2129,7 @@ static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackRequest(const htp_connp_t *connp, htp_tx_t *tx)
+static int HTPCallbackRequestComplete(const htp_connp_t *connp, htp_tx_t *tx)
 {
     SCEnter();
 
@@ -2144,7 +2143,7 @@ static int HTPCallbackRequest(const htp_connp_t *connp, htp_tx_t *tx)
     }
 
     const uint64_t abs_right_edge =
-            hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+            hstate->slice->offset + htp_connp_request_data_consumed(hstate->connp);
 
     /* app-layer-frame-documentation tag start: updating frame->len */
     if (hstate->request_frame_id > 0) {
@@ -2195,7 +2194,7 @@ static int HTPCallbackRequest(const htp_connp_t *connp, htp_tx_t *tx)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackResponse(const htp_connp_t *connp, htp_tx_t *tx)
+static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 {
     SCEnter();
 
@@ -2208,7 +2207,7 @@ static int HTPCallbackResponse(const htp_connp_t *connp, htp_tx_t *tx)
     hstate->transaction_cnt++;
 
     const uint64_t abs_right_edge =
-            hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+            hstate->slice->offset + htp_connp_response_data_consumed(hstate->connp);
 
     if (hstate->response_frame_id > 0) {
         Frame *frame = AppLayerFrameGetById(hstate->f, 1, hstate->response_frame_id);
@@ -4859,81 +4858,42 @@ libhtp:\n\
     size_t reflen = sizeof(ref1) - 1;
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
-    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
-    if (request_uri_normalized != NULL) {
-        if (reflen != bstr_len(request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx);
 
-        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
-                   bstr_len(request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref1, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
-    if (tx == NULL)
-        goto end;
-    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
-    if (request_uri_normalized != NULL) {
-        if (reflen != bstr_len(request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx);
 
-        if (memcmp(bstr_ptr(request_uri_normalized), ref2,
-                   bstr_len(request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref2, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
-    if (tx == NULL)
-        goto end;
-    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
-    if (request_uri_normalized != NULL) {
-        if (reflen != bstr_len(request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx);
 
-        if (memcmp(bstr_ptr(request_uri_normalized), ref3,
-                   bstr_len(request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref3, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3,
+                    bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4994,37 +4954,40 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3,
+                    bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
