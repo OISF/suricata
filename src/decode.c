@@ -452,11 +452,17 @@ void PacketBypassCallback(Packet *p)
                 (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
         }
-        FlowBypassInfo *fc = SCCalloc(sizeof(FlowBypassInfo), 1);
-        if (fc) {
-            FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
-        } else {
-            return;
+
+        FlowBypassInfo *fc;
+
+        fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
+        if (fc == NULL) {
+            fc = SCCalloc(sizeof(FlowBypassInfo), 1);
+            if (fc) {
+                FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
+            } else {
+                return;
+            }
         }
     }
     if (p->BypassPacketsFlow && p->BypassPacketsFlow(p)) {
