@@ -194,20 +194,6 @@ uint64_t StreamTcpReassembleGetMemcap()
 /* memory functions for the streaming buffer API */
 
 /*
-    void *(*Malloc)(size_t size);
-*/
-static void *ReassembleMalloc(size_t size)
-{
-    if (StreamTcpReassembleCheckMemcap(size) == 0)
-        return NULL;
-    void *ptr = SCMalloc(size);
-    if (ptr == NULL)
-        return NULL;
-    StreamTcpReassembleIncrMemuse(size);
-    return ptr;
-}
-
-/*
     void *(*Calloc)(size_t n, size_t size);
 */
 static void *ReassembleCalloc(size_t n, size_t size)
@@ -484,7 +470,6 @@ static int StreamTcpReassemblyConfig(bool quiet)
     }
 
     stream_config.sbcnf.buf_size = 2048;
-    stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
