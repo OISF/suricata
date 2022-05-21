@@ -2133,6 +2133,12 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
 {
     FlowBypassInfo *fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
     if (fc) {
+        if (fc->bypass_data != NULL) {
+            // bypass already activated
+            SCFree(key0);
+            SCFree(key1);
+            return 1;
+        }
         EBPFBypassData *eb = SCCalloc(1, sizeof(EBPFBypassData));
         if (eb == NULL) {
             EBPFDeleteKey(map_fd, key0);
