@@ -26,7 +26,6 @@ use sawp::probe::{Probe, Status};
 use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
 
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
-pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus {};
 
 static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
 
@@ -183,8 +182,9 @@ impl ModbusState {
 
     pub fn parse(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         let mut rest = input;
+        let modbus_parser = sawp_modbus::Modbus::default();
         while rest.len() > 0 {
-            match MODBUS_PARSER.parse(rest, direction.clone()) {
+            match modbus_parser.parse(rest, direction.clone()) {
                 Ok((inner_rest, Some(mut msg))) => {
                     match direction {
                         Direction::ToServer | Direction::Unknown => {
@@ -282,7 +282,8 @@ pub extern "C" fn rs_modbus_probe(
     _flow: *const core::Flow, _direction: u8, input: *const u8, len: u32, _rdir: *mut u8,
 ) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
-    match MODBUS_PARSER.probe(slice, Direction::Unknown) {
+    let modbus_parser = sawp_modbus::Modbus::default();
+    match modbus_parser.probe(slice, Direction::Unknown) {
         Status::Recognized => unsafe { ALPROTO_MODBUS },
         Status::Incomplete => ALPROTO_UNKNOWN,
         Status::Unrecognized => unsafe { ALPROTO_FAILED },
