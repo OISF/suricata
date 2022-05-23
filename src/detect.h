@@ -304,22 +304,6 @@ typedef struct DetectPort_ {
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
-typedef struct IPOnlyCIDRItem_ {
-    /* address data for this item */
-    uint8_t family;
-    /* netmask in CIDR values (ex. /16 /18 /24..) */
-    uint8_t netmask;
-    /* If this host or net is negated for the signum */
-    uint8_t negated;
-
-    uint32_t ip[4];
-    SigIntId signum; /**< our internal id */
-
-    /* linked list, the header should be the biggest network */
-    struct IPOnlyCIDRItem_ *next;
-
-} IPOnlyCIDRItem;
-
 /** \brief Used to start a pointer to SigMatch context
  * Should never be dereferenced without casting to something else.
  */
@@ -512,11 +496,6 @@ typedef struct SignatureInitData_ {
      *  have the SIGMATCH_HANDLE_NEGATION flag set. */
     bool negated;
 
-    /* track if we saw any negation in the addresses. If so, we
-     * skip it for ip-only */
-    bool src_contains_negation;
-    bool dst_contains_negation;
-
     /* used to hold flags that are used during init */
     uint32_t init_flags;
     /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
@@ -599,9 +578,6 @@ typedef struct Signature_ {
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif
-
-    /** netblocks and hosts specified at the sid, in CIDR format */
-    IPOnlyCIDRItem *cidr_src, *cidr_dst;
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;
@@ -727,11 +703,9 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* Lookup trees */
-    SCRadixTree *tree_ipv4src, *tree_ipv4dst;
-    SCRadixTree *tree_ipv6src, *tree_ipv6dst;
+    SCRadix4Tree tree_ipv4src, tree_ipv4dst;
+    SCRadix6Tree tree_ipv6src, tree_ipv6dst;
 
-    /* Used to build the radix trees */
-    IPOnlyCIDRItem *ip_src, *ip_dst;
     uint32_t max_idx;
 } DetectEngineIPOnlyCtx;
 

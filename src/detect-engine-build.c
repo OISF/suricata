@@ -219,13 +219,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
-    /* if any of the addresses uses negation, we don't support
-     * it in ip-only */
-    if (s->init_data->src_contains_negation)
-        return 0;
-    if (s->init_data->dst_contains_negation)
-        return 0;
-
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for (; sm != NULL; sm = sm->next) {
         if (!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
@@ -1380,6 +1373,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         } else if (s->flags & SIG_FLAG_IPONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"IP only\"", s->id);
             cnt_iponly++;
+
+            de_ctx->io_ctx.max_idx = MAX(de_ctx->io_ctx.max_idx, s->num);
         } else if (SignatureIsInspectingPayload(de_ctx, s) == 1) {
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", s->id);
             cnt_payload++;
