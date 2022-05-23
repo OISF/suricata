@@ -26,7 +26,7 @@ use sawp::probe::{Probe, Status};
 use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
 
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
-pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus {};
+pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus { probe_strict: true };
 
 static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
 
