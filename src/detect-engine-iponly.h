@@ -24,8 +24,10 @@
 #ifndef __DETECT_ENGINE_IPONLY_H__
 #define __DETECT_ENGINE_IPONLY_H__
 
-void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead);
-int IPOnlySigParseAddress(const DetectEngineCtx *, Signature *, const char *, char);
+struct DetectAddresses DetectAddressesCopy(struct DetectAddresses *in_addrs);
+int DetectParseAddresses(
+        const DetectEngineCtx *de_ctx, struct DetectAddresses *addrs, const char *str);
+int DetectParseAddressesValidate(struct DetectAddresses *addrs, const char *str);
 void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *,
                        DetectEngineThreadCtx *, const DetectEngineIPOnlyCtx *,
                        DetectEngineIPOnlyThreadCtx *, Packet *);
@@ -37,6 +39,9 @@ void DetectEngineIPOnlyThreadInit(DetectEngineCtx *, DetectEngineIPOnlyThreadCtx
 void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *);
 void IPOnlyAddSignature(DetectEngineCtx *, DetectEngineIPOnlyCtx *, Signature *);
 void IPOnlyRegisterTests(void);
+bool CheckAddress(const Address *a, const struct DetectAddresses *addrs);
+bool CheckAddresses(const Packet *p, const Signature *s);
+bool DetectAddressesCompare(const struct DetectAddresses *a, const struct DetectAddresses *b);
 
 #endif /* __DETECT_ENGINE_IPONLY_H__ */
 

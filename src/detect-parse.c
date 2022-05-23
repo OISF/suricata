@@ -1383,12 +1383,6 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s == NULL)
         return;
 
-    if (s->cidr_dst != NULL)
-        IPOnlyCIDRListFree(s->cidr_dst);
-
-    if (s->cidr_src != NULL)
-        IPOnlyCIDRListFree(s->cidr_src);
-
     int i;
 
     if (s->init_data && s->init_data->transforms.cnt) {
@@ -1926,14 +1920,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* check what the type of this sig is */
     SignatureSetType(de_ctx, sig);
 
-    if (sig->flags & SIG_FLAG_IPONLY) {
-        /* For IPOnly */
-        if (IPOnlySigParseAddress(de_ctx, sig, parser.src, SIG_DIREC_SRC ^ dir) < 0)
-            goto error;
-
-        if (IPOnlySigParseAddress(de_ctx, sig, parser.dst, SIG_DIREC_DST ^ dir) < 0)
-            goto error;
-    }
     return sig;
 
 error:
