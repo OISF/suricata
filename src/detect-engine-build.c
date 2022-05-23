@@ -227,9 +227,17 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    if (sm == NULL)
-        goto iponly;
-
+    for (; sm != NULL; sm = sm->next) {
+        if (!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
+            return 0;
+        /* we have enabled flowbits to be compatible with ip only sigs, as long
+         * as the sig only has a "set" flowbits */
+        if (sm->type == DETECT_FLOWBITS &&
+                (((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET)) {
+            return 0;
+        }
+    }
+    sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     for ( ; sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
@@ -241,7 +249,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
 
-iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
                    s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
