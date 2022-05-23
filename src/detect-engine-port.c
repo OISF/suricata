@@ -1290,6 +1290,11 @@ DetectPort *PortParse(const char *str)
     if (dp == NULL)
         goto error;
 
+    // Bug fix for strlen(str) >= 16
+    if (strnlen(str, 16) == 16) {
+        goto error;
+    }
+
     /* XXX better input validation */
 
     /* we dup so we can put a nul-termination in it later */
@@ -2466,6 +2471,71 @@ static int PortTestMatchDoubleNegation(void)
     return result;
 }
 
+// Test that negation is successfully parsed with whitespace for port strings of
+// length < 16
+static int DetectPortParseDoTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectPort *head = NULL;
+    DetectPort *nhead = NULL;
+    const char *str = "[30:50, !45]";
+    int r = DetectPortParseDo(de_ctx, &head, &nhead, str, 0, NULL, 0);
+
+    // Assertions
+    FAIL_IF_NULL(head);
+    FAIL_IF_NULL(nhead);
+    FAIL_IF(r < 0);
+    FAIL_IF(head->port != 30);
+    FAIL_IF(head->port2 != 50);
+    FAIL_IF(nhead->port != 45);
+    FAIL_IF(nhead->port2 != 45);
+    PASS;
+}
+
+// Tests that port strings of length == 16 fail to parse
+static int DetectPortParseDoTest2(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectPort *head = NULL;
+    DetectPort *nhead = NULL;
+    const char *str = "[30:50,              !45]";
+    int r = DetectPortParseDo(de_ctx, &head, &nhead, str, 0, NULL, 0);
+    FAIL_IF(r >= 0);
+    PASS;
+}
+
+// Verifies correct parsing when negation port string length < 16
+static int PortParseTestLessThan14Spaces(void)
+{
+    const char *str = "       45";
+    DetectPort *dp = NULL;
+    dp = PortParse(str);
+
+    FAIL_IF(dp->port != 45);
+    FAIL_IF(dp->port2 != 45);
+    PASS;
+}
+
+// Verifies NULL returned when negation port string length == 16
+static int PortParseTest14Spaces(void)
+{
+    const char *str = "              45";
+    DetectPort *dp = NULL;
+    dp = PortParse(str);
+    FAIL_IF_NOT_NULL(dp);
+    PASS;
+}
+
+// Verifies NULL returned when negation port string length >= 16
+static int PortParseTestMoreThan14Spaces(void)
+{
+    const char *str = "                                   45";
+    DetectPort *dp = NULL;
+    dp = PortParse(str);
+    FAIL_IF_NOT_NULL(dp);
+    PASS;
+}
+
 void DetectPortTests(void)
 {
     UtRegisterTest("PortTestParse01", PortTestParse01);
@@ -2510,6 +2580,11 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18);
     UtRegisterTest("PortTestMatchReal19", PortTestMatchReal19);
     UtRegisterTest("PortTestMatchDoubleNegation", PortTestMatchDoubleNegation);
+    UtRegisterTest("DetectPortParseDoTest", DetectPortParseDoTest);
+    UtRegisterTest("DetectPortParseDoTest2", DetectPortParseDoTest2);
+    UtRegisterTest("PortParseTestLessThan14Spaces", PortParseTestLessThan14Spaces);
+    UtRegisterTest("PortParseTest14Spaces", PortParseTest14Spaces);
+    UtRegisterTest("PortParseTestMoreThan14Spaces", PortParseTestMoreThan14Spaces);
 }
 
 #endif /* UNITTESTS */
