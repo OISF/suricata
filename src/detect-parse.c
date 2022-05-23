@@ -30,6 +30,7 @@
 #include "detect-engine.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
+#include "detect-engine-ip.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
@@ -853,29 +854,20 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
 
-    /* pass on to the address(list) parser */
+    struct DetectAddresses a = DetectParseAddress(de_ctx, addrstr);
+    if (a.ipv4.head == NULL && a.ipv6.head == NULL) // TODO helper?
+        return -1;
+
     if (flag == 0) {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
-
-        s->init_data->src = DetectParseAddress(de_ctx, addrstr,
-                &s->init_data->src_contains_negation);
-        if (s->init_data->src == NULL)
-            goto error;
+        s->ip_src = a;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
-
-        s->init_data->dst = DetectParseAddress(de_ctx, addrstr,
-                &s->init_data->dst_contains_negation);
-        if (s->init_data->dst == NULL)
-            goto error;
+        s->ip_dst = a;
     }
-
     return 0;
-
-error:
-    return -1;
 }
 
 /**
@@ -1438,18 +1430,6 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s->msg != NULL)
         SCFree(s->msg);
 
-    if (s->addr_src_match4 != NULL) {
-        SCFree(s->addr_src_match4);
-    }
-    if (s->addr_dst_match4 != NULL) {
-        SCFree(s->addr_dst_match4);
-    }
-    if (s->addr_src_match6 != NULL) {
-        SCFree(s->addr_src_match6);
-    }
-    if (s->addr_dst_match6 != NULL) {
-        SCFree(s->addr_dst_match6);
-    }
     if (s->sig_str != NULL) {
         SCFree(s->sig_str);
     }
@@ -1516,111 +1496,6 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
-}
-
-/**
- *  \internal
- *  \brief build address match array for cache efficient matching
- *
- *  \param s the signature
- */
-static void SigBuildAddressMatchArray(Signature *s)
-{
-    /* source addresses */
-    uint16_t cnt = 0;
-    uint16_t idx = 0;
-    DetectAddress *da = s->init_data->src->ipv4_head;
-    for ( ; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_src_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
-        if (s->addr_src_match4 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
-            s->addr_src_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_src_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
-            idx++;
-        }
-        s->addr_src_match4_cnt = cnt;
-    }
-
-    /* destination addresses */
-    cnt = 0;
-    idx = 0;
-    da = s->init_data->dst->ipv4_head;
-    for ( ; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_dst_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
-        if (s->addr_dst_match4 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
-            s->addr_dst_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_dst_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
-            idx++;
-        }
-        s->addr_dst_match4_cnt = cnt;
-    }
-
-    /* source addresses IPv6 */
-    cnt = 0;
-    idx = 0;
-    da = s->init_data->src->ipv6_head;
-    for ( ; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_src_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
-        if (s->addr_src_match6 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
-            s->addr_src_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_src_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
-            s->addr_src_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
-            s->addr_src_match6[idx].ip[3] = SCNtohl(da->ip.addr_data32[3]);
-            s->addr_src_match6[idx].ip2[0] = SCNtohl(da->ip2.addr_data32[0]);
-            s->addr_src_match6[idx].ip2[1] = SCNtohl(da->ip2.addr_data32[1]);
-            s->addr_src_match6[idx].ip2[2] = SCNtohl(da->ip2.addr_data32[2]);
-            s->addr_src_match6[idx].ip2[3] = SCNtohl(da->ip2.addr_data32[3]);
-            idx++;
-        }
-        s->addr_src_match6_cnt = cnt;
-    }
-
-    /* destination addresses IPv6 */
-    cnt = 0;
-    idx = 0;
-    da = s->init_data->dst->ipv6_head;
-    for ( ; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_dst_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
-        if (s->addr_dst_match6 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
-            s->addr_dst_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_dst_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
-            s->addr_dst_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
-            s->addr_dst_match6[idx].ip[3] = SCNtohl(da->ip.addr_data32[3]);
-            s->addr_dst_match6[idx].ip2[0] = SCNtohl(da->ip2.addr_data32[0]);
-            s->addr_dst_match6[idx].ip2[1] = SCNtohl(da->ip2.addr_data32[1]);
-            s->addr_dst_match6[idx].ip2[2] = SCNtohl(da->ip2.addr_data32[2]);
-            s->addr_dst_match6[idx].ip2[3] = SCNtohl(da->ip2.addr_data32[3]);
-            idx++;
-        }
-        s->addr_dst_match6_cnt = cnt;
-    }
 }
 
 static int SigMatchListLen(SigMatch *sm)
@@ -2037,8 +1912,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
         sig->init_data->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
-    SigBuildAddressMatchArray(sig);
-
     /* run buffer type callbacks if any */
     for (uint32_t x = 0; x < sig->init_data->smlists_array_size; x++) {
         if (sig->init_data->smlists[x])
@@ -2085,19 +1958,8 @@ static bool SigHasSameSourceAndDestination(const Signature *s)
     }
 
     if (!(s->flags & SIG_FLAG_SRC_ANY) || !(s->flags & SIG_FLAG_DST_ANY)) {
-        DetectAddress *src = s->init_data->src->ipv4_head;
-        DetectAddress *dst = s->init_data->dst->ipv4_head;
-
-        if (!DetectAddressListsAreEqual(src, dst)) {
+        if (!(DetectAddressesCompare(&s->ip_src, &s->ip_dst)))
             return false;
-        }
-
-        src = s->init_data->src->ipv6_head;
-        dst = s->init_data->dst->ipv6_head;
-
-        if (!DetectAddressListsAreEqual(src, dst)) {
-            return false;
-        }
     }
 
     return true;

@@ -42,6 +42,8 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-radix-tree.h"
+#include "util-radix4-tree.h"
+#include "util-radix6-tree.h"
 #include "util-file.h"
 #include "reputation.h"
 
@@ -156,6 +158,14 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv6_head;
 } DetectAddressHead;
 
+struct DetectAddresses {
+    SCRadix4Tree ipv4;
+    SCRadix6Tree ipv6;
+};
+#define DETECT_ADDRESSES_INITIALIZER                                                               \
+    {                                                                                              \
+        .ipv4 = SC_RADIX4_TREE_INITIALIZER, .ipv6 = SC_RADIX6_TREE_INITIALIZER                     \
+    }
 
 typedef struct DetectMatchAddressIPv4_ {
     uint32_t ip;    /**< address in host order, start of range */
@@ -532,9 +542,6 @@ typedef struct SignatureInitData_ {
      *  group. */
     int whitelist;
 
-    /** address settings for this signature */
-    const DetectAddressHead *src, *dst;
-
     int prefilter_list;
 
     uint32_t smlists_array_size;
@@ -567,6 +574,8 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint16_t class_id;
+
+    struct DetectAddresses ip_src, ip_dst;
 
     /** ipv4 match arrays */
     uint16_t addr_dst_match4_cnt;

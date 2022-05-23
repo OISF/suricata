@@ -44,6 +44,7 @@
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-ip.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-prefilter.h"
@@ -636,28 +637,7 @@ static inline int DetectRunInspectRuleHeader(
         return 0;
     }
 
-    /* check the destination address */
-    if (!(sflags & SIG_FLAG_DST_ANY)) {
-        if (PKT_IS_IPV4(p)) {
-            if (DetectAddressMatchIPv4(s->addr_dst_match4, s->addr_dst_match4_cnt, &p->dst) == 0)
-                return 0;
-        } else if (PKT_IS_IPV6(p)) {
-            if (DetectAddressMatchIPv6(s->addr_dst_match6, s->addr_dst_match6_cnt, &p->dst) == 0)
-                return 0;
-        }
-    }
-    /* check the source address */
-    if (!(sflags & SIG_FLAG_SRC_ANY)) {
-        if (PKT_IS_IPV4(p)) {
-            if (DetectAddressMatchIPv4(s->addr_src_match4, s->addr_src_match4_cnt, &p->src) == 0)
-                return 0;
-        } else if (PKT_IS_IPV6(p)) {
-            if (DetectAddressMatchIPv6(s->addr_src_match6, s->addr_src_match6_cnt, &p->src) == 0)
-                return 0;
-        }
-    }
-
-    return 1;
+    return CheckAddresses(p, s);
 }
 
 /** \internal

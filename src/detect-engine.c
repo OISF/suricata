@@ -44,6 +44,8 @@
 #include "detect-engine-port.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-ip.h"
+#include "detect-engine-ipcache.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
 
@@ -2351,7 +2353,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     MpmStoreInit(de_ctx);
     ThresholdHashInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
-    DetectAddressMapInit(de_ctx);
+    DetectAddressCacheInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
     DetectBufferTypeSetupDetectEngine(de_ctx);
     DetectEngineInitializeFastPatternList(de_ctx);
@@ -2477,7 +2479,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SRepDestroy(de_ctx);
     DetectEngineCtxFreeFailedSigs(de_ctx);
 
-    DetectAddressMapFree(de_ctx);
+    DetectAddressCacheFree(de_ctx);
     DetectMetadataHashFree(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
