@@ -1305,96 +1305,6 @@ int DetectAddressTestConfVars(void)
     return -1;
 }
 
-#include "util-hash-lookup3.h"
-
-typedef struct DetectAddressMap_ {
-    char *string;
-    DetectAddressHead *address;
-    bool contains_negation;
-} DetectAddressMap;
-
-static uint32_t DetectAddressMapHashFunc(HashListTable *ht, void *data, uint16_t datalen)
-{
-    const DetectAddressMap *map = (DetectAddressMap *)data;
-    uint32_t hash = 0;
-
-    hash = hashlittle_safe(map->string, strlen(map->string), 0);
-    hash %= ht->array_size;
-
-    return hash;
-}
-
-static char DetectAddressMapCompareFunc(void *data1, uint16_t len1, void *data2,
-                                        uint16_t len2)
-{
-    DetectAddressMap *map1 = (DetectAddressMap *)data1;
-    DetectAddressMap *map2 = (DetectAddressMap *)data2;
-
-
-    int r = (strcmp(map1->string, map2->string) == 0);
-    return r;
-}
-
-static void DetectAddressMapFreeFunc(void *data)
-{
-    DetectAddressMap *map = (DetectAddressMap *)data;
-    if (map != NULL) {
-        DetectAddressHeadFree(map->address);
-        SCFree(map->string);
-    }
-    SCFree(map);
-}
-
-int DetectAddressMapInit(DetectEngineCtx *de_ctx)
-{
-    de_ctx->address_table = HashListTableInit(4096, DetectAddressMapHashFunc,
-                                                    DetectAddressMapCompareFunc,
-                                                    DetectAddressMapFreeFunc);
-    if (de_ctx->address_table == NULL)
-        return -1;
-
-    return 0;
-}
-
-void DetectAddressMapFree(DetectEngineCtx *de_ctx)
-{
-    if (de_ctx->address_table == NULL)
-        return;
-
-    HashListTableFree(de_ctx->address_table);
-    de_ctx->address_table = NULL;
-    return;
-}
-
-static int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
-                        DetectAddressHead *address, bool contains_negation)
-{
-    DetectAddressMap *map = SCCalloc(1, sizeof(*map));
-    if (map == NULL)
-        return -1;
-
-    map->string = SCStrdup(string);
-    if (map->string == NULL) {
-        SCFree(map);
-        return -1;
-    }
-    map->address = address;
-    map->contains_negation = contains_negation;
-
-    BUG_ON(HashListTableAdd(de_ctx->address_table, (void *)map, 0) != 0);
-    return 0;
-}
-
-static const DetectAddressMap *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
-                                                const char *string)
-{
-    DetectAddressMap map = { (char *)string, NULL, false };
-
-    const DetectAddressMap *res = HashListTableLookup(de_ctx->address_table,
-            &map, 0);
-    return res;
-}
-
 /**
  * \brief Parses an address group sent as a character string and updates the
  *        DetectAddressHead sent as the argument with the relevant address
@@ -1447,37 +1357,6 @@ int DetectAddressParse(const DetectEngineCtx *de_ctx,
     /* free the temp negate head */
     DetectAddressHeadFree(ghn);
     return contains_negation ? 1 : 0;
-}
-
-const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
-        const char *string, bool *contains_negation)
-{
-    const DetectAddressMap *res = DetectAddressMapLookup(de_ctx, string);
-    if (res != NULL) {
-        SCLogDebug("found: %s :: %p", string, res);
-        *contains_negation = res->contains_negation;
-        return res->address;
-    }
-
-    SCLogDebug("%s not found", string);
-
-    DetectAddressHead *head = DetectAddressHeadInit();
-    if (head == NULL)
-        return NULL;
-
-    const int r = DetectAddressParse(de_ctx, head, string);
-    if (r < 0) {
-        DetectAddressHeadFree(head);
-        return NULL;
-    } else if (r == 1) {
-        *contains_negation = true;
-    } else {
-        *contains_negation = false;
-    }
-
-    DetectAddressMapAdd((DetectEngineCtx *)de_ctx, string, head,
-            *contains_negation);
-    return head;
 }
 
 /**
