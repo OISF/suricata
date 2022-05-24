@@ -86,7 +86,9 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
-#include <numa.h>
+#include "flow-storage.h"
+#include "util-dpdk-bypass.h"
+#include "flow-hash.h"
 
 #define BURST_SIZE 32
 
@@ -127,6 +129,9 @@ typedef struct DPDKThreadVars_ {
         struct {
             struct rte_ring *rx_ring;
             struct rte_ring *tx_ring;
+            struct rte_ring *tasks_ring;
+            struct rte_ring *results_ring;
+            struct rte_mempool *msg_mp;
         } rings;
     };
 } DPDKThreadVars;
@@ -360,8 +365,7 @@ static inline void DPDKReleasePacketTxOrFree(Packet *p)
         BUG_ON(PKT_IS_PSEUDOPKT(p));
         ret = rte_ring_enqueue(p->dpdk_v.tx_ring, (void *)p->dpdk_v.mbuf);
         if (ret != 0) {
-            SCLogError(SC_ERR_DPDK_BYPASS, "Error (%s): Unable to enqueue packet to TX ring",
-                    rte_strerror(-ret));
+            SCLogDebug("Error (%s): Unable to enqueue packet to TX ring", rte_strerror(-ret));
             rte_pktmbuf_free(p->dpdk_v.mbuf);
         }
     }
@@ -372,6 +376,267 @@ static void DPDKReleasePacket(Packet *p)
     DPDKReleasePacketTxOrFree(p);
     p->dpdk_v.mbuf = NULL;
     PacketFreeOrRelease(p);
+}
+
+static void DPDKBypassHardDelete(Flow *f, struct DPDKFlowBypassData *d, struct rte_mempool_cache *mpc)
+{
+    int ret;
+    struct PFMessage *msg = NULL;
+
+    ret = rte_mempool_generic_get(d->msg_mp, (void **)&msg, 1, NULL);
+    if (ret != 0) {
+        rte_mempool_dump(stdout, d->msg_mp);
+        SCLogWarning(
+                SC_ERR_DPDK_BYPASS, "Error (%s): Unable to get message object", rte_strerror(-ret));
+        return;
+    }
+    PFMessageHardDeleteBypassInit(msg);
+    ret = FlowKeyInitFromFlow(&msg->fk, f);
+    if (ret != 0) {
+        SCLogWarning(SC_ERR_DPDK_BYPASS, "Error (%s): Unable to init FlowKey structure from Flow",
+                rte_strerror(-ret));
+        goto cleanup;
+    }
+
+    ret = rte_ring_enqueue(d->tasks_ring, msg);
+    if (ret != 0) {
+        SCLogDebug("Error (%s): Unable to enqueue message object", rte_strerror(-ret));
+        goto cleanup;
+    }
+
+    if (d->pending_msgs < UINT8_MAX)
+        d->pending_msgs++;
+
+    f->flags |= FLOW_LOCK_FOR_WORKERS;
+
+    if (msg->fk.src.family == AF_INET) {
+        SCLogDebug("Hard Delete bypass msg src ip %u dst ip %u src port %u dst port %u ipproto %u "
+                   "outervlan "
+                   "%u innervlan %u",
+                msg->fk.src.address.address_un_data32[0], msg->fk.dst.address.address_un_data32[0],
+                msg->fk.sp, msg->fk.dp, msg->fk.proto, msg->fk.vlan_id[0], msg->fk.vlan_id[1]);
+    } else {
+        uint32_t *src_ptr = (uint32_t *)msg->fk.src.address.address_un_data32;
+        uint32_t *dst_ptr = (uint32_t *)msg->fk.dst.address.address_un_data32;
+        (void *)src_ptr; // to avoid unused complains
+        (void *)dst_ptr;
+        SCLogDebug("Hard Delete bypass msg src ip %u %u %u %u dst ip %u %u %u %u src port %u dst "
+                   "port %u ipproto %u outervlan "
+                   "%u innervlan %u",
+                src_ptr[0], src_ptr[1], src_ptr[2], src_ptr[3], dst_ptr[0], dst_ptr[1], dst_ptr[2],
+                dst_ptr[3], msg->fk.sp, msg->fk.dp, msg->fk.proto, msg->fk.vlan_id[0],
+                msg->fk.vlan_id[0]);
+    }
+
+    return;
+
+cleanup:
+    if (msg != NULL) {
+        rte_mempool_generic_put(d->msg_mp, (void **)&msg, 1, NULL);
+    }
+}
+
+static void DPDKBypassSoftDelete(
+        Flow *f, struct DPDKFlowBypassData *d, time_t tsec, struct rte_mempool_cache *mpc)
+{
+    int ret;
+    struct PFMessage *msg = NULL;
+    int64_t msg_pressure_timeout;
+
+    msg_pressure_timeout = f->timeout_policy * (1 + d->pending_msgs) * d->pending_msgs / 2;
+    SCLogDebug("cur time %ld next upd %ld f lastts %ld pending calls %d timeout policy %d",
+            tsec, f->lastts.tv_sec + msg_pressure_timeout, f->lastts.tv_sec, d->pending_msgs,
+            f->timeout_policy);
+    if (tsec < f->lastts.tv_sec + msg_pressure_timeout) {
+        // Suri couldn't send message, the message channel is overloaded
+        d->pending_msgs = d->pending_msgs > 0 ? d->pending_msgs - 1 : 0;
+        return;
+    }
+
+    ret = rte_mempool_generic_get(d->msg_mp, (void **)&msg, 1, NULL);
+    if (ret != 0) {
+        rte_mempool_dump(stdout, d->msg_mp);
+        SCLogWarning(SC_ERR_DPDK_BYPASS, "Error (%s): Unable to get message object",
+                rte_strerror(-ret));
+        return;
+    }
+    PFMessageDeleteBypassInit(msg);
+    ret = FlowKeyInitFromFlow(&msg->fk, f);
+    if (ret != 0) {
+        SCLogWarning(SC_ERR_DPDK_BYPASS,
+                "Error (%s): Unable to init FlowKey structure from Flow", rte_strerror(-ret));
+        goto cleanup;
+    }
+
+    ret = rte_ring_enqueue(d->tasks_ring, msg);
+    if (ret != 0) {
+        SCLogDebug("Error (%s): Unable to enqueue message object", rte_strerror(-ret));
+        goto cleanup;
+    }
+
+    if (d->pending_msgs < UINT8_MAX)
+        d->pending_msgs++;
+
+    f->flags |= FLOW_LOCK_FOR_WORKERS;
+
+    if (msg->fk.src.family == AF_INET) {
+        SCLogDebug(
+                "Soft Delete bypass msg src ip %u dst ip %u src port %u dst port %u ipproto %u "
+                "outervlan "
+                "%u innervlan %u",
+                msg->fk.src.address.address_un_data32[0],
+                msg->fk.dst.address.address_un_data32[0], msg->fk.sp, msg->fk.dp, msg->fk.proto,
+                msg->fk.vlan_id[0], msg->fk.vlan_id[1]);
+    } else {
+        uint32_t *src_ptr = (uint32_t *)msg->fk.src.address.address_un_data32;
+        uint32_t *dst_ptr = (uint32_t *)msg->fk.dst.address.address_un_data32;
+        (void *)src_ptr; // to avoid unused complains
+        (void *)dst_ptr;
+        SCLogDebug(
+                "Soft Delete bypass msg src ip %u %u %u %u dst ip %u %u %u %u src port %u dst "
+                "port %u ipproto %u outervlan "
+                "%u innervlan %u",
+                src_ptr[0], src_ptr[1], src_ptr[2], src_ptr[3], dst_ptr[0], dst_ptr[1],
+                dst_ptr[2], dst_ptr[3], msg->fk.sp, msg->fk.dp, msg->fk.proto,
+                msg->fk.vlan_id[0], msg->fk.vlan_id[0]);
+    }
+
+    return;
+
+cleanup:
+    if (msg != NULL) {
+        rte_mempool_generic_put(d->msg_mp, (void **)&msg, 1, NULL);
+    }
+}
+
+// todo: change function prototype to also pass FlowManagerThreadVars or at least part of it
+static bool DPDKBypassUpdate(Flow *f, void *data, time_t tsec, void *mpc)
+{
+    struct PFMessage *msg = NULL;
+    int ret;
+    struct DPDKFlowBypassData *d = (struct DPDKFlowBypassData *)data;
+    int64_t msg_pressure_timeout;
+
+    if (mpc == NULL) {
+        SCLogDebug("No mempool cache initialized for DPDK bypass");
+    }
+
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc == NULL) {
+        return false;
+    }
+
+    if (f->flags & FLOW_END_FLAG_STATE_RELEASE_BYPASS) {
+        DPDKBypassHardDelete(f, d, mpc);
+        return false;
+    }
+
+    DPDKBypassSoftDelete(f, d, tsec, mpc);
+    return true;
+}
+
+static void DPDKBypassFree(void *data)
+{
+    SCFree(data);
+}
+
+static int DPDKBypassCallback(Packet *p)
+{
+    // for use cases to support bypass drop and bypass pass in the prefilter you might want to check
+    //    p->action;
+    //    p->flow->flags & FLOW_ACTION_DROP; // more so this, because packet can be dropped alone
+
+    struct PFMessage *msg = NULL;
+
+    /* Only bypass TCP and UDP at the moment */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+        return 0;
+    }
+
+    /* If we don't have a flow attached to packet the eBPF map entries
+     * will be destroyed at first flow bypass manager pass as we won't
+     * find any associated entry */
+    if (p->flow == NULL) {
+        return 0;
+    }
+
+    /* Bypassing tunneled packets currently not supported */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
+
+    FlowBypassInfo *fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
+    if (fc == NULL || fc->bypass_data != NULL) {
+        return 0;
+    }
+
+    int ret = rte_mempool_generic_get(p->dpdk_v.message_mp, (void **)&msg, 1, NULL);
+    if (ret != 0) {
+        SCLogDebug("Unable to get flow key object from mempool");
+        if (PKT_IS_IPV4(p))
+            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+        else if (PKT_IS_IPV6(p))
+            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+        return 0;
+    }
+    PFMessageAddBypassInit(msg);
+    ret = FlowKeyInitFromFlow(&msg->fk, p->flow);
+    if (ret != 0) {
+        if (ret >= 1) {
+            SCLogDebug("Flow init from given packet not supported");
+        } else if (ret < 0) {
+            SCLogDebug("Flow init from given packet failed!");
+        }
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (msg->fk.src.family == AF_INET) {
+        SCLogDebug(
+                "Add bypass msg src ip %u dst ip %u src port %u dst port %u ipproto %u outervlan "
+                "%u innervlan %u",
+                msg->fk.src.address.address_un_data32[0], msg->fk.dst.address.address_un_data32[0],
+                msg->fk.sp, msg->fk.dp, msg->fk.proto, msg->fk.vlan_id[0], msg->fk.vlan_id[1]);
+    } else {
+        uint32_t *src_ptr = (uint32_t *)msg->fk.src.address.address_un_data32;
+        uint32_t *dst_ptr = (uint32_t *)msg->fk.dst.address.address_un_data32;
+        SCLogDebug("Add bypass msg src ip %u %u %u %u dst ip %u %u %u %u src port %u dst port %u "
+                   "ipproto %u outervlan "
+                   "%u innervlan %u",
+                src_ptr[0], src_ptr[1], src_ptr[2], src_ptr[3], dst_ptr[0], dst_ptr[1], dst_ptr[2],
+                dst_ptr[3], msg->fk.sp, msg->fk.dp, msg->fk.proto, msg->fk.vlan_id[0],
+                msg->fk.vlan_id[0]);
+    }
+
+    ret = rte_ring_enqueue(p->dpdk_v.tasks_ring, msg);
+    if (ret != 0) {
+        SCLogDebug("Enqueueing flow key to PF FAILED > %s", rte_strerror(-ret));
+        ret = 0;
+        goto cleanup;
+    }
+
+    struct DPDKFlowBypassData *d = SCCalloc(1, sizeof(struct DPDKFlowBypassData));
+    d->tasks_ring = p->dpdk_v.tasks_ring;
+    d->msg_mp = p->dpdk_v.message_mp;
+    d->pending_msgs = 0;
+    fc->bypass_data = (void *)d;
+    fc->BypassUpdate = DPDKBypassUpdate;
+    fc->BypassFree = DPDKBypassFree;
+
+    // stats for a successful bypass will be after the bypass is completely evicted
+    return 1;
+
+cleanup:
+    if (PKT_IS_IPV4(p))
+        LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+    else if (PKT_IS_IPV6(p))
+        LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+
+    if (msg != NULL) {
+        rte_mempool_generic_put(p->dpdk_v.message_mp, (void **)&msg, 1, NULL);
+    }
+
+    return ret;
 }
 
 /**
@@ -391,6 +656,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     ptv->slot = s->slot_next;
 
     PacketPoolWait();
+
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
@@ -423,11 +689,16 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             DPDKSetTimevalReal(&ptv->machine_start_time, &p->ts);
             p->dpdk_v.mbuf = ptv->received_mbufs[i];
             p->ReleasePacket = DPDKReleasePacket;
+            if (ptv->op_mode == DPDK_RING_MODE) {
+                p->BypassPacketsFlow = DPDKBypassCallback;
+            }
             p->dpdk_v.copy_mode = ptv->copy_mode;
             p->dpdk_v.out_port_id = ptv->out_port_id;
             p->dpdk_v.out_queue_id = ptv->queue_id;
             p->livedev = ptv->livedev;
             p->dpdk_v.tx_ring = ptv->rings.tx_ring;
+            p->dpdk_v.tasks_ring = ptv->rings.tasks_ring;
+            p->dpdk_v.message_mp = ptv->rings.msg_mp;
 
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                     rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
@@ -463,6 +734,12 @@ void ReceiveDPDKSetRings(DPDKThreadVars *ptv, DPDKIfaceConfig *iconf, uint16_t q
     iconf->rx_rings[queue_id] = NULL;
     ptv->rings.tx_ring = iconf->tx_rings[queue_id];
     iconf->tx_rings[queue_id] = NULL;
+    ptv->rings.tasks_ring = iconf->tasks_rings[queue_id];
+    iconf->tasks_rings[queue_id] = NULL;
+    ptv->rings.results_ring = iconf->results_rings[queue_id];
+    iconf->results_rings[queue_id] = NULL;
+    ptv->rings.msg_mp = iconf->messages_mempools[queue_id];
+    iconf->messages_mempools[queue_id] = NULL;
 }
 
 /**

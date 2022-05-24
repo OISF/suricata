@@ -8,7 +8,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     lua \
 	     acsite.m4 \
 	     scripts/generate-images.sh
-SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
+SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf dpdk \
           $(SURICATA_UPDATE_DIR)
 
 CLEANFILES = stamp-h[0-9]*
@@ -64,3 +64,8 @@ install-library:
 
 install-headers:
 	cd src && $(MAKE) $@
+
+dpdk-apps-prereq: install install-headers install-library
+
+dpdk-apps: dpdk-apps-prereq
+	cd dpdk && $(MAKE) shared

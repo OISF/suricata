@@ -24,7 +24,7 @@
 #ifndef UTIL_DPDK_H
 #define UTIL_DPDK_H
 
-#include "suricata-common.h"
+#include "autoconf.h"
 
 #ifdef HAVE_DPDK
 
@@ -42,7 +42,10 @@
 #include <rte_tcp.h>
 
 #include "util-device.h"
+#include "util-atomic.h"
+#include "decode.h"
 
+#define PREFILTER_CONF_MEMZONE_NAME "prefilter_conf"
 #define RSS_HKEY_LEN 40
 
 typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } DpdkCopyModeEnum;
@@ -73,6 +76,9 @@ typedef struct DPDKIfaceConfig_ {
     // Holds reference to all rx/tx rings, later assigned to workers
     struct rte_ring **rx_rings;
     struct rte_ring **tx_rings;
+    struct rte_ring **tasks_rings;
+    struct rte_ring **results_rings;
+    struct rte_mempool **messages_mempools;
     /* End of ring mode settings */
     /* IPS mode */
     DpdkCopyModeEnum copy_mode;
@@ -103,5 +109,44 @@ uint32_t ArrayMaxValue(const uint32_t *arr, uint16_t arr_len);
 uint8_t CountDigits(uint32_t n);
 void DPDKCleanupEAL(void);
 void DPDKCloseDevice(LiveDevice *ldev);
+
+#ifdef HAVE_DPDK
+struct PFConfRingEntry {
+    char rx_ring_name[RTE_RING_NAMESIZE];
+    uint16_t pf_lcores;
+    struct rte_ring *tasks_ring;
+    struct rte_ring *results_ring;
+    struct rte_mempool *message_mp;
+};
+
+struct PFConf {
+    uint32_t ring_entries_cnt;
+    struct PFConfRingEntry *ring_entries;
+};
+
+enum PFMessageType {
+    PF_MESSAGE_BYPASS_ADD,
+    PF_MESSAGE_BYPASS_SOFT_DELETE,
+    PF_MESSAGE_BYPASS_HARD_DELETE,
+    PF_MESSAGE_BYPASS_UPDATE,
+    PF_MESSAGE_BYPASS_EVICT,
+    PF_MESSAGE_BYPASS_FLOW_NOT_FOUND,
+    PF_MESSAGE_CNT,
+};
+
+struct DPDKBypassManagerAssistantData {
+    struct rte_ring *results_ring;
+    struct rte_mempool *msg_mp;
+    struct rte_mempool_cache *msg_mpc;
+};
+
+struct DPDKFlowBypassData {
+    struct rte_ring *tasks_ring;
+    struct rte_mempool *msg_mp;
+    struct rte_mempool_cache *msg_mp_cache;
+    uint8_t pending_msgs;
+};
+
+#endif /* HAVE_DPDK */
 
 #endif /* UTIL_DPDK_H */

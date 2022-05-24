@@ -718,6 +718,10 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
 
 static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool emerg)
 {
+#ifdef CAPTURE_OFFLOAD
+    if (run_mode == RUNMODE_DPDK && f->flow_state == FLOW_STATE_CAPTURE_BYPASSED)
+        return false;
+#endif /* CAPTURE_OFFLOAD */
     if (unlikely(f->timeout_at < sec)) {
         return true;
     } else if (unlikely(emerg)) {

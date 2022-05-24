@@ -65,6 +65,9 @@
 #define FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT 100
 
 #define FLOW_BYPASSED_TIMEOUT   100
+// for downgrade from capture to local bypass when Suricata still sees pkts of bypassed flow
+// should be higher than FLOW_BYPASSED_TIMEOUT
+#define FLOW_BYPASSED_DOWNGRADE_TIMEOUT 150
 
 enum {
     FLOW_PROTO_TCP = 0,

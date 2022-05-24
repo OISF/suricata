@@ -234,14 +234,15 @@ typedef struct AppLayerParserState_ AppLayerParserState;
  *  logging, etc. */
 #define FLOW_PKT_LAST_PSEUDO            0x80
 
-#define FLOW_END_FLAG_STATE_NEW         0x01
-#define FLOW_END_FLAG_STATE_ESTABLISHED 0x02
-#define FLOW_END_FLAG_STATE_CLOSED      0x04
-#define FLOW_END_FLAG_EMERGENCY         0x08
-#define FLOW_END_FLAG_TIMEOUT           0x10
-#define FLOW_END_FLAG_FORCED            0x20
-#define FLOW_END_FLAG_SHUTDOWN          0x40
-#define FLOW_END_FLAG_STATE_BYPASSED    0x80
+#define FLOW_END_FLAG_STATE_NEW            0x001
+#define FLOW_END_FLAG_STATE_ESTABLISHED    0x002
+#define FLOW_END_FLAG_STATE_CLOSED         0x004
+#define FLOW_END_FLAG_EMERGENCY            0x008
+#define FLOW_END_FLAG_TIMEOUT              0x010
+#define FLOW_END_FLAG_FORCED               0x020
+#define FLOW_END_FLAG_SHUTDOWN             0x040
+#define FLOW_END_FLAG_STATE_BYPASSED       0x080
+#define FLOW_END_FLAG_STATE_RELEASE_BYPASS 0x100
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -536,7 +537,8 @@ typedef struct FlowProtoFreeFunc_ {
 } FlowProtoFreeFunc;
 
 typedef struct FlowBypassInfo_ {
-    bool (* BypassUpdate)(Flow *f, void *data, time_t tsec);
+    // todo: prefilter: try to remove mpc (DPDK mempool cache) from the prototype
+    bool (*BypassUpdate)(Flow *f, void *data, time_t tsec, void *mpc);
     void (* BypassFree)(void *data);
     void *bypass_data;
     uint64_t tosrcpktcnt;

@@ -522,6 +522,7 @@ noinst_HEADERS = \
 	util-detect.h \
 	util-device.h \
 	util-dpdk.h \
+	util-dpdk-bypass.h \
 	util-dpdk-i40e.h \
 	util-dpdk-ice.h \
 	util-dpdk-ixgbe.h \
@@ -1106,6 +1107,7 @@ libsuricata_c_a_SOURCES = \
 	util-detect.c \
 	util-device.c \
 	util-dpdk.c \
+	util-dpdk-bypass.c \
 	util-dpdk-i40e.c \
 	util-dpdk-ice.c \
 	util-dpdk-ixgbe.c \

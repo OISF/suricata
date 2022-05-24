@@ -41,6 +41,9 @@ typedef struct DPDKPacketVars_ {
     uint16_t out_queue_id;
     uint8_t copy_mode;
     struct rte_ring *tx_ring; // pkt is sent to this ring (same as out_port_*)
+    struct rte_ring *tasks_ring;    // in case we want to bypass the packet
+    struct rte_mempool *message_mp; // get message object for the bypass message
+    // TODO: Try to make out_port_id, copy_mode, rings/mempools as a global thread-local variables.
 } DPDKPacketVars;
 
 void DevicePostStartPMDSpecificActions(int port_id, int nb_rx_queues, const char *driver_name);

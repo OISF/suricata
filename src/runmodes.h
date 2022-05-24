@@ -98,6 +98,7 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check);
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
 
+#define DPDK_MEMPOOL_CACHE_SIZE 247
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;

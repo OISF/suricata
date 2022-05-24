@@ -649,7 +649,7 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
  * Update lastts in the flow and do accounting
  *
  * */
-bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
+bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec, void *rte_mpc)
 {
     EBPFBypassData *eb = (EBPFBypassData *)data;
     if (eb == NULL) {

@@ -1330,6 +1330,23 @@
         LIBS="${LIBS} ${DPDK_RPATH} `pkg-config --libs libdpdk`"
     ])
 
+    AC_ARG_ENABLE(dpdk-apps,
+                AS_HELP_STRING([--enable-dpdk-apps], [Enable support for DPDK applications [default=no]]),
+                            [enable_dpdk_apps=$enableval],[enable_dpdk_apps=no])
+    AS_IF([test "x$enable_dpdk_apps" = "xyes"], [
+        DPDK_PKG_CONFIG_VAR="$(pkg-config --exists libdpdk && echo 0)"
+        LIBDPDK_PC_FILE="$(pkg-config --path libdpdk 2>/dev/null)"
+        AC_SUBST(LIBDPDK_PC_FILE)
+        LIBDPDK_CFLAGS="$(pkg-config --cflags libdpdk)"
+        AC_SUBST(LIBDPDK_CFLAGS)
+        LIBDPDK_LDFLAGS_SHARED="$(pkg-config --libs libdpdk)"
+        AC_SUBST(LIBDPDK_LDFLAGS_SHARED)
+        LIBDPDK_LDFLAGS_STATIC="$(pkg-config --static --libs libdpdk)"
+        AC_SUBST(LIBDPDK_LDFLAGS_STATIC)
+
+    ])
+    AM_CONDITIONAL([BUILD_DPDK_APPS], [test "x$DPDK_PKG_CONFIG_VAR" = x0])
+
   # Netmap support
     AC_ARG_ENABLE(netmap,
             AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),[enable_netmap=$enableval],[enable_netmap=no])
@@ -2365,10 +2382,10 @@ return 0;
         fi
     fi
 
-if test "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes"; then
+if test "${enable_dpdk}" = "yes" || "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes"; then
   AC_DEFINE([CAPTURE_OFFLOAD_MANAGER], [1],[Building flow bypass manager code])
 fi
-if test "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${enable_pfring}" = "yes" || test "${enable_napatech}" = "yes"  || test "${enable_unittests}" = "yes"; then
+if test "${enable_dpdk}" = "yes" || "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${enable_pfring}" = "yes" || test "${enable_napatech}" = "yes"  || test "${enable_unittests}" = "yes"; then
   AC_DEFINE([CAPTURE_OFFLOAD], [1],[Building flow capture bypass code])
 fi
 
@@ -2476,6 +2493,7 @@ AC_CONFIG_FILES(suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.s
 AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
 AC_CONFIG_FILES(ebpf/Makefile)
 AC_CONFIG_FILES(libsuricata-config)
+AC_CONFIG_FILES(dpdk/Makefile dpdk/prefilter/Makefile)
 AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
@@ -2525,6 +2543,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Profiling locks enabled:                 ${enable_profiling_locks}
 
   Plugin support (experimental):           ${plugin_support}
+  DPDK apps (experimental):                ${enable_dpdk_apps}
 
 Development settings:
   Coccinelle / spatch:                     ${enable_coccinelle}
