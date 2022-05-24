@@ -41,7 +41,6 @@
 #include <fnmatch.h>
 #endif
 
-#include "debug.h"
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"

@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"

@@ -17,7 +17,6 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "debug.h"
 #include "detect.h"
 
 #include "detect-parse.h"

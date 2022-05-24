@@ -36,7 +36,6 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "conf.h"
-#include "debug.h"
 #include "decode.h"
 #include "threads.h"
 #include "counters.h"

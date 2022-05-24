@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "decode.h"
 #include "rust.h"
 

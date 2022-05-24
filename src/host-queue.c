@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "debug.h"
 #include "host-queue.h"
 #include "util-error.h"
 #include "util-debug.h"

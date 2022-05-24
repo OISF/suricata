@@ -27,10 +27,6 @@
 
 #include "suricata-common.h"
 
-
-
-
-
 /* Constants */
 #define ASCII_BLOCK         3
 #define B64_BLOCK           4

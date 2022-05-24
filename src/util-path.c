@@ -24,7 +24,6 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "debug.h"
 #include "util-debug.h"
 #include "util-path.h"
 
