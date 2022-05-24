@@ -1,0 +1,54 @@
+%YAML 1.1
+---
+
+
+rings:
+  - ring: "myring"
+    elements: 131072
+    op-mode: ips # ids / ips / pipeline
+    secondary-app-lcores: 4
+    pf-lcores: 1
+    bypass-table:
+      base-name: bypass_table
+      entries: 524288
+      # mempool name is table name with e.g. suffix _mp
+      mempool-name: mp_bt
+      # mempool entries is table-entries or  buckets * bucket size
+      mempool-entries: 524288
+      # mempool cache entries can be calculated again as the MAX(entries/1.5, MAX_SIZE)
+      mempool-cache-entries: 511
+    messages:
+      results-ring:
+        name: "rslts_ring"
+        elements: 32768
+      task-ring: # per PF lcore
+        name: "task_ring"
+        elements: 32768
+      message-mempool:
+        name: msg_mp
+        entries: 65536
+        cache-entries: 247
+    nic-config:
+      port-pcie1: 0000:3b:00.1
+      port-pcie2: 0000:3b:00.0
+      promisc: true # promiscuous mode - capture all packets
+      multicast: true # enables also detection on multicast packets
+      rss: true
+      checksum-checks-offload: true # if possible offload checksum validation to the NIC (saves Suricata resources)
+      mtu: 1500 # Set MTU of the device in bytes
+      # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
+      # Make sure you have enough allocated hugepages.
+      # The optimum size for the packet memory pool (in terms of memory usage) is power of two minus one: n = (2^q - 1)
+      mempool-size: 262143 # The number of elements in the mbuf pool
+
+      # Mempool cache size must be lower or equal to:
+      #     - RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and
+      #     - "mempool-size / 1.5"
+      # It is advised to choose cache_size to have "mempool-size modulo cache_size == 0".
+      # If this is not the case, some elements will always stay in the pool and will never be used.
+      # The cache can be disabled if the cache_size argument is set to 0, can be useful to avoid losing objects in cache
+      # If the value is empty or set to "auto", Suricata will attempt to set cache size of the mempool to a value
+      # that matches the previously mentioned recommendations
+      mempool-cache-size: 511
+      rx-descriptors: 16384
+      tx-descriptors: 16384

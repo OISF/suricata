@@ -531,7 +531,8 @@ typedef struct FlowProtoFreeFunc_ {
 } FlowProtoFreeFunc;
 
 typedef struct FlowBypassInfo_ {
-    bool (* BypassUpdate)(Flow *f, void *data, time_t tsec);
+    // todo: prefilter: try to remove mpc (DPDK mempool cache) from the prototype
+    bool (*BypassUpdate)(Flow *f, void *data, time_t tsec, void *mpc);
     void (* BypassFree)(void *data);
     void *bypass_data;
     uint64_t tosrcpktcnt;

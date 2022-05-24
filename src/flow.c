@@ -408,7 +408,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 #ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
-        if (p->ts.tv_sec - f->lastts.tv_sec > FLOW_BYPASSED_TIMEOUT / 2) {
+        if (p->ts.tv_sec - f->lastts.tv_sec > FLOW_BYPASSED_DOWNGRADE_TIMEOUT / 2) {
             SCLogDebug("Downgrading flow to local bypass");
             COPY_TIMESTAMP(&p->ts, &f->lastts);
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);

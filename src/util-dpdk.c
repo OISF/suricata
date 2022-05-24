@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021 - 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,8 @@
 #define UTIL_DPDK_C
 
 #include "suricata.h"
+#include "flow-bypass.h"
+#include "decode.h"
 #include "util-dpdk.h"
 
 uint32_t ArrayMaxValue(const uint32_t *arr, uint16_t arr_len)

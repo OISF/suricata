@@ -174,7 +174,10 @@ typedef struct FlowManagerThreadData_ {
     FlowCounters cnt;
 
     FlowManagerTimeoutThread timeout;
+    void *mpcache; // DPDK: messsage mempool user cache for non-registered non-EAL thread
 } FlowManagerThreadData;
+
+thread_local FlowManagerThreadData *ftd_local;
 
 /**
  * \brief Used to disable flow manager thread(s).
@@ -278,7 +281,7 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
         uint64_t bytes_tosrc = fc->tosrcbytecnt;
         uint64_t pkts_todst = fc->todstpktcnt;
         uint64_t bytes_todst = fc->todstbytecnt;
-        bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
+        bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec, ftd_local->mpcache);
         if (update) {
             SCLogDebug("Updated flow: %"PRId64"", FlowGetId(f));
             pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
@@ -653,6 +656,22 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     FlowManagerThreadData *ftd = SCCalloc(1, sizeof(FlowManagerThreadData));
+    ftd_local = ftd;
+    // todo: prefilter: this should be solved better with added IPC channel
+    //  IPC tells Suricata the name of the shared configuration, Suricata then
+    //  attaches to the memory zone and uses Conf* like functions to retrieve
+    //  necessary data (e.g. size of the message mempool cache).
+    if (run_mode != RUNMODE_DPDK) {
+        ftd_local->mpcache = NULL;
+    } else {
+#ifdef HAVE_DPDK
+        ftd_local->mpcache =
+                rte_mempool_cache_create(DPDK_MEMPOOL_CACHE_SIZE, (int)rte_socket_id());
+        if (ftd_local->mpcache == NULL) {
+            rte_panic("Mempool cache create not created");
+        }
+#endif
+    }
     if (ftd == NULL)
         return TM_ECODE_FAILED;
 

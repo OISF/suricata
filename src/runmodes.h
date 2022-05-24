@@ -98,6 +98,8 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check);
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
 
+#define DPDK_MEMPOOL_CACHE_SIZE 247
+
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
