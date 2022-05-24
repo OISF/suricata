@@ -30,7 +30,6 @@
 #include "suricata.h"
 
 #include "decode.h"
-#include "debug.h"
 #include "detect.h"
 
 #include "flow.h"

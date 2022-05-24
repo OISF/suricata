@@ -27,7 +27,6 @@
 #include "app-layer-parser.h"
 
 #include "conf.h"
-#include "debug.h"
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"

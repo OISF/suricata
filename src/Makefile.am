@@ -65,7 +65,6 @@ noinst_HEADERS = \
 	datasets-reputation.h \
 	datasets-sha256.h \
 	datasets-string.h \
-	debug.h \
 	decode-chdlc.h \
 	decode-erspan.h \
 	decode-esp.h \

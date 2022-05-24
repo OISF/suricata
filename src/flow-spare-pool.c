@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "debug.h"
 #include "flow-private.h"
 #include "flow-queue.h"
 #include "flow-util.h"

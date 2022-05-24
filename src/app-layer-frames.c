@@ -23,7 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "util-print.h"
 
 #include "stream-tcp.h"

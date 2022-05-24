@@ -25,7 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "flow.h"
 #include "conf.h"
 

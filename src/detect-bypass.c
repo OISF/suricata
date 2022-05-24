@@ -26,7 +26,6 @@
 #include "threads.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "debug.h"
 #include "decode.h"
 
 #include "detect.h"
