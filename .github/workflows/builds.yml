@@ -307,10 +307,10 @@ jobs:
       - run: make clean
       - run: make -j2
 
-  fedora-35:
-    name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
+  fedora-36:
+    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:35
+    container: fedora:36
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -383,10 +383,10 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
-  fedora-34:
-    name: Fedora 34 (debug, clang, asan, wshadow, rust-strict)
+  fedora-35:
+    name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:34
+    container: fedora:35
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
