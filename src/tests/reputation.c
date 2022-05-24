@@ -120,11 +120,11 @@ static int SRepTest06(void)
 {
     TEST_INIT_WITH_PACKET("192.168.0.1");
 
-    char str[] =
-        "0.0.0.0/0,1,10\n"
-        "192.168.0.0/16,2,127";
+    char str1[] = "0.0.0.0/0,1,10\n";
+    char str2[] = "192.168.0.0/16,2,127";
 
-    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 1);
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str1, &a, &cat, &value) != 1);
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str2, &a, &cat, &value) != 1);
 
     cat = 1;
     FAIL_IF(SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0) != 10);
