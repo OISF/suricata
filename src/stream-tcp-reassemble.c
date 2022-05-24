@@ -28,7 +28,6 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "debug.h"
 #include "detect.h"
 #include "flow.h"
 #include "threads.h"

@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 
 #include "detect.h"
 #include "detect-engine.h"

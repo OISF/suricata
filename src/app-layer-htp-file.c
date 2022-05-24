@@ -26,7 +26,6 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
-#include "debug.h"
 #include "util-validate.h"
 #include "decode.h"
 #include "threads.h"

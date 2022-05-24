@@ -27,7 +27,6 @@
 
 #include "suricata-common.h"
 
-#include "debug.h"
 #include "conf.h"
 
 #include "threads.h"

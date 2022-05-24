@@ -54,7 +54,6 @@
 
 #include "queue.h"
 #include "suricata-common.h"
-#include "debug.h"
 
 #include "ippair-storage.h"
 #include "flow-storage.h"

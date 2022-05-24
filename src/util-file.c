@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "debug.h"
 #include "flow.h"
 #include "stream.h"
 #include "stream-tcp.h"

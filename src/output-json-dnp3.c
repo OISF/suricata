@@ -16,7 +16,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
