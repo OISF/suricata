@@ -36,6 +36,13 @@
     Address a;                                                          \
     uint8_t cat = 0, value = 0;
 
+#define TEST_INIT_WITH_PACKET_IPV6(src, dst)                                                       \
+    uint8_t *buf = (uint8_t *)"Hi all!";                                                           \
+    uint16_t buflen = strlen((char *)buf);                                                         \
+    Packet *p = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, (src), (dst));       \
+    FAIL_IF(p == NULL);                                                                            \
+    TEST_INIT
+
 #define TEST_INIT_WITH_PACKET(ip)                                       \
     uint8_t *buf = (uint8_t *)"Hi all!";                                \
     uint16_t buflen = strlen((char *)buf);                              \
@@ -143,6 +150,26 @@ static int SRepTest07(void) {
     PASS;
 }
 
+static int SRepTest08(void)
+{
+    TEST_INIT_WITH_PACKET_IPV6("2000:0000:0000:0000:0000:0000:0000:0001", "FFFF::1");
+
+    char str1[] = "0.0.0.0/0,1,10\n";
+    char str2[] = "192.168.0.0/16,2,127\n";
+    char str3[] = "2000::/3,1,10\n";
+    char str4[] = "FFFF::/127,2,127\n";
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str1, &a, &cat, &value) != 1);
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str2, &a, &cat, &value) != 1);
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str3, &a, &cat, &value) != 1);
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str4, &a, &cat, &value) != 1);
+
+    cat = 1;
+    FAIL_IF(SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0) != 10);
+
+    TEST_CLEANUP_WITH_PACKET;
+    PASS;
+}
+
 /** Register the following unittests for the Reputation module */
 void SCReputationRegisterTests(void)
 {
@@ -153,4 +180,5 @@ void SCReputationRegisterTests(void)
     UtRegisterTest("SRepTest05", SRepTest05);
     UtRegisterTest("SRepTest06", SRepTest06);
     UtRegisterTest("SRepTest07", SRepTest07);
+    UtRegisterTest("SRepTest08", SRepTest08);
 }
