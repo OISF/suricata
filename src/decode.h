@@ -112,6 +112,7 @@ void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 /* Address */
 typedef struct Address_ {
     char family;
+    uint32_t family_padding : 24;
     union {
         uint32_t        address_un_data32[4]; /* type-specific field */
         uint16_t        address_un_data16[8]; /* type-specific field */

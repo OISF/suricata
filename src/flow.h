@@ -313,6 +313,7 @@ typedef struct FlowKey_
     uint8_t proto;
     uint8_t recursion_level;
     uint16_t vlan_id[2];
+    uint8_t spare8[14];
 } FlowKey;
 
 typedef struct FlowAddress_ {
