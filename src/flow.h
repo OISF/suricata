@@ -112,6 +112,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** All packets in this flow should be passed */
 #define FLOW_ACTION_PASS BIT_U32(28)
 
+/** Workers should not be able to access the flow only the flow managers */
+#define FLOW_LOCK_FOR_WORKERS BIT_U32(29)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0

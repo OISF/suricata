@@ -800,7 +800,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
                 goto flow_removed;
             }
             FLOWLOCK_UNLOCK(f);
-        } else if (FlowCompare(f, p) != 0) {
+        } else if (FlowCompare(f, p) != 0 && !(f->flags & FLOW_LOCK_FOR_WORKERS)) {
             FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
             if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
@@ -968,6 +968,62 @@ Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
             }
 
             if (FlowCompareKey(f, key) != 0) {
+                /* found our flow, lock & return */
+                FLOWLOCK_WRLOCK(f);
+
+                FBLOCK_UNLOCK(fb);
+                return f;
+            }
+        }
+    }
+
+    /* lock & return */
+    FLOWLOCK_WRLOCK(f);
+
+    FBLOCK_UNLOCK(fb);
+    return f;
+}
+
+/** \brief Look for existing Flow using a FlowKey that is locked for workers
+ *
+ * Hash retrieval function for flows. Looks up the hash bucket containing the
+ * flow pointer. Then compares the packet with the found flow and checks if
+ * the flow is locked for workers (findable only by flow managers).
+ * If it isn't, walk the list until the right flow is found.
+ *
+ *
+ *  \param key Pointer to FlowKey build using flow to look for
+ *  \param hash Value of the flow hash
+ *  \retval f *LOCKED* flow or NULL
+ */
+Flow *FlowGetExistingLockedFlowFromHash(FlowKey *key, const uint32_t hash)
+{
+    /* get our hash bucket and lock it */
+    FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
+    FBLOCK_LOCK(fb);
+
+    SCLogDebug("fb %p fb->head %p", fb, fb->head);
+
+    /* return if the bucket don't have a flow */
+    if (fb->head == NULL) {
+        FBLOCK_UNLOCK(fb);
+        return NULL;
+    }
+
+    /* ok, we have a flow in the bucket. Let's find out if it is our flow */
+    Flow *f = fb->head;
+
+    /* see if this is the flow we are looking for */
+    if (FlowCompareKey(f, key) == 0 || !(f->flags & FLOW_LOCK_FOR_WORKERS)) {
+        while (f) {
+            f = f->next;
+
+            if (f == NULL) {
+                FBLOCK_UNLOCK(fb);
+                return NULL;
+            }
+
+            if (FlowCompareKey(f, key) != 0 && (f->flags & FLOW_LOCK_FOR_WORKERS)) {
                 /* found our flow, lock & return */
                 FLOWLOCK_WRLOCK(f);
 

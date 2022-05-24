@@ -81,6 +81,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *tctx, Packet *, Flow
 
 Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash);
 Flow *FlowGetExistingFlowFromHash(FlowKey * key, uint32_t hash);
+Flow *FlowGetExistingLockedFlowFromHash(FlowKey *key, const uint32_t hash);
 uint32_t FlowKeyGetHash(FlowKey *flow_key);
 
 /** \note f->fb must be locked */
