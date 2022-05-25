@@ -1612,11 +1612,8 @@ end:
  *  \brief Handle POST or PUT, no multipart body data
  */
 static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
-           htp_tx_data_t *tx_data)
+        const htp_tx_t *tx, const uint8_t *data, uint32_t data_len)
 {
-    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
-    const uint8_t *data = htp_tx_data_data(tx_data);
-    uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
 
     /* see if we need to open the file */
@@ -1671,13 +1668,10 @@ end:
 }
 
 static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_data_t *tx_data)
+        const htp_tx_t *tx, const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
-    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
-    const uint8_t *data = htp_tx_data_data(tx_data);
-    uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
 
     /* see if we need to open the file
@@ -1854,7 +1848,7 @@ static int HTPCallbackRequestBodyData(const htp_connp_t *connp, htp_tx_data_t *d
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
                    tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePOSTorPUT(hstate, tx_ud, d);
+            HtpRequestBodyHandlePOSTorPUT(hstate, tx_ud, htp_tx_data_tx(d), htp_tx_data_data(d), len);
         }
 
     } else {
@@ -1949,7 +1943,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
         HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body,
                 htp_tx_data_data(d), len);
 
-        HtpResponseBodyHandle(hstate, tx_ud, d);
+        HtpResponseBodyHandle(hstate, tx_ud, htp_tx_data_tx(d), htp_tx_data_data(d), len);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
