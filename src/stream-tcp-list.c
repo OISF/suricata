@@ -562,34 +562,17 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     return 0;
 }
 
-/**
- * \brief Adds the following information to the TcpSegment from the current
- *  packet being processed: time values, packet length, and the
- *  header data of the packet. This information is added to the TcpSegment so
- *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
- *  session at the beginning of the pcap capture.
- * \param seg TcpSegment where information is being stored.
- * \param p Packet being processed.
- * \param tv Thread-specific variables.
- * \param ra_ctx TcpReassembly thread-specific variables
+/** \internal
+ *  \brief Add the header data to the segment
+ *  \param rp packet to take the headers from. Might differ from `pp` in tunnels.
+ *  \param pp packet to take the payload size from.
  */
-static void StreamTcpSegmentAddPacketData(
-        TcpSegment *seg, Packet *p, ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
+static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, const Packet *pp)
 {
-    Packet *rp = p;
-    if (seg->pcap_hdr_storage == NULL || seg->pcap_hdr_storage->pkt_hdr == NULL) {
-        return;
-    }
-
-    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
-        rp = p->root;
-    }
-
-    SCMutexLock(&rp->tunnel_mutex);
-    if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > p->payload_len) {
+    if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > pp->payload_len) {
         seg->pcap_hdr_storage->ts.tv_sec = rp->ts.tv_sec;
         seg->pcap_hdr_storage->ts.tv_usec = rp->ts.tv_usec;
-        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - p->payload_len;
+        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - pp->payload_len;
         /*
          * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
          * need to check that this is sufficient and allocate more memory if
@@ -606,17 +589,44 @@ static void StreamTcpSegmentAddPacketData(
                 return;
             } else {
                 seg->pcap_hdr_storage->pkt_hdr = tmp_pkt_hdr;
-                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(rp) - p->payload_len;
+                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(rp) - pp->payload_len;
             }
         }
         memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(rp),
-                (size_t)GET_PKT_LEN(rp) - p->payload_len);
+                (size_t)GET_PKT_LEN(rp) - pp->payload_len);
     } else {
         seg->pcap_hdr_storage->ts.tv_sec = 0;
         seg->pcap_hdr_storage->ts.tv_usec = 0;
         seg->pcap_hdr_storage->pktlen = 0;
     }
-    SCMutexUnlock(&rp->tunnel_mutex);
+}
+
+/**
+ * \brief Adds the following information to the TcpSegment from the current
+ *  packet being processed: time values, packet length, and the
+ *  header data of the packet. This information is added to the TcpSegment so
+ *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
+ *  session at the beginning of the pcap capture.
+ * \param seg TcpSegment where information is being stored.
+ * \param p Packet being processed.
+ * \param tv Thread-specific variables.
+ * \param ra_ctx TcpReassembly thread-specific variables
+ */
+static void StreamTcpSegmentAddPacketData(
+        TcpSegment *seg, Packet *p, ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
+{
+    if (seg->pcap_hdr_storage == NULL || seg->pcap_hdr_storage->pkt_hdr == NULL) {
+        return;
+    }
+
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        Packet *rp = p->root;
+        SCMutexLock(&rp->tunnel_mutex);
+        StreamTcpSegmentAddPacketDataDo(seg, rp, p);
+        SCMutexUnlock(&rp->tunnel_mutex);
+    } else {
+        StreamTcpSegmentAddPacketDataDo(seg, p, p);
+    }
 }
 
 /**
