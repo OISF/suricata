@@ -421,25 +421,18 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 {
     PCAPLOG_PROFILE_START;
 
+    int datalink = p->datalink;
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         Packet *real_p = p->root;
         SCMutexLock(&real_p->tunnel_mutex);
-        SCLogDebug("Setting pcap-log link type to %u", real_p->datalink);
-        if (pl->pcap_dead_handle == NULL) {
-            if ((pl->pcap_dead_handle = pcap_open_dead(real_p->datalink, PCAP_SNAPLEN)) == NULL) {
-                SCLogDebug("Error opening dead pcap handle");
-                SCMutexUnlock(&real_p->tunnel_mutex);
-                return TM_ECODE_FAILED;
-            }
-        }
+        datalink = real_p->datalink;
         SCMutexUnlock(&real_p->tunnel_mutex);
-    } else {
-        SCLogDebug("Setting pcap-log link type to %u", p->datalink);
-        if (pl->pcap_dead_handle == NULL) {
-            if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink, PCAP_SNAPLEN)) == NULL) {
-                SCLogDebug("Error opening dead pcap handle");
-                return TM_ECODE_FAILED;
-            }
+    }
+    if (pl->pcap_dead_handle == NULL) {
+        SCLogDebug("Setting pcap-log link type to %u", datalink);
+        if ((pl->pcap_dead_handle = pcap_open_dead(datalink, PCAP_SNAPLEN)) == NULL) {
+            SCLogDebug("Error opening dead pcap handle");
+            return TM_ECODE_FAILED;
         }
     }
 
