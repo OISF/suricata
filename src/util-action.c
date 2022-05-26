@@ -170,7 +170,6 @@ int ActionInitConfig()
  */
 static int UtilActionTest01(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -185,13 +184,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -199,7 +195,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -208,7 +204,6 @@ action-order:\n\
  */
 static int UtilActionTest02(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -223,13 +218,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -237,7 +229,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -246,7 +238,6 @@ action-order:\n\
  */
 static int UtilActionTest03(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -260,13 +251,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -274,7 +262,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -283,7 +271,6 @@ action-order:\n\
  */
 static int UtilActionTest04(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -294,13 +281,10 @@ action-order:\n";
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -308,7 +292,7 @@ action-order:\n";
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -318,7 +302,6 @@ action-order:\n";
  */
 static int UtilActionTest05(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -334,13 +317,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -348,7 +328,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -356,7 +336,6 @@ action-order:\n\
  */
 static int UtilActionTest06(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -371,13 +350,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_ALERT ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_PASS)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_ALERT);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_PASS);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -385,7 +361,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -393,7 +369,6 @@ action-order:\n\
  */
 static int UtilActionTest07(void)
 {
-    int res = 1;
     char config[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -408,13 +383,10 @@ action-order:\n\
     ConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_ALERT ||
-        action_order_sigs[2] != ACTION_DROP ||
-        action_order_sigs[3] != ACTION_REJECT)
-    {
-        res = 0;
-    }
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_ALERT);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_REJECT);
     ConfRestoreContextBackup();
 
     /* Restore default values */
@@ -422,7 +394,7 @@ action-order:\n\
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    return res;
+    PASS;
 }
 
 /**
@@ -431,7 +403,6 @@ action-order:\n\
  */
 static int UtilActionTest08(void)
 {
-    int res = 1;
     char config[] = "%YAML 1.1\n"
         "---\n";
 
@@ -439,20 +410,14 @@ static int UtilActionTest08(void)
     ConfInit();
     ConfYamlLoadString(config, strlen(config));
 
-    if (ActionInitConfig() != 0) {
-        res = 0;
-        goto done;
-    }
-    if (action_order_sigs[0] != ACTION_PASS ||
-        action_order_sigs[1] != ACTION_DROP ||
-        action_order_sigs[2] != ACTION_REJECT ||
-        action_order_sigs[3] != ACTION_ALERT) {
-        res = 0;
-    }
+    FAIL_IF_NOT(ActionInitConfig() == 0);
+    FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
+    FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
+    FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
+    FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
 
-done:
     ConfRestoreContextBackup();
-    return res;
+    PASS;
 }
 
 /* Register unittests */
