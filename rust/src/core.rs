@@ -188,7 +188,7 @@ pub fn sc_app_layer_decoder_events_free_events(
 /// Opaque flow type (defined in C)
 pub enum Flow {}
 
-/// Extern functions operating on Flow.
+// Extern functions operating on Flow.
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
 }

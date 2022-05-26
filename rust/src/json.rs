@@ -24,7 +24,7 @@ use std::os::raw::c_char;
 /// The Rust place holder for the json_t pointer.
 pub enum JsonT {}
 
-/// Expose the jansson functions we need.
+// Expose the jansson functions we need.
 extern {
     fn json_object() -> *mut JsonT;
     fn json_object_set_new(js: *mut JsonT, key: *const c_char,
