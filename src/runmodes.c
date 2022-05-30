@@ -952,7 +952,7 @@ void RunModeInitialize(void)
      * in case the default per-thread stack size is to be adjusted
      */
     const char *ss = NULL;
-    if ((ConfGetValue("threading.stack-size", &ss)) == 1) {
+    if ((ConfGet("threading.stack-size", &ss)) == 1) {
         if (ss != NULL) {
             if (ParseSizeStringU64(ss, &threading_set_stack_size) < 0) {
                 FatalError(SC_ERR_INVALID_ARGUMENT,

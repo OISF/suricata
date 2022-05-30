@@ -2516,7 +2516,7 @@ static void PostConfLoadedSetupHostMode(void)
 {
     const char *hostmode = NULL;
 
-    if (ConfGetValue("host-mode", &hostmode) == 1) {
+    if (ConfGet("host-mode", &hostmode) == 1) {
         if (!strcmp(hostmode, "router")) {
             host_mode = SURI_HOST_IS_ROUTER;
         } else if (!strcmp(hostmode, "sniffer-only")) {
@@ -2542,7 +2542,6 @@ static void PostConfLoadedSetupHostMode(void)
                       "default setting 'sniffer-only'");
         }
     }
-
 }
 
 static void SetupUserMode(SCInstance *suri)
@@ -2592,7 +2591,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     if (suri->checksum_validation == -1) {
         const char *cv = NULL;
-        if (ConfGetValue("capture.checksum-validation", &cv) == 1) {
+        if (ConfGet("capture.checksum-validation", &cv) == 1) {
             if (strcmp(cv, "none") == 0) {
                 suri->checksum_validation = 0;
             } else if (strcmp(cv, "all") == 0) {
