@@ -100,10 +100,10 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_RESPONSE_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
@@ -162,11 +162,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->response_status == NULL)
+        if (htp_tx_response_status(tx) == NULL)
             return NULL;
 
-        const uint32_t data_len = bstr_len(tx->response_status);
-        const uint8_t *data = bstr_ptr(tx->response_status);
+        const uint32_t data_len = bstr_len(htp_tx_response_status(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_response_status(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

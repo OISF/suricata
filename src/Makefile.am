@@ -28,7 +28,6 @@ noinst_HEADERS = \
 	app-layer-htp-body.h \
 	app-layer-htp-file.h \
 	app-layer-htp.h \
-	app-layer-htp-libhtp.h \
 	app-layer-htp-mem.h \
 	app-layer-htp-range.h \
 	app-layer-htp-xff.h \
@@ -627,7 +626,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
 	app-layer-htp-file.c \
-	app-layer-htp-libhtp.c \
 	app-layer-htp-mem.c \
 	app-layer-htp-range.c \
 	app-layer-htp-xff.c \

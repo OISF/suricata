@@ -184,7 +184,7 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
         }
 
         SCLogDebug("tx %p", tx);
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud != NULL) {
             SCLogDebug("htud %p", htud);
             HtpBody *body = NULL;

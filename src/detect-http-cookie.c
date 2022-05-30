@@ -108,14 +108,14 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
 
     DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRequestData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
+            GetRequestData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
     DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
+            GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
@@ -178,18 +178,17 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->request_headers == NULL)
+        if (htp_tx_request_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                "Cookie");
-        if (h == NULL || h->value == NULL) {
+        const htp_header_t *h = htp_tx_request_header(tx, "Cookie");
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -206,18 +205,17 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->response_headers == NULL)
+        if (htp_tx_response_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                "Set-Cookie");
-        if (h == NULL || h->value == NULL) {
+        const htp_header_t *h = htp_tx_response_header(tx, "Set-Cookie");
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

@@ -1788,7 +1788,7 @@ static int DetectPcreTxBodyChunksTest01(void)
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 1);
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(t1);
     FAIL_IF(htud == NULL);
 
     HtpBodyChunk *cur = htud->request_body.first;
@@ -1796,7 +1796,7 @@ static int DetectPcreTxBodyChunksTest01(void)
 
     FAIL_IF(StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body one!!", 10) != 1);
 
-    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *) htp_tx_user_data(t2);
 
     cur = htud->request_body.first;
     FAIL_IF(htud->request_body.first == NULL);
@@ -1951,14 +1951,14 @@ static int DetectPcreTxBodyChunksTest02(void)
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 1);
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(t1);
 
     HtpBodyChunk *cur = htud->request_body.first;
     FAIL_IF(htud->request_body.first == NULL);
 
     FAIL_IF(StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body one!!", 10) != 1);
 
-    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *) htp_tx_user_data(t2);
 
     cur = htud->request_body.first;
     FAIL_IF(htud->request_body.first == NULL);

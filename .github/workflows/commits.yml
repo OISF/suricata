@@ -76,7 +76,7 @@ jobs:
       # The action above is supposed to do this for us, but it doesn't appear to stick.
       - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       - run: git fetch
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: git clone https://github.com/cccs-rtmorti/libhtp-rs -b master
       - name: Building all commits
         run: |
           echo "Building commits from ${GITHUB_BASE_REF}."

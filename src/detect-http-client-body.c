@@ -101,10 +101,10 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectEngineInspectBufferHttpBody, NULL);
+            HTP_REQUEST_PROGRESS_BODY, DetectEngineInspectBufferHttpBody, NULL);
 
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
+            PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_BODY);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
@@ -164,7 +164,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 
 static inline HtpBody *GetRequestBody(htp_tx_t *tx)
 {
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud == NULL) {
         SCLogDebug("no htud");
         return NULL;
@@ -237,7 +237,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
             htp_state->cfg->request.body_limit, body->content_len_so_far,
             htp_state->cfg->request.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
             (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                    HTP_REQUEST_BODY)
+                    HTP_REQUEST_PROGRESS_BODY)
                     ? "true"
                     : "false");
 
@@ -248,7 +248,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
                     body->content_len_so_far < htp_state->cfg->request.body_limit) &&
                 body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
                 !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                        HTP_REQUEST_BODY) &&
+                        HTP_REQUEST_PROGRESS_BODY) &&
                 !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire request body.  "
                        "Let's defer body inspection till we see the "
@@ -329,11 +329,11 @@ static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_REQUEST_BODY)
+                HTP_REQUEST_PROGRESS_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_RESPONSE_BODY)
+                HTP_RESPONSE_PROGRESS_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

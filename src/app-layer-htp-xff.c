@@ -136,20 +136,17 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
         return 0;
     }
 
-    htp_header_t *h_xff = NULL;
-    if (tx->request_headers != NULL) {
-        h_xff = htp_table_get_c(tx->request_headers, xff_cfg->header);
-    }
+    const htp_header_t *h_xff = htp_tx_request_header(tx, xff_cfg->header);
 
-    if (h_xff != NULL && bstr_len(h_xff->value) >= XFF_CHAIN_MINLEN &&
-            bstr_len(h_xff->value) < XFF_CHAIN_MAXLEN) {
+    if (h_xff != NULL && htp_header_value_len(h_xff) >= XFF_CHAIN_MINLEN &&
+            htp_header_value_len(h_xff) < XFF_CHAIN_MAXLEN) {
 
-        memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
-        xff_chain[bstr_len(h_xff->value)]=0;
+        memcpy(xff_chain, htp_header_value_ptr(h_xff), htp_header_value_len(h_xff));
+        xff_chain[htp_header_value_len(h_xff)]=0;
 
         if (xff_cfg->flags & XFF_REVERSE) {
             /** Get the last IP address from the chain */
-            p_xff = memrchr(xff_chain, ' ', bstr_len(h_xff->value));
+            p_xff = memrchr(xff_chain, ' ', htp_header_value_len(h_xff));
             if (p_xff == NULL) {
                 p_xff = xff_chain;
             } else {
@@ -158,7 +155,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
         }
         else {
             /** Get the first IP address from the chain */
-            p_xff = memchr(xff_chain, ',', bstr_len(h_xff->value));
+            p_xff = memchr(xff_chain, ',', htp_header_value_len(h_xff));
             if (p_xff != NULL) {
                 *p_xff = 0;
             }

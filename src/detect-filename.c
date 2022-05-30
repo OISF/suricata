@@ -98,9 +98,9 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectFileInspectGeneric, NULL);
+            HTP_REQUEST_PROGRESS_BODY, DetectFileInspectGeneric, NULL);
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectFileInspectGeneric, NULL);
+            HTP_RESPONSE_PROGRESS_BODY, DetectFileInspectGeneric, NULL);
 
     DetectAppLayerInspectEngineRegister2(
             "files", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);

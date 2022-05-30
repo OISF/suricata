@@ -386,12 +386,12 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                 if (tx == NULL)
                     continue;
 
-                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && htp_tx_request_line(tx) != NULL &&
+                    bstr_len(htp_tx_request_line(tx)) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
                     LuaPushStringBuffer(tlua->luastate,
-                                     (const uint8_t *)bstr_ptr(tx->request_line),
-                                     bstr_len(tx->request_line));
+                                     (const uint8_t *)bstr_ptr(htp_tx_request_line(tx)),
+                                     bstr_len(htp_tx_request_line(tx)));
                     lua_settable(tlua->luastate, -3);
                 }
             }
@@ -495,12 +495,12 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
             htp_tx_t *tx = NULL;
             tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, det_ctx->tx_id);
             if (tx != NULL) {
-                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && htp_tx_request_line(tx) != NULL &&
+                    bstr_len(htp_tx_request_line(tx)) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
                     LuaPushStringBuffer(tlua->luastate,
-                                     (const uint8_t *)bstr_ptr(tx->request_line),
-                                     bstr_len(tx->request_line));
+                                     (const uint8_t *)bstr_ptr(htp_tx_request_line(tx)),
+                                     bstr_len(htp_tx_request_line(tx)));
                     lua_settable(tlua->luastate, -3);
                 }
             }

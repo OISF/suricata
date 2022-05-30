@@ -2722,7 +2722,7 @@ static int DetectEngineHttpServerBodyTest20(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+#ifdef HAVE_HTP_CONFIG_SET_DECOMPRESSION_LAYER_LIMIT
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 #endif
 
@@ -2851,7 +2851,7 @@ static int DetectEngineHttpServerBodyTest21(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+#ifdef HAVE_HTP_CONFIG_SET_DECOMPRESSION_LAYER_LIMIT
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 #endif
 
@@ -2982,7 +2982,7 @@ static int DetectEngineHttpServerBodyTest22(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+#ifdef HAVE_HTP_CONFIG_SET_DECOMPRESSION_LAYER_LIMIT
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 #endif
 
