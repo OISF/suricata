@@ -37,6 +37,7 @@
 #include "runmodes.h"
 #include "util-error.h"
 #include "util-device.h"
+#include "util-datalink.h"
 
 #ifndef HAVE_NFLOG
 /** Handle the case where no NFLOG support is compiled in.
