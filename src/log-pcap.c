@@ -424,9 +424,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     int datalink = p->datalink;
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         Packet *real_p = p->root;
-        SCMutexLock(&real_p->tunnel_mutex);
         datalink = real_p->datalink;
-        SCMutexUnlock(&real_p->tunnel_mutex);
     }
     if (pl->pcap_dead_handle == NULL) {
         SCLogDebug("Setting pcap-log link type to %u", datalink);
