@@ -424,9 +424,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     int datalink = p->datalink;
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         Packet *real_p = p->root;
-        SCMutexLock(&real_p->tunnel_mutex);
         datalink = real_p->datalink;
-        SCMutexUnlock(&real_p->tunnel_mutex);
     }
     if (pl->pcap_dead_handle == NULL) {
         SCLogDebug("Setting pcap-log link type to %u", datalink);
@@ -616,11 +614,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     pl->h->ts.tv_usec = p->ts.tv_usec;
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         rp = p->root;
-        SCMutexLock(&rp->tunnel_mutex);
         pl->h->caplen = GET_PKT_LEN(rp);
         pl->h->len = GET_PKT_LEN(rp);
         len = sizeof(*pl->h) + GET_PKT_LEN(rp);
-        SCMutexUnlock(&rp->tunnel_mutex);
     } else {
         pl->h->caplen = GET_PKT_LEN(p);
         pl->h->len = GET_PKT_LEN(p);
@@ -705,11 +701,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             pl->h->ts.tv_usec = p->ts.tv_usec;
             if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
                 rp = p->root;
-                SCMutexLock(&rp->tunnel_mutex);
                 pl->h->caplen = GET_PKT_LEN(rp);
                 pl->h->len = GET_PKT_LEN(rp);
                 len = sizeof(*pl->h) + GET_PKT_LEN(rp);
-                SCMutexUnlock(&rp->tunnel_mutex);
             } else {
                 pl->h->caplen = GET_PKT_LEN(p);
                 pl->h->len = GET_PKT_LEN(p);
@@ -720,13 +714,11 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         rp = p->root;
-        SCMutexLock(&rp->tunnel_mutex);
 #ifdef HAVE_LIBLZ4
         ret = PcapWrite(pl, comp, GET_PKT_DATA(rp), len);
 #else
         ret = PcapWrite(pl, NULL, GET_PKT_DATA(rp), len);
 #endif
-        SCMutexUnlock(&rp->tunnel_mutex);
     } else {
 #ifdef HAVE_LIBLZ4
         ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);

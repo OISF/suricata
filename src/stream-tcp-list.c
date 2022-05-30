@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -621,9 +621,7 @@ static void StreamTcpSegmentAddPacketData(
 
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         Packet *rp = p->root;
-        SCMutexLock(&rp->tunnel_mutex);
         StreamTcpSegmentAddPacketDataDo(seg, rp, p);
-        SCMutexUnlock(&rp->tunnel_mutex);
     } else {
         StreamTcpSegmentAddPacketDataDo(seg, p, p);
     }
