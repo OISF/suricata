@@ -605,7 +605,7 @@ void DatasetPostReloadCleanup(void)
 static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
-    if (ConfGetValue("datasets.defaults.memcap", &str) == 1) {
+    if (ConfGet("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "memcap value cannot be deduced: %s,"
@@ -614,7 +614,7 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
             *memcap = 0;
         }
     }
-    if (ConfGetValue("datasets.defaults.hashsize", &str) == 1) {
+    if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "hashsize value cannot be deduced: %s,"
