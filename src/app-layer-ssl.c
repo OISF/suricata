@@ -3067,7 +3067,7 @@ void RegisterSSLParsers(void)
         /* Check if we should generate JA3 fingerprints */
         int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
         const char *strval = NULL;
-        if (ConfGetValue("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
+        if (ConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
             enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
         } else if (strcmp(strval, "auto") == 0) {
             enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
