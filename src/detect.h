@@ -1119,6 +1119,7 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t alert_queue_size;
     uint16_t alert_queue_capacity;
     PacketAlert *alert_queue;
+    bool is_expand_failure;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 
