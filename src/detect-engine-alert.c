@@ -220,6 +220,7 @@ void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
                 (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
     }
     det_ctx->alert_queue_capacity = packet_alert_max;
+    det_ctx->is_alert_queue_expand_failure = false;
     SCLogDebug("alert queue initialized to %u elements (%" PRIu64 " bytes)", packet_alert_max,
             (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
 }
@@ -237,12 +238,15 @@ static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 {
 #ifdef DEBUG
     if (unlikely(is_alert_queue_fail_mode)) {
+        det_ctx->is_alert_queue_expand_failure = true;
         return det_ctx->alert_queue_capacity;
     }
 #endif
     uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
     void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
     if (unlikely(tmp_queue == NULL)) {
+        /* save this info, so we know to double check for DROP action in packet */
+        det_ctx->is_alert_queue_expand_failure = true;
         /* queue capacity didn't change */
         return det_ctx->alert_queue_capacity;
     }
@@ -384,12 +388,12 @@ void PacketAlertQueueFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
 {
     SCEnter();
 
-    /* sort the alert queue before thresholding and appending to Packet */
-    qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
-            AlertQueueSortHelper);
-
     int i = 0;
     uint16_t max_pos = det_ctx->alert_queue_size;
+    PacketAlert tmp_queue[max_pos];
+    uint16_t tmp_size = 0;
+    bool is_action_pass = false;
+    uint32_t pass_sid_num = 0;
 
     while (i < max_pos) {
         const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
@@ -401,20 +405,57 @@ void PacketAlertQueueFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
             p->alerts.suppressed++;
             SCLogDebug("Suppressing sid %" PRIu32 " alert from alerts' queue", s->id);
         } else if (res == 1) {
-            if (p->alerts.cnt < packet_alert_max) {
-                p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
-                SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
-                if (PacketTestAction(p, ACTION_PASS)) {
-                    /* Ok, reset the alert cnt to end in the previous of pass
-                     * so we ignore the rest with less prio */
-                    break;
-                }
-                p->alerts.cnt++;
-            } else {
-                p->alerts.discarded++;
+            tmp_queue[tmp_size] = det_ctx->alert_queue[i];
+            tmp_size++;
+            SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
+            if (PacketTestAction(p, ACTION_PASS) && !is_action_pass) {
+                /* Ok, reset the alert cnt to end in the previous of pass
+                 * so we ignore the rest with less prio */
+                pass_sid_num = s->num;
+                is_action_pass = true;
             }
         }
         i++;
+    }
+
+    if (packet_alert_max > tmp_size) {
+        p->alerts.cnt = tmp_size;
+    } else {
+        p->alerts.cnt = packet_alert_max;
+        // we also have discarded alerts in case of queue expansion failure, let's
+        // not miss that count
+        p->alerts.discarded += (tmp_size - packet_alert_max);
+    }
+    qsort(tmp_queue, tmp_size, sizeof(PacketAlert), AlertQueueSortHelper);
+
+    if (det_ctx->is_alert_queue_expand_failure) {
+        if (p->alerts.drop.action & ACTION_DROP) {
+            PacketAlertFinalize(de_ctx, det_ctx, p, &p->alerts.drop, p->alerts.drop.s);
+        }
+    }
+
+    if (is_action_pass) {
+        // this means we got a 'PASS' action for this Packet, pass_sid_num
+        // has the related signature's internal id
+        uint16_t j;
+        for (j = 0; j < p->alerts.cnt; j++) {
+            if (tmp_queue[j].num < pass_sid_num) {
+                // we add it to the final queue
+                p->alerts.alerts[j] = tmp_queue[j];
+            } else {
+                break;
+            }
+        }
+        if (p->alerts.drop.action != 0) {
+            if (p->alerts.drop.s->num > pass_sid_num) {
+                // if this should be a pass, then ignore drop action
+                p->alerts.drop.action = 0;
+                PACKET_PASS(p);
+            }
+        }
+        p->alerts.cnt = j;
+    } else {
+        memcpy(p->alerts.alerts, tmp_queue, p->alerts.cnt * sizeof(PacketAlert));
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
@@ -429,7 +470,6 @@ void PacketAlertQueueFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
             p->flags |= PKT_FIRST_ALERTS;
         }
     }
-
 }
 
 
