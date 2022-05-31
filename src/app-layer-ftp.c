@@ -369,7 +369,12 @@ static void FTPTransactionFree(FTPTransaction *tx)
     FTPFree(tx, sizeof(*tx));
 }
 
-static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
+typedef struct FtpInput_ {
+    const uint8_t *input;
+    int32_t input_len;
+} FtpInput;
+
+static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state, FtpInput *ftpi)
 {
     void *ptmp;
     if (line_state->current_line_lf_seen == 1) {
@@ -388,9 +393,9 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
     }
 
     /* Should be guaranteed by the caller. */
-    DEBUG_VALIDATE_BUG_ON(state->input_len <= 0);
+    DEBUG_VALIDATE_BUG_ON(ftpi->input_len <= 0);
 
-    uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
+    uint8_t *lf_idx = memchr(ftpi->input, 0x0a, ftpi->input_len);
 
     if (lf_idx == NULL) {
         /* fragmented lines.  Decoder event for special cases.  Not all
@@ -400,7 +405,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
          * if we see fragmentation then it's definitely something you
          * should alert about */
         if (line_state->current_line_db == 0) {
-            int32_t input_len = state->input_len;
+            int32_t input_len = ftpi->input_len;
             if ((uint32_t)input_len > ftp_max_line_len) {
                 input_len = ftp_max_line_len;
                 state->current_line_truncated = true;
@@ -410,10 +415,10 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
                 return -1;
             }
             line_state->current_line_db = 1;
-            memcpy(line_state->db, state->input, input_len);
+            memcpy(line_state->db, ftpi->input, input_len);
             line_state->db_len = input_len;
         } else if (!state->current_line_truncated) {
-            int32_t input_len = state->input_len;
+            int32_t input_len = ftpi->input_len;
             if (line_state->db_len + input_len > ftp_max_line_len) {
                 input_len = ftp_max_line_len - line_state->db_len;
                 DEBUG_VALIDATE_BUG_ON(input_len < 0);
@@ -430,12 +435,12 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
                 }
                 line_state->db = ptmp;
 
-                memcpy(line_state->db + line_state->db_len, state->input, input_len);
+                memcpy(line_state->db + line_state->db_len, ftpi->input, input_len);
                 line_state->db_len += input_len;
             }
         }
-        state->input += state->input_len;
-        state->input_len = 0;
+        ftpi->input += ftpi->input_len;
+        ftpi->input_len = 0;
 
         return -1;
 
@@ -444,7 +449,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 
         if (line_state->current_line_db == 1) {
             if (!state->current_line_truncated) {
-                int32_t input_len = lf_idx + 1 - state->input;
+                int32_t input_len = lf_idx + 1 - ftpi->input;
                 if (line_state->db_len + input_len > ftp_max_line_len) {
                     input_len = ftp_max_line_len - line_state->db_len;
                     DEBUG_VALIDATE_BUG_ON(input_len < 0);
@@ -461,7 +466,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
                     }
                     line_state->db = ptmp;
 
-                    memcpy(line_state->db + line_state->db_len, state->input, input_len);
+                    memcpy(line_state->db + line_state->db_len, ftpi->input, input_len);
                     line_state->db_len += input_len;
 
                     if (line_state->db_len > 1 && line_state->db[line_state->db_len - 2] == 0x0D) {
@@ -478,16 +483,15 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             state->current_line_len = line_state->db_len;
 
         } else {
-            state->current_line = state->input;
-            if (lf_idx - state->input > ftp_max_line_len) {
+            state->current_line = ftpi->input;
+            if (lf_idx - ftpi->input > ftp_max_line_len) {
                 state->current_line_len = ftp_max_line_len;
                 state->current_line_truncated = true;
             } else {
-                state->current_line_len = lf_idx - state->input;
+                state->current_line_len = lf_idx - ftpi->input;
             }
 
-            if (state->input != lf_idx &&
-                *(lf_idx - 1) == 0x0D) {
+            if (ftpi->input != lf_idx && *(lf_idx - 1) == 0x0D) {
                 state->current_line_len--;
                 state->current_line_delimiter_len = 2;
             } else {
@@ -495,27 +499,27 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             }
         }
 
-        state->input_len -= (lf_idx - state->input) + 1;
-        state->input = (lf_idx + 1);
+        ftpi->input_len -= (lf_idx - ftpi->input) + 1;
+        ftpi->input = (lf_idx + 1);
 
         return 0;
     }
 
 }
 
-static int FTPGetLine(FtpState *state)
+static int FTPGetLine(FtpState *state, int direction, FtpInput *ftpi)
 {
     SCEnter();
 
     /* we have run out of input */
-    if (state->input_len <= 0)
+    if (ftpi->input_len <= 0)
         return -1;
 
     /* toserver */
-    if (state->direction == 0)
-        return FTPGetLineForDirection(state, &state->line_state[0]);
+    if (direction == STREAM_TOSERVER)
+        return FTPGetLineForDirection(state, &state->line_state[0], ftpi);
     else
-        return FTPGetLineForDirection(state, &state->line_state[1]);
+        return FTPGetLineForDirection(state, &state->line_state[1], ftpi);
 }
 
 /**
@@ -619,13 +623,10 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
         SCReturnStruct(APP_LAYER_ERROR);
     }
 
-    state->input = input;
-    state->input_len = input_len;
-    /* toserver stream */
-    state->direction = 0;
+    FtpInput ftpi = { .input = input, .input_len = input_len };
 
     int direction = STREAM_TOSERVER;
-    while (FTPGetLine(state) >= 0) {
+    while (FTPGetLine(state, STREAM_TOSERVER, &ftpi) >= 0) {
         const FtpCommand *cmd_descriptor;
 
         if (!FTPParseRequestCommand(thread_data,
@@ -802,13 +803,10 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     if (unlikely(input_len == 0)) {
         SCReturnStruct(APP_LAYER_OK);
     }
-    state->input = input;
-    state->input_len = input_len;
-    /* toclient stream */
-    state->direction = 1;
+    FtpInput ftpi = { .input = input, .input_len = input_len };
 
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
-    while (FTPGetLine(state) >= 0) {
+    while (FTPGetLine(state, STREAM_TOCLIENT, &ftpi) >= 0) {
         FTPTransaction *tx = FTPGetOldestTx(state, lasttx);
         if (tx == NULL) {
             tx = FTPTransactionCreate(state);

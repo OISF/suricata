@@ -160,9 +160,6 @@ typedef struct FTPTransaction_  {
 
 /** FTP State for app layer parser */
 typedef struct FtpState_ {
-    const uint8_t *input;
-    int32_t input_len;
-    uint8_t direction;
     bool active;
 
     FTPTransaction *curr_tx;
