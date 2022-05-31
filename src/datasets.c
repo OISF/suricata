@@ -26,6 +26,7 @@
 #include "datasets.h"
 #include "datasets-string.h"
 #include "datasets-ipv4.h"
+#include "datasets-ipv6.h"
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
@@ -63,6 +64,8 @@ enum DatasetTypes DatasetGetTypeFromString(const char *s)
         return DATASET_TYPE_STRING;
     if (strcasecmp("ipv4", s) == 0)
         return DATASET_TYPE_IPV4;
+    if (strcasecmp("ip", s) == 0)
+        return DATASET_TYPE_IPV6;
     return DATASET_TYPE_NOTSET;
 }
 
@@ -216,6 +219,105 @@ static int DatasetLoadIPv4(Dataset *set)
 
             SCLogDebug("rep v:%u", rep.value);
             if (DatasetAddwRep(set, (const uint8_t *)&in.s_addr, 4, &rep) < 0)
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s", set->name, set->load);
+
+            cnt++;
+        }
+    }
+    THashConsolidateMemcap(set->hash);
+
+    fclose(fp);
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
+    return 0;
+}
+
+static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
+{
+    /* Checking IPv6 case */
+    char *got_colon = strchr(line, ':');
+    if (got_colon) {
+        uint32_t ip6addr[4];
+        if (inet_pton(AF_INET6, line, in6) != 1) {
+            FatalError(SC_ERR_FATAL, "dataset data parse failed %s/%s: %s", set->name, set->load,
+                    line);
+            return -1;
+        }
+        memcpy(&ip6addr, in6->s6_addr, sizeof(ip6addr));
+        /* IPv4 in IPv6 notation needs transformation to internal Suricata storage */
+        if (ip6addr[0] == 0 && ip6addr[1] == 0 && ip6addr[2] == 0xFFFF0000) {
+            ip6addr[0] = ip6addr[3];
+            ip6addr[2] = 0;
+            ip6addr[3] = 0;
+            memcpy(in6, ip6addr, sizeof(struct in6_addr));
+        }
+    } else {
+        /* IPv4 case */
+        struct in_addr in;
+        if (inet_pton(AF_INET, line, &in) != 1) {
+            FatalError(SC_ERR_FATAL, "dataset data parse failed %s/%s: %s", set->name, set->load,
+                    line);
+            return -1;
+        }
+        memset(in6, 0, sizeof(struct in6_addr));
+        memcpy(in6, &in, sizeof(struct in_addr));
+    }
+    return 0;
+}
+
+static int DatasetLoadIPv6(Dataset *set)
+{
+    if (strlen(set->load) == 0)
+        return 0;
+
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    const char *fopen_mode = "r";
+    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
+        fopen_mode = "a+";
+    }
+
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    uint32_t cnt = 0;
+    char line[1024];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        char *r = strchr(line, ',');
+        if (r == NULL) {
+            line[strlen(line) - 1] = '\0';
+            SCLogDebug("line: '%s'", line);
+
+            struct in6_addr in6;
+            int ret = ParseIpv6String(set, line, &in6);
+            if (ret < 0)
+                FatalError(SC_ERR_FATAL, "unable to parse IP address");
+
+            if (DatasetAdd(set, (const uint8_t *)&in6.s6_addr, 16) < 0)
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s", set->name, set->load);
+            cnt++;
+
+            /* list with rep data */
+        } else {
+            line[strlen(line) - 1] = '\0';
+            SCLogDebug("IPv6 with REP line: '%s'", line);
+
+            *r = '\0';
+
+            struct in6_addr in6;
+            int ret = ParseIpv6String(set, line, &in6);
+            if (ret < 0)
+                FatalError(SC_ERR_FATAL, "unable to parse IP address");
+
+            r++;
+
+            DataRepType rep = { .value = 0 };
+            if (ParseRepLine(r, strlen(r), &rep) < 0)
+                FatalError(SC_ERR_FATAL, "bad rep for dataset %s/%s", set->name, set->load);
+
+            SCLogDebug("rep v:%u", rep.value);
+            if (DatasetAddwRep(set, (const uint8_t *)&in6.s6_addr, 16, &rep) < 0)
                 FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s", set->name, set->load);
 
             cnt++;
@@ -606,6 +708,15 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             if (DatasetLoadIPv4(set) < 0)
                 goto out_err;
             break;
+        case DATASET_TYPE_IPV6:
+            set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash,
+                    IPv6Compare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadIPv6(set) < 0)
+                goto out_err;
+            break;
     }
 
     SCLogDebug("set %p/%s type %u save %s load %s",
@@ -878,6 +989,27 @@ static int IPv4AsAscii(const void *s, char *out, size_t out_size)
     return strlen(out);
 }
 
+static int IPv6AsAscii(const void *s, char *out, size_t out_size)
+{
+    const IPv6Type *ip6 = s;
+    char str[256];
+    bool is_ipv4 = true;
+    for (int i = 4; i <= 15; i++) {
+        if (ip6->ipv6[i] != 0) {
+            is_ipv4 = false;
+            break;
+        }
+    }
+    if (is_ipv4) {
+        PrintInet(AF_INET, ip6->ipv6, str, sizeof(str));
+    } else {
+        PrintInet(AF_INET6, ip6->ipv6, str, sizeof(str));
+    }
+    strlcat(out, str, out_size);
+    strlcat(out, "\n", out_size);
+    return strlen(out);
+}
+
 void DatasetsSave(void)
 {
     SCLogDebug("saving datasets: %p", sets);
@@ -905,6 +1037,9 @@ void DatasetsSave(void)
                 break;
             case DATASET_TYPE_IPV4:
                 THashWalk(set->hash, IPv4AsAscii, SaveCallback, fp);
+                break;
+            case DATASET_TYPE_IPV6:
+                THashWalk(set->hash, IPv6AsAscii, SaveCallback, fp);
                 break;
         }
 
@@ -984,6 +1119,48 @@ static DataRepResultType DatasetLookupIPv4wRep(
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
         IPv4Type *found = rdata->data;
+        rrep.found = true;
+        rrep.rep = found->rep;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
+static int DatasetLookupIPv6(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16 && data_len != 4)
+        return -1;
+
+    IPv6Type lookup = { .rep.value = 0 };
+    memcpy(lookup.ipv6, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        DatasetUnlockData(rdata);
+        return 1;
+    }
+    return 0;
+}
+
+static DataRepResultType DatasetLookupIPv6wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+{
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    if (data_len != 16 && data_len != 4)
+        return rrep;
+
+    IPv6Type lookup = { .rep.value = 0 };
+    memcpy(lookup.ipv6, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        IPv6Type *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
         DatasetUnlockData(rdata);
@@ -1099,6 +1276,8 @@ int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len)
             return DatasetLookupSha256(set, data, data_len);
         case DATASET_TYPE_IPV4:
             return DatasetLookupIPv4(set, data, data_len);
+        case DATASET_TYPE_IPV6:
+            return DatasetLookupIPv6(set, data, data_len);
     }
     return -1;
 }
@@ -1119,6 +1298,8 @@ DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uin
             return DatasetLookupSha256wRep(set, data, data_len, rep);
         case DATASET_TYPE_IPV4:
             return DatasetLookupIPv4wRep(set, data, data_len, rep);
+        case DATASET_TYPE_IPV6:
+            return DatasetLookupIPv6wRep(set, data, data_len, rep);
     }
     return rrep;
 }
@@ -1184,6 +1365,26 @@ static int DatasetAddIPv4(Dataset *set, const uint8_t *data, const uint32_t data
     return -1;
 }
 
+static int DatasetAddIPv6(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    if (set == NULL) {
+        return -1;
+    }
+
+    if (data_len != 16) {
+        return -2;
+    }
+
+    IPv6Type lookup = { .rep.value = 0 };
+    memcpy(lookup.ipv6, data, 16);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
 static int DatasetAddIPv4wRep(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
@@ -1195,6 +1396,25 @@ static int DatasetAddIPv4wRep(
 
     IPv4Type lookup = { .rep = *rep };
     memcpy(lookup.ipv4, data, 4);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
+static int DatasetAddIPv6wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    IPv6Type lookup = { .rep = *rep };
+    memcpy(lookup.ipv6, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
@@ -1291,6 +1511,8 @@ int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
             return DatasetAddSha256(set, data, data_len);
         case DATASET_TYPE_IPV4:
             return DatasetAddIPv4(set, data, data_len);
+        case DATASET_TYPE_IPV6:
+            return DatasetAddIPv6(set, data, data_len);
     }
     return -1;
 }
@@ -1310,6 +1532,8 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
             return DatasetAddSha256wRep(set, data, data_len, rep);
         case DATASET_TYPE_IPV4:
             return DatasetAddIPv4wRep(set, data, data_len, rep);
+        case DATASET_TYPE_IPV6:
+            return DatasetAddIPv6wRep(set, data, data_len, rep);
     }
     return -1;
 }
@@ -1317,7 +1541,8 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
 typedef int (*DatasetOpFunc)(Dataset *set, const uint8_t *data, const uint32_t data_len);
 
 static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc DatasetOpString,
-        DatasetOpFunc DatasetOpMd5, DatasetOpFunc DatasetOpSha256, DatasetOpFunc DatasetOpIPv4)
+        DatasetOpFunc DatasetOpMd5, DatasetOpFunc DatasetOpSha256, DatasetOpFunc DatasetOpIPv4,
+        DatasetOpFunc DatasetOpIPv6)
 {
     if (set == NULL)
         return -1;
@@ -1357,6 +1582,12 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
                 return -2;
             return DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4);
         }
+        case DATASET_TYPE_IPV6: {
+            struct in_addr in;
+            if (inet_pton(AF_INET6, string, &in) != 1)
+                return -2;
+            return DatasetOpIPv6(set, (uint8_t *)&in.s_addr, 16);
+        }
     }
     return -1;
 }
@@ -1369,8 +1600,8 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
  */
 int DatasetAddSerialized(Dataset *set, const char *string)
 {
-    return DatasetOpSerialized(
-            set, string, DatasetAddString, DatasetAddMd5, DatasetAddSha256, DatasetAddIPv4);
+    return DatasetOpSerialized(set, string, DatasetAddString, DatasetAddMd5, DatasetAddSha256,
+            DatasetAddIPv4, DatasetAddIPv6);
 }
 
 /** \brief add serialized data to set
@@ -1382,7 +1613,7 @@ int DatasetAddSerialized(Dataset *set, const char *string)
 int DatasetLookupSerialized(Dataset *set, const char *string)
 {
     return DatasetOpSerialized(set, string, DatasetLookupString, DatasetLookupMd5,
-            DatasetLookupSha256, DatasetLookupIPv4);
+            DatasetLookupSha256, DatasetLookupIPv4, DatasetLookupIPv6);
 }
 
 /**
@@ -1410,6 +1641,19 @@ static int DatasetRemoveIPv4(Dataset *set, const uint8_t *data, const uint32_t d
 
     IPv4Type lookup = { .rep.value = 0 };
     memcpy(lookup.ipv4, data, 4);
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+static int DatasetRemoveIPv6(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    IPv6Type lookup = { .rep.value = 0 };
+    memcpy(lookup.ipv6, data, 16);
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
@@ -1447,5 +1691,5 @@ static int DatasetRemoveSha256(Dataset *set, const uint8_t *data, const uint32_t
 int DatasetRemoveSerialized(Dataset *set, const char *string)
 {
     return DatasetOpSerialized(set, string, DatasetRemoveString, DatasetRemoveMd5,
-            DatasetRemoveSha256, DatasetRemoveIPv4);
+            DatasetRemoveSha256, DatasetRemoveIPv4, DatasetRemoveIPv6);
 }
