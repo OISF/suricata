@@ -39,21 +39,26 @@
 #include "detect-ipaddr.h"
 
 #define KEYWORD_NAME_SRC "ip.src"
+#define KEYWORD_NAME_DST "ip.dst"
 
-static int DetectIPAddrBufferSetup(DetectEngineCtx *, Signature *, const char *);
-static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+static int DetectSrcIPAddrBufferSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectDestIPAddrBufferSetup(DetectEngineCtx *, Signature *, const char *);
+static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id);
+static InspectionBuffer *GetDataDst(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 
 #ifdef UNITTESTS
 static void DetectIPAddrRegisterTests(void);
 #endif
 static int g_src_ipaddr_buffer_id = 0;
+static int g_dest_ipaddr_buffer_id = 0;
 
 void DetectIPAddrBufferRegister(void)
 {
     sigmatch_table[DETECT_IPADDR_SRC].name = KEYWORD_NAME_SRC;
     sigmatch_table[DETECT_IPADDR_SRC].desc = "Sticky buffer for src_ip";
-    sigmatch_table[DETECT_IPADDR_SRC].Setup = DetectIPAddrBufferSetup;
+    sigmatch_table[DETECT_IPADDR_SRC].Setup = DetectSrcIPAddrBufferSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPADDR_SRC].RegisterTests = DetectIPAddrRegisterTests;
 #endif
@@ -65,15 +70,32 @@ void DetectIPAddrBufferRegister(void)
 
     DetectBufferTypeSupportsPacket(KEYWORD_NAME_SRC);
 
-    DetectPktMpmRegister(KEYWORD_NAME_SRC, 2, PrefilterGenericMpmPktRegister, GetData);
+    DetectPktMpmRegister(KEYWORD_NAME_SRC, 2, PrefilterGenericMpmPktRegister, GetDataSrc);
 
-    DetectPktInspectEngineRegister(KEYWORD_NAME_SRC, GetData, DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister(
+            KEYWORD_NAME_SRC, GetDataSrc, DetectEngineInspectPktBufferGeneric);
+
+    sigmatch_table[DETECT_IPADDR_DST].name = KEYWORD_NAME_DST;
+    sigmatch_table[DETECT_IPADDR_DST].desc = "Sticky buffer for dest_ip";
+    sigmatch_table[DETECT_IPADDR_DST].Setup = DetectDestIPAddrBufferSetup;
+
+    sigmatch_table[DETECT_IPADDR_DST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+
+    g_dest_ipaddr_buffer_id = DetectBufferTypeRegister(KEYWORD_NAME_DST);
+    BUG_ON(g_dest_ipaddr_buffer_id < 0);
+
+    DetectBufferTypeSupportsPacket(KEYWORD_NAME_DST);
+
+    DetectPktMpmRegister(KEYWORD_NAME_DST, 2, PrefilterGenericMpmPktRegister, GetDataDst);
+
+    DetectPktInspectEngineRegister(
+            KEYWORD_NAME_DST, GetDataDst, DetectEngineInspectPktBufferGeneric);
 
     /* NOTE: You may want to change this to SCLogNotice during development. */
     SCLogDebug("IPAddr detect registered.");
 }
 
-static int DetectIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSrcIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     /* store list id. Content, pcre, etc will be added to the list at this
      * id. */
@@ -82,19 +104,43 @@ static int DetectIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     return 0;
 }
 
+static int DetectDestIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    /* store list id. Content, pcre, etc will be added to the list at this
+     * id. */
+    s->init_data->list = g_dest_ipaddr_buffer_id;
+
+    return 0;
+}
+
 /** \internal
- *  \brief get the data to inspect from the transaction.
- *  This function gets the data, sets up the InspectionBuffer object
- *  and applies transformations (if any).
+ *  \brief get the data to inspect from the buffer
  *
  *  \retval buffer or NULL in case of error
  */
-static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         InspectionBufferSetup(det_ctx, list_id, buffer, p->src.address.address_un_data8, 16);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+/** \internal
+ *  \brief get the data to inspect from the buffer
+ *
+ *  \retval buffer or NULL in case of error
+ */
+static InspectionBuffer *GetDataDst(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        InspectionBufferSetup(det_ctx, list_id, buffer, p->dst.address.address_un_data8, 16);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
