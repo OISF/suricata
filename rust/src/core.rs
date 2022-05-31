@@ -219,7 +219,7 @@ extern {
 
 pub static mut SC: Option<&'static SuricataContext> = None;
 
-pub fn init_ffi(context: &'static mut SuricataContext)
+pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
@@ -228,7 +228,7 @@ pub fn init_ffi(context: &'static mut SuricataContext)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_init(context: &'static mut SuricataContext)
+pub extern "C" fn rs_init(context: &'static SuricataContext)
 {
     init_ffi(context);
 }

@@ -25,6 +25,8 @@
 #ifndef __APP_LAYER_HTP_FILE_H__
 #define __APP_LAYER_HTP_FILE_H__
 
+#include "app-layer-htp.h"
+
 int HTPFileOpen(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *, uint32_t,
         uint64_t, uint8_t);
 int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range);

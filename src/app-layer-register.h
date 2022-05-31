@@ -24,6 +24,8 @@
 #ifndef __APP_LAYER_REGISTER_H__
 #define __APP_LAYER_REGISTER_H__
 
+#include "app-layer-detect-proto.h"
+
 typedef struct AppLayerParser {
     const char *name;
     const char *default_port;
