@@ -62,6 +62,7 @@ noinst_HEADERS = \
 	counters.h \
 	datasets.h \
 	datasets-ipv4.h \
+	datasets-ipv6.h \
 	datasets-md5.h \
 	datasets-reputation.h \
 	datasets-sha256.h \
@@ -661,6 +662,7 @@ libsuricata_c_a_SOURCES = \
 	counters.c \
 	datasets.c \
 	datasets-ipv4.c \
+	datasets-ipv6.c \
 	datasets-md5.c \
 	datasets-sha256.c \
 	datasets-string.c \
