@@ -60,7 +60,7 @@ typedef struct SuricataContext_ {
 
 } SuricataContext;
 
-extern SuricataContext suricata_context;
+extern const SuricataContext suricata_context;
 
 typedef struct SuricataFileContext_ {
 
@@ -68,6 +68,6 @@ typedef struct SuricataFileContext_ {
 
 } SuricataFileContext;
 
-SuricataContext *SCGetContext(void);
+const SuricataContext *SCGetContext(void);
 
 #endif /* !__RUST_CONTEXT_H__ */

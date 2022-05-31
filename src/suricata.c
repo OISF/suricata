@@ -2786,26 +2786,6 @@ static void SuricataMainLoop(SCInstance *suri)
  */
 
 int InitGlobal(void) {
-    suricata_context.SCLogMessage = SCLogMessage;
-    suricata_context.DetectEngineStateFree = DetectEngineStateFree;
-    suricata_context.AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw;
-    suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
-    suricata_context.AppLayerParserTriggerRawStreamReassembly =
-            AppLayerParserTriggerRawStreamReassembly;
-
-    suricata_context.HttpRangeFreeBlock = HttpRangeFreeBlock;
-    suricata_context.HTPFileCloseHandleRange = HTPFileCloseHandleRange;
-
-    suricata_context.FileOpenFileWithId = FileOpenFileWithId;
-    suricata_context.FileCloseFileById = FileCloseFileById;
-    suricata_context.FileAppendDataById = FileAppendDataById;
-    suricata_context.FileAppendGAPById = FileAppendGAPById;
-    suricata_context.FileContainerRecycle = FileContainerRecycle;
-    suricata_context.FilePrune = FilePrune;
-    suricata_context.FileSetTx = FileContainerSetTx;
-
-    suricata_context.AppLayerRegisterParser = AppLayerRegisterParser;
-
     rs_init(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);
