@@ -140,8 +140,10 @@ void AppLayerDecoderEventsSetEvent(Flow *f, uint8_t event)
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)
 {
-    if (events != NULL)
+    if (events != NULL) {
         events->cnt = 0;
+        events->event_last_logged = 0;
+    }
 }
 
 
