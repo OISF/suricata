@@ -388,6 +388,27 @@ For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-out
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
+TLS parameters and certificates logging (tls.log)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The TLS handshake parameters can be logged in a line based log as well.
+By default, the logfile is `tls.log` in the suricata log directory.
+See :ref:`Custom TLS logging <output-custom-tls-logging>` for details
+about the configuration and customization of the log format.
+
+Furthermore there is an output module to store TLS certificate files to
+disk. This is similar to :ref:`File-store (File Extraction)
+<suricata-yaml-file-store>`, but for TLS certificates.
+
+Example:
+
+::
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: yes
+      #certs-log-dir: certs # directory to store the certificates files
+
 A line based log of HTTP requests (http.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
