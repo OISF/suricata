@@ -17,10 +17,33 @@
 
 #include "suricata-common.h"
 #include "rust-context.h"
+#include "app-layer-parser.h"
+#include "app-layer-register.h"
+#include "app-layer-htp-range.h"
+#include "app-layer-htp-file.h"
 
-SuricataContext suricata_context;
+const SuricataContext suricata_context = {
+    SCLogMessage,
+    DetectEngineStateFree,
+    AppLayerDecoderEventsSetEventRaw,
+    AppLayerDecoderEventsFreeEvents,
+    AppLayerParserTriggerRawStreamReassembly,
 
-SuricataContext *SCGetContext(void)
+    HttpRangeFreeBlock,
+    HTPFileCloseHandleRange,
+
+    FileOpenFileWithId,
+    FileCloseFileById,
+    FileAppendDataById,
+    FileAppendGAPById,
+    FileContainerRecycle,
+    FilePrune,
+    FileContainerSetTx,
+
+    AppLayerRegisterParser,
+};
+
+const SuricataContext *SCGetContext(void)
 {
     return &suricata_context;
 }
