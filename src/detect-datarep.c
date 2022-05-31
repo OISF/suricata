@@ -160,6 +160,10 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
                     *type = DATASET_TYPE_STRING;
                 } else if (strcmp(val, "ipv4") == 0) {
                     *type = DATASET_TYPE_IPV4;
+                } else if (strcmp(val, "ip") == 0) {
+                    *type = DATASET_TYPE_IPV6;
+                } else if (strcmp(val, "ipv6") == 0) {
+                    *type = DATASET_TYPE_IPV6;
                 } else {
                     SCLogDebug("bad type %s", val);
                     return -1;
