@@ -330,15 +330,66 @@ static inline void FlowApplySignatureActions(
 }
 
 /**
- * \brief Check the threshold of the sigs that match, set actions, break on pass action
- *        This function iterate the packet alerts array, removing those that didn't match
- *        the threshold, and those that match after a signature with the action "pass".
- *        The array is sorted by action priority/order
+ * \brief Check the threshold of the sigs that match, check if tags should be applied,
+ * call functions to set actions to packet and flow
+ *
+ * \param de_ctx detection engine context
+ * \param det_ctx detection engine thread context
+ * \param p pointer to the packet
+ * \param pa pointer to packet alert being processed
+ * \param s pointer to signature that generated alert
+ *
+ * \retval 1 alert should be queued
+ * \retval 0 alert is discarded
+ */
+static uint8_t PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Packet *p, PacketAlert *pa, const Signature *s)
+{
+    uint8_t res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
+
+    if (res > 0) {
+        /* Now, if we have an alert, we have to check if we want
+         * to tag this session or src/dst host */
+        if (s->sm_arrays[DETECT_SM_LIST_TMATCH] != NULL) {
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
+            SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_TMATCH];
+            while (1) {
+                /* tags are set only for alerts */
+                KEYWORD_PROFILING_START;
+                sigmatch_table[smd->type].Match(det_ctx, p, (Signature *)s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
+        }
+
+        /* set actions on the flow */
+        FlowApplySignatureActions(p, pa, s, pa->flags);
+
+        /* set actions on packet */
+        PacketApplySignatureActions(det_ctx, p, s, pa->flags);
+    }
+
+    /* Thresholding removes this alert */
+    if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
+        /* we will not copy this to the AlertQueue */
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+/**
+ * \brief Iterate over the packet alerts queue, removing those that didn't match
+ *        the threshold, and those that match after a signature with the action
+ *        "pass". The queue is sorted by action priority/order
+ *
  * \param de_ctx detection engine context
  * \param det_ctx detection engine thread context
  * \param p pointer to the packet
  */
-void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+void PacketAlertQueueFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
@@ -351,49 +402,26 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     while (i < max_pos) {
         const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
-        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
-
-        if (res > 0) {
-            /* Now, if we have an alert, we have to check if we want
-             * to tag this session or src/dst host */
-            if (s->sm_arrays[DETECT_SM_LIST_TMATCH] != NULL) {
-                KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
-                SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_TMATCH];
-                while (1) {
-                    /* tags are set only for alerts */
-                    KEYWORD_PROFILING_START;
-                    sigmatch_table[smd->type].Match(det_ctx, p, (Signature *)s, smd->ctx);
-                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                    if (smd->is_last)
-                        break;
-                    smd++;
-                }
-            }
-
-            /* set actions on the flow */
-            FlowApplySignatureActions(
-                    p, &det_ctx->alert_queue[i], s, det_ctx->alert_queue[i].flags);
-
-            /* set actions on packet */
-            PacketApplySignatureActions(det_ctx, p, s, det_ctx->alert_queue[i].flags);
-        }
+        uint8_t res = PacketAlertFinalize(de_ctx, det_ctx, p, &det_ctx->alert_queue[i], s);
 
         /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
+        if (res == 0) {
             /* we will not copy this to the AlertQueue */
             p->alerts.suppressed++;
-        } else if (p->alerts.cnt < packet_alert_max) {
-            p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
-            SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
-
-            if (PacketTestAction(p, ACTION_PASS)) {
-                /* Ok, reset the alert cnt to end in the previous of pass
-                 * so we ignore the rest with less prio */
-                break;
+            SCLogDebug("Suppressing sid %" PRIu32 " alert from alerts' queue", s->id);
+        } else if (res == 1) {
+            if (p->alerts.cnt < packet_alert_max) {
+                p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
+                SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
+                if (PacketTestAction(p, ACTION_PASS)) {
+                    /* Ok, reset the alert cnt to end in the previous of pass
+                     * so we ignore the rest with less prio */
+                    break;
+                }
+                p->alerts.cnt++;
+            } else {
+                p->alerts.discarded++;
             }
-            p->alerts.cnt++;
-        } else {
-            p->alerts.discarded++;
         }
         i++;
     }
