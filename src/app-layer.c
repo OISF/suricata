@@ -737,9 +737,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         SCLogDebug("protocol change, old %s, new %s",
                 AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
 
-        if (f->alproto_expect != ALPROTO_UNKNOWN &&
-                f->alproto != f->alproto_expect)
-        {
+        if (f->alproto_expect != ALPROTO_UNKNOWN && f->alproto != ALPROTO_UNKNOWN &&
+                f->alproto != f->alproto_expect) {
             AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                              APPLAYER_UNEXPECTED_PROTOCOL);
 
