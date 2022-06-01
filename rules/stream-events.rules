@@ -94,5 +94,9 @@ alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; st
 # Packet with FIN+SYN set
 alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:fin_syn; classtype:protocol-command-decode; sid:2210060; rev:1;)
 
-# next sid 2210061
+# Packet is a spurious retransmission, so a retransmission of already ACK'd data.
+# Disabled by default as this quite common and not malicious.
+#alert tcp any any -> any any (msg:"SURICATA STREAM spurious retransmission"; stream-event:pkt_spurious_retransmission; classtype:protocol-command-decode; sid:2210061; rev:1;)
+
+# next sid 2210062
 
