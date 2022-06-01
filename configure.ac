@@ -68,7 +68,6 @@
     AC_PROG_AWK
     AC_PROG_CC
     AC_PROG_CPP
-    AC_PROG_RANLIB
     AC_PROG_INSTALL
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
@@ -186,6 +185,8 @@
     AC_CHECK_HEADERS([mach/mach.h])
     AC_CHECK_HEADERS([stdatomic.h])
     AC_CHECK_HEADERS([sys/queue.h])
+    AC_CHECK_HEADERS([math.h])
+    AC_CHECK_HEADERS([float.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
@@ -568,13 +569,6 @@
            AS_HELP_STRING([--disable-detection], [Disable Detection Modules]), [enable_detection="$enableval"],[enable_detection=yes])
     AS_IF([test "x$enable_detection" = "xno"], [
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
-    ])
-
-  # enable response time calculations
-    AC_ARG_ENABLE(detection,
-           AS_HELP_STRING([--enable-etm], [Enable Encrypted Traffic Monitoring]), [enable_etm="$enableval"],[enable_etm=no])
-    AS_IF([test "x$enable_etm" = "xyes"], [
-        AC_DEFINE([ENABLE_ETM], [1], [Encrypted Traffic Monitoring is enabled])
     ])
 
 # libraries

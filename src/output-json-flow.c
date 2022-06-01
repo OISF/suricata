@@ -51,6 +51,9 @@
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
 
+/* Flag to enable encrypted traffic metadata generation selected at suricata.c */
+extern bool g_enable_etm;
+
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
@@ -213,14 +216,15 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     jb_set_string(js, "start", timebuf1);
 }
 
-
-#if defined(ENABLE_ETM)
 void EveAddEncryptedTrafficMetaData(const Flow *f, JsonBuilder *js)
 {
     if ((f->splt.first_epoch_msec > 0) && (f->splt.splt_count > 0)) {
         uint32_t i = 0;
         FlowEncryptedTrafficFinalize(f);
         JsonBuilder *js_splt = jb_new_object();
+        if (unlikely(js_splt == NULL)) {
+            return;
+        }
         jb_open_array(js_splt, "dir");
         for (i = 0; i < f->splt.splt_count; i++) {
             jb_append_uint(js_splt, f->splt.seq[i].dir);
@@ -249,7 +253,6 @@ void EveAddEncryptedTrafficMetaData(const Flow *f, JsonBuilder *js)
         jb_free(js_splt);
     }
 }
-#endif
 
 /* Eve format logging */
 static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
@@ -353,11 +356,9 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
         jb_close(jb);
     }
 
-#if defined(ENABLE_ETM)
-    if (aft->ctx->cfg.include_etm) {
+    if (g_enable_etm) {
         EveAddEncryptedTrafficMetaData(f, jb);
     }
-#endif
 }
 
 static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)

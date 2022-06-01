@@ -1212,16 +1212,6 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                         cid_seed);
             }
         }
-#if defined(ENABLE_ETM)
-        /* Check if we want to enable encryoted traffic metadata */
-        const ConfNode *splt = ConfNodeLookupChild(conf, "encrypted-traffic-metadata");
-        if (splt && splt->val && ConfValIsTrue(splt->val)) {
-            SCLogConfig("Enabling eve Encrypted Traffic Metadata (ETM) logging.");
-            json_ctx->cfg.include_etm = true;
-        } else {
-            json_ctx->cfg.include_etm = false;
-        }
-#endif
         /* Do we have a global eve xff configuration? */
         const ConfNode *xff = ConfNodeLookupChild(conf, "xff");
         if (xff != NULL) {

@@ -300,3 +300,12 @@
 .. option:: --simulate-ips
 
    Simulate IPS mode when running in a non-IPS mode.
+
+.. option:: --enable-etm
+
+   Enable encrypted traffic metadata. If this option is enabled it will 
+   output additonal fields that can be used for encrypted traffic analysis.
+   Encrypted traffic analysis is a type of side-channel analysis and threat
+   detection that can be performed on encrypted network connections while 
+   maintaining the privacy and network integrity provided by a fully 
+   encrypted system.

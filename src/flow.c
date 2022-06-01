@@ -107,6 +107,9 @@ int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
+/* Flag to enable encrypted traffic metadata generation selected at suricata.c */
+extern bool g_enable_etm;
+
 /**
  *  \brief Update memcap value
  *
@@ -378,10 +381,6 @@ static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
-#if defined(ENABLE_ETM)
-#include <math.h>
-#include <float.h>
-
 inline void FlowEncryptedTrafficFinalize(const Flow *f)
 {
     FlowSPLT *const splt = (FlowSPLT *const)&f->splt;
@@ -397,9 +396,8 @@ inline void FlowEncryptedTrafficFinalize(const Flow *f)
     }
 
     /* final calculation of entropy */
-    uint32_t i;
     float entropy = 0.0;
-    for (i = 0; i < FLOW_SPLT_BD_SIZE; i++) {
+    for (uint32_t i = 0; i < FLOW_SPLT_BD_SIZE; i++) {
         float frequency = (float)splt->bd[i] / (float)splt->bd_count;
         if (frequency > FLT_EPSILON) {
             entropy -= (frequency * logf(frequency));
@@ -431,7 +429,7 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
             /* Update sequence of packet length & time (SPLT) */
             f->splt.seq[f->splt.splt_count].dir = FlowGetPacketDirection(f, p);
             f->splt.seq[f->splt.splt_count].len =
-                    (p->payload_len > FLOW_SPLT_MAX_LEN) ? FLOW_SPLT_MAX_LEN : p->payload_len;
+                    MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
             uint64_t now_epoch_msec = (p->ts.tv_sec * 1000) + (p->ts.tv_usec / 1000);
             if (f->splt.first_epoch_msec == 0) {
                 f->splt.first_epoch_msec = now_epoch_msec;
@@ -459,7 +457,6 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
         }
     }
 }
-#endif
 
 /** \brief Update Packet and Flow
  *
@@ -577,9 +574,11 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
-#if defined(ENABLE_ETM)
-    FlowEncryptedTrafficUpdate(f, p);
-#endif
+    /* update the encrypted traffic metadata */
+    if (g_enable_etm) {
+        SCLogDebug("updating encrypted traffic metadata on flow %p", f);
+        FlowEncryptedTrafficUpdate(f, p);
+    }
 }
 
 /** \brief Entry point for packet flow handling

@@ -239,6 +239,9 @@ uint16_t g_vlan_mask = 0xffff;
  * support */
 bool g_disable_hashing = false;
 
+/** flag to enable encrypted traffic metadata generation */
+bool g_enable_etm = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -699,6 +702,7 @@ static void PrintUsage(const char *progname)
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
     printf("\t--set name=value                     : set a configuration value\n");
+    printf("\t--enable-etm                         : enables encrypted traffic metadata generation\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -1352,6 +1356,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"enable-etm", 0, 0 , 0},
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1720,6 +1725,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            }  else if (strcmp((long_opts[option_index]).name, "enable-etm") == 0) {
+                SCLogInfo("Enabling encrypted traffic metadata");
+                g_enable_etm = true;
             }
             break;
         case 'c':

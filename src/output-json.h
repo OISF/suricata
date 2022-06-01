@@ -72,9 +72,6 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
     bool include_ethernet;
-#if defined(ENABLE_ETM)
-    bool include_etm;
-#endif
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
