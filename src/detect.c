@@ -930,11 +930,11 @@ static inline void DetectRunPostRules(
     }
 
     /* so now let's iterate the alerts and remove the ones after a pass rule
-     * matched (if any). This is done inside PacketAlertFinalize() */
+     * matched (if any). This is done inside PacketAlertQueueFinalize() */
     /* PR: installed "tag" keywords are handled after the threshold inspection */
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_ALERT);
-    PacketAlertFinalize(de_ctx, det_ctx, p);
+    PacketAlertQueueFinalize(de_ctx, det_ctx, p);
     if (p->alerts.cnt > 0) {
         StatsAddUI64(tv, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
     }
