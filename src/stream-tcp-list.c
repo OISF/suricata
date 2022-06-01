@@ -100,7 +100,7 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
             &stream->sb, &seg->sbseg, data + data_offset, data_len - data_offset, stream_offset);
     if (ret != 0) {
         /* StreamingBufferInsertAt can return -2 only if the offset is wrong, which should be
-         * correctly handled here. */
+         * impossible in this path. */
         DEBUG_VALIDATE_BUG_ON(ret != -1);
         SCReturnInt(-1);
     }
