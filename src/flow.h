@@ -310,27 +310,29 @@ typedef struct FlowCnf_
 #define FLOW_SPLT_MAX_LEN 8192    // 2^13
 /** The maximum number of byte distribution values used for entroy calculation */
 #define FLOW_SPLT_BD_SIZE 256
+/* packet sequence for SPLT calculation */
 typedef struct PacketSequence_
 {
-    uint32_t dir: 1;
-    uint32_t len: 13;
-    uint32_t delta: 18;
+    uint32_t dir: 1;    /* Packet direction */
+    uint32_t len: 13;   /* Length of packet */
+    uint32_t delta: 18; /* Packet delta time */
 } PacketSequence;
 
+/* SPLT related data */
 typedef struct FlowSPLT_
 {
-    uint64_t first_epoch_msec;
-    uint64_t last_epoch_msec;
-    uint32_t sapp_bytes;
-    uint32_t dapp_bytes;
-    uint32_t splt_count;
-    uint32_t bd_count;
-    float pcr;
-    float bd_entropy;
-    float bd_mean;
-    float bd_variance;
-    uint8_t bd[FLOW_SPLT_BD_SIZE];
-    PacketSequence seq [FLOW_SPLT_MAX_COUNT];
+    uint64_t first_epoch_msec; /* First measurement in epoch time */
+    uint64_t last_epoch_msec;  /* Last measurement in epoch time */
+    uint32_t sapp_bytes;       /* Number of application bytes to source */
+    uint32_t dapp_bytes;       /* Number of application bytes to destination */
+    uint32_t splt_count;       /* Number of SPLT measurements */
+    uint32_t bd_count;         /* Number of byte distribution measurements */
+    float pcr;                 /* Producer/Consumer ratio of application bytes */
+    float bd_entropy;          /* Byte distribution entropy calculation */
+    float bd_mean;             /* Byte distribution mean value */
+    float bd_variance;         /* Byte distribution variance */
+    uint32_t bd[FLOW_SPLT_BD_SIZE]; /* Byte distribution measurements */
+    PacketSequence seq [FLOW_SPLT_MAX_COUNT]; /* Packet sequence measurements */
 } FlowSPLT;
 
 /* Hash key for the flow hash */
