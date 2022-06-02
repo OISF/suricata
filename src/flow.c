@@ -430,7 +430,7 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
             f->splt.seq[f->splt.splt_count].dir = FlowGetPacketDirection(f, p);
             f->splt.seq[f->splt.splt_count].len =
                     MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
-            uint64_t now_epoch_msec = (p->ts.tv_sec * 1000) + (p->ts.tv_usec / 1000);
+            uint64_t now_epoch_msec = (p->ts.tv_sec * (uint64_t)1000) + (p->ts.tv_usec / 1000);
             if (f->splt.first_epoch_msec == 0) {
                 f->splt.first_epoch_msec = now_epoch_msec;
                 f->splt.last_epoch_msec = now_epoch_msec;
