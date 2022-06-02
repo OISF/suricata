@@ -2545,3 +2545,14 @@ detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
 .. _deprecation policy: https://suricata.io/about/deprecation-policy/
+
+encrypted-traffic-metadata
+~~~~~~~~~~~~~~~~~~~~~~~~~
+If this option is enabled it will output additonal fields that can be used for 
+encrypted traffic analysis. Encrypted traffic analysis is a type of side-channel
+analysis and threat detection that can be performed on encrypted network connections
+while maintaining the privacy and network integrity provided by a fully encrypted system.
+
+::
+
+    enabled: yes

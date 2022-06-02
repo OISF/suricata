@@ -476,8 +476,6 @@ YAML::
       community-id: false
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
-      # enable/disable encrypted traffic metadata feature.
-      encrypted-traffic-metadata: false
 
 Multi Tenancy
 -------------

@@ -629,7 +629,7 @@ uint16_t FlowGetDestinationPort(Flow *flow);
 
 FlowStorageId GetFlowSPLTInfoID(void);
 void RegisterFlowSPLTInfo(void);
-void FlowEncryptedTrafficFinalize(const Flow *flow);
+void FlowEncryptedTrafficFinalize(Flow *flow);
 
 /** ----- Inline functions ----- */
 

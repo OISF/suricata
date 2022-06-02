@@ -110,8 +110,6 @@ extern int run_mode;
 /* Flag to enable encrypted traffic metadata generation selected at suricata.c */
 extern bool g_enable_etm;
 
-static FlowStorageId flow_splt_id = { .id = -1 }; /**< Flow storage id for splt */
-
 /**
  *  \brief Update memcap value
  *
@@ -406,7 +404,7 @@ void RegisterFlowSPLTInfo(void)
                                               NULL, FlowSPLTFree);
 }
 
-inline void FlowEncryptedTrafficFinalize(const Flow *f)
+inline void FlowEncryptedTrafficFinalize(Flow *f)
 {
     FlowSPLT *const splt = (FlowSPLT *const)FlowGetStorageById(f, GetFlowSPLTInfoID());
     if (splt->bd_entropy || (splt->splt_count == 0))
@@ -481,13 +479,11 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
             splt->splt_count++;
 
             /* Update byte distribution */
-            uint32_t i;
-            float delta;
-            for (i = 0; i < p->payload_len; i++) {
+            for (uint32_t i = 0; i < p->payload_len; i++) {
                 splt->bd_count++;
                 splt->bd[p->payload[i]]++;
 
-                delta = ((float)p->payload[i] - splt->bd_mean);
+                float delta = ((float)p->payload[i] - splt->bd_mean);
                 splt->bd_mean += (delta / (float)splt->bd_count);
                 splt->bd_variance += delta * ((float)p->payload[i] - splt->bd_mean);
             }
