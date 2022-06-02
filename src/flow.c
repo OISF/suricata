@@ -110,6 +110,8 @@ extern int run_mode;
 /* Flag to enable encrypted traffic metadata generation selected at suricata.c */
 extern bool g_enable_etm;
 
+static FlowStorageId flow_splt_id = { .id = -1 }; /**< Flow storage id for splt */
+
 /**
  *  \brief Update memcap value
  *
@@ -381,9 +383,32 @@ static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
+FlowStorageId g_splt_info_id = { .id = -1 };
+
+FlowStorageId GetFlowSPLTInfoID(void)
+{
+    return g_splt_info_id;
+}
+
+static void FlowSPLTFree(void *x)
+{
+    FlowSPLT *fsplt = (FlowSPLT *) x;
+
+    if (fsplt == NULL)
+        return;
+
+    SCFree(fsplt);
+}
+
+void RegisterFlowSPLTInfo(void)
+{
+    g_splt_info_id = FlowStorageRegister("splt", sizeof(void *),
+                                              NULL, FlowSPLTFree);
+}
+
 inline void FlowEncryptedTrafficFinalize(const Flow *f)
 {
-    FlowSPLT *const splt = (FlowSPLT *const)&f->splt;
+    FlowSPLT *const splt = (FlowSPLT *const)FlowGetStorageById(f, GetFlowSPLTInfoID());
     if (splt->bd_entropy || (splt->splt_count == 0))
         return;
 
@@ -417,42 +442,54 @@ inline void FlowEncryptedTrafficFinalize(const Flow *f)
 
 static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
 {
+    FlowSPLT *splt = FlowGetStorageById(f, GetFlowSPLTInfoID());
+    if (splt == NULL) {    
+        /* Transfer ownership of SPLT data to the Flow */
+        splt = SCCalloc(1, sizeof(*splt));
+        if (splt == NULL) {
+            SCLogDebug("Unable to allocate SPLT");
+            return; 
+        }
+        if (FlowSetStorageById(f, GetFlowSPLTInfoID(), splt) != 0) {
+            SCLogDebug("Unable to set splt flow storage");
+        }
+    }
     /* Updated appbytes for producer/consumer ratio */
     if (FlowGetPacketDirection(f, p) == TOSERVER)
-        f->splt.dapp_bytes = p->payload_len;
+        splt->dapp_bytes = p->payload_len;
     else
-        f->splt.sapp_bytes = p->payload_len;
+        splt->sapp_bytes = p->payload_len;
 
     if (f->flow_state == FLOW_STATE_ESTABLISHED) {
 
-        if (f->splt.splt_count < FLOW_SPLT_MAX_COUNT) {
+        if (splt->splt_count < FLOW_SPLT_MAX_COUNT) {
             /* Update sequence of packet length & time (SPLT) */
-            f->splt.seq[f->splt.splt_count].dir = FlowGetPacketDirection(f, p);
-            f->splt.seq[f->splt.splt_count].len =
+            splt->seq[splt->splt_count].dir = FlowGetPacketDirection(f, p);
+            splt->seq[splt->splt_count].len =
                     MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
             uint64_t now_epoch_msec = (p->ts.tv_sec * (uint64_t)1000) + (p->ts.tv_usec / 1000);
-            if (f->splt.first_epoch_msec == 0) {
-                f->splt.first_epoch_msec = now_epoch_msec;
-                f->splt.last_epoch_msec = now_epoch_msec;
-                f->splt.seq[f->splt.splt_count].delta = 0;
+            if (splt->first_epoch_msec == 0) {
+                splt->first_epoch_msec = now_epoch_msec;
+                splt->last_epoch_msec = now_epoch_msec;
+                splt->seq[splt->splt_count].delta = 0;
             } else {
-                uint64_t delta_epoch_msec = now_epoch_msec - f->splt.last_epoch_msec;
-                f->splt.seq[f->splt.splt_count].delta =
+                uint64_t delta_epoch_msec = now_epoch_msec - splt->last_epoch_msec;
+                splt->seq[splt->splt_count].delta =
                         (delta_epoch_msec > FLOW_SPLT_MAX_MSEC) ? FLOW_SPLT_MAX_MSEC : delta_epoch_msec;
-                f->splt.last_epoch_msec = now_epoch_msec;
+                splt->last_epoch_msec = now_epoch_msec;
             }
-            f->splt.splt_count++;
+            splt->splt_count++;
 
             /* Update byte distribution */
             uint32_t i;
             float delta;
             for (i = 0; i < p->payload_len; i++) {
-                f->splt.bd_count++;
-                f->splt.bd[p->payload[i]]++;
+                splt->bd_count++;
+                splt->bd[p->payload[i]]++;
 
-                delta = ((float)p->payload[i] - f->splt.bd_mean);
-                f->splt.bd_mean += (delta / (float)f->splt.bd_count);
-                f->splt.bd_variance += delta * ((float)p->payload[i] - f->splt.bd_mean);
+                delta = ((float)p->payload[i] - splt->bd_mean);
+                splt->bd_mean += (delta / (float)splt->bd_count);
+                splt->bd_variance += delta * ((float)p->payload[i] - splt->bd_mean);
             }
         }
     }

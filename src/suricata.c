@@ -1728,6 +1728,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }  else if (strcmp((long_opts[option_index]).name, "enable-etm") == 0) {
                 SCLogInfo("Enabling encrypted traffic metadata");
                 g_enable_etm = true;
+                RegisterFlowSPLTInfo();
             }
             break;
         case 'c':

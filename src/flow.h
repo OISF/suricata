@@ -536,7 +536,6 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
-    FlowSPLT splt;
 } Flow;
 
 enum FlowState {
@@ -628,6 +627,8 @@ uint32_t FlowGetFlags(Flow *flow);
 uint16_t FlowGetSourcePort(Flow *flow);
 uint16_t FlowGetDestinationPort(Flow *flow);
 
+FlowStorageId GetFlowSPLTInfoID(void);
+void RegisterFlowSPLTInfo(void);
 void FlowEncryptedTrafficFinalize(const Flow *flow);
 
 /** ----- Inline functions ----- */
