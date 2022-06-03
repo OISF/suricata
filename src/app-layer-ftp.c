@@ -625,7 +625,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
     FtpInput ftpi = { .input = input, .input_len = input_len };
 
-    int direction = STREAM_TOSERVER;
+    uint8_t direction = STREAM_TOSERVER;
     while (FTPGetLine(state, STREAM_TOSERVER, &ftpi) >= 0) {
         const FtpCommand *cmd_descriptor;
 
