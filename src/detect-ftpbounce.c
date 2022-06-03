@@ -57,7 +57,7 @@ static void DetectFtpbounceRegisterTests(void);
 #endif
 static int g_ftp_request_list_id = 0;
 
-static int InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -83,7 +83,7 @@ void DetectFtpbounceRegister(void)
             "ftp_request", ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, InspectFtpRequest, NULL);
 }
 
-static int InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

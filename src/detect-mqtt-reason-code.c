@@ -46,7 +46,7 @@ static int DetectMQTTReasonCodeSetup (DetectEngineCtx *, Signature *, const char
 void MQTTReasonCodeRegisterTests(void);
 void DetectMQTTReasonCodeFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTReasonCodeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTReasonCodeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -74,7 +74,7 @@ void DetectMQTTReasonCodeRegister (void)
     mqtt_reason_code_id = DetectBufferTypeGetByName("mqtt.reason_code");
 }
 
-static int DetectEngineInspectMQTTReasonCodeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTReasonCodeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

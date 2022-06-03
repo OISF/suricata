@@ -56,7 +56,7 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *, Signature *s, const char *s
 static void DetectRfbSectypeFree(DetectEngineCtx *, void *);
 static int g_rfb_sectype_buffer_id = 0;
 
-static int DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -84,7 +84,7 @@ void DetectRfbSectypeRegister (void)
     g_rfb_sectype_buffer_id = DetectBufferTypeGetByName("rfb.sectype");
 }
 
-static int DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

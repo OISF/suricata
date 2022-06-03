@@ -86,21 +86,17 @@ static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, con
 static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx,
                                                SigGroupHead *sgh, MpmCtx *mpm_ctx,
                                                const DetectBufferMpmRegistery *mpm_reg, int list_id);
-static int DetectEngineInspectHttp2HeaderName(
-                                              DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                              const DetectEngineAppInspectionEngine *engine,
-                                              const Signature *s,
-                                              Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
 static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
                                                SigGroupHead *sgh, MpmCtx *mpm_ctx,
                                                const DetectBufferMpmRegistery *mpm_reg, int list_id);
-static int DetectEngineInspectHttp2Header(
-                                          DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                          const DetectEngineAppInspectionEngine *engine,
-                                          const Signature *s,
-                                          Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror);
 
 #ifdef UNITTESTS
@@ -111,7 +107,7 @@ static int g_http2_match_buffer_id = 0;
 static int g_http2_header_name_buffer_id = 0;
 static int g_http2_header_buffer_id = 0;
 
-static int DetectEngineInspectHTTP2(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineInspectHTTP2(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -759,11 +755,9 @@ static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx,
             pectx, PrefilterMpmHttp2HNameFree, mpm_reg->name);
 }
 
-static int DetectEngineInspectHttp2HeaderName(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint32_t local_id = 0;
 
@@ -891,11 +885,9 @@ static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
             pectx, PrefilterMpmHttp2HeaderFree, mpm_reg->name);
 }
 
-static int DetectEngineInspectHttp2Header(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint32_t local_id = 0;
 

@@ -59,11 +59,9 @@ static int DetectTlsCertsSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTlsCertsRegisterTests(void);
 #endif
-static int DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx,
-	DetectEngineThreadCtx *det_ctx,
-	const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv,
-	uint64_t tx_id);
+static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id);
 static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
@@ -162,11 +160,9 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx,
-	DetectEngineThreadCtx *det_ctx,
-	const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv,
-	uint64_t tx_id)
+static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
