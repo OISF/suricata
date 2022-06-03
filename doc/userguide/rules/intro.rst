@@ -70,6 +70,11 @@ concerns. You can choose between four basic protocols:
 * icmp
 * ip (ip stands for 'all' or 'any')
 
+There are a couple of additional tcp related protocol options:
+
+* tcp-pkt (for matching content in individual tcp packets)
+* tcp-stream (for matching content only in a reassembled tcp stream)
+
 There are also a few so-called application layer protocols, or layer 7 protocols
 you can pick from. These are:
 
