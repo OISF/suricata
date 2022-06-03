@@ -45,7 +45,7 @@ static int DetectMQTTConnectFlagsSetup (DetectEngineCtx *, Signature *, const ch
 void MQTTConnectFlagsRegisterTests(void);
 void DetectMQTTConnectFlagsFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -80,7 +80,7 @@ void DetectMQTTConnectFlagsRegister (void)
     mqtt_connect_flags_id = DetectBufferTypeGetByName("mqtt.connect.flags");
 }
 
-static int DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

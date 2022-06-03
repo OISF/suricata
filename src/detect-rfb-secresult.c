@@ -47,7 +47,7 @@ static void RfbSecresultRegisterTests(void);
 #endif
 void DetectRfbSecresultFree(DetectEngineCtx *, void *);
 
-static int DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -77,7 +77,7 @@ void DetectRfbSecresultRegister (void)
     rfb_secresult_id = DetectBufferTypeGetByName("rfb.secresult");
 }
 
-static int DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

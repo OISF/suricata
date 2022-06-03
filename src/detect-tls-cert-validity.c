@@ -75,9 +75,9 @@ static void TlsValidRegisterTests(void);
 static void DetectTlsValidityFree(DetectEngineCtx *, void *);
 static int g_tls_validity_buffer_id = 0;
 
-static int DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static uint8_t DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for tls validity keywords.
@@ -134,9 +134,9 @@ void DetectTlsValidityRegister (void)
     g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls_validity");
 }
 
-static int DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);

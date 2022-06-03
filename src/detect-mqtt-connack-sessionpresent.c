@@ -45,7 +45,7 @@ static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *, Signature *,
 void MQTTConnackSessionPresentRegisterTests(void);
 void DetectMQTTConnackSessionPresentFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -72,7 +72,7 @@ void DetectMQTTConnackSessionPresentRegister (void)
     mqtt_connack_session_present_id = DetectBufferTypeGetByName("mqtt.connack.session_present");
 }
 
-static int DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

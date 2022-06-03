@@ -132,7 +132,7 @@ static int PrefilterMpmIkeVendorRegister(DetectEngineCtx *de_ctx, SigGroupHead *
             mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmIkeVendorFree, mpm_reg->pname);
 }
 
-static int DetectEngineInspectIkeVendor(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineInspectIkeVendor(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {

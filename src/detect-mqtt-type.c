@@ -42,7 +42,7 @@ static int DetectMQTTTypeSetup (DetectEngineCtx *, Signature *, const char *);
 void MQTTTypeRegisterTests(void);
 void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -67,7 +67,7 @@ void DetectMQTTTypeRegister (void)
     mqtt_type_id = DetectBufferTypeGetByName("mqtt.type");
 }
 
-static int DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
