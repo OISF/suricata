@@ -1206,58 +1206,57 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  * \param state The current parser state
  * \param force Flag indicating whether decoding should always occur
  *
- * \return Number of bytes pulled from the current buffer
+ * \return Number of bytes consumed from `buf`
  */
-static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state, int force)
+static uint8_t ProcessBase64Remainder(
+        const uint8_t *buf, const uint32_t len, MimeDecParseState *state, int force)
 {
-    uint32_t ret;
-    uint8_t remainder = 0;
-    uint32_t remdec = 0;
-    uint32_t consumed_bytes = 0;
+    uint8_t buf_consumed = 0; /* consumed bytes from 'buf' */
     uint32_t cnt = 0;
+    uint8_t block[B64_BLOCK];
 
-    /* Fill in block with first few bytes of current line */
-    remainder = B64_BLOCK - state->bvr_len;
-    remainder = remainder < len ? remainder : len;
-    if (buf) {
-        uint8_t tmp[B64_BLOCK];
-        uint32_t rem = 0;
-        for (uint8_t i = 0; i < state->bvr_len; i++) {
-            /* Special case of SP in remainder */
-            if (state->bvremain[i] != ' ') {
-                tmp[cnt++] = state->bvremain[i];
-            } else {
-                rem++;
-            }
-        }
-        if (cnt != 4) {
-            /* Special case where the buf where we take extra bytes from contains SP */
-            for (uint32_t i = 0; i < len && cnt < 4; i++) {
-                if (buf[i] != ' ') {
-                    tmp[cnt++] = buf[i];
-                } else {
-                    rem++;
-                }
-            }
-        }
-        memcpy(state->bvremain, tmp, cnt);
-        state->bvr_len += remainder;
-        remainder += rem;
+    /* should be impossible, but lets be defensive */
+    DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
+    if (state->bvr_len > B64_BLOCK) {
+        state->bvr_len = 0;
+        return 0;
     }
+
+    /* Strip spaces in remainder */
+    for (uint8_t i = 0; i < state->bvr_len; i++) {
+        if (state->bvremain[i] != ' ') {
+            block[cnt++] = state->bvremain[i];
+        }
+    }
+
+    /* if we don't have 4 bytes see if we can fill it from `buf` */
+    if (buf && len > 0 && cnt != B64_BLOCK) {
+        for (uint32_t i = 0; i < len && cnt < B64_BLOCK; i++) {
+            if (buf[i] != ' ') {
+                block[cnt++] = buf[i];
+            }
+            buf_consumed++;
+        }
+        if (cnt != 0) {
+            memcpy(state->bvremain, block, cnt);
+        }
+        state->bvr_len = cnt;
+    }
+
     /* If data chunk buffer will be full, then clear it now */
     if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
         /* Invoke pre-processor and callback */
-        ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len,
-                state);
+        uint32_t ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
         if (ret != MIME_DEC_OK) {
             SCLogDebug("Error: ProcessDecodedDataChunk() function failed");
         }
     }
 
     if (state->bvr_len == B64_BLOCK || force) {
-        uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        uint32_t consumed_bytes = 0;
+        uint32_t remdec = 0;
+        const uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 state->bvremain, state->bvr_len, &consumed_bytes, &remdec, BASE64_MODE_RFC2045);
         if (remdec > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
@@ -1271,8 +1270,8 @@ static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
             if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
                 /* Invoke pre-processor and callback */
-                ret = ProcessDecodedDataChunk(state->data_chunk,
-                        state->data_chunk_len, state);
+                uint32_t ret =
+                        ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
                 if (ret != MIME_DEC_OK) {
                     SCLogDebug("Error: ProcessDecodedDataChunk() function "
                             "failed");
@@ -1290,7 +1289,8 @@ static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
         state->bvr_len = 0;
     }
 
-    return remainder;
+    DEBUG_VALIDATE_BUG_ON(buf_consumed > len);
+    return buf_consumed;
 }
 
 /**
@@ -1307,9 +1307,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
-    uint8_t rem1 = 0;
-    uint32_t numDecoded, remaining, offset;
-    /* Track long line */
+    uint32_t numDecoded, remaining = len, offset = 0;
+
+    /* Track long line TODO should we count space padding too? */
     if (len > MAX_ENC_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_ENC_LINE;
         state->msg->anomaly_flags |= ANOM_LONG_ENC_LINE;
@@ -1320,30 +1320,34 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
     if (state->bvr_len + len < B64_BLOCK) {
         memcpy(state->bvremain + state->bvr_len, buf, len);
         state->bvr_len += len;
-        len = 0;
+        return MIME_DEC_OK;
     }
 
     /* First process remaining from previous line */
     if (state->bvr_len > 0) {
-        /* Process remainder and return number of bytes pulled from current buffer */
-        rem1 = ProcessBase64Remainder(buf, (uint8_t)len, state, 0);
-        int32_t remainder_b64 = len - rem1;
-        if (remainder_b64 < B64_BLOCK) {
-            memcpy(state->bvremain, buf + rem1, remainder_b64);
-            state->bvr_len += remainder_b64;
-            return ret;
+        uint32_t consumed = ProcessBase64Remainder(buf, len, state, 0);
+        DEBUG_VALIDATE_BUG_ON(consumed > len);
+        if (consumed > len)
+            return MIME_DEC_ERR_PARSE;
+
+        uint32_t left = len - consumed;
+        if (left < B64_BLOCK) {
+            memcpy(state->bvremain, buf + consumed, left);
+            state->bvr_len = left;
+            return MIME_DEC_OK;
         }
+        remaining -= consumed;
+        offset = consumed;
     }
 
-    remaining = len - rem1;
-    offset = rem1;
     while (remaining > 0 && remaining >= B64_BLOCK) {
         uint32_t consumed_bytes = 0;
         uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 buf + offset, remaining, &consumed_bytes, &numDecoded, BASE64_MODE_RFC2045);
-
         DEBUG_VALIDATE_BUG_ON(consumed_bytes > remaining);
+        if (consumed_bytes > remaining)
+            return MIME_DEC_ERR_PARSE;
 
         uint32_t leftover_bytes = remaining - consumed_bytes;
         if (numDecoded > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
@@ -1370,29 +1374,35 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
             state->stack->top->data->anomaly_flags |= ANOM_INVALID_BASE64;
             state->msg->anomaly_flags |= ANOM_INVALID_BASE64;
             SCLogDebug("Error: DecodeBase64() function failed");
-            ret = MIME_DEC_ERR_DATA;
-            break;
+            return MIME_DEC_ERR_DATA;
         }
-        if (leftover_bytes < B64_BLOCK) {
+
+        /* corner case: multiples spaces in the last data, leading it to exceed the block
+         * size. We strip of spaces this while storing it in bvremain */
+        if (consumed_bytes == 0 && leftover_bytes > B64_BLOCK) {
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
+            for (uint32_t i = 0; i < leftover_bytes; i++) {
+                if (buf[offset] != ' ') {
+                    DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
+                    if (state->bvr_len >= B64_BLOCK)
+                        return MIME_DEC_ERR_DATA;
+                    state->bvremain[state->bvr_len++] = buf[offset];
+                }
+                offset++;
+            }
+            return MIME_DEC_OK;
+
+        } else if (leftover_bytes > 0 && leftover_bytes <= B64_BLOCK) {
+            /* If remaining is 4 by this time, we encountered spaces during processing */
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
             memcpy(state->bvremain, buf + offset + consumed_bytes, leftover_bytes);
             state->bvr_len = leftover_bytes;
             return MIME_DEC_OK;
         }
+
         /* Update counts */
-        remaining -= consumed_bytes;
+        remaining = leftover_bytes;
         offset += consumed_bytes;
-        /* If remaining is 4 by this time, it's likely due to error/spaces during processing */
-        if (remaining == 4) {
-            memcpy(state->bvremain, buf + offset, remaining);
-            state->bvr_len = remaining;
-            break;
-        }
-        if ((remaining > 0 && remaining < B64_BLOCK) ||
-                (remaining > 0 && (remaining < B64_BLOCK) && consumed_bytes < remaining)) {
-            memcpy(state->bvremain, buf + offset, remaining);
-            state->bvr_len = remaining;
-            break;
-        }
     }
     return ret;
 }
