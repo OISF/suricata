@@ -94,11 +94,9 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectDnsQuery(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     uint32_t local_id = 0;
 
@@ -199,17 +197,17 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
 }
 
 #ifdef HAVE_LUA
-static int DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-static int DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);

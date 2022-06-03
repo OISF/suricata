@@ -145,8 +145,8 @@ int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, Packet *p)
+uint8_t DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p)
 {
     SCEnter();
     int r = 0;
@@ -186,10 +186,9 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
  *  \retval 0 no match
  *  \retval 1 match
  */
-static int DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, Packet *p)
+static uint8_t DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+        Packet *p)
 {
     SCEnter();
     int r = 0;
@@ -314,7 +313,7 @@ static int StreamContentInspectEngineFunc(
  *
  *  Returns "can't match" if depth is reached.
  */
-int DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

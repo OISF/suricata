@@ -49,9 +49,9 @@ static void DetectKrb5MsgTypeFree (DetectEngineCtx *, void *);
 static void DetectKrb5MsgTypeRegisterTests (void);
 #endif
 
-static int DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id);
+static uint8_t DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int g_krb5_msg_type_list_id = 0;
 
@@ -86,9 +86,9 @@ void DetectKrb5MsgTypeRegister(void)
     SCLogDebug("g_krb5_msg_type_list_id %d", g_krb5_msg_type_list_id);
 }
 
-static int DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);

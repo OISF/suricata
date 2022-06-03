@@ -133,7 +133,7 @@ static int DetectModbusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
  *
  *  \retval 0 no match or 1 match
  */
-static int DetectEngineInspectModbus(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineInspectModbus(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
