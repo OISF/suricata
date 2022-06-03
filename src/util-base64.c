@@ -263,6 +263,19 @@ static int B64DecodeStringBiggerThanBuffer(void)
     PASS;
 }
 
+static int B64DecodeStringEndingSpaces(void)
+{
+    const char *src = "0YPhA d H";
+    uint32_t consumed_bytes = 0, num_decoded = 0;
+    uint8_t dst[10];
+    Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, strlen(src),
+            &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
+    FAIL_IF(code != BASE64_ECODE_OK);
+    FAIL_IF(num_decoded != 3);
+    FAIL_IF(consumed_bytes != 4);
+    PASS;
+}
+
 void Base64RegisterTests(void)
 {
     UtRegisterTest("B64DecodeCompleteStringWSp", B64DecodeCompleteStringWSp);
@@ -270,5 +283,6 @@ void Base64RegisterTests(void)
     UtRegisterTest("B64DecodeCompleteString", B64DecodeCompleteString);
     UtRegisterTest("B64DecodeInCompleteString", B64DecodeInCompleteString);
     UtRegisterTest("B64DecodeStringBiggerThanBuffer", B64DecodeStringBiggerThanBuffer);
+    UtRegisterTest("B64DecodeStringEndingSpaces", B64DecodeStringEndingSpaces);
 }
 #endif
