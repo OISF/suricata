@@ -104,7 +104,7 @@ you can pick from. These are:
 
 The availability of these protocols depends on whether the protocol is enabled in the configuration file, suricata.yaml.
 
-If you have a signature with, for instance 'http' protocol, Suricata makes sure the
+If you have a signature with the protocol declared as 'http', Suricata makes sure the
 signature will only match if the tcp stream contains http traffic.
 
 Source and destination
@@ -113,9 +113,9 @@ Source and destination
 
     alert http :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
-*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
+*The first emphasized part is the traffic source, the second is the traffic destination (note the direction of the directional arrow).*
 
-With source and destination, you specify the source of the traffic and the
+With the source and destination, you specify the source of the traffic and the
 destination of the traffic, respectively. You can assign IP addresses,
 (both IPv4 and IPv6 are supported) and IP ranges. These can be combined with
 operators:
