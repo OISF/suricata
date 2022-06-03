@@ -102,11 +102,10 @@ you can pick from. These are:
 * sip
 * http2
 
-The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
+The availability of these protocols depends on whether the protocol is enabled in the configuration file, suricata.yaml.
 
-If you have a signature with for
-instance a http protocol, Suricata makes sure the signature can only
-match if it concerns http-traffic.
+If you have a signature with, for instance 'http' protocol, Suricata makes sure the
+signature will only match if the tcp stream contains http traffic.
 
 Source and destination
 ----------------------
