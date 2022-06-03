@@ -43,11 +43,11 @@ Action
 
 Valid actions are:
 
-* alert - generate an alert
-* pass - stop further inspection of the packet
-* drop - drop packet and generate alert
+* alert - generate an alert.
+* pass - stop further inspection of the packet.
+* drop - drop packet and generate alert.
 * reject - send RST/ICMP unreach error to the sender of the matching packet.
-* rejectsrc - same as just `reject`
+* rejectsrc - same as just `reject`.
 * rejectdst - send RST/ICMP error packet to receiver of the matching packet.
 * rejectboth - send RST/ICMP error packets to both sides of the conversation.
 
