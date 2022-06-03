@@ -64,10 +64,10 @@
  *  \retval 2 can't match
  *  \retval 3 can't match filestore signature
  */
-static int DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const Signature *s,
+static uint8_t DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const Signature *s,
         const SigMatchData *smd, uint8_t flags, FileContainer *ffc)
 {
-    int r = 0;
+    uint8_t r = 0;
     int match = 0;
     int store_r = 0;
 
@@ -213,7 +213,7 @@ static int DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const Sign
  *
  *  \note flow is not locked at this time
  */
-int DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *_alstate, void *tx, uint64_t tx_id)
 {
@@ -226,8 +226,8 @@ int DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
 
-    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    int match = DetectFileInspect(det_ctx, f, s, engine->smd, flags, ffc);
+    uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    uint8_t match = DetectFileInspect(det_ctx, f, s, engine->smd, flags, ffc);
     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {

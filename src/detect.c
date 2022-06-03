@@ -1137,7 +1137,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             }
 
             /* run callback: but bypass stream callback if we can */
-            int match;
+            uint8_t match;
             if (unlikely(engine->stream && can->stream_stored)) {
                 match = can->stream_result;
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
@@ -1149,8 +1149,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
-                    // TODO change Callback prototype ?
-                    can->stream_result = (uint8_t)match;
+                    can->stream_result = match;
                     TRACE_SID_TXS(s->id, tx, "stream ran, store result %d for next tx (if any)", match);
                 }
             }

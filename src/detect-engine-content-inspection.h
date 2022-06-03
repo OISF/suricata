@@ -46,12 +46,9 @@ enum {
  *  inspection function contains both start and end of the data. */
 #define DETECT_CI_FLAGS_SINGLE  (DETECT_CI_FLAGS_START|DETECT_CI_FLAGS_END)
 
-int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, const SigMatchData *smd,
-                                  Packet *p, Flow *f,
-                                  const uint8_t *buffer, uint32_t buffer_len,
-                                  uint32_t stream_start_offset, uint8_t flags,
-                                  uint8_t inspection_mode);
+uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
+        uint32_t buffer_len, uint32_t stream_start_offset, uint8_t flags, uint8_t inspection_mode);
 
 void DetectEngineContentInspectionRegisterTests(void);
 

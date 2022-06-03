@@ -29,12 +29,12 @@ int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
 int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
-int DetectEngineInspectPacketPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
+uint8_t DetectEngineInspectPacketPayload(
+        DetectEngineCtx *, DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
 int DetectEngineInspectStreamPayload(DetectEngineCtx *,
         DetectEngineThreadCtx *, const Signature *, Flow *,
         Packet *);
-int DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
