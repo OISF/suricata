@@ -11,7 +11,7 @@ read, adjust and create them.
 
 A rule/signature consists of the following:
 
-* The **action**, that determines what happens when the signature matches
+* The **action**, determining what happens when the rule matches.
 * The **header**, defining the protocol, IP addresses, ports and direction of
   the rule.
 * The **rule options**, defining the specifics of the rule.
