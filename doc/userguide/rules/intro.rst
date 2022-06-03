@@ -102,11 +102,11 @@ you can pick from. These are:
 * sip
 * http2
 
-The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
+The availability of these protocols depends on whether the protocol
+is enabled in the configuration file, suricata.yaml.
 
-If you have a signature with for
-instance a http protocol, Suricata makes sure the signature can only
-match if it concerns http-traffic.
+If you have a signature with, for instance 'http' protocol, Suricata
+makes sure the signature will only match if the tcp stream contains http traffic.
 
 Source and destination
 ----------------------
@@ -261,7 +261,8 @@ meaning of the rule.
     As a consequence, you must also escape the backslash, as it functions
     as an escape character.
 
-The rest of this chapter in the documentation documents the use of the various keywords.
+The rest of this chapter in the documentation documents the use of the various
+keywords.
 
 Some generic details about keywords follow.
 
@@ -278,11 +279,13 @@ Some keywords function act as modifiers. There are two types of modifiers.
 
   In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
 
-* The more recent type is called the **'sticky buffer'**. It places the buffer name first and all keywords following it apply to that buffer, for instance::
+* The more recent type is called the **'sticky buffer'**. It places the buffer
+  name first and all keywords following it apply to that buffer, for instance::
 
       alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
-  In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+  In the above example the pattern '403 Forbidden' is inspected against the HTTP
+  response line because it follows the ``http_response_line`` keyword.
 
 .. _rules-normalized-buffers:
 
