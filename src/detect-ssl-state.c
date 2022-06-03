@@ -66,7 +66,7 @@ static void DetectSslStateRegisterTests(void);
 #endif
 static void DetectSslStateFree(DetectEngineCtx *, void *);
 
-static int InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -100,7 +100,7 @@ void DetectSslStateRegister(void)
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0, InspectTlsGeneric, NULL);
 }
 
-static int InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

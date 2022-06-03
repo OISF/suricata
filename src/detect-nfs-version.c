@@ -76,7 +76,7 @@ static void DetectNfsVersionRegisterTests(void);
 #endif
 static int g_nfs_request_buffer_id = 0;
 
-static int DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -109,7 +109,7 @@ void DetectNfsVersionRegister (void)
     SCLogDebug("g_nfs_request_buffer_id %d", g_nfs_request_buffer_id);
 }
 
-static int DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

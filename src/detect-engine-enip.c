@@ -217,7 +217,7 @@ static int CIPServiceMatch(ENIPTransaction *enip_data,
  *
  *  \retval 0 no match or 1 match
  */
-int DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -256,7 +256,7 @@ int DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_c
  *  \retval 0 no match or 1 match
  */
 
-int DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

@@ -56,7 +56,7 @@ static int DetectIkeChosenSaSetup(DetectEngineCtx *, Signature *s, const char *s
 static void DetectIkeChosenSaFree(DetectEngineCtx *, void *);
 static int g_ike_chosen_sa_buffer_id = 0;
 
-static int DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -87,7 +87,7 @@ void DetectIkeChosenSaRegister(void)
     g_ike_chosen_sa_buffer_id = DetectBufferTypeGetByName("ike.chosen_sa_attribute");
 }
 
-static int DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
