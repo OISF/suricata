@@ -502,7 +502,7 @@ void DetectContentPropagateLimits(Signature *s)
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
                         if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
-                            offset = cd->offset = offset_plus_pat + cd->distance;
+                            offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
                         } else {
                             SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
                         }
@@ -510,16 +510,29 @@ void DetectContentPropagateLimits(Signature *s)
                     }
                     if (have_anchor && !last_reset && offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
                         if (depth && depth > offset_plus_pat) {
-                            uint16_t dist = 0;
+                            int32_t dist = 0;
                             if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance > 0) {
                                 dist = cd->distance;
                                 SCLogDebug("distance to add: %u. depth + dist %u", dist, depth + dist);
                             }
                             SCLogDebug("depth %u + cd->within %u", depth, cd->within);
-                            depth = cd->depth = depth + cd->within + dist;
+                            if (depth + cd->within + dist < 0 ||
+                                    depth + cd->within + dist > UINT16_MAX) {
+                                SCLogDebug("not updated content depth as it would overflow : %u + "
+                                           "%d + %u",
+                                        depth, cd->within, dist);
+                            } else {
+                                depth = cd->depth = (uint16_t)(depth + cd->within + dist);
+                            }
                         } else {
                             SCLogDebug("offset %u + cd->within %u", offset, cd->within);
-                            depth = cd->depth = offset + cd->within;
+                            if (depth + cd->within < 0 || depth + cd->within > UINT16_MAX) {
+                                SCLogDebug(
+                                        "not updated content depth as it would overflow : %u + %d",
+                                        offset, cd->within);
+                            } else {
+                                depth = cd->depth = (uint16_t)(offset + cd->within);
+                            }
                         }
                         SCLogDebug("updated content to have depth %u", cd->depth);
                     } else {
@@ -527,11 +540,24 @@ void DetectContentPropagateLimits(Signature *s)
                             if (cd->within > 0) {
                                 SCLogDebug("within %d distance %d", cd->within, cd->distance);
                                 if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                                    cd->offset = offset_plus_pat + cd->distance;
+                                    if (offset_plus_pat + cd->distance < 0 ||
+                                            offset_plus_pat + cd->distance > UINT16_MAX) {
+                                        SCLogDebug("not updated content offset as it would "
+                                                   "overflow : %u + %d",
+                                                offset_plus_pat, cd->distance);
+                                    } else {
+                                        cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                                    }
                                     SCLogDebug("updated content to have offset %u", cd->offset);
                                 }
 
-                                cd->depth = cd->within + depth;
+                                if (depth + cd->within < 0 || depth + cd->within > UINT16_MAX) {
+                                    SCLogDebug("not updated content depth as it would overflow : "
+                                               "%u + %d",
+                                            offset, cd->within);
+                                } else {
+                                    cd->depth = (uint16_t)(cd->within + depth);
+                                }
                                 depth = cd->depth;
                                 SCLogDebug("updated content to have depth %u", cd->depth);
 
@@ -556,7 +582,7 @@ void DetectContentPropagateLimits(Signature *s)
                         if (cd->distance >= 0) {
                             // only distance
                             if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
-                                offset = cd->offset = offset_plus_pat + cd->distance;
+                                offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
                             } else {
                                 SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
                             }
