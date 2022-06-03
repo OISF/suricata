@@ -130,8 +130,9 @@ Operator        Description
 ==============  =========================
 
 Normally, you would also make use of variables, such as ``$HOME_NET`` and
-``$EXTERNAL_NET``. The configuration file specifies the IP addresses these
-concern, and these settings will be used in place of the variables in you rules.
+``$EXTERNAL_NET``. The suricata.yaml configuration file specifies the IP addresses these
+concern. The respective ``$HOME_NET`` and ``$EXTERNAL_NET`` settings will be used in place of the variables in your rules.
+
 See :ref:`suricata-yaml-rule-vars` for more information.
 
 For example:
