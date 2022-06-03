@@ -49,7 +49,7 @@ static void DetectFtpdataFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectFtpdataRegisterTests (void);
 #endif
-static int DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 static int g_ftpdata_buffer_id = 0;
@@ -87,7 +87,7 @@ void DetectFtpdataRegister(void) {
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

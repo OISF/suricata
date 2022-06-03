@@ -68,7 +68,7 @@ static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
                                               Signature *s);
 static int g_http_client_body_buffer_id = 0;
 
-static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -295,7 +295,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

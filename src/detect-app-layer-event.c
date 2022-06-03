@@ -55,7 +55,7 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char
 static void DetectAppLayerEventRegisterTests(void);
 #endif
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
-static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 static int g_applayer_events_list_id = 0;
@@ -85,7 +85,7 @@ void DetectAppLayerEventRegister(void)
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
 
-static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {

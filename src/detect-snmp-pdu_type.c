@@ -49,7 +49,7 @@ static void DetectSNMPPduTypeRegisterTests(void);
 #endif
 static int g_snmp_pdu_type_buffer_id = 0;
 
-static int DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -81,7 +81,7 @@ void DetectSNMPPduTypeRegister(void)
     g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp.pdu_type");
 }
 
-static int DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
