@@ -54,6 +54,12 @@ typedef enum {
     BASE64_MODE_STRICT,
 } Base64Mode;
 
+typedef enum {
+    BASE64_ECODE_ERR = -1,
+    BASE64_ECODE_OK = 0,
+    BASE64_ECODE_BUF,
+} Base64Ecode;
+
 /* Function prototypes */
 uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len, Base64Mode mode);
 
