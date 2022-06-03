@@ -74,7 +74,7 @@ static int DetectDnsOpcodeMatch(DetectEngineThreadCtx *det_ctx,
     return rs_dns_opcode_match(txv, (void *)ctx, flags);
 }
 
-static int DetectEngineInspectRequestGenericDnsOpcode(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectRequestGenericDnsOpcode(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

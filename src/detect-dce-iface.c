@@ -62,7 +62,7 @@ static void DetectDceIfaceRegisterTests(void);
 #endif
 static int g_dce_generic_list_id = 0;
 
-static int InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -94,7 +94,7 @@ void DetectDceIfaceRegister(void)
             "dce_generic", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric, NULL);
 }
 
-static int InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

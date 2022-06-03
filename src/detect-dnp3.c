@@ -175,7 +175,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static int DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

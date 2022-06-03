@@ -1946,9 +1946,9 @@ int DetectEngineReloadIsIdle(void)
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd, Flow *f, const uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+uint8_t DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+        const uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
@@ -1988,11 +1988,9 @@ int DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx, DetectEngineTh
  * \retval 1 match.
  * \retval 2 Sig can't match.
  */
-int DetectEngineInspectBufferGeneric(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);

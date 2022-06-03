@@ -95,7 +95,7 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
 
 static int g_tls_cert_list_id = 0;
 
-static int InspectTlsCert(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectTlsCert(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
