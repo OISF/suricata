@@ -26,23 +26,20 @@ An example of a rule is as follows:
 
 .. container:: example-rule
 
-    :example-rule-action:`drop` :example-rule-header:`tcp $HOME_NET any -> $EXTERNAL_NET any` :example-rule-options:`(msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)`
+    :example-rule-action:`alert` :example-rule-header:`http $HOME_NET any -> $EXTERNAL_NET any`  :example-rule-options:`(msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)`
 
 In this example, :example-rule-action:`red` is the action,
 :example-rule-header:`green` is the header and :example-rule-options:`blue`
 are the options.
 
 We will be using the above signature as an example throughout
-this section, highlighting the different parts of the signature. It is a
-signature taken from the database of Emerging Threats, an open database
-featuring lots of rules that you can freely download and use in your
-Suricata instance.
+this section, highlighting the different parts of the signature.
 
 Action
 ------
 .. container:: example-rule
 
-    :example-rule-emphasis:`drop` tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    :example-rule-emphasis:`alert` http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
 Valid actions are:
 
@@ -63,7 +60,7 @@ Protocol
 --------
 .. container:: example-rule
 
-    drop :example-rule-emphasis:`tcp` $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert :example-rule-emphasis:`http` $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
 This keyword in a signature tells Suricata which protocol it
 concerns. You can choose between four basic protocols:
@@ -110,7 +107,7 @@ Source and destination
 ----------------------
 .. container:: example-rule
 
-    drop tcp :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
 *The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
@@ -160,7 +157,7 @@ Ports (source and destination)
 ------------------------------
 .. container:: example-rule
 
-    drop tcp $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
 *The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
@@ -206,7 +203,7 @@ Direction
 ---------
 .. container:: example-rule
 
-    drop tcp $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
 The direction tells in which way the signature has to match. Nearly
 every signature has an arrow to the right (``->``). This means that only
