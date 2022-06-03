@@ -140,7 +140,7 @@ For example:
 ==================================  ==========================================
 Example                             Meaning
 ==================================  ==========================================
-! 1.1.1.1                           Every IP address but 1.1.1.1
+!1.1.1.1                            Every IP address but 1.1.1.1
 ![1.1.1.1, 1.1.1.2]                 Every IP address but 1.1.1.1 and 1.1.1.2
 $HOME_NET                           Your setting of HOME_NET in yaml
 [$EXTERNAL_NET, !$HOME_NET]         EXTERNAL_NET and not HOME_NET
@@ -154,10 +154,10 @@ $HOME_NET                           Your setting of HOME_NET in yaml
    If you set your configuration to something like this::
 
        HOME_NET: any
-       EXTERNAL_NET: ! $HOME_NET
+       EXTERNAL_NET: !$HOME_NET
 
-   You can not write a signature using ``$EXTERNAL_NET`` because it stands for
-   'not any'. This is an invalid setting.
+   You cannot write a signature using ``$EXTERNAL_NET`` because it evaluates to
+   'not any', which is an invalid value.
 
 Ports (source and destination)
 ------------------------------
@@ -165,7 +165,7 @@ Ports (source and destination)
 
     alert http $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
+*The first emphasized part is the source port, the second is the destination port (note the direction of the directional arrow).*
 
 Traffic comes in and goes out through ports. Different ports have
 different port numbers. For example, the default port for HTTP is 80 while 443 is
