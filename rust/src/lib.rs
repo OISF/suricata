@@ -101,7 +101,7 @@ pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
-pub mod detect;
+pub mod detect_parser;
 
 #[cfg(feature = "lua")]
 pub mod lua;
@@ -113,6 +113,7 @@ pub mod smb;
 pub mod krb;
 pub mod dcerpc;
 pub mod modbus;
+pub mod detect;
 
 pub mod ike;
 pub mod snmp;
