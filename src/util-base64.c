@@ -100,8 +100,9 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     bool valid = true;
     Base64Ecode ecode = BASE64_ECODE_OK;
     *decoded_bytes = 0;
+
     /* Traverse through each alpha-numeric letter in the source array */
-    for (uint32_t i = 0; i < len && src[i] != 0; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         /* Get decimal representation */
         val = GetBase64Value(src[i]);
         if (val < 0) {
