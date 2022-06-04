@@ -28,7 +28,10 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <rte_eal.h>
+
 #include "prefilter.h"
+#include "logger.h"
 #include "lcores-manager.h"
 #include "util-prefilter.h"
 
@@ -37,11 +40,26 @@ static volatile int g_should_stop = 0;
 void StopWorkers(void)
 {
     g_should_stop = 1;
+}
 
-    if (ctx.lcores_state.lcores_arr != NULL) {
-        for (uint16_t i = 0; i < ctx.lcores_state.lcores_arr_len; i++) {
-            LcoreStateSet(ctx.lcores_state.lcores_arr[i].state, LCORE_STOP);
-        }
+static void IPCActionShutdown(void)
+{
+    int retval;
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_SHUTDOWN, sizeof(req.name) / sizeof(req.name[0]));
+    req.len_param = 0;
+    const struct timespec ts = {.tv_sec = 5, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0) {
+        Log().error(EFAULT, "Shutdown req-response failed (%s)", rte_strerror(rte_errno));
+        // todo: in timeout, PF should continue in shutdown
+        exit(1);
+    }
+
+    if (reply.nb_sent != reply.nb_received) {
+        Log().warning(ETIMEDOUT, "Shutdown req-response timed out for %d of %d apps", reply.nb_received, reply.nb_sent);
     }
 }
 
@@ -51,6 +69,7 @@ static void SignalStop(int sig)
         case SIGINT:
         case SIGTERM:
             StopWorkers();
+            IPCActionShutdown();
             break;
         default:
             break;

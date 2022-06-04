@@ -381,6 +381,7 @@ typedef enum {
     SC_WARN_CHOWN,
     SC_ERR_HASH_ADD,
     SC_WARN_CLASSIFICATION_CONFIG,
+    SC_WARN_BYPASS_EXIST,
 
     SC_ERR_MAX
 } SCError;

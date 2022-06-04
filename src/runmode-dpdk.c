@@ -1293,13 +1293,16 @@ static bool DeviceRingNameIsValid(const char *name, uint16_t rings_cnt)
     return true;
 }
 
-static struct PFConfRingEntry *DeviceRingsFindPFConfRingEntry(const char *rx_ring_name)
+static struct PFConfRingEntry *DeviceRingsFindPFConfRingEntry(const char *mz_name, const char *rx_ring_name)
 {
     const struct rte_memzone *mz = NULL;
     struct PFConf *pf_conf;
     struct PFConfRingEntry *pf_re;
 
-    mz = rte_memzone_lookup(PREFILTER_CONF_MEMZONE_NAME);
+    mz = rte_memzone_lookup(mz_name);
+    if (mz == NULL) {
+        FatalError(SC_ERR_DPDK_INIT, "Error (%s): Memzone not found", rte_strerror(rte_errno));
+    }
     pf_conf = (struct PFConf *)mz->addr;
     for (uint32_t re_id = 0; re_id < pf_conf->ring_entries_cnt; re_id++) {
         pf_re = &pf_conf->ring_entries[re_id];
@@ -1315,6 +1318,8 @@ static int32_t DeviceRingsAttach(DPDKIfaceConfig *iconf)
     SCEnter();
     uint16_t rings_cnt = iconf->threads;
     struct PFConfRingEntry *pf_re;
+    int retval;
+    char mz_name[RTE_MEMZONE_NAMESIZE];
 
     if (!DeviceRingNameIsValid(iconf->iface, rings_cnt))
         SCReturnInt(-EINVAL);
@@ -1322,6 +1327,20 @@ static int32_t DeviceRingsAttach(DPDKIfaceConfig *iconf)
         if (!DeviceRingNameIsValid(iconf->out_iface, rings_cnt))
             SCReturnInt(-EINVAL);
     }
+
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_ATTACH, RTE_MP_MAX_NAME_LEN);
+    const struct timespec ts = {.tv_sec = 1, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "Attach req-response failed (%s)", rte_strerror(rte_errno));
+    }
+    struct IPCResponseAttach *a = (struct IPCResponseAttach *)reply.msgs[0].param;
+
+    strlcpy(mz_name, a->memzone_name, sizeof(mz_name));
+    ipc_app_id = (int32_t)a->app_id;
 
     // if fail occurs, these are freed in DPDKDerefConfig
     iconf->rx_rings = SCCalloc(rings_cnt, sizeof(struct rte_ring *));
@@ -1364,7 +1383,7 @@ static int32_t DeviceRingsAttach(DPDKIfaceConfig *iconf)
             SCReturnInt(-ENOENT);
         }
 
-        pf_re = DeviceRingsFindPFConfRingEntry(name);
+        pf_re = DeviceRingsFindPFConfRingEntry(mz_name, name);
         if (pf_re == NULL) {
             SCLogError(SC_ERR_DPDK_INIT, "cannot get prefilter ring entry'%s'", name);
             SCReturnInt(-ENOENT);

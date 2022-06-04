@@ -331,6 +331,8 @@ int DevConfSharedConfInit(void)
         Log().error(rte_errno, "Error (%s): failed to reserve memzone " PREFILTER_CONF_MEMZONE_NAME,
                 rte_strerror(rte_errno));
         return -rte_errno;
+    } else {
+        ctx.shared_conf = mz;
     }
     Log().debug("Reserved memzone %s on 0x%p size of %d", PREFILTER_CONF_MEMZONE_NAME, mz->addr,
             conf_size);

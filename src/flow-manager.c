@@ -736,6 +736,11 @@ static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
 {
     PacketPoolDestroy();
     SCFree(data);
+#ifdef HAVE_DPDK
+    if (ftd_local->mpcache != NULL) {
+        rte_mempool_cache_free(ftd_local->mpcache);
+    }
+#endif
     return TM_ECODE_OK;
 }
 

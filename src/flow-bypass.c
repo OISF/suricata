@@ -31,7 +31,9 @@
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
 
-#define FLOW_BYPASS_DELAY       10
+#define FLOW_BYPASS_DELAY       0
+
+uint16_t bypass_mgr_delay_multiplier = FLOW_BYPASS_DELAY;
 
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) {                               \
@@ -114,7 +116,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             StatsSyncCounters(th_v);
             return TM_ECODE_OK;
         }
-        for (i = 0; i < FLOW_BYPASS_DELAY * 100; i++) {
+        for (i = 0; i < bypass_mgr_delay_multiplier * 100; i++) {
             if (TmThreadsCheckFlag(th_v, THV_KILL)) {
                 StatsSyncCounters(th_v);
                 return TM_ECODE_OK;

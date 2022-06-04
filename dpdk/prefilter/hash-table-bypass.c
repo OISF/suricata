@@ -60,8 +60,8 @@ struct rte_table_hash *BypassHashTableInit(const char *name, uint32_t bt_entries
     struct rte_table_hash *t = NULL;
     uint32_t key_size = sizeof(FlowKey);
     uint32_t elm_size = sizeof(struct BypassHashTableData);
-
-    Log().debug("Bypass Hash Table - key size %u element size %u", key_size, elm_size);
+    uint32_t elms_per_bkt = RTE_MAX(4, 1u);
+    uint32_t bkts = bt_entries / elms_per_bkt;
 
     if (bt_ops.f_create == NULL) {
         rte_panic("Bypass hash table create operation not set!\n");
@@ -73,10 +73,15 @@ struct rte_table_hash *BypassHashTableInit(const char *name, uint32_t bt_entries
         .key_offset = 0,
         .key_mask = NULL,
         .n_keys = bt_entries,
-        .n_buckets = bt_entries / RTE_MAX(4, 1u),
+        .n_buckets = bkts,
         .f_hash = rte_table_hash_crc_key64,
         .seed = 0x6d5a6d5a6d5a6d5a, // irrelevant, this will not hash the same as Toeplitz
     };
+
+    Log().debug("Bypass Hash Table - key size %u element size %u elements total %u buckets %u "
+                "elements in bucket %u",
+            key_size, elm_size, params.n_keys, params.n_buckets,
+            params.n_keys / params.n_buckets);
 
     t = bt_ops.f_create(&params, (int)rte_socket_id(), elm_size);
     if (t == NULL) {
@@ -158,8 +163,17 @@ int BypassHashTableAdd(struct rte_table_hash *bt, void *key, void *entry)
 
     int retval = bt_ops.f_add(bt, key, entry, &key_found, &entry_ptr);
 
-    if (retval != 0) {
-        Log().debug("Error (%s): Bypass Hash Table add operation failed", rte_strerror(-retval));
+    if (retval != 0 || entry_ptr == NULL || key_found) {
+        if (retval != 0)
+            Log().debug("Error (%s): Bypass Hash Table add operation failed", rte_strerror(-retval));
+
+        if (entry_ptr == NULL)
+            Log().debug("Error - entry ptr null");
+
+        if (key_found)
+            Log().debug("Error - key found already!");
+    } else {
+        Log().debug("Flow bypassed with entry ptr: %p", entry_ptr);
     }
     return retval;
 }

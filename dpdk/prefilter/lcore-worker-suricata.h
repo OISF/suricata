@@ -30,7 +30,8 @@
 
 struct lcore_values *ThreadSuricataInit(struct lcore_init *init_vals);
 void ThreadSuricataRun(struct lcore_values *lv);
-void ThreadSuricataExitStats(struct lcore_values *lv);
+void ThreadSuricataStatsDump(struct lcore_values *lv);
+void ThreadSuricataStatsExit(struct lcore_values *lv, struct pf_stats *stats);
 void ThreadSuricataDeinit(struct lcore_init *vals, struct lcore_values *lv);
 
 #endif // LCORE_WORKER_SURICATA_H

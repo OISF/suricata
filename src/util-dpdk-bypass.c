@@ -24,6 +24,241 @@
 #include "util-dpdk-bypass.h"
 #include "flow-hash.h"
 #include "flow-storage.h"
+#include "flow-private.h"
+#include "tmqh-packetpool.h"
+
+int32_t ipc_app_id = -1; // not set
+
+static int DpdkIpcActionShutdown(const struct rte_mp_msg *msg, const void *peer)
+{
+    EngineStop();
+
+    int ret;
+    struct rte_mp_msg mp_resp;
+    memset(&mp_resp, 0, sizeof(mp_resp));
+    strlcpy(mp_resp.name, msg->name, sizeof(mp_resp.name) / sizeof(mp_resp.name[0]));
+    strlcpy((char *)mp_resp.param, IPC_VALID_RESPONSE, sizeof(mp_resp.param) / sizeof(mp_resp.param[0]));
+    mp_resp.len_param = (int)strlen((char *)mp_resp.param);
+
+    ret = rte_mp_reply((struct rte_mp_msg *)&mp_resp, peer);
+    if (ret != 0) {
+        SCLogWarning(SC_WARN_DPDK_BYPASS, "Unable to respond to %s IPC message", IPC_ACTION_SHUTDOWN);
+    }
+
+    return 0;
+}
+
+void DpdkIpcRegisterActions(void)
+{
+#ifdef HAVE_DPDK
+    if (run_mode != RUNMODE_DPDK || rte_eal_process_type() != RTE_PROC_SECONDARY)
+        return;
+
+    int ret;
+    ret = rte_mp_action_register(IPC_ACTION_SHUTDOWN, DpdkIpcActionShutdown);
+    if (ret != 0) {
+        FatalError(ENOTSUP, "Error (%s): Unable to register action (%s)",
+                rte_strerror(rte_errno), IPC_ACTION_SHUTDOWN);
+    }
+#endif /* HAVE_DPDK */
+}
+
+void DpdkIpcStart(void)
+{
+#ifdef HAVE_DPDK
+    if (run_mode != RUNMODE_DPDK || rte_eal_process_type() != RTE_PROC_SECONDARY)
+        return;
+
+    int retval;
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_START, RTE_MP_MAX_NAME_LEN);
+    req.param[0] = ipc_app_id;
+    req.len_param = 1;
+    const struct timespec ts = {.tv_sec = 5, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "%s req-response failed (%s)", IPC_ACTION_START, rte_strerror(rte_errno));
+    }
+
+    if (strcmp(IPC_VALID_RESPONSE, (char *)reply.msgs[0].param) != 0) {
+        FatalError(SC_ERR_DPDK_BYPASS, "Prefilter responsed %s instead of %s message",
+                (char *)reply.msgs[0].param, IPC_VALID_RESPONSE);
+    }
+#endif
+}
+
+void DpdkIpcStop(void)
+{
+#ifdef HAVE_DPDK
+    if (run_mode != RUNMODE_DPDK || rte_eal_process_type() != RTE_PROC_SECONDARY)
+        return;
+
+    int retval;
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    strlcpy(req.name, IPC_ACTION_STOP, RTE_MP_MAX_NAME_LEN);
+    req.param[0] = ipc_app_id;
+    const struct timespec ts = {.tv_sec = 1, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "%s req-response failed (%s)", IPC_ACTION_STOP, rte_strerror(rte_errno));
+    }
+
+    if (strcmp(IPC_VALID_RESPONSE, (char *)reply.msgs[0].param) != 0) {
+        FatalError(SC_ERR_DPDK_BYPASS, "Prefilter responsed %s instead of %s message",
+                (char *)reply.msgs[0].param, IPC_VALID_RESPONSE);
+    }
+#endif
+}
+
+void DpdkIpcDumpStats(void)
+{
+#ifdef HAVE_DPDK
+    if (run_mode != RUNMODE_DPDK || rte_eal_process_type() != RTE_PROC_SECONDARY)
+        return;
+
+    int retval;
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_BYPASS_TBL_DUMP_START, RTE_MP_MAX_NAME_LEN);
+    req.param[0] = ipc_app_id;
+    req.len_param = 1;
+    const struct timespec ts = {.tv_sec = 1, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "%s req-response failed (%s)", IPC_ACTION_BYPASS_TBL_DUMP_START, rte_strerror(rte_errno));
+    }
+
+    if (strcmp(IPC_VALID_RESPONSE, (char *)reply.msgs[0].param) != 0) {
+        FatalError(SC_ERR_DPDK_BYPASS, "Prefilter responsed %s instead of %s message",
+                (char *)reply.msgs[0].param, IPC_VALID_RESPONSE);
+    }
+
+    rte_delay_ms(1000); // wait for PF to switch modes
+    int ret;
+    uint64_t flow_cnt = 0;
+
+    SCLogInfo("Synchronize bypass tables");
+    bool flow_table_no_bypassed_flows = false;
+    while (!flow_table_no_bypassed_flows) {
+        flow_table_no_bypassed_flows = true;
+        for (uint32_t idx = 0; idx < flow_config.hash_size; idx++) {
+            FlowBucket *fb = &flow_hash[idx];
+            if (fb == NULL)
+                continue;
+
+            FBLOCK_LOCK(fb);
+            /* we have a flow, or more than one */
+            Flow *f = fb->head;
+            while (f) {
+                FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+                if (fc != NULL && fc->bypass_data != NULL) {
+                    flow_table_no_bypassed_flows = false;
+                    FLOWLOCK_WRLOCK(f);
+                    f->flags |= FLOW_LOCK_FOR_WORKERS;
+
+                    struct DPDKFlowBypassData *d = (struct DPDKFlowBypassData *)fc->bypass_data;
+                    struct PFMessage *msg = NULL;
+                    ret = rte_mempool_generic_get(d->msg_mp, (void **)&msg, 1, NULL);
+                    if (ret != 0) {
+                        rte_mempool_dump(stdout, d->msg_mp);
+                        SCLogWarning(
+                                SC_ERR_DPDK_BYPASS, "Error (%s): Unable to get message object", rte_strerror(-ret));
+                        FLOWLOCK_UNLOCK(f);
+                        FBLOCK_UNLOCK(fb);
+                        return;
+                    }
+                    PFMessageDeleteBypassInit(msg);
+                    ret = FlowKeyInitFromFlow(&msg->fk, f);
+                    if (ret != 0) {
+                        FatalError(SC_ERR_DPDK_BYPASS, "Error (%s): Unable to init FlowKey structure from Flow",
+                                rte_strerror(-ret));
+                    }
+
+                    ret = rte_ring_enqueue(d->tasks_ring, msg);
+                    if (ret != 0) {
+                        SCLogDebug("Error (%s): Unable to enqueue message object", rte_strerror(-ret));
+                        if (msg != NULL) {
+                            rte_mempool_generic_put(d->msg_mp, (void **)&msg, 1, NULL);
+                        }
+                    }
+                    flow_cnt++;
+
+                    // craft the update message, maybe lock is not required?
+                    // no need to set lock for workers anymore
+
+                    /* no one is referring to this flow, use_cnt 0, removed from hash
+                     * so we can unlock it and move it to the recycle queue. */
+                    FLOWLOCK_UNLOCK(f);
+                }
+
+                f = f->next;
+            }
+            FBLOCK_UNLOCK(fb);
+
+        }
+
+        if (flow_table_no_bypassed_flows) {
+            break;
+        } else {
+            SCLogInfo("Bypass table still not clear of capture bypasses");
+            rte_delay_ms(5000);
+        }
+    }
+    SCLogInfo("Flows that sent bypass update msg on cleanup %lu", flow_cnt);
+
+    // No bypassed flow is present in the Suricata flow table
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_BYPASS_TBL_DUMP_STOP, RTE_MP_MAX_NAME_LEN);
+    req.param[0] = ipc_app_id;
+    req.len_param = 1;
+    const struct timespec ts_stop = {.tv_sec = 1, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts_stop);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "%s req-response failed (%s)", IPC_ACTION_BYPASS_TBL_DUMP_STOP, rte_strerror(rte_errno));
+    }
+
+    if (strcmp(IPC_VALID_RESPONSE, (char *)reply.msgs[0].param) != 0) {
+        FatalError(SC_ERR_DPDK_BYPASS, "Prefilter responsed %s instead of %s message",
+                (char *)reply.msgs[0].param, IPC_VALID_RESPONSE);
+    }
+#endif
+}
+
+void DpdkIpcDetach(void)
+{
+#ifdef HAVE_DPDK
+    if (run_mode != RUNMODE_DPDK || rte_eal_process_type() != RTE_PROC_SECONDARY)
+        return;
+
+    int retval;
+    struct rte_mp_msg req;
+    struct rte_mp_reply reply;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.name, IPC_ACTION_DETACH, sizeof(req.name) / sizeof(req.name[0]));
+    req.param[0] = ipc_app_id;
+    req.len_param = 1;
+    const struct timespec ts = {.tv_sec = 1, .tv_nsec = 0};
+    retval = rte_mp_request_sync(&req, &reply, &ts);
+    if (retval != 0 || reply.nb_sent != reply.nb_received) {
+        FatalError(SC_ERR_FATAL, "%s req-response failed (%s)", IPC_ACTION_DETACH, rte_strerror(rte_errno));
+    }
+
+    if (strcmp(IPC_VALID_RESPONSE, (char *)reply.msgs[0].param) != 0) {
+        FatalError(SC_ERR_DPDK_BYPASS, "Prefilter responsed %s instead of %s message",
+                (char *)reply.msgs[0].param, IPC_VALID_RESPONSE);
+    }
+
+    // wait until the primary cleans the memory because it notifies secondaries about the cleanup
+    SCLogInfo("Waiting for primary process to finish");
+    while (rte_eal_primary_proc_alive(NULL)) {
+        sleep(1);
+    }
+#endif
+}
 
 #ifdef HAVE_DPDK
 
@@ -48,6 +283,12 @@ void PFMessageDeleteBypassInit(struct PFMessage *msg)
 void PFMessageEvictBypassInit(struct PFMessage *msg)
 {
     msg->msg_type = PF_MESSAGE_BYPASS_EVICT;
+    msg->next_msg = NULL;
+}
+
+void PFMessageForceEvictBypassInit(struct PFMessage *msg)
+{
+    msg->msg_type = PF_MESSAGE_BYPASS_FORCE_EVICT;
     msg->next_msg = NULL;
 }
 
@@ -385,6 +626,31 @@ static void FlowBypassUpdate(
     }
 }
 
+// expects the message is force evict message
+static void FlowBypassUpdateForceEvict(
+        Flow *f, struct PFMessage *msg, struct timespec *curtime, struct flows_stats *bypassstats)
+{
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc) {
+        f->lastts.tv_sec = curtime->tv_sec;
+        struct DPDKFlowBypassData *d = (struct DPDKFlowBypassData *)fc->bypass_data;
+        if (d) {
+            d->pending_msgs = 0;
+        }
+        fc->tosrcpktcnt += msg->bypass_force_evict_msg.tosrcpktcnt;
+        fc->tosrcbytecnt += msg->bypass_force_evict_msg.tosrcbytecnt;
+        fc->todstpktcnt += msg->bypass_force_evict_msg.todstpktcnt;
+        fc->todstbytecnt += msg->bypass_force_evict_msg.todstbytecnt;
+
+        bypassstats->bytes +=
+                msg->bypass_force_evict_msg.tosrcbytecnt + msg->bypass_force_evict_msg.todstbytecnt;
+        bypassstats->packets +=
+                msg->bypass_force_evict_msg.tosrcpktcnt + msg->bypass_force_evict_msg.todstpktcnt;
+        // not sure if the count is count of total bypassed flows or count of bypass update calls
+        bypassstats->count++;
+    }
+}
+
 // my flow delete attempt with locking f_prev
 // static void FlowDeleteFromFlowTable(Flow *f)
 //{
@@ -428,6 +694,14 @@ static void FlowBypassUpdate(
 
 static void FlowDeleteFromFlowTable(Flow *f)
 {
+    /**
+     * Follow the usual lock pattern (Bucket and then Flow),
+     * Otherwise a thread 1 can lock flow and thread 2 can lock bucket
+     * thread 1 might want to access the bucket but at the same time thread 2 reaches for flow lock
+     * this results in deadlock
+     */
+    FBLOCK_LOCK(f->fb);
+    FLOWLOCK_WRLOCK(f);
     if (f->livedev) {
         if (FLOW_IS_IPV4(f)) {
             LiveDevSubBypassStats(f->livedev, 1, AF_INET);
@@ -443,7 +717,6 @@ static void FlowDeleteFromFlowTable(Flow *f)
         fc->BypassFree = NULL;
     }
 
-    FBLOCK_LOCK(f->fb);
     Flow *f_prev = f->fb->head == f ? NULL : f->fb->head;
 
     // todo: examine if this can't be a race condition.
@@ -463,6 +736,7 @@ static void FlowDeleteFromFlowTable(Flow *f)
     f->flags |= FLOW_END_FLAG_TIMEOUT;
     FlowSetEndFlags(f);
 
+    FLOWLOCK_UNLOCK(f);
     FBLOCK_UNLOCK(f->fb);
 }
 
@@ -477,8 +751,8 @@ static void FlowBypassEvict(Flow *f)
         }
     }
 
-    FlowDeleteFromFlowTable(f);
     FLOWLOCK_UNLOCK(f);
+    FlowDeleteFromFlowTable(f);
 }
 
 static Flow *FlowBypassGetWorkerLockedFlow(FlowKey *flow_key)
@@ -490,6 +764,22 @@ static Flow *FlowBypassGetWorkerLockedFlow(FlowKey *flow_key)
         SCLogDebug("Unable to get flow locked for workers");
 
     return f;
+}
+
+static void FlowBypassDuplicateMerger(Flow *f)
+{
+    Flow *orig_f = f;
+    f = f->fb->head;
+
+    Flow *f_dupl;
+    while (f) {
+        if (f != orig_f && CMP_ADDR(&f->src, &orig_f->src) && CMP_ADDR(&f->dst, &orig_f->dst) && CMP_PORT(&f->sp, &orig_f->sp) && CMP_PORT(&f->dp, &orig_f->dp) && f->proto == orig_f->proto && ((f->vlan_id[0] ^ orig_f->vlan_id[0]) & g_vlan_mask) == 0 && ((f->vlan_id[1] ^ orig_f->vlan_id[1]) & g_vlan_mask) == 0) {
+            // same flow, different entry
+            SCLogWarning(SC_ERR_DPDK_BYPASS, "Here you should merge two duplicate flow entries");
+//            FlowBypassEvict(f);
+        }
+
+    }
 }
 
 // return 0 if no new stats, non zero if otherwise, function expects zeroed bypass stats
@@ -522,7 +812,21 @@ int DPDKCheckBypassMessages(
                 SCLogDebug("Flow deleted");
             } else {
                 FlowBypassUpdate(f, msg, curtime, bypassstats);
+                f->flags &= ~FLOW_LOCK_FOR_WORKERS;
                 FLOWLOCK_UNLOCK(f);
+                // FlowBypassDuplicateMerger(f);
+                // todo: implement FlowDuplicateMerger function
+                // FlowCheckDuplicate responsibilities:
+                //   - get the flow bucket and iterate over it
+                //   - try find the same flow (unified) as the bypassed flow
+                //   - if any is found then merge them into one (into the bypassed and older one)
+                //   - if found then delete the other flow
+                // the situation with duplicate flows can occur when update function locks the flow
+                // for worker while worker still has some packets of the flow to process.
+                // The worker will create a new flow entry and Flow Manager Assistatnt will update
+                // the old flow. Two flows could coexist until the very end when they will both
+                // request stats update. First flow receives an update,
+                // the other receives no flow found.
                 new_stats = true;
             }
         } else if (msg->msg_type == PF_MESSAGE_BYPASS_FLOW_NOT_FOUND) {
@@ -536,9 +840,22 @@ int DPDKCheckBypassMessages(
                 fc->bypass_data = NULL;
                 fc->BypassFree = NULL;
             }
+            FlowFreeStorageById(f, GetFlowBypassInfoID());
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
             SCLogDebug("Flow not found in the capture bypass, moved to local bypassed state");
+            f->flags &= ~FLOW_LOCK_FOR_WORKERS;
             FLOWLOCK_UNLOCK(f);
+        } else if (msg->msg_type == PF_MESSAGE_BYPASS_FORCE_EVICT) {
+            f = FlowBypassGetWorkerLockedFlow(&msg->fk);
+            if (f == NULL)
+                continue;
+
+            if (!(f->flags & FLOW_LOCK_FOR_WORKERS))
+                SCLogWarning(SC_ERR_DPDK_BYPASS, "Flow does not have lock set!");
+
+            FlowBypassUpdateForceEvict(f, msg, curtime, bypassstats);
+            FlowBypassEvict(f);
+            new_stats = true;
         } else {
             SCLogInfo("Assistant has an unknown message type");
             continue;

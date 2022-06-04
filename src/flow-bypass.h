@@ -24,6 +24,8 @@
 #ifndef __FLOW_BYPASS_H__
 #define __FLOW_BYPASS_H__
 
+extern uint16_t bypass_mgr_delay_multiplier;
+
 struct flows_stats {
     uint64_t count;
     uint64_t packets;

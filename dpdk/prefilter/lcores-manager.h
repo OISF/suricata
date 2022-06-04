@@ -41,14 +41,19 @@ struct lcore_init {
 };
 
 enum LcoreStateEnum {
+    LCORE_WAIT, // default state
     /* "commands" */
     LCORE_INIT,
     LCORE_RUN,
     LCORE_STOP,
+    LCORE_STAT_DUMP,
+    LCORE_DETACH,
+    LCORE_HALT,
     /* "replies" */
     LCORE_INIT_DONE,
     LCORE_RUNNING,
     LCORE_RUNNING_DONE,
+    LCORE_STAT_DUMP_DONE,
     LCORE_STOP_DONE,
 };
 
@@ -60,6 +65,8 @@ void LcoreStateSet(rte_atomic16_t *state, enum LcoreStateEnum new_state);
 int LcoreStateCheck(rte_atomic16_t *state, enum LcoreStateEnum check_state);
 int LcoreStateWaitWithTimeout(
         rte_atomic16_t *state, enum LcoreStateEnum check_state, uint16_t timeout_sec);
+bool LcoreStateCheckAll(enum LcoreStateEnum check_state);
+int LcoreStateCheckAllWTimeout(enum LcoreStateEnum check_state, uint16_t timeout_sec);
 uint32_t LcoreManagerGetLcoreIdFromRingId(
         uint16_t ring_id, uint16_t sec_app_lcores_cnt, uint16_t pf_lcores_cnt);
 

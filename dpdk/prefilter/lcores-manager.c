@@ -118,7 +118,8 @@ void LcoreStateSet(rte_atomic16_t *state, enum LcoreStateEnum new_state)
 
 int LcoreStateCheck(rte_atomic16_t *state, enum LcoreStateEnum check_state)
 {
-    return (check_state == rte_atomic16_read(state));
+    int16_t sstate = rte_atomic16_read(state);
+    return (check_state == sstate);
 }
 
 int LcoreStateWaitWithTimeout(
@@ -135,6 +136,35 @@ int LcoreStateWaitWithTimeout(
     }
 
     return 0;
+}
+
+bool LcoreStateCheckAll(enum LcoreStateEnum check_state)
+{
+    bool all_set = true;
+    for (uint16_t i = 0; i < ctx.lcores_state.lcores_arr_len; i++) {
+        Log().debug(
+                "State - desired %u actual %u", check_state, rte_atomic16_read(ctx.lcores_state.lcores_arr[i].state));
+        all_set &= LcoreStateCheck(
+                ctx.lcores_state.lcores_arr[i].state,
+                check_state);
+    }
+    return all_set;
+}
+
+int LcoreStateCheckAllWTimeout(enum LcoreStateEnum check_state, uint16_t timeout_sec)
+{
+    time_t init_time, tmp_time;
+    time(&init_time);
+
+    while (!LcoreStateCheckAll(check_state)) {
+        rte_delay_us_sleep(10 * 1000);
+        time(&tmp_time);
+        if (tmp_time - init_time > timeout_sec)
+            return -ETIMEDOUT;
+    }
+
+    return 0;
+
 }
 
 int LcoreManagerRunWorker(
@@ -172,7 +202,7 @@ int LcoreManagerRunWorker(
         rte_atomic16_t *lcore_state = LcoreStateInit();
         if (lcore_state == NULL)
             return -ENOMEM;
-        LcoreStateSet(lcore_state, LCORE_INIT);
+        LcoreStateSet(lcore_state, LCORE_WAIT);
 
         const char *table_name =
                 DevConfBypassHashTableGetName(re->bypass_table_base.name, spawned_lcores);
