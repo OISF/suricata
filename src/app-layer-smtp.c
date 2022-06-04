@@ -1497,7 +1497,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     /* toserver */
     if (direction == 0) {
         while (res == 0) {
-            BUG_ON(state->discard_till_lf);
+            DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_delimiter_len > 0) && (SMTPProcessRequest(state, f, pstate) == -1))
                     SCReturnInt(-1);
@@ -1515,7 +1515,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
         /* toclient */
     } else {
         while (res == 0) {
-            BUG_ON(state->discard_till_lf);
+            DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_delimiter_len > 0) &&
                         (SMTPProcessReply(state, f, pstate, thread_data) == -1))
