@@ -1278,10 +1278,11 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
+    DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
+
     bool line_complete = false;
     int32_t input_len = state->input_len;
-    for (int32_t i = 0;
-            i < input_len && (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE); i++) {
+    for (int32_t i = 0; i < input_len; i++) {
         if (state->input[i] == 0x0d) {
             if (i < input_len - 1 && state->input[i + 1] == 0x0a) {
                 i++;
@@ -1309,12 +1310,16 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
             state->current_line_len = current_line_consumed - state->current_line_delimiter_len;
             state->consumed = total_consumed;
             state->input_len -= current_line_consumed;
-            BUG_ON(state->consumed + state->input_len != state->orig_input_len);
+            DEBUG_VALIDATE_BUG_ON(state->consumed + state->input_len != state->orig_input_len);
             if (SMTPProcessRequest(state, f, pstate) == -1) {
                 return -1;
             }
             line_complete = false;
             state->current_line_delimiter_len = 0;
+
+            /* bail if `SMTPProcessRequest` ended the data mode */
+            if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0)
+                break;
         }
     }
     return 0;
