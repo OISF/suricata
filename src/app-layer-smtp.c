@@ -1365,7 +1365,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     /* toserver */
     if (direction == 0) {
         while (res.status == 0) {
-            BUG_ON(state->discard_till_lf);
+            DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_delimiter_len > 0) &&
                         (SMTPProcessRequest(state, f, pstate) == -1))
@@ -1385,7 +1385,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         /* toclient */
     } else {
         while (res.status == 0) {
-            BUG_ON(state->discard_till_lf);
+            DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
                 if ((state->current_line_delimiter_len > 0) &&
                         (SMTPProcessReply(state, f, pstate, thread_data) == -1))
