@@ -724,7 +724,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
 }
 
 static int SMTPProcessCommandBDAT(
-        SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPLine *line)
+        SMTPState *state, Flow *f, AppLayerParserState *pstate, const SMTPLine *line)
 {
     SCEnter();
 
@@ -790,7 +790,7 @@ static inline void SMTPTransactionComplete(SMTPState *state)
  *  \retval -1 error
  */
 static int SMTPProcessCommandDATA(
-        SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPLine *line)
+        SMTPState *state, Flow *f, AppLayerParserState *pstate, const SMTPLine *line)
 {
     SCEnter();
 
@@ -866,7 +866,7 @@ static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
 }
 
 static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *pstate,
-        SMTPThreadCtx *td, SMTPInput *input, SMTPLine *line)
+        SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
 {
     SCEnter();
 
@@ -988,7 +988,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
     return 0;
 }
 
-static int SMTPParseCommandBDAT(SMTPState *state, SMTPLine *line)
+static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
 {
     SCEnter();
 
@@ -1025,7 +1025,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, SMTPLine *line)
     return 0;
 }
 
-static int SMTPParseCommandWithParam(SMTPState *state, SMTPLine *line, uint8_t prefix_len,
+static int SMTPParseCommandWithParam(SMTPState *state, const SMTPLine *line, uint8_t prefix_len,
         uint8_t **target, uint16_t *target_len)
 {
     int i = prefix_len + 1;
@@ -1063,7 +1063,7 @@ static int SMTPParseCommandWithParam(SMTPState *state, SMTPLine *line, uint8_t p
     return 0;
 }
 
-static int SMTPParseCommandHELO(SMTPState *state, SMTPLine *line)
+static int SMTPParseCommandHELO(SMTPState *state, const SMTPLine *line)
 {
     if (state->helo) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
@@ -1072,7 +1072,7 @@ static int SMTPParseCommandHELO(SMTPState *state, SMTPLine *line)
     return SMTPParseCommandWithParam(state, line, 4, &state->helo, &state->helo_len);
 }
 
-static int SMTPParseCommandMAILFROM(SMTPState *state, SMTPLine *line)
+static int SMTPParseCommandMAILFROM(SMTPState *state, const SMTPLine *line)
 {
     if (state->curr_tx->mail_from) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
@@ -1082,7 +1082,7 @@ static int SMTPParseCommandMAILFROM(SMTPState *state, SMTPLine *line)
             state, line, 9, &state->curr_tx->mail_from, &state->curr_tx->mail_from_len);
 }
 
-static int SMTPParseCommandRCPTTO(SMTPState *state, SMTPLine *line)
+static int SMTPParseCommandRCPTTO(SMTPState *state, const SMTPLine *line)
 {
     uint8_t *rcptto;
     uint16_t rcptto_len;
@@ -1104,7 +1104,7 @@ static int SMTPParseCommandRCPTTO(SMTPState *state, SMTPLine *line)
 }
 
 /* consider 'rset' and 'quit' to be part of the existing state */
-static int NoNewTx(SMTPState *state, SMTPLine *line)
+static int NoNewTx(SMTPState *state, const SMTPLine *line)
 {
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         if (line->len >= 4 && SCMemcmpLowercase("rset", line->buf, 4) == 0) {
@@ -1119,8 +1119,8 @@ static int NoNewTx(SMTPState *state, SMTPLine *line)
 /* XXX have a better name */
 #define rawmsgname "rawmsg"
 
-static int SMTPProcessRequest(
-        SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPInput *input, SMTPLine *line)
+static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *pstate,
+        SMTPInput *input, const SMTPLine *line)
 {
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
