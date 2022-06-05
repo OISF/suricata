@@ -87,4 +87,4 @@ alert http any any -> any any (msg:"SURICATA HTTP invalid Range header value"; f
 
 alert http any any -> any any (msg:"SURICATA HTTP file name too long"; flow:established; app-layer-event:http.file_name_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221052; rev:1;)
 
-# next sid 2221053
+alert http any any -> any any (msg:"SURICATA HTTP POSSIBLE DOWNLOAD MSDT"; content:"200"; http.stat_code; file_data; content:"ms-msdt:/id"; http.content_type; content:"text/html"; classtype:trojan-activity; rev:1; sid:2221053; reference: url, https://msrc-blog.microsoft.com/2022/05/30/guidance-for-cve-2022-30190-microsoft-support-diagnostic-tool-vulnerability;)
