@@ -1125,11 +1125,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
-    /* Line with just LF */
-    if (line->len == 0 && input->consumed == 1 && line->delim_len == 0) {
-        return 0; // to continue processing further
-    }
-
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, line))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)
