@@ -1251,12 +1251,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
-    /* Line with just LF */
-    if (state->current_line_len == 0 && state->consumed == 1 &&
-            state->current_line_delimiter_len == 0) {
-        return 0; // to continue processing further
-    }
-
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)
