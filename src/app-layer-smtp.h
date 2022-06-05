@@ -110,12 +110,6 @@ typedef struct SMTPState_ {
     uint64_t toserver_data_count;
     uint64_t toserver_last_data_stamp;
 
-    /* --parser details-- */
-    /** current line extracted by the parser from the call to SMTPGetline() */
-    const uint8_t *current_line;
-    /** length of the line in current_line.  Doesn't include the delimiter */
-    int32_t current_line_len;
-    uint8_t current_line_delimiter_len;
     /* If rest of the bytes should be discarded in case of long line w/o LF */
     bool discard_till_lf;
 
