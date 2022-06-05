@@ -1330,7 +1330,6 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         AppLayerParserState *pstate, StreamSlice stream_slice, SMTPThreadCtx *thread_data)
 {
     SCEnter();
-    SMTPLine line = { NULL, 0, 0 };
 
     const uint8_t *input_buf = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
@@ -1345,7 +1344,9 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     }
 
     SMTPInput input = { .buf = input_buf, .len = input_len, .orig_len = input_len, .consumed = 0 };
+    SMTPLine line = { NULL, 0, 0 };
 
+    /* toserver */
     if (direction == 0) {
         if (((state->current_command == SMTP_COMMAND_DATA) ||
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
@@ -1355,11 +1356,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                 SCReturnStruct(APP_LAYER_OK);
             }
         }
-    }
-    AppLayerResult res = SMTPGetLine(state, &input, &line);
-
-    /* toserver */
-    if (direction == 0) {
+        AppLayerResult res = SMTPGetLine(state, &input, &line);
         while (res.status == 0) {
             DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
@@ -1379,6 +1376,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
             return res;
         /* toclient */
     } else {
+        AppLayerResult res = SMTPGetLine(state, &input, &line);
         while (res.status == 0) {
             DEBUG_VALIDATE_BUG_ON(state->discard_till_lf);
             if (!state->discard_till_lf) {
