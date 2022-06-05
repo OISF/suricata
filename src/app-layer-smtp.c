@@ -1300,8 +1300,9 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
         if (line_complete || (i == input_len - 1)) {
             DEBUG_VALIDATE_BUG_ON(state->consumed + state->input_len != state->orig_input_len);
             DEBUG_VALIDATE_BUG_ON(state->input_len == 0 && input_len != 0);
-            if ((input_len == 1 && state->input[state->consumed] == '-') ||
-                    (input_len > 1 && state->input[state->consumed] == '-' &&
+            /* state->input_len reflects data from start of the line in progress. */
+            if ((state->input_len == 1 && state->input[state->consumed] == '-') ||
+                    (state->input_len > 1 && state->input[state->consumed] == '-' &&
                             state->input[state->consumed + 1] == '-')) {
                 SCLogDebug("Possible boundary, yield to GetLine");
                 return 1;
