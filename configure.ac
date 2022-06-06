@@ -636,6 +636,35 @@
         AC_MSG_RESULT(no)
     fi
 
+  #systemd
+    AC_ARG_WITH(systemd_includes,
+            [  --with-systemd-includes=DIR  systemd include directory],
+            [with_systemd_includes="$withval"],[with_systemd_includes=no])
+    AC_ARG_WITH(systemd_libraries,
+            [  --with-systemd-libraries=DIR    systemd library directory],
+            [with_systemd_libraries="$withval"],[with_systemd_libraries="no"])
+
+    if test "$with_systemd_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_systemd_includes}"
+    fi
+
+    AC_CHECK_HEADER(systemd/sd-daemon.h, SYSTEMD="yes",SYSTEMD="no")
+    if test "$SYSTEMD" = "yes"; then
+        if test "$with_systemd_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_systemd_libraries}"
+        fi
+
+        # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+        # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+        SYSTEMD=""
+        TMPLIBS="${LIBS}"
+        AC_CHECK_LIB(systemd,sd_notify,,SYSTEMD="no")
+
+        if test "$SYSTEMD" != "no"; then
+            LIBS="${TMPLIBS} -lsystemd"
+        fi
+    fi
+  
   # libhs
     enable_hyperscan="no"
 
