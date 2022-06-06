@@ -122,6 +122,8 @@ void TmThreadDisableReceiveThreads(void);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
+TmEcode TmThreadWaitOnThreadRunning(void);
+
 static inline void TmThreadsCleanDecodePQ(PacketQueueNoLock *pq)
 {
     while (1) {
