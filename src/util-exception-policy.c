@@ -67,7 +67,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_IGNORE;
     const char *value_str = NULL;
-    if ((ConfGetValue(option, &value_str)) == 1 && value_str != NULL) {
+    if ((ConfGet(option, &value_str)) == 1 && value_str != NULL) {
         if (strcmp(value_str, "drop-flow") == 0) {
             policy = EXCEPTION_POLICY_DROP_FLOW;
             SCLogConfig("%s: %s", option, value_str);
