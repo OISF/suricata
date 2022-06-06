@@ -770,6 +770,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t emerg_over_cnt = 0;
     uint64_t next_run_ms = 0;
 
+    TmThreadsSetFlag(th_v, THV_RUNNING);
+
     while (1)
     {
         if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
@@ -1089,6 +1091,8 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     struct timeval startts;
     memset(&startts, 0, sizeof(startts));
     gettimeofday(&startts, NULL);
+
+    TmThreadsSetFlag(th_v, THV_RUNNING);
 
     while (1)
     {

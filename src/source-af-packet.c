@@ -1338,6 +1338,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     fds.fd = ptv->socket;
     fds.events = POLLIN;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (1) {
         /* Start by checking the state of our interface */
         if (unlikely(ptv->afp_state == AFP_STATE_DOWN)) {
