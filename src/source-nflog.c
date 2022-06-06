@@ -430,6 +430,10 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (1) {
         if (suricata_ctl_flags != 0)
             break;

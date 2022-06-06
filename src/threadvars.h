@@ -54,6 +54,7 @@ struct TmSlot_;
  *  rule reloads even if no packets are read by the capture method. */
 #define THV_CAPTURE_INJECT_PKT  BIT_U32(11)
 #define THV_DEAD                BIT_U32(12) /**< thread has been joined with pthread_join() */
+#define THV_RUNNING             BIT_U32(13) /**< thread is running */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
