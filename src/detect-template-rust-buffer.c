@@ -176,10 +176,8 @@ static int DetectTemplateRustBufferTest(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE_RUST,
                         STREAM_TOSERVER, request, sizeof(request));
-    FLOWLOCK_UNLOCK(&f);
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

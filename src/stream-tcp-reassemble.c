@@ -3264,7 +3264,6 @@ static int StreamTcpReassembleInlineTest01(void)
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3280,7 +3279,6 @@ static int StreamTcpReassembleInlineTest01(void)
     ssn.client.next_seq = 17;
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3316,7 +3314,6 @@ static int StreamTcpReassembleInlineTest02(void)
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3337,7 +3334,6 @@ static int StreamTcpReassembleInlineTest02(void)
     ssn.client.next_seq = 22;
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3377,7 +3373,6 @@ static int StreamTcpReassembleInlineTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3400,7 +3395,6 @@ static int StreamTcpReassembleInlineTest03(void)
     p->tcph->th_seq = htonl(17);
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3440,7 +3434,6 @@ static int StreamTcpReassembleInlineTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3463,7 +3456,6 @@ static int StreamTcpReassembleInlineTest04(void)
     p->tcph->th_seq = htonl(17);
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3552,7 +3544,6 @@ static int StreamTcpReassembleInlineTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3583,7 +3574,6 @@ static int StreamTcpReassembleInlineTest09(void)
 
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3632,7 +3622,6 @@ static int StreamTcpReassembleInlineTest10(void)
     p->flow = f;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(f);
     if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  2, stream_payload1, 2) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3674,7 +3663,6 @@ end:
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    FLOWLOCK_UNLOCK(f);
     UTHFreeFlow(f);
     return ret;
 }

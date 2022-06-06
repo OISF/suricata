@@ -3148,10 +3148,8 @@ static int SSLParserTest01(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER | STREAM_EOF, tlsbuf, tlslen);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3188,16 +3186,12 @@ static int SSLParserTest02(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf2, tlslen2);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3236,22 +3230,16 @@ static int SSLParserTest03(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf2, tlslen2);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf3, tlslen3);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3292,28 +3280,20 @@ static int SSLParserTest04(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf2, tlslen2);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf3, tlslen3);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf4, tlslen4);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3614,10 +3594,8 @@ static int SSLParserMultimsgTest01(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3679,10 +3657,8 @@ static int SSLParserMultimsgTest02(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOCLIENT, tlsbuf1, tlslen1);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3729,10 +3705,8 @@ static int SSLParserTest07(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf, tlslen);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3897,16 +3871,12 @@ static int SSLParserTest09(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -3960,16 +3930,12 @@ static int SSLParserTest10(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4022,16 +3988,12 @@ static int SSLParserTest11(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4089,22 +4051,16 @@ static int SSLParserTest12(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf3, buf3_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4167,28 +4123,20 @@ static int SSLParserTest13(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf3, buf3_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf4, buf4_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4234,16 +4182,12 @@ static int SSLParserTest14(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4280,10 +4224,8 @@ static int SSLParserTest15(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -4317,10 +4259,8 @@ static int SSLParserTest16(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -4354,10 +4294,8 @@ static int SSLParserTest17(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -4397,16 +4335,12 @@ static int SSLParserTest18(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4444,10 +4378,8 @@ static int SSLParserTest19(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -4485,10 +4417,8 @@ static int SSLParserTest20(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -4523,10 +4453,8 @@ static int SSLParserTest21(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER | STREAM_EOF, buf, buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *app_state = f.alstate;
@@ -4573,10 +4501,8 @@ static int SSLParserTest22(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOCLIENT | STREAM_EOF, buf, buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *app_state = f.alstate;
@@ -4859,11 +4785,9 @@ static int SSLParserTest23(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER | STREAM_START, chello_buf,
                                 chello_buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *app_state = f.alstate;
@@ -4877,10 +4801,8 @@ static int SSLParserTest23(void)
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             shello_buf, shello_buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     FAIL_IF(app_state->server_connp.content_type != SSLV3_HANDSHAKE_PROTOCOL);
@@ -4892,11 +4814,9 @@ static int SSLParserTest23(void)
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             client_change_cipher_spec_buf,
                             client_change_cipher_spec_buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     /* with multiple records the client content type hold the type from the last
@@ -4911,11 +4831,9 @@ static int SSLParserTest23(void)
     FAIL_IF((app_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_change_cipher_spec_buf,
                             server_change_cipher_spec_buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     /* with multiple records the serve content type hold the type from the last
@@ -4933,10 +4851,8 @@ static int SSLParserTest23(void)
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             toserver_app_data_buf, toserver_app_data_buf_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     FAIL_IF(app_state->client_connp.content_type != SSLV3_APPLICATION_PROTOCOL);
@@ -5001,16 +4917,12 @@ static int SSLParserTest24(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf1, buf1_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             buf2, buf2_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -5359,11 +5271,9 @@ static int SSLParserTest25(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, client_hello,
                                 client_hello_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -5372,21 +5282,17 @@ static int SSLParserTest25(void)
     FAIL_IF(ssl_state->client_connp.bytes_processed != 0);
     FAIL_IF(ssl_state->client_connp.hs_bytes_processed != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello_certificate_done,
                             server_hello_certificate_done_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     FAIL_IF(ssl_state->client_connp.bytes_processed != 0);
     FAIL_IF(ssl_state->client_connp.hs_bytes_processed != 0);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             client_key_exchange_cipher_enc_hs,
                             client_key_exchange_cipher_enc_hs_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -5504,11 +5410,9 @@ static int SSLParserTest26(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, client_hello,
                                 client_hello_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     SSLState *ssl_state = f.alstate;
@@ -5517,11 +5421,9 @@ static int SSLParserTest26(void)
     FAIL_IF((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0);
     FAIL_IF_NULL(ssl_state->client_connp.session_id);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello_change_cipher_spec,
                             server_hello_change_cipher_spec_len);
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     FAIL_IF((ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC) == 0);
