@@ -134,7 +134,7 @@ concern. The respective ``$HOME_NET`` and ``$EXTERNAL_NET`` settings will be use
 
 See :ref:`suricata-yaml-rule-vars` for more information.
 
-For example:
+Rule usage examples:
 
 ==================================  ==========================================
 Example                             Meaning
@@ -166,7 +166,7 @@ Ports (source and destination)
 
 *The first emphasized part is the source port, the second is the destination port (note the direction of the directional arrow).*
 
-Traffic comes in and goes out through ports. Different ports have
+Traffic comes in and goes out through ports. Different protocols have
 different port numbers. For example, the default port for HTTP is 80 while 443 is
 typically the port for HTTPS. Note, however, that the port does not
 dictate which protocol is used in the communication. Rather, it determines which
@@ -178,8 +178,7 @@ port by the operating system. When writing a rule for your own HTTP service,
 you would typically write ``any -> 80``, since that would mean any packet from
 any source port to your HTTP application (running on port 80) is matched.
 
-In setting ports you can make use of special operators as well, like
-described above. Signs like:
+In setting ports you can make use of special operators as well. Operators such as:
 
 ==============  ==================
 Operator        Description
@@ -189,7 +188,7 @@ Operator        Description
 [.., ..]        grouping
 ==============  ==================
 
-For example:
+Rule usage examples:
 
 ==============  ==========================================
 Example                             Meaning
@@ -210,21 +209,15 @@ Direction
 
     alert http $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:trojan-activity; sid:123; rev:1;)
 
-The direction tells in which way the signature has to match. Nearly
-every signature has an arrow to the right (``->``). This means that only
+The directional arrow indicates which way the signature will be evaluated. In most signatures an arrow to the right (``->``) is used. This means that only
 packets with the same direction can match. However, it is also possible to
-have a rule match both ways (``<>``)::
+have a rule match both directions (``<>``)::
 
   source -> destination
   source <> destination  (both directions)
 
-.. warning::
-
-   There is no 'reverse' style direction, i.e. there is no ``<-``.
-
-The following example illustrates this. Say, there is a client with IP address
-1.2.3.4 and port 1024, and a server with IP address 5.6.7.8, listening on port
-80 (typically HTTP). The client sends a message to the server, and the server
+The following example illustrates direction. In this example there is a client with IP address 1.2.3.4 using port 1024. A server with IP address 5.6.7.8, listening on port
+80 (typically HTTP). The client sends a message to the server and the server
 replies with its answer.
 
 .. image:: intro/TCP-session.png
@@ -233,15 +226,18 @@ Now, let's say we have a rule with the following header::
 
     alert tcp 1.2.3.4 1024 -> 5.6.7.8 80
 
-Only the first packet will be matched by this rule, as the direction specifies
-that we do not match on the response packet.
+Only the traffic from the client to the server will be matched by this rule, as the direction specifiesthat we do not want to evaluate the response packet.
+
+.. warning::
+
+   There is no 'reverse' style direction, i.e. there is no ``<-``.
 
 Rule options
 ------------
 The rest of the rule consists of options. These are enclosed by parenthesis
 and separated by semicolons. Some options have settings (such as ``msg``),
 which are specified by the keyword of the option, followed by a colon,
-followed by the settings. Others have no settings, and are simply the
+followed by the settings. Others have no settings, they are simply the
 keyword (such as ``nocase``)::
 
   <keyword>: <settings>;
