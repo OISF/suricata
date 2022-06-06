@@ -413,7 +413,7 @@ static void *StatsMgmtThread(void *arg)
     }
     SCLogDebug("stats_thread_data %p", &stats_thread_data);
 
-    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
+    TmThreadsSetFlag(tv_local, THV_INIT_DONE | THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
             TmThreadsSetFlag(tv_local, THV_PAUSED);
@@ -482,7 +482,8 @@ static void *StatsWakeupThread(void *arg)
         return NULL;
     }
 
-    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
+    TmThreadsSetFlag(tv_local, THV_INIT_DONE | THV_RUNNING);
+
     while (1) {
         if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
             TmThreadsSetFlag(tv_local, THV_PAUSED);
