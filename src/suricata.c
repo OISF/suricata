@@ -450,6 +450,18 @@ static void GlobalsDestroy(SCInstance *suri)
     suri->pid_filename = NULL;
 }
 
+/**
+ * \brief Used to send OS specific notification of running threads
+ *
+ * \retval TmEcode TM_ECODE_OK on success; TM_ECODE_FAILED on failure.
+ */
+static TmEcode SendOSSpecificNotification(void)
+{
+    SCLogNotice("All threads in running state.");
+
+    return TM_ECODE_OK;
+}
+
 /** \brief make sure threads can stop the engine by calling this
  *  function. Purpose: pcap file mode needs to be able to tell the
  *  engine the file eof is reached. */
@@ -2944,6 +2956,14 @@ int SuricataMain(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
+
+    /* Must ensure all threads are fully operational before contunuing with init process */
+    if(TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Print notice and send OS specifc notication of threads in running state */
+    SendOSSpecificNotification();
 
     PostRunStartedDetectSetup(&suricata);
 

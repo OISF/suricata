@@ -798,6 +798,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     GetWorkUnitSizing(rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
+    TmThreadsSetFlag(th_v, THV_RUNNING);
+
     while (1)
     {
         if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
@@ -1059,6 +1061,8 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     uint64_t recycled_cnt = 0;
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
+
+    TmThreadsSetFlag(th_v, THV_RUNNING);
 
     while (1)
     {

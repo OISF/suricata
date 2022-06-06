@@ -428,7 +428,11 @@ static void *TmThreadsSlotVar(void *td)
 
     StatsSetupPrivate(tv);
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    // Each 'worker' thread uses this func to process/decode the packet read.
+    // Each decode method is different to receive methods in that they do not
+    // enter infinite loops. They use this as the core loop. As a result, at this
+    // point the worker threads can be considered both initialized and running.
+    TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
 
     s = (TmSlot *)tv->tm_slots;
 
@@ -1032,7 +1036,6 @@ ThreadVars *TmThreadCreatePacketHandler(const char *name, const char *inq_name,
         tv->type = TVT_PPT;
         tv->id = TmThreadsRegisterThread(tv, tv->type);
     }
-
 
     return tv;
 }
@@ -1773,8 +1776,55 @@ void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
 void TmThreadContinue(ThreadVars *tv)
 {
     TmThreadsUnsetFlag(tv, THV_PAUSE);
-
     return;
+}
+
+/**
+ * \brief Waits for all threads to be in a running state
+ *
+ * \retval TM_ECODE_OK if all are running or error if a thread failed
+ */
+TmEcode TmThreadWaitOnThreadRunning(void)
+{
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
+
+again:
+    SCMutexLock(&tv_root_lock);
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
+        while (tv != NULL) {
+            if (TmThreadsCheckFlag(tv,(THV_FAILED|THV_CLOSED|THV_DEAD))) {
+                SCMutexUnlock(&tv_root_lock);
+
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                        "start: flags %04x", tv->name,
+                        SC_ATOMIC_GET(tv->flags));
+                return TM_ECODE_FAILED;
+            }
+
+            if (!(TmThreadsCheckFlag(tv, THV_RUNNING))) {
+                SCMutexUnlock(&tv_root_lock);
+
+                gettimeofday(&cur_ts, NULL);
+                if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                            "start in time: flags %04x", tv->name,
+                            SC_ATOMIC_GET(tv->flags));
+                    return TM_ECODE_FAILED;
+                }
+
+                /* sleep a little to give the thread some
+                 * time to start running */
+                SleepUsec(100);
+                goto again;
+            }
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return TM_ECODE_OK;
 }
 
 /**
@@ -2149,6 +2199,7 @@ void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
     struct timeval systs;
     gettimeofday(&systs, NULL);
     SCMutexLock(&thread_store_lock);
+
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
