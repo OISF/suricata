@@ -1,5 +1,5 @@
 #/bin/sh
-ls src/fuzz_* | while read ftarget
+ls src/fuzz_sigpcap | while read ftarget
 do
     target=$(basename $ftarget)
     echo "target $target"
@@ -9,5 +9,5 @@ do
     rm -rf corpus_$target
     unzip -q public.zip -d corpus_$target
     #run target on corpus.
-    /usr/bin/time -v ./src/$target corpus_$target
+    ./src/$target corpus_$target
 done
