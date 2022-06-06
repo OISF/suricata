@@ -31,6 +31,10 @@
 #include <signal.h>
 #endif
 
+#if HAVE_LIBSYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #include "suricata.h"
 #include "decode.h"
 #include "feature.h"
@@ -452,6 +456,13 @@ static void GlobalsDestroy(SCInstance *suri)
 static TmEcode SendOSSpecificNotification(void)
 {
     SCLogNotice("All threads in running state.");
+
+#if HAVE_LIBSYSTEMD
+    if(sd_notify(0, "READY=1") < 0) {
+        SCLogWarning(SC_ERR_SYSCALL, "failed to send sd_notify()");
+        return TM_ECODE_FAILED;
+    }
+#endif
 
     return TM_ECODE_OK;
 }
