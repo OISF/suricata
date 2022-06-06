@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of

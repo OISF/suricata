@@ -282,12 +282,10 @@ static int ModbusParserTest01(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -298,12 +296,10 @@ static int ModbusParserTest01(void) {
     FAIL_IF_NOT(rs_modbus_message_get_read_request_address(&request) == 0x7890);
     FAIL_IF_NOT(rs_modbus_message_get_read_request_quantity(&request) == 19);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsRsp,
                             sizeof(readCoilsRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -331,12 +327,10 @@ static int ModbusParserTest02(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, writeMultipleRegistersReq,
                                 sizeof(writeMultipleRegistersReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -355,12 +349,10 @@ static int ModbusParserTest02(void) {
     FAIL_IF_NOT(data[2] == 0x01);
     FAIL_IF_NOT(data[3] == 0x02);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeMultipleRegistersRsp,
                             sizeof(writeMultipleRegistersRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -415,13 +407,11 @@ static int ModbusParserTest03(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER,
                                 readWriteMultipleRegistersReq,
                                 sizeof(readWriteMultipleRegistersReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -445,12 +435,10 @@ static int ModbusParserTest03(void) {
     FAIL_IF_NOT(data[4] == 0x9A);
     FAIL_IF_NOT(data[5] == 0xBC);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readWriteMultipleRegistersRsp,
                             sizeof(readWriteMultipleRegistersRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -490,12 +478,10 @@ static int ModbusParserTest04(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, forceListenOnlyMode,
                                 sizeof(forceListenOnlyMode));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -557,12 +543,10 @@ static int ModbusParserTest05(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, invalidProtocolIdReq,
                                 sizeof(invalidProtocolIdReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -630,12 +614,10 @@ static int ModbusParserTest06(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOCLIENT, readCoilsRsp,
                                 sizeof(readCoilsRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -703,13 +685,11 @@ static int ModbusParserTest07(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER,
                                 invalidLengthWriteMultipleRegistersReq,
                                 sizeof(invalidLengthWriteMultipleRegistersReq));
     FAIL_IF_NOT(r == 1);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -777,12 +757,10 @@ static int ModbusParserTest08(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -794,12 +772,10 @@ static int ModbusParserTest08(void) {
     FAIL_IF_NOT(rs_modbus_message_get_read_request_address(&request) == 0x7890);
     FAIL_IF_NOT(rs_modbus_message_get_read_request_quantity(&request) == 19);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsErrorRsp,
                             sizeof(readCoilsErrorRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -842,7 +818,6 @@ static int ModbusParserTest09(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, input, input_len - part2_len);
     FAIL_IF_NOT(r == 1);
@@ -850,7 +825,6 @@ static int ModbusParserTest09(void) {
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOSERVER, input, input_len);
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -866,7 +840,6 @@ static int ModbusParserTest09(void) {
     part2_len = 10;
     input = readCoilsRsp;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, input, input_len - part2_len);
     FAIL_IF_NOT(r == 1);
@@ -874,7 +847,6 @@ static int ModbusParserTest09(void) {
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, input, input_len);
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -911,11 +883,9 @@ static int ModbusParserTest10(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, input, input_len);
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -946,10 +916,8 @@ static int ModbusParserTest10(void) {
     memcpy(input, readCoilsRsp, sizeof(readCoilsRsp));
     memcpy(input + sizeof(readCoilsRsp), writeMultipleRegistersRsp, sizeof(writeMultipleRegistersRsp));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT, input, input_len);
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     SCFree(input);
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -1011,11 +979,9 @@ static int ModbusParserTest11(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER, input, input_len);
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1083,13 +1049,11 @@ static int ModbusParserTest12(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER,
                                 invalidLengthPDUWriteMultipleRegistersReq,
                                 sizeof(invalidLengthPDUWriteMultipleRegistersReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1130,12 +1094,10 @@ static int ModbusParserTest13(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, maskWriteRegisterReq,
                                 sizeof(maskWriteRegisterReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1147,12 +1109,10 @@ static int ModbusParserTest13(void) {
     FAIL_IF_NOT(rs_modbus_message_get_and_mask(&request) == 0x00F2);
     FAIL_IF_NOT(rs_modbus_message_get_or_mask(&request) == 0x0025);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, maskWriteRegisterRsp,
                             sizeof(maskWriteRegisterRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -1180,12 +1140,10 @@ static int ModbusParserTest14(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, writeSingleRegisterReq,
                                 sizeof(writeSingleRegisterReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1197,12 +1155,10 @@ static int ModbusParserTest14(void) {
     FAIL_IF_NOT(rs_modbus_message_get_write_address(&request) == 0x0001);
     FAIL_IF_NOT(rs_modbus_message_get_write_data(&request) == 0x0003);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeSingleRegisterRsp,
                             sizeof(writeSingleRegisterRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
 
@@ -1257,12 +1213,10 @@ static int ModbusParserTest15(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, invalidMaskWriteRegisterReq,
                                 sizeof(invalidMaskWriteRegisterReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1277,12 +1231,10 @@ static int ModbusParserTest15(void) {
 
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, maskWriteRegisterRsp,
                             sizeof(maskWriteRegisterRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
     ModbusMessage response = rs_modbus_state_get_tx_response(modbus_state, 0);
@@ -1348,13 +1300,11 @@ static int ModbusParserTest16(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER,
                                 invalidWriteSingleRegisterReq,
                                 sizeof(invalidWriteSingleRegisterReq));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
@@ -1374,12 +1324,10 @@ static int ModbusParserTest16(void) {
 
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeSingleRegisterRsp,
                             sizeof(writeSingleRegisterRsp));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
     ModbusMessage response = rs_modbus_state_get_tx_response(modbus_state, 0);
@@ -1418,21 +1366,17 @@ static int ModbusParserTest17(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
                                 readCoilsReq, sizeof(readCoilsReq));
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(f.alstate == NULL);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
                             readCoilsRsp, sizeof(readCoilsRsp));
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
@@ -1463,19 +1407,15 @@ static int ModbusParserTest18(void) {
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
                                 input, input_len - part2_len);
     FAIL_IF(r != 1);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
                             input, input_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
@@ -1485,19 +1425,15 @@ static int ModbusParserTest18(void) {
     part2_len = 10;
     input = readCoilsRsp;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
                             input, input_len - part2_len);
     FAIL_IF(r != 1);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
                             input, input_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
@@ -1552,13 +1488,11 @@ static int ModbusParserTest19(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER,
                                 invalidFunctionCode,
                                 sizeof(invalidFunctionCode));
     FAIL_IF_NOT(r == 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);

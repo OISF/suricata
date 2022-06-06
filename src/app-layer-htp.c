@@ -3429,15 +3429,12 @@ static int HTPParserTest01a(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -3490,15 +3487,12 @@ static int HTPParserTest02(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     http_state = f->alstate;
     if (http_state == NULL) {
@@ -3559,15 +3553,12 @@ static int HTPParserTest03(void)
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -3619,14 +3610,11 @@ static int HTPParserTest04(void)
 
     StreamTcpInitConfig(true);
 
-    FLOWLOCK_WRLOCK(f);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -3850,15 +3838,12 @@ static int HTPParserTest07(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -3948,16 +3933,13 @@ libhtp:\n\
     uint8_t flags = 0;
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
-    FLOWLOCK_WRLOCK(f);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -4033,15 +4015,12 @@ libhtp:\n\
     uint8_t flags = 0;
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
-    FLOWLOCK_WRLOCK(f);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -4107,15 +4086,12 @@ static int HTPParserTest10(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -4198,15 +4174,12 @@ static int HTPParserTest11(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -4282,15 +4255,12 @@ static int HTPParserTest12(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -4369,15 +4339,12 @@ static int HTPParserTest13(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -4779,16 +4746,13 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
             result = 0;
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5158,15 +5122,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5324,15 +5285,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5460,15 +5418,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5569,15 +5524,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5678,15 +5630,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5788,15 +5737,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -5895,15 +5841,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -6003,15 +5946,12 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
 
     htp_state = f->alstate;
@@ -6157,24 +6097,18 @@ libhtp:\n\
     StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
     SCLogDebug("\n>>>> processing chunk 1 again <<<<\n");
-    FLOWLOCK_WRLOCK(f);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     http_state = f->alstate;
     if (http_state == NULL) {
@@ -6182,14 +6116,11 @@ libhtp:\n\
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(f);
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
     if (decoder_events != NULL) {
         printf("app events: ");
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -6372,15 +6303,12 @@ libhtp:\n\
         else if (u == (len - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, (uint8_t *)&httpbuf[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        FLOWLOCK_UNLOCK(f);
     }
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -6397,16 +6325,13 @@ libhtp:\n\
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(f);
     void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     AppLayerDecoderEvents *decoder_events =
             AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     if (decoder_events != NULL) {
         printf("app events: ");
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     result = 1;
 end:
@@ -6456,14 +6381,11 @@ static int HTPParserTest16(void)
 
     uint8_t flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
-    FLOWLOCK_WRLOCK(f);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, (uint8_t *)httpbuf, len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     htp_state = f->alstate;
     if (htp_state == NULL) {
@@ -6482,16 +6404,13 @@ static int HTPParserTest16(void)
 
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 //these events are disabled during fuzzing as they are too noisy and consume much resource
-    FLOWLOCK_WRLOCK(f);
     void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     AppLayerDecoderEvents *decoder_events =
             AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     if (decoder_events == NULL) {
         printf("no app events: ");
-        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(f);
 
     if (decoder_events->events[0] != HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT) {
         printf("HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT not set: ");

@@ -385,15 +385,12 @@ static int DetectQuicCyuHashTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_QUIC, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     quic_state = f.alstate;
     FAIL_IF_NULL(quic_state);

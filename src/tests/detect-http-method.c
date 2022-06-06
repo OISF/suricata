@@ -97,16 +97,13 @@ static int DetectEngineHttpMethodTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -191,16 +188,13 @@ static int DetectEngineHttpMethodTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -285,16 +279,13 @@ static int DetectEngineHttpMethodTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -379,16 +370,13 @@ static int DetectEngineHttpMethodTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -473,16 +461,13 @@ static int DetectEngineHttpMethodTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -567,16 +552,13 @@ static int DetectEngineHttpMethodTest06(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -661,16 +643,13 @@ static int DetectEngineHttpMethodTest07(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -755,16 +734,13 @@ static int DetectEngineHttpMethodTest08(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -849,16 +825,13 @@ static int DetectEngineHttpMethodTest09(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -944,16 +917,13 @@ static int DetectEngineHttpMethodTest10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1039,16 +1009,13 @@ static int DetectEngineHttpMethodTest11(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1134,16 +1101,13 @@ static int DetectEngineHttpMethodTest12(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1229,16 +1193,13 @@ static int DetectEngineHttpMethodTest13(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1324,16 +1285,13 @@ static int DetectEngineHttpMethodTest14(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1419,16 +1377,13 @@ static int DetectEngineHttpMethodTest15(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1514,16 +1469,13 @@ static int DetectEngineHttpMethodTest16(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1609,16 +1561,13 @@ static int DetectEngineHttpMethodTest17(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1972,15 +1921,12 @@ static int DetectHttpMethodSigTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -2075,15 +2021,12 @@ static int DetectHttpMethodSigTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -2170,15 +2113,12 @@ static int DetectHttpMethodSigTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -2266,15 +2206,12 @@ static int DetectHttpMethodSigTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     http_state = f.alstate;
     if (http_state == NULL) {
