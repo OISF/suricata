@@ -3062,6 +3062,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "level_of_interest": {
+                    "type": "string"
+                },
                 "max_read_size": {
                     "type": "integer"
                 },
@@ -3095,6 +3098,9 @@
                 "size": {
                     "type": "integer"
                 },
+                "subcmd": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
@@ -3108,6 +3114,30 @@
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "set_info": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "class": {
+                            "type": "string"
+                        },
+                        "info_level": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "rename": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "from": {
+                            "type": "string"
+                        },
+                        "to": {
+                            "type": "string"
+                        }
                     }
                 },
                 "dcerpc": {
