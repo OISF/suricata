@@ -174,7 +174,8 @@ static DetectThresholdEntry* ThresholdTimeoutCheck(DetectThresholdEntry *head, s
         /* check if the 'check' timestamp is not before the creation ts.
          * This can happen due to the async nature of the host timeout
          * code that also calls this code from a management thread. */
-        if (((uint32_t)tv->tv_sec < tmp->tv_sec1) || (tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
+        struct timeval entry = TimevalWithSeconds(&tmp->tv1, (time_t)tmp->seconds);
+        if (TimevalEarlier(tv, &entry)) {
             prev = tmp;
             tmp = tmp->next;
             continue;
@@ -333,14 +334,14 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
 * \retval int 1 if threshold reached for this entry
 *
 */
-static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, uint32_t packet_time)
+static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, struct timeval packet_time)
 {
     int ret = 0;
 
     /* Check if we have a timeout enabled, if so,
     * we still matching (and enabling the new_action) */
     if (lookup_tsh->tv_timeout != 0) {
-        if ((packet_time - lookup_tsh->tv_timeout) > td->timeout) {
+        if ((packet_time.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
             /* Ok, we are done, timeout reached */
             lookup_tsh->tv_timeout = 0;
         }
@@ -352,17 +353,17 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
     }
     else {
         /* Update the matching state with the timeout interval */
-        if ((packet_time - lookup_tsh->tv_sec1) < td->seconds) {
+        struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
+        if (TimevalEarlier(&packet_time, &entry)) {
             lookup_tsh->current_count++;
             if (lookup_tsh->current_count > td->count) {
                 /* Then we must enable the new action by setting a
                 * timeout */
-                lookup_tsh->tv_timeout = packet_time;
+                lookup_tsh->tv_timeout = packet_time.tv_sec;
                 ret = 1;
             }
-        }
-        else {
-            lookup_tsh->tv_sec1 = packet_time;
+        } else {
+            lookup_tsh->tv1 = packet_time;
             lookup_tsh->current_count = 1;
         }
     } /* else - if (lookup_tsh->tv_timeout != 0) */
@@ -370,22 +371,22 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
     return ret;
 }
 
-static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, uint32_t packet_time)
+static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, struct timeval packet_time)
 {
     if (h && e) {
         e->current_count = 1;
-        e->tv_sec1 = packet_time;
+        e->tv1 = packet_time;
         e->tv_timeout = 0;
         e->next = HostGetStorageById(h, host_threshold_id);
         HostSetStorageById(h, host_threshold_id, e);
     }
 }
 
-static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, uint32_t packet_time)
+static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, struct timeval packet_time)
 {
     if (pair && e) {
         e->current_count = 1;
-        e->tv_sec1 = packet_time;
+        e->tv1 = packet_time;
         e->tv_timeout = 0;
         e->next = IPPairGetStorageById(pair, ippair_threshold_id);
         IPPairSetStorageById(pair, ippair_threshold_id, e);
@@ -405,11 +406,11 @@ static int ThresholdHandlePacketIPPair(IPPair *pair, Packet *p, const DetectThre
         {
             SCLogDebug("rate_filter");
             ret = 1;
-            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts.tv_sec)) {
+            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
-                AddEntryToIPPairStorage(pair, e, p->ts.tv_sec);
+                AddEntryToIPPairStorage(pair, e, p->ts);
             }
             break;
         }
@@ -442,7 +443,8 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
             SCLogDebug("limit");
 
             if (lookup_tsh != NULL)  {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
+                if (TimevalEarlier(&p->ts, &entry)) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count <= td->count) {
@@ -450,8 +452,8 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                     } else {
                         ret = 2;
                     }
-                } else    {
-                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                } else {
+                    lookup_tsh->tv1 = p->ts;
                     lookup_tsh->current_count = 1;
 
                     ret = 1;
@@ -462,7 +464,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                     break;
                 }
 
-                e->tv_sec1 = p->ts.tv_sec;
+                e->tv1 = p->ts;
                 e->current_count = 1;
 
                 ret = 1;
@@ -477,7 +479,8 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
             SCLogDebug("threshold");
 
             if (lookup_tsh != NULL)  {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
+                if (TimevalEarlier(&p->ts, &entry)) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
@@ -485,7 +488,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                         lookup_tsh->current_count = 0;
                     }
                 } else {
-                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                    lookup_tsh->tv1 = p->ts;
                     lookup_tsh->current_count = 1;
                 }
             } else {
@@ -498,7 +501,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                     }
 
                     e->current_count = 1;
-                    e->tv_sec1 = p->ts.tv_sec;
+                    e->tv1 = p->ts;
 
                     e->next = HostGetStorageById(h, host_threshold_id);
                     HostSetStorageById(h, host_threshold_id, e);
@@ -511,7 +514,8 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
             SCLogDebug("both");
 
             if (lookup_tsh != NULL) {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
+                if (TimevalEarlier(&p->ts, &entry)) {
                     /* within time limit */
 
                     lookup_tsh->current_count++;
@@ -523,7 +527,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                     }
                 } else {
                     /* expired, so reset */
-                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                    lookup_tsh->tv1 = p->ts;
                     lookup_tsh->current_count = 1;
 
                     /* if we have a limit of 1, this is a match */
@@ -538,7 +542,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                 }
 
                 e->current_count = 1;
-                e->tv_sec1 = p->ts.tv_sec;
+                e->tv1 = p->ts;
 
                 e->next = HostGetStorageById(h, host_threshold_id);
                 HostSetStorageById(h, host_threshold_id, e);
@@ -557,10 +561,8 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
-                long double time_diff = ((p->ts.tv_sec + p->ts.tv_usec/1000000.0) -
-                                         (lookup_tsh->tv_sec1 + lookup_tsh->tv_usec1/1000000.0));
-
-                if (time_diff < td->seconds) {
+                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
+                if (TimevalEarlier(&p->ts, &entry)) {
                     /* within timeout */
 
                     lookup_tsh->current_count++;
@@ -569,9 +571,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                     }
                 } else {
                     /* expired, reset */
-
-                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
-                    lookup_tsh->tv_usec1 = p->ts.tv_usec;
+                    lookup_tsh->tv1 = p->ts;
                     lookup_tsh->current_count = 1;
                 }
             } else {
@@ -581,8 +581,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
                 }
 
                 e->current_count = 1;
-                e->tv_sec1 = p->ts.tv_sec;
-                e->tv_usec1 = p->ts.tv_usec;
+                e->tv1 = p->ts;
 
                 e->next = HostGetStorageById(h, host_threshold_id);
                 HostSetStorageById(h, host_threshold_id, e);
@@ -594,11 +593,11 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
         {
             SCLogDebug("rate_filter");
             ret = 1;
-            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts.tv_sec)) {
+            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
-                AddEntryToHostStorage(h, e, p->ts.tv_sec);
+                AddEntryToHostStorage(h, e, p->ts);
             }
             break;
         }
@@ -622,14 +621,14 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
         case TYPE_RATE:
         {
             ret = 1;
-            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts.tv_sec)) {
+            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
                 RateFilterSetAction(p, pa, td->new_action);
             }
             else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s->id, s->gid);
                 if (e != NULL) {
                     e->current_count = 1;
-                    e->tv_sec1 = p->ts.tv_sec;
+                    e->tv1 = p->ts;
                     e->tv_timeout = 0;
 
                     de_ctx->ths_ctx.th_entry[s->num] = e;
