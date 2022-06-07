@@ -4,7 +4,11 @@ version = "@PACKAGE_VERSION@"
 edition = "2018"
 
 [workspace]
-members = [".", "./derive"]
+members = [
+    ".",
+    "config",
+    "derive",
+]
 
 [lib]
 crate-type = ["staticlib", "rlib"]
@@ -55,6 +59,7 @@ lazy_static = "~1.4.0"
 base64 = "~0.13.0"
 
 suricata-derive = { path = "./derive" }
+suricata-config = { path = "./config" }
 
 [dev-dependencies]
 test-case = "~1.1.0"

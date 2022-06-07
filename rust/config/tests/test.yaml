@@ -1,0 +1,48 @@
+%YAML 1.1
+---
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      pcap-file: false
+      community-id: false
+      community-id-seed: 0
+
+nested-list:
+  - one:
+      - sub1
+      - sub2
+      - sub3:
+          sub3-is-a: map
+
+include: test-include.yaml
+
+include-as-subkey:
+  include: test-include.yaml
+
+nested-include:
+  child: !include test-include.yaml
+
+boolean-true: true
+boolean-false: true
+boolean-yes: yes
+boolean-no: no
+boolean-mixed: TrUE
+
+simple-anchor: &simple-anchor value
+simple-alias: *simple-anchor
+
+an-anchor: &some-anchor
+  key: value
+
+an-alias: *some-anchor

@@ -1,0 +1,378 @@
+# Defaults for objects that can't be presented directly in this file, which
+# includes outputs, as there are none enabled by default, and they are declared
+# as a list.
+
+__defaults:
+  outputs:
+    fast:
+      enabled: yes
+      filename: fast.log
+      append: true
+      filetype: regular
+
+      # Just trying a way of encoding the enumeration of valid values.
+      __filetype-allowed: [regular, unix_stream, unix_dgram]
+
+    eve-log:
+      enabled: yes
+      filetype: regular
+      __filetype-allowed: [regular, syslog, unix_dgram, unix_stream, redis]
+      filename: eve.json
+      threaded: false
+      prefix: ~
+      identity: suricata
+      facility: local5
+      level: Info
+      __level-allowed: [Emergency, Alert, Critical, Error, Warning, Notice, Info, Debug]
+      ethernet: false
+      redis:
+        server: 127.0.0.1
+        port: 6379
+        async: true
+        mode: lpush
+        __mode-allowed: [list, lpush, rpush, channel, publish]
+        key: suricata
+        pipelining:
+          enabled: true
+          batch-size: 10
+      metadata: true
+      pcap-file: false
+      community-id: false
+      community-id-seed: 0
+      xff:
+        enabled: false
+        mode: extra-data
+        __mode_allowed: [extra-data, overwrite]
+        deployment: reverse
+        __deployment-allowed: [reverse, forward]
+        header: X-Forward-For
+      types:
+        alert:
+          payload: false
+          payload-buffer-size: 4kb
+          payload-printable: false
+          packet: false
+          http-body: false
+          http-body-printable: false
+          tagged-packets: false
+          metadata:
+            app-layer: true
+            flow: true
+            rule:
+              raw: false
+              metadata: true
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    AIM_SERVERS: "$EXTERNAL_NET"
+    DC_SERVERS: "$HOME_NET"
+    DNP3_SERVER: "$HOME_NET"
+    DNP3_CLIENT: "$HOME_NET"
+    MODBUS_CLIENT: "$HOME_NET"
+    MODBUS_SERVER: "$HOME_NET"
+    ENIP_CLIENT: "$HOME_NET"
+    ENIP_SERVER: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    DNP3_PORTS: 20000
+    MODBUS_PORTS: 502
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+    FTP_PORTS: 21
+    GENEVE_PORTS: 6081
+    VXLAN_PORTS: 4789
+    TEREDO_PORTS: 3544
+
+app-layer:
+  protocols:
+    telnet:
+      enabled: true
+    rfb:
+      enabled: true
+      detection-ports:
+        dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
+    mqtt:
+      enabled: true
+      max-msg-length: 1mb
+      subscribe-topic-match-limit: 100
+      unsubscribe-topic-match-limit: 100
+      # Maximum number of live MQTT transactions per flow
+      max-tx: 4096
+    krb5:
+      enabled: true
+    snmp:
+      enabled: true
+    ike:
+      enabled: true
+    tls:
+      enabled: true
+      detection-ports:
+        dp: 443
+
+      # Generate JA3 fingerprint from client hello. If not specified it
+      # will be disabled by default, but enabled if rules require it.
+      ja3-fingerprints: auto
+
+      # What to do when the encrypted communications start:
+      # - default: keep tracking TLS session, check for protocol anomalies,
+      #            inspect tls_* keywords. Disables inspection of unmodified
+      #            'content' signatures.
+      # - bypass:  stop processing this flow as much as possible. No further
+      #            TLS parsing and inspection. Offload flow bypass to kernel
+      #            or hardware if possible.
+      # - full:    keep tracking and inspection as normal. Unmodified content
+      #            keyword signatures are inspected as well.
+      #
+      # For best performance, select 'bypass'.
+      #
+      encryption-handling: default
+
+    pgsql:
+      enabled: false
+      # Stream reassembly size for PostgreSQL. By default, track it completely.
+      stream-depth: 0
+    dcerpc:
+      enabled: true
+    ftp:
+      enabled: true
+      memcap: 64mb
+    rdp:
+      enabled: true
+    ssh:
+      enabled: true
+      hassh: true
+    http2:
+      enabled: true
+      # Maximum number of live HTTP2 streams in a flow
+      max-streams: 4096
+      # Maximum headers table size
+      max-table-size: 65536
+    smtp:
+      enabled: true
+      raw-extraction: false
+      # Configure SMTP-MIME Decoder
+      mime:
+        # Decode MIME messages from SMTP transactions
+        # (may be resource intensive)
+        # This field supersedes all others because it turns the entire
+        # process on or off
+        decode-mime: true
+
+        # Decode MIME entity bodies (ie. Base64, quoted-printable, etc.)
+        decode-base64: true
+        decode-quoted-printable: true
+
+        # Maximum bytes per header data value stored in the data structure
+        # (default is 2000)
+        header-value-depth: 2000
+
+        # Extract URLs and save in state data structure
+        extract-urls: true
+        # Scheme of URLs to extract
+        # - Value is a list of one or more of: http, https, ftp, mailto
+        extract-urls-schemes: [ http ]
+        # Log the scheme of URLs that are extracted
+        log-url-scheme: false
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        body-md5: false
+      # Configure inspected-tracker for file_data keyword
+      inspected-tracker:
+        content-limit: 100000
+        content-inspect-min-size: 32768
+        content-inspect-window: 4096
+    imap:
+      enabled: detection-only
+    smb:
+      enabled: yes
+      detection-ports:
+        dp: 139, 445
+
+      # Stream reassembly size for SMB streams. By default track it completely.
+      stream-depth: 0
+
+    nfs:
+      enabled: yes
+      max-tx: 1024
+    tftp:
+      enabled: yes
+    dns:
+      tcp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+      udp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+    http:
+      enabled: yes
+
+      # Byte Range Containers default settings
+      # byterange:
+      #   memcap: 100mb
+      #   timeout: 60
+
+      # memcap:                   Maximum memory capacity for HTTP
+      #                           Default is unlimited, values can be 64mb, e.g.
+
+      # default-config:           Used when no server-config matches
+      #   personality:            List of personalities used by default
+      #   request-body-limit:     Limit reassembly of request body for inspection
+      #                           by http_client_body & pcre /P option.
+      #   response-body-limit:    Limit reassembly of response body for inspection
+      #                           by file_data, http_server_body & pcre /Q option.
+      #
+      #   For advanced options, see the user guide
+
+
+      # server-config:            List of server configurations to use if address matches
+      #   address:                List of IP addresses or networks for this block
+      #   personality:            List of personalities used by this block
+      #
+      #                           Then, all the fields from default-config can be overloaded
+      #
+      # Currently Available Personalities:
+      #   Minimal, Generic, IDS (default), IIS_4_0, IIS_5_0, IIS_5_1, IIS_6_0,
+      #   IIS_7_0, IIS_7_5, Apache_2
+      libhtp:
+        default-config:
+          personality: IDS
+
+          # Can be specified in kb, mb, gb.  Just a number indicates
+          # it's in bytes.
+          request-body-limit: 100kb
+          response-body-limit: 100kb
+
+          # inspection limits
+          request-body-minimal-inspect-size: 32kb
+          request-body-inspect-window: 4kb
+          response-body-minimal-inspect-size: 40kb
+          response-body-inspect-window: 16kb
+
+          # response body decompression (0 disables)
+          response-body-decompress-layer-limit: 2
+
+          # auto will use http-body-inline mode in IPS mode, yes or no set it statically
+          http-body-inline: auto
+
+          # Decompress SWF files.
+          # Two types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
+          # compress-depth:
+          # Specifies the maximum amount of data to decompress,
+          # set 0 for unlimited.
+          # decompress-depth:
+          # Specifies the maximum amount of decompressed data to obtain,
+          # set 0 for unlimited.
+          swf-decompression:
+            enabled: yes
+            type: both
+            compress-depth: 100kb
+            decompress-depth: 100kb
+
+          # Use a random value for inspection sizes around the specified value.
+          # This lowers the risk of some evasion techniques but could lead
+          # to detection change between runs. It is set to 'yes' by default.
+          randomize-inspection-sizes: yes
+          # If "randomize-inspection-sizes" is active, the value of various
+          # inspection size will be chosen from the [1 - range%, 1 + range%]
+          # range
+          # Default value of "randomize-inspection-range" is 10.
+          randomize-inspection-range: 10
+
+          # decoding
+          double-decode-path: no
+          double-decode-query: no
+
+          # Can enable LZMA decompression
+          lzma-enabled: false
+          # Memory limit usage for LZMA decompression dictionary
+          # Data is decompressed until dictionary reaches this size
+          lzma-memlimit: 1mb
+          # Maximum decompressed size with a compression ratio
+          # above 2048 (only LZMA can reach this ratio, deflate cannot)
+          compression-bomb-limit: 1mb
+          # Maximum time spent decompressing a single transaction in usec
+          decompression-time-limit: 100000
+
+        server-config:
+
+        #- apache:
+        #    address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
+        #    personality: Apache_2
+        #    # Can be specified in kb, mb, gb.  Just a number indicates
+        #    # it's in bytes.
+        #    request-body-limit: 4096
+        #    response-body-limit: 4096
+        #    double-decode-path: no
+        #    double-decode-query: no
+
+        #- iis7:
+        #    address:
+        #      - 192.168.0.0/24
+        #      - 192.168.10.0/24
+        #    personality: IIS_7_0
+        #    # Can be specified in kb, mb, gb.  Just a number indicates
+        #    # it's in bytes.
+        #    request-body-limit: 4096
+        #    response-body-limit: 4096
+        #    double-decode-path: no
+        #    double-decode-query: no
+
+    # Note: Modbus probe parser is minimalist due to the limited usage in the field.
+    # Only Modbus message length (greater than Modbus header length)
+    # and protocol ID (equal to 0) are checked in probing parser
+    # It is important to enable detection port and define Modbus port
+    # to avoid false positives
+    modbus:
+      # How many unanswered Modbus requests are considered a flood.
+      # If the limit is reached, the app-layer-event:modbus.flooded; will match.
+      request-flood: 500
+
+      enabled: no
+      detection-ports:
+        dp: 502
+      # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it
+      # is recommended to keep the TCP connection opened with a remote device
+      # and not to open and close it for each MODBUS/TCP transaction. In that
+      # case, it is important to set the depth of the stream reassembling as
+      # unlimited (stream.reassembly.depth: 0)
+
+      # Stream reassembly size for modbus. By default track it completely.
+      stream-depth: 0
+
+    # DNP3
+    dnp3:
+      enabled: no
+      detection-ports:
+        dp: 20000
+
+    # SCADA EtherNet/IP and CIP protocol support
+    enip:
+      enabled: no
+      detection-ports:
+        dp: 44818
+        sp: 44818
+
+    ntp:
+      enabled: yes
+
+    quic:
+      enabled: yes
+
+    dhcp:
+      enabled: yes
+
+    sip:
+      enabled: yes
