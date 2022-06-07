@@ -33,16 +33,28 @@ void TimeGet(struct timeval *);
 /** \brief intialize a 'struct timespec' from a 'struct timeval'. */
 #define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
 
-/** \brief compare two 'struct timeval' and return the difference in seconds */
-#define TIMEVAL_DIFF_SEC(tv_new, tv_old) \
-    (uint64_t)((((uint64_t)(tv_new).tv_sec * 1000000 + (tv_new).tv_usec) - \
-                ((uint64_t)(tv_old).tv_sec * 1000000 + (tv_old).tv_usec)) / \
-               1000000)
+static inline struct timeval TimevalWithSeconds(const struct timeval *ts, const time_t sec_add)
+{
+#ifdef timeradd
+    struct timeval add = { .tv_sec = sec_add, .tv_usec = 0 };
+    struct timeval result;
+    timeradd(ts, &add, &result);
+    return result;
+#else
+    const time_t sec = ts->tv_sec + sec_add;
+    struct timeval result = { .tv_sec = sec, .tv_usec = ts->tv_usec };
+    return result;
+#endif
+}
 
 /** \brief compare two 'struct timeval' and return if the first is earlier than the second */
-#define TIMEVAL_EARLIER(tv_first, tv_second) \
-    (((tv_first).tv_sec < (tv_second).tv_sec) || \
-     ((tv_first).tv_sec == (tv_second).tv_sec && (tv_first).tv_usec < (tv_second).tv_usec))
+static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
+{
+    /* from man timercmp on Linux: "Some systems (but not Linux/glibc), have a broken timercmp()
+     * implementation, in which CMP of >=, <=, and == do not work; portable applications can instead
+     * use ... !timercmp(..., >) */
+    return !timercmp(first, second, >);
+}
 
 #ifdef UNITTESTS
 void TimeSet(struct timeval *);
