@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo
           key: cargo
@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo
           key: cbindgen
@@ -150,7 +150,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -328,7 +328,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -415,7 +415,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -502,7 +502,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -936,7 +936,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1007,7 +1007,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1099,7 +1099,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1161,7 +1161,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1293,7 +1293,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@30f413bfed0a2bc738fdfd409e5a9e96b24545fd
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry
