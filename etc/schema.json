@@ -4311,6 +4311,18 @@
                         "alerts_suppressed": {
                             "type": "integer"
                         },
+                        "mpm_list": {
+                            "type": "integer"
+                        },
+                        "nonmpm_list": {
+                            "type": "integer"
+                        },
+                        "fnonmpm_list": {
+                            "type": "integer"
+                        },
+                        "match_list": {
+                            "type": "integer"
+                        },
                         "engines": {
                             "type": "array",
                             "items": [
