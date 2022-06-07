@@ -32,8 +32,6 @@
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
-#define SMB_CONFIG_DEFAULT_STREAM_DEPTH 0
-
 #ifdef UNITTESTS
 static void SMBParserRegisterTests(void);
 #endif
