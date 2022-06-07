@@ -221,7 +221,6 @@ void EveAddEncryptedTrafficMetaData(Flow *f, JsonBuilder *js)
     FlowSPLT* splt = FlowGetStorageById(f, GetFlowSPLTInfoID());
     if ((splt->first_epoch_msec > 0) && (splt->splt_count > 0)) {
         uint32_t i = 0;
-        FlowEncryptedTrafficFinalize(f);
         JsonBuilder *js_splt = jb_new_object();
         if (unlikely(js_splt == NULL)) {
             return;

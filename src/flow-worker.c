@@ -89,6 +89,8 @@ typedef struct FlowWorkerThreadData_ {
 static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, void *detect_thread);
 Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, TcpSession *ssn);
 
+extern bool g_enable_etm;
+
 /**
  * \internal
  * \brief Forces reassembly for flow if it needs it.
@@ -150,7 +152,11 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
         }
     }
     f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
+    /* update the encrypted traffic metadata */
+    if (g_enable_etm) {
+        SCLogDebug("finalizing encrypted traffic metadata on flow %p", f);
+        FlowEncryptedTrafficFinalize(f);
+    }
     FlowWorkerFlowTimeout(tv, p1, fw, detect_thread);
     PacketPoolReturnPacket(p1);
     if (p2) {
