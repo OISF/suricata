@@ -41,6 +41,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-path.h"
+#include "rust-config.h"
 
 /** Maximum size of a complete domain name. */
 #define NODE_NAME_MAX 1024
@@ -228,6 +229,10 @@ int ConfSet(const char *name, const char *val)
     if (unlikely(node->val == NULL)) {
         return 0;
     }
+
+    /* Also set in the Rust config. */
+    ScConfSet(name, val);
+
     return 1;
 }
 

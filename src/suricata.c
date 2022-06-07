@@ -67,6 +67,7 @@
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include "rust-config.h"
 
 #include "app-layer-htp-range.h"
 #include "datasets.h"
@@ -2030,7 +2031,7 @@ static int MayDaemonize(SCInstance *suri)
     if (suri->daemon == 1 && suri->pid_filename == NULL) {
         const char *pid_filename;
 
-        if (ConfGet("pid-file", &pid_filename) == 1) {
+        if (ScConfGet("pid-file", &pid_filename) == 1) {
             SCLogInfo("Use pid file %s from config file.", pid_filename);
         } else {
             pid_filename = DEFAULT_PID_FILENAME;

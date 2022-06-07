@@ -25,6 +25,7 @@
 #define __CONF_H__
 
 #include "queue.h"
+#include "rust-config.h"
 
 /**
  * Structure of a configuration parameter.

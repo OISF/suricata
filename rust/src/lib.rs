@@ -83,6 +83,7 @@ extern crate x509_parser;
 
 #[macro_use]
 extern crate suricata_derive;
+extern crate suricata_config;
 
 #[macro_use]
 pub mod log;
