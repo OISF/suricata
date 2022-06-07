@@ -1044,6 +1044,15 @@
                 "fin": {
                     "type": "boolean"
                 },
+                "flowlbl": {
+                    "type": "integer"
+                },
+                "hoplimit": {
+                    "type": "integer"
+                },
+                "tc": {
+                    "type": "integer"
+                },
                 "icmp_id": {
                     "type": "integer"
                 },
