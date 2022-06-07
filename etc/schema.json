@@ -210,6 +210,24 @@
                                 "type": "string"
                             }
                         },
+                        "former_category": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "malware_family": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "policy": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "signature_severity": {
                             "type": "array",
                             "items": {
