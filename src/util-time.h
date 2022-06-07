@@ -34,15 +34,18 @@ void TimeGet(struct timeval *);
 #define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
 
 /** \brief compare two 'struct timeval' and return the difference in seconds */
-#define TIMEVAL_DIFF_SEC(tv_new, tv_old)                                                           \
-    (int64_t)((((int64_t)(tv_new).tv_sec * 1000000 + (tv_new).tv_usec) -                           \
-                      ((int64_t)(tv_old).tv_sec * 1000000 + (tv_old).tv_usec)) /                   \
-              1000000)
+static inline int64_t TimevalDiffSec(struct timeval *tv_new, struct timeval *tv_old)
+{
+    return (int64_t)((((int64_t)tv_new->tv_sec * 1000000 + (int64_t)tv_new->tv_usec) -
+                             ((int64_t)tv_old->tv_sec * 1000000 + (int64_t)tv_old->tv_usec)) /
+                     1000000);
+}
 
 /** \brief compare two 'struct timeval' and return if the first is earlier than the second */
-#define TIMEVAL_EARLIER(tv_first, tv_second) \
-    (((tv_first).tv_sec < (tv_second).tv_sec) || \
-     ((tv_first).tv_sec == (tv_second).tv_sec && (tv_first).tv_usec < (tv_second).tv_usec))
+static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
+{
+    return ((first->tv_sec < second->tv_sec) || (first->tv_sec == second->tv_sec && first->tv_usec < second->tv_usec));
+}
 
 #ifdef UNITTESTS
 void TimeSet(struct timeval *);
