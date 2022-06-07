@@ -17,6 +17,9 @@
         "app_proto_ts": {
             "type": "string"
         },
+        "capture_file": {
+            "type": "string"
+        },
         "community_id": {
             "type": "string"
         },
