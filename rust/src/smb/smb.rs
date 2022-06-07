@@ -2449,8 +2449,8 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 Ok(retval) => { stream_depth = retval as u32; }
                 Err(_) => { SCLogError!("Invalid depth value"); }
             }
-            AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
         }
+        AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {
