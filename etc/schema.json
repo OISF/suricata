@@ -1422,11 +1422,20 @@
                 "http_refer": {
                     "type": "string"
                 },
+                "http_response_body": {
+                    "type": "string"
+                },
+                "http_response_body_printable": {
+                    "type": "string"
+                },
                 "http_user_agent": {
                     "type": "string"
                 },
                 "length": {
                     "type": "integer"
+                },
+                "org_src_ip": {
+                    "type": "string"
                 },
                 "protocol": {
                     "type": "string"
@@ -1437,10 +1446,16 @@
                 "status": {
                     "type": "integer"
                 },
+                "true_client_ip": {
+                    "type": "string"
+                },
                 "url": {
                     "type": "string"
                 },
                 "version": {
+                    "type": "string"
+                },
+                "x_bluecoat_via": {
                     "type": "string"
                 },
                 "xff": {
