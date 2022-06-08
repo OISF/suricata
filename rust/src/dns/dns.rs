@@ -403,8 +403,6 @@ pub struct DNSState {
     // Transactions.
     pub transactions: Vec<DNSTransaction>,
 
-    pub events: u16,
-
     config: Option<ConfigTracker>,
 
     gap: bool,
@@ -416,7 +414,6 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            events: 0,
             config: None,
             gap: false,
         };
@@ -426,7 +423,6 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            events: 0,
             config: None,
             gap: false,
         };
@@ -496,7 +492,6 @@ impl DNSState {
         let tx = &mut self.transactions[len - 1];
         core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
                                                         event as u8);
-        self.events += 1;
     }
 
     pub fn parse_request(&mut self, input: &[u8]) -> bool {
