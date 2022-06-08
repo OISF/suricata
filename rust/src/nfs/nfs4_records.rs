@@ -911,6 +911,11 @@ fn nfs4_parse_res_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4ResponseLayoutGet> {
     let (i, _strip_index) = be_u32(i)?;
     let (i, _offset) = be_u64(i)?;
     let (i, fh_handles) = be_u32(i)?;
+    // check before `count` allocates a vector
+    // so as not to run out of memory
+    if fh_handles as usize > 4 * i.len() {
+        return Err(Err::Error(make_error(i, ErrorKind::Count)));
+    }
     let (i, file_handles) = count(nfs4_parse_handle, fh_handles as usize)(i)?;
     Ok((i, Nfs4ResponseLayoutGet {
         stateid,
@@ -950,7 +955,13 @@ fn nfs4_parse_flavors(i: &[u8]) -> IResult<&[u8], u32> {
 fn nfs4_res_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, flavors_cnt) = be_u32(i)?;
-    let (i, _flavors) = count(nfs4_parse_flavors, flavors_cnt as usize)(i)?;
+    // do not use nom's count as it allocates a Vector first
+    // which results in oom if flavors_cnt is really big, bigger than i.len()
+    let mut i2 = i;
+    for _n in 0..flavors_cnt {
+        let (i3, _flavor) = nfs4_parse_flavors(i2)?;
+        i2 = i3;
+    }
     Ok((i, Nfs4ResponseContent::SecInfoNoName(status)))
 }
 
