@@ -59,6 +59,8 @@
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 
+#include "rust.h"
+
 #ifdef HAVE_LUA
 #include "util-lua.h"
 #endif
@@ -541,20 +543,18 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) &&
-            endian == DETECT_BYTEMATH_ENDIAN_DCE &&
-            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
+        if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) && endian == (int)EndianDCE &&
+                flags & (DETECT_CI_FLAGS_DCE_LE | DETECT_CI_FLAGS_DCE_BE)) {
 
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
-                       DETECT_BYTEMATH_ENDIAN_LITTLE : DETECT_BYTEMATH_ENDIAN_BIG);
+            endian |= (uint8_t)((flags & DETECT_CI_FLAGS_DCE_LE) ? LittleEndian : BigEndian);
         }
         uint64_t rvalue;
-        if (bmd->flags & DETECT_BYTEMATH_RVALUE_VAR) {
-             rvalue = det_ctx->byte_values[bmd->local_id];
+        if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {
+            rvalue = det_ctx->byte_values[bmd->local_id];
         } else {
-             rvalue = bmd->rvalue;
+            rvalue = bmd->rvalue;
         }
 
         DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
