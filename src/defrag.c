@@ -839,8 +839,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         goto done;
     }
     memcpy(new->pkt, GET_PKT_DATA(p) + ltrim, GET_PKT_LEN(p) - ltrim);
-    DEBUG_VALIDATE_BUG_ON(GET_PKT_LEN(p) - ltrim > UINT16_MAX);
-    new->len = (uint16_t)(GET_PKT_LEN(p) - ltrim);
+    new->len = (GET_PKT_LEN(p) - ltrim);
     /* in case of unfragmentable exthdrs, update the 'next hdr' field
      * in the raw buffer so the reassembled packet will point to the
      * correct next header after stripping the frag header */
