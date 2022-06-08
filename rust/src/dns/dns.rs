@@ -323,8 +323,6 @@ pub struct DNSState {
     // Transactions.
     pub transactions: VecDeque<DNSTransaction>,
 
-    pub events: u16,
-
     config: Option<ConfigTracker>,
 
     gap: bool,
@@ -395,7 +393,6 @@ impl DNSState {
 
         let tx = &mut self.transactions[len - 1];
         tx.tx_data.set_event(event as u8);
-        self.events += 1;
     }
 
     fn parse_request(&mut self, input: &[u8]) -> bool {
