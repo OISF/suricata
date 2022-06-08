@@ -1224,7 +1224,7 @@ static uint8_t ProcessBase64Remainder(
         const uint8_t *buf, const uint32_t len, MimeDecParseState *state, int force)
 {
     uint8_t buf_consumed = 0; /* consumed bytes from 'buf' */
-    uint32_t cnt = 0;
+    uint8_t cnt = 0;
     uint8_t block[B64_BLOCK];
 
     /* should be impossible, but lets be defensive */
@@ -1345,7 +1345,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         uint32_t left = len - consumed;
         if (left < B64_BLOCK) {
             memcpy(state->bvremain, buf + consumed, left);
-            state->bvr_len = left;
+            state->bvr_len = (uint8_t)left;
             return MIME_DEC_OK;
         }
         remaining -= consumed;
@@ -1408,7 +1408,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
             /* If remaining is 4 by this time, we encountered spaces during processing */
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
             memcpy(state->bvremain, buf + offset + consumed_bytes, leftover_bytes);
-            state->bvr_len = leftover_bytes;
+            state->bvr_len = (uint8_t)leftover_bytes;
             return MIME_DEC_OK;
         }
 
