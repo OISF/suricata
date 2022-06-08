@@ -25,6 +25,8 @@
 #include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-bytemath.h"
+#include "detect-engine.h"
+#include "rust-bindings.h"
 
 /**
  * \brief Used to retrieve args from BM.
