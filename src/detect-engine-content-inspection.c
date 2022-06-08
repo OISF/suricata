@@ -57,6 +57,8 @@
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 
+#include "rust-bindings.h"
+
 #ifdef HAVE_LUA
 #include "util-lua.h"
 #endif
@@ -555,12 +557,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                        DETECT_BYTEMATH_ENDIAN_LITTLE : DETECT_BYTEMATH_ENDIAN_BIG);
         }
         uint64_t rvalue;
-        if (bmd->flags & DETECT_BYTEMATH_RVALUE_VAR) {
-             rvalue = det_ctx->byte_values[bmd->local_id];
+        if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {
+            rvalue = det_ctx->byte_values[bmd->local_id];
         } else {
-             rvalue = bmd->rvalue;
+            rvalue = bmd->rvalue;
         }
-
 
         if (DetectByteMathDoMatch(det_ctx, smd, s, buffer,
                                      buffer_len,
