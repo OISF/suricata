@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,23 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Jeff Lucovsky <jeff@lucovsky.org>
- */
+use nom7::error::{ErrorKind, ParseError};
 
-#ifndef __DETECT_BYTEMATH_H__
-#define __DETECT_BYTEMATH_H__
+/// Custom rule parse errors.
+///
+/// Implemented based on the Nom example for implementing custom errors.
+#[derive(Debug, PartialEq)]
+pub enum RuleParseError<I> {
+    InvalidByteMath(String),
 
-void DetectBytemathRegister(void);
+    Nom(I, ErrorKind),
+}
+impl<I> ParseError<I> for RuleParseError<I> {
+    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
+        RuleParseError::Nom(input, kind)
+    }
 
-SigMatch *DetectByteMathRetrieveSMVar(const char *, const Signature *);
-int DetectByteMathDoMatch(DetectEngineThreadCtx *, const SigMatchData *, const Signature *,
-                             const uint8_t *, uint16_t, uint64_t, uint64_t *, uint8_t);
-
-#endif /* __DETECT_BYTEMATH_H__ */
+    fn append(_: I, _: ErrorKind, other: Self) -> Self {
+        other
+    }
+}
