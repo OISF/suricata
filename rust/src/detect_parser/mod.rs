@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,6 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Jeff Lucovsky <jeff@lucovsky.org>
- */
-
-#ifndef __DETECT_BYTEMATH_H__
-#define __DETECT_BYTEMATH_H__
-
-void DetectBytemathRegister(void);
-
-SigMatch *DetectByteMathRetrieveSMVar(const char *, const Signature *);
-int DetectByteMathDoMatch(DetectEngineThreadCtx *, const SigMatchData *, const Signature *,
-                             const uint8_t *, uint16_t, uint64_t, uint64_t *, uint8_t);
-
-#endif /* __DETECT_BYTEMATH_H__ */
+pub mod byte_math;
+pub mod error;
+pub mod parser;
