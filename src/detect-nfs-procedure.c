@@ -33,6 +33,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-nfs-procedure.h"
+#include "detect-engine-uint.h"
 
 #include "app-layer-parser.h"
 
@@ -47,28 +48,6 @@
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
 
-/**
- *   [nfs_procedure]:[<|>]<proc>[<><proc>];
- */
-#define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*(?:(<>)\\s*([0-9]+))?\\s*$"
-static DetectParseRegex parse_regex;
-
-enum DetectNfsProcedureMode {
-    PROCEDURE_EQ = 1, /* equal */
-    PROCEDURE_LT, /* less than */
-    PROCEDURE_LE, /* less than */
-    PROCEDURE_GT, /* greater than */
-    PROCEDURE_GE, /* greater than */
-    PROCEDURE_RA, /* range */
-};
-
-typedef struct DetectNfsProcedureData_ {
-    uint32_t lo;
-    uint32_t hi;
-    enum DetectNfsProcedureMode mode;
-} DetectNfsProcedureData;
-
-static DetectNfsProcedureData *DetectNfsProcedureParse (const char *);
 static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -100,8 +79,6 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
 #endif
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
     DetectAppLayerInspectEngineRegister2("nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectNfsRequestGeneric, NULL);
 
@@ -118,39 +95,6 @@ static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-static inline int
-ProcedureMatch(const uint32_t procedure,
-        enum DetectNfsProcedureMode mode, uint32_t lo, uint32_t hi)
-{
-    switch (mode) {
-        case PROCEDURE_EQ:
-            if (procedure == lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LT:
-            if (procedure < lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LE:
-            if (procedure <= lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GT:
-            if (procedure > lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GE:
-            if (procedure >= lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_RA:
-            if (procedure >= lo && procedure <= hi)
-                SCReturnInt(1);
-            break;
-    }
-    SCReturnInt(0);
-}
-
 /**
  * \internal
  * \brief Function to match procedure of a TX
@@ -164,7 +108,7 @@ ProcedureMatch(const uint32_t procedure,
  * \param state   App layer state.
  * \param s       Pointer to the Signature.
  * \param m       Pointer to the sigmatch that we will cast into
- *                DetectNfsProcedureData.
+ *                DetectU32Data.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -176,14 +120,13 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const DetectNfsProcedureData *dd = (const DetectNfsProcedureData *)ctx;
+    const DetectU32Data *dd = (const DetectU32Data *)ctx;
     uint16_t i;
     for (i = 0; i < 256; i++) {
         uint32_t procedure;
         if (rs_nfs_tx_get_procedures(txv, i, &procedure) == 1) {
-            SCLogDebug("proc %u mode %u lo %u hi %u",
-                    procedure, dd->mode, dd->lo, dd->hi);
-            if (ProcedureMatch(procedure, dd->mode, dd->lo, dd->hi))
+            SCLogDebug("proc %u mode %u lo %u hi %u", procedure, dd->mode, dd->arg1, dd->arg2);
+            if (DetectU32Match(procedure, dd))
                 SCReturnInt(1);
             continue;
         }
@@ -198,123 +141,12 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
  *
  * \param rawstr Pointer to the user provided options.
  *
- * \retval dd pointer to DetectNfsProcedureData on success.
+ * \retval dd pointer to DetectU32Data on success.
  * \retval NULL on failure.
  */
-static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
+static DetectU32Data *DetectNfsProcedureParse(const char *rawstr)
 {
-    DetectNfsProcedureData *dd = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2len;
-    char mode[2] = "";
-    char value1[20] = "";
-    char value2[20] = "";
-    char range[3] = "";
-
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
-    if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
-        goto error;
-    }
-
-    pcre2len = sizeof(mode);
-    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("mode \"%s\"", mode);
-
-    pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("value1 \"%s\"", value1);
-
-    if (ret > 3) {
-        pcre2len = sizeof(range);
-        res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-            goto error;
-        }
-        SCLogDebug("range \"%s\"", range);
-
-        if (ret > 4) {
-            pcre2len = sizeof(value2);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-                goto error;
-            }
-            SCLogDebug("value2 \"%s\"", value2);
-        }
-    }
-
-    dd = SCCalloc(1, sizeof(DetectNfsProcedureData));
-    if (unlikely(dd == NULL))
-        goto error;
-
-    if (strlen(mode) == 1) {
-        if (mode[0] == '<')
-            dd->mode = PROCEDURE_LT;
-        else if (mode[0] == '>')
-            dd->mode = PROCEDURE_GT;
-    } else if (strlen(mode) == 2) {
-        if (strcmp(mode, "<=") == 0)
-            dd->mode = PROCEDURE_LE;
-        if (strcmp(mode, ">=") == 0)
-            dd->mode = PROCEDURE_GE;
-    }
-
-    if (strlen(range) > 0) {
-        if (strcmp("<>", range) == 0)
-            dd->mode = PROCEDURE_RA;
-    }
-
-    if (strlen(range) != 0 && strlen(mode) != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "Range specified but mode also set");
-        goto error;
-    }
-
-    if (dd->mode == 0) {
-        dd->mode = PROCEDURE_EQ;
-    }
-
-    /* set the first value */
-    if (StringParseUint32(&dd->lo, 10, 0, (const char *)value1) < 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid first value: \"%s\"", value1);
-        goto error;
-    }
-    /* set the second value if specified */
-    if (strlen(value2) > 0) {
-        if (!(dd->mode == PROCEDURE_RA)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Multiple tls validity values specified but mode is not range");
-            goto error;
-        }
-
-        if (StringParseUint32(&dd->hi, 10, 0, (const char *)value2) < 0) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid second value: \"%s\"", value2);
-            goto error;
-        }
-
-        if (dd->hi <= dd->lo) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Second value in range must not be smaller than the first");
-            goto error;
-        }
-    }
-    return dd;
-
-error:
-    if (dd)
-        SCFree(dd);
-    return NULL;
+    return DetectU32Parse(rawstr);
 }
 
 
@@ -333,7 +165,7 @@ error:
 static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     SigMatch *sm = NULL;
 
     SCLogDebug("\'%s\'", rawstr);
@@ -356,7 +188,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_NFS_PROCEDURE;
     sm->ctx = (void *)dd;
 
-    SCLogDebug("low %u hi %u", dd->lo, dd->hi);
+    SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
     SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
     return 0;
 
@@ -367,13 +199,13 @@ error:
 
 /**
  * \internal
- * \brief Function to free memory associated with DetectNfsProcedureData.
+ * \brief Function to free memory associated with DetectU32Data.
  *
- * \param de_ptr Pointer to DetectNfsProcedureData.
+ * \param de_ptr Pointer to DetectU32Data.
  */
 void DetectNfsProcedureFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
 
 #ifdef UNITTESTS
@@ -386,10 +218,10 @@ void DetectNfsProcedureFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int ValidityTestParse01 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_EQ);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->mode == DETECT_UINT_EQ);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -402,10 +234,10 @@ static int ValidityTestParse01 (void)
  */
 static int ValidityTestParse02 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(">1430000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->mode == DETECT_UINT_GT);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -418,10 +250,10 @@ static int ValidityTestParse02 (void)
  */
 static int ValidityTestParse03 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<1430000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_LT);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->mode == DETECT_UINT_LT);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -434,11 +266,10 @@ static int ValidityTestParse03 (void)
  */
 static int ValidityTestParse04 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000<>1470000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1470000000 &&
-                dd->mode == PROCEDURE_RA);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1470000000 && dd->mode == DETECT_UINT_RA);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -451,7 +282,7 @@ static int ValidityTestParse04 (void)
  */
 static int ValidityTestParse05 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("A");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -465,7 +296,7 @@ static int ValidityTestParse05 (void)
  */
 static int ValidityTestParse06 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(">1430000000<>1470000000");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -479,7 +310,7 @@ static int ValidityTestParse06 (void)
  */
 static int ValidityTestParse07 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000<>");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -493,7 +324,7 @@ static int ValidityTestParse07 (void)
  */
 static int ValidityTestParse08 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<>1430000000");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -507,7 +338,7 @@ static int ValidityTestParse08 (void)
  */
 static int ValidityTestParse09 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -521,7 +352,7 @@ static int ValidityTestParse09 (void)
  */
 static int ValidityTestParse10 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(" ");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -535,7 +366,7 @@ static int ValidityTestParse10 (void)
  */
 static int ValidityTestParse11 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1490000000<>1430000000");
     FAIL_IF_NOT_NULL(dd);
     PASS;
@@ -549,11 +380,10 @@ static int ValidityTestParse11 (void)
  */
 static int ValidityTestParse12 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000 <> 1490000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1490000000 &&
-                dd->mode == PROCEDURE_RA);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1490000000 && dd->mode == DETECT_UINT_RA);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -566,10 +396,10 @@ static int ValidityTestParse12 (void)
  */
 static int ValidityTestParse13 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("> 1430000000 ");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->mode == DETECT_UINT_GT);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -582,10 +412,10 @@ static int ValidityTestParse13 (void)
  */
 static int ValidityTestParse14 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<   1490000000 ");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_LT);
+    FAIL_IF_NOT(dd->arg1 == 1490000000 && dd->mode == DETECT_UINT_LT);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -598,10 +428,10 @@ static int ValidityTestParse14 (void)
  */
 static int ValidityTestParse15 (void)
 {
-    DetectNfsProcedureData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("   1490000000 ");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_EQ);
+    FAIL_IF_NOT(dd->arg1 == 1490000000 && dd->mode == DETECT_UINT_EQ);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
