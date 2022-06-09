@@ -17,45 +17,48 @@
 
 #include "../util-unittest.h"
 
-#define TEST_OK(str, m, lo, hi) {                       \
-    DetectBsizeData *bsz = DetectBsizeParse((str));     \
-    FAIL_IF_NULL(bsz);                                  \
-    FAIL_IF_NOT(bsz->mode == (m));                      \
-    DetectBsizeFree(NULL, bsz);                         \
-    SCLogDebug("str %s OK", (str));                     \
-}
-#define TEST_FAIL(str) {                                \
-    DetectBsizeData *bsz = DetectBsizeParse((str));     \
-    FAIL_IF_NOT_NULL(bsz);                              \
-}
+#define TEST_OK(str, m, lo, hi)                                                                    \
+    {                                                                                              \
+        DetectU64Data *bsz = DetectBsizeParse((str));                                              \
+        FAIL_IF_NULL(bsz);                                                                         \
+        FAIL_IF_NOT(bsz->mode == (m));                                                             \
+        DetectBsizeFree(NULL, bsz);                                                                \
+        SCLogDebug("str %s OK", (str));                                                            \
+    }
+#define TEST_FAIL(str)                                                                             \
+    {                                                                                              \
+        DetectU64Data *bsz = DetectBsizeParse((str));                                              \
+        FAIL_IF_NOT_NULL(bsz);                                                                     \
+    }
 
 static int DetectBsizeTest01(void)
 {
-    TEST_OK("50", DETECT_BSIZE_EQ, 50, 0);
-    TEST_OK(" 50", DETECT_BSIZE_EQ, 50, 0);
-    TEST_OK("  50", DETECT_BSIZE_EQ, 50, 0);
-    TEST_OK("  50 ", DETECT_BSIZE_EQ, 50, 0);
-    TEST_OK("  50  ", DETECT_BSIZE_EQ, 50, 0);
+    TEST_OK("50", DETECT_UINT_EQ, 50, 0);
+    TEST_OK(" 50", DETECT_UINT_EQ, 50, 0);
+    TEST_OK("  50", DETECT_UINT_EQ, 50, 0);
+    TEST_OK("  50 ", DETECT_UINT_EQ, 50, 0);
+    TEST_OK("  50  ", DETECT_UINT_EQ, 50, 0);
 
     TEST_FAIL("AA");
     TEST_FAIL("5A");
     TEST_FAIL("A5");
-    TEST_FAIL("10000000001");
-    TEST_OK("  1000000001  ", DETECT_BSIZE_EQ, 1000000001, 0);
+    // bigger than UINT64_MAX
+    TEST_FAIL("100000000000000000001");
+    TEST_OK("  1000000001  ", DETECT_UINT_EQ, 1000000001, 0);
     PASS;
 }
 
 static int DetectBsizeTest02(void)
 {
-    TEST_OK(">50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK("> 50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(">  50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" >50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" > 50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" >  50", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" >50 ", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" > 50  ", DETECT_BSIZE_GT, 50, 0);
-    TEST_OK(" >  50   ", DETECT_BSIZE_GT, 50, 0);
+    TEST_OK(">50", DETECT_UINT_GT, 50, 0);
+    TEST_OK("> 50", DETECT_UINT_GT, 50, 0);
+    TEST_OK(">  50", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" >50", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" > 50", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" >  50", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" >50 ", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" > 50  ", DETECT_UINT_GT, 50, 0);
+    TEST_OK(" >  50   ", DETECT_UINT_GT, 50, 0);
 
     TEST_FAIL(">>50");
     TEST_FAIL("<>50");
@@ -65,15 +68,15 @@ static int DetectBsizeTest02(void)
 
 static int DetectBsizeTest03(void)
 {
-    TEST_OK("<50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK("< 50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK("<  50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" <50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" < 50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" <  50", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" <50 ", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" < 50  ", DETECT_BSIZE_LT, 50, 0);
-    TEST_OK(" <  50   ", DETECT_BSIZE_LT, 50, 0);
+    TEST_OK("<50", DETECT_UINT_LT, 50, 0);
+    TEST_OK("< 50", DETECT_UINT_LT, 50, 0);
+    TEST_OK("<  50", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" <50", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" < 50", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" <  50", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" <50 ", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" < 50  ", DETECT_UINT_LT, 50, 0);
+    TEST_OK(" <  50   ", DETECT_UINT_LT, 50, 0);
 
     TEST_FAIL(">>50");
     TEST_FAIL(" < 50A");
@@ -82,7 +85,7 @@ static int DetectBsizeTest03(void)
 
 static int DetectBsizeTest04(void)
 {
-    TEST_OK("50<>100", DETECT_BSIZE_RA, 50, 100);
+    TEST_OK("50<>100", DETECT_UINT_RA, 50, 100);
 
     TEST_FAIL("50<$50");
     TEST_FAIL("100<>50");
