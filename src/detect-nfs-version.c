@@ -33,6 +33,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-nfs-version.h"
+#include "detect-engine-uint.h"
 
 #include "app-layer-parser.h"
 
@@ -47,33 +48,9 @@
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
 
-/**
- *   [nfs_procedure]:[<|>]<proc>[<><proc>];
- */
-#define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*(?:(<>)\\s*([0-9]+))?\\s*$"
-static DetectParseRegex parse_regex;
 
-enum DetectNfsVersionMode {
-    PROCEDURE_EQ = 1, /* equal */
-    PROCEDURE_LT, /* less than */
-    PROCEDURE_LE, /* less than */
-    PROCEDURE_GT, /* greater than */
-    PROCEDURE_GE, /* greater than */
-    PROCEDURE_RA, /* range */
-};
-
-typedef struct DetectNfsVersionData_ {
-    uint32_t lo;
-    uint32_t hi;
-    enum DetectNfsVersionMode mode;
-} DetectNfsVersionData;
-
-static DetectNfsVersionData *DetectNfsVersionParse (const char *);
 static int DetectNfsVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *);
-#ifdef UNITTESTS
-static void DetectNfsVersionRegisterTests(void);
-#endif
 static int g_nfs_request_buffer_id = 0;
 
 static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
@@ -96,11 +73,7 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_AL_NFS_VERSION].AppLayerTxMatch = DetectNfsVersionMatch;
     sigmatch_table[DETECT_AL_NFS_VERSION].Setup = DetectNfsVersionSetup;
     sigmatch_table[DETECT_AL_NFS_VERSION].Free = DetectNfsVersionFree;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_NFS_VERSION].RegisterTests = DetectNfsVersionRegisterTests;
-#endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
+    // unit tests were the same as DetectNfsProcedureRegisterTests
     DetectAppLayerInspectEngineRegister2("nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectNfsRequestGeneric, NULL);
 
@@ -117,39 +90,6 @@ static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-static inline int
-VersionMatch(const uint32_t version,
-        enum DetectNfsVersionMode mode, uint32_t lo, uint32_t hi)
-{
-    switch (mode) {
-        case PROCEDURE_EQ:
-            if (version == lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LT:
-            if (version < lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LE:
-            if (version <= lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GT:
-            if (version > lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GE:
-            if (version >= lo)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_RA:
-            if (version >= lo && version <= hi)
-                SCReturnInt(1);
-            break;
-    }
-    SCReturnInt(0);
-}
-
 /**
  * \internal
  * \brief Function to match version of a TX
@@ -161,7 +101,7 @@ VersionMatch(const uint32_t version,
  * \param state   App layer state.
  * \param s       Pointer to the Signature.
  * \param m       Pointer to the sigmatch that we will cast into
- *                DetectNfsVersionData.
+ *                DetectU32Data.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -173,12 +113,11 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const DetectNfsVersionData *dd = (const DetectNfsVersionData *)ctx;
+    const DetectU32Data *dd = (const DetectU32Data *)ctx;
     uint32_t version;
     rs_nfs_tx_get_version(txv, &version);
-    SCLogDebug("version %u mode %u lo %u hi %u",
-            version, dd->mode, dd->lo, dd->hi);
-    if (VersionMatch(version, dd->mode, dd->lo, dd->hi))
+    SCLogDebug("version %u mode %u lo %u hi %u", version, dd->mode, dd->arg1, dd->arg2);
+    if (DetectU32Match(version, dd))
         SCReturnInt(1);
     SCReturnInt(0);
 }
@@ -189,122 +128,12 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
  *
  * \param rawstr Pointer to the user provided options.
  *
- * \retval dd pointer to DetectNfsVersionData on success.
+ * \retval dd pointer to DetectU32Data on success.
  * \retval NULL on failure.
  */
-static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
+static DetectU32Data *DetectNfsVersionParse(const char *rawstr)
 {
-    DetectNfsVersionData *dd = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2len;
-    char mode[2] = "";
-    char value1[20] = "";
-    char value2[20] = "";
-    char range[3] = "";
-
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
-    if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
-        goto error;
-    }
-
-    pcre2len = sizeof(mode);
-    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("mode \"%s\"", mode);
-
-    pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("value1 \"%s\"", value1);
-
-    if (ret > 3) {
-        pcre2len = sizeof(range);
-        res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-            goto error;
-        }
-        SCLogDebug("range \"%s\"", range);
-
-        if (ret > 4) {
-            pcre2len = sizeof(value2);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-                goto error;
-            }
-            SCLogDebug("value2 \"%s\"", value2);
-        }
-    }
-
-    dd = SCCalloc(1, sizeof(DetectNfsVersionData));
-    if (unlikely(dd == NULL))
-        goto error;
-
-    if (strlen(mode) == 1) {
-        if (mode[0] == '<')
-            dd->mode = PROCEDURE_LT;
-        else if (mode[0] == '>')
-            dd->mode = PROCEDURE_GT;
-    } else if (strlen(mode) == 2) {
-        if (strcmp(mode, "<=") == 0)
-            dd->mode = PROCEDURE_LE;
-        if (strcmp(mode, ">=") == 0)
-            dd->mode = PROCEDURE_GE;
-    }
-
-    if (strlen(range) > 0) {
-        if (strcmp("<>", range) == 0)
-            dd->mode = PROCEDURE_RA;
-    }
-
-    if (strlen(range) != 0 && strlen(mode) != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "Range specified but mode also set");
-        goto error;
-    }
-
-    if (dd->mode == 0) {
-        dd->mode = PROCEDURE_EQ;
-    }
-
-    /* set the first value */
-    if (StringParseUint32(&dd->lo, 10, 0, (const char *)value1) < 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid first value: \"%s\"", value1);
-        goto error;
-    }
-    /* set the second value if specified */
-    if (strlen(value2) > 0) {
-        if (!(dd->mode == PROCEDURE_RA)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Multiple tls validity values specified but mode is not range");
-            goto error;
-        }
-
-        if (StringParseUint32(&dd->hi, 10, 0, (const char *)value2) < 0) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid second value: \"%s\"", value2);
-            goto error;
-        }
-        if (dd->hi <= dd->lo) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Second value in range must not be smaller than the first");
-            goto error;
-        }
-    }
-    return dd;
-
-error:
-    if (dd)
-        SCFree(dd);
-    return NULL;
+    return DetectU32Parse(rawstr);
 }
 
 
@@ -328,7 +157,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (DetectSignatureSetAppProto(s, ALPROTO_NFS) != 0)
         return -1;
 
-    DetectNfsVersionData *dd = DetectNfsVersionParse(rawstr);
+    DetectU32Data *dd = DetectNfsVersionParse(rawstr);
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
         return -1;
@@ -343,7 +172,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_NFS_VERSION;
     sm->ctx = (void *)dd;
 
-    SCLogDebug("low %u hi %u", dd->lo, dd->hi);
+    SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
     SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
     return 0;
 
@@ -354,264 +183,11 @@ error:
 
 /**
  * \internal
- * \brief Function to free memory associated with DetectNfsVersionData.
+ * \brief Function to free memory associated with DetectU32Data.
  *
- * \param de_ptr Pointer to DetectNfsVersionData.
+ * \param de_ptr Pointer to DetectU32Data.
  */
 void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
-
-#ifdef UNITTESTS
-
-/**
- * \test This is a test for a valid value 1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse01 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("1430000000");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value >1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse02 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse(">1430000000");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value <1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse03 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("<1430000000");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value 1430000000<>1470000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse04 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("1430000000<>1470000000");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1470000000 &&
-                dd->mode == PROCEDURE_RA);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value A.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse05 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("A");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value >1430000000<>1470000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse06 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse(">1430000000<>1470000000");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value 1430000000<>.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse07 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("1430000000<>");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value <>1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse08 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("<>1430000000");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value "".
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse09 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value " ".
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse10 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse(" ");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a invalid value 1490000000<>1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse11 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("1490000000<>1430000000");
-    FAIL_IF_NOT_NULL(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value 1430000000 <> 1490000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse12 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("1430000000 <> 1490000000");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1490000000 &&
-                dd->mode == PROCEDURE_RA);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value > 1430000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse13 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("> 1430000000 ");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value <   1490000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse14 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("<   1490000000 ");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value    1490000000.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int ValidityTestParse15 (void)
-{
-    DetectNfsVersionData *dd = NULL;
-    dd = DetectNfsVersionParse("   1490000000 ");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsVersionFree(NULL, dd);
-    PASS;
-}
-
-/**
- * \brief Register unit tests for nfs_procedure.
- */
-void DetectNfsVersionRegisterTests(void)
-{
-    UtRegisterTest("ValidityTestParse01", ValidityTestParse01);
-    UtRegisterTest("ValidityTestParse02", ValidityTestParse02);
-    UtRegisterTest("ValidityTestParse03", ValidityTestParse03);
-    UtRegisterTest("ValidityTestParse04", ValidityTestParse04);
-    UtRegisterTest("ValidityTestParse05", ValidityTestParse05);
-    UtRegisterTest("ValidityTestParse06", ValidityTestParse06);
-    UtRegisterTest("ValidityTestParse07", ValidityTestParse07);
-    UtRegisterTest("ValidityTestParse08", ValidityTestParse08);
-    UtRegisterTest("ValidityTestParse09", ValidityTestParse09);
-    UtRegisterTest("ValidityTestParse10", ValidityTestParse10);
-    UtRegisterTest("ValidityTestParse11", ValidityTestParse11);
-    UtRegisterTest("ValidityTestParse12", ValidityTestParse12);
-    UtRegisterTest("ValidityTestParse13", ValidityTestParse13);
-    UtRegisterTest("ValidityTestParse14", ValidityTestParse14);
-    UtRegisterTest("ValidityTestParse15", ValidityTestParse15);
-}
-#endif /* UNITTESTS */
