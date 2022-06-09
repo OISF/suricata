@@ -778,15 +778,8 @@ static inline void DetectRulePacketRules(
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
             if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, scratch->alproto)) {
-                if (s->alproto == ALPROTO_DCERPC) {
-                    if (scratch->alproto != ALPROTO_SMB) {
-                        SCLogDebug("DCERPC sig, alproto not SMB");
-                        goto next;
-                    }
-                } else {
-                    SCLogDebug("alproto mismatch");
-                    goto next;
-                }
+                SCLogDebug("alproto mismatch");
+                goto next;
             }
         }
 
