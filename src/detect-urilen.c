@@ -478,7 +478,9 @@ static int DetectUrilenSetpTest01(void)
     }
 
 cleanup:
-    if (urilend) DetectUrilenFree(NULL, urilend);;
+    if (urilend)
+        DetectUrilenFree(NULL, urilend);
+    ;
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
