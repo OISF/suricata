@@ -85,6 +85,8 @@ static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
     if (alproto == ALPROTO_HTTP2 && g_config_http1keywords_http2traffic &&
             sigproto == ALPROTO_HTTP) {
         return true;
+    } else if (sigproto == ALPROTO_DCERPC) {
+        return (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB);
     }
     return (sigproto == alproto);
 }

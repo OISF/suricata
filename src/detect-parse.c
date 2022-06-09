@@ -1499,6 +1499,14 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
             AppProtoToString(alproto), AppProtoToString(s->alproto));
         return -1;
     }
+    /* since AppProtoEquals is quite permissive wrt dcerpc and smb, make sure
+     * we refuse `alert dcerpc ... smb.share; content...` explicitly. */
+    if (alproto == ALPROTO_SMB && s->alproto == ALPROTO_DCERPC) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                "can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
+                AppProtoToString(s->alproto));
+        return -1;
+    }
 
     // allow to keep HTTP2 as s->alproto with HTTP1 alproto keywords
     if (!AppProtoEquals(alproto, s->alproto)) {
