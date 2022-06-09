@@ -407,7 +407,7 @@ void RegisterFlowSPLTInfo(void)
 inline void FlowEncryptedTrafficFinalize(Flow *f)
 {
     FlowSPLT *const splt = (FlowSPLT *const)FlowGetStorageById(f, GetFlowSPLTInfoID());
-    if (splt->bd_entropy || (splt->splt_count == 0))
+    if (splt->bd_entropy || (splt->splt_count == 0) || (splt->bd_count == 0))
         return;
 
     /* final calculation of bd variance */

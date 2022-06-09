@@ -1212,6 +1212,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                         cid_seed);
             }
         }
+
         /* Do we have a global eve xff configuration? */
         const ConfNode *xff = ConfNodeLookupChild(conf, "xff");
         if (xff != NULL) {
