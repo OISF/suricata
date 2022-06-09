@@ -27,31 +27,13 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-rfb-sectype.h"
+#include "detect-engine-uint.h"
 #include "app-layer-parser.h"
 #include "util-byte.h"
 
 #include "rust-bindings.h"
 
-/**
- *   [rfb.sectype]:[<|>|<=|>=]<type>;
- */
-#define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*$"
-static DetectParseRegex parse_regex;
 
-enum DetectRfbSectypeCompareMode {
-    PROCEDURE_EQ = 1, /* equal */
-    PROCEDURE_LT, /* less than */
-    PROCEDURE_LE, /* less than or equal */
-    PROCEDURE_GT, /* greater than */
-    PROCEDURE_GE, /* greater than or equal */
-};
-
-typedef struct {
-    uint32_t version;
-    enum DetectRfbSectypeCompareMode mode;
-} DetectRfbSectypeData;
-
-static DetectRfbSectypeData *DetectRfbSectypeParse (const char *);
 static int DetectRfbSectypeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectRfbSectypeFree(DetectEngineCtx *, void *);
 static int g_rfb_sectype_buffer_id = 0;
@@ -76,8 +58,6 @@ void DetectRfbSectypeRegister (void)
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Setup = DetectRfbSectypeSetup;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Free = DetectRfbSectypeFree;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
     DetectAppLayerInspectEngineRegister2("rfb.sectype", ALPROTO_RFB, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectRfbSectypeGeneric, NULL);
 
@@ -92,34 +72,6 @@ static uint8_t DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-static inline int SectypeMatch(const uint32_t version,
-        enum DetectRfbSectypeCompareMode mode, uint32_t ref_version)
-{
-    switch (mode) {
-        case PROCEDURE_EQ:
-            if (version == ref_version)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LT:
-            if (version < ref_version)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LE:
-            if (version <= ref_version)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GT:
-            if (version > ref_version)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GE:
-            if (version >= ref_version)
-                SCReturnInt(1);
-            break;
-    }
-    SCReturnInt(0);
-}
-
 /**
  * \internal
  * \brief Function to match security type of a RFB TX
@@ -130,7 +82,7 @@ static inline int SectypeMatch(const uint32_t version,
  * \param state   App layer state.
  * \param txv     Pointer to the RFBTransaction.
  * \param s       Pointer to the Signature.
- * \param ctx     Pointer to the sigmatch that we will cast into DetectRfbSectypeData.
+ * \param ctx     Pointer to the sigmatch that we will cast into DetectU32Data.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -142,10 +94,10 @@ static int DetectRfbSectypeMatch (DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const DetectRfbSectypeData *dd = (const DetectRfbSectypeData *)ctx;
+    const DetectU32Data *dd = (const DetectU32Data *)ctx;
     uint32_t version;
     rs_rfb_tx_get_sectype(txv, &version);
-    if (SectypeMatch(version, dd->mode, dd->version))
+    if (DetectU32Match(version, dd))
         SCReturnInt(1);
     SCReturnInt(0);
 }
@@ -156,75 +108,12 @@ static int DetectRfbSectypeMatch (DetectEngineThreadCtx *det_ctx,
  *
  * \param rawstr Pointer to the user provided options.
  *
- * \retval dd pointer to DetectRfbSectypeData on success.
+ * \retval dd pointer to DetectU32Data on success.
  * \retval NULL on failure.
  */
-static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
+static DetectU32Data *DetectRfbSectypeParse(const char *rawstr)
 {
-    DetectRfbSectypeData *dd = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2len;
-    char mode[2] = "";
-    char value1[20] = "";
-
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
-    if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
-        goto error;
-    }
-
-    pcre2len = sizeof(mode);
-    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-
-    pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-
-    dd = SCCalloc(1, sizeof(DetectRfbSectypeData));
-    if (unlikely(dd == NULL))
-        goto error;
-
-    if (strlen(mode) == 0) {
-        dd->mode = PROCEDURE_EQ;
-    } else if (strlen(mode) == 1) {
-        if (mode[0] == '<')
-            dd->mode = PROCEDURE_LT;
-        else if (mode[0] == '>')
-            dd->mode = PROCEDURE_GT;
-    } else if (strlen(mode) == 2) {
-        if (strcmp(mode, "<=") == 0)
-            dd->mode = PROCEDURE_LE;
-        if (strcmp(mode, ">=") == 0)
-            dd->mode = PROCEDURE_GE;
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid mode for rfb.sectype keyword");
-        goto error;
-    }
-
-    if (dd->mode == 0) {
-        dd->mode = PROCEDURE_EQ;
-    }
-
-    /* set the first value */
-    if (ByteExtractStringUint32(&dd->version, 10, strlen(value1), value1) <= 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
-                   "to rfb.sectype keyword");
-        goto error;
-    }
-
-    return dd;
-
-error:
-    if (dd)
-        SCFree(dd);
-    return NULL;
+    return DetectU32Parse(rawstr);
 }
 
 /**
@@ -242,7 +131,7 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0)
         return -1;
 
-    DetectRfbSectypeData *dd = DetectRfbSectypeParse(rawstr);
+    DetectU32Data *dd = DetectRfbSectypeParse(rawstr);
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
         goto error;
@@ -267,11 +156,11 @@ error:
 
 /**
  * \internal
- * \brief Function to free memory associated with DetectRfbSectypeData.
+ * \brief Function to free memory associated with DetectU32Data.
  *
- * \param de_ptr Pointer to DetectRfbSectypeData.
+ * \param de_ptr Pointer to DetectU32Data.
  */
 static void DetectRfbSectypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
