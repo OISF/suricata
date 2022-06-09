@@ -80,7 +80,6 @@ void ConfRegisterTests(void);
 int ConfNodeChildValueIsTrue(const ConfNode *node, const char *key);
 int ConfValIsTrue(const char *val);
 int ConfValIsFalse(const char *val);
-void ConfNodePrune(ConfNode *node);
 int ConfRemove(const char *name);
 bool ConfNodeHasChildren(const ConfNode *node);
 

@@ -886,41 +886,6 @@ char *ConfLoadCompleteIncludePath(const char *file)
 }
 
 /**
- * \brief Prune a configuration node.
- *
- * Pruning a configuration is similar to freeing, but only fields that
- * may be overridden are, leaving final type parameters.  Additional
- * the value of the provided node is also free'd, but the node itself
- * is left.
- *
- * \param node The configuration node to prune.
- */
-void ConfNodePrune(ConfNode *node)
-{
-    ConfNode *item, *it;
-
-    for (item = TAILQ_FIRST(&node->head); item != NULL; item = it) {
-        it = TAILQ_NEXT(item, next);
-        if (!item->final) {
-            ConfNodePrune(item);
-            if (TAILQ_EMPTY(&item->head)) {
-                TAILQ_REMOVE(&node->head, item, next);
-                if (item->name != NULL)
-                    SCFree(item->name);
-                if (item->val != NULL)
-                    SCFree(item->val);
-                SCFree(item);
-            }
-        }
-    }
-
-    if (node->val != NULL) {
-        SCFree(node->val);
-        node->val = NULL;
-    }
-}
-
-/**
  * \brief Check if a node is a sequence or node.
  *
  * \param node the node to check.
@@ -1373,37 +1338,6 @@ static int ConfGetNodeOrCreateTest(void)
     PASS;
 }
 
-static int ConfNodePruneTest(void)
-{
-    ConfNode *node;
-
-    ConfCreateContextBackup();
-    ConfInit();
-
-    /* Test that final nodes exist after a prune. */
-    FAIL_IF(ConfSet("node.notfinal", "notfinal") != 1);
-    FAIL_IF(ConfSetFinal("node.final", "final") != 1);
-    FAIL_IF(ConfGetNode("node.notfinal") == NULL);
-    FAIL_IF(ConfGetNode("node.final") == NULL);
-    FAIL_IF((node = ConfGetNode("node")) == NULL);
-    ConfNodePrune(node);
-    FAIL_IF(ConfGetNode("node.notfinal") != NULL);
-    FAIL_IF(ConfGetNode("node.final") == NULL);
-
-    /* Test that everything under a final node exists after a prune. */
-    FAIL_IF(ConfSet("node.final.one", "one") != 1);
-    FAIL_IF(ConfSet("node.final.two", "two") != 1);
-    ConfNodePrune(node);
-    FAIL_IF(ConfNodeLookupChild(node, "final") == NULL);
-    FAIL_IF(ConfGetNode("node.final.one") == NULL);
-    FAIL_IF(ConfGetNode("node.final.two") == NULL);
-
-    ConfDeInit();
-    ConfRestoreContextBackup();
-
-    PASS;
-}
-
 static int ConfNodeIsSequenceTest(void)
 {
     ConfNode *node = ConfNodeNew();
@@ -1494,7 +1428,6 @@ void ConfRegisterTests(void)
     UtRegisterTest("ConfGetChildValueBoolWithDefaultTest",
                    ConfGetChildValueBoolWithDefaultTest);
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest);
-    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);
     UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest);
     UtRegisterTest("ConfNodeHasChildrenTest", ConfNodeHasChildrenTest);
