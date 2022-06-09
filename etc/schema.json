@@ -115,6 +115,9 @@
                     "gaps": {
                         "type": "boolean"
                     },
+                    "magic": {
+                        "type": "string"
+                    },
                     "md5": {
                         "type": "string"
                     },
