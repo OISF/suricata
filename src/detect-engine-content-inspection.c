@@ -42,6 +42,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
+#include "detect-engine-uint.h"
 #include "detect-bsize.h"
 #include "detect-lua.h"
 #include "detect-base64-decode.h"
@@ -605,28 +606,12 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
     } else if (smd->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");
 
-        uint8_t r = 0;
+        int r = 0;
         DetectUrilenData *urilend = (DetectUrilenData *) smd->ctx;
-
-        switch (urilend->mode) {
-            case DETECT_URILEN_EQ:
-                if (buffer_len == urilend->urilen1)
-                    r = 1;
-                break;
-            case DETECT_URILEN_LT:
-                if (buffer_len < urilend->urilen1)
-                    r = 1;
-                break;
-            case DETECT_URILEN_GT:
-                if (buffer_len > urilend->urilen1)
-                    r = 1;
-                break;
-            case DETECT_URILEN_RA:
-                if (buffer_len > urilend->urilen1 &&
-                    buffer_len < urilend->urilen2) {
-                    r = 1;
-                }
-                break;
+        if (buffer_len > UINT16_MAX) {
+            r = DetectU16Match(UINT16_MAX, &urilend->du16);
+        } else {
+            r = DetectU16Match((uint16_t)buffer_len, &urilend->du16);
         }
 
         if (r == 1) {
