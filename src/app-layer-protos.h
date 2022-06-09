@@ -91,6 +91,8 @@ static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
         case ALPROTO_HTTP:
             return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2) ||
                    (alproto == ALPROTO_HTTP);
+        case ALPROTO_DCERPC:
+            return (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB);
     }
     return (sigproto == alproto);
 }
