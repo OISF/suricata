@@ -23,7 +23,7 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::str::FromStr;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -441,6 +441,106 @@ pub unsafe extern "C" fn rs_detect_urilen_parse(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_urilen_free(ctx: &mut DetectUrilenData) {
+    // Just unbox...
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+pub enum DetectIPRepDataCmd {
+    IPRepCmdAny = 0,
+    IPRepCmdBoth = 1,
+    IPRepCmdSrc = 2,
+    IPRepCmdDst = 3,
+}
+
+impl std::str::FromStr for DetectIPRepDataCmd {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "any" => Ok(DetectIPRepDataCmd::IPRepCmdAny),
+            "both" => Ok(DetectIPRepDataCmd::IPRepCmdBoth),
+            "src" => Ok(DetectIPRepDataCmd::IPRepCmdSrc),
+            "dst" => Ok(DetectIPRepDataCmd::IPRepCmdDst),
+            _ => Err(format!(
+                "'{}' is not a valid value for DetectIPRepDataCmd",
+                s
+            )),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct DetectIPRepData {
+    pub du8: DetectUintData<u8>,
+    pub cat: u8,
+    pub cmd: DetectIPRepDataCmd,
+}
+
+pub fn is_alphanumeric_or_slash(chr: char) -> bool {
+    if chr.is_ascii_alphanumeric() {
+        return true;
+    }
+    if chr == '_' || chr == '-' {
+        return true;
+    }
+    return false;
+}
+
+extern "C" {
+    pub fn SRepCatGetByShortname(name: *const i8) -> u8;
+}
+
+pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, cmd) = map_res(alpha0, |s: &str| DetectIPRepDataCmd::from_str(s))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = char(',')(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+
+    let (i, name) = take_while(is_alphanumeric_or_slash)(i)?;
+    // copy as to have final zero
+    let namez = CString::new(name).unwrap();
+    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr() as *const i8) };
+    if cat == 0 {
+        return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
+    }
+
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = char(',')(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, mode) = detect_parse_uint_mode(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = char(',')(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<u8>().ok())(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    let du8 = DetectUintData::<u8> {
+        arg1: arg1,
+        arg2: 0,
+        mode: mode,
+    };
+    return Ok((i, DetectIPRepData { du8, cat, cmd }));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_iprep_parse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectIPRepData {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = detect_parse_iprep(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_iprep_free(ctx: &mut DetectIPRepData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
