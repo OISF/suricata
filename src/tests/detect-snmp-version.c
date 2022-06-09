@@ -26,10 +26,10 @@
  */
 static int SNMPValidityTestParse01 (void)
 {
-    DetectSNMPVersionData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectSNMPVersionParse("2");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_EQ);
+    FAIL_IF_NOT(dd->arg1 == 2 && dd->mode == DETECT_UINT_EQ);
     DetectSNMPVersionFree(NULL, dd);
     PASS;
 }
@@ -42,10 +42,10 @@ static int SNMPValidityTestParse01 (void)
  */
 static int SNMPValidityTestParse02 (void)
 {
-    DetectSNMPVersionData *dd = NULL;
+    DetectU32Data *dd = NULL;
     dd = DetectSNMPVersionParse(">2");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_GT);
+    FAIL_IF_NOT(dd->arg1 == 2 && dd->mode == DETECT_UINT_GT);
     DetectSNMPVersionFree(NULL, dd);
     PASS;
 }
