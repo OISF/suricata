@@ -109,6 +109,7 @@ exclude = [
     "free",
     "IPPROTO_TCP",
     "IPPROTO_UDP",
+    "SRepCatGetByShortname",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.

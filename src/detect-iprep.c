@@ -39,6 +39,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-uint.h"
 
 #include "util-debug.h"
 #include "util-byte.h"
@@ -49,9 +50,6 @@
 
 #include "reputation.h"
 #include "host.h"
-
-#define PARSE_REGEX         "\\s*(any|src|dst|both)\\s*,\\s*([A-Za-z0-9\\-\\_]+)\\s*,\\s*(\\<|\\>|\\=)\\s*,\\s*([0-9]+)\\s*"
-static DetectParseRegex parse_regex;
 
 static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -74,8 +72,6 @@ void DetectIPRepRegister (void)
 #endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline uint8_t GetRep(const SReputation *r, const uint8_t cat, const uint32_t version)
@@ -142,18 +138,6 @@ static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
     }
 }
 
-static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2)
-{
-    if (op == DETECT_IPREP_OP_GT && val1 > val2) {
-        return 1;
-    } else if (op == DETECT_IPREP_OP_LT && val1 < val2) {
-        return 1;
-    } else if (op == DETECT_IPREP_OP_EQ && val1 == val2) {
-        return 1;
-    }
-    return 0;
-}
-
 /*
  * returns 0: no match
  *         1: match
@@ -171,53 +155,54 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     SCLogDebug("rd->cmd %u", rd->cmd);
     switch(rd->cmd) {
-        case DETECT_IPREP_CMD_ANY:
+        case IPRepCmdAny:
             val = GetHostRepSrc(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
-                if (RepMatch(rd->op, val, rd->val) == 1)
+                if (DetectU8Match(val, &rd->du8))
                     return 1;
             }
             val = GetHostRepDst(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
-                return RepMatch(rd->op, val, rd->val);
+                return DetectU8Match(val, &rd->du8);
             }
             break;
 
-        case DETECT_IPREP_CMD_SRC:
+        case IPRepCmdSrc:
             val = GetHostRepSrc(p, rd->cat, version);
-            SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat, rd->val);
+            SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat,
+                    rd->du8.arg1);
             if (val == 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
-                return RepMatch(rd->op, val, rd->val);
+                return DetectU8Match(val, &rd->du8);
             }
             break;
 
-        case DETECT_IPREP_CMD_DST:
+        case IPRepCmdDst:
             SCLogDebug("checking dst");
             val = GetHostRepDst(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
-                return RepMatch(rd->op, val, rd->val);
+                return DetectU8Match(val, &rd->du8);
             }
             break;
 
-        case DETECT_IPREP_CMD_BOTH:
+        case IPRepCmdBoth:
             val = GetHostRepSrc(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val == 0 || RepMatch(rd->op, val, rd->val) == 0)
+            if (val == 0 || DetectU8Match(val, &rd->du8) == 0)
                 return 0;
             val = GetHostRepDst(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
-                return RepMatch(rd->op, val, rd->val);
+                return DetectU8Match(val, &rd->du8);
             }
             break;
     }
@@ -227,113 +212,15 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectIPRepData *cd = NULL;
     SigMatch *sm = NULL;
-    char *cmd_str = NULL, *name = NULL, *op_str = NULL, *value = NULL;
-    uint8_t cmd = 0;
-    int ret = 0, res = 0;
-    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
-    if (ret != 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for iprep", rawstr);
-        return -1;
-    }
-
-    const char *str_ptr;
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        return -1;
-    }
-    cmd_str = (char *)str_ptr;
-
-    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        goto error;
-    }
-    name = (char *)str_ptr;
-
-    res = pcre2_substring_get_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        goto error;
-    }
-    op_str = (char *)str_ptr;
-
-    res = pcre2_substring_get_bynumber(parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        goto error;
-    }
-    value = (char *)str_ptr;
-
-    if (strcmp(cmd_str,"any") == 0) {
-        cmd = DETECT_IPREP_CMD_ANY;
-    } else if (strcmp(cmd_str,"both") == 0) {
-        cmd = DETECT_IPREP_CMD_BOTH;
-    } else if (strcmp(cmd_str,"src") == 0) {
-        cmd = DETECT_IPREP_CMD_SRC;
-    } else if (strcmp(cmd_str,"dst") == 0) {
-        cmd = DETECT_IPREP_CMD_DST;
-    } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: iprep \"%s\" is not supported.", cmd_str);
+    DetectIPRepData *cd = rs_detect_iprep_parse(rawstr);
+    if (cd == NULL) {
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "\"%s\" is not a valid setting for iprep", rawstr);
         goto error;
     }
 
-    //SCLogInfo("category %s", name);
-    uint8_t cat = SRepCatGetByShortname(name);
-    if (cat == 0) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown iprep category \"%s\"", name);
-        goto error;
-    }
-
-    uint8_t op = 0;
-    uint8_t val = 0;
-
-    if (op_str == NULL || strlen(op_str) != 1) {
-        goto error;
-    }
-
-    switch(op_str[0]) {
-        case '<':
-            op = DETECT_IPREP_OP_LT;
-            break;
-        case '>':
-            op = DETECT_IPREP_OP_GT;
-            break;
-        case '=':
-            op = DETECT_IPREP_OP_EQ;
-            break;
-        default:
-            goto error;
-            break;
-    }
-
-    if (value != NULL && strlen(value) > 0) {
-        if (StringParseU8RangeCheck(&val, 10, 0, (const char *)value, 0, 127) < 0)
-            goto error;
-    }
-
-    cd = SCMalloc(sizeof(DetectIPRepData));
-    if (unlikely(cd == NULL))
-        goto error;
-
-    cd->cmd = cmd;
-    cd->cat = cat;
-    cd->op = op;
-    cd->val = val;
-    SCLogDebug("cmd %u, cat %u, op %u, val %u", cd->cmd, cd->cat, cd->op, cd->val);
-
-    pcre2_substring_free((PCRE2_UCHAR *)name);
-    name = NULL;
-    pcre2_substring_free((PCRE2_UCHAR *)cmd_str);
-    cmd_str = NULL;
-    pcre2_substring_free((PCRE2_UCHAR *)op_str);
-    op_str = NULL;
-    pcre2_substring_free((PCRE2_UCHAR *)value);
-    value = NULL;
+    SCLogDebug("cmd %u, cat %u, op %u, val %u", cd->cmd, cd->cat, cd->du8.mode, cd->du8.arg1);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -349,16 +236,8 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     return 0;
 
 error:
-    if (name != NULL)
-        pcre2_substring_free((PCRE2_UCHAR *)name);
-    if (cmd_str != NULL)
-        pcre2_substring_free((PCRE2_UCHAR *)cmd_str);
-    if (op_str != NULL)
-        pcre2_substring_free((PCRE2_UCHAR *)op_str);
-    if (value != NULL)
-        pcre2_substring_free((PCRE2_UCHAR *)value);
     if (cd != NULL)
-        SCFree(cd);
+        DetectIPRepFree(de_ctx, cd);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -371,7 +250,7 @@ void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
     if (fd == NULL)
         return;
 
-    SCFree(fd);
+    rs_detect_iprep_free(fd);
 }
 
 #ifdef UNITTESTS
