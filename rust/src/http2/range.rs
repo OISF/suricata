@@ -24,7 +24,9 @@ use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
 
 use nom::character::complete::digit1;
+#[cfg(feature = "http-range")]
 use nom::error::ErrorKind;
+#[cfg(feature = "http-range")]
 use nom::Err;
 use nom::IResult;
 use std::os::raw::c_uchar;
@@ -81,6 +83,7 @@ fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPConte
     );
 }
 
+#[cfg(feature = "http-range")]
 pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
     if v.start > v.end {
