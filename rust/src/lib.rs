@@ -90,7 +90,7 @@ pub mod log;
 #[macro_use]
 pub mod core;
 
-pub mod detect;
+pub mod rule_parser;
 
 #[macro_use]
 pub mod common;
