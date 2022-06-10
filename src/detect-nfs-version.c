@@ -133,7 +133,7 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
  */
 static DetectU32Data *DetectNfsVersionParse(const char *rawstr)
 {
-    return DetectU32Parse(rawstr);
+    return rs_detect_u32_parse_inclusive(rawstr);
 }
 
 
