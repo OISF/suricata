@@ -87,6 +87,28 @@ fn detect_parse_uint_start_interval<T: DetectIntType>(i: &str) -> IResult<&str, 
     ))
 }
 
+fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
+    i: &str,
+) -> IResult<&str, DetectUintData<T>> {
+    let (i, arg1) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
+        *x > T::min_value()
+    })(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = alt((tag("-"), tag("<>")))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, arg2) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
+        *x > arg1 && *x < T::max_value()
+    })(i)?;
+    Ok((
+        i,
+        DetectUintData {
+            arg1: arg1 - T::one(),
+            arg2: arg2 + T::one(),
+            mode: DetectUintMode::DetectUintModeRange,
+        },
+    ))
+}
+
 fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
     let (i, mode) = alt((
         value(DetectUintMode::DetectUintModeGte, tag(">=")),
@@ -199,6 +221,17 @@ pub fn detect_parse_uint<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintD
     Ok((i, uint))
 }
 
+pub fn detect_parse_uint_inclusive<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, uint) = alt((
+        detect_parse_uint_start_interval_inclusive,
+        detect_parse_uint_start_equal,
+        detect_parse_uint_start_symbol,
+    ))(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    Ok((i, uint))
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_u64_parse(
     ustr: *const std::os::raw::c_char,
@@ -236,6 +269,20 @@ pub unsafe extern "C" fn rs_detect_u32_parse(
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = detect_parse_uint::<u32>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_detect_u32_parse_inclusive(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = detect_parse_uint_inclusive::<u32>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
