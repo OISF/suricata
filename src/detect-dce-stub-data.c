@@ -158,8 +158,7 @@ void DetectDceStubDataRegister(void)
 }
 
 /**
- * \brief Creates a SigMatch for the \"dce_stub_data\" keyword being sent as argument,
- *        and appends it to the Signature(s).
+ * \brief setups the dce_stub_data list
  *
  * \param de_ctx Pointer to the detection engine context
  * \param s      Pointer to signature for the current Signature being parsed
@@ -171,15 +170,10 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-        s->alproto != ALPROTO_SMB) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
-    }
     if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
         return -1;
-
-    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
