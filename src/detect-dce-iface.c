@@ -155,11 +155,9 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SCEnter();
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-        s->alproto != ALPROTO_SMB) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
-    }
+
     void *did = rs_dcerpc_iface_parse(arg);
     if (did == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_iface option in "
@@ -176,7 +174,6 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     sm->ctx = did;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
-    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
