@@ -231,52 +231,63 @@ void FileForceHashParseCfg(ConfNode *conf)
     }
 }
 
-uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
+uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
 
     if (direction == STREAM_TOSERVER) {
-        if (flow->file_flags & FLOWFILE_NO_STORE_TS) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MAGIC_TS) {
+        if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MD5_TS) {
+        if (flow_file_flags & FLOWFILE_NO_MD5_TS) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA1_TS) {
+        if (flow_file_flags & FLOWFILE_NO_SHA1_TS) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA256_TS) {
+        if (flow_file_flags & FLOWFILE_NO_SHA256_TS) {
             flags |= FILE_NOSHA256;
         }
     } else {
-        if (flow->file_flags & FLOWFILE_NO_STORE_TC) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MAGIC_TC) {
+        if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MD5_TC) {
+        if (flow_file_flags & FLOWFILE_NO_MD5_TC) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA1_TC) {
+        if (flow_file_flags & FLOWFILE_NO_SHA1_TC) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA256_TC) {
+        if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
             flags |= FILE_NOSHA256;
         }
     }
+    if (flow_file_flags & FLOWFILE_STORE) {
+        flags |= FILE_STORE;
+    }
+    DEBUG_VALIDATE_BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+
+    SCLogDebug("direction %02x flags %02x", direction, flags);
     return flags;
+}
+
+uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
+{
+    return FileFlowFlagsToFlags(flow->file_flags, direction);
 }
 
 static int FileMagicSize(void)
