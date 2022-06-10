@@ -41,7 +41,7 @@ void FlowBitRegisterTests(void);
 
 void FlowBitSet(Flow *, uint32_t);
 void FlowBitUnset(Flow *, uint32_t);
-void FlowBitToggle(Flow *, uint32_t);
+bool FlowBitToggle(Flow *, uint32_t);
 int FlowBitIsset(Flow *, uint32_t);
 int FlowBitIsnotset(Flow *, uint32_t);
 #endif /* SURICATA_FLOW_BIT_H */
