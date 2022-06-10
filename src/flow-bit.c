@@ -91,13 +91,18 @@ void FlowBitUnset(Flow *f, uint32_t idx)
     FlowBitRemove(f, idx);
 }
 
-void FlowBitToggle(Flow *f, uint32_t idx)
+/**
+ * \retval bool true if bit is set, false is unset
+ */
+bool FlowBitToggle(Flow *f, uint32_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         FlowBitRemove(f, idx);
+        return false;
     } else {
         FlowBitAdd(f, idx);
+        return true;
     }
 }
 
