@@ -1315,7 +1315,7 @@ jobs:
           rust \
           xz
       - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
+        run: cargo install --force --debug --version 0.14.2 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
@@ -1350,7 +1350,7 @@ jobs:
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
+        run: cargo install --root /usr --force --debug --version 0.14.2 cbindgen
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
@@ -1399,7 +1399,7 @@ jobs:
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
+        run: cargo install --root /usr --force --debug --version 0.14.2 cbindgen
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
