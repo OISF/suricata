@@ -1931,14 +1931,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             AppLayerHtpNeedFileInspection();
         }
     }
-    if (s->init_data->init_flags & SIG_FLAG_INIT_DCERPC) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-                s->alproto != ALPROTO_SMB) {
-            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support DCERPC keyword",
-                    AppProtoToString(s->alproto));
-            SCReturnInt(0);
-        }
-    }
     if (s->id == 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature missing required value \"sid\".");
         SCReturnInt(0);
