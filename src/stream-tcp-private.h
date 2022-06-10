@@ -151,18 +151,18 @@ typedef struct TcpStream_ {
 /* from /usr/include/netinet/tcp.h */
 enum TcpState
 {
-    TCP_NONE,
-    TCP_LISTEN,
-    TCP_SYN_SENT,
-    TCP_SYN_RECV,
-    TCP_ESTABLISHED,
-    TCP_FIN_WAIT1,
-    TCP_FIN_WAIT2,
-    TCP_TIME_WAIT,
-    TCP_LAST_ACK,
-    TCP_CLOSE_WAIT,
-    TCP_CLOSING,
-    TCP_CLOSED,
+    TCP_NONE = 0,
+    //TCP_LISTEN = 1,
+    TCP_SYN_SENT = 2,
+    TCP_SYN_RECV = 3,
+    TCP_ESTABLISHED = 4,
+    TCP_FIN_WAIT1 = 5,
+    TCP_FIN_WAIT2 = 6,
+    TCP_TIME_WAIT = 7,
+    TCP_LAST_ACK = 8,
+    TCP_CLOSE_WAIT = 9,
+    TCP_CLOSING = 10,
+    TCP_CLOSED = 11,
 };
 
 /*
