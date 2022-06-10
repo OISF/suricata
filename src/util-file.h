@@ -251,6 +251,7 @@ void FileTruncateAllOpenFiles(FileContainer *);
 uint64_t FileDataSize(const File *file);
 uint64_t FileTrackedSize(const File *file);
 
+uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction);
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction);
 
 void FilePrintFlags(const File *file);
