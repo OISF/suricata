@@ -6551,9 +6551,6 @@ const char *StreamTcpStateAsString(const enum TcpState state)
         case TCP_NONE:
             tcp_state = "none";
             break;
-        case TCP_LISTEN:
-            tcp_state = "listen";
-            break;
         case TCP_SYN_SENT:
             tcp_state = "syn_sent";
             break;

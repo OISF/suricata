@@ -269,9 +269,6 @@ void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
             case TCP_NONE:
                 name = "flow.end.tcp_state.none";
                 break;
-            case TCP_LISTEN:
-                name = "flow.end.tcp_state.listen";
-                break;
             case TCP_SYN_SENT:
                 name = "flow.end.tcp_state.syn_sent";
                 break;
