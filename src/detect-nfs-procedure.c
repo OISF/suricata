@@ -146,7 +146,7 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
  */
 static DetectU32Data *DetectNfsProcedureParse(const char *rawstr)
 {
-    return DetectU32Parse(rawstr);
+    return rs_detect_u32_parse_inclusive(rawstr);
 }
 
 
@@ -267,9 +267,9 @@ static int ValidityTestParse03 (void)
 static int ValidityTestParse04 (void)
 {
     DetectU32Data *dd = NULL;
-    dd = DetectNfsProcedureParse("1430000000<>1470000000");
+    dd = DetectNfsProcedureParse("1430000001<>1470000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1470000000 && dd->mode == DETECT_UINT_RA);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1470000001 && dd->mode == DETECT_UINT_RA);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
@@ -381,9 +381,9 @@ static int ValidityTestParse11 (void)
 static int ValidityTestParse12 (void)
 {
     DetectU32Data *dd = NULL;
-    dd = DetectNfsProcedureParse("1430000000 <> 1490000000");
+    dd = DetectNfsProcedureParse("1430000001 <> 1490000000");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1490000000 && dd->mode == DETECT_UINT_RA);
+    FAIL_IF_NOT(dd->arg1 == 1430000000 && dd->arg2 == 1490000001 && dd->mode == DETECT_UINT_RA);
     DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
