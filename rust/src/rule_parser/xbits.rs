@@ -147,12 +147,15 @@ fn parse_xbits(arg: &str) -> Result<DetectXbitsData, ()> {
     })
 }
 
-//impl Drop for DetectXbitsData {
-//    fn drop(&mut self) {
-//        let _str = unsafe { CString::from_raw(self.name as *mut c_char) };  // Does this not mean taking the ownership back?
-////        All primitive types will be dropped without any special treatment, right?
-//    }
-//}
+impl Drop for DetectXbitsData {
+    fn drop(&mut self) {
+        if !self.name.is_null() {
+            unsafe {
+                let _str = CString::from_raw(self.name as *mut c_char);
+            }
+        }
+    }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut DetectXbitsData {
@@ -171,9 +174,8 @@ pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char) -> *mut DetectXbits
 #[no_mangle]
 pub unsafe extern "C" fn rs_xbits_free(ptr: *mut DetectXbitsData) {
     if !ptr.is_null() {
-        let _str = CString::from_raw((*ptr).name as *mut c_char);
         let _xbdata = Box::from_raw(ptr);
-    }
+   }
 }
 
 #[cfg(test)]
