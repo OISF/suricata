@@ -430,6 +430,8 @@ void FilePrintFlags(const File *file)
 
 void FilePrune(FileContainer *ffc)
 {
+    SCEnter();
+    SCLogDebug("ffc %p head %p", ffc, ffc->head);
     File *file = ffc->head;
     File *prev = NULL;
 
@@ -458,6 +460,7 @@ void FilePrune(FileContainer *ffc)
         FileFree(file);
         file = file_next;
     }
+    SCReturn;
 }
 
 /**
@@ -485,6 +488,7 @@ FileContainer *FileContainerAlloc(void)
  */
 void FileContainerRecycle(FileContainer *ffc)
 {
+    SCLogDebug("ffc %p", ffc);
     if (ffc == NULL)
         return;
 
@@ -504,6 +508,7 @@ void FileContainerRecycle(FileContainer *ffc)
  */
 void FileContainerFree(FileContainer *ffc)
 {
+    SCLogDebug("ffc %p", ffc);
     if (ffc == NULL)
         return;
 
@@ -555,6 +560,7 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 
 static void FileFree(File *ff)
 {
+    SCLogDebug("ff %p", ff);
     if (ff == NULL)
         return;
 
@@ -582,6 +588,7 @@ static void FileFree(File *ff)
 
 void FileContainerAdd(FileContainer *ffc, File *ff)
 {
+    SCLogDebug("ffc %p ff %p", ffc, ff);
     if (ffc->head == NULL || ffc->tail == NULL) {
         ffc->head = ffc->tail = ff;
     } else {
@@ -597,6 +604,7 @@ void FileContainerAdd(FileContainer *ffc, File *ff)
  */
 int FileStore(File *ff)
 {
+    SCLogDebug("ff %p", ff);
     ff->flags |= FILE_STORE;
     SCReturnInt(0);
 }
@@ -651,7 +659,9 @@ static int FileStoreNoStoreCheck(File *ff)
 
 static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 {
+    SCLogDebug("file %p data_len %u", file, data_len);
     if (StreamingBufferAppendNoTrack(file->sb, data, data_len) != 0) {
+        SCLogDebug("file %p StreamingBufferAppendNoTrack failed", file);
         SCReturnInt(-1);
     }
 
@@ -662,7 +672,10 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
         SCSha1Update(file->sha1_ctx, data, data_len);
     }
     if (file->sha256_ctx) {
+        SCLogDebug("SHA256 file %p data %p data_len %u", file, data, data_len);
         SCSha256Update(file->sha256_ctx, data, data_len);
+    } else {
+        SCLogDebug("NO SHA256 file %p data %p data_len %u", file, data, data_len);
     }
     SCReturnInt(0);
 }
@@ -722,6 +735,7 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
+            SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
             SCSha256Update(ff->sha256_ctx, data, data_len);
             hash_done = 1;
         }
@@ -934,6 +948,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
     }
     if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
         ff->sha256_ctx = SCSha256New();
+        SCLogDebug("ff %p ff->sha256_ctx %p", ff, ff->sha256_ctx);
     }
 
     ff->state = FILE_STATE_OPENED;
@@ -964,6 +979,7 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
+    SCLogDebug("ffc %p track_id %u", ffc, track_id);
     File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
     if (ff == NULL)
         return -1;
@@ -993,8 +1009,10 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
                 SCMd5Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
                 SCSha1Update(ff->sha1_ctx, data, data_len);
-            if (ff->sha256_ctx)
+            if (ff->sha256_ctx) {
+                SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
                 SCSha256Update(ff->sha256_ctx, data, data_len);
+            }
         } else {
             if (AppendData(ff, data, data_len) != 0) {
                 ff->state = FILE_STATE_ERROR;
@@ -1004,6 +1022,9 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
     }
 
     if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
+        SCLogDebug("flags FILE_TRUNCATED %s", (flags & FILE_TRUNCATED) ? "true" : "false");
+        SCLogDebug("ff->flags FILE_HAS_GAPS %s", (ff->flags & FILE_HAS_GAPS) ? "true" : "false");
+
         ff->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
 
@@ -1012,6 +1033,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_NOSTORE;
         } else {
             if (g_file_force_sha256 && ff->sha256_ctx) {
+                SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
                 FileEndSha256(ff);
             }
         }
@@ -1030,6 +1052,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
+            SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
             FileEndSha256(ff);
         }
     }
@@ -1280,6 +1303,7 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
  */
 static void FileEndSha256(File *ff)
 {
+    SCLogDebug("ff %p ff->size %" PRIu64, ff, ff->size);
     if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
         SCSha256Finalize(ff->sha256_ctx, ff->sha256, sizeof(ff->sha256));
         ff->sha256_ctx = NULL;
