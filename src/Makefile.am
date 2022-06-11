@@ -224,6 +224,7 @@ noinst_HEADERS = \
 	detect-ike-nonce-payload-length.h \
 	detect-ike-nonce-payload.h \
 	detect-ike-key-exchange-payload.h \
+	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
 	detect-iprep.h \
@@ -820,6 +821,7 @@ libsuricata_c_a_SOURCES = \
 	detect-ike-nonce-payload-length.c \
 	detect-ike-nonce-payload.c \
 	detect-ike-key-exchange-payload.c \
+	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
 	detect-iprep.c \
@@ -1249,6 +1251,7 @@ EXTRA_DIST = \
 	tests/detect-tls-ja3s-string.c \
 	tests/detect-tls-sni.c \
 	tests/detect-tls-version.c \
+	tests/detect-ipaddr.c \
 	tests/detect.c \
 	tests/stream-tcp.c
 
