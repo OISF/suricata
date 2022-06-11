@@ -184,11 +184,11 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd->flags & DETECT_CONTENT_NOCASE) {
-                *sigerror = "http_host keyword "
-                        "specified along with \"nocase\". "
-                        "Since the hostname buffer we match against "
-                        "is actually lowercase.  So having a "
-                        "nocase is redundant.";
+                *sigerror = "http.host keyword "
+                            "specified along with \"nocase\". "
+                            "The hostname buffer is normalized "
+                            "to lowercase, specifying "
+                            "nocase is redundant.";
                 SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
                 return false;
             } else {
@@ -199,10 +199,9 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                 }
                 if (u != cd->content_len) {
                     *sigerror = "A pattern with "
-                            "uppercase chars detected for http_host.  "
-                            "Since the hostname buffer we match against "
-                            "is lowercase only, please specify a "
-                            "lowercase pattern.";
+                                "uppercase chararacters detected for http.host. "
+                                "The hostname buffer is normalized to lowercase, "
+                                "please specify a lowercase pattern.";
                     SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
                     return false;
                 }
