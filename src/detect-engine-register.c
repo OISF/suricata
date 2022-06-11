@@ -77,6 +77,7 @@
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
+#include "detect-ipaddr.h"
 #include "detect-ipopts.h"
 #include "detect-tcp-flags.h"
 #include "detect-fragbits.h"
@@ -616,6 +617,7 @@ void SigTableSetup(void)
     DetectTcpmssRegister();
     DetectICMPv6hdrRegister();
     DetectICMPv6mtuRegister();
+    DetectIPAddrBufferRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();
