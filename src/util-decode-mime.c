@@ -31,7 +31,7 @@
 #include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-print.h"
-
+#include "util-validate.h"
 #include "rust.h"
 
 /* Character constants */
@@ -1218,60 +1218,78 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  * \param state The current parser state
  * \param force Flag indicating whether decoding should always occur
  *
- * \return Number of bytes pulled from the current buffer
+ * \return Number of bytes consumed from `buf`
  */
 static uint8_t ProcessBase64Remainder(
-        const uint8_t *buf, uint8_t len, MimeDecParseState *state, int force)
+        const uint8_t *buf, const uint32_t len, MimeDecParseState *state, int force)
 {
-    uint32_t ret;
-    uint8_t remainder = 0;
-    uint32_t remdec = 0;
+    uint8_t buf_consumed = 0; /* consumed bytes from 'buf' */
+    uint8_t cnt = 0;
+    uint8_t block[B64_BLOCK];
 
-    SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
-
-    /* Fill in block with first few bytes of current line */
-    remainder = B64_BLOCK - state->bvr_len;
-    remainder = remainder < len ? remainder : len;
-    if (remainder && buf) {
-        memcpy(state->bvremain + state->bvr_len, buf, remainder);
+    /* should be impossible, but lets be defensive */
+    DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
+    if (state->bvr_len > B64_BLOCK) {
+        state->bvr_len = 0;
+        return 0;
     }
-    state->bvr_len += remainder;
+
+    /* Strip spaces in remainder */
+    for (uint8_t i = 0; i < state->bvr_len; i++) {
+        if (state->bvremain[i] != ' ') {
+            block[cnt++] = state->bvremain[i];
+        }
+    }
+
+    /* if we don't have 4 bytes see if we can fill it from `buf` */
+    if (buf && len > 0 && cnt != B64_BLOCK) {
+        for (uint32_t i = 0; i < len && cnt < B64_BLOCK; i++) {
+            if (buf[i] != ' ') {
+                block[cnt++] = buf[i];
+            }
+            buf_consumed++;
+        }
+        if (cnt != 0) {
+            memcpy(state->bvremain, block, cnt);
+        }
+        state->bvr_len = cnt;
+    }
 
     /* If data chunk buffer will be full, then clear it now */
     if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
         /* Invoke pre-processor and callback */
-        ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len,
-                state);
+        uint32_t ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
         if (ret != MIME_DEC_OK) {
             SCLogDebug("Error: ProcessDecodedDataChunk() function failed");
         }
     }
 
-    /* Only decode if divisible by 4 */
     if (state->bvr_len == B64_BLOCK || force) {
-        remdec = DecodeBase64(state->data_chunk + state->data_chunk_len,
-                              state->bvremain, state->bvr_len, 1);
-        if (remdec > 0) {
+        uint32_t consumed_bytes = 0;
+        uint32_t remdec = 0;
+        const uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
+                state->bvremain, state->bvr_len, &consumed_bytes, &remdec, BASE64_MODE_RFC2045);
+        if (remdec > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
 
             /* Track decoded length */
             state->stack->top->data->decoded_body_len += remdec;
 
             /* Update length */
             state->data_chunk_len += remdec;
-
             /* If data chunk buffer is now full, then clear */
             if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
                 /* Invoke pre-processor and callback */
-                ret = ProcessDecodedDataChunk(state->data_chunk,
-                        state->data_chunk_len, state);
+                uint32_t ret =
+                        ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
                 if (ret != MIME_DEC_OK) {
                     SCLogDebug("Error: ProcessDecodedDataChunk() function "
                             "failed");
                 }
             }
-        } else {
+        } else if (code == BASE64_ECODE_ERR) {
             /* Track failed base64 */
             state->stack->top->data->anomaly_flags |= ANOM_INVALID_BASE64;
             state->msg->anomaly_flags |= ANOM_INVALID_BASE64;
@@ -1283,7 +1301,8 @@ static uint8_t ProcessBase64Remainder(
         state->bvr_len = 0;
     }
 
-    return remainder;
+    DEBUG_VALIDATE_BUG_ON(buf_consumed > len);
+    return buf_consumed;
 }
 
 /**
@@ -1300,10 +1319,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
-    uint8_t rem1 = 0, rem2 = 0;
-    uint32_t numDecoded, remaining, offset, avail, tobuf;
+    uint32_t numDecoded, remaining = len, offset = 0;
 
-    /* Track long line */
+    /* Track long line TODO should we count space padding too? */
     if (len > MAX_ENC_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_ENC_LINE;
         state->msg->anomaly_flags |= ANOM_LONG_ENC_LINE;
@@ -1311,89 +1329,93 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
                 len, MAX_ENC_LINE_LEN);
     }
 
+    if (state->bvr_len + len < B64_BLOCK) {
+        memcpy(state->bvremain + state->bvr_len, buf, len);
+        state->bvr_len += len;
+        return MIME_DEC_OK;
+    }
+
     /* First process remaining from previous line */
     if (state->bvr_len > 0) {
+        uint32_t consumed = ProcessBase64Remainder(buf, len, state, 0);
+        DEBUG_VALIDATE_BUG_ON(consumed > len);
+        if (consumed > len)
+            return MIME_DEC_ERR_PARSE;
 
-        SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
-
-        /* Process remainder and return number of bytes pulled from current buffer */
-        rem1 = ProcessBase64Remainder(buf, (uint8_t)len, state, 0);
+        uint32_t left = len - consumed;
+        if (left < B64_BLOCK) {
+            memcpy(state->bvremain, buf + consumed, left);
+            state->bvr_len = (uint8_t)left;
+            return MIME_DEC_OK;
+        }
+        remaining -= consumed;
+        offset = consumed;
     }
 
-    /* No error and at least some more data needs to be decoded */
-    if ((int) (len - rem1) > 0) {
+    while (remaining > 0 && remaining >= B64_BLOCK) {
+        uint32_t consumed_bytes = 0;
+        uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
+                buf + offset, remaining, &consumed_bytes, &numDecoded, BASE64_MODE_RFC2045);
+        DEBUG_VALIDATE_BUG_ON(consumed_bytes > remaining);
+        if (consumed_bytes > remaining)
+            return MIME_DEC_ERR_PARSE;
 
-        /* Determine whether we need to save a remainder if not divisible by 4 */
-        rem2 = (len - rem1) % B64_BLOCK;
-        if (rem2 > 0) {
+        uint32_t leftover_bytes = remaining - consumed_bytes;
+        if (numDecoded > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
+            /* Track decoded length */
+            state->stack->top->data->decoded_body_len += numDecoded;
+            /* Update length */
+            state->data_chunk_len += numDecoded;
 
-            SCLogDebug("Base64 saving remainder: %u", rem2);
-
-            memcpy(state->bvremain, buf + (len - rem2), rem2);
-            state->bvr_len = rem2;
-        }
-
-        /* Process remaining in loop in case buffer fills up */
-        remaining = len - rem1 - rem2;
-        offset = rem1;
-        while (remaining > 0) {
-
-            /* Determine amount to add to buffer */
-            avail = (DATA_CHUNK_SIZE - state->data_chunk_len) * B64_BLOCK / ASCII_BLOCK;
-            tobuf = avail > remaining ? remaining : avail;
-            while (tobuf % 4 != 0) {
-                tobuf--;
-            }
-
-            if (tobuf < B64_BLOCK) {
-                SCLogDebug("Error: Invalid state for decoding base-64 block");
+            if ((int)(DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
+                SCLogDebug("Error: Invalid Chunk length: %u", state->data_chunk_len);
                 return MIME_DEC_ERR_PARSE;
             }
-
-            SCLogDebug("Decoding: %u", len - rem1 - rem2);
-
-            numDecoded = DecodeBase64(state->data_chunk + state->data_chunk_len,
-                    buf + offset, tobuf, 1);
-            if (numDecoded > 0) {
-
-                /* Track decoded length */
-                state->stack->top->data->decoded_body_len += numDecoded;
-
-                /* Update length */
-                state->data_chunk_len += numDecoded;
-
-                if ((int) (DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
-                    SCLogDebug("Error: Invalid Chunk length: %u",
-                            state->data_chunk_len);
-                    ret = MIME_DEC_ERR_PARSE;
+            /* If buffer full, then invoke callback */
+            if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
+                /* Invoke pre-processor and callback */
+                ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+                if (ret != MIME_DEC_OK) {
+                    SCLogDebug("Error: ProcessDecodedDataChunk() function failed");
                     break;
                 }
-
-                /* If buffer full, then invoke callback */
-                if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
-
-                    /* Invoke pre-processor and callback */
-                    ret = ProcessDecodedDataChunk(state->data_chunk,
-                            state->data_chunk_len, state);
-                    if (ret != MIME_DEC_OK) {
-                        SCLogDebug("Error: ProcessDecodedDataChunk() "
-                                "function failed");
-                    }
-                }
-            } else {
-                /* Track failed base64 */
-                state->stack->top->data->anomaly_flags |= ANOM_INVALID_BASE64;
-                state->msg->anomaly_flags |= ANOM_INVALID_BASE64;
-                SCLogDebug("Error: DecodeBase64() function failed");
-                PrintChars(SC_LOG_DEBUG, "Base64 failed string", buf + offset, tobuf);
             }
-
-            /* Update counts */
-            remaining -= tobuf;
-            offset += tobuf;
+        } else if (code == BASE64_ECODE_ERR) {
+            /* Track failed base64 */
+            state->stack->top->data->anomaly_flags |= ANOM_INVALID_BASE64;
+            state->msg->anomaly_flags |= ANOM_INVALID_BASE64;
+            SCLogDebug("Error: DecodeBase64() function failed");
+            return MIME_DEC_ERR_DATA;
         }
-    }
 
+        /* corner case: multiples spaces in the last data, leading it to exceed the block
+         * size. We strip of spaces this while storing it in bvremain */
+        if (consumed_bytes == 0 && leftover_bytes > B64_BLOCK) {
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
+            for (uint32_t i = 0; i < leftover_bytes; i++) {
+                if (buf[offset] != ' ') {
+                    DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
+                    if (state->bvr_len >= B64_BLOCK)
+                        return MIME_DEC_ERR_DATA;
+                    state->bvremain[state->bvr_len++] = buf[offset];
+                }
+                offset++;
+            }
+            return MIME_DEC_OK;
+
+        } else if (leftover_bytes > 0 && leftover_bytes <= B64_BLOCK) {
+            /* If remaining is 4 by this time, we encountered spaces during processing */
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
+            memcpy(state->bvremain, buf + offset + consumed_bytes, leftover_bytes);
+            state->bvr_len = (uint8_t)leftover_bytes;
+            return MIME_DEC_OK;
+        }
+
+        /* Update counts */
+        remaining = leftover_bytes;
+        offset += consumed_bytes;
+    }
     return ret;
 }
 
@@ -3169,8 +3191,8 @@ static int MimeDecParseFullMsgTest02(void)
     MimeDecFreeEntity(entity);
 
     if (expected_count != line_count) {
-        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
-                expected_count, line_count);
+        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d", expected_count,
+                line_count);
         return 0;
     }
 
@@ -3180,6 +3202,7 @@ static int MimeDecParseFullMsgTest02(void)
 static int MimeBase64DecodeTest01(void)
 {
     int ret = 0;
+    uint32_t consumed_bytes = 0, num_decoded = 0;
 
     const char *msg = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@"
             "#$%^&*()-=_+,./;'[]<>?:";
@@ -3190,7 +3213,8 @@ static int MimeBase64DecodeTest01(void)
     if (dst == NULL)
         return 0;
 
-    ret = DecodeBase64(dst, (const uint8_t *)base64msg, strlen(base64msg), 1);
+    ret = DecodeBase64(dst, strlen(msg) + 1, (const uint8_t *)base64msg, strlen(base64msg),
+            &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
 
     if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 1;
@@ -3320,6 +3344,207 @@ static int MimeDecParseLongFilename01(void)
     PASS;
 }
 
+static int MimeDecParseSmallRemInp(void)
+{
+    // Remainder dA
+    // New input: AAAA
+    char mimemsg[] = "TWltZSBkZWNvZGluZyB pcyBzbyBO T1QgZnV uISBJIGNhbm5vdA";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+    state->stack->top->data->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Transfer-Encoding: base64";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+
+    str = "AAAA";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    /* filename is not too long */
+    FAIL_IF(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+static int MimeDecParseRemSp(void)
+{
+    // Should have remainder vd A
+    char mimemsg[] = "TWltZSBkZWNvZGluZyBpc yBzbyBOT1QgZnVuISBJIGNhbm5vd A";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+    state->stack->top->data->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Transfer-Encoding: base64";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    /* filename is not too long */
+    FAIL_IF(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+static int MimeDecVerySmallInp(void)
+{
+    // Remainder: A
+    // New input: aA
+    char mimemsg[] = "TWltZSBkZWNvZGluZyB pcyBzbyBO T1QgZnV uISBJIGNhbm5vA";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+    state->stack->top->data->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Transfer-Encoding: base64";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+
+    str = "aA";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    /* filename is not too long */
+    FAIL_IF(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+static int MimeDecParseOddLen(void)
+{
+    char mimemsg[] = "TWltZSBkZWNvZGluZyB pcyBzbyBO T1QgZnV uISBJIGNhbm5vdA";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+    state->stack->top->data->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Transfer-Encoding: base64";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    /* filename is not too long */
+    FAIL_IF(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
 static int MimeDecParseLongFilename02(void)
 {
     /* contains 40 character filename and 500+ characters following filename */
@@ -3404,5 +3629,9 @@ void MimeDecRegisterTests(void)
     UtRegisterTest("MimeIsIpv6HostTest01", MimeIsIpv6HostTest01);
     UtRegisterTest("MimeDecParseLongFilename01", MimeDecParseLongFilename01);
     UtRegisterTest("MimeDecParseLongFilename02", MimeDecParseLongFilename02);
+    UtRegisterTest("MimeDecParseSmallRemInp", MimeDecParseSmallRemInp);
+    UtRegisterTest("MimeDecParseRemSp", MimeDecParseRemSp);
+    UtRegisterTest("MimeDecVerySmallInp", MimeDecVerySmallInp);
+    UtRegisterTest("MimeDecParseOddLen", MimeDecParseOddLen);
 #endif /* UNITTESTS */
 }

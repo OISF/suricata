@@ -59,7 +59,6 @@ void ConfInit(void);
 void ConfDeInit(void);
 ConfNode *ConfGetRootNode(void);
 int ConfGet(const char *name, const char **vptr);
-int ConfGetValue(const char *name, const char **vptr);
 int ConfGetInt(const char *name, intmax_t *val);
 int ConfGetBool(const char *name, int *val);
 int ConfGetDouble(const char *name, double *val);

@@ -53,6 +53,7 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                           const uint8_t *src_buf, const uint32_t src_buf_len);
 void PrintRawLineHexBuf(char *, uint32_t, const uint8_t *, uint32_t );
 const char *PrintInet(int , const void *, char *, socklen_t);
+void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len);
 
 #endif /* __UTIL_PRINT_H__ */
 

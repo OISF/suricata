@@ -219,7 +219,7 @@ extern {
 
 pub static mut SC: Option<&'static SuricataContext> = None;
 
-pub fn init_ffi(context: &'static mut SuricataContext)
+pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
@@ -228,7 +228,7 @@ pub fn init_ffi(context: &'static mut SuricataContext)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_init(context: &'static mut SuricataContext)
+pub extern "C" fn rs_init(context: &'static SuricataContext)
 {
     init_ffi(context);
 }
@@ -277,7 +277,7 @@ pub fn sc_app_layer_decoder_events_free_events(
 /// Opaque flow type (defined in C)
 pub enum Flow {}
 
-/// Extern functions operating on Flow.
+// Extern functions operating on Flow.
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
     pub fn FlowGetFlags(flow: &Flow) -> u32;

@@ -25,7 +25,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo/registry
           key: cargo-registry

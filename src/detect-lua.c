@@ -103,7 +103,7 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
-static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -134,7 +134,7 @@ void DetectLuaRegister(void)
     return;
 }
 
-static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -1236,15 +1236,12 @@ static int LuaMatchTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -1260,14 +1257,11 @@ static int LuaMatchTest01(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1397,15 +1391,12 @@ static int LuaMatchTest01a(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -1421,14 +1412,11 @@ static int LuaMatchTest01a(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2089,15 +2077,12 @@ static int LuaMatchTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2113,14 +2098,11 @@ static int LuaMatchTest04(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2244,15 +2226,12 @@ static int LuaMatchTest04a(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2268,14 +2247,11 @@ static int LuaMatchTest04a(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2392,15 +2368,12 @@ static int LuaMatchTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2416,14 +2389,11 @@ static int LuaMatchTest05(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2540,15 +2510,12 @@ static int LuaMatchTest05a(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2564,14 +2531,11 @@ static int LuaMatchTest05a(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2693,15 +2657,12 @@ static int LuaMatchTest06(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2717,14 +2678,11 @@ static int LuaMatchTest06(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -2846,15 +2804,12 @@ static int LuaMatchTest06a(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
@@ -2870,14 +2825,11 @@ static int LuaMatchTest06a(void)
         goto end;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    FLOWLOCK_UNLOCK(&f);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);

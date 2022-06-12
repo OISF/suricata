@@ -185,6 +185,7 @@ int SignatureIsFilesizeInspecting(const Signature *s)
  *  \param de_ctx detection engine ctx
  *  \param s the signature
  *  \retval 1 sig is ip only
+ *  \retval 2 sig is like ip only
  *  \retval 0 sig is not ip only
  */
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
@@ -219,17 +220,18 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
-    /* if any of the addresses uses negation, we don't support
-     * it in ip-only */
-    if (s->init_data->src_contains_negation)
-        return 0;
-    if (s->init_data->dst_contains_negation)
-        return 0;
-
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    if (sm == NULL)
-        goto iponly;
-
+    for (; sm != NULL; sm = sm->next) {
+        if (!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
+            return 0;
+        /* we have enabled flowbits to be compatible with ip only sigs, as long
+         * as the sig only has a "set" flowbits */
+        if (sm->type == DETECT_FLOWBITS &&
+                (((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET)) {
+            return 0;
+        }
+    }
+    sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     for ( ; sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
@@ -241,7 +243,10 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
 
-iponly:
+    if (s->init_data->src_contains_negation || s->init_data->dst_contains_negation) {
+        /* Rule is IP only, but contains negated addresses. */
+        return 2;
+    }
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
                    s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
@@ -538,18 +543,18 @@ static int SignatureCreateMask(Signature *s)
             }
             case DETECT_DSIZE:
             {
-                DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
+                DetectU16Data *ds = (DetectU16Data *)sm->ctx;
                 /* LT will include 0, so no payload.
                  * if GT is used in the same rule the
                  * flag will be set anyway. */
-                if (ds->mode == DETECTDSIZE_RA || ds->mode == DETECTDSIZE_GT ||
-                        ds->mode == DETECTDSIZE_NE) {
+                if (ds->mode == DETECT_UINT_RA || ds->mode == DETECT_UINT_GT ||
+                        ds->mode == DETECT_UINT_NE || ds->mode == DETECT_UINT_GTE) {
 
                     s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                     SCLogDebug("sig requires payload");
 
-                } else if (ds->mode == DETECTDSIZE_EQ) {
-                    if (ds->dsize > 0) {
+                } else if (ds->mode == DETECT_UINT_EQ) {
+                    if (ds->arg1 > 0) {
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
                     } else {
@@ -825,7 +830,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    for (int i = 0; i < ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
@@ -1173,7 +1178,8 @@ static int RuleSetWhitelist(Signature *s)
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
-static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint32_t direction) {
+static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
+{
     /* step 1: create a hash of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */
@@ -1319,14 +1325,19 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
 {
+    int iponly = 0;
+
     /* see if the sig is dp only */
     if (SignatureIsPDOnly(de_ctx, s) == 1) {
         s->flags |= SIG_FLAG_PDONLY;
 
     /* see if the sig is ip only */
-    } else if (SignatureIsIPOnly(de_ctx, s) == 1) {
-        s->flags |= SIG_FLAG_IPONLY;
-
+    } else if ((iponly = SignatureIsIPOnly(de_ctx, s)) > 0) {
+        if (iponly == 1) {
+            s->flags |= SIG_FLAG_IPONLY;
+        } else if (iponly == 2) {
+            s->flags |= SIG_FLAG_LIKE_IPONLY;
+        }
     } else if (SignatureIsDEOnly(de_ctx, s) == 1) {
         s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
     }
@@ -1681,8 +1692,6 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
 {
-    uint32_t sigs = 0;
-
     SCLogDebug("building signature grouping structure, stage 2: "
             "building source address lists...");
 
@@ -1706,13 +1715,10 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
         if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, s);
         }
-
-        sigs++;
     }
 
     IPOnlyPrepare(de_ctx);
     IPOnlyPrint(de_ctx, &de_ctx->io_ctx);
-
     return 0;
 }
 

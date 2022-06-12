@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -100,7 +100,7 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
             &stream->sb, &seg->sbseg, data + data_offset, data_len - data_offset, stream_offset);
     if (ret != 0) {
         /* StreamingBufferInsertAt can return -2 only if the offset is wrong, which should be
-         * correctly handled here. */
+         * impossible in this path. */
         DEBUG_VALIDATE_BUG_ON(ret != -1);
         SCReturnInt(-1);
     }
@@ -163,19 +163,10 @@ static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
  *  \retval 2 not inserted, data overlap
  *  \retval 1 inserted with overlap detected
  *  \retval 0 inserted, no overlap
- *  \retval -1 error
  */
 static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup_seg, Packet *p)
 {
-    /* before our base_seq we don't insert it in our list */
-    if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq))
-    {
-        SCLogDebug("not inserting: SEQ+payload %"PRIu32", last_ack %"PRIu32", "
-                "base_seq %"PRIu32, (seg->seq + TCP_SEG_LEN(seg)),
-                stream->last_ack, stream->base_seq);
-        StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ);
-        return -1;
-    }
+    BUG_ON(SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq));
 
     /* fast track */
     if (RB_EMPTY(&stream->seg_tree)) {
@@ -562,6 +553,71 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     return 0;
 }
 
+/** \internal
+ *  \brief Add the header data to the segment
+ *  \param rp packet to take the headers from. Might differ from `pp` in tunnels.
+ *  \param pp packet to take the payload size from.
+ */
+static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, const Packet *pp)
+{
+    if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > pp->payload_len) {
+        seg->pcap_hdr_storage->ts.tv_sec = rp->ts.tv_sec;
+        seg->pcap_hdr_storage->ts.tv_usec = rp->ts.tv_usec;
+        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - pp->payload_len;
+        /*
+         * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
+         * need to check that this is sufficient and allocate more memory if
+         * not.
+         */
+        if (seg->pcap_hdr_storage->pktlen > seg->pcap_hdr_storage->alloclen) {
+            uint8_t *tmp_pkt_hdr = StreamTcpReassembleRealloc(seg->pcap_hdr_storage->pkt_hdr,
+                    seg->pcap_hdr_storage->alloclen, seg->pcap_hdr_storage->pktlen);
+            if (tmp_pkt_hdr == NULL) {
+                SCLogDebug("Failed to realloc");
+                seg->pcap_hdr_storage->ts.tv_sec = 0;
+                seg->pcap_hdr_storage->ts.tv_usec = 0;
+                seg->pcap_hdr_storage->pktlen = 0;
+                return;
+            } else {
+                seg->pcap_hdr_storage->pkt_hdr = tmp_pkt_hdr;
+                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(rp) - pp->payload_len;
+            }
+        }
+        memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(rp),
+                (size_t)GET_PKT_LEN(rp) - pp->payload_len);
+    } else {
+        seg->pcap_hdr_storage->ts.tv_sec = 0;
+        seg->pcap_hdr_storage->ts.tv_usec = 0;
+        seg->pcap_hdr_storage->pktlen = 0;
+    }
+}
+
+/**
+ * \brief Adds the following information to the TcpSegment from the current
+ *  packet being processed: time values, packet length, and the
+ *  header data of the packet. This information is added to the TcpSegment so
+ *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
+ *  session at the beginning of the pcap capture.
+ * \param seg TcpSegment where information is being stored.
+ * \param p Packet being processed.
+ * \param tv Thread-specific variables.
+ * \param ra_ctx TcpReassembly thread-specific variables
+ */
+static void StreamTcpSegmentAddPacketData(
+        TcpSegment *seg, Packet *p, ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
+{
+    if (seg->pcap_hdr_storage == NULL || seg->pcap_hdr_storage->pkt_hdr == NULL) {
+        return;
+    }
+
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        Packet *rp = p->root;
+        StreamTcpSegmentAddPacketDataDo(seg, rp, p);
+    } else {
+        StreamTcpSegmentAddPacketDataDo(seg, p, p);
+    }
+}
+
 /**
  *  \return 0 ok
  *  \return -1 segment not inserted due to memcap issue
@@ -580,11 +636,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* insert segment into list. Note: doesn't handle the data */
     int r = DoInsertSegment (stream, seg, &dup_seg, p);
-    SCLogDebug("DoInsertSegment returned %d", r);
-    if (r < 0) {
-        StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
-        StreamTcpSegmentReturntoPool(seg);
-        SCReturnInt(-1);
+
+    if (IsTcpSessionDumpingEnabled()) {
+        StreamTcpSegmentAddPacketData(seg, p, tv, ra_ctx);
     }
 
     if (likely(r == 0)) {

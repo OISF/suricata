@@ -43,7 +43,7 @@ static int DetectMQTTQosSetup (DetectEngineCtx *, Signature *, const char *);
 void MQTTQosRegisterTests(void);
 void DetectMQTTQosFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTQosGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTQosGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -68,7 +68,7 @@ void DetectMQTTQosRegister (void)
     mqtt_qos_id = DetectBufferTypeGetByName("mqtt.qos");
 }
 
-static int DetectEngineInspectMQTTQosGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTQosGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {

@@ -1391,11 +1391,11 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s == NULL)
         return;
 
-    if (s->CidrDst != NULL)
-        IPOnlyCIDRListFree(s->CidrDst);
+    if (s->cidr_dst != NULL)
+        IPOnlyCIDRListFree(s->cidr_dst);
 
-    if (s->CidrSrc != NULL)
-        IPOnlyCIDRListFree(s->CidrSrc);
+    if (s->cidr_src != NULL)
+        IPOnlyCIDRListFree(s->cidr_src);
 
     int i;
 
@@ -3605,13 +3605,7 @@ end:
         PACKET_RECYCLE(p);
         SCFree(p);
     }
-    if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
     FlowShutdown();
-
     return result;
 }
 
@@ -3768,25 +3762,13 @@ end:
  */
 static int SigParseTestNegation01 (void)
 {
-    int result = 0;
-    DetectEngineCtx *de_ctx;
-    Signature *s=NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    s = SigInit(de_ctx,"alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)");
-    if (s != NULL) {
-        SigFree(de_ctx, s);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
-    return result;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp !any any -> any any (sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -3925,26 +3907,14 @@ end:
  */
 static int SigParseTestNegation07 (void)
 {
-    int result = 0;
-    DetectEngineCtx *de_ctx;
-    Signature *s=NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)");
-    if (s != NULL) {
-        SigFree(de_ctx, s);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (sid:410006;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -4176,36 +4146,39 @@ static int SigParseTestContentGtDsize02(void)
     PASS;
 }
 
+static int CountSigsWithSid(const DetectEngineCtx *de_ctx, const uint32_t sid)
+{
+    int cnt = 0;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (sid == s->id)
+            cnt++;
+    }
+    return cnt;
+}
+
 static int SigParseBidirWithSameSrcAndDest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = SigInit(de_ctx,
-            "alert tcp any any <> any any (sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any <> any any (sid:1;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 1) == 1);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(de_ctx, s);
-
-    s = SigInit(de_ctx,
-            "alert tcp any [80, 81] <> any [81, 80] (sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any [80, 81] <> any [81, 80] (sid:2;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 2) == 1);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(de_ctx, s);
-
-    s = SigInit(de_ctx,
-            "alert tcp [1.2.3.4, 5.6.7.8] [80, 81] <> [5.6.7.8, 1.2.3.4] [81, 80] (sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp [1.2.3.4, 5.6.7.8] [80, 81] <> [5.6.7.8, 1.2.3.4] [81, 80] (sid:3;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 3) == 1);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(de_ctx, s);
-
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -4216,32 +4189,41 @@ static int SigParseBidirWithSameSrcAndDest02(void)
     de_ctx->flags |= DE_QUIET;
 
     // Source is a subset of destination
-    Signature *s = SigInit(de_ctx,
-            "alert tcp 1.2.3.4 any <> [1.2.3.4, 5.6.7.8, ::1] any (sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert tcp 1.2.3.4 any <> [1.2.3.4, 5.6.7.8, ::1] any (sid:1;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 1) == 2);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
-
-    SigFree(de_ctx, s);
 
     // Source is a subset of destination
-    s = SigInit(de_ctx,
-            "alert tcp [1.2.3.4, ::1] [80, 81, 82] <> [1.2.3.4, ::1] [80, 81] (sid:1; rev:1;)");
+    s = DetectEngineAppendSig(
+            de_ctx, "alert tcp [1.2.3.4, ::1] [80, 81, 82] <> [1.2.3.4, ::1] [80, 81] (sid:2;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 2) == 2);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
-
-    SigFree(de_ctx, s);
 
     // Source intersects with destination
-    s = SigInit(de_ctx,
-            "alert tcp [1.2.3.4, ::1, ABCD:AAAA::1] [80] <> [1.2.3.4, ::1] [80, 81] (sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp [1.2.3.4, ::1, ABCD:AAAA::1] [80] <> [1.2.3.4, ::1] [80, 81] (sid:3;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 3) == 2);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(de_ctx, s);
+    // mix in negation, these are the same
+    s = DetectEngineAppendSig(
+            de_ctx, "alert tcp [!1.2.3.4, 1.2.3.0/24] any <> [1.2.3.0/24, !1.2.3.4] any (sid:4;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 4) == 1);
+    FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
+    // mix in negation, these are not the same
+    s = DetectEngineAppendSig(
+            de_ctx, "alert tcp [1.2.3.4, 1.2.3.0/24] any <> [1.2.3.0/24, !1.2.3.4] any (sid:5;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(CountSigsWithSid(de_ctx, 5) == 2);
+    FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 

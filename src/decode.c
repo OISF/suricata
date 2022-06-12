@@ -452,11 +452,17 @@ void PacketBypassCallback(Packet *p)
                 (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
         }
-        FlowBypassInfo *fc = SCCalloc(sizeof(FlowBypassInfo), 1);
-        if (fc) {
-            FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
-        } else {
-            return;
+
+        FlowBypassInfo *fc;
+
+        fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
+        if (fc == NULL) {
+            fc = SCCalloc(sizeof(FlowBypassInfo), 1);
+            if (fc) {
+                FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
+            } else {
+                return;
+            }
         }
     }
     if (p->BypassPacketsFlow && p->BypassPacketsFlow(p)) {
@@ -768,6 +774,38 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
     return pkt_src_str;
 }
 
+const char *PacketDropReasonToString(enum PacketDropReason r)
+{
+    switch (r) {
+        case PKT_DROP_REASON_DECODE_ERROR:
+            return "decode error";
+        case PKT_DROP_REASON_DEFRAG_ERROR:
+            return "defrag error";
+        case PKT_DROP_REASON_DEFRAG_MEMCAP:
+            return "defrag memcap";
+        case PKT_DROP_REASON_FLOW_MEMCAP:
+            return "flow memcap";
+        case PKT_DROP_REASON_FLOW_DROP:
+            return "flow drop";
+        case PKT_DROP_REASON_STREAM_ERROR:
+            return "stream error";
+        case PKT_DROP_REASON_STREAM_MEMCAP:
+            return "stream memcap";
+        case PKT_DROP_REASON_APPLAYER_ERROR:
+            return "applayer error";
+        case PKT_DROP_REASON_APPLAYER_MEMCAP:
+            return "applayer memcap";
+        case PKT_DROP_REASON_RULES:
+            return "rules";
+        case PKT_DROP_REASON_RULES_THRESHOLD:
+            return "threshold detection_filter";
+        case PKT_DROP_REASON_NOT_SET:
+        default:
+            return NULL;
+    }
+}
+
+/* TODO drop reason stats! */
 void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p)
 {
     if (unlikely(PacketTestAction(p, (ACTION_REJECT | ACTION_REJECT_DST | ACTION_REJECT_BOTH)))) {
@@ -814,7 +852,7 @@ void PacketAlertGetMaxConfig(void)
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "Invalid value for packet-alert-max, default value set instead");
         } else {
-            packet_alert_max = max;
+            packet_alert_max = (uint16_t)max;
         }
     }
     SCLogDebug("detect->packet_alert_max set to %d", packet_alert_max);

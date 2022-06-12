@@ -286,7 +286,9 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->PrefilterTx = PrefilterTxFunc;
     e->pectx = pectx;
     e->alproto = alproto;
-    e->tx_min_progress = tx_min_progress;
+    // TODO change function prototype ?
+    DEBUG_VALIDATE_BUG_ON(tx_min_progress > UINT8_MAX);
+    e->tx_min_progress = (uint8_t)tx_min_progress;
     e->Free = FreeFunc;
 
     if (sgh->init->tx_engines == NULL) {
@@ -498,7 +500,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
-        uint32_t local_id = 0;
+        uint16_t local_id = 0;
         PrefilterEngine *e = sgh->tx_engines;
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
             e->local_id = local_id++;
@@ -599,9 +601,8 @@ static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t d
     PrefilterStore *ctx = data;
 
     uint32_t hash = strlen(ctx->name);
-    uint16_t u;
 
-    for (u = 0; u < strlen(ctx->name); u++) {
+    for (size_t u = 0; u < strlen(ctx->name); u++) {
         hash += ctx->name[u];
     }
 

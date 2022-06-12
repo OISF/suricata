@@ -80,9 +80,9 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectQuicString(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectQuicString(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint32_t local_id = 0;
 
@@ -344,15 +344,12 @@ static int DetectQuicCyuStringTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_QUIC, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     quic_state = f.alstate;
     FAIL_IF_NULL(quic_state);

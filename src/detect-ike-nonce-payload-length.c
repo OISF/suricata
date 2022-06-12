@@ -40,7 +40,7 @@ static int DetectIkeNoncePayloadLengthSetup(DetectEngineCtx *, Signature *s, con
 static void DetectIkeNoncePayloadLengthFree(DetectEngineCtx *, void *);
 static int g_ike_nonce_payload_length_buffer_id = 0;
 
-static int DetectEngineInspectIkeNoncePayloadLengthGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeNoncePayloadLengthGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -68,11 +68,9 @@ void DetectIkeNoncePayloadLengthRegister(void)
             1, DetectEngineInspectIkeNoncePayloadLengthGeneric, NULL);
 
     g_ike_nonce_payload_length_buffer_id = DetectBufferTypeGetByName("ike.nonce_payload_length");
-
-    DetectUintRegister();
 }
 
-static int DetectEngineInspectIkeNoncePayloadLengthGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeNoncePayloadLengthGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -152,5 +150,5 @@ error:
  */
 static void DetectIkeNoncePayloadLengthFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }

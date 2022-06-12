@@ -67,6 +67,7 @@
 
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-exception-policy.h"
 
 #ifdef DEBUG
 static SCMutex segment_pool_memuse_mutex;
@@ -74,12 +75,26 @@ static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
 #endif
 
+thread_local uint64_t t_pcapcnt = UINT64_MAX;
+
 static PoolThread *segment_thread_pool = NULL;
 /* init only, protect initializing and growing pool */
 static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 
 /* Memory use counter */
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
+
+static int g_tcp_session_dump_enabled = 0;
+
+inline bool IsTcpSessionDumpingEnabled(void)
+{
+    return g_tcp_session_dump_enabled == 1;
+}
+
+void EnableTcpSessionDumping(void)
+{
+    g_tcp_session_dump_enabled = 1;
+}
 
 /* prototypes */
 TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *);
@@ -146,6 +161,13 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  */
 int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
+#ifdef DEBUG
+    if (unlikely((g_eps_stream_reassembly_memcap != UINT64_MAX &&
+                  g_eps_stream_reassembly_memcap == t_pcapcnt))) {
+        SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
+        return 0;
+    }
+#endif
     uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.reassembly_memcap);
     if (memcapcopy == 0 ||
         (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= memcapcopy)
@@ -182,20 +204,6 @@ uint64_t StreamTcpReassembleGetMemcap()
 /* memory functions for the streaming buffer API */
 
 /*
-    void *(*Malloc)(size_t size);
-*/
-static void *ReassembleMalloc(size_t size)
-{
-    if (StreamTcpReassembleCheckMemcap(size) == 0)
-        return NULL;
-    void *ptr = SCMalloc(size);
-    if (ptr == NULL)
-        return NULL;
-    StreamTcpReassembleIncrMemuse(size);
-    return ptr;
-}
-
-/*
     void *(*Calloc)(size_t n, size_t size);
 */
 static void *ReassembleCalloc(size_t n, size_t size)
@@ -212,7 +220,7 @@ static void *ReassembleCalloc(size_t n, size_t size)
 /*
     void *(*Realloc)(void *ptr, size_t orig_size, size_t size);
 */
-static void *ReassembleRealloc(void *optr, size_t orig_size, size_t size)
+void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size)
 {
     if (size > orig_size) {
         if (StreamTcpReassembleCheckMemcap(size - orig_size) == 0)
@@ -251,19 +259,66 @@ static void *TcpSegmentPoolAlloc(void)
     seg = SCMalloc(sizeof (TcpSegment));
     if (unlikely(seg == NULL))
         return NULL;
+
+    if (IsTcpSessionDumpingEnabled()) {
+        uint32_t memuse =
+                sizeof(TcpSegmentPcapHdrStorage) + sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
+            SCFree(seg);
+            return NULL;
+        }
+
+        seg->pcap_hdr_storage = SCCalloc(1, sizeof(TcpSegmentPcapHdrStorage));
+        if (seg->pcap_hdr_storage == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
+                                         "TcpSegmentPcapHdrStorage");
+            SCFree(seg);
+            return NULL;
+        } else {
+            seg->pcap_hdr_storage->alloclen = sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+            seg->pcap_hdr_storage->pkt_hdr =
+                    SCCalloc(1, sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
+            if (seg->pcap_hdr_storage->pkt_hdr == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
+                                             "packet header data within "
+                                             "TcpSegmentPcapHdrStorage");
+                SCFree(seg->pcap_hdr_storage);
+                SCFree(seg);
+                return NULL;
+            }
+        }
+
+        StreamTcpReassembleIncrMemuse(memuse);
+    } else {
+        seg->pcap_hdr_storage = NULL;
+    }
+
     return seg;
 }
 
 static int TcpSegmentPoolInit(void *data, void *initdata)
 {
     TcpSegment *seg = (TcpSegment *) data;
+    TcpSegmentPcapHdrStorage *pcap_hdr;
+
+    pcap_hdr = seg->pcap_hdr_storage;
 
     /* do this before the can bail, so TcpSegmentPoolCleanup
      * won't have uninitialized memory to consider. */
     memset(seg, 0, sizeof (TcpSegment));
 
-    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
-        return 0;
+    if (IsTcpSessionDumpingEnabled()) {
+        uint32_t memuse =
+                sizeof(TcpSegmentPcapHdrStorage) + sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        seg->pcap_hdr_storage = pcap_hdr;
+        if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
+            return 0;
+        }
+        StreamTcpReassembleIncrMemuse(memuse);
+    } else {
+        if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
+            return 0;
+        }
     }
 
 #ifdef DEBUG
@@ -283,6 +338,17 @@ static void TcpSegmentPoolCleanup(void *ptr)
 {
     if (ptr == NULL)
         return;
+
+    TcpSegment *seg = (TcpSegment *)ptr;
+    if (seg && seg->pcap_hdr_storage) {
+        if (seg->pcap_hdr_storage->pkt_hdr) {
+            SCFree(seg->pcap_hdr_storage->pkt_hdr);
+            StreamTcpReassembleDecrMemuse(seg->pcap_hdr_storage->alloclen);
+        }
+        SCFree(seg->pcap_hdr_storage);
+        seg->pcap_hdr_storage = NULL;
+        StreamTcpReassembleDecrMemuse((uint32_t)sizeof(TcpSegmentPcapHdrStorage));
+    }
 
     StreamTcpReassembleDecrMemuse((uint32_t)sizeof(TcpSegment));
 
@@ -304,6 +370,10 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
 {
     if (seg == NULL)
         return;
+
+    if (seg->pcap_hdr_storage && seg->pcap_hdr_storage->pktlen) {
+        seg->pcap_hdr_storage->pktlen = 0;
+    }
 
     PoolThreadReturn(segment_thread_pool, seg);
 }
@@ -410,9 +480,8 @@ static int StreamTcpReassemblyConfig(bool quiet)
     }
 
     stream_config.sbcnf.buf_size = 2048;
-    stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
-    stream_config.sbcnf.Realloc = ReassembleRealloc;
+    stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
 
     return 0;
@@ -627,7 +696,7 @@ uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
  *  \brief Insert a packets TCP data into the stream reassembly engine.
  *
  *  \retval 0 good segment, as far as we checked.
- *  \retval -1 badness, reason to drop in inline mode
+ *  \retval -1 insert failure due to memcap
  *
  *  If the retval is 0 the segment is inserted correctly, or overlap is handled,
  *  or it wasn't added because of reassembly depth.
@@ -1905,6 +1974,9 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
         if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
+            /* failure can only be because of memcap hit, so see if this should lead to a drop */
+            ExceptionPolicyApply(
+                    p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
             SCReturnInt(-1);
         }
 
@@ -2295,71 +2367,6 @@ static int StreamTcpReassembleTest34(void)
     p->tcph->th_seq = htonl(857960946);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 1460;
-
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
-
-    StreamTcpUTClearSession(&ssn);
-    StreamTcpUTDeinit(ra_ctx);
-    SCFree(p);
-    PASS;
-}
-
-/** \test Test the bug 76 condition */
-static int StreamTcpReassembleTest37(void)
-{
-    TcpSession ssn;
-    Flow f;
-    TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = NULL;
-    uint8_t packet[1460] = "";
-    PacketQueueNoLock pq;
-    ThreadVars tv;
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    Packet *p = PacketGetFromAlloc();
-    FAIL_IF(unlikely(p == NULL));
-
-    StreamTcpUTInit(&ra_ctx);
-    StreamTcpUTSetupSession(&ssn);
-    memset(&pq,0,sizeof(PacketQueueNoLock));
-    memset(&f, 0, sizeof (Flow));
-    memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = &ssn;
-    f.proto = IPPROTO_TCP;
-    p->src.family = AF_INET;
-    p->dst.family = AF_INET;
-    p->proto = IPPROTO_TCP;
-    p->flow = &f;
-    tcph.th_win = 5480;
-    tcph.th_flags = TH_PUSH | TH_ACK;
-    p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = packet;
-    ssn.client.os_policy = OS_POLICY_BSD;
-
-    p->tcph->th_seq = htonl(3061088537UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
-    SET_ISN(&ssn.client, 3061091309UL);
-
-    /* pre base_seq, so should be rejected */
-    FAIL_IF (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) != -1);
-
-    p->tcph->th_seq = htonl(3061089928UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
-
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
-
-    p->tcph->th_seq = htonl(3061091319UL);
-    p->tcph->th_ack = htonl(1729548549UL);
-    p->payload_len = 1391;
-    ssn.client.last_ack = 3061091137UL;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
@@ -3205,7 +3212,6 @@ static int StreamTcpReassembleInlineTest01(void)
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3221,7 +3227,6 @@ static int StreamTcpReassembleInlineTest01(void)
     ssn.client.next_seq = 17;
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3257,7 +3262,6 @@ static int StreamTcpReassembleInlineTest02(void)
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3278,7 +3282,6 @@ static int StreamTcpReassembleInlineTest02(void)
     ssn.client.next_seq = 22;
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3318,7 +3321,6 @@ static int StreamTcpReassembleInlineTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3341,7 +3343,6 @@ static int StreamTcpReassembleInlineTest03(void)
     p->tcph->th_seq = htonl(17);
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3381,7 +3382,6 @@ static int StreamTcpReassembleInlineTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3404,7 +3404,6 @@ static int StreamTcpReassembleInlineTest04(void)
     p->tcph->th_seq = htonl(17);
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3493,7 +3492,6 @@ static int StreamTcpReassembleInlineTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3524,7 +3522,6 @@ static int StreamTcpReassembleInlineTest09(void)
 
     ret = 1;
 end:
-    FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
@@ -3573,7 +3570,6 @@ static int StreamTcpReassembleInlineTest10(void)
     p->flow = f;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(f);
     if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  2, stream_payload1, 2) == -1) {
         printf("failed to add segment 1: ");
         goto end;
@@ -3615,7 +3611,6 @@ end:
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    FLOWLOCK_UNLOCK(f);
     UTHFreeFlow(f);
     return ret;
 }
@@ -3767,8 +3762,6 @@ void StreamTcpReassembleRegisterTests(void)
                    StreamTcpReassembleTest33);
     UtRegisterTest("StreamTcpReassembleTest34 -- Bug test",
                    StreamTcpReassembleTest34);
-    UtRegisterTest("StreamTcpReassembleTest37 -- Bug76 test",
-                   StreamTcpReassembleTest37);
     UtRegisterTest("StreamTcpReassembleTest39 -- app proto test",
                    StreamTcpReassembleTest39);
     UtRegisterTest("StreamTcpReassembleTest40 -- app proto test",

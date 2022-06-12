@@ -264,7 +264,7 @@ different YAML file.
   ...
 
 If the same section, say outputs is later redefined after the include
-statement it will overwrite the included file. Therefor any include
+statement it will overwrite the included file. Therefore any include
 statement at the end of the document will overwrite the already
 configured sections.
 
@@ -388,6 +388,27 @@ For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-out
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
+TLS parameters and certificates logging (tls.log)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The TLS handshake parameters can be logged in a line based log as well.
+By default, the logfile is `tls.log` in the suricata log directory.
+See :ref:`Custom TLS logging <output-custom-tls-logging>` for details
+about the configuration and customization of the log format.
+
+Furthermore there is an output module to store TLS certificate files to
+disk. This is similar to :ref:`File-store (File Extraction)
+<suricata-yaml-file-store>`, but for TLS certificates.
+
+Example:
+
+::
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: yes
+      #certs-log-dir: certs # directory to store the certificates files
+
 A line based log of HTTP requests (http.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -471,6 +492,16 @@ By default all packets are logged except:
 - TCP streams beyond stream.reassembly.depth
 - encrypted streams after the key exchange
 
+It is possible to do conditional pcap logging by using the `conditional`
+option in the pcap-log section. By default the variable is set to `all`
+so all packets are logged. If the variable is set to `alerts` then only
+the flow with alerts will be logged. If the variable is set to `tag`
+then only packets tagged by signatures using the `tag` keyword will
+be logged to the pcap file. Please note that if `alerts` or `tag` is
+used, then in the case of TCP session, Suricata will use available
+information from the streaming engine to log data that have triggered
+the alert.
+
 ::
 
   - pcap-log:
@@ -482,6 +513,7 @@ By default all packets are logged except:
 
       mode: sguil # "normal" (default) or sguil.
       sguil_base_dir: /nsm_data/
+      conditional: alerts
 
 Verbose Alerts Log (alert-debug.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

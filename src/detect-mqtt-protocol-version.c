@@ -44,7 +44,7 @@ static int DetectMQTTProtocolVersionSetup (DetectEngineCtx *, Signature *, const
 void MQTTProtocolVersionRegisterTests(void);
 void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -69,7 +69,7 @@ void DetectMQTTProtocolVersionRegister (void)
     mqtt_protocol_version_id = DetectBufferTypeGetByName("mqtt.protocol_version");
 }
 
-static int DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -141,7 +141,7 @@ static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (de != NULL)
-        SCFree(de);
+        rs_detect_u8_free(de);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -155,8 +155,7 @@ error:
  */
 void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    if (de_ptr != NULL)
-        SCFree(de_ptr);
+    rs_detect_u8_free(de_ptr);
 }
 
 /*

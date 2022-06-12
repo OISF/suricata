@@ -41,7 +41,7 @@ static int DetectIkeExchTypeSetup(DetectEngineCtx *, Signature *s, const char *s
 static void DetectIkeExchTypeFree(DetectEngineCtx *, void *);
 static int g_ike_exch_type_buffer_id = 0;
 
-static int DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -68,11 +68,9 @@ void DetectIkeExchTypeRegister(void)
             DetectEngineInspectIkeExchTypeGeneric, NULL);
 
     g_ike_exch_type_buffer_id = DetectBufferTypeGetByName("ike.exchtype");
-
-    DetectUintRegister();
 }
 
-static int DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -152,5 +150,5 @@ error:
  */
 static void DetectIkeExchTypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u8_free(ptr);
 }

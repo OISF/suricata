@@ -16,7 +16,7 @@ jobs:
     container: ubuntu:20.04
     steps:
       - name: Caching ~/.cargo
-        uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d
         with:
           path: ~/.cargo
           key: commit-check-cargo
@@ -93,7 +93,7 @@ jobs:
               make -ik distclean > /dev/null
           done
       - run: sccache -s
-      - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
         name: Uploading build log
         if: always()
         with:

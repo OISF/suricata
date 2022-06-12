@@ -101,6 +101,7 @@ pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
+pub mod detect;
 
 #[cfg(feature = "lua")]
 pub mod lua;

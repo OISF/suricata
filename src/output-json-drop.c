@@ -140,6 +140,10 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             }
             break;
     }
+    if (p->drop_reason != 0) {
+        const char *str = PacketDropReasonToString(p->drop_reason);
+        jb_set_string(js, "reason", str);
+    }
 
     /* Close drop. */
     jb_close(js);
@@ -324,7 +328,7 @@ static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
  *
  * \retval bool TRUE or FALSE
  */
-static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
 {
     if (!EngineModeIsIPS()) {
         SCLogDebug("engine is not running in inline mode, so returning");

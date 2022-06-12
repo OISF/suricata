@@ -1072,7 +1072,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
     return ALPROTO_UNKNOWN;
 }
 
-/// Extern functions operating on HTTP2.
+// Extern functions operating on HTTP2.
 extern "C" {
     pub fn HTTP2MimicHttp1Request(
         orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,

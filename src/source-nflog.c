@@ -37,6 +37,7 @@
 #include "runmodes.h"
 #include "util-error.h"
 #include "util-device.h"
+#include "util-datalink.h"
 
 #ifndef HAVE_NFLOG
 /** Handle the case where no NFLOG support is compiled in.
@@ -325,6 +326,8 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     ntv->datalen = T_DATA_SIZE;
 #undef T_DATA_SIZE
+
+    DatalinkSetGlobalType(DLT_RAW);
 
     *data = (void *)ntv;
 

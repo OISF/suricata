@@ -268,7 +268,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
         /* we must grow the alert queue */
         if (pos == AlertQueueExpand(det_ctx)) {
             /* this means we failed to expand the queue */
-            det_ctx->p->alerts.discarded++;
+            p->alerts.discarded++;
             return;
         }
     }
@@ -309,7 +309,8 @@ static inline void FlowApplySignatureActions(
      * - match is in stream */
     if (s->action & (ACTION_DROP | ACTION_PASS)) {
         if ((pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
-                (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY | SIG_FLAG_APPLAYER))) {
+                (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_LIKE_IPONLY | SIG_FLAG_PDONLY |
+                                    SIG_FLAG_APPLAYER))) {
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
             SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
                        "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
@@ -335,12 +336,12 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
             AlertQueueSortHelper);
 
-    int i = 0;
+    uint16_t i = 0;
     uint16_t max_pos = det_ctx->alert_queue_size;
 
     while (i < max_pos) {
         const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
-        uint8_t res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
 
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
@@ -394,7 +395,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     /* Set flag on flow to indicate that it has alerts */
     if (p->flow != NULL && p->alerts.cnt > 0) {
-        FlowSetHasAlertsFlag(p->flow);
+        if (!FlowHasAlerts(p->flow)) {
+            FlowSetHasAlertsFlag(p->flow);
+            p->flags |= PKT_FIRST_ALERTS;
+        }
     }
 
 }

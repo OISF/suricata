@@ -76,7 +76,7 @@ static void DetectSshSoftwareVersionRegisterTests(void);
 static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *);
 static int g_ssh_banner_list_id = 0;
 
-static int InspectSshBanner(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t InspectSshBanner(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -193,7 +193,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
         }
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
-        ssh->len = strlen((char *)ssh->software_ver);
+        ssh->len = (uint16_t)strlen((char *)ssh->software_ver);
 
         SCLogDebug("will look for ssh %s", ssh->software_ver);
     }

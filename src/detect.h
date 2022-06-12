@@ -217,6 +217,9 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6)  /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_IPONLY                 BIT_U32(7)  /**< ip only signature */
+#define SIG_FLAG_LIKE_IPONLY                                                                       \
+    BIT_U32(8) /**< signature that is almost ip only, but contains negation prevening some iponly  \
+                  optimizations */
 
 // vacancy
 
@@ -389,11 +392,10 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         void *txv, const int list_id);
 struct DetectEngineAppInspectionEngine_;
 
-typedef int (*InspectEngineFuncPtr2)(
-        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine,
-        const struct Signature_ *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+typedef uint8_t (*InspectEngineFuncPtr2)(struct DetectEngineCtx_ *de_ctx,
+        struct DetectEngineThreadCtx_ *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const struct Signature_ *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
@@ -592,7 +594,7 @@ typedef struct Signature_ {
 #endif
 
     /** netblocks and hosts specified at the sid, in CIDR format */
-    IPOnlyCIDRItem *CidrSrc, *CidrDst;
+    IPOnlyCIDRItem *cidr_src, *cidr_dst;
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;
@@ -717,31 +719,13 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
 
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
-    /* lookup hashes */
-    HashListTable *ht16_src, *ht16_dst;
-    HashListTable *ht24_src, *ht24_dst;
-
     /* Lookup trees */
     SCRadixTree *tree_ipv4src, *tree_ipv4dst;
     SCRadixTree *tree_ipv6src, *tree_ipv6dst;
 
     /* Used to build the radix trees */
     IPOnlyCIDRItem *ip_src, *ip_dst;
-
-    /* counters */
-    uint32_t a_src_uniq16, a_src_total16;
-    uint32_t a_dst_uniq16, a_dst_total16;
-    uint32_t a_src_uniq24, a_src_total24;
-    uint32_t a_dst_uniq24, a_dst_total24;
-
     uint32_t max_idx;
-
-    uint8_t *sig_init_array; /* bit array of sig nums */
-    uint32_t sig_init_size;  /* size in bytes of the array */
-
-    /* number of sigs in this head */
-    uint32_t sig_cnt;
-    uint32_t *match_array;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
@@ -858,7 +842,7 @@ typedef struct DetectEngineCtx_ {
     DetectEngineIPOnlyCtx io_ctx;
     ThresholdCtx ths_ctx;
 
-    uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
     uint16_t spm_matcher; /**< spm matcher this ctx uses */
 
     /* spm thread context prototype, built as spm matchers are constructed and
@@ -1036,7 +1020,7 @@ typedef struct HttpReassembledBody_ {
 typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
-    uint8_t alproto;
+    AppProto alproto;
 } SignatureNonPrefilterStore;
 
 /** array of TX inspect rule candidates */

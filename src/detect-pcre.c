@@ -181,7 +181,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCEnter();
     int ret = 0;
     const uint8_t *ptr = NULL;
-    uint16_t len = 0;
+    uint32_t len = 0;
     PCRE2_SIZE capture_len = 0;
 
     DetectPcreData *pe = (DetectPcreData *)smd->ctx;
@@ -273,20 +273,17 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                         memcpy(str_ptr2, pcre2_str_ptr2, capture_len);
                         pcre2_substring_free((PCRE2_UCHAR8 *)pcre2_str_ptr2);
 
-                        (void)DetectVarStoreMatchKeyValue(det_ctx,
-                                (uint8_t *)str_ptr, key_len,
-                                (uint8_t *)str_ptr2, capture_len,
+                        (void)DetectVarStoreMatchKeyValue(det_ctx, (uint8_t *)str_ptr, key_len,
+                                (uint8_t *)str_ptr2, (uint16_t)capture_len,
                                 DETECT_VAR_TYPE_PKT_POSTMATCH);
 
                     } else if (pe->captypes[x] == VAR_TYPE_PKT_VAR) {
-                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
-                                (uint8_t *)str_ptr, capture_len,
-                                DETECT_VAR_TYPE_PKT_POSTMATCH);
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
+                                (uint16_t)capture_len, DETECT_VAR_TYPE_PKT_POSTMATCH);
 
                     } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
-                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
-                                (uint8_t *)str_ptr, capture_len,
-                                DETECT_VAR_TYPE_FLOW_POSTMATCH);
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
+                                (uint16_t)capture_len, DETECT_VAR_TYPE_FLOW_POSTMATCH);
                     } else {
                         BUG_ON(1); // Impossible captype
                         SCFree(str_ptr);
@@ -1753,7 +1750,6 @@ static int DetectPcreTxBodyChunksTest01(void)
 
     AppLayerHtpEnableRequestBodyCallback();
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
@@ -1805,7 +1801,6 @@ static int DetectPcreTxBodyChunksTest01(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    FLOWLOCK_UNLOCK(&f);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
@@ -1869,61 +1864,49 @@ static int DetectPcreTxBodyChunksTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 1)));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1932,10 +1915,8 @@ static int DetectPcreTxBodyChunksTest02(void)
 
     SCLogDebug("sending data chunk 7");
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -2038,61 +2019,49 @@ static int DetectPcreTxBodyChunksTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 1)));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -2101,10 +2070,8 @@ static int DetectPcreTxBodyChunksTest03(void)
 
     SCLogDebug("sending data chunk 7");
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

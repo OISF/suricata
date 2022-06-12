@@ -28,7 +28,10 @@
 #ifndef __LOG_PCAP_H__
 #define __LOG_PCAP_H__
 
+#define PCAP_OUTPUT_BUFFER_SIZE 65535
+
 void PcapLogRegister(void);
 void PcapLogProfileSetup(void);
+char *PcapLogGetFilename(void);
 
 #endif /* __LOG_PCAP_H__ */

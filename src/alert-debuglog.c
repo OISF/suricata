@@ -137,7 +137,8 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, const Packet *p)
 
 /** \todo doc
  * assume we have aft lock */
-static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
+static int AlertDebugPrintStreamSegmentCallback(
+        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
 
@@ -293,9 +294,9 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
             /* IDS mode reverse the data */
             /** \todo improve the order selection policy */
             if (p->flowflags & FLOW_PKT_TOSERVER) {
-                flag = FLOW_PKT_TOCLIENT;
+                flag = STREAM_DUMP_TOCLIENT;
             } else {
-                flag = FLOW_PKT_TOSERVER;
+                flag = STREAM_DUMP_TOSERVER;
             }
             ret = StreamSegmentForEach((const Packet *)p, flag,
                                  AlertDebugPrintStreamSegmentCallback,
@@ -468,7 +469,7 @@ error:
     return result;
 }
 
-static int AlertDebugLogCondition(ThreadVars *tv, const Packet *p)
+static int AlertDebugLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     return (p->alerts.cnt ? TRUE : FALSE);
 }

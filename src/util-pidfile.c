@@ -104,37 +104,37 @@ void SCPidfileRemove(const char *pid_filename)
  */
 int SCPidfileTestRunning(const char *pid_filename)
 {
-    if (access(pid_filename, F_OK) == 0) {
-        /* Check if the existing process is still alive. */
-        FILE *pf;
+    /* Check if the existing process is still alive. */
+    FILE *pf;
 
-        // coverity[toctou : FALSE]
-        pf = fopen(pid_filename, "r");
-        if (pf == NULL) {
-            SCLogError(SC_ERR_INITIALIZATION,
-                    "pid file '%s' exists and can not be read. Aborting!",
+    pf = fopen(pid_filename, "r");
+    if (pf == NULL) {
+        if (access(pid_filename, F_OK) == 0) {
+            SCLogError(SC_ERR_INITIALIZATION, "pid file '%s' exists and can not be read. Aborting!",
                     pid_filename);
             return -1;
+        } else {
+            return 0;
         }
+    }
 
 #ifndef OS_WIN32
-        pid_t pidv;
-        if (fscanf(pf, "%d", &pidv) == 1 && kill(pidv, 0) == 0) {
-            SCLogError(SC_ERR_INITIALIZATION,
-                    "pid file '%s' exists and Suricata appears to be running. "
-                    "Aborting!", pid_filename);
-        } else
+    pid_t pidv;
+    if (fscanf(pf, "%d", &pidv) == 1 && kill(pidv, 0) == 0) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                "pid file '%s' exists and Suricata appears to be running. "
+                "Aborting!",
+                pid_filename);
+    } else
 #endif
-        {
-            SCLogError(SC_ERR_INITIALIZATION,
-                    "pid file '%s' exists but appears stale. "
-                    "Make sure Suricata is not running and then remove %s. "
-                    "Aborting!",
-                    pid_filename, pid_filename);
-        }
-
-        fclose(pf);
-        return -1;
+    {
+        SCLogError(SC_ERR_INITIALIZATION,
+                "pid file '%s' exists but appears stale. "
+                "Make sure Suricata is not running and then remove %s. "
+                "Aborting!",
+                pid_filename, pid_filename);
     }
-    return 0;
+
+    fclose(pf);
+    return -1;
 }

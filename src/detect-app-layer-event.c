@@ -55,7 +55,7 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char
 static void DetectAppLayerEventRegisterTests(void);
 #endif
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
-static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 static int g_applayer_events_list_id = 0;
@@ -85,7 +85,7 @@ void DetectAppLayerEventRegister(void)
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
 
-static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
@@ -145,7 +145,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
 {
     int event_id = 0;
     int r = AppLayerGetPktEventInfo(arg, &event_id);
-    if (r < 0) {
+    if (r < 0 || r > UINT8_MAX) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
                    "supplied with packet based event - \"%s\" that isn't "
                    "supported yet.", arg);
@@ -155,7 +155,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     DetectAppLayerEventData *aled = SCCalloc(1, sizeof(DetectAppLayerEventData));
     if (unlikely(aled == NULL))
         return NULL;
-    aled->event_id = event_id;
+    aled->event_id = (uint8_t)event_id;
     *event_type = APP_LAYER_EVENT_TYPE_PACKET;
 
     return aled;
@@ -231,7 +231,11 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
             return -3;
         }
     }
-    data->event_id = event_id;
+    if (event_id > UINT8_MAX) {
+        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's id has invalid value");
+        return -4;
+    }
+    data->event_id = (uint8_t)event_id;
 
     return 0;
 }

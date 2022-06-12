@@ -93,7 +93,7 @@ outputs:
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
       # Enable for multi-threaded eve.json output; output files are amended with
-      # with an identifier, e.g., eve.9.json
+      # an identifier, e.g., eve.9.json
       #threaded: false
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -402,6 +402,9 @@ outputs:
       #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
       use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
       honor-pass-rules: no # If set to "yes", flows in which a pass rule matched will stop being logged.
+      # Use "all" to log all packets or use "alerts" to log only alerted packets and flows or "tag"
+      # to log only flow tagged via the "tag" keyword
+      #conditional: all
 
   # a full alert log containing much information for signature writers
   # or for investigating suspected false positives.
@@ -1060,7 +1063,7 @@ app-layer:
       enabled: yes
 
     sip:
-      #enabled: no
+      #enabled: yes
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
@@ -1359,7 +1362,7 @@ flow-timeouts:
 #                               # of checksum. You can control the handling of checksum
 #                               # on a per-interface basis via the 'checksum-checks'
 #                               # option
-#   prealloc-sessions: 2k       # 2k sessions prealloc'd per stream thread
+#   prealloc-sessions: 2048     # 2k sessions prealloc'd per stream thread
 #   midstream: false            # don't allow midstream session pickups
 #   async-oneside: false        # don't enable async stream handling
 #   inline: no                  # stream inline mode

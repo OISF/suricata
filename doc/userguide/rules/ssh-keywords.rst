@@ -113,7 +113,7 @@ Example::
 
   alert ssh any any -> any any (msg:"match hassh-string"; \
       ssh.hassh.string; content:"none,zlib@openssh.com,zlib"; \
-      sid:1000030;
+      sid:1000030;)
 
 ``ssh.hassh.string`` is a 'sticky buffer'.
 

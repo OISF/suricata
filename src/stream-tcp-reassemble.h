@@ -76,7 +76,6 @@ typedef struct TcpReassemblyThreadCtx_ {
 
     uint16_t counter_tcp_reass_data_normal_fail;
     uint16_t counter_tcp_reass_data_overlap_fail;
-    uint16_t counter_tcp_reass_list_fail;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
@@ -85,6 +84,7 @@ void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueueNoLock *);
 int StreamTcpReassembleInit(bool);
 void StreamTcpReassembleFree(bool);
+void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size);
 void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
@@ -129,6 +129,9 @@ int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
 void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth);
+
+bool IsTcpSessionDumpingEnabled(void);
+void EnableTcpSessionDumping(void);
 
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {

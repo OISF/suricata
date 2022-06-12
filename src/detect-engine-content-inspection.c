@@ -52,6 +52,7 @@
 #include "util-spm.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -99,12 +100,9 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, const SigMatchData *smd,
-                                  Packet *p, Flow *f,
-                                  const uint8_t *buffer, uint32_t buffer_len,
-                                  uint32_t stream_start_offset, uint8_t flags,
-                                  uint8_t inspection_mode)
+uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
+        uint32_t buffer_len, uint32_t stream_start_offset, uint8_t flags, uint8_t inspection_mode)
 {
     SCEnter();
     KEYWORD_PROFILING_START;
@@ -342,9 +340,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     /* see if the next buffer keywords match. If not, we will
                      * search for another occurrence of this content and see
                      * if the others match then until we run out of matches */
-                    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                            p, f, buffer, buffer_len, stream_start_offset, flags,
-                            inspection_mode);
+                    uint8_t r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd + 1, p, f,
+                            buffer, buffer_len, stream_start_offset, flags, inspection_mode);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -527,10 +524,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                        DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
         }
 
-        if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer,
-                                     buffer_len,
-                                     &det_ctx->byte_values[bed->local_id],
-                                     endian) != 1) {
+        if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer, buffer_len,
+                    &det_ctx->byte_values[bed->local_id], endian) != 1) {
             goto no_match;
         }
 
@@ -561,12 +556,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              rvalue = bmd->rvalue;
         }
 
-
-        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer,
-                                     buffer_len,
-                                     rvalue,
-                                     &det_ctx->byte_values[bmd->local_id],
-                                     endian) != 1) {
+        DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
+        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer, (uint16_t)buffer_len, rvalue,
+                    &det_ctx->byte_values[bmd->local_id], endian) != 1) {
             goto no_match;
         }
 
@@ -613,7 +605,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     } else if (smd->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");
 
-        int r = 0;
+        uint8_t r = 0;
         DetectUrilenData *urilend = (DetectUrilenData *) smd->ctx;
 
         switch (urilend->mode) {
@@ -684,9 +676,8 @@ match:
      * the buffer portion of the signature matched. */
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-        int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                p, f, buffer, buffer_len, stream_start_offset, flags,
-                inspection_mode);
+        uint8_t r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd + 1, p, f, buffer,
+                buffer_len, stream_start_offset, flags, inspection_mode);
         SCReturnInt(r);
     }
 final_match:

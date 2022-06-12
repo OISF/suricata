@@ -216,8 +216,8 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                         goto error;
                 }
 
-                int cidr;
-                if (StringParseI32RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
+                uint8_t cidr;
+                if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
                     goto error;
 
                 dd->netmask = cidr;
@@ -623,8 +623,8 @@ static void SigNumArrayFree(void *tmp)
  * \retval 0 if success
  * \retval -1 if fails
  */
-static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
-                                            char *s, int negate)
+static IPOnlyCIDRItem *IPOnlyCIDRListParse2(
+        const DetectEngineCtx *de_ctx, const char *s, int negate)
 {
     size_t x = 0;
     size_t u = 0;
@@ -799,8 +799,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx,
-                               IPOnlyCIDRItem **gh, char *str)
+static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx, IPOnlyCIDRItem **gh, const char *str)
 {
     SCLogDebug("gh %p, str %s", gh, str);
 
@@ -835,22 +834,15 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
                           Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
-    IPOnlyCIDRItem *tmp = NULL;
 
     /* pass on to the address(list) parser */
     if (flag == 0) {
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_SRC_ANY;
-
-            if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, "[0.0.0.0/0,::/0]") < 0)
                 goto error;
 
-            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"::/0") < 0)
-                goto error;
-
-            s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
-
-        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_src, (char *)addrstr) < 0) {
             goto error;
         }
 
@@ -858,16 +850,10 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
     } else {
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_DST_ANY;
-
-            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, "[0.0.0.0/0,::/0]") < 0)
                 goto error;
 
-            if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)"::/0") < 0)
-                goto error;
-
-            s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
-
-        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->cidr_dst, (char *)addrstr) < 0) {
             goto error;
         }
 
@@ -889,15 +875,6 @@ error:
  */
 void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
 {
-    io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-
-    if ( (io_ctx->sig_init_array = SCMalloc(io_ctx->sig_init_size)) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in IPOnlyInit. Exiting...");
-    }
-
-    memset(io_ctx->sig_init_array, 0, io_ctx->sig_init_size);
-
     io_ctx->tree_ipv4src = SCRadixCreateRadixTree(SigNumArrayFree,
                                                   SigNumArrayPrint);
     io_ctx->tree_ipv4dst = SCRadixCreateRadixTree(SigNumArrayFree,
@@ -965,10 +942,6 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     if (io_ctx->tree_ipv6dst != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
     io_ctx->tree_ipv6dst = NULL;
-
-    if (io_ctx->sig_init_array)
-        SCFree(io_ctx->sig_init_array);
-    io_ctx->sig_init_array = NULL;
 }
 
 /**
@@ -1197,7 +1170,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1225,7 +1198,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *) user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1258,7 +1231,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (src->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                 if (src->negated > 0)
                     /* Unset it */
@@ -1291,7 +1264,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1316,7 +1289,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *)user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
                     if (src->negated > 0)
                         /* Unset it */
                         sna->array[src->signum / 8] &= ~tmp;
@@ -1340,7 +1313,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (src->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
                 if (src->negated > 0)
                     /* Unset it */
                     sna->array[src->signum / 8] &= ~tmp;
@@ -1393,7 +1366,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /** Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /** Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1420,7 +1393,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *) user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1447,7 +1420,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (dst->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                 if (dst->negated > 0)
                     /* Unset it */
                     sna->array[dst->signum / 8] &= ~tmp;
@@ -1481,7 +1454,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1506,7 +1479,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *)user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1531,7 +1504,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (dst->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                 if (dst->negated > 0)
                     /* Unset it */
                     sna->array[dst->signum / 8] &= ~tmp;
@@ -1575,26 +1548,23 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
         return;
 
     /* Set the internal signum to the list before merging */
-    IPOnlyCIDRListSetSigNum(s->CidrSrc, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_src, s->num);
 
-    IPOnlyCIDRListSetSigNum(s->CidrDst, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_dst, s->num);
 
     /**
      * ipv4 and ipv6 are mixed, but later we will separate them into
      * different trees
      */
-    io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->CidrSrc);
-    io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->CidrDst);
+    io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->cidr_src);
+    io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->cidr_dst);
 
     if (s->num > io_ctx->max_idx)
         io_ctx->max_idx = s->num;
 
-    /* enable the sig in the bitarray */
-    io_ctx->sig_init_array[(s->num/8)] |= 1 << (s->num % 8);
-
     /** no longer ref to this, it's in the table now */
-    s->CidrSrc = NULL;
-    s->CidrDst = NULL;
+    s->cidr_src = NULL;
+    s->cidr_dst = NULL;
 }
 
 #ifdef UNITTESTS

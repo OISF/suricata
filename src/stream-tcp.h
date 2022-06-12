@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,6 +64,9 @@ typedef struct TcpStreamCnf_ {
 
     bool streaming_log_api;
 
+    enum ExceptionPolicy ssn_memcap_policy;
+    enum ExceptionPolicy reassembly_memcap_policy;
+
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
 
@@ -124,6 +127,8 @@ Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
                         StreamSegmentCallback CallbackFunc,
                         void *data);
+int StreamTcpSegmentForSession(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
 

@@ -175,7 +175,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static int DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static uint8_t DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -196,7 +196,7 @@ static int DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCt
  */
 static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
 {
-    if (StringParseUint8(fc, 10, strlen(str), str) >= 0) {
+    if (StringParseUint8(fc, 10, (uint16_t)strlen(str), str) >= 0) {
         return 1;
     }
 
@@ -204,7 +204,7 @@ static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
     for (size_t i = 0;
             i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
         if (strcasecmp(str, DNP3FunctionNameMap[i].name) == 0) {
-            *fc = DNP3FunctionNameMap[i].value;
+            *fc = (uint8_t)(DNP3FunctionNameMap[i].value);
             return 1;
         }
     }
@@ -288,7 +288,7 @@ static int DetectDNP3IndParse(const char *str, uint16_t *flags)
 {
     *flags = 0;
 
-    if (StringParseUint16(flags, 0, strlen(str), str) > 0) {
+    if (StringParseUint16(flags, 0, (uint16_t)strlen(str), str) > 0) {
         return 1;
     }
 
@@ -363,11 +363,11 @@ static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
     *sep = '\0';
     varstr = sep + 1;
 
-    if (StringParseUint8(group, 0, strlen(groupstr), groupstr) < 0) {
+    if (StringParseUint8(group, 0, (uint16_t)strlen(groupstr), groupstr) < 0) {
         return 0;
     }
 
-    if (StringParseUint8(var, 0, strlen(varstr), varstr) < 0) {
+    if (StringParseUint8(var, 0, (uint16_t)strlen(varstr), varstr) < 0) {
         return 0;
     }
 

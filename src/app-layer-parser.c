@@ -172,6 +172,13 @@ struct AppLayerParserState_ {
     FramesContainer *frames;
 };
 
+enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_IGNORE;
+
+static void AppLayerConfg(void)
+{
+    g_applayerparser_error_policy = ExceptionPolicyParse("app-layer.error-policy", true);
+}
+
 static void AppLayerParserFramesFreeContainer(FramesContainer *frames)
 {
     if (frames != NULL) {
@@ -1300,6 +1307,22 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (input_len > 0 || (flags & STREAM_EOF)) {
         Setup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), input, input_len, flags,
                 &stream_slice);
+#ifdef DEBUG
+        if (((stream_slice.flags & STREAM_TOSERVER) &&
+                    stream_slice.offset >= g_eps_applayer_error_offset_ts)) {
+            SCLogNotice("putting parser %s into an error state from toserver offset %" PRIu64,
+                    AppProtoToString(alproto), g_eps_applayer_error_offset_ts);
+            AppLayerIncParserErrorCounter(tv, f);
+            goto error;
+        }
+        if (((stream_slice.flags & STREAM_TOCLIENT) &&
+                    stream_slice.offset >= g_eps_applayer_error_offset_tc)) {
+            SCLogNotice("putting parser %s into an error state from toclient offset %" PRIu64,
+                    AppProtoToString(alproto), g_eps_applayer_error_offset_tc);
+            AppLayerIncParserErrorCounter(tv, f);
+            goto error;
+        }
+#endif
         /* invoke the parser */
         AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice,
                 alp_tctx->alproto_local_storage[f->protomap][alproto]);
@@ -1636,6 +1659,8 @@ static void ValidateParsers(void)
 void AppLayerParserRegisterProtocolParsers(void)
 {
     SCEnter();
+
+    AppLayerConfg();
 
     RegisterHTPParsers();
     RegisterSSLParsers();

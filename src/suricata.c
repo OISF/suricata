@@ -82,6 +82,7 @@
 
 #include "source-pcap.h"
 #include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 
 #include "source-pfring.h"
 
@@ -175,6 +176,7 @@
 #include "util-plugin.h"
 
 #include "util-dpdk.h"
+#include "util-exception-policy.h"
 
 #include "rust.h"
 
@@ -533,22 +535,21 @@ static void SetBpfStringFromFile(char *filename)
                               " Use firewall filtering if possible.");
     }
 
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+
 #ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
+    if (_fstat(_fileno(fp), &st) != 0) {
 #else
-    if(stat(filename, &st) != 0) {
+    if (fstat(fileno(fp), &st) != 0) {
 #endif /* OS_WIN32 */
         SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
     bpf_len = st.st_size + 1;
-
-    // coverity[toctou : FALSE]
-    fp = fopen(filename,"r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
-        exit(EXIT_FAILURE);
-    }
 
     bpf_filter = SCMalloc(bpf_len * sizeof(char));
     if (unlikely(bpf_filter == NULL)) {
@@ -1355,6 +1356,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"simulate-packet-flow-memcap", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-ts", required_argument, 0, 0},
+        {"simulate-applayer-error-at-offset-tc", required_argument, 0, 0},
+        {"simulate-packet-loss", required_argument, 0, 0},
+        {"simulate-packet-tcp-reassembly-memcap", required_argument, 0, 0},
+        {"simulate-packet-tcp-ssn-memcap", required_argument, 0, 0},
+        {"simulate-packet-defrag-memcap", required_argument, 0, 0},
+
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1723,6 +1732,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            } else {
+                int r = ExceptionSimulationCommandlineParser(
+                        (long_opts[option_index]).name, optarg);
+                if (r < 0)
+                    return TM_ECODE_FAILED;
             }
             break;
         case 'c':
@@ -2519,7 +2533,7 @@ static void PostConfLoadedSetupHostMode(void)
 {
     const char *hostmode = NULL;
 
-    if (ConfGetValue("host-mode", &hostmode) == 1) {
+    if (ConfGet("host-mode", &hostmode) == 1) {
         if (!strcmp(hostmode, "router")) {
             host_mode = SURI_HOST_IS_ROUTER;
         } else if (!strcmp(hostmode, "sniffer-only")) {
@@ -2545,7 +2559,6 @@ static void PostConfLoadedSetupHostMode(void)
                       "default setting 'sniffer-only'");
         }
     }
-
 }
 
 static void SetupUserMode(SCInstance *suri)
@@ -2604,7 +2617,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     if (suri->checksum_validation == -1) {
         const char *cv = NULL;
-        if (ConfGetValue("capture.checksum-validation", &cv) == 1) {
+        if (ConfGet("capture.checksum-validation", &cv) == 1) {
             if (strcmp(cv, "none") == 0) {
                 suri->checksum_validation = 0;
             } else if (strcmp(cv, "all") == 0) {
@@ -2800,26 +2813,6 @@ static void SuricataMainLoop(SCInstance *suri)
  */
 
 int InitGlobal(void) {
-    suricata_context.SCLogMessage = SCLogMessage;
-    suricata_context.DetectEngineStateFree = DetectEngineStateFree;
-    suricata_context.AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw;
-    suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
-    suricata_context.AppLayerParserTriggerRawStreamReassembly =
-            AppLayerParserTriggerRawStreamReassembly;
-
-    suricata_context.HttpRangeFreeBlock = HttpRangeFreeBlock;
-    suricata_context.HTPFileCloseHandleRange = HTPFileCloseHandleRange;
-
-    suricata_context.FileOpenFileWithId = FileOpenFileWithId;
-    suricata_context.FileCloseFileById = FileCloseFileById;
-    suricata_context.FileAppendDataById = FileAppendDataById;
-    suricata_context.FileAppendGAPById = FileAppendGAPById;
-    suricata_context.FileContainerRecycle = FileContainerRecycle;
-    suricata_context.FilePrune = FilePrune;
-    suricata_context.FileSetTx = FileContainerSetTx;
-
-    suricata_context.AppLayerRegisterParser = AppLayerRegisterParser;
-
     rs_init(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);

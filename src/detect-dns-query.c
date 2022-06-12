@@ -94,11 +94,9 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectDnsQuery(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     uint32_t local_id = 0;
 
@@ -199,17 +197,17 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
 }
 
 #ifdef HAVE_LUA
-static int DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-static int DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
@@ -330,15 +328,12 @@ static int DetectDnsQueryTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
     FAIL_IF_NULL(dns_state);
@@ -456,15 +451,12 @@ static int DetectDnsQueryTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
     FAIL_IF_NULL(dns_state);
@@ -481,15 +473,12 @@ static int DetectDnsQueryTest02(void)
         FAIL;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
                             buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -503,15 +492,12 @@ static int DetectDnsQueryTest02(void)
         FAIL;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER,
                             buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);
@@ -594,15 +580,12 @@ static int DetectDnsQueryTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
     FAIL_IF_NULL(dns_state);
@@ -684,15 +667,12 @@ static int DetectDnsQueryTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
     FAIL_IF_NULL(dns_state);
@@ -819,15 +799,12 @@ static int DetectDnsQueryTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
     FAIL_IF_NULL(dns_state);
@@ -844,15 +821,12 @@ static int DetectDnsQueryTest05(void)
         FAIL;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
                             buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0\n", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -870,15 +844,12 @@ static int DetectDnsQueryTest05(void)
         FAIL;
     }
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER,
                             buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);

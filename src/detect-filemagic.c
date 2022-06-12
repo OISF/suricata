@@ -93,11 +93,9 @@ static int g_file_magic_buffer_id = 0;
 static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
-static int DetectEngineInspectFilemagic(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id);
 
 static int g_magic_thread_ctx_id = -1;
 
@@ -465,11 +463,9 @@ static InspectionBuffer *FilemagicGetDataCallback(DetectEngineThreadCtx *det_ctx
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static int DetectEngineInspectFilemagic(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
@@ -481,7 +477,7 @@ static int DetectEngineInspectFilemagic(
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
-    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     int local_file_id = 0;
     for (File *file = ffc->head; file != NULL; file = file->next) {
         if (file->txid != tx_id)

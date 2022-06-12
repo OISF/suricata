@@ -1261,7 +1261,7 @@ static uint32_t NapatechSetHashmode(void)
     uint32_t filter_id = 0;
 
     /* Get the hashmode from the conf file. */
-    ConfGetValue("napatech.hashmode", &hash_mode);
+    ConfGet("napatech.hashmode", &hash_mode);
 
     snprintf(ntpl_cmd, 64, "hashmode = %s", hash_mode);
 

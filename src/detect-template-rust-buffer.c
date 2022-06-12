@@ -43,7 +43,7 @@
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
     const char *);
-static int DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 #ifdef UNITTESTS
@@ -92,11 +92,11 @@ static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 }
 
-static int DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int ret = 0;
+    uint8_t ret = 0;
     const uint8_t *data = NULL;
     uint32_t data_len = 0;
 
@@ -176,10 +176,8 @@ static int DetectTemplateRustBufferTest(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE_RUST,
                         STREAM_TOSERVER, request, sizeof(request));
-    FLOWLOCK_UNLOCK(&f);
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

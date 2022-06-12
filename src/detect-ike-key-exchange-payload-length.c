@@ -40,7 +40,7 @@ static int DetectIkeKeyExchangePayloadLengthSetup(DetectEngineCtx *, Signature *
 static void DetectIkeKeyExchangePayloadLengthFree(DetectEngineCtx *, void *);
 static int g_ike_key_exch_payload_length_buffer_id = 0;
 
-static int DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
@@ -73,11 +73,9 @@ void DetectIkeKeyExchangePayloadLengthRegister(void)
 
     g_ike_key_exch_payload_length_buffer_id =
             DetectBufferTypeGetByName("ike.key_exchange_payload_length");
-
-    DetectUintRegister();
 }
 
-static int DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
+static uint8_t DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
@@ -158,5 +156,5 @@ error:
  */
 static void DetectIkeKeyExchangePayloadLengthFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }

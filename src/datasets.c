@@ -323,12 +323,14 @@ static int DatasetLoadString(Dataset *set)
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
-            if (len == 0)
+            uint32_t consumed = 0, num_decoded = 0;
+            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
+                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            if (code == BASE64_ECODE_ERR)
                 FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
                         set->name, set->load);
 
-            if (DatasetAdd(set, (const uint8_t *)decoded, len) < 0)
+            if (DatasetAdd(set, (const uint8_t *)decoded, num_decoded) < 0)
                 FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
                         set->name, set->load);
             cnt++;
@@ -340,8 +342,10 @@ static int DatasetLoadString(Dataset *set)
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
-            if (len == 0)
+            uint32_t consumed = 0, num_decoded = 0;
+            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
+                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            if (code == BASE64_ECODE_ERR)
                 FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
                         set->name, set->load);
 
@@ -353,7 +357,7 @@ static int DatasetLoadString(Dataset *set)
                 FatalError(SC_ERR_FATAL, "die: bad rep");
             SCLogDebug("rep %u", rep.value);
 
-            if (DatasetAddwRep(set, (const uint8_t *)decoded, len, &rep) < 0)
+            if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0)
                 FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
                         set->name, set->load);
             cnt++;
@@ -605,7 +609,7 @@ void DatasetPostReloadCleanup(void)
 static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
-    if (ConfGetValue("datasets.defaults.memcap", &str) == 1) {
+    if (ConfGet("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "memcap value cannot be deduced: %s,"
@@ -614,7 +618,7 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
             *memcap = 0;
         }
     }
-    if (ConfGetValue("datasets.defaults.hashsize", &str) == 1) {
+    if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "hashsize value cannot be deduced: %s,"
@@ -766,12 +770,8 @@ static int SaveCallback(void *ctx, const uint8_t *data, const uint32_t data_len)
 static int Md5AsAscii(const void *s, char *out, size_t out_size)
 {
     const Md5Type *md5 = s;
-    uint32_t x;
-    int i;
     char str[256];
-    for (i = 0, x = 0; x < sizeof(md5->md5); x++) {
-        i += snprintf(&str[i], 255-i, "%02x", md5->md5[x]);
-    }
+    PrintHexString(str, sizeof(str), (uint8_t *)md5->md5, sizeof(md5->md5));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
     return strlen(out);
@@ -780,12 +780,8 @@ static int Md5AsAscii(const void *s, char *out, size_t out_size)
 static int Sha256AsAscii(const void *s, char *out, size_t out_size)
 {
     const Sha256Type *sha = s;
-    uint32_t x;
-    int i;
     char str[256];
-    for (i = 0, x = 0; x < sizeof(sha->sha256); x++) {
-        i += snprintf(&str[i], 255-i, "%02x", sha->sha256[x]);
-    }
+    PrintHexString(str, sizeof(str), (uint8_t *)sha->sha256, sizeof(sha->sha256));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
     return strlen(out);
@@ -1150,12 +1146,14 @@ int DatasetAddSerialized(Dataset *set, const char *string)
         case DATASET_TYPE_STRING: {
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
-            if (len == 0) {
+            uint32_t consumed = 0, num_decoded = 0;
+            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
+                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            if (code == BASE64_ECODE_ERR) {
                 return -2;
             }
 
-            return DatasetAddString(set, decoded, len);
+            return DatasetAddString(set, decoded, num_decoded);
         }
         case DATASET_TYPE_MD5: {
             if (strlen(string) != 32)
@@ -1232,12 +1230,14 @@ int DatasetRemoveSerialized(Dataset *set, const char *string)
         case DATASET_TYPE_STRING: {
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
-            uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
-            if (len == 0) {
+            uint32_t consumed = 0, num_decoded = 0;
+            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
+                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            if (code == BASE64_ECODE_ERR) {
                 return -2;
             }
 
-            return DatasetRemoveString(set, decoded, len);
+            return DatasetRemoveString(set, decoded, num_decoded);
         }
         case DATASET_TYPE_MD5: {
             if (strlen(string) != 32)

@@ -54,6 +54,7 @@
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
+#include "log-pcap.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -123,7 +124,8 @@ typedef struct JsonAlertLogThread_ {
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
-static int AlertJsonDumpStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
+static int AlertJsonDumpStreamSegmentCallback(
+        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
 {
     MemBuffer *payload = (MemBuffer *)data;
     MemBufferWriteRaw(payload, buf, buflen);
@@ -731,9 +733,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 MemBufferReset(payload);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flag = FLOW_PKT_TOCLIENT;
+                    flag = STREAM_DUMP_TOCLIENT;
                 } else {
-                    flag = FLOW_PKT_TOSERVER;
+                    flag = STREAM_DUMP_TOSERVER;
                 }
 
                 StreamSegmentForEach((const Packet *)p, flag,
@@ -771,6 +773,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
             EvePacket(p, jb, 0);
+        }
+
+        char *pcap_filename = PcapLogGetFilename();
+        if (pcap_filename != NULL) {
+            jb_set_string(jb, "capture_file", pcap_filename);
         }
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
@@ -836,7 +843,7 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return 0;
 }
 
-static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
         return TRUE;

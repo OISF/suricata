@@ -513,6 +513,7 @@ noinst_HEADERS = \
 	util-coredump-config.h \
 	util-cpu.h \
 	util-daemon.h \
+	util-datalink.h \
 	util-debug-filters.h \
 	util-debug.h \
 	util-decode-mime.h \
@@ -525,6 +526,7 @@ noinst_HEADERS = \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
+	util-exception-policy.h \
 	util-file-decompression.h \
 	util-file.h \
 	util-file-swf-decompression.h \
@@ -1092,6 +1094,7 @@ libsuricata_c_a_SOURCES = \
 	util-coredump-config.c \
 	util-cpu.c \
 	util-daemon.c \
+	util-datalink.c \
 	util-debug.c \
 	util-debug-filters.c \
 	util-decode-mime.c \
@@ -1104,6 +1107,7 @@ libsuricata_c_a_SOURCES = \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
+	util-exception-policy.c \
 	util-file.c \
 	util-file-decompression.c \
 	util-file-swf-decompression.c \
@@ -1206,7 +1210,6 @@ EXTRA_DIST = \
 	tests/detect-icmpv6hdr.c \
 	tests/detect-snmp-pdu_type.c \
 	tests/detect-snmp-version.c \
-	tests/detect-tcpmss.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
@@ -1233,7 +1236,6 @@ EXTRA_DIST = \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
 	tests/detect-template-buffer.c \
-	tests/detect-template2.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \
@@ -1265,7 +1267,7 @@ suricata_SOURCES = main.c
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
-suricata_DEPENDENCIES = libsuricata_c.a
+suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 
 if BUILD_SHARED_LIBRARY
 libsuricata.so.$(VERSION): libsuricata_c.a
