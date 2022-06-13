@@ -28,6 +28,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 curl \
                 git \
                 jq \
