@@ -888,8 +888,8 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
 
     FileContainerAdd(ffc, ff);
 
+    ff->size += data_len;
     if (data != NULL) {
-        ff->size += data_len;
         if (AppendData(ff, data, data_len) != 0) {
             ff->state = FILE_STATE_ERROR;
             SCReturnPtr(NULL, "File");
@@ -928,8 +928,8 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
         SCReturnInt(-1);
     }
 
+    ff->size += data_len;
     if (data != NULL) {
-        ff->size += data_len;
         if (ff->flags & FILE_NOSTORE) {
 #ifdef HAVE_NSS
             /* no storage but hashing */
