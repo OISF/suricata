@@ -1442,29 +1442,25 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* get the keyword supporting prefilter with the lowest type */
             for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
-                SigMatch *sm = s->init_data->smlists[i];
-                while (sm != NULL) {
+                for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
                         if (sigmatch_table[sm->type].SupportsPrefilter(s)) {
                             prefilter_list = MIN(prefilter_list, sm->type);
                         }
                     }
-                    sm = sm->next;
                 }
             }
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
                 for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
-                    SigMatch *sm = s->init_data->smlists[i];
-                    while (sm != NULL) {
+                    for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                         if (sm->type == prefilter_list) {
                             s->init_data->prefilter_sm = sm;
                             s->flags |= SIG_FLAG_PREFILTER;
                             SCLogConfig("sid %u: prefilter is on \"%s\"", s->id, sigmatch_table[sm->type].name);
                             break;
                         }
-                        sm = sm->next;
                     }
                 }
             }
