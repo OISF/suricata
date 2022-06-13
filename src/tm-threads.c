@@ -1795,12 +1795,13 @@ again:
     for (int i = 0; i < TVT_MAX; i++) {
         ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
-            if (TmThreadsCheckFlag(tv,(THV_FAILED|THV_CLOSED|THV_DEAD))) {
+            if (TmThreadsCheckFlag(tv, (THV_FAILED | THV_CLOSED | THV_DEAD))) {
                 SCMutexUnlock(&tv_root_lock);
 
-                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                        "start: flags %04x", tv->name,
-                        SC_ATOMIC_GET(tv->flags));
+                SCLogError(SC_ERR_THREAD_INIT,
+                        "thread \"%s\" failed to "
+                        "start: flags %04x",
+                        tv->name, SC_ATOMIC_GET(tv->flags));
                 return TM_ECODE_FAILED;
             }
 
@@ -1809,9 +1810,10 @@ again:
 
                 gettimeofday(&cur_ts, NULL);
                 if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
-                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                            "start in time: flags %04x", tv->name,
-                            SC_ATOMIC_GET(tv->flags));
+                    SCLogError(SC_ERR_THREAD_INIT,
+                            "thread \"%s\" failed to "
+                            "start in time: flags %04x",
+                            tv->name, SC_ATOMIC_GET(tv->flags));
                     return TM_ECODE_FAILED;
                 }
 

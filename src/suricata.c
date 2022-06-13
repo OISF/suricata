@@ -464,7 +464,7 @@ static TmEcode SendOSSpecificNotification(void)
     SCLogNotice("All threads in running state.");
 
 #if HAVE_LIBSYSTEMD
-    if(sd_notify(0, "READY=1") < 0) {
+    if (sd_notify(0, "READY=1") < 0) {
         SCLogWarning(SC_ERR_SYSCALL, "failed to send sd_notify()");
         return TM_ECODE_FAILED;
     }
@@ -2969,7 +2969,7 @@ int SuricataMain(int argc, char **argv)
     TmThreadContinueThreads();
 
     /* Must ensure all threads are fully operational before contunuing with init process */
-    if(TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
+    if (TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
