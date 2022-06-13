@@ -474,6 +474,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -537,6 +538,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -664,6 +666,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -736,6 +739,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -833,6 +837,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 libtool \
                 libpcap-dev \

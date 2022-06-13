@@ -39,6 +39,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 libtool \
                 libpcap-dev \
