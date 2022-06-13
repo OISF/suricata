@@ -30,6 +30,7 @@ jobs:
                 autoconf \
                 automake \
                 ccache \
+                cargo \
                 git \
                 jq \
                 libtool \

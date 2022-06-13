@@ -386,6 +386,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -446,6 +447,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -518,6 +520,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -587,6 +590,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -652,6 +656,7 @@ jobs:
           apt -y install \
                 build-essential \
                 curl \
+                cargo \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libevent-dev \
