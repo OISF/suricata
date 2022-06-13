@@ -231,7 +231,7 @@ int ConfSet(const char *name, const char *val)
     }
 
     /* Also set in the Rust config. */
-    ScConfSet(name, val);
+    SuriConfigGlobalSet(name, val);
 
     return 1;
 }

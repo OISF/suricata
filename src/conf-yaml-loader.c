@@ -75,15 +75,15 @@ static bool Mangle(char *string)
 int
 ConfYamlLoadFile(const char *filename)
 {
-    char errbuf[SC_CONFIG_ERRBUF_SIZE];
-    Yaml *yaml = ScConfigLoadFromFile(filename, errbuf);
+    char errbuf[SURI_CONFIG_ERRBUF_SIZE];
+    Yaml *yaml = SuriConfigLoadFromFile(filename, errbuf);
     if (yaml == NULL) {
         SCLogError(SC_ERR_FATAL, "Failed to load %s: %s", filename, errbuf);
         return -1;
     }
     ConfNode *root = ConfGetRootNode();
     ConfNodeFromYaml(yaml, root, false);
-    ScConfigYamlFree(yaml);
+    SuriConfigYamlFree(yaml);
     return 0;
 }
 
@@ -95,13 +95,13 @@ ConfYamlLoadString(const char *string, size_t len)
 {
     const char *errbuf;
     ConfNode *root = ConfGetRootNode();
-    Yaml *yaml = ScConfigLoadFromString(string, &errbuf);
+    Yaml *yaml = SuriConfigLoadFromString(string, &errbuf);
     if (yaml == NULL) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "Failed to load YAML from string: %s", errbuf);
         return -1;
     }
     ConfNodeFromYaml(yaml, root, false);
-    ScConfigYamlFree(yaml);
+    SuriConfigYamlFree(yaml);
     return 0;
 }
 
@@ -131,29 +131,29 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
         }
     }
 
-    char errbuf[SC_CONFIG_ERRBUF_SIZE];
-    Yaml *yaml = ScConfigLoadFromFile(filename, errbuf);
+    char errbuf[SURI_CONFIG_ERRBUF_SIZE];
+    Yaml *yaml = SuriConfigLoadFromFile(filename, errbuf);
     if (yaml == NULL) {
         SCLogError(SC_ERR_FATAL, "Failed to load %s at prefix %s: %s", filename, prefix, errbuf);
         return -1;
     }
     ConfNodeFromYaml(yaml, root, false);
-    ScConfigYamlFree(yaml);
+    SuriConfigYamlFree(yaml);
 
     return 0;
 }
 
 void ConfNodeFromYaml(Yaml *yaml, ConfNode *node, bool in_vars)
 {
-    switch (ScYamlGetType(yaml)) {
-        case SC_YAML_TYPE_NULL:
+    switch (SuriConfigYamlGetType(yaml)) {
+        case SURI_CONFIG_YAML_TYPE_NULL:
             // Do nothing, leaves value as null.
             break;
-        case SC_YAML_TYPE_BOOLEAN:
-        case SC_YAML_TYPE_INTEGER:
-        case SC_YAML_TYPE_REAL:
-        case SC_YAML_TYPE_STRING: {
-            const char *value = ScConfValueString(yaml);
+        case SURI_CONFIG_YAML_TYPE_BOOLEAN:
+        case SURI_CONFIG_YAML_TYPE_INTEGER:
+        case SURI_CONFIG_YAML_TYPE_REAL:
+        case SURI_CONFIG_YAML_TYPE_STRING: {
+            const char *value = SuriConfigValueString(yaml);
             if (value != NULL) {
                 if ((node->val = SCStrdup(value)) == NULL) {
                     return;
@@ -161,14 +161,14 @@ void ConfNodeFromYaml(Yaml *yaml, ConfNode *node, bool in_vars)
             }
             break;
         }
-        case SC_YAML_TYPE_HASH: {
-            YamlHashIter *iter = ScConfHashIter(yaml);
+        case SURI_CONFIG_YAML_TYPE_HASH: {
+            SuriConfigYamlHashIter *iter = SuriConfigHashIter(yaml);
             if (iter == NULL) {
                 return;
             }
             const char *key = NULL;
             Yaml *yaml_child = NULL;
-            while (ScConfHashIterNext(iter, &key, &yaml_child)) {
+            while (SuriConfigHashIterNext(iter, &key, &yaml_child)) {
                 /* Legacy compatibility. The old loader will set the value
                  * of a hash node containing a hash, to the key of the
                  * first entry in the hash.
@@ -178,14 +178,14 @@ void ConfNodeFromYaml(Yaml *yaml, ConfNode *node, bool in_vars)
                 if (node->val == NULL) {
                     node->val = SCStrdup(key);
                 }
-                switch (ScYamlGetType(yaml_child)) {
-                    case SC_YAML_TYPE_BOOLEAN:
-                    case SC_YAML_TYPE_INTEGER:
-                    case SC_YAML_TYPE_REAL:
-                    case SC_YAML_TYPE_HASH:
-                    case SC_YAML_TYPE_ARRAY:
-                    case SC_YAML_TYPE_NULL:
-                    case SC_YAML_TYPE_STRING: {
+                switch (SuriConfigYamlGetType(yaml_child)) {
+                    case SURI_CONFIG_YAML_TYPE_BOOLEAN:
+                    case SURI_CONFIG_YAML_TYPE_INTEGER:
+                    case SURI_CONFIG_YAML_TYPE_REAL:
+                    case SURI_CONFIG_YAML_TYPE_HASH:
+                    case SURI_CONFIG_YAML_TYPE_ARRAY:
+                    case SURI_CONFIG_YAML_TYPE_NULL:
+                    case SURI_CONFIG_YAML_TYPE_STRING: {
                         ConfNode *child = ConfNodeLookupChild(node, key);
                         if (child != NULL) {
                             if (child->val) {
@@ -225,19 +225,19 @@ void ConfNodeFromYaml(Yaml *yaml, ConfNode *node, bool in_vars)
                         break;
                 }
             }
-            ScConfHashIterFree(iter);
+            SuriConfigHashIterFree(iter);
             break;
         }
-        case SC_YAML_TYPE_ARRAY: {
+        case SURI_CONFIG_YAML_TYPE_ARRAY: {
             char sequence_name[5];
             node->is_seq = 1;
             int count = 0;
             Yaml *elem = NULL;
-            YamlArrayIter *iter = ScConfArrayIter(yaml);
+            SuriConfigYamlArrayIter *iter = SuriConfigArrayIter(yaml);
             if (iter == NULL) {
                 return;
             }
-            while (ScConfArrayIterNext(iter, &elem)) {
+            while (SuriConfigArrayIterNext(iter, &elem)) {
                 snprintf(sequence_name, 4, "%d", count);
                 ConfNode *new = ConfNodeNew();
                 if (new == NULL) {

@@ -2031,7 +2031,7 @@ static int MayDaemonize(SCInstance *suri)
     if (suri->daemon == 1 && suri->pid_filename == NULL) {
         const char *pid_filename;
 
-        if (ScConfGet("pid-file", &pid_filename) == 1) {
+        if (SuriConfigGet("pid-file", &pid_filename) == 1) {
             SCLogInfo("Use pid file %s from config file.", pid_filename);
         } else {
             pid_filename = DEFAULT_PID_FILENAME;

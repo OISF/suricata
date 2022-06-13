@@ -22,9 +22,15 @@ use std::os::raw::{c_char, c_int};
 use std::sync::Mutex;
 pub use yaml_rust::Yaml;
 
+/// The size of the error buffer that is passed to some of the FFI functions.
+pub const SURI_CONFIG_ERRBUF_SIZE: usize = 4096;
+
+pub struct SuriConfigYamlArrayIter(std::slice::Iter<'static, Yaml>);
+pub struct SuriConfigYamlHashIter(linked_hash_map::Iter<'static, Yaml, Yaml>);
+
 #[repr(C)]
 #[derive(Debug)]
-pub enum ScYamlType {
+pub enum SuriConfigYamlType {
     Unknown = 0,
     Hash,
     Array,
@@ -45,11 +51,19 @@ lazy_static! {
     static ref CSTRINGS: Mutex<HashMap<String, CString>> = Mutex::new(HashMap::new());
 }
 
-/// The size of the error buffer that is passed to some of the FFI functions.
-pub const SC_CONFIG_ERRBUF_SIZE: usize = 4096;
+/// Get, and create if a required a CString for the provided &str.
+fn get_cstring(value: &str) -> *const c_char {
+    let mut cstrings = CSTRINGS.lock().unwrap();
+    if let Some(cs) = cstrings.get(value) {
+        return cs.as_ptr();
+    }
+    let cstring = CString::new(value).unwrap();
+    cstrings.insert(value.to_string(), cstring);
+    cstrings.get(value).unwrap().as_ptr()
+}
 
 #[no_mangle]
-pub unsafe extern "C" fn ScConfigLoadFromFile(
+pub unsafe extern "C" fn SuriConfigLoadFromFile(
     filename: *const c_char, errbuf: *mut c_char,
 ) -> *mut Yaml {
     let filename = match CStr::from_ptr(filename).to_str() {
@@ -57,7 +71,7 @@ pub unsafe extern "C" fn ScConfigLoadFromFile(
         Err(err) => {
             let error = format!("Failed to convert C filename to UTF-8: {:?}", err);
             let error = CString::new(error).unwrap();
-            let size = std::cmp::min(error.as_bytes_with_nul().len(), SC_CONFIG_ERRBUF_SIZE);
+            let size = std::cmp::min(error.as_bytes_with_nul().len(), SURI_CONFIG_ERRBUF_SIZE);
             std::ptr::copy_nonoverlapping(error.as_ptr(), errbuf, size);
             return std::ptr::null_mut();
         }
@@ -88,7 +102,7 @@ pub unsafe extern "C" fn ScConfigLoadFromFile(
                 }
             };
             let error = CString::new(error).unwrap();
-            let size = std::cmp::min(error.as_bytes_with_nul().len(), SC_CONFIG_ERRBUF_SIZE);
+            let size = std::cmp::min(error.as_bytes_with_nul().len(), SURI_CONFIG_ERRBUF_SIZE);
             std::ptr::copy_nonoverlapping(error.as_ptr(), errbuf, size);
             return std::ptr::null_mut();
         }
@@ -97,23 +111,12 @@ pub unsafe extern "C" fn ScConfigLoadFromFile(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScConfigYamlFree(yaml: *mut Yaml) {
+pub unsafe extern "C" fn SuriConfigYamlFree(yaml: *mut Yaml) {
     let _ = Box::from_raw(yaml);
 }
 
-/// Get, and create if a required a CString for the provided &str.
-fn get_cstring(value: &str) -> *const c_char {
-    let mut cstrings = CSTRINGS.lock().unwrap();
-    if let Some(cs) = cstrings.get(value) {
-        return cs.as_ptr();
-    }
-    let cstring = CString::new(value).unwrap();
-    cstrings.insert(value.to_string(), cstring);
-    cstrings.get(value).unwrap().as_ptr()
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn ScConfigLoadFromString(
+pub unsafe extern "C" fn SuriConfigLoadFromString(
     input: *const c_char, errptr: *mut *const c_char,
 ) -> *mut Yaml {
     let input = match CStr::from_ptr(input).to_str() {
@@ -135,11 +138,12 @@ pub unsafe extern "C" fn ScConfigLoadFromString(
     }
 }
 
+/// Get a string value from the global configuration.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfGet(key: *const c_char, vptr: *mut *const c_char) -> c_int {
+pub unsafe extern "C" fn SuriConfigGet(key: *const c_char, vptr: *mut *const c_char) -> bool {
     let key = match CStr::from_ptr(key).to_str() {
         Ok(key) => key,
-        Err(_) => return -1,
+        Err(_) => return false,
     };
 
     let root = GLOBAL.read().unwrap();
@@ -147,29 +151,35 @@ pub unsafe extern "C" fn ScConfGet(key: *const c_char, vptr: *mut *const c_char)
     if let Yaml::String(s) = node {
         let cstring = get_cstring(s);
         *vptr = cstring;
-        return 0;
+        true
+    } else {
+        false
     }
-    -1
 }
 
+/// Get an integer value from the global configuration.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfGetInt(key: *const c_char, vptr: *mut i64) -> c_int {
+pub unsafe extern "C" fn SuriConfigGetInt(key: *const c_char, vptr: *mut i64) -> bool {
     let key = match CStr::from_ptr(key).to_str() {
         Ok(key) => key,
-        Err(_) => return 0,
+        Err(_) => return false,
     };
     let root = GLOBAL.read().unwrap();
     if let Some(node) = get_node(&*root, key) {
         if let Some(n) = node.as_i64() {
             *vptr = n;
-            return 1;
+            return true;
         }
     }
-    0
+    false
 }
 
+/// Get a configuration node from the global configuration.
+///
+/// If the node specified by `key` exists the node will be returned. If not found, NULL will be
+/// returned.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfGetNode(key: *const c_char) -> *const Yaml {
+pub unsafe extern "C" fn SuriConfigGetNode(key: *const c_char) -> *const Yaml {
     let key = match CStr::from_ptr(key).to_str() {
         Ok(key) => key,
         Err(_) => return std::ptr::null(),
@@ -183,32 +193,41 @@ pub unsafe extern "C" fn ScConfGetNode(key: *const c_char) -> *const Yaml {
     }
 }
 
-pub struct YamlArrayIter(std::slice::Iter<'static, Yaml>);
-
+/// Get an iterator for a YAML array.
+///
+/// Returns an iterator if the node is an array, otherwise NULL is returned.
+///
+/// Note: The returned iterator must be freed with `ScConfArrayIterFree` when it is no longer
+/// needed.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfArrayIter(node: &'static Yaml) -> *mut YamlArrayIter {
+pub unsafe extern "C" fn SuriConfigArrayIter(node: &'static Yaml) -> *mut SuriConfigYamlArrayIter {
     if let Yaml::Array(array) = node {
-        let iter = YamlArrayIter(array.iter());
+        let iter = SuriConfigYamlArrayIter(array.iter());
         return Box::into_raw(Box::new(iter)) as *mut _;
     }
     std::ptr::null_mut()
 }
 
+/// Get the next YAML node in an array iterator.
+///
+/// Returns true if there was a next value, otherwise false is returned.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfArrayIterNext(
-    iter: &mut YamlArrayIter, vptr: *mut *mut Yaml,
+pub unsafe extern "C" fn SuriConfigArrayIterNext(
+    iter: &mut SuriConfigYamlArrayIter, vptr: *mut *mut Yaml,
 ) -> bool {
     if let Some(next) = iter.0.next() {
         *vptr = next as *const _ as *mut _;
         true
     } else {
+        *vptr = std::ptr::null_mut();
         false
     }
 }
 
+/// Free a YAML array iterator.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfArrayIterFree(iter: *mut YamlArrayIter) {
-    let _iter = Box::from_raw(iter as *mut YamlArrayIter);
+pub unsafe extern "C" fn ScConfArrayIterFree(iter: *mut SuriConfigYamlArrayIter) {
+    let _iter = Box::from_raw(iter as *mut SuriConfigYamlArrayIter);
 }
 
 #[no_mangle]
@@ -216,15 +235,13 @@ pub unsafe extern "C" fn ScConfDebug(node: &Yaml) {
     dbg!(node);
 }
 
-pub struct YamlHashIter(linked_hash_map::Iter<'static, Yaml, Yaml>);
-
 /// Create a hash iterator from a YAML value.
 ///
 /// Returns null if the Yaml configuration node is not a hash.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfHashIter(node: *const Yaml) -> *mut YamlHashIter {
+pub unsafe extern "C" fn SuriConfigHashIter(node: *const Yaml) -> *mut SuriConfigYamlHashIter {
     if let Yaml::Hash(hash) = &*node {
-        let iter = YamlHashIter(hash.iter());
+        let iter = SuriConfigYamlHashIter(hash.iter());
         Box::into_raw(Box::new(iter)) as *mut _
     } else {
         std::ptr::null_mut()
@@ -237,9 +254,10 @@ pub unsafe extern "C" fn ScConfHashIter(node: *const Yaml) -> *mut YamlHashIter 
 ///
 /// This function will return true if there was a next value to return, false is not.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfHashIterNext(
-    iter: *mut YamlHashIter, kptr: *mut *const c_char, vptr: *mut *mut Yaml,
+pub unsafe extern "C" fn SuriConfigHashIterNext(
+    iter: *mut SuriConfigYamlHashIter, kptr: *mut *const c_char, vptr: *mut *mut Yaml,
 ) -> bool {
+    *vptr = std::ptr::null_mut();
     if let Some((key, val)) = (*iter).0.next() {
         let xkey = match key {
             Yaml::String(v) | Yaml::Real(v) => v.to_string(),
@@ -255,15 +273,14 @@ pub unsafe extern "C" fn ScConfHashIterNext(
     }
 }
 
-/// Free a HashIter returned from ScConfHashIter.
+/// Free a HashIter returned from SuriConfigHashIter.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfHashIterFree(iter: *mut YamlHashIter) {
+pub unsafe extern "C" fn SuriConfigHashIterFree(iter: *mut SuriConfigYamlHashIter) {
     let _ = Box::from_raw(iter);
 }
 
-#[allow(non_snake_case)]
 #[no_mangle]
-pub unsafe extern "C" fn ScConfSet(key: *const c_char, value: *const c_char) -> c_int {
+pub unsafe extern "C" fn SuriConfigGlobalSet(key: *const c_char, value: *const c_char) -> c_int {
     let key = match CStr::from_ptr(key).to_str() {
         Ok(s) => s,
         Err(_) => return 0,
@@ -286,7 +303,7 @@ pub unsafe extern "C" fn ScConfSet(key: *const c_char, value: *const c_char) -> 
 /// that are truthy like "yes", "on", or "1", or treat non-zero integer values
 /// as true.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfValueIsTrue(value: *const Yaml) -> bool {
+pub unsafe extern "C" fn SuriConfigValueIsTrue(value: *const Yaml) -> bool {
     if value.is_null() {
         false
     } else {
@@ -294,8 +311,12 @@ pub unsafe extern "C" fn ScConfValueIsTrue(value: *const Yaml) -> bool {
     }
 }
 
+/// Get the string value of a configuration node.
+///
+/// Not all values are convertible to a string like Hash and Array, in these cases NULL
+/// will be returned.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfValueString(node: &Yaml) -> *const c_char {
+pub unsafe extern "C" fn SuriConfigValueString(node: &Yaml) -> *const c_char {
     match node {
         Yaml::String(s) => get_cstring(s),
         Yaml::Boolean(v) => get_cstring(&*v.to_string()),
@@ -306,8 +327,11 @@ pub unsafe extern "C" fn ScConfValueString(node: &Yaml) -> *const c_char {
     }
 }
 
+/// Get a child node from a hash by name.
+///
+/// NULL will be returned if the key is not found, or the provided node is not a hash.
 #[no_mangle]
-pub unsafe extern "C" fn ScConfHashGet(node: &Yaml, key: *const c_char) -> *const Yaml {
+pub unsafe extern "C" fn SuriConfigHashGet(node: &Yaml, key: *const c_char) -> *const Yaml {
     let key = match CStr::from_ptr(key).to_str() {
         Ok(s) => Yaml::from_str(s),
         Err(_) => return std::ptr::null(),
@@ -320,27 +344,30 @@ pub unsafe extern "C" fn ScConfHashGet(node: &Yaml, key: *const c_char) -> *cons
     }
 }
 
+/// Return the type of YAML node.
 #[no_mangle]
-pub extern "C" fn ScYamlGetType(node: &Yaml) -> ScYamlType {
+pub extern "C" fn SuriConfigYamlGetType(node: &Yaml) -> SuriConfigYamlType {
     match node {
-        Yaml::Hash(_) => ScYamlType::Hash,
-        Yaml::Array(_) => ScYamlType::Array,
-        Yaml::String(_) => ScYamlType::String,
-        Yaml::Boolean(_) => ScYamlType::Boolean,
-        Yaml::Integer(_) => ScYamlType::Integer,
-        Yaml::Real(_) => ScYamlType::Real,
-        Yaml::Null => ScYamlType::Null,
-        _ => ScYamlType::Unknown,
+        Yaml::Hash(_) => SuriConfigYamlType::Hash,
+        Yaml::Array(_) => SuriConfigYamlType::Array,
+        Yaml::String(_) => SuriConfigYamlType::String,
+        Yaml::Boolean(_) => SuriConfigYamlType::Boolean,
+        Yaml::Integer(_) => SuriConfigYamlType::Integer,
+        Yaml::Real(_) => SuriConfigYamlType::Real,
+        Yaml::Null => SuriConfigYamlType::Null,
+        _ => SuriConfigYamlType::Unknown,
     }
 }
 
+/// Return true if the node is a hash.
 #[no_mangle]
-pub extern "C" fn ScYamlIsHash(node: &Yaml) -> bool {
+pub extern "C" fn SuriConfigYamlIsHash(node: &Yaml) -> bool {
     node.as_hash().is_some()
 }
 
+/// Return a pointer to the global configuration.
 #[no_mangle]
-pub extern "C" fn ScConfGetGlobal() -> *mut Yaml {
+pub extern "C" fn SuriConfigGetGlobal() -> *mut Yaml {
     let global = GLOBAL.read().unwrap();
     (&*global) as *const _ as *mut _
 }
@@ -361,8 +388,8 @@ mod test {
 
         let key = CString::new("nested.aaa").unwrap();
         let mut value: *const c_char = std::ptr::null();
-        let rc = unsafe { ScConfGet(key.as_ptr(), &mut value) };
-        assert_eq!(rc, 0);
+        let rc = unsafe { SuriConfigGet(key.as_ptr(), &mut value) };
+        assert_eq!(rc, true);
         assert_ne!(value, std::ptr::null());
         let expected = CString::new("bbb").unwrap();
         let actual = unsafe { CString::from_raw(value as *mut _) };
@@ -379,8 +406,8 @@ mod test {
         set_global(config);
         let mut vptr: i64 = -1;
         let key = CString::new("nested.int").unwrap();
-        let rc = unsafe { ScConfGetInt(key.as_ptr() as *mut _, &mut vptr) };
-        assert_eq!(rc, 1);
+        let rc = unsafe { SuriConfigGetInt(key.as_ptr() as *mut _, &mut vptr) };
+        assert_eq!(rc, true);
         assert_eq!(vptr, 999);
     }
 
