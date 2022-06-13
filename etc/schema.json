@@ -64,6 +64,10 @@
             "type": "integer",
             "optional": true
         },
+        "pcap_filename": {
+            "type": "string",
+            "optional": true
+        },
         "pkt_src": {
             "type": "string"
         },
