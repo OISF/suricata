@@ -14,7 +14,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 // 02110-1301, USA.
 
-use crate::{get_node, LoaderError, SuricataYaml, GLOBAL};
+use crate::{get_node, merge, LoaderError, SuricataYaml, DEFAULT, GLOBAL};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
@@ -370,6 +370,29 @@ pub extern "C" fn SuriConfigYamlIsHash(node: &Yaml) -> bool {
 pub extern "C" fn SuriConfigGetGlobal() -> *mut Yaml {
     let global = GLOBAL.read().unwrap();
     (&*global) as *const _ as *mut _
+}
+
+#[no_mangle]
+pub extern "C" fn SuriConfigApplyDefaults(node: &mut Yaml) {
+    merge(node, &DEFAULT);
+
+    if let Yaml::Hash(config) = node {
+        if let Some(Yaml::Array(outputs)) = config.get_mut(&Yaml::from_str("outputs")) {
+            for output in outputs {
+                if let Yaml::Hash(output) = output {
+                    for (k, v) in output {
+                        match k.as_str() {
+                            Some("eve-log") => {
+                                let default = &DEFAULT["__defaults"]["outputs"]["eve-log"];
+                                merge(v, default);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

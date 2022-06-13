@@ -11,26 +11,26 @@ __defaults:
       filetype: regular
 
       # Just trying a way of encoding the enumeration of valid values.
-      __filetype-allowed: [regular, unix_stream, unix_dgram]
+      #__filetype-allowed: [regular, unix_stream, unix_dgram]
 
     eve-log:
       enabled: yes
       filetype: regular
-      __filetype-allowed: [regular, syslog, unix_dgram, unix_stream, redis]
+      #__filetype-allowed: [regular, syslog, unix_dgram, unix_stream, redis]
       filename: eve.json
       threaded: false
       prefix: ~
       identity: suricata
       facility: local5
       level: Info
-      __level-allowed: [Emergency, Alert, Critical, Error, Warning, Notice, Info, Debug]
+      #__level-allowed: [Emergency, Alert, Critical, Error, Warning, Notice, Info, Debug]
       ethernet: false
       redis:
         server: 127.0.0.1
         port: 6379
         async: true
         mode: lpush
-        __mode-allowed: [list, lpush, rpush, channel, publish]
+        #__mode-allowed: [list, lpush, rpush, channel, publish]
         key: suricata
         pipelining:
           enabled: true
@@ -42,9 +42,9 @@ __defaults:
       xff:
         enabled: false
         mode: extra-data
-        __mode_allowed: [extra-data, overwrite]
+        #__mode_allowed: [extra-data, overwrite]
         deployment: reverse
-        __deployment-allowed: [reverse, forward]
+        #__deployment-allowed: [reverse, forward]
         header: X-Forward-For
       types:
         alert:

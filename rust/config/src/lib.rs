@@ -159,9 +159,10 @@ pub fn merge(a: &mut Yaml, b: &Yaml) {
         Yaml::Hash(b) => {
             if let Yaml::Hash(ahash) = a {
                 for (k, v) in b {
-                    // Skip object defaults that are not part of the running config.
-                    if k.as_str() == Some("__defaults") {
-                        continue;
+                    if let Yaml::String(key) = k {
+                        if key.starts_with("_") {
+                            continue;
+                        }
                     }
                     if ahash.contains_key(k) {
                         merge(ahash.get_mut(k).unwrap(), v);

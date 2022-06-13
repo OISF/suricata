@@ -81,6 +81,7 @@ ConfYamlLoadFile(const char *filename)
         SCLogError(SC_ERR_FATAL, "Failed to load %s: %s", filename, errbuf);
         return -1;
     }
+    SuriConfigApplyDefaults(yaml);
     ConfNode *root = ConfGetRootNode();
     ConfNodeFromYaml(yaml, root, false);
     SuriConfigYamlFree(yaml);
