@@ -1233,7 +1233,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     g_ut_modules = 0;
     g_ut_covered = 0;
 #endif
-
+    // clang-format off
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
         {"dump-features", 0, &dump_features, 1},
@@ -1295,6 +1295,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif
         {NULL, 0, NULL, 0}
     };
+    // clang-format on
 
     /* getopt_long stores the option index here. */
     int option_index = 0;
