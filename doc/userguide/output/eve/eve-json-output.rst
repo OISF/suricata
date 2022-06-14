@@ -192,7 +192,7 @@ last_modified           last-modified
 link                    link
 location                location
 proxy_authenticate      proxy-authenticate
-referrer                referrer
+referer                 referer
 refresh                 refresh
 retry_after             retry-after
 server                  server
