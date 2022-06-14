@@ -1805,6 +1805,11 @@ again:
                 return TM_ECODE_FAILED;
             }
 
+            if (TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                tv = tv->next;
+                continue;
+            }
+
             if (!(TmThreadsCheckFlag(tv, THV_RUNNING))) {
                 SCMutexUnlock(&tv_root_lock);
 
