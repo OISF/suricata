@@ -358,7 +358,9 @@ DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMa
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
         const uint8_t rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
-        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto)) {
+        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto ||
+                    (rule_alproto == ALPROTO_DCERPC && alproto == ALPROTO_SMB)))
+        {
             det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
         }
     }
@@ -1089,7 +1091,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             return false;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
-        if (!(f->alproto == s->alproto || s->alproto == ALPROTO_UNKNOWN)) {
+        if (!(f->alproto == s->alproto || s->alproto == ALPROTO_UNKNOWN ||
+                    (s->alproto == ALPROTO_DCERPC && f->alproto == ALPROTO_SMB)))
+        {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
             return false;
         }

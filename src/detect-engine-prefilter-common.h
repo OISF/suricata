@@ -79,7 +79,8 @@ PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
         case PREFILTER_EXTRA_MATCH_UNUSED:
             break;
         case PREFILTER_EXTRA_MATCH_ALPROTO:
-            if (p->flow == NULL || p->flow->alproto != ctx->value)
+            if (p->flow == NULL || p->flow->alproto != ctx->value ||
+                    (ctx->value == ALPROTO_DCERPC && p->flow->alproto == ALPROTO_SMB))
                 return FALSE;
             break;
         case PREFILTER_EXTRA_MATCH_SRCPORT:
