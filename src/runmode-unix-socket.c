@@ -263,16 +263,8 @@ static void PcapFilesFree(PcapFiles *cfile)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-static TmEcode UnixListAddFile(
-    PcapCommand *this,
-    const char *filename,
-    const char *output_dir,
-    uint32_t tenant_id,
-    bool continuous,
-    bool should_delete,
-    time_t delay,
-    time_t poll_interval
-)
+static TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const char *output_dir,
+        uint32_t tenant_id, bool continuous, bool should_delete, time_t delay, time_t poll_interval)
 {
     PcapFiles *cfile = NULL;
     if (filename == NULL || this == NULL)
