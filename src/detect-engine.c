@@ -85,7 +85,6 @@
 
 #include "reputation.h"
 
-
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
