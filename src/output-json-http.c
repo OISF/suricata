@@ -269,6 +269,7 @@ static void EveHttpLogJSONCustom(LogHttpFileCtx *http_ctx, JsonBuilder *js, htp_
     char *c;
     HttpField f;
 
+    jb_open_object(js, "custom");
     for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
     {
         if ((http_ctx->fields & (1ULL<<f)) != 0)
@@ -302,6 +303,7 @@ static void EveHttpLogJSONCustom(LogHttpFileCtx *http_ctx, JsonBuilder *js, htp_
             }
         }
     }
+    jb_close(js);
 }
 
 static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)

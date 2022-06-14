@@ -1685,6 +1685,10 @@
                     },
                     "additionalProperties": false
                 },
+                "custom": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
                 "http2": {
                     "type": "object",
                     "properties": {
