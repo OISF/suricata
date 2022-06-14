@@ -795,7 +795,7 @@ typedef struct DetectEngineCtx_ {
     uint8_t flags;
     int failure_fatal;
 
-    int tenant_id;
+    uint32_t tenant_id;
 
     Signature *sig_list;
     uint32_t sig_cnt;

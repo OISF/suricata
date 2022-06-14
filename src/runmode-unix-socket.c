@@ -50,13 +50,14 @@
 #include "conf-yaml-loader.h"
 
 #include "datasets.h"
+#include <stdint.h>
 
 int unix_socket_mode_is_running = 0;
 
 typedef struct PcapFiles_ {
     char *filename;
     char *output_dir;
-    int tenant_id;
+    uint32_t tenant_id;
     time_t delay;
     time_t poll_interval;
     bool continuous;
@@ -266,7 +267,7 @@ static TmEcode UnixListAddFile(
     PcapCommand *this,
     const char *filename,
     const char *output_dir,
-    int tenant_id,
+    uint32_t tenant_id,
     bool continuous,
     bool should_delete,
     time_t delay,
@@ -324,7 +325,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     PcapCommand *this = (PcapCommand *) data;
     const char *filename;
     const char *output_dir;
-    int tenant_id = 0;
+    uint32_t tenant_id = 0;
     bool should_delete = false;
     time_t delay = 30;
     time_t poll_interval = 5;

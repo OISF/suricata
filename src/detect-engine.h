@@ -29,6 +29,7 @@
 #include "flow-private.h"
 
 #include "detect-engine-frame.h"
+#include <stdint.h>
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
@@ -109,7 +110,7 @@ uint32_t DetectEngineGetVersion(void);
 void DetectEngineBumpVersion(void);
 int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineGetCurrent(void);
-DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id);
+DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id);
 void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
