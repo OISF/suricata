@@ -87,6 +87,7 @@
 #include "runmodes.h"
 
 #include "reputation.h"
+#include <stdint.h>
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
