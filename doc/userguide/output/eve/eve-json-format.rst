@@ -286,7 +286,7 @@ suricata.yaml file the following fields are (can) also included:
 * "status": HTTP status code
 * "protocol": Protocol / Version of HTTP (ex: HTTP/1.1)
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
-* "http_refer": The referrer for this action
+* "http_refer": The referer for this action
 
 In addition to the extended logging fields one can also choose to enable/add
 from more than 50 additional custom logging HTTP fields enabled in the
@@ -318,7 +318,7 @@ suricata.yaml file. The additional fields can be enabled as following:
               allow, connection, content-encoding, content-language,
               content-length, content-location, content-md5, content-range,
               content-type, date, etags, expires, last-modified, link, location,
-              proxy-authenticate, referrer, refresh, retry-after, server,
+              proxy-authenticate, referer, refresh, retry-after, server,
               set-cookie, trailer, transfer-encoding, upgrade, vary, warning,
               www-authenticate, x-flash-version, x-authenticated-user]
 
