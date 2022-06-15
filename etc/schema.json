@@ -1274,6 +1274,58 @@
                 "alerted": {
                     "type": "boolean"
                 },
+                "etm": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "etm": {
+                          "type": "object",
+                          "properties": {
+                            "dir": {
+                              "type": "array",
+                              "items": {
+                                  "type": "integer"
+                               }
+                              
+                            },
+                            "len": {
+                              "type": "array",
+                              "items": {
+                                  "type": "integer"
+                                }
+                            },
+                            "delta": {
+                              "type": "array",
+                              "items": {
+                                  "type": "integer"
+                                }
+                            },
+                            "pcr": {
+                              "type": "integer"
+                            },
+                            "bd_mean": {
+                              "type": "number"
+                            },
+                            "bd_variance": {
+                              "type": "integer"
+                            },
+                            "entropy": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "dir",
+                            "len",
+                            "delta",
+                            "pcr",
+                            "bd_mean",
+                            "bd_variance",
+                            "entropy"
+                          ]
+                        }
+                      },
+                    "additionalProperites": false
+                },
                 "bypass": {
                     "type": "string"
                 },
