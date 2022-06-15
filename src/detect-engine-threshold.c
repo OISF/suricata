@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -592,7 +592,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
 /**
  * \brief Make the threshold logic for signatures
  *
- * \param de_ctx Dectection Context
+ * \param de_ctx Detection Context
  * \param tsh_ptr Threshold element
  * \param p Packet structure
  * \param s Signature structure
@@ -643,7 +643,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 /**
  * \brief Init threshold context hash tables
  *
- * \param de_ctx Dectection Context
+ * \param de_ctx Detection Context
  *
  */
 void ThresholdHashInit(DetectEngineCtx *de_ctx)
@@ -717,7 +717,7 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
     if (de_ctx->ths_ctx.th_entry == NULL) {
         FatalError(SC_ERR_MEM_ALLOC,
                 "Error allocating memory for rule "
-                "thresholds (tried to allocate %" PRIu32 " th_entrys for "
+                "thresholds (tried to allocate %" PRIu32 " th_entries for "
                 "rule tracking)",
                 de_ctx->ths_ctx.th_size);
     }
@@ -726,7 +726,7 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
 /**
  * \brief Destroy threshold context hash tables
  *
- * \param de_ctx Dectection Context
+ * \param de_ctx Detection Context
  *
  */
 void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
