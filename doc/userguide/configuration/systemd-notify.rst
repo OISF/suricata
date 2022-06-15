@@ -26,6 +26,16 @@ This feature is only supported for distributions under the following conditions:
 1. Distribution contains ``libsystemd``
 2. Any distribution that runs under **systemd**
 3. Unit file configuration: ``Type=notify``
+4. Contains development files for systemd shared library
+
+To install development files:
+Fedora::
+
+    dnf -y install systemd-devel
+
+Ubuntu/Debian::
+
+    apt -y install systemd-dev
 
 This package shall be compile-time configured and therefore only built with distributions fulfilling
 requirements [1, 2]. For notification to the service manager the unit file must be configured as 
@@ -36,9 +46,9 @@ forked.
 
 Additional Information
 ----------------------
-To confirm the system is running under systemd:
+To confirm the system is running under systemd::
 
-``ps --no-headers -o comm 1``
+    ps --no-headers -o comm 1
 
 See: https://man7.org/linux/man-pages/man3/sd_notify.3.html for a detailed description on
 ``sd_notify``.
