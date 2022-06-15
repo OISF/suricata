@@ -6,6 +6,10 @@ people are using existing rulesets.
 
 The official way to install rulesets is described in :doc:`../rule-management/suricata-update`.
 
+There are a number of free rulesets that can be used via suricata-update.
+To aid in learning about writing rules, the Emerging Threats Open ruleset
+is free and a good reference that has a wide range of signature examples.
+
 This Suricata Rules document explains all about signatures; how to
 read, adjust and create them.
 
