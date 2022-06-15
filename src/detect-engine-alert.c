@@ -182,14 +182,8 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 static inline PacketAlert PacketAlertSet(
         DetectEngineThreadCtx *det_ctx, const Signature *s, uint64_t tx_id, uint8_t alert_flags)
 {
-    PacketAlert pa = { s->num, s->action, alert_flags, s, tx_id, 0 };
-    pa.num = s->num;
-    pa.action = s->action;
-    pa.s = (Signature *)s;
-    pa.flags = alert_flags;
-    /* Set tx_id if the frame has it */
-    pa.tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
-    pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+    PacketAlert pa = { s->num, s->action, alert_flags, s, (tx_id == UINT64_MAX) ? 0 : tx_id,
+        (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0 };
     return pa;
 }
 
@@ -250,8 +244,10 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
 static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 {
 #ifdef DEBUG
-    if (unlikely(g_eps_is_alert_queue_fail_mode))
+    if (unlikely(g_eps_is_alert_queue_fail_mode)) {
+        det_ctx->is_alert_queue_expand_failure = true;
         return det_ctx->alert_queue_capacity;
+    }
 #endif
     uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
     void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
