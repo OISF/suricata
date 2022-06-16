@@ -104,6 +104,7 @@ pub struct MQTTState {
     skip_request: usize,
     skip_response: usize,
     max_msg_len: usize,
+    tx_index_completed: usize,
 }
 
 impl State<MQTTTransaction> for MQTTState {
@@ -126,6 +127,7 @@ impl MQTTState {
             skip_request: 0,
             skip_response: 0,
             max_msg_len: unsafe { MAX_MSG_LEN as usize },
+            tx_index_completed: 0,
         }
     }
 
@@ -142,6 +144,7 @@ impl MQTTState {
             }
         }
         if found {
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -178,13 +181,16 @@ impl MQTTState {
             tx.toserver = true;
         }
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
-            for tx_old in &mut self.transactions {
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
+                index = index + 1;
                 if !tx_old.complete {
                     tx_old.complete = true;
                     MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
                     break;
                 }
             }
+            self.tx_index_completed = index;
         }
         return tx;
     }
