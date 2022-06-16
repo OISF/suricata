@@ -546,11 +546,10 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
 
             /* save in the flow that we scanned this direction... */
             FlowSetIPOnlyFlag(pflow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-
-            /* if flow is set to drop, we enforce that here */
-            if (p->flow->flags & FLOW_ACTION_DROP) {
-                PacketDrop(p, PKT_DROP_REASON_FLOW_DROP);
-            }
+        }
+        /* if flow is set to drop, we enforce that here */
+        if (p->flow->flags & FLOW_ACTION_DROP) {
+            PacketDrop(p, PKT_DROP_REASON_FLOW_DROP);
         }
     } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
