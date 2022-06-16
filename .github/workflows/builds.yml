@@ -531,7 +531,7 @@ jobs:
           flags: suricata-verify
 
   fedora-36:
-    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
+    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:36
     needs: [prepare-deps, prepare-cbindgen]
@@ -578,6 +578,7 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
+                systemd-devel \
                 which \
                 zlib-devel
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
@@ -620,6 +621,8 @@ jobs:
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
+      # Check compilation against systemd
+      - run: ldd src/suricata | grep libsystemd &> /dev/null
 
   fedora-35:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
