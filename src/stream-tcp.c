@@ -467,8 +467,6 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
     stream_config.reassembly_memcap_policy =
             ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
-    SCLogNotice("memcap-policy: %u/%u", stream_config.ssn_memcap_policy,
-            stream_config.reassembly_memcap_policy);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
