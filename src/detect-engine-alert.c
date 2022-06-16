@@ -178,9 +178,10 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
 {
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, alert_flags);
-    PACKET_UPDATE_ACTION(p, s->action);
 
     if (s->action & ACTION_DROP) {
+        PacketDrop(p, PKT_DROP_REASON_RULES);
+
         if (p->alerts.drop.action == 0) {
             p->alerts.drop.num = s->num;
             p->alerts.drop.action = s->action;
@@ -189,8 +190,11 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
         if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(s->action, p->flow);
         }
-    } else if (s->action & ACTION_PASS) {
-        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+    } else {
+        PACKET_UPDATE_ACTION(p, s->action);
+
+        if ((s->action & ACTION_PASS) && (p->flow != NULL) &&
+                (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(s->action, p->flow);
         }
     }
