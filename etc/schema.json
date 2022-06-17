@@ -1123,6 +1123,9 @@
                 "ttl": {
                     "type": "integer"
                 },
+                "udplen": {
+                    "type": "integer"
+                },
                 "urg": {
                     "type": "boolean"
                 },
@@ -1139,6 +1142,9 @@
                 "body_md5": {
                     "type": "string"
                 },
+                "date": {
+                    "type": "string"
+                },
                 "from": {
                     "type": "string"
                 },
@@ -1149,6 +1155,9 @@
                     "type": "string"
                 },
                 "subject_md5": {
+                    "type": "string"
+                },
+                "x_mailer": {
                     "type": "string"
                 },
                 "url": {
