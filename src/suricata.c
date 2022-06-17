@@ -460,7 +460,9 @@ static TmEcode SendOSSpecificNotification(void)
 #if HAVE_LIBSYSTEMD
     if (sd_notify(0, "READY=1") < 0) {
         SCLogWarning(SC_ERR_SYSCALL, "failed to notify systemd");
-        return TM_ECODE_FAILED;
+        /* Please refer to:
+         * https://www.freedesktop.org/software/systemd/man/sd_notify.html#Return%20Value
+         * for discussion on why failure should not be considered an error */
     }
 #endif
 
@@ -2965,7 +2967,9 @@ int SuricataMain(int argc, char **argv)
     }
 
     /* Print notice and send OS specific notification of threads in running state */
-    SendOSSpecificNotification();
+    if (SendOSSpecificNotification() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
 
     PostRunStartedDetectSetup(&suricata);
 
