@@ -429,9 +429,12 @@ void SCProtoNameInit(void)
         }
     }
 
-    for (uint16_t i = 0; i < ARRAY_SIZE(proto_aliases); i++) {
+    for (uint8_t i = 0;; i++) {
         if (proto_aliases[i]) {
             ProtoNameAddEntry(proto_aliases[i], (uint8_t)i);
+        }
+        if (i == UINT8_MAX) {
+            break;
         }
     }
 }
