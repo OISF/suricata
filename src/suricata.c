@@ -465,7 +465,7 @@ static TmEcode SendOSSpecificNotification(void)
 
 #if HAVE_LIBSYSTEMD
     if (sd_notify(0, "READY=1") < 0) {
-        SCLogWarning(SC_ERR_SYSCALL, "failed to send sd_notify()");
+        SCLogWarning(SC_ERR_SYSCALL, "failed to notify systemd");
         return TM_ECODE_FAILED;
     }
 #endif
@@ -2968,12 +2968,12 @@ int SuricataMain(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
-    /* Must ensure all threads are fully operational before contunuing with init process */
+    /* Must ensure all threads are fully operational before continuing with init process */
     if (TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    /* Print notice and send OS specifc notication of threads in running state */
+    /* Print notice and send OS specific notification of threads in running state */
     SendOSSpecificNotification();
 
     PostRunStartedDetectSetup(&suricata);

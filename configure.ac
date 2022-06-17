@@ -622,7 +622,7 @@
     AC_CHECK_HEADER(systemd/sd-daemon.h, SYSTEMD="yes",SYSTEMD="no")
     if test "$SYSTEMD" = "yes"; then
         if test "$with_systemd_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS}  -L${with_systemd_libraries}"
+            LDFLAGS="${LDFLAGS} -L${with_systemd_libraries}"
         fi
 
         # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
