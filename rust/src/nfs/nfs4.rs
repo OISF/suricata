@@ -51,6 +51,11 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
+        // linux defines a max of 1mb. Allow several multiples.
+        if w.write_len == 0 || w.write_len > 16777216 {
+            return;
+        }
+
         let file_handle = fh.to_vec();
         let file_name = if let Some(name) = self.namemap.get(fh) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -114,8 +119,8 @@ impl NFSState {
             }
         }
         self.ts_chunk_xid = r.hdr.xid;
-        let file_data_len = w.data.len() as u32 - fill_bytes as u32;
-        self.ts_chunk_left = w.write_len as u32 - file_data_len as u32;
+        debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
+        self.ts_chunk_left = w.write_len as u32 - w.data.len()  as u32;
     }
 
     fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b [u8]) {
