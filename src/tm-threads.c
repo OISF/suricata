@@ -1804,14 +1804,11 @@ again:
                 return TM_ECODE_FAILED;
             }
 
-            if (TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                tv = tv->next;
-                continue;
-            }
-
-            if (!(TmThreadsCheckFlag(tv, THV_RUNNING))) {
+            if (!(TmThreadsCheckFlag(tv, THV_RUNNING | THV_RUNNING_DONE))) {
                 SCMutexUnlock(&tv_root_lock);
 
+                /* 60 seconds provided for the thread to transition from
+                 * THV_INIT_DONE to THV_RUNNING */
                 gettimeofday(&cur_ts, NULL);
                 if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
                     SCLogError(SC_ERR_THREAD_INIT,
@@ -2205,7 +2202,6 @@ void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
     struct timeval systs;
     gettimeofday(&systs, NULL);
     SCMutexLock(&thread_store_lock);
-
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)

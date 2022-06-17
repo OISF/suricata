@@ -12,7 +12,7 @@ threads to ensure they are in a running state. Once synchronisation has been com
 status notification is sent to the service manager using ``sd_notify()``.
 
 Example
-*******
+-------
 A test framework requires Suricata to be capturing before the tests can be carried out.
 Writing a ``test.service`` and ensuring the correct execution order with ``After=suricata.service``
 forces the unit to be started after ``suricata.service``. This does not enforce Suricata has fully
@@ -38,7 +38,7 @@ Ubuntu/Debian::
     apt -y install systemd-dev
 
 This package shall be compile-time configured and therefore only built with distributions fulfilling
-requirements [1, 2]. For notification to the service manager the unit file must be configured as 
+requirements [1, 2]. For notification to the service manager the unit file must be configured as
 shown in requirement [3]. Upon all requirements being met the service manager will start and await
 ``READY=1`` status from Suricata. Otherwise the service manager will treat the service unit as
 ``Type=simple`` and consider it started immediately after the main process ``ExecStart=`` has been
