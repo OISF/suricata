@@ -2609,11 +2609,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     int enable_etm;
     if (ConfGetBool("encrypted-traffic-metadata.enabled", &enable_etm) == 0)
         enable_etm = 0;
-    if (enable_etm) {
-        g_enable_etm = true;
-        RegisterFlowSPLTInfo();
-        SCLogInfo("Encrypted Traffic Metadata generation enabled");
-    }
 
     if (suri->checksum_validation == -1) {
         const char *cv = NULL;
@@ -2648,6 +2643,13 @@ int PostConfLoadedSetup(SCInstance *suri)
     RegisterFlowBypassInfo();
 
     MacSetRegisterFlowStorage();
+
+    if (enable_etm) {
+        g_enable_etm = true;
+        RegisterFlowSPLTInfo();
+        SCLogInfo("Encrypted Traffic Metadata generation enabled");
+    }
+
 
     AppLayerSetup();
 

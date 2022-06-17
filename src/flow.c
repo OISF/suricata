@@ -381,7 +381,7 @@ static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
-FlowStorageId g_splt_info_id = { .id = -1 };
+static FlowStorageId g_splt_info_id = { .id = -1 };
 
 FlowStorageId GetFlowSPLTInfoID(void)
 {
