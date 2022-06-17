@@ -35,6 +35,7 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
+        queries: +github/codeql/cpp/ql/src/experimental/Best Practices/WrongUintAccess.ql@main
 
     - run: |
        sudo apt-get update
