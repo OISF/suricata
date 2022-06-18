@@ -1411,7 +1411,31 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
+    if (state->ts_db_len) {
+        /* bail and yield to SMTPGetLine if:
+         * possible incomplete end of data */
+        if (state->ts_db_len == 1 && state->ts_db[0] == '.')
+            return 0;
+        /* or if this might be a mime boundary line */
+        if (state->ts_db_len >= 1 && state->ts_db[0] == '-')
+            return 0;
+        else if (state->ts_db_len >= 2 && state->ts_db[0] == '-' && state->ts_db[1] == '-')
+            return 0;
+        /* partial EOL sequence */
+        if (state->ts_db[state->ts_db_len - 1] == 0x0d)
+            return 0;
 
+        state->current_line_delimiter_len = 0;
+        state->current_line = state->ts_db;
+        state->current_line_len = state->ts_db_len;
+        state->ts_db_len = 0;
+
+        if (SMTPProcessRequest(state, f, pstate) == -1) {
+            return -1;
+        }
+    }
+
+    const uint8_t *new_input = state->input;
     bool line_complete = false;
     int32_t input_len = state->input_len;
     for (int32_t i = 0; i < input_len; i++) {
@@ -1436,6 +1460,7 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
                     (state->input_len > 1 && state->input[state->consumed] == '-' &&
                             state->input[state->consumed + 1] == '-')) {
                 SCLogDebug("Possible boundary, yield to GetLine");
+                state->input = new_input;
                 return 1;
             }
             int32_t total_consumed = i + 1;
@@ -1445,16 +1470,19 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
             state->consumed = total_consumed;
             state->input_len -= current_line_consumed;
             if (SMTPProcessRequest(state, f, pstate) == -1) {
+                state->input = new_input;
                 return -1;
             }
             line_complete = false;
             state->current_line_delimiter_len = 0;
+            new_input += current_line_consumed;
 
             /* bail if `SMTPProcessRequest` ended the data mode */
             if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0)
                 break;
         }
     }
+    state->input = new_input;
     return 0;
 }
 
@@ -1476,9 +1504,10 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     state->consumed = 0;
     state->current_line_delimiter_len = 0;
     state->direction = direction;
+
     if (direction == 0) {
         if (((state->current_command == SMTP_COMMAND_DATA) ||
-                    (state->current_command == SMTP_COMMAND_BDAT)) &&
+                 (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
             int ret = SMTPPreProcessCommands(state, f, pstate);
             if (ret == 0 && state->consumed == state->input_len) {
