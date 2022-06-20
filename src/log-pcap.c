@@ -29,6 +29,7 @@
 #include "util-fmemopen.h"
 #include "util-datalink.h"
 #include "stream-tcp-util.h"
+#include "stream.h"
 
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>

@@ -24,7 +24,6 @@
 #ifndef __DETECT_FTPDATA_H__
 #define __DETECT_FTPDATA_H__
 
-#include "detect-engine.h"
 #include "app-layer-ftp.h"
 
 /** Per keyword data. This is set up by the DetectFtpcommandSetup() function.

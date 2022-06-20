@@ -16,12 +16,15 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "stream.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-hashlist.h"
 
 #include "util-print.h"
+#include "util-spm-bs.h"
+#include "util-enum.h"
 
 #include "app-layer.h"
 #include "app-layer-protos.h"

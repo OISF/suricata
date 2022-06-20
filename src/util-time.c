@@ -59,10 +59,12 @@
 #endif
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "detect.h"
 #include "threads.h"
 #include "tm-threads.h"
 #include "util-debug.h"
+#include "util-time.h"
 
 #ifdef UNITTESTS
 static struct timeval current_time = { 0, 0 };

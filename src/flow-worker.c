@@ -41,13 +41,18 @@
 #include "detect-engine.h"
 #include "output.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 
+#include "util-profiling.h"
 #include "util-validate.h"
+#include "util-time.h"
+#include "tmqh-packetpool.h"
 
 #include "flow-util.h"
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "flow-spare-pool.h"
+#include "flow-worker.h"
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 

@@ -29,6 +29,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
+#include "suricata.h"
 
 #include "threads.h"
 #include "threadvars.h"

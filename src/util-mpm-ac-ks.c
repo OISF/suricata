@@ -71,6 +71,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-build.h"
 
 #include "conf.h"
 #include "util-debug.h"

@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "feature.h"
 
 #include "util-hash.h"

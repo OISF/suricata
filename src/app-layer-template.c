@@ -34,6 +34,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "stream.h"
 #include "conf.h"
 #include "app-layer.h"
@@ -43,6 +44,7 @@
 
 #include "util-unittest.h"
 #include "util-validate.h"
+#include "util-enum.h"
 
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */

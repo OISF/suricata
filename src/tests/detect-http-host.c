@@ -42,6 +42,7 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "detect-engine-build.h"
 
 /**
  * \test Test that the http_host content matches against a http request

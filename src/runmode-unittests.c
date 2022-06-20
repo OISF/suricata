@@ -103,6 +103,14 @@
 
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
+#include "tm-modules.h"
+#include "tmqh-packetpool.h"
+#include "decode-chdlc.h"
+#include "decode-geneve.h"
+#include "decode-nsh.h"
+#include "decode-raw.h"
+#include "decode-vntag.h"
+#include "decode-vxlan.h"
 
 #ifdef OS_WIN32
 #include "win32-syscall.h"

@@ -26,9 +26,11 @@
 #define __STREAM_TCP_REASSEMBLE_H__
 
 #include "stream-tcp-private.h"
-#include "stream.h"
-#include "app-layer-detect-proto.h"
 #include "stream-tcp-private.h"
+
+#ifdef UNITTESTS
+#include "suricata.h"
+#endif
 
 /** Supported OS list and default OS policy is BSD */
 enum

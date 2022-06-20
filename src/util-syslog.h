@@ -25,6 +25,8 @@
 #ifndef UTIL_SYSLOG_H
 #define	UTIL_SYSLOG_H
 
+#include "util-enum.h"
+
 SCEnumCharMap *SCSyslogGetFacilityMap(void);
 SCEnumCharMap *SCSyslogGetLogLevelMap(void);
 

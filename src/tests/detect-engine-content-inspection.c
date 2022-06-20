@@ -27,6 +27,7 @@
 #include "../decode.h"
 #include "../flow.h"
 #include "../detect.h"
+#include "detect-engine-build.h"
 
 #define TEST_HEADER                                     \
     ThreadVars tv;                                      \

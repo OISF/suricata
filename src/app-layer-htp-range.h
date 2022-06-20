@@ -19,10 +19,9 @@
 #define __APP_LAYER_HTP_RANGE_H__
 
 #include "suricata-common.h"
-#include "app-layer-parser.h"
 
 #include "util-thash.h"
-#include "rust-bindings.h"
+#include "rust.h"
 
 void HttpRangeContainersInit(void);
 void HttpRangeContainersDestroy(void);

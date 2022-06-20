@@ -26,6 +26,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-content.h"
+
 #include "detect-engine.h"
 #include "detect-engine-uint.h"
 #include "detect-engine-mpm.h"

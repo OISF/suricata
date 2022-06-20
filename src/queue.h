@@ -49,7 +49,6 @@
  * from queue.h instead the Suricata copy.
  */
 
-#include "autoconf.h"
 
 #if defined(HAVE_SYS_QUEUE_H) && !defined(__clang_analyzer__)
 #include <sys/queue.h>

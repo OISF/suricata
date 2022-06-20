@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
+
 /**
  * \test Test matching on a simple client hello packet
  */

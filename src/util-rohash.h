@@ -24,7 +24,6 @@
 #ifndef __UTIL_ROHASH_H__
 #define __UTIL_ROHASH_H__
 
-#include "queue.h"
 
 typedef struct ROHashTable_ {
     uint8_t locked;
