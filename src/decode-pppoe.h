@@ -24,8 +24,6 @@
 #ifndef __DECODE_PPPOE_H__
 #define __DECODE_PPPOE_H__
 
-#include "decode.h"
-#include "threadvars.h"
 
 // Session header length minus the protocol field
 #define PPPOE_SESSION_HEADER_MIN_LEN     7

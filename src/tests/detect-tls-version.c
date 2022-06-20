@@ -22,6 +22,9 @@
  *
  */
 
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
+
 /**
  * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option

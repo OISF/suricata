@@ -24,7 +24,6 @@
 #ifndef __DETECT_SNMP_COMMUNITY_H__
 #define __DETECT_SNMP_COMMUNITY_H__
 
-#include "app-layer-snmp.h"
 
 void DetectSNMPCommunityRegister(void);
 

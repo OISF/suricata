@@ -41,6 +41,7 @@
 #include "detect-engine-threshold.h"
 #include "detect-threshold.h"
 #include "detect-parse.h"
+#include "detect-engine-build.h"
 
 #include "conf.h"
 #include "util-threshold-config.h"

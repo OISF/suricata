@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
+#include "detect-engine-build.h"
 
 #include "detect-icode.h"
 

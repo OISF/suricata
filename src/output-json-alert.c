@@ -30,6 +30,7 @@
 #include "flow.h"
 #include "conf.h"
 
+#include "stream.h"
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
@@ -37,6 +38,7 @@
 
 #include "util-logopenfile.h"
 #include "util-misc.h"
+#include "util-time.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 

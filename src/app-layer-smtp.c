@@ -38,6 +38,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-smtp.h"
 
+#include "util-enum.h"
 #include "util-mpm.h"
 #include "util-debug.h"
 #include "util-print.h"
@@ -49,6 +50,7 @@
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
+#include "detect-engine-build.h"
 #include "detect-parse.h"
 
 #include "decode-events.h"

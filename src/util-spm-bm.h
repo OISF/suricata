@@ -26,7 +26,6 @@
 #define __UTIL_SPM_BM__
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #define ALPHABET_SIZE 256
 

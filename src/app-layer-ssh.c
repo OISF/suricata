@@ -38,6 +38,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"

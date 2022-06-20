@@ -34,6 +34,9 @@
 #include "tm-threads.h"
 #include "threadvars.h"
 #include "util-debug.h"
+#include "util-time.h"
+#include "util-var-name.h"
+#include "util-macset.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -45,6 +48,7 @@
 #include "app-layer-parser.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
+#include "output-eve-syslog.h"
 
 #include "output.h"
 #include "output-json.h"

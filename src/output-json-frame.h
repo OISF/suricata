@@ -27,6 +27,9 @@
 #ifndef __OUTPUT_JSON_FRAME_H__
 #define __OUTPUT_JSON_FRAME_H__
 
+#include "app-layer-frames.h"
+#include "stream-tcp-private.h"
+
 void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
         const TcpStream *stream, const Packet *p, JsonBuilder *jb);
 void JsonFrameLogRegister(void);

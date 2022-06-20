@@ -28,6 +28,7 @@
 #include "conf.h"
 #include "util-pool.h"
 #include "util-lua.h"
+#include "util-luajit.h"
 
 /** \brief lua_State pool
  *

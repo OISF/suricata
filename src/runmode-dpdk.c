@@ -41,6 +41,7 @@
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
+#include "util-time.h"
 
 #ifdef HAVE_DPDK
 
