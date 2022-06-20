@@ -895,26 +895,26 @@ uint8_t PatternMatchDefaultMatcher(void)
     return mpm_algo_val;
 }
 
-void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
+void PatternMatchDestroy(MpmCtx *mpm_ctx, uint8_t mpm_matcher)
 {
-    SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
+    SCLogDebug("mpm_ctx %p, mpm_matcher %" PRIu8 "", mpm_ctx, mpm_matcher);
     mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
 }
 
-void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint8_t mpm_matcher)
 {
-    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16" defunct", mpm_thread_ctx, mpm_matcher);
+    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %" PRIu8 " defunct", mpm_thread_ctx, mpm_matcher);
     //mpm_table[mpm_matcher].PrintThreadCtx(mpm_thread_ctx);
 }
-void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint8_t mpm_matcher)
 {
-    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
+    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %" PRIu8 "", mpm_thread_ctx, mpm_matcher);
     if (mpm_table[mpm_matcher].DestroyThreadCtx != NULL)
         mpm_table[mpm_matcher].DestroyThreadCtx(NULL, mpm_thread_ctx);
 }
-void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint8_t mpm_matcher)
 {
-    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16, mpm_thread_ctx, mpm_matcher);
+    SCLogDebug("mpm_thread_ctx %p, type %" PRIu8, mpm_thread_ctx, mpm_matcher);
     MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
 

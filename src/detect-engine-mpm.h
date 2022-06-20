@@ -47,11 +47,11 @@ uint8_t PatternMatchDefaultMatcher(void);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
-void PatternMatchThreadPrepare(MpmThreadCtx *, uint16_t type);
+void PatternMatchThreadPrepare(MpmThreadCtx *, uint8_t type);
 
-void PatternMatchDestroy(MpmCtx *, uint16_t);
-void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
-void PatternMatchThreadPrint(MpmThreadCtx *, uint16_t);
+void PatternMatchDestroy(MpmCtx *, uint8_t);
+void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint8_t);
+void PatternMatchThreadPrint(MpmThreadCtx *, uint8_t);
 
 int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
 void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
