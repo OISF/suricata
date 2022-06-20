@@ -22,6 +22,7 @@
 #include "../detect-parse.h"
 #include "../flow-util.h"
 #include "../stream-tcp.h"
+#include "../detect-engine-build.h"
 
 static int DetectTemplateBufferTest(void)
 {

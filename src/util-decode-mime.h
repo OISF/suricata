@@ -30,9 +30,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "suricata.h"
 #include "util-base64.h"
-#include "util-debug.h"
 
 /* Content Flags */
 #define CTNT_IS_MSG           1

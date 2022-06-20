@@ -45,6 +45,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
+#include "app-layer-htp-mem.h"
 
 #include "util-spm.h"
 #include "util-debug.h"

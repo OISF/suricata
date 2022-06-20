@@ -36,6 +36,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-state.h"
 #include "detect-engine-payload.h"
+#include "detect-engine-build.h"
 
 #include "stream.h"
 #include "stream-tcp.h"

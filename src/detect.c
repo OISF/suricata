@@ -32,10 +32,13 @@
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 
 #include "detect.h"
 #include "detect-dsize.h"
 #include "detect-engine.h"
+#include "detect-engine-build.h"
+#include "detect-engine-frame.h"
 #include "detect-engine-profile.h"
 
 #include "detect-engine-alert.h"
@@ -59,6 +62,7 @@
 
 #include "util-validate.h"
 #include "util-detect.h"
+#include "util-profiling.h"
 
 typedef struct DetectRunScratchpad {
     const AppProto alproto;

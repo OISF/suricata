@@ -38,6 +38,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "detect-engine-build.h"
 
 /* prototypes for the "ipv4-csum" rule keyword */
 static int DetectIPV4CsumMatch(DetectEngineThreadCtx *,

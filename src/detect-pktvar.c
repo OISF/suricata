@@ -35,6 +35,7 @@
 #include "detect-content.h"
 #include "util-spm.h"
 #include "util-debug.h"
+#include "util-var-name.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static DetectParseRegex parse_regex;

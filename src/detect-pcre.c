@@ -36,10 +36,12 @@
 #include "detect-flowvar.h"
 
 #include "detect-parse.h"
+#include "detect-content.h"
 #include "detect-engine.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-build.h"
 
 #include "util-var-name.h"
 #include "util-unittest-helper.h"

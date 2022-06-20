@@ -19,7 +19,9 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-content.h"
 
+#include "detect-engine-build.h"
 #include "detect-engine-address.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-iponly.h"
@@ -38,6 +40,7 @@
 
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-var-name.h"
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {

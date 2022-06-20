@@ -54,6 +54,7 @@
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 #include "util-misc.h"
+#include "util-macset.h"
 
 #include "util-debug.h"
 #include "util-privs.h"

@@ -18,7 +18,6 @@
 #ifndef __DETECT_DCE_IFACE_H__
 #define __DETECT_DCE_IFACE_H__
 
-#include "app-layer-dcerpc-common.h"
 
 void DetectDceIfaceRegister(void);
 

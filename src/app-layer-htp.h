@@ -33,13 +33,10 @@
 #ifndef __APP_LAYER_HTP_H__
 #define __APP_LAYER_HTP_H__
 
-#include "util-radix-tree.h"
 #include "util-file.h"
-#include "app-layer-htp-mem.h"
-#include "detect-engine-state.h"
 #include "util-streaming-buffer.h"
-#include "app-layer-htp-range.h"
 #include "rust.h"
+#include "app-layer-frames.h"
 
 #include <htp/htp.h>
 

@@ -22,6 +22,8 @@
  *
  */
 
+#include "detect-engine-build.h"
+
 static int DetectSslStateTest01(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("client_hello");

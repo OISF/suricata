@@ -28,6 +28,7 @@
 #include "detect-engine-content-inspection.h"
 
 #include "app-layer-dnp3.h"
+#include "util-byte.h"
 
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;

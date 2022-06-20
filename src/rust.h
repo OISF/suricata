@@ -21,6 +21,7 @@
 #include "util-lua.h"
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
+#include "detect-engine-state.h"
 #include "rust-context.h"
 #include "rust-bindings.h"
 

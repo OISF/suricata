@@ -33,6 +33,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "decode.h"
 #include "decode-ipv4.h"
