@@ -41,6 +41,7 @@
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-build.h"
 
 #include "detect-engine-threshold.h"
 #include "detect-engine-iponly.h"

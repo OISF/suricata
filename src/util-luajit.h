@@ -26,6 +26,8 @@
 
 #ifdef HAVE_LUAJIT
 
+#include "util-lua.h"
+
 int LuajitSetupStatesPool(void);
 void LuajitFreeStatesPool(void);
 lua_State *LuajitGetState(void);

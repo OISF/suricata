@@ -55,7 +55,6 @@ typedef struct PacketQueue_ {
     SCCondT cond_q;
 } PacketQueue;
 
-#include "decode.h"
 
 void PacketEnqueueNoLock(PacketQueueNoLock *qnl, struct Packet_ *p);
 void PacketEnqueue (PacketQueue *, struct Packet_ *);

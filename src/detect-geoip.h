@@ -28,7 +28,6 @@
 #ifdef HAVE_GEOIP
 
 #include <maxminddb.h>
-#include "util-spm-bm.h"
 
 #define GEOOPTION_MAXSIZE 3 /* Country Code (2 chars) + NULL */
 #define GEOOPTION_MAXLOCATIONS 64

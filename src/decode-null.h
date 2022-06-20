@@ -23,5 +23,5 @@
 
 #ifndef __DECODE_NULL_H__
 #define __DECODE_NULL_H__
-void DecodeNullRegisterTests(void);
+
 #endif /* __DECODE_NULL_H__ */

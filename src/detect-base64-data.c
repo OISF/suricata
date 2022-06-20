@@ -21,6 +21,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-parse.h"
 #include "detect-base64-data.h"
+#include "detect-engine-build.h"
 
 #include "util-unittest.h"
 

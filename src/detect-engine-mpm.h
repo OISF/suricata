@@ -24,13 +24,9 @@
 #ifndef __DETECT_ENGINE_MPM_H__
 #define __DETECT_ENGINE_MPM_H__
 
-#include "tm-threads.h"
 
 #include "detect.h"
-#include "detect-content.h"
-#include "detect-uricontent.h"
 
-#include "stream.h"
 
 void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx);

@@ -51,6 +51,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
+#include "util-device.h"
 
 #include "util-debug.h"
 #include "util-privs.h"

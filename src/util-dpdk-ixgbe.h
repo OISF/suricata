@@ -25,7 +25,6 @@
 #define UTIL_DPDK_IXGBE_H
 
 #include "suricata-common.h"
-#include "util-dpdk.h"
 
 #ifdef HAVE_DPDK
 

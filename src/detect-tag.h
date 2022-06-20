@@ -26,8 +26,6 @@
 #define __DETECT_TAG_H__
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "util-time.h"
 
 /* Limit the number of times a session can be tagged by the
  * same rule without finishing older tags */

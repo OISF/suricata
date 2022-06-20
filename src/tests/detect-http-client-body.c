@@ -45,7 +45,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
-
+#include "detect-engine-build.h"
 
 #include "flow-util.h"
 #include "util-debug.h"

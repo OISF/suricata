@@ -48,6 +48,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ftp.h"
 #include "app-layer-expectation.h"
+#include "app-layer-detect-proto.h"
 
 #include "util-spm.h"
 #include "util-mpm.h"

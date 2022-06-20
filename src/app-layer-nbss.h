@@ -24,11 +24,6 @@
 #ifndef __APP_LAYER_NBSS_H__
 #define __APP_LAYER_NBSS_H__
 
-#include "suricata-common.h"
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
-#include "flow.h"
-#include "stream.h"
 
 /*
  http://ubiqx.org/cifs/rfc-draft/rfc1002.html#s4.3

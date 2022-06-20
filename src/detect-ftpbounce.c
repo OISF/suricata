@@ -32,6 +32,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-content.h"
+#include "detect-engine-build.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

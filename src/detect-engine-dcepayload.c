@@ -37,6 +37,8 @@
 #include "detect-content.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-dcepayload.h"
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
 
 #include "stream-tcp.h"
 

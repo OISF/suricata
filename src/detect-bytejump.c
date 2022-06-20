@@ -42,6 +42,7 @@
 #include "util-debug.h"
 #include "util-validate.h"
 #include "detect-pcre.h"
+#include "detect-engine-build.h"
 
 /**
  * \brief Regex for parsing our options

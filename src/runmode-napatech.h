@@ -27,7 +27,6 @@
 #define __RUNMODE_NAPATECH_H__
 
 #ifdef HAVE_NAPATECH
-#include "util-napatech.h"
 #include <nt.h>
 #endif /* HAVE_NAPATECH */
 

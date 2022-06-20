@@ -25,7 +25,6 @@
 #include "util-device.h"
 
 #ifdef OS_WIN32
-#include "win32-syscall.h"
 #endif
 
 int GetIfaceMTU(const char *pcap_dev);

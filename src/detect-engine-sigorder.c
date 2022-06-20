@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
 #include "detect-pcre.h"
+#include "detect-engine-build.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

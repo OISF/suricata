@@ -98,20 +98,6 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check);
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
 
-#include "runmode-pcap.h"
-#include "runmode-pcap-file.h"
-#include "runmode-pfring.h"
-#include "runmode-nfq.h"
-#include "runmode-ipfw.h"
-#include "runmode-erf-file.h"
-#include "runmode-erf-dag.h"
-#include "runmode-napatech.h"
-#include "runmode-af-packet.h"
-#include "runmode-nflog.h"
-#include "runmode-unix-socket.h"
-#include "runmode-netmap.h"
-#include "runmode-windivert.h"
-#include "runmode-dpdk.h"
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
