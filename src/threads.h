@@ -45,9 +45,7 @@
 #endif
 
 #ifdef PROFILING
-#include "util-cpu.h"
 #ifdef PROFILE_LOCKING
-#include "util-profiling-locks.h"
 #endif /* PROFILE_LOCKING */
 #endif /* PROFILING */
 
@@ -112,9 +110,7 @@ enum {
     #ifdef PROFILE_LOCKING
         #error "Cannot mix DBG_THREADS and PROFILE_LOCKING"
     #endif
-    #include "threads-debug.h"
 #elif defined PROFILE_LOCKING
-    #include "threads-profile.h"
 #else /* normal */
 
 /* mutex */

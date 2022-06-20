@@ -26,7 +26,6 @@
 
 #include "decode.h"
 #include "threads.h"
-#include "util-atomic.h"
 
     /* Return stack, onto which other threads free packets. */
 typedef struct PktPoolLockedStack_{

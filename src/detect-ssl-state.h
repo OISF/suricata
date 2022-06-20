@@ -24,7 +24,6 @@
 #ifndef DETECT_SSL_STATE_H
 #define	DETECT_SSL_STATE_H
 
-#include "app-layer-ssl.h"
 
 /* we pick these flags flags from the parser */
 #define DETECT_SSL_STATE_CLIENT_HELLO SSL_AL_FLAG_STATE_CLIENT_HELLO

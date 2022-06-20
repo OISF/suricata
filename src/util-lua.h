@@ -36,7 +36,6 @@ typedef void lua_State;
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include "util-luajit.h"
 
 typedef struct LuaStreamingBuffer_ {
     const uint8_t *data;

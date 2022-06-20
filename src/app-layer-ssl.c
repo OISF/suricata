@@ -35,6 +35,7 @@
 #include "stream.h"
 
 #include "app-layer.h"
+#include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
@@ -50,6 +51,7 @@
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-ja3.h"
+#include "util-enum.h"
 #include "flow-util.h"
 #include "flow-private.h"
 #include "util-validate.h"

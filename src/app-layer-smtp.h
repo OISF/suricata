@@ -24,9 +24,7 @@
 #ifndef __APP_LAYER_SMTP_H__
 #define __APP_LAYER_SMTP_H__
 
-#include "decode-events.h"
 #include "util-decode-mime.h"
-#include "queue.h"
 #include "util-streaming-buffer.h"
 #include "rust.h"
 

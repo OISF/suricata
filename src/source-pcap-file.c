@@ -29,6 +29,8 @@
 #include "source-pcap-file-directory-helper.h"
 #include "flow-manager.h"
 #include "util-checksum.h"
+#include "runmode-unix-socket.h"
+#include "suricata.h"
 
 extern int max_pending_packets;
 PcapFileGlobalVars pcap_g;

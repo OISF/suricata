@@ -5,6 +5,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
 #include "app-layer-parser.h"

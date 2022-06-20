@@ -22,6 +22,8 @@
  *
  */
 
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
 /**
  * \test Test that a signature containing tls_cert_fingerprint is correctly parsed
  *       and that the keyword is registered.

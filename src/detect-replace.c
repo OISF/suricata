@@ -45,6 +45,7 @@ extern int run_mode;
 #include "detect-engine-mpm.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
+#include "detect-engine-build.h"
 
 #include "util-checksum.h"
 

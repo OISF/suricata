@@ -48,6 +48,7 @@
 #include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
+#include "util-macset.h"
 #include "util-running-modes.h"
 
 #include "detect-engine.h"
@@ -153,6 +154,7 @@
 
 #include "runmodes.h"
 #include "runmode-unittests.h"
+#include "runmode-af-packet.h"
 
 #include "util-debug.h"
 #include "util-error.h"

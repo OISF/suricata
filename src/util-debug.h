@@ -27,10 +27,7 @@
 #include "suricata-common.h"
 
 #include "threads.h"
-#include "util-enum.h"
 #include "util-error.h"
-#include "util-debug-filters.h"
-#include "util-atomic.h"
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module

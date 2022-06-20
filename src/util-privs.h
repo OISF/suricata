@@ -37,8 +37,6 @@
 #define SCDropCaps(...)
 #define SCDropMainThreadCaps(...)
 #else
-#include "threadvars.h"
-#include "util-debug.h"
 #include <cap-ng.h>
 
 /**Drop the previliges of the given thread tv, based on the thread cap_flags

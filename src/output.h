@@ -38,7 +38,6 @@
 #include "output-streaming.h"
 #include "output-stats.h"
 
-#include "util-config.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

@@ -27,7 +27,6 @@
 #define __OUTPUT_PACKET_H__
 
 #include "decode.h"
-#include "output.h"
 
 /** packet logger function pointer type */
 typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);

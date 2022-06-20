@@ -39,6 +39,7 @@
 #include "../detect-engine.h"
 #include "../detect-isdataat.h"
 #include "../detect-pcre.h"
+#include "../detect-engine-build.h"
 
 #include "../stream-tcp.h"
 #include "../app-layer.h"

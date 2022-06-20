@@ -31,7 +31,6 @@
 #define XDP_FLAGS_DRV_MODE		(1U << 2)
 #define XDP_FLAGS_HW_MODE		(1U << 3)
 
-#include "flow-bypass.h"
 
 struct flowv4_keys {
     __be32 src;

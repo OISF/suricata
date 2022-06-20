@@ -24,7 +24,6 @@
 #ifndef __DETECT_TLS_SUBJECT_H__
 #define __DETECT_TLS_SUBJECT_H__
 
-#include "app-layer-ssl.h"
 
 void DetectTlsSubjectRegister(void);
 

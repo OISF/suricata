@@ -32,7 +32,6 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
-#include "flow-worker.h"
 
 #ifdef HAVE_NAPATECH
 #include "util-napatech.h"
@@ -78,14 +77,10 @@ enum PktSrcEnum {
 
 #include "action-globals.h"
 
-#include "decode-erspan.h"
 #include "decode-ethernet.h"
-#include "decode-chdlc.h"
 #include "decode-gre.h"
-#include "decode-geneve.h"
 #include "decode-ppp.h"
 #include "decode-pppoe.h"
-#include "decode-sll.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv4.h"
@@ -94,17 +89,9 @@ enum PktSrcEnum {
 #include "decode-udp.h"
 #include "decode-sctp.h"
 #include "decode-esp.h"
-#include "decode-raw.h"
-#include "decode-null.h"
 #include "decode-vlan.h"
-#include "decode-vntag.h"
-#include "decode-vxlan.h"
 #include "decode-mpls.h"
-#include "decode-nsh.h"
 
-#include "detect-reference.h"
-
-#include "app-layer-protos.h"
 
 /* forward declarations */
 struct DetectionEngineThreadCtx_;

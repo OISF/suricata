@@ -33,6 +33,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
+#include "detect-engine-build.h"
 #include "detect-app-layer-event.h"
 
 #include "flow.h"
@@ -42,6 +43,8 @@
 #include "decode-events.h"
 #include "util-byte.h"
 #include "util-debug.h"
+#include "util-enum.h"
+#include "util-profiling.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "stream-tcp-util.h"

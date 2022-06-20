@@ -42,7 +42,6 @@
 #ifndef __APP_LAYER_HTP_LIBHTP__H__
 #define __APP_LAYER_HTP_LIBHTP__H__
 
-#include "suricata.h"
 #include "suricata-common.h"
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_all);
