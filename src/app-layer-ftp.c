@@ -544,6 +544,7 @@ static int FTPParseRequestCommand(FTPThreadCtx *td,
     int mpm_cnt = mpm_table[FTP_MPM].Search(ftp_mpm_ctx, td->ftp_mpm_thread_ctx,
                                             td->pmq, input, input_len);
     if (mpm_cnt) {
+        DEBUG_VALIDATE_BUG_ON(td->pmq->rule_id_array[0] > FTP_COMMAND_MAX);
         *cmd_descriptor = &FtpCommands[td->pmq->rule_id_array[0]];
         SCReturnInt(1);
     }
