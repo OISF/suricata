@@ -187,6 +187,23 @@ int FlowHasAlerts(const Flow *f)
     return 0;
 }
 
+bool FlowHasGaps(const Flow *f, uint8_t way)
+{
+    if (f->proto == IPPROTO_TCP) {
+        TcpSession *ssn = (TcpSession *)f->protoctx;
+        if (ssn != NULL) {
+            if (way == STREAM_TOCLIENT) {
+                if (ssn->server.flags & STREAMTCP_STREAM_FLAG_HAS_GAP)
+                    return 1;
+            } else {
+                if (ssn->client.flags & STREAMTCP_STREAM_FLAG_HAS_GAP)
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 /** \brief Set flag to indicate to change proto for the flow
  *
  * \param f flow
