@@ -26,23 +26,10 @@
 #define __UTIL_BASE64_H_
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
-#include "detect-parse.h"
 
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
 
 /* Constants */
 #define ASCII_BLOCK         3

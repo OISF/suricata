@@ -29,9 +29,7 @@
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "stream.h"
 
-#include "util-profiling.h"
 
 #include "rust.h"
 

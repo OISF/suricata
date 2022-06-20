@@ -29,6 +29,7 @@
 
 #include "host.h"
 #include "detect.h"
+#include "detect-tag.h"
 
 /* This limit should be overwriten/predefined at the config file
  * to limit the options to prevent possible DOS situations. We should also

@@ -22,6 +22,9 @@
  *
  */
 
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
+
 /**
  * \test Test that a signature containing a tls_cert_issuer is correctly parsed
  *       and that the keyword is registered.

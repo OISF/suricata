@@ -35,6 +35,7 @@
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 #include "detect-engine-uint.h"
+#include "detect-engine-build.h"
 
 #include "detect-filesize.h"
 #include "util-debug.h"

@@ -24,9 +24,6 @@
 #ifndef __DETECT_THRESHOLD_H__
 #define __DETECT_THRESHOLD_H__
 
-#include "decode-events.h"
-#include "decode-ipv4.h"
-#include "decode-tcp.h"
 
 #define TYPE_LIMIT     1
 #define TYPE_BOTH      2

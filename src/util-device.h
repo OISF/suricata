@@ -19,7 +19,6 @@
 #define __UTIL_DEVICE_H__
 
 #include "queue.h"
-#include "unix-manager.h"
 
 #define OFFLOAD_FLAG_SG     (1<<0)
 #define OFFLOAD_FLAG_TSO    (1<<1)

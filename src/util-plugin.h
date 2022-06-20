@@ -19,7 +19,6 @@
 #define __UTIL_PLUGIN_H__
 
 #include "suricata-plugin.h"
-#include "output-eve-syslog.h"
 
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args);
 SCEveFileType *SCPluginFindFileType(const char *name);

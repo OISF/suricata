@@ -20,6 +20,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "util-exception-policy.h"
 #include "util-misc.h"
 

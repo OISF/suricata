@@ -24,7 +24,6 @@
 #ifndef __DETECT_TLS_ISSUER_H__
 #define __DETECT_TLS_ISSUER_H__
 
-#include "app-layer-ssl.h"
 
 void DetectTlsIssuerRegister(void);
 

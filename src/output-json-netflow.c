@@ -41,6 +41,7 @@
 #include "output.h"
 #include "util-privs.h"
 #include "util-buffer.h"
+#include "util-device.h"
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"

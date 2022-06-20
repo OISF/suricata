@@ -26,7 +26,6 @@
 #ifndef __IPPAIR_STORAGE_H__
 #define __IPPAIR_STORAGE_H__
 
-#include "util-storage.h"
 #include "ippair.h"
 
 typedef struct IPPairStorageId {

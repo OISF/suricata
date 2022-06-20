@@ -30,11 +30,8 @@ typedef struct FlowStorageId FlowStorageId;
 #include "decode.h"
 #include "util-exception-policy.h"
 #include "util-var.h"
-#include "util-atomic.h"
-#include "util-device.h"
-#include "detect-tag.h"
-#include "util-macset.h"
 #include "util-optimize.h"
+#include "app-layer-protos.h"
 
 /* Part of the flow structure, so we declare it here.
  * The actual declaration is in app-layer-parser.c */
