@@ -219,7 +219,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
     }
 
     const uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
-    for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
+    for (uint8_t u = 0; u < det_ctx->filestore_cnt; u++) {
         AppLayerParserSetStreamDepthFlag(p->flow->proto, p->flow->alproto,
                                          FlowGetAppState(p->flow),
                                          det_ctx->filestore[u].tx_id,
@@ -230,7 +230,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 
     /* filestore for single files only */
     if (s->filestore_ctx == NULL) {
-        for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
+        for (uint8_t u = 0; u < det_ctx->filestore_cnt; u++) {
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {

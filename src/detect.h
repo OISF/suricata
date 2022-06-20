@@ -1073,7 +1073,7 @@ typedef struct DetectEngineThreadCtx_ {
     uint32_t pcre_match_start_offset;
 
     /* counter for the filestore array below -- up here for cache reasons. */
-    uint16_t filestore_cnt;
+    uint8_t filestore_cnt;
 
     /** id for alert counter */
     uint16_t counter_alerts;
@@ -1418,7 +1418,7 @@ typedef struct SigGroupHead_ {
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
-    uint16_t filestore_cnt;
+    uint8_t filestore_cnt;
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
 
