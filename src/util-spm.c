@@ -65,7 +65,7 @@ SpmTableElmt spm_table[SPM_TABLE_SIZE];
  * \brief Returns the single pattern matcher algorithm to be used, based on the
  * spm-algo setting in yaml.
  */
-uint16_t SinglePatternMatchDefaultMatcher(void)
+uint8_t SinglePatternMatchDefaultMatcher(void)
 {
     const char *spm_algo;
     if ((ConfGet("spm-algo", &spm_algo)) == 1) {
@@ -73,7 +73,7 @@ uint16_t SinglePatternMatchDefaultMatcher(void)
             if (strcmp("auto", spm_algo) == 0) {
                 goto default_matcher;
             }
-            for (uint16_t i = 0; i < SPM_TABLE_SIZE; i++) {
+            for (uint8_t i = 0; i < SPM_TABLE_SIZE; i++) {
                 if (spm_table[i].name == NULL) {
                     continue;
                 }
@@ -136,7 +136,7 @@ void SpmTableSetup(void)
 #endif
 }
 
-SpmGlobalThreadCtx *SpmInitGlobalThreadCtx(uint16_t matcher)
+SpmGlobalThreadCtx *SpmInitGlobalThreadCtx(uint8_t matcher)
 {
     BUG_ON(spm_table[matcher].InitGlobalThreadCtx == NULL);
     return spm_table[matcher].InitGlobalThreadCtx();
@@ -147,7 +147,7 @@ void SpmDestroyGlobalThreadCtx(SpmGlobalThreadCtx *global_thread_ctx)
     if (global_thread_ctx == NULL) {
         return;
     }
-    uint16_t matcher = global_thread_ctx->matcher;
+    uint8_t matcher = global_thread_ctx->matcher;
     spm_table[matcher].DestroyGlobalThreadCtx(global_thread_ctx);
 }
 
@@ -156,7 +156,7 @@ SpmThreadCtx *SpmMakeThreadCtx(const SpmGlobalThreadCtx *global_thread_ctx)
     if (global_thread_ctx == NULL) {
         return NULL;
     }
-    uint16_t matcher = global_thread_ctx->matcher;
+    uint8_t matcher = global_thread_ctx->matcher;
     BUG_ON(spm_table[matcher].MakeThreadCtx == NULL);
     return spm_table[matcher].MakeThreadCtx(global_thread_ctx);
 }
@@ -166,7 +166,7 @@ void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx)
     if (thread_ctx == NULL) {
         return;
     }
-    uint16_t matcher = thread_ctx->matcher;
+    uint8_t matcher = thread_ctx->matcher;
     BUG_ON(spm_table[matcher].DestroyThreadCtx == NULL);
     spm_table[matcher].DestroyThreadCtx(thread_ctx);
 }
@@ -175,7 +175,7 @@ SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
                    SpmGlobalThreadCtx *global_thread_ctx)
 {
     BUG_ON(global_thread_ctx == NULL);
-    uint16_t matcher = global_thread_ctx->matcher;
+    uint8_t matcher = global_thread_ctx->matcher;
     BUG_ON(spm_table[matcher].InitCtx == NULL);
     return spm_table[matcher].InitCtx(needle, needle_len, nocase,
                                       global_thread_ctx);
@@ -186,7 +186,7 @@ void SpmDestroyCtx(SpmCtx *ctx)
     if (ctx == NULL) {
         return;
     }
-    uint16_t matcher = ctx->matcher;
+    uint8_t matcher = ctx->matcher;
     BUG_ON(spm_table[matcher].DestroyCtx == NULL);
     spm_table[matcher].DestroyCtx(ctx);
 }
@@ -194,7 +194,7 @@ void SpmDestroyCtx(SpmCtx *ctx)
 uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
                  const uint8_t *haystack, uint32_t haystack_len)
 {
-    uint16_t matcher = ctx->matcher;
+    uint8_t matcher = ctx->matcher;
     return spm_table[matcher].Scan(ctx, thread_ctx, haystack, haystack_len);
 }
 
@@ -2479,7 +2479,7 @@ typedef struct SpmTestData_ {
 } SpmTestData;
 
 /* Helper function to conduct a search with a particular SPM matcher. */
-static int SpmTestSearch(const SpmTestData *d, uint16_t matcher)
+static int SpmTestSearch(const SpmTestData *d, uint8_t matcher)
 {
     int ret = 1;
     SpmGlobalThreadCtx *global_thread_ctx = NULL;
@@ -2573,7 +2573,7 @@ static int SpmSearchTest01(void) {
 
     int ret = 1;
 
-    uint16_t matcher;
+    uint8_t matcher;
     for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
         const SpmTableElmt *m = &spm_table[matcher];
         if (m->name == NULL) {
@@ -2615,7 +2615,7 @@ static int SpmSearchTest02(void) {
 
     int ret = 1;
 
-    uint16_t matcher;
+    uint8_t matcher;
     for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
         const SpmTableElmt *m = &spm_table[matcher];
         if (m->name == NULL) {

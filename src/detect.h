@@ -842,7 +842,7 @@ typedef struct DetectEngineCtx_ {
     ThresholdCtx ths_ctx;
 
     uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
-    uint16_t spm_matcher; /**< spm matcher this ctx uses */
+    uint8_t spm_matcher;  /**< spm matcher this ctx uses */
 
     /* spm thread context prototype, built as spm matchers are constructed and
      * later used to construct thread context for each thread. */

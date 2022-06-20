@@ -1848,7 +1848,7 @@ int AppLayerProtoDetectSetup(void)
 
     memset(&alpd_ctx, 0, sizeof(alpd_ctx));
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     uint8_t mpm_matcher = PatternMatchDefaultMatcher();
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);

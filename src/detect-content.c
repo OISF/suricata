@@ -836,7 +836,7 @@ static int DetectContentParseTest01 (void)
     const char *teststring = "abc\\:def";
     const char *teststringparsed = "abc:def";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -867,7 +867,7 @@ static int DetectContentParseTest02 (void)
     const char *teststring = "abc\\;def";
     const char *teststringparsed = "abc;def";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -898,7 +898,7 @@ static int DetectContentParseTest03 (void)
     const char *teststring = "abc\\\"def";
     const char *teststringparsed = "abc\"def";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -929,7 +929,7 @@ static int DetectContentParseTest04 (void)
     const char *teststring = "abc\\\\def";
     const char *teststringparsed = "abc\\def";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -960,7 +960,7 @@ static int DetectContentParseTest05 (void)
     DetectContentData *cd = NULL;
     const char *teststring = "abc\\def";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -986,7 +986,7 @@ static int DetectContentParseTest06 (void)
     const char *teststring = "a|42|c|44|e|46|";
     const char *teststringparsed = "abcdef";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -1017,7 +1017,7 @@ static int DetectContentParseTest07 (void)
     DetectContentData *cd = NULL;
     const char *teststring = "";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -1040,7 +1040,7 @@ static int DetectContentParseTest08 (void)
     DetectContentData *cd = NULL;
     const char *teststring = "";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -1328,7 +1328,7 @@ static int DetectContentParseTest09(void)
     DetectContentData *cd = NULL;
     const char *teststring = "boo";
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -2413,7 +2413,7 @@ static int DetectContentParseTest41(void)
     }
     teststring[idx++] = '\0';
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -2446,7 +2446,7 @@ static int DetectContentParseTest42(void)
     }
     teststring[idx++] = '\0';
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -2480,7 +2480,7 @@ static int DetectContentParseTest43(void)
     }
     teststring[idx++] = '\0';
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
@@ -2517,7 +2517,7 @@ static int DetectContentParseTest44(void)
     }
     teststring[idx++] = '\0';
 
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
