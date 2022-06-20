@@ -94,7 +94,8 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode)
 {
     int val;
-    uint32_t padding = 0, bbidx = 0, sp = 0, leading_sp = 0;
+    uint32_t padding = 0, sp = 0, leading_sp = 0;
+    uint8_t bbidx = 0;
     uint8_t *dptr = dest;
     uint8_t b64[B64_BLOCK] = { 0,0,0,0 };
     bool valid = true;

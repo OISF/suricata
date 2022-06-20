@@ -29,7 +29,7 @@
  */
 extern const char *known_proto[256];
 
-bool SCProtoNameValid(uint16_t);
+bool SCProtoNameValid(uint8_t);
 bool SCGetProtoByName(const char *protoname, uint8_t *proto_number);
 void SCProtoNameInit(void);
 void SCProtoNameRelease(void);

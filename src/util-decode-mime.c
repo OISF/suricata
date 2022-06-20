@@ -912,8 +912,9 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP4_CHARS + 1];
 
     /* Cut off at '/'  */
-    uint32_t i = 0;
-    for ( ; i < len && urlhost[i] != 0; i++) {
+    uint8_t i = 0;
+    uint8_t maxlen = MIN(MAX_IP4_CHARS + 1, len);
+    for (; i < maxlen && urlhost[i] != 0; i++) {
 
         if (urlhost[i] == '/') {
             break;
@@ -950,8 +951,9 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
-    uint32_t i = 0;
-    for (i = 0; i < len && urlhost[i] != 0; i++) {
+    uint8_t i = 0;
+    uint8_t maxlen = MIN(MAX_IP6_CHARS + 1, len);
+    for (i = 0; i < maxlen && urlhost[i] != 0; i++) {
         if (urlhost[i] == '/') {
             break;
         }

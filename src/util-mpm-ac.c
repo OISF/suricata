@@ -352,19 +352,25 @@ static inline void SCACCreateGotoTable(MpmCtx *mpm_ctx)
 static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
 {
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
-    uint32_t u = 0;
 
     int map[256];
     memset(map, 0, sizeof(map));
 
-    for (u = 0; u < mpm_ctx->pattern_cnt; u++)
+    for (uint32_t u = 0; u < mpm_ctx->pattern_cnt; u++)
         map[ctx->parray[u]->ci[0]] = 1;
 
-    for (u = 0; u < 256; u++) {
-        if (map[u] == 0)
+    for (uint8_t u = 0;; u++) {
+        if (map[u] == 0) {
+            if (u == UINT8_MAX) {
+                break;
+            }
             continue;
+        }
         int32_t newstate = SCACInitNewState(mpm_ctx);
         ctx->goto_table[0][u] = newstate;
+        if (u == UINT8_MAX) {
+            break;
+        }
     }
 
     return;

@@ -423,15 +423,18 @@ void SCProtoNameInit(void)
         FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to initialize protocol name/number table");
     }
 
-    for (uint16_t i = 0; i < ARRAY_SIZE(known_proto); i++) {
+    for (uint8_t i = 0;; i++) {
         if (known_proto[i]) {
-            ProtoNameAddEntry(known_proto[i], (uint8_t)i);
+            ProtoNameAddEntry(known_proto[i], i);
+        }
+        if (i == UINT8_MAX) {
+            break;
         }
     }
 
     for (uint8_t i = 0;; i++) {
         if (proto_aliases[i]) {
-            ProtoNameAddEntry(proto_aliases[i], (uint8_t)i);
+            ProtoNameAddEntry(proto_aliases[i], i);
         }
         if (i == UINT8_MAX) {
             break;
@@ -454,9 +457,9 @@ void SCProtoNameRelease(void)
  * \param proto Protocol number to be validated
  * \retval ret On success returns true otherwise false
  */
-bool SCProtoNameValid(uint16_t proto)
+bool SCProtoNameValid(uint8_t proto)
 {
-    return (proto <= 255 && known_proto[proto] != NULL);
+    return (known_proto[proto] != NULL);
 }
 
 /**
