@@ -38,6 +38,7 @@
 #include "detect-tcp-flags.h"
 #include "feature.h"
 #include "util-print.h"
+#include "util-time.h"
 #include "util-validate.h"
 
 static int rule_warnings_only = 0;

@@ -12,6 +12,7 @@
 #include "app-layer.h"
 #include "tm-queuehandlers.h"
 #include "util-cidr.h"
+#include "util-profiling.h"
 #include "util-proto-name.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
@@ -23,6 +24,9 @@
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"
 #include "flow-util.h"
+#include "flow-worker.h"
+#include "tm-modules.h"
+#include "tmqh-packetpool.h"
 
 #include <fuzz_pcap.h>
 

@@ -42,6 +42,7 @@
 #include "../app-layer-htp.h"
 #include "../app-layer-protos.h"
 #include "../detect-isdataat.h"
+#include "../detect-engine-build.h"
 
 /***********************************Unittests**********************************/
 

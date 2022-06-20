@@ -18,9 +18,6 @@
 #ifndef __APP_LAYER_DNP3_H__
 #define __APP_LAYER_DNP3_H__
 
-#include "detect-engine-state.h"
-#include "util-hashlist.h"
-#include "util-byte.h"
 #include "rust.h"
 
 /**

@@ -25,7 +25,6 @@
 #define __DECODE_ICMPV6_H__
 
 #include "decode-tcp.h"
-#include "decode-sctp.h"
 #include "decode-udp.h"
 #include "decode-ipv6.h"
 

@@ -34,6 +34,7 @@
 
 #include "util-var.h"
 #include "util-debug.h"
+#include "util-macset.h"
 #include "flow-storage.h"
 
 #include "detect.h"

@@ -24,7 +24,6 @@
 #ifndef __RESPOND_REJECT_H__
 #define __RESPOND_REJECT_H__
 
-#include "tm-threads.h"
 
 enum RejectDirection {
     REJECT_DIR_SRC = 0,

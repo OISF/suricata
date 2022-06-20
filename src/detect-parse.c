@@ -32,6 +32,7 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-build.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"

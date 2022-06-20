@@ -28,6 +28,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-quic-cyu-string.h"
+#include "detect-engine-build.h"
 #include "rust.h"
 
 #ifdef UNITTESTS

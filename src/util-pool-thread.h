@@ -39,6 +39,8 @@
 #ifndef __UTIL_POOL_THREAD_H__
 #define __UTIL_POOL_THREAD_H__
 
+#include "util-pool.h"
+
 struct PoolThreadElement_ {
     SCMutex lock;                   /**< lock, should have low contention */
     Pool *pool;                     /**< actual pool */

@@ -24,7 +24,6 @@
 #ifndef __DEFRAG_H__
 #define __DEFRAG_H__
 
-#include "tree.h"
 #include "util-pool.h"
 
 /**

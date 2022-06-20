@@ -34,6 +34,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-build.h"
 
 #include "detect-tcp-ack.h"
 

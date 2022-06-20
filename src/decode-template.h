@@ -25,8 +25,6 @@
 #ifndef __DECODE_TEMPLATE_H__
 #define __DECODE_TEMPLATE_H__
 
-#include "decode.h"
-#include "threadvars.h"
 
 /* Header layout. Keep things like alignment and endianess in
  * mind while constructing this. */

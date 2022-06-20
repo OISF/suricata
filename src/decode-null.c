@@ -103,18 +103,6 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     return TM_ECODE_OK;
 }
 
-#ifdef UNITTESTS
-
-#endif /* UNITTESTS */
-
-/**
- * \brief Registers Null unit tests
- */
-void DecodeNullRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif /* UNITTESTS */
-}
 /**
  * @}
  */

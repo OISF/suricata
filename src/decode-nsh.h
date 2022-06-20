@@ -25,8 +25,6 @@
 #ifndef __DECODE_NSH_H__
 #define __DECODE_NSH_H__
 
-#include "decode.h"
-#include "threadvars.h"
 
 #define NSH_NEXT_PROTO_UNASSIGNED  0x0
 #define NSH_NEXT_PROTO_IPV4        0x1

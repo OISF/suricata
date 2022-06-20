@@ -22,6 +22,9 @@
  *
  */
 
+#include "detect-engine-build.h"
+#include "app-layer-parser.h"
+
 /**
  * \test Test matching on a simple google.com SNI
  */

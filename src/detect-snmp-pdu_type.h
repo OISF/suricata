@@ -24,7 +24,6 @@
 #ifndef __DETECT_SNMP_PDU_TYPE_H__
 #define __DETECT_SNMP_PDU_TYPE_H__
 
-#include "app-layer-snmp.h"
 
 void DetectSNMPPduTypeRegister(void);
 
