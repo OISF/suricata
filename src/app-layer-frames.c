@@ -28,6 +28,7 @@
 
 #include "stream-tcp.h"
 #include "app-layer-frames.h"
+#include "app-layer-parser.h"
 
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {

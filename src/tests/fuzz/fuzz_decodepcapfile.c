@@ -5,6 +5,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "app-layer-detect-proto.h"
 #include "defrag.h"
 #include "tm-modules.h"
@@ -12,6 +13,7 @@
 #include "source-pcap-file.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
+#include "util-time.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 

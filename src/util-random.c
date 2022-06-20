@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "util-random.h"
 
 

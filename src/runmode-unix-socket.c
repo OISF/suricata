@@ -27,6 +27,7 @@
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
+#include "util-var-name.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
@@ -50,6 +51,7 @@
 #include "conf-yaml-loader.h"
 
 #include "datasets.h"
+#include "runmode-unix-socket.h"
 
 int unix_socket_mode_is_running = 0;
 

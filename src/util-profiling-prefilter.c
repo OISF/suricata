@@ -37,6 +37,7 @@
 #include "util-byte.h"
 #include "util-profiling.h"
 #include "util-profiling-locks.h"
+#include "util-time.h"
 
 #ifdef PROFILING
 

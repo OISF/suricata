@@ -24,7 +24,6 @@
 #ifndef __STREAM_TCP_LIST_H__
 #define __STREAM_TCP_LIST_H__
 
-#include "stream-tcp-private.h"
 
 #ifdef UNITTESTS
 void StreamTcpListRegisterTests(void);

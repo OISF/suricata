@@ -39,6 +39,7 @@
 #include "detect-byte.h"
 #include "detect-bytemath.h"
 #include "detect-isdataat.h"
+#include "detect-engine-build.h"
 
 #include "app-layer-protos.h"
 

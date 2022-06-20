@@ -40,6 +40,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-build.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "util-classification-config.h"

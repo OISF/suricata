@@ -42,6 +42,7 @@
 #include <sys/resource.h>
 
 #include "util-ebpf.h"
+#include "util-affinity.h"
 #include "util-cpu.h"
 #include "util-device.h"
 

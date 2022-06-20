@@ -35,6 +35,7 @@
 
 #include "util-print.h"
 #include "util-unittest.h"
+#include "util-luajit.h"
 
 #include "util-debug.h"
 

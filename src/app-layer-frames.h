@@ -24,12 +24,7 @@
 #ifndef __APP_LAYER_FRAMES_H__
 #define __APP_LAYER_FRAMES_H__
 
-#include "app-layer-events.h"
-#include "detect-engine-state.h"
-#include "util-file.h"
-#include "stream-tcp-private.h"
 #include "rust.h"
-#include "app-layer-parser.h"
 
 typedef int64_t FrameId;
 

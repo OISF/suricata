@@ -28,6 +28,7 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 #include "conf.h"
+#include "runmode-unix-socket.h"
 
 #include "output-json-stats.h"
 

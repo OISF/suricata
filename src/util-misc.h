@@ -24,7 +24,6 @@
 #ifndef __UTIL_MISC_H__
 #define __UTIL_MISC_H__
 
-#include "util-error.h"
 
 /**
  * \brief Generic API that can be used by all to log an

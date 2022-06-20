@@ -25,11 +25,7 @@
 #define __DETECT_ENGINE_H__
 
 #include "detect.h"
-#include "tm-threads.h"
-#include "flow-private.h"
-
-#include "detect-engine-frame.h"
-#include <stdint.h>
+#include "suricata.h"
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,

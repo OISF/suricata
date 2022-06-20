@@ -29,6 +29,7 @@
 
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
+#include "suricata.h"
 
 #define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine

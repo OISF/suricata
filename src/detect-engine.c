@@ -39,6 +39,7 @@
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
 
+#include "detect-engine-build.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
@@ -46,6 +47,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
+#include "detect-engine-frame.h"
 
 #include "detect-engine-file.h"
 
@@ -79,6 +81,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-hash-string.h"
+#include "util-enum.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"

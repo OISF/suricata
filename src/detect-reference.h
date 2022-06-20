@@ -24,9 +24,6 @@
 #ifndef __DETECT_REFERENCE_H__
 #define __DETECT_REFERENCE_H__
 
-#include "decode-events.h"
-#include "decode-ipv4.h"
-#include "decode-tcp.h"
 
 /**
  * \brief Signature reference list.

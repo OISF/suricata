@@ -35,6 +35,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "threads.h"
+#include "util-affinity.h"
 #include "util-debug.h"
 #include "util-privs.h"
 #include "util-cpu.h"

@@ -28,6 +28,7 @@
 #include "../decode.h"
 #include "../flow.h"
 #include "../detect.h"
+#include "../detect-engine-build.h"
 
 /**
  * \test Test parser accepting valid rules and rejecting invalid rules

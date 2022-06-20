@@ -25,8 +25,6 @@
 #define __UTIL_SPM_H__
 
 #include "util-spm-bs.h"
-#include "util-spm-bs2bm.h"
-#include "util-spm-bm.h"
 
 enum {
     SPM_BM, /* Boyer-Moore */
