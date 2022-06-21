@@ -28,6 +28,7 @@
 
 #include "threads.h"
 #include "util-error.h"
+#include "util-debug-filters.h"
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module

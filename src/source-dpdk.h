@@ -24,6 +24,10 @@
 #ifndef __SOURCE_DPDK_H__
 #define __SOURCE_DPDK_H__
 
+#ifdef HAVE_DPDK
+#include <rte_ethdev.h>
+#endif
+
 #include "queue.h"
 
 typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } DpdkCopyModeEnum;

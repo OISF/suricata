@@ -160,6 +160,7 @@
 #include "util-error.h"
 #include "util-daemon.h"
 #include "util-byte.h"
+#include "util-luajit.h"
 #include "reputation.h"
 
 #include "output.h"

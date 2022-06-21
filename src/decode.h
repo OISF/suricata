@@ -32,6 +32,8 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "flow-worker.h"
+#include "app-layer-protos.h"
 
 #ifdef HAVE_NAPATECH
 #include "util-napatech.h"

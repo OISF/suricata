@@ -24,6 +24,8 @@
 #ifndef __UTIL_EBPF_H__
 #define __UTIL_EBPF_H__
 
+#include "flow-bypass.h"
+
 #ifdef HAVE_PACKET_EBPF
 
 #define XDP_FLAGS_UPDATE_IF_NOEXIST	(1U << 0)
