@@ -234,7 +234,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {
-        for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
+        for (uint8_t u = 0; u < det_ctx->filestore_cnt; u++) {
             FilestorePostMatchWithOptions(p, p->flow, s->filestore_ctx, ffc,
                     det_ctx->filestore[u].file_id, det_ctx->filestore[u].tx_id);
         }

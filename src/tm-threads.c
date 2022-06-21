@@ -36,6 +36,7 @@
 #include "tmqh-packetpool.h"
 #include "threads.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "util-privs.h"
 #include "util-cpu.h"
 #include "util-optimize.h"
@@ -842,6 +843,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
+        DEBUG_VALIDATE_BUG_ON(tv->cpu_affinity >= sizeof(thread_affinity));
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
             uint16_t cpu = AffinityGetNextCPU(taf);
