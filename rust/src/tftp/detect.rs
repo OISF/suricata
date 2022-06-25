@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,8 +15,12 @@
  * 02110-1301, USA.
  */
 
-// written by Clément Galland <clement.galland@epita.fr>
+use crate::tftp::tftp::TFTPTransaction;
 
-pub mod tftp;
-pub mod log;
-pub mod detect;
+#[no_mangle]
+pub unsafe extern "C" fn rs_tftp_tx_get_file(
+    tx: &mut TFTPTransaction, buf: *mut *const u8, len: *mut u32,
+) {
+    *buf = tx.filename.as_ptr();
+    *len = tx.filename.len() as u32;
+}

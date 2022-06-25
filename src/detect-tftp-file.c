@@ -17,7 +17,7 @@
 
 #include "suricata-common.h"
 #include "rust.h"
-#include "detect-snmp-usm.h"
+#include "detect-tftp-file.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
@@ -25,12 +25,12 @@
 
 static int g_buffer_id = 0;
 
-static int DetectSNMPUsmSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTFTPFileSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_TFTP) != 0)
         return -1;
 
     return 0;
@@ -45,7 +45,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
 
-        rs_snmp_tx_get_usm(txv, &data, &data_len);
+        rs_tftp_tx_get_file(txv, &data, &data_len);
         if (data == NULL || data_len == 0) {
             return NULL;
         }
@@ -57,25 +57,21 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-void DetectSNMPUsmRegister(void)
+void DetectTFTPFileRegister(void)
 {
-    sigmatch_table[DETECT_AL_SNMP_USM].name = "snmp.usm";
-    sigmatch_table[DETECT_AL_SNMP_USM].desc = "SNMP content modifier to match on the SNMP usm";
-    sigmatch_table[DETECT_AL_SNMP_USM].Setup = DetectSNMPUsmSetup;
+    sigmatch_table[DETECT_AL_TFTP_FILE].name = "tftp.file";
+    sigmatch_table[DETECT_AL_TFTP_FILE].desc = "TFTP content modifier to match on the TFTP file";
+    sigmatch_table[DETECT_AL_TFTP_FILE].Setup = DetectTFTPFileSetup;
 
-    sigmatch_table[DETECT_AL_SNMP_USM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_TFTP_FILE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("tftp.file", ALPROTO_TFTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.usm", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_SNMP, 0);
-    DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.usm", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerMpmRegister2("tftp.file", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TFTP, 0);
 
-    DetectBufferTypeSetDescriptionByName("snmp.usm", "SNMP USM");
+    DetectBufferTypeSetDescriptionByName("tftp.file", "TFTP file");
 
-    g_buffer_id = DetectBufferTypeGetByName("snmp.usm");
+    g_buffer_id = DetectBufferTypeGetByName("tftp.file");
 }

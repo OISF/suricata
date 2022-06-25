@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,8 +15,9 @@
  * 02110-1301, USA.
  */
 
-// written by Clément Galland <clement.galland@epita.fr>
+#ifndef __DETECT_TFTP_FILE_H__
+#define __DETECT_TFTP_FILE_H__
 
-pub mod tftp;
-pub mod log;
-pub mod detect;
+void DetectTFTPFileRegister(void);
+
+#endif /* __DETECT_TFTP_FILE_H__ */
