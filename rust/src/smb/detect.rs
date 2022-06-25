@@ -252,3 +252,20 @@ pub unsafe extern "C" fn rs_smb_tx_get_host(tx: &mut SMBTransaction,
         _ => ()
     }
 }
+
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_tx_get_domain(tx: &mut SMBTransaction,
+                                           buf: *mut *const u8,
+                                           len: *mut u32,)
+{
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if let Some(ref ntlmssp) = x.ntlmssp {
+                *buf = ntlmssp.domain.as_ptr();
+                *len = ntlmssp.domain.len() as u32;
+            }
+        },
+        _ => ()
+    }
+}
