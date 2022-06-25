@@ -194,3 +194,27 @@ pub unsafe extern "C" fn rs_smb_tx_get_nativeos(tx: &mut SMBTransaction,
         _ => ()
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_tx_get_nativelm(tx: &mut SMBTransaction,
+                                           buf: *mut *const u8,
+                                           len: *mut u32,
+                                           direction: u8,)
+{
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if direction == Direction::ToServer as u8 {
+                if let Some(ref r) = x.request_host {
+                    *buf = r.native_lm.as_ptr();
+                    *len = r.native_lm.len() as u32;
+                }
+            } else {
+                if let Some(ref r) = x.response_host {
+                    *buf = r.native_lm.as_ptr();
+                    *len = r.native_lm.len() as u32;
+                }
+            }
+        },
+        _ => ()
+    }
+}
