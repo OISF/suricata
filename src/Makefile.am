@@ -319,6 +319,7 @@ noinst_HEADERS = \
 	detect-template2.h \
 	detect-template-buffer.h \
 	detect-template.h \
+	detect-smb-host.h \
 	detect-smb-user.h \
 	detect-smb-nativelm.h \
 	detect-smb-nativeos.h \
@@ -919,6 +920,7 @@ libsuricata_c_a_SOURCES = \
 	detect-template2.c \
 	detect-template-buffer.c \
 	detect-template.c \
+	detect-smb-host.c \
 	detect-smb-user.c \
 	detect-smb-nativelm.c \
 	detect-smb-nativeos.c \
