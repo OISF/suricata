@@ -1411,6 +1411,12 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
+
+    /* fall back to strict line parsing for mime header parsing */
+    if (state->curr_tx && state->curr_tx->mime_state &&
+            state->curr_tx->mime_state->state_flag < HEADER_DONE)
+        return 1;
+
     if (state->ts_db_len) {
         /* bail and yield to SMTPGetLine if:
          * possible incomplete end of data */
