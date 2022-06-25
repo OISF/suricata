@@ -198,6 +198,7 @@
 #include "detect-rfb-name.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
+#include "detect-snmp-usm.h"
 #include "detect-snmp-version.h"
 #include "detect-snmp-community.h"
 #include "detect-snmp-pdu_type.h"
@@ -633,6 +634,7 @@ void SigTableSetup(void)
     DetectRfbNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
+    DetectSNMPUsmRegister();
     DetectSNMPVersionRegister();
     DetectSNMPCommunityRegister();
     DetectSNMPPduTypeRegister();
