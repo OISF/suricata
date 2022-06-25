@@ -1275,6 +1275,11 @@ static int SMTPPreProcessCommands(
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
 
+    /* fall back to strict line parsing for mime header parsing */
+    if (state->curr_tx && state->curr_tx->mime_state &&
+            state->curr_tx->mime_state->state_flag < HEADER_DONE)
+        return 1;
+
     bool line_complete = false;
     const int32_t input_len = input->len;
     for (int32_t i = 0; i < input_len; i++) {
