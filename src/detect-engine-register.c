@@ -174,6 +174,7 @@
 #include "detect-geoip.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
+#include "detect-smb-user.h"
 #include "detect-smb-nativelm.h"
 #include "detect-smb-nativeos.h"
 #include "detect-template2.h"
@@ -613,6 +614,7 @@ void SigTableSetup(void)
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
+    DetectSMBUserRegister();
     DetectSMBNativelmRegister();
     DetectSMBNativeosRegister();
     DetectTemplate2Register();
