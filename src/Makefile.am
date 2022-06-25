@@ -295,6 +295,7 @@ noinst_HEADERS = \
 	detect-smb-share.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
+	detect-snmp-usm.h \
 	detect-snmp-version.h \
 	detect-ssh-hassh.h \
 	detect-ssh-hassh-server.h \
@@ -890,6 +891,7 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-share.c \
 	detect-snmp-community.c \
 	detect-snmp-pdu_type.c \
+	detect-snmp-usm.c \
 	detect-snmp-version.c \
 	detect-ssh-hassh.c \
 	detect-ssh-hassh-server.c \
