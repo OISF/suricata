@@ -1693,6 +1693,9 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
     int finish_header = 0, new_header = 0;
     MimeDecConfig *mdcfg = MimeDecGetConfig();
 
+    /* should not get here with incomplete lines */
+    DEBUG_VALIDATE_BUG_ON(state->current_line_delimiter_len == 0);
+
     /* Find first header */
     hname = FindMimeHeaderStart(buf, blen, &hlen);
     if (hname != NULL) {
