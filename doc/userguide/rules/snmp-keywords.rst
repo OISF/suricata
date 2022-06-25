@@ -44,6 +44,26 @@ Signature example::
 
 ``snmp.community`` can be used as ``fast_pattern``.
 
+snmp.usm
+--------
+
+SNMP User-based Security Model (USM) is used in version 3.
+It corresponds to the user name.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ snmp.usm; content:"admin";
+
+Signature example::
+
+ alert snmp any any -> any any (msg:"SNMP usm admin"; snmp.usm; content:"admin"; sid:2; rev:1;)
+
+``snmp.usm`` is a 'sticky buffer'.
+
+``snmp.usm`` can be used as ``fast_pattern``.
+
 snmp.pdu_type
 -------------
 

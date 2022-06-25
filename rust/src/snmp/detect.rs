@@ -54,3 +54,17 @@ pub unsafe extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction,
         }
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_snmp_tx_get_usm(tx: &mut SNMPTransaction,
+                                           buf: *mut *const u8,
+                                           len: *mut u32)
+{
+    match tx.usm {
+        Some(ref c) => {
+            *buf = c.as_ptr();
+            *len = c.len() as u32;
+        },
+        None        => ()
+    }
+}
