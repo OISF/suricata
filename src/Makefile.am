@@ -319,6 +319,7 @@ noinst_HEADERS = \
 	detect-template2.h \
 	detect-template-buffer.h \
 	detect-template.h \
+	detect-smb-nativeos.h \
 	detect-template-rust-buffer.h \
 	detect-threshold.h \
 	detect-tftp-file.h \
@@ -916,6 +917,7 @@ libsuricata_c_a_SOURCES = \
 	detect-template2.c \
 	detect-template-buffer.c \
 	detect-template.c \
+	detect-smb-nativeos.c \
 	detect-template-rust-buffer.c \
 	detect-threshold.c \
 	detect-tftp-file.c \

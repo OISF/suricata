@@ -170,3 +170,27 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
     }
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_tx_get_nativeos(tx: &mut SMBTransaction,
+                                           buf: *mut *const u8,
+                                           len: *mut u32,
+                                           direction: u8,)
+{
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if direction == Direction::ToServer as u8 {
+                if let Some(ref r) = x.request_host {
+                    *buf = r.native_os.as_ptr();
+                    *len = r.native_os.len() as u32;
+                }
+            } else {
+                if let Some(ref r) = x.response_host {
+                    *buf = r.native_os.as_ptr();
+                    *len = r.native_os.len() as u32;
+                }
+            }
+        },
+        _ => ()
+    }
+}
