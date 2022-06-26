@@ -1323,7 +1323,10 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         return MIME_DEC_OK;
     }
 
-    /* First process remaining from previous line */
+    /* First process remaining from previous line. We will consume
+     * state->bvremain, filling it from 'buf' until we have a properly
+     * sized block. Spaces are skipped (rfc2045). If state->bvr_len
+     * is not 0 after procesing we have no data left at 'buf'. */
     if (state->bvr_len > 0) {
         uint32_t consumed = ProcessBase64Remainder(buf, len, state, 0);
         DEBUG_VALIDATE_BUG_ON(consumed > len);
@@ -1332,10 +1335,14 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
 
         uint32_t left = len - consumed;
         if (left < B64_BLOCK) {
+            DEBUG_VALIDATE_BUG_ON(left + state->bvr_len > B64_BLOCK);
+            if (left + state->bvr_len > B64_BLOCK)
+                return MIME_DEC_ERR_PARSE;
             memcpy(state->bvremain, buf + consumed, left);
-            state->bvr_len = left;
+            state->bvr_len += left;
             return MIME_DEC_OK;
         }
+
         remaining -= consumed;
         offset = consumed;
     }
