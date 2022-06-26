@@ -1140,38 +1140,31 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                 (entity->ctnt_flags & CTNT_IS_HTML)) &&
                 ((entity->ctnt_flags & CTNT_IS_ATTACHMENT) == 0)) {
 
-                /* Remainder from previous line */
-                if (state->linerem_len > 0) {
-                    // TODO
-                } else {
-                    /* No remainder from previous line */
-                    /* Parse each line one by one */
-                    remainPtr = (uint8_t *)chunk;
-                    do {
-                        tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *)chunk),
-                                &remainPtr, &tokLen);
-                        if (tok != remainPtr) {
-                            // DEBUG - ADDED
-                            /* If last token found without CR/LF delimiter, then save
-                             * and reconstruct with next chunk
-                             */
-                            if (tok + tokLen - (uint8_t *) chunk == (int)len) {
-                                PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
-                                        tok, tokLen);
-                                SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n",
-                                        tokLen, len - (uint32_t)(tok + tokLen - (uint8_t *) chunk));
-                            } else {
-                                /* Search line for URL */
-                                ret = FindUrlStrings(tok, tokLen, state);
-                                if (ret != MIME_DEC_OK) {
-                                    SCLogDebug("Error: FindUrlStrings() function"
-                                            " failed: %d", ret);
-                                    break;
-                                }
+                /* Parse each line one by one */
+                remainPtr = (uint8_t *)chunk;
+                do {
+                    tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *)chunk),
+                            &remainPtr, &tokLen);
+                    if (tok != remainPtr) {
+                        /* If last token found without CR/LF delimiter, then save
+                         * and reconstruct with next chunk
+                         */
+                        if (tok + tokLen - (uint8_t *) chunk == (int)len) {
+                            PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
+                                    tok, tokLen);
+                            SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n",
+                                    tokLen, len - (uint32_t)(tok + tokLen - (uint8_t *) chunk));
+                        } else {
+                            /* Search line for URL */
+                            ret = FindUrlStrings(tok, tokLen, state);
+                            if (ret != MIME_DEC_OK) {
+                                SCLogDebug("Error: FindUrlStrings() function"
+                                        " failed: %d", ret);
+                                break;
                             }
                         }
-                    } while (tok != remainPtr && remainPtr - (uint8_t *) chunk < (int)len);
-                }
+                    }
+                } while (tok != remainPtr && remainPtr - (uint8_t *) chunk < (int)len);
             }
         }
 
