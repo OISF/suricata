@@ -65,7 +65,6 @@
 
 /* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
-#define LINEREM_SIZE      256
 
 /* Mime Parser Constants */
 #define HEADER_READY    0x01
@@ -197,8 +196,6 @@ typedef struct MimeDecParseState {
     uint32_t hlen;  /**< Length of the last known header name */
     uint32_t hvlen; /**< Total length of value list */
     DataValue *hvalue;  /**< Pointer to the incomplete header value list */
-    uint8_t linerem[LINEREM_SIZE];  /**< Remainder from previous line (for URL extraction) */
-    uint16_t linerem_len;  /**< Length of remainder from previous line */
     uint8_t bvremain[B64_BLOCK];  /**< Remainder from base64-decoded line */
     uint8_t bvr_len;  /**< Length of remainder from base64-decoded line */
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
