@@ -619,56 +619,34 @@ static void FreeDataValue(DataValue *dv)
  * allocated memory)
  *
  * \param dv The head of the linked list (NULL if new list)
- * \param len The output length of the single value
+ * \param olen The output length of the single value
  *
  * \return pointer to a single value, otherwise NULL if it fails or is zero-length
  */
-static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
+static uint8_t *GetFullValue(const DataValue *dv, uint32_t *olen)
 {
-    DataValue *curr;
     uint32_t offset = 0;
     uint8_t *val = NULL;
+    uint32_t len = 0;
+    *olen = 0;
 
     /* First calculate total length */
-    *len = 0;
-    curr = dv;
-    while (curr != NULL) {
-        *len += curr->value_len;
-
-#if 0
-        /* Add CRLF except on last one */
-        if (curr->next != NULL) {
-            *len += 2;
-        }
-#endif
-        curr = curr->next;
+    for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
+        len += curr->value_len;
     }
-
     /* Must have at least one character in the value */
-    if (*len > 0) {
-        val = SCCalloc(1, *len);
+    if (len > 0) {
+        val = SCCalloc(1, len);
         if (unlikely(val == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
-            *len = 0;
             return NULL;
         }
-
-        curr = dv;
-        while (curr != NULL) {
+        for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
             memcpy(val + offset, curr->value, curr->value_len);
             offset += curr->value_len;
-
-#if 0       /* VJ unclear why this is needed ? */
-            /* Add CRLF except on last one */
-            if (curr->next != NULL) {
-                memcpy(val + offset, CRLF, 2);
-                offset += 2;
-            }
-#endif
-            curr = curr->next;
         }
     }
-
+    *olen = len;
     return val;
 }
 
