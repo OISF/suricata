@@ -1575,7 +1575,7 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
     SCLogDebug("Processing body line");
 
     /* Track length */
-    entity->body_len += len + 2; /* With CRLF */
+    entity->body_len += (len + state->current_line_delimiter_len);
 
     /* Process base-64 content if enabled */
     MimeDecConfig *mdcfg = MimeDecGetConfig();
@@ -1596,23 +1596,16 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
         }
     } else {
         /* Process non-decoded content */
-        remaining = len;
+        remaining = len + state->current_line_delimiter_len;
         offset = 0;
         while (remaining > 0) {
-
             /* Plan to add CRLF to the end of each line */
             avail = DATA_CHUNK_SIZE - state->data_chunk_len;
-            tobuf = avail > remaining + EOL_LEN ? remaining : avail - EOL_LEN;
+            tobuf = avail > remaining ? remaining : avail;
 
             /* Copy over to buffer */
             memcpy(state->data_chunk + state->data_chunk_len, buf + offset, tobuf);
             state->data_chunk_len += tobuf;
-
-            /* Now always add a CRLF to the end, unless its a partial line */
-            if (tobuf == remaining && state->current_line_delimiter_len > 0) {
-                memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
-                state->data_chunk_len += EOL_LEN;
-            }
 
             if ((int) (DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
                 SCLogDebug("Error: Invalid Chunk length: %u",
@@ -1622,8 +1615,7 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
             }
 
             /* If buffer full, then invoke callback */
-            if (DATA_CHUNK_SIZE - state->data_chunk_len < EOL_LEN + 1) {
-
+            if (DATA_CHUNK_SIZE - state->data_chunk_len == 0) {
                 /* Invoke pre-processor and callback */
                 ret = ProcessDecodedDataChunk(state->data_chunk,
                         state->data_chunk_len, state);
@@ -2308,11 +2300,6 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
         HASH_Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
     }
 #endif
-
-    /* Ignore empty lines */
-    if (len == 0) {
-        return ret;
-    }
 
     /* First look for boundary */
     MimeDecStackNode *node = state->stack->top;
