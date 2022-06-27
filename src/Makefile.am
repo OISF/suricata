@@ -38,7 +38,6 @@ noinst_HEADERS = \
 	app-layer-modbus.h \
 	app-layer-quic.h \
 	app-layer-mqtt.h \
-	app-layer-nbss.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
 	app-layer-ntp.h \
@@ -81,7 +80,6 @@ noinst_HEADERS = \
 	decode-ipv6.h \
 	decode-mpls.h \
 	decode-nsh.h \
-	decode-null.h \
 	decode-ppp.h \
 	decode-pppoe.h \
 	decode-raw.h \
@@ -606,7 +604,6 @@ noinst_HEADERS = \
 	util-validate.h \
 	util-var.h \
 	util-var-name.h \
-	util-vector.h \
 	win32-misc.h \
 	win32-service.h \
 	win32-syscall.h \
