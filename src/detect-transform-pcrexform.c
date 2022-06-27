@@ -29,9 +29,11 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-transform-pcrexform.h"
+#include "detect-pcre.h"
 
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;
+    pcre2_match_context *context;
 } DetectTransformPcrexformData;
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
@@ -63,6 +65,7 @@ static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *) ptr;
+        pcre2_match_context_free(pxd->context);
         pcre2_code_free(pxd->regex);
         SCFree(pxd);
     }
@@ -88,6 +91,13 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
+    pxd->context = pcre2_match_context_create(NULL);
+    if (pxd->context == NULL) {
+        SCFree(pxd);
+        SCReturnInt(-1);
+    }
+    pcre2_set_match_limit(pxd->context, SC_MATCH_LIMIT_DEFAULT);
+    pcre2_set_recursion_limit(pxd->context, SC_MATCH_LIMIT_RECURSION_DEFAULT);
     int en;
     PCRE2_SIZE eo;
     pxd->regex = pcre2_compile((PCRE2_SPTR8)regexstr, PCRE2_ZERO_TERMINATED, 0, &en, &eo, NULL);
@@ -98,6 +108,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
                 "pcre2 compile of \"%s\" failed at "
                 "offset %d: %s",
                 regexstr, (int)eo, buffer);
+        pcre2_match_context_free(pxd->context);
         SCFree(pxd);
         SCReturnInt(-1);
     }
@@ -130,7 +141,7 @@ static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
     DetectTransformPcrexformData *pxd = options;
 
     pcre2_match_data *match = pcre2_match_data_create_from_pattern(pxd->regex, NULL);
-    int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, match, NULL);
+    int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, match, pxd->context);
 
     if (ret > 0) {
         const char *str;
