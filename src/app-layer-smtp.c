@@ -577,6 +577,7 @@ static AppLayerResult SMTPGetLine(SMTPState *state)
             // Whatever came in with first LF should also get discarded
             state->discard_till_lf = false;
             state->current_line_len = 0;
+            state->current_line_delimiter_len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
         state->current_line = state->input + o_consumed;
