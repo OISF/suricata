@@ -665,6 +665,7 @@ static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *
             // Whatever came in with first LF should also get discarded
             state->discard_till_lf = false;
             line->len = 0;
+            line->delim_len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
         line->buf = input->buf + o_consumed;
