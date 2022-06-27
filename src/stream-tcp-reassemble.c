@@ -1015,7 +1015,7 @@ static inline bool GapAhead(TcpStream *stream, StreamingBufferBlock *cur_blk)
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
-            GetAbsLastAck(stream) >= (cur_blk->offset + cur_blk->len)) {
+            GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len)) {
         return true;
     }
     return false;
