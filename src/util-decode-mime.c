@@ -1236,6 +1236,14 @@ static uint8_t ProcessBase64Remainder(
         state->bvr_len = cnt;
     }
 
+    /* in force mode pad the block */
+    if (force && cnt != B64_BLOCK) {
+        SCLogDebug("force and cnt %u != %u", cnt, B64_BLOCK);
+        for (uint8_t i = state->bvr_len; i < B64_BLOCK; i++) {
+            state->bvremain[state->bvr_len++] = '=';
+        }
+    }
+
     /* If data chunk buffer will be full, then clear it now */
     if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
