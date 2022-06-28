@@ -2238,6 +2238,33 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
         }
     }
 
+    /* pass empty lines on if we're parsing the body, otherwise we have no use
+     * for them, and in fact they would disrupt the state tracking */
+    if (len == 0) {
+        /* don't start a new body after an end bound based on an empty line */
+        if (state->state_flag == BODY_END_BOUND) {
+            SCLogDebug("skip empty line");
+            return MIME_DEC_OK;
+        } else if (state->state_flag == HEADER_DONE) {
+            SCLogDebug("empty line, lets see if we skip it. We're in state %s",
+                    MimeDecParseStateGetStatus(state));
+            MimeDecEntity *entity = (MimeDecEntity *)state->stack->top->data;
+            MimeDecConfig *mdcfg = MimeDecGetConfig();
+            if (entity != NULL && mdcfg != NULL) {
+                if (mdcfg->decode_base64 && (entity->ctnt_flags & CTNT_IS_BASE64)) {
+                    SCLogDebug("skip empty line");
+                    return MIME_DEC_OK;
+                } else if (mdcfg->decode_quoted_printable && (entity->ctnt_flags & CTNT_IS_QP)) {
+                    SCLogDebug("skip empty line");
+                    return MIME_DEC_OK;
+                }
+                SCLogDebug("not skipping empty line");
+            }
+        } else {
+            SCLogDebug("not skipping line at state %s", MimeDecParseStateGetStatus(state));
+        }
+    }
+
     /* First look for boundary */
     MimeDecStackNode *node = state->stack->top;
     if (node == NULL) {
@@ -2268,6 +2295,8 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             if (tlen > BOUNDARY_BUF) {
                 if (state->stack->top->data)
                     state->stack->top->data->anomaly_flags |= ANOM_LONG_BOUNDARY;
+                SCLogDebug("Error: Long boundary: tlen %u > %d. Set ANOM_LONG_BOUNDARY", tlen,
+                        BOUNDARY_BUF);
                 return MIME_DEC_ERR_PARSE;
             }
 
@@ -2275,7 +2304,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             memcpy(temp + 2, node->bdef, node->bdef_len);
 
             /* Find either next boundary or end boundary */
-            bstart = FindBuffer((const uint8_t *)buf, len, temp, tlen);
+            bstart = FindBuffer(buf, len, temp, tlen);
             if (bstart != NULL) {
                 ret = ProcessMimeBoundary(buf, len, node->bdef_len, state);
                 if (ret != MIME_DEC_OK) {
