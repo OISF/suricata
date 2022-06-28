@@ -1208,6 +1208,8 @@ static uint8_t ProcessBase64Remainder(
     uint32_t cnt = 0;
     uint8_t block[B64_BLOCK];
 
+    SCLogDebug("len %u force %d", len, force);
+
     /* should be impossible, but lets be defensive */
     DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
     if (state->bvr_len > B64_BLOCK) {
@@ -1258,9 +1260,13 @@ static uint8_t ProcessBase64Remainder(
         uint32_t consumed_bytes = 0;
         uint32_t remdec = 0;
         const uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (bvremain)", state->bvremain, state->bvr_len);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 state->bvremain, state->bvr_len, &consumed_bytes, &remdec, BASE64_MODE_RFC2045);
+        SCLogDebug("DecodeBase64 result %u", code);
         if (remdec > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
+            PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (bvremain)",
+                    state->data_chunk + state->data_chunk_len, remdec);
 
             /* Track decoded length */
             state->stack->top->data->decoded_body_len += remdec;
@@ -1351,14 +1357,19 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
     while (remaining > 0 && remaining >= B64_BLOCK) {
         uint32_t consumed_bytes = 0;
         uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (line)", buf + offset, remaining);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 buf + offset, remaining, &consumed_bytes, &numDecoded, BASE64_MODE_RFC2045);
+        SCLogDebug("DecodeBase64 result %u", code);
         DEBUG_VALIDATE_BUG_ON(consumed_bytes > remaining);
         if (consumed_bytes > remaining)
             return MIME_DEC_ERR_PARSE;
 
         uint32_t leftover_bytes = remaining - consumed_bytes;
         if (numDecoded > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
+            PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (line)",
+                    state->data_chunk + state->data_chunk_len, numDecoded);
+
             /* Track decoded length */
             state->stack->top->data->decoded_body_len += numDecoded;
             /* Update length */
