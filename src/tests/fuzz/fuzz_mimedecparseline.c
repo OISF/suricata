@@ -43,7 +43,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (1) {
         uint8_t * next = memchr(buffer, '\n', size);
         if (next == NULL) {
-            (void) MimeDecParseLine(buffer, size, 1, state);
+            if (state->state_flag >= BODY_STARTED)
+                (void)MimeDecParseLine(buffer, size, 0, state);
             break;
         } else {
             (void) MimeDecParseLine(buffer, next - buffer, 1, state);
