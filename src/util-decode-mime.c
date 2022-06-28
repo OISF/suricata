@@ -1226,6 +1226,9 @@ static uint8_t ProcessBase64Remainder(
             memcpy(state->bvremain, block, cnt);
         }
         state->bvr_len = cnt;
+    } else if (!force && cnt != B64_BLOCK) {
+        SCLogDebug("incomplete data and no buffer to backfill");
+        return 0;
     }
 
     /* in force mode pad the block */
