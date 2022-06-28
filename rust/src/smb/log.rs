@@ -336,6 +336,22 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                         jsb.set_uint("frag_cnt", x.frag_cnt_ts as u64)?;
                         jsb.set_uint("stub_data_size", x.stub_data_ts.len() as u64)?;
                         jsb.close()?;
+                        match state.dcerpc_ifaces {
+                            Some(ref ifaces) => {
+                                for i in ifaces {
+                                    if i.context_id == x.context_id {
+                                        jsb.open_object("interface")?;
+                                        let ifstr = uuid::Uuid::from_slice(&i.uuid);
+                                        let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
+                                        jsb.set_string("uuid", &ifstr)?;
+                                        let vstr = format!("{}.{}", i.ver, i.ver_min);
+                                        jsb.set_string("version", &vstr)?;
+                                        jsb.close()?;
+                                    }
+                                }
+                            },
+                            _ => {},
+                        }
                     },
                     DCERPC_TYPE_BIND => {
                         match state.dcerpc_ifaces {

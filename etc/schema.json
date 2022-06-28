@@ -3199,6 +3199,19 @@
                         "response": {
                             "type": "string"
                         },
+                        "interface": {
+                            "type": "object",
+                            "optional": true,
+                            "properties": {
+                                "uuid": {
+                                    "type": "string"
+                                },
+                                "version": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "interfaces": {
                             "type": "array",
                             "items": {
