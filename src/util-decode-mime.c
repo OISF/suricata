@@ -2684,73 +2684,52 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
 /* Test simple case of line counts */
 static int MimeDecParseLineTest01(void)
 {
-    int ret = MIME_DEC_OK;
-
-    uint32_t expected_count = 3;
     uint32_t line_count = 0;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    const char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    const char *str = "From: Sender1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "To: Recipient1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "Content-Type: text/plain\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 2";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 2\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 3";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 3\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-1, 1, state) == MIME_DEC_OK);
 
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
     /* Completed */
-    ret = MimeDecParseComplete(state);
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
+    FAIL_IF_NOT(MimeDecParseComplete(state) == MIME_DEC_OK);
 
     MimeDecEntity *msg = state->msg;
-    if (msg->next != NULL || msg->child != NULL) {
-        SCLogInfo("Error: Invalid sibling or child message");
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(msg->next);
+    FAIL_IF_NOT_NULL(msg->child);
 
     MimeDecFreeEntity(msg);
 
     /* De Init parser */
     MimeDecDeInitParser(state);
 
-    SCLogInfo("LINE COUNT FINISHED: %d", line_count);
-
-    if (expected_count != line_count) {
-        SCLogInfo("Error: Line count is invalid: expected - %d actual - %d",
-                expected_count, line_count);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT(line_count == 3);
+    PASS;
 }
 
 /* Test simple case of EXE URL extraction */
 static int MimeDecParseLineTest02(void)
 {
-    int ret = MIME_DEC_OK;
-
-    uint32_t expected_count = 2;
     uint32_t line_count = 0;
 
     ConfNode *url_schemes = ConfNodeNew();
@@ -2772,58 +2751,41 @@ static int MimeDecParseLineTest02(void)
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    const char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    const char *str = "From: Sender1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
-    str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "To: Recipient1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
-    str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "Content-Type: text/plain\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
-    str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
-    str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
     str = "A simple message line 2 click on http://www.test.com/malware.exe?"
-            "hahah hopefully you click this link";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+            "hahah hopefully you click this link\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str)-2, 2, state) == MIME_DEC_OK);
 
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
     /* Completed */
-    ret = MimeDecParseComplete(state);
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
+    FAIL_IF_NOT(MimeDecParseComplete(state) == MIME_DEC_OK);
 
     MimeDecEntity *msg = state->msg;
-    if (msg->url_list == NULL || (msg->url_list != NULL &&
-            !(msg->url_list->url_flags & URL_IS_EXE))) {
-        SCLogInfo("Warning: Expected EXE URL not found");
-        return 0;
-    }
-
+    FAIL_IF_NULL(msg);
+    FAIL_IF_NULL(msg->url_list);
+    FAIL_IF_NOT((msg->url_list->url_flags & URL_IS_EXE));
     MimeDecFreeEntity(msg);
 
     /* De Init parser */
     MimeDecDeInitParser(state);
-
     ConfNodeFree(url_schemes);
     MimeDecGetConfig()->extract_urls_schemes = NULL;
 
-    SCLogInfo("LINE COUNT FINISHED: %d", line_count);
-
-    if (expected_count != line_count) {
-        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
-                expected_count, line_count);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT(line_count == 2);
+    PASS;
 }
 
 /* Test error case where no url schemes set in config */
