@@ -69,6 +69,7 @@ pub struct DCERPCIface {
     pub ack_result: u16,
     pub ack_reason: u16,
     pub acked: bool,
+    pub context_id: u16,
 }
 
 impl DCERPCIface {
@@ -85,6 +86,7 @@ impl DCERPCIface {
 #[derive(Default, Debug)]
 pub struct SMBTransactionDCERPC {
     pub opnum: u16,
+    pub context_id: u16,
     pub req_cmd: u8,
     pub req_set: bool,
     pub res_cmd: u8,
@@ -100,6 +102,7 @@ impl SMBTransactionDCERPC {
     fn new_request(req: u8, call_id: u32) -> Self {
         return Self {
             opnum: 0,
+            context_id: 0,
             req_cmd: req,
             req_set: true,
             call_id: call_id,
@@ -236,6 +239,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                                 SCLogDebug!("first frag size {}", recr.data.len());
                                 tdn.stub_data_ts.extend_from_slice(recr.data);
                                 tdn.opnum = recr.opnum;
+                                tdn.context_id = recr.context_id;
                                 tdn.frag_cnt_ts += 1;
                                 SCLogDebug!("DCERPC: REQUEST opnum {} stub data len {}",
                                         tdn.opnum, tdn.stub_data_ts.len());
