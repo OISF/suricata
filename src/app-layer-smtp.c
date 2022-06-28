@@ -1613,6 +1613,50 @@ static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
+static AppProto SMTPServerProbingParser(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // another check for minimum length
+    if (len < 5) {
+        return ALPROTO_UNKNOWN;
+    }
+    // begins by 220
+    if (input[0] != '2' || input[1] != '2' || input[2] != '0') {
+        return ALPROTO_FAILED;
+    }
+    // followed by space or hypen
+    if (input[3] != ' ' && input[3] != '-') {
+        return ALPROTO_FAILED;
+    }
+    AppProto r = ALPROTO_UNKNOWN;
+    if (f->alproto_ts == ALPROTO_SMTP ||
+            (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN)) {
+        // only validates SMTP if client side was SMTP
+        // or if client side is unknown despite having received bytes
+        r = ALPROTO_SMTP;
+    }
+    uint8_t state = 0; // domain
+    for (uint32_t i = 4; i < len; i++) {
+        switch (state) {
+            case 0:
+                if (isalpha(input[i]) || isdigit(input[i]) || input[i] == '.' || input[i] == '-') {
+                    // basic domain validation : continue
+                } else if (input[i] == ' ') {
+                    state = 1; // next state is textstring
+                } else {
+                    return ALPROTO_FAILED;
+                }
+                break;
+            case 1:
+                if (input[i] == '\n') {
+                    return r; // state = 2;
+                }
+                break;
+        }
+    }
+    return ALPROTO_UNKNOWN;
+}
+
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
@@ -1628,6 +1672,19 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
                                                "QUIT", 4, 0, STREAM_TOSERVER) < 0)
     {
+        return -1;
+    }
+    if (!AppLayerProtoDetectPPParseConfPorts(
+                "tcp", IPPROTO_TCP, "smtp", ALPROTO_SMTP, 0, 5, NULL, SMTPServerProbingParser)) {
+        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "25", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER, NULL,
+                SMTPServerProbingParser);
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMTP, "220 ", 4, 0,
+                STREAM_TOCLIENT, SMTPServerProbingParser, 5, 5) < 0) {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMTP, "220-", 4, 0,
+                STREAM_TOCLIENT, SMTPServerProbingParser, 5, 5) < 0) {
         return -1;
     }
 
