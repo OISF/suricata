@@ -207,7 +207,7 @@ static int PcapTryReopen(PcapThreadVars *ptv)
     ptv->pcap_state = PCAP_STATE_DOWN;
 
     int pcap_activate_r = pcap_activate(ptv->pcap_handle);
-    if (pcap_activate_r != 0) {
+    if (pcap_activate_r != 0 && pcap_activate_r != PCAP_ERROR_ACTIVATED) {
         return pcap_activate_r;
     }
 
