@@ -48,6 +48,7 @@ pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
 #[derive(Debug,PartialEq)]
 pub struct DceRpcRequestRecord<'a> {
     pub opnum: u16,
+    pub context_id: u16,
     pub data: &'a[u8],
 }
 
@@ -59,11 +60,12 @@ pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
     if frag_len < 24 {
         return Err(Err::Error(SmbError::RecordTooSmall));
     }
-    let (i, _) = take(6_usize)(i)?;
+    let (i, _) = take(4_usize)(i)?;
     let endian = if little { Endianness::Little } else { Endianness::Big };
+    let (i, context_id) = u16(endian)(i)?;
     let (i, opnum) = u16(endian)(i)?;
     let (i, data) = take(frag_len - 24)(i)?;
-    let record = DceRpcRequestRecord { opnum, data };
+    let record = DceRpcRequestRecord { opnum, context_id, data };
     Ok((i, record))
 }
 
