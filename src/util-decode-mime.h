@@ -137,8 +137,6 @@ typedef struct MimeDecUrl {
 typedef struct MimeDecEntity {
     MimeDecField *field_list;  /**< Pointer to list of header fields */
     MimeDecUrl *url_list;  /**< Pointer to list of URLs */
-    uint32_t body_len;  /**< Length of body (prior to any decoding) */
-    uint32_t decoded_body_len;  /**< Length of body after decoding */
     uint32_t header_flags; /**< Flags indicating header characteristics */
     uint32_t ctnt_flags;  /**< Flags indicating type of content */
     uint32_t anomaly_flags;  /**< Flags indicating an anomaly in the message */
