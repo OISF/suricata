@@ -54,6 +54,15 @@ impl Default for Direction {
     fn default() -> Self { Direction::ToServer }
 }
 
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ToServer => write!(f, "toserver"),
+            Self::ToClient => write!(f, "toclient"),
+        }
+    }
+}
+
 impl From<u8> for Direction {
     fn from(d: u8) -> Self {
         if d & (DIR_TOSERVER | DIR_TOCLIENT) == (DIR_TOSERVER | DIR_TOCLIENT) {
