@@ -453,7 +453,7 @@ static void GlobalsDestroy(SCInstance *suri)
  *
  * \retval TmEcode TM_ECODE_OK on success; TM_ECODE_FAILED on failure.
  */
-static TmEcode SendOSSpecificNotification(void)
+static TmEcode OnNotifyRunning(void)
 {
     SCLogNotice("All threads in running state.");
 
@@ -2967,8 +2967,9 @@ int SuricataMain(int argc, char **argv)
     }
 
     /* Print notice and send OS specific notification of threads in running state */
-    if (SendOSSpecificNotification() != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
+    if (OnNotifyRunning() != TM_ECODE_OK) {
+        FatalError(SC_ERR_FATAL, "Failed system notification, "
+                                 "aborting...");
     }
 
     PostRunStartedDetectSetup(&suricata);
