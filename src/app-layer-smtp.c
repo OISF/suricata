@@ -1647,12 +1647,29 @@ static AppProto SMTPServerProbingParser(
         r = ALPROTO_SMTP;
     }
     uint8_t state = 0; // domain
+    uint32_t nbdots = 0;
+    // domain can not begin with hyphen
+    bool hyphen = true;
     for (uint32_t i = 4; i < len; i++) {
         switch (state) {
             case 0:
-                if (isalpha(input[i]) || isdigit(input[i]) || input[i] == '.' || input[i] == '-') {
+                if (isalpha(input[i]) || isdigit(input[i])) {
                     // basic domain validation : continue
+                    hyphen = false;
+                } else if (input[i] == '-') {
+                    // two consecutive hyphens prohibited
+                    if (hyphen) {
+                        return ALPROTO_FAILED;
+                    }
+                    hyphen = true;
+                } else if (input[i] == '.') {
+                    nbdots++;
                 } else if (input[i] == ' ') {
+                    if (nbdots == 0 || hyphen) {
+                        // domain cannot end with hyphen
+                        // needs at least one level of subdomain
+                        return ALPROTO_FAILED;
+                    }
                     state = 1; // next state is textstring
                 } else {
                     return ALPROTO_FAILED;
