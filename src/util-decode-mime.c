@@ -1261,11 +1261,8 @@ static uint8_t ProcessBase64Remainder(
             PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (bvremain)",
                     state->data_chunk + state->data_chunk_len, remdec);
 
-            /* Track decoded length */
-            state->stack->top->data->decoded_body_len += remdec;
-
-            /* Update length */
             state->data_chunk_len += remdec;
+
             /* If data chunk buffer is now full, then clear */
             if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
@@ -1363,9 +1360,6 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
             PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (line)",
                     state->data_chunk + state->data_chunk_len, numDecoded);
 
-            /* Track decoded length */
-            state->stack->top->data->decoded_body_len += numDecoded;
-            /* Update length */
             state->data_chunk_len += numDecoded;
 
             if ((int)(DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
@@ -1483,13 +1477,11 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         if (c != '=') {
             state->data_chunk[state->data_chunk_len] = c;
             state->data_chunk_len++;
-            entity->decoded_body_len += 1;
 
             /* Add CRLF sequence if end of line, unless its a partial line */
             if (remaining == 1 && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
-                entity->decoded_body_len += EOL_LEN;
             }
         } else if (remaining > 1) {
             /* If last character handle as soft line break by ignoring,
@@ -1521,14 +1513,12 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
 
                         state->data_chunk[state->data_chunk_len] = val;
                         state->data_chunk_len++;
-                        entity->decoded_body_len++;
 
                         /* Add CRLF sequence if end of line, unless for partial lines */
                         if (remaining == 3 && state->current_line_delimiter_len > 0) {
                             memcpy(state->data_chunk + state->data_chunk_len,
                                     CRLF, EOL_LEN);
                             state->data_chunk_len += EOL_LEN;
-                            entity->decoded_body_len += EOL_LEN;
                         }
 
                         /* Account for extra 2 characters in 3-characted QP
@@ -1578,9 +1568,6 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
 
     SCLogDebug("Processing body line");
-
-    /* Track length */
-    entity->body_len += (len + state->current_line_delimiter_len);
 
     /* Process base-64 content if enabled */
     MimeDecConfig *mdcfg = MimeDecGetConfig();
