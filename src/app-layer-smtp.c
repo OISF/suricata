@@ -1646,23 +1646,13 @@ static AppProto SMTPServerProbingParser(
         // or if client side is unknown despite having received bytes
         r = ALPROTO_SMTP;
     }
-    uint8_t state = 0; // domain
-    for (uint32_t i = 4; i < len; i++) {
-        switch (state) {
-            case 0:
-                if (isalpha(input[i]) || isdigit(input[i]) || input[i] == '.' || input[i] == '-') {
-                    // basic domain validation : continue
-                } else if (input[i] == ' ') {
-                    state = 1; // next state is textstring
-                } else {
-                    return ALPROTO_FAILED;
-                }
-                break;
-            case 1:
-                if (input[i] == '\n') {
-                    return r; // state = 2;
-                }
-                break;
+    uint32_t offset = rs_validate_domain(input + 4, len - 4);
+    if (offset == 0) {
+        return ALPROTO_FAILED;
+    }
+    for (uint32_t i = offset + 4; i < len; i++) {
+        if (input[i] == '\n') {
+            return r;
         }
     }
     return ALPROTO_UNKNOWN;
