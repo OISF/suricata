@@ -36,6 +36,9 @@
 
 #define DETECT_PCRE_CAPTURE_MAX         8
 
+#define SC_MATCH_LIMIT_DEFAULT           3500
+#define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
+
 typedef struct DetectPcreData_ {
     /* pcre options */
     DetectParseRegex parse_regex;
