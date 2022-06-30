@@ -7,11 +7,20 @@
 #
 # additionally, it seems only the directoy syntax works.
 # e.g. '/src/source-*.[ch]  @regit' seems to have no effect.
-
-*                   @OISF/oisf-team
-/doc/               @norg
-/python/            @jasonish @inashivb
-/rust/              @victorjulien @jasonish
-/.github/           @victorjulien
-/ebpf/              @regit
-
+*                           @victorjulien
+/src/                       @victorjulien
+/doc/                       @jufajardini
+/python/                    @jasonish @inashivb
+/.github/                   @jasonish
+/ebpf/                      @regit
+/rust/                      @jasonish
+/rust/src/dcerpc/           @jasonish
+/rust/src/dns/              @jasonish
+/rust/src/applayertemplate/ @jasonish
+/rust/src/smb/              @victorjulien
+/rust/src/nfs/              @victorjulien
+/rust/src/http2/            @catenacyber
+/rust/src/ssh/              @catenacyber
+/rust/src/quic/             @catenacyber
+/rust/src/telnet/           @victorjulien
+/rust/src/pgsql/            @jufajardini
