@@ -28,6 +28,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-pcre.h"
 #include "detect-transform-pcrexform.h"
 
 typedef DetectParseRegex DetectTransformPcrexformData;
@@ -87,6 +88,15 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (!DetectSetupParseRegexesOpts(regexstr, pxd, 0)) {
         SCFree(pxd);
         SCReturnInt(-1);
+    }
+
+    if (pxd->study != NULL) {
+        pxd->study->match_limit = SC_MATCH_LIMIT_DEFAULT;
+        pxd->study->flags |= PCRE_EXTRA_MATCH_LIMIT;
+#ifndef NO_PCRE_MATCH_RLIMIT
+        pxd->study->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
+        pxd->study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+#endif
     }
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
