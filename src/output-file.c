@@ -97,9 +97,9 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
 static void CloseFile(const Packet *p, Flow *f, File *file)
 {
     DEBUG_VALIDATE_BUG_ON((file->flags & FILE_LOGGED) != 0);
-    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, file->txid);
     if (txv) {
-        AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
         if (txd) {
             txd->files_logged++;
             DEBUG_VALIDATE_BUG_ON(txd->files_logged > txd->files_opened);
