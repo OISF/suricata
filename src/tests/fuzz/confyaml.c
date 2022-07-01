@@ -75,6 +75,10 @@ outputs:\n\
       enabled: yes\n\
       filename: /dev/null\n\
       extended: yes\n\
+  - file-store:\n\
+      version: 2\n\
+      enabled: yes\n\
+      force-filestore: yes\n\
 app-layer:\n\
   protocols:\n\
     rdp:\n\
