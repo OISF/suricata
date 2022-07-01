@@ -16,13 +16,12 @@
  */
 
 use aes::cipher::generic_array::GenericArray;
-use aes::cipher::BlockEncrypt;
 use aes::Aes128;
+use aes::BlockCipher;
 use aes::NewBlockCipher;
 use aes_gcm::AeadInPlace;
 use aes_gcm::Aes128Gcm;
 use aes_gcm::NewAead;
-use aes_gcm::Nonce;
 use hkdf::Hkdf;
 use sha2::Sha256;
 
@@ -37,7 +36,7 @@ impl HeaderProtectionKey {
         let hk = Hkdf::<Sha256>::from_prk(secret).unwrap();
         let mut secret = [0u8; AES128_KEY_LEN];
         hkdf_expand_label(&hk, b"quic hp", &mut secret, AES128_KEY_LEN as u16);
-        return Self(Aes128::new_from_slice(&secret).unwrap());
+        return Self(Aes128::new(GenericArray::from_slice(&secret)));
     }
 
     pub fn decrypt_in_place(
@@ -75,7 +74,7 @@ impl PacketKey {
         let hk = Hkdf::<Sha256>::from_prk(secret).unwrap();
         let mut secret = [0u8; AES128_KEY_LEN];
         hkdf_expand_label(&hk, b"quic key", &mut secret, AES128_KEY_LEN as u16);
-        let key = Aes128Gcm::new_from_slice(&secret).unwrap();
+        let key = Aes128Gcm::new(GenericArray::from_slice(&secret));
 
         let mut r = PacketKey {
             key: key,
@@ -100,7 +99,7 @@ impl PacketKey {
         let (buffer, tag) = payload.split_at_mut(tag_pos);
         let taga = GenericArray::from_slice(tag);
         self.key
-            .decrypt_in_place_detached(Nonce::from_slice(&nonce), header, buffer, &taga)
+            .decrypt_in_place_detached(GenericArray::from_slice(&nonce), header, buffer, &taga)
             .map_err(|_| ())?;
         Ok(&payload[..tag_pos])
     }
