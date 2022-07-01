@@ -214,11 +214,13 @@ fn log_ikev2(tx: &IKETransaction, jb: &mut JsonBuilder) -> Result<(), JsonError>
     jb.open_object("ikev2")?;
 
     jb.set_uint("errors", tx.errors as u64)?;
-    jb.open_array("notify")?;
-    for notify in tx.notify_types.iter() {
-        jb.append_string(&format!("{:?}", notify))?;
+    if tx.notify_types.len() > 0 {
+        jb.open_array("notify")?;
+        for notify in tx.notify_types.iter() {
+            jb.append_string(&format!("{:?}", notify))?;
+        }
+        jb.close()?;
     }
-    jb.close()?;
     jb.close()?;
     Ok(())
 }
