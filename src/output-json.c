@@ -128,11 +128,13 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
 {
     jb_set_string_from_bytes(jb, "filename", ff->name, ff->name_len);
 
-    jb_open_array(jb, "sid");
-    for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
-        jb_append_uint(jb, ff->sid[i]);
+    if (ff->sid_cnt > 0) {
+        jb_open_array(jb, "sid");
+        for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
+            jb_append_uint(jb, ff->sid[i]);
+        }
+        jb_close(jb);
     }
-    jb_close(jb);
 
 #ifdef HAVE_MAGIC
     if (ff->magic)
