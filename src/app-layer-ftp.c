@@ -1026,6 +1026,34 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
     return FTP_STATE_FINISHED;
 }
 
+static AppProto FTPServerProbingParser(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // another check for minimum length
+    if (len < 5) {
+        return ALPROTO_UNKNOWN;
+    }
+    // begins by 220
+    if (input[0] != '2' || input[1] != '2' || input[2] != '0') {
+        return ALPROTO_FAILED;
+    }
+    // followed by space or hypen
+    if (input[3] != ' ' && input[3] != '-') {
+        return ALPROTO_FAILED;
+    }
+    AppProto r = ALPROTO_UNKNOWN;
+    if (f->alproto_ts == ALPROTO_FTP || (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN)) {
+        // only validates FTP if client side was FTP
+        // or if client side is unknown despite having received bytes
+        r = ALPROTO_FTP;
+    }
+    for (uint32_t i = 4; i < len; i++) {
+        if (input[i] == '\n') {
+            return r;
+        }
+    }
+    return ALPROTO_UNKNOWN;
+}
 
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
@@ -1054,7 +1082,13 @@ static int FTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
-
+    // Only check FTP on known ports as the banner has nothing special beyond
+    // the response code shared with SMTP.
+    if (!AppLayerProtoDetectPPParseConfPorts(
+                "tcp", IPPROTO_TCP, "ftp", ALPROTO_FTP, 0, 5, NULL, FTPServerProbingParser)) {
+        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER, NULL,
+                FTPServerProbingParser);
+    }
     return 0;
 }
 
