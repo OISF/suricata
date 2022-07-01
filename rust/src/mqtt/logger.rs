@@ -233,11 +233,13 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                 log_mqtt_header(js, &msg.header)?;
                 js.set_uint("message_id", unsuback.message_id as u64)?;
                 if let Some(codes) = &unsuback.reason_codes {
-                    js.open_array("reason_codes")?;
-                    for t in codes {
-                        js.append_uint(*t as u64)?;
+                    if codes.len() > 0 {
+                        js.open_array("reason_codes")?;
+                        for t in codes {
+                            js.append_uint(*t as u64)?;
+                        }
+                        js.close()?; // reason_codes
                     }
-                    js.close()?; // reason_codes
                 }
                 js.close()?; // unsuback
             }
