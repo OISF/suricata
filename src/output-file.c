@@ -101,7 +101,7 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
 
 static void CloseFile(const Packet *p, Flow *f, File *file)
 {
-    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, file->txid);
     if (txv) {
         AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
         if (txd)

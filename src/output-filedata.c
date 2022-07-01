@@ -134,9 +134,9 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
 static void CloseFile(const Packet *p, Flow *f, File *file)
 {
-    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, file->txid);
     if (txv) {
-        AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
         if (txd)
             txd->files_stored++;
     }
