@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,7 +15,20 @@
  * 02110-1301, USA.
  */
 
-pub mod dhcp;
-pub mod parser;
-pub mod logger;
-pub mod detect;
+use super::dhcp::{DHCPTransaction, DHCP_OPT_ADDRESS_TIME};
+use super::parser::DHCPOptionWrapper;
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dhcp_tx_get_leasetime(
+    tx: &mut DHCPTransaction, leasetime: *mut u64,
+) -> u8 {
+    for option in &tx.message.options {
+        if option.code == DHCP_OPT_ADDRESS_TIME {
+            if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
+                *leasetime = time_value.seconds as u64;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
