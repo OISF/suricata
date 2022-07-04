@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-pub mod dhcp;
-pub mod parser;
-pub mod logger;
-pub mod detect;
+#ifndef __DETECT_DHCP_LEASETIME_H__
+#define __DETECT_DHCP_LEASETIME_H__
+
+void DetectDHCPLeaseTimeRegister(void);
+
+#endif /* __DETECT_DHCP_LEASETIME_H__ */
