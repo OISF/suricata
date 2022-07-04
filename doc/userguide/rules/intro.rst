@@ -88,6 +88,7 @@ you can pick from. These are:
 * smb
 * dns
 * dcerpc
+* dhcp
 * ssh
 * smtp
 * imap

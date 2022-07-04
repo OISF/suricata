@@ -19,6 +19,7 @@ Suricata Rules
    ja3-keywords
    modbus-keyword
    dcerpc-keywords
+   dhcp-keywords
    dnp3-keywords
    enip-keyword
    ftp-keywords
