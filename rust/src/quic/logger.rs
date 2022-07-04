@@ -30,14 +30,16 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
             js.set_string("ua", &String::from_utf8_lossy(&ua))?;
         }
     }
-    js.open_array("cyu")?;
-    for cyu in &tx.cyu {
-        js.start_object()?;
-        js.set_string("hash", &cyu.hash)?;
-        js.set_string("string", &cyu.string)?;
+    if tx.cyu.len() > 0 {
+        js.open_array("cyu")?;
+        for cyu in &tx.cyu {
+            js.start_object()?;
+            js.set_string("hash", &cyu.hash)?;
+            js.set_string("string", &cyu.string)?;
+            js.close()?;
+        }
         js.close()?;
     }
-    js.close()?;
 
     js.close()?;
     Ok(())
