@@ -238,6 +238,10 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     if (f == NULL || f->alstate == NULL) {
         SCReturnInt(TM_ECODE_OK);
     }
+    /* do not log for ICMP packets related to a TCP/UDP flow */
+    if (p->proto != IPPROTO_TCP && p->proto != IPPROTO_UDP) {
+        SCReturnInt(TM_ECODE_OK);
+    }
 
     const bool file_trunc = StreamTcpReassembleDepthReached(p);
     if (p->flowflags & FLOW_PKT_TOSERVER) {
