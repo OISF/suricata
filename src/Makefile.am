@@ -297,6 +297,7 @@ noinst_HEADERS = \
 	detect-snmp-pdu_type.h \
 	detect-snmp-usm.h \
 	detect-snmp-version.h \
+	detect-dhcp-leasetime.h \
 	detect-ssh-hassh.h \
 	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-server-string.h \
@@ -893,6 +894,7 @@ libsuricata_c_a_SOURCES = \
 	detect-snmp-pdu_type.c \
 	detect-snmp-usm.c \
 	detect-snmp-version.c \
+	detect-dhcp-leasetime.c \
 	detect-ssh-hassh.c \
 	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-server-string.c \
