@@ -64,9 +64,9 @@ static void JsonDNP3LogLinkControl(JsonBuilder *js, uint8_t lc)
 
 static void JsonDNP3LogIin(JsonBuilder *js, uint16_t iin)
 {
-    jb_open_array(js, "indicators");
-
     if (iin) {
+        jb_open_array(js, "indicators");
+
         int mapping = 0;
         do {
             if (iin & DNP3IndicatorsMap[mapping].value) {
@@ -74,8 +74,8 @@ static void JsonDNP3LogIin(JsonBuilder *js, uint16_t iin)
             }
             mapping++;
         } while (DNP3IndicatorsMap[mapping].name != NULL);
+        jb_close(js);
     }
-    jb_close(js);
 }
 
 static void JsonDNP3LogApplicationControl(JsonBuilder *js, uint8_t ac)
@@ -160,9 +160,11 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
 
     jb_set_uint(js, "function_code", dnp3tx->request_ah.function_code);
 
-    jb_open_array(js, "objects");
-    JsonDNP3LogObjects(js, &dnp3tx->request_objects);
-    jb_close(js);
+    if (!TAILQ_EMPTY(&dnp3tx->request_objects)) {
+        jb_open_array(js, "objects");
+        JsonDNP3LogObjects(js, &dnp3tx->request_objects);
+        jb_close(js);
+    }
 
     jb_set_bool(js, "complete", dnp3tx->request_complete);
 
@@ -194,9 +196,11 @@ void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
 
     jb_set_uint(js, "function_code", dnp3tx->response_ah.function_code);
 
-    jb_open_array(js, "objects");
-    JsonDNP3LogObjects(js, &dnp3tx->response_objects);
-    jb_close(js);
+    if (!TAILQ_EMPTY(&dnp3tx->response_objects)) {
+        jb_open_array(js, "objects");
+        JsonDNP3LogObjects(js, &dnp3tx->response_objects);
+        jb_close(js);
+    }
 
     jb_set_bool(js, "complete", dnp3tx->response_complete);
 
