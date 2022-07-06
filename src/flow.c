@@ -461,22 +461,25 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
     if (f->flow_state == FLOW_STATE_ESTABLISHED) {
 
         if (splt->splt_count < FLOW_SPLT_MAX_COUNT) {
-            /* Update sequence of packet length & time (SPLT) */
-            splt->seq[splt->splt_count].dir = FlowGetPacketDirection(f, p);
-            splt->seq[splt->splt_count].len =
-                    MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
-            uint64_t now_epoch_msec = (p->ts.tv_sec * (uint64_t)1000) + (p->ts.tv_usec / 1000);
-            if (splt->first_epoch_msec == 0) {
-                splt->first_epoch_msec = now_epoch_msec;
-                splt->last_epoch_msec = now_epoch_msec;
-                splt->seq[splt->splt_count].delta = 0;
-            } else {
-                uint64_t delta_epoch_msec = now_epoch_msec - splt->last_epoch_msec;
-                splt->seq[splt->splt_count].delta =
-                        (delta_epoch_msec > FLOW_SPLT_MAX_MSEC) ? FLOW_SPLT_MAX_MSEC : delta_epoch_msec;
-                splt->last_epoch_msec = now_epoch_msec;
+            uint32_t pkt_len = MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
+            if (pkt_len > 0) {
+                /* Update sequence of packet length & time (SPLT) */
+                splt->seq[splt->splt_count].dir = FlowGetPacketDirection(f, p);
+                splt->seq[splt->splt_count].len = pkt_len;
+                uint64_t now_epoch_msec = (p->ts.tv_sec * (uint64_t)1000) + (p->ts.tv_usec / 1000);
+                if (splt->first_epoch_msec == 0) {
+                    splt->first_epoch_msec = now_epoch_msec;
+                    splt->last_epoch_msec = now_epoch_msec;
+                    splt->seq[splt->splt_count].delta = 0;
+                } else {
+                    uint64_t delta_epoch_msec = now_epoch_msec - splt->last_epoch_msec;
+                    splt->seq[splt->splt_count].delta =
+                            (delta_epoch_msec > FLOW_SPLT_MAX_MSEC) ? FLOW_SPLT_MAX_MSEC : delta_epoch_msec;
+                    splt->last_epoch_msec = now_epoch_msec;
+                }
+                splt->splt_count++;
+
             }
-            splt->splt_count++;
 
             /* Update byte distribution */
             for (uint32_t i = 0; i < p->payload_len; i++) {
