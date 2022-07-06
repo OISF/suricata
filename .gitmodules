@@ -3,4 +3,4 @@
 	url = git@github.com:deepurajan/libhtp.git
 [submodule "suricata-verify"]
 	path = suricata-verify
-	url = git@github.com:rtkwlf/suricata-verify.git
+	url = git@github.com:deepurajan/suricata-verify.git
