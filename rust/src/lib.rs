@@ -134,5 +134,6 @@ pub mod ssh;
 pub mod http2;
 pub mod quic;
 pub mod plugin;
+pub mod lzma;
 pub mod util;
 pub mod ffi;

@@ -28,6 +28,7 @@ bitflags = "~1.2.1"
 byteorder = "~1.4.2"
 uuid = "~0.8.2"
 crc = "~1.8.1"
+lzma-rs = { version = "~0.2.0", features = ["stream"] }
 memchr = "~2.4.1"
 num = "~0.2.1"
 num-derive = "~0.2.5"
