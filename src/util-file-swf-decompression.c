@@ -31,10 +31,11 @@
 #include "util-file-swf-decompression.h"
 #include "util-misc.h"
 #include "util-print.h"
+#include "util-validate.h"
+
+#include "rust.h"
 
 #include <zlib.h>
-
-#include <htp/lzma/LzmaDec.h>
 
 #define MAX_SWF_DECOMPRESSED_LEN 50000000
 /*
@@ -129,10 +130,6 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
     return ret;
 }
 
-static void *SzAlloc(ISzAllocPtr p, size_t size) { return malloc(size); }
-static void SzFree(ISzAllocPtr p, void *address) { free(address); }
-static const ISzAlloc suri_lzma_Alloc = { SzAlloc, SzFree };
-
 /* ZWS format */
 /*
  * | 4 bytes         | 4 bytes    | 4 bytes        | 5 bytes    | n bytes   | 6 bytes         |
@@ -144,46 +141,36 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
 {
     int ret = 0;
 
-    CLzmaDec strm;
-    LzmaDec_Construct(&strm);
-    ELzmaStatus status;
-
-    if (compressed_data_len < LZMA_PROPS_SIZE + 8) {
-        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_FORMAT_ERROR);
-        return 0;
-    }
-    ret = LzmaDec_Allocate(&strm, compressed_data, LZMA_PROPS_SIZE, &suri_lzma_Alloc);
-    if (ret != SZ_OK) {
-        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DECODER_ERROR);
-        return 0;
-    }
-    LzmaDec_Init(&strm);
-    compressed_data += LZMA_PROPS_SIZE + 8;
-    compressed_data_len -= LZMA_PROPS_SIZE + 8;
     size_t inprocessed = compressed_data_len;
     size_t outprocessed = decompressed_data_len;
 
-    ret = LzmaDec_DecodeToBuf(&strm, decompressed_data, &outprocessed,
-                             compressed_data, &inprocessed, LZMA_FINISH_ANY, &status, MAX_SWF_DECOMPRESSED_LEN);
+    ret = lzma_decompress(compressed_data, &inprocessed, decompressed_data, &outprocessed,
+            MAX_SWF_DECOMPRESSED_LEN);
 
     switch(ret) {
-        case SZ_OK:
+        case LzmaOk:
             ret = 1;
             break;
-        case SZ_ERROR_MEM:
+        case LzmaIoError:
+            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_IO_ERROR);
+            ret = 0;
+            break;
+        case LzmaHeaderTooShortError:
+            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR);
+            ret = 0;
+            break;
+        case LzmaError:
+            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DECODER_ERROR);
+            ret = 0;
+            break;
+        case LzmaMemoryError:
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR);
             ret = 0;
             break;
-        case SZ_ERROR_UNSUPPORTED:
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR);
-            ret = 0;
-            break;
-        case SZ_ERROR_DATA:
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DATA_ERROR);
-            ret = 0;
-            break;
-        case SZ_ERROR_INPUT_EOF:
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_BUF_ERROR);
+        case LzmaXzError:
+            /* We should not see XZ compressed SWF files */
+            DEBUG_VALIDATE_BUG_ON(ret == LzmaXzError);
+            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_XZ_ERROR);
             ret = 0;
             break;
         default:
@@ -192,6 +179,5 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
             break;
     }
 
-    LzmaDec_Free(&strm, &suri_lzma_Alloc);
     return ret;
 }
