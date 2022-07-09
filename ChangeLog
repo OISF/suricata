@@ -1,3 +1,32 @@
+5.0.10 -- 2022-07-12
+
+Bug #5429: TCP flow that retransmits the SYN with a newer TSval not properly tracked (5.0.x backport)
+Bug #5424: inspection of smb traffic without smb/dcerpc doesn't work correct.  (5.0.x backport)
+Bug #5423: DCERPC protocol detection when nested in SMB (5.0.x backport)
+Bug #5404: detect: will still inspect packets of a "dropped" flow for non-TCP (5.0.x backport)
+Bug #5388: detect/threshold: offline time handling issue (5.0.x backports)
+Bug #5358: test failure on Ubuntu 22.04 with GCC 12 (5.0.x backport)
+Bug #5354: detect/alert: fix segvfault when incrementing discarded alerts if alert-queue-expand fails (5.0.x backport)
+Bug #5345: CIDR prefix calculation fails on big endian archs (5.0.x backport)
+Bug #5343: ftp: quadratic complexity for tx iterator with linked list (5.0.x backport)
+Bug #5341: decode/mime: base64 decoding for data with spaces is broken (5.0.x backport)
+Bug #5339: PreProcessCommands does not handle all the edge cases (5.0.x backport)
+Bug #5325: FTP: expectation created in wrong direction (5.0.x backport)
+Bug #5305: cppcheck: various static analyzer "warning"s
+Bug #5302: Failed assert DeStateSearchState
+Bug #5301: eve: payload field randomly missing even if the packet field is present
+Bug #5289: Remove unneeded stack-on-signal initialization.
+Bug #5283: 5.0.x: ftp: don't let first incomplete segment be over maximum length
+Bug #5124: alerts: 5.0.8/6.0.4 count noalert sigs towards built-in alert limit (5.0.x backport)
+Bug #5113: Off-by-one in flow-manager flow_hash row allocation
+Bug #5055: Documentation copyright years are invalid
+Bug #5021: dataset: error with space in rule language
+Bug #4926: Rule error in SMB dce_iface and dce_opnum keywords (5.0.x backport)
+Bug #4646: TCP reassembly, failed assert app_progress > last_ack_abs, both sides need to be pruned
+Optimization #5123: alerts: use alert queing in DetectEngineThreadCtx (5.0.x backport)
+Optimization #5121: Use configurable or more dynamic @ PACKET_ALERT_MAX@ (5.0.x backport)
+Task #5322: stats/alert: log out to stats alerts that have been discarded from packet queue (5.0.x backport)
+
 5.0.9 -- 2022-04-21
 
 Security #4889: ftp: SEGV at flow cleanup due to protocol confusion
