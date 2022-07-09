@@ -1,3 +1,53 @@
+6.0.6 -- 2022-07-12
+
+Security #5431: filestore: Segfault with filestore enabled and forced (6.0.x backport)
+Security #5254: protocol detection: exploitable type confusion due to concurrent protocol changes
+Security #5252: Infinite loop in JsonFTPLogger
+Bug #5422: bypass: Memory leak of some flow bypass objects. (6.0.x backport)
+Bug #5421: TCP flow that retransmits the SYN with a newer TSval not properly tracked (6.0.x backport)
+Bug #5420: Duplicate TLS subjects in tls metadata. (6.0.x backport)
+Bug #5414: PCRE: use match and recursion limit for pcrexform (6.0.x backport)
+Bug #5403: detect: will still inspect packets of a "dropped" flow for non-TCP (6.0.x backport)
+Bug #5398: events: PACKET_RECYCLE does not reset event_last_logged (6.0.x backport)
+Bug #5396: inspection of smb traffic without smb/dcerpc doesn't work correct (6.0.x backport)
+Bug #5395:  DCERPC protocol detection when nested in SMB (6.0.x backport)
+Bug #5394:  fileinfo: inconsistent file size tracking for GAPs (6.0.x backport)
+Bug #5387: detect/threshold: offline time handling issue (6.0.x backports)
+Bug #5380: IPS: ip only rules, but with negated addresses not treated like pure ip-only rules in IPS context (6.0.x backport)
+Bug #5378: unused doc warnings on mingw64/windows compile
+Bug #5360: Build with ebpf is failing
+Bug #5357: test failure on Ubuntu 22.04 with GCC 12 (6.0.x backport)
+Bug #5355: detect/alert: fix segvfault when incrementing discarded alerts if alert-queue-expand fails (6.0.x backport)
+Bug #5351: stacktrace-on-signal: Kills all processes in the same process group (6.0.x backport)
+Bug #5346: dcerpc: unsigned integer overflow in parse_dcerpc_bindack
+Bug #5344: CIDR prefix calculation fails on big endian archs (6.0.x backport)
+Bug #5342: ftp: quadratic complexity for tx iterator with linked list (6.0.x backport)
+Bug #5340: decode/mime: base64 decoding for data with spaces is broken (6.0.x backport)
+Bug #5338: smtp: PreProcessCommands does not handle all the edge cases (6.0.x backport)
+Bug #5337: rust: inconsistency between rust structure RustParser and C structure AppLayerParser
+Bug #5324: FTP: expectation created in wrong direction (6.0.x backport)
+Bug #5304: cppcheck: various static analyzer "warning"s
+Bug #5303: Failed assert DeStateSearchState
+Bug #5300: eve: payload field randomly missing even if the packet field is present
+Bug #5288: Stacktrace logger initialized twice.
+Bug #5282: 6.0.x: ftp: don't let first incomplete segment be over maximum length
+Bug #5250: smb: integer underflows and overflows
+Bug #5241: SSH built-in rules are not included in the source tarball
+Bug #5154: flowbits - no error on invalid options
+Bug #5120: alerts: 5.0.8/6.0.4 count noalert sigs towards built-in alert limit (6.0.x backport)
+Bug #5054: Documentation copyright years are invalid
+Bug #4645: TCP reassembly, failed assert app_progress > last_ack_abs, both sides need to be pruned
+Optimization #5240: rules: mpm setup more costly than needed
+Optimization #5233: rules: too much time spent in SigMatchListSMBelongsTo at startup
+Optimization #5127: alerts: use alert queing in DetectEngineThreadCtx (6.0.x backport)
+Optimization #5125: Use configurable or more dynamic @ PACKET_ALERT_MAX@ (6.0.x backport)
+Feature #5428: ips: allow dropping of flow if applayer reaches error state (6.0.x backport)
+Feature #5427: ips: allow dropping of flow if flow.memcap is hit (6.0.x backport)
+Feature #5426: ips: allow dropping of flow if stream.reassembly.memcap is hit (6.0.x backport)
+Feature #5425: ips: allow dropping of flow if stream.memcap is hit (6.0.x backport)
+Task #5352: config: add suricata version as a comment to the top of the configuration file (6.0.x backport)
+Task #5323: stats/alert: log out to stats alerts that have been discarded from packet queue (6.0.x backport)
+
 6.0.5 -- 2022-04-21
 
 Security #4888: ftp: SEGV at flow cleanup due to protocol confusion
