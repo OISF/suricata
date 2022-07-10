@@ -58,6 +58,7 @@ void DetectIPAddrBufferRegister(void)
 {
     sigmatch_table[DETECT_IPADDR_SRC].name = KEYWORD_NAME_SRC;
     sigmatch_table[DETECT_IPADDR_SRC].desc = "Sticky buffer for src_ip";
+    sigmatch_table[DETECT_IPADDR_SRC].url = "/rules/ipaddr.html#ip-src";
     sigmatch_table[DETECT_IPADDR_SRC].Setup = DetectSrcIPAddrBufferSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPADDR_SRC].RegisterTests = DetectIPAddrRegisterTests;
@@ -77,6 +78,7 @@ void DetectIPAddrBufferRegister(void)
 
     sigmatch_table[DETECT_IPADDR_DST].name = KEYWORD_NAME_DST;
     sigmatch_table[DETECT_IPADDR_DST].desc = "Sticky buffer for dest_ip";
+    sigmatch_table[DETECT_IPADDR_DST].url = "/rules/ipaddr.html#ip-dst";
     sigmatch_table[DETECT_IPADDR_DST].Setup = DetectDestIPAddrBufferSetup;
 
     sigmatch_table[DETECT_IPADDR_DST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
