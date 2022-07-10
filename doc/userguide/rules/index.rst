@@ -36,6 +36,7 @@ Suricata Rules
    xbits
    thresholding
    ip-reputation-rules
+   ipaddr
    config
    datasets
    lua-detection
