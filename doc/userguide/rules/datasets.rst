@@ -146,7 +146,7 @@ set name
 type
   Data type: string, md5, sha256, ipv4, ip
 data
-  Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ipv6)
+  Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
 Example adding 'google.com' to set 'myset'::
 
@@ -167,7 +167,7 @@ set name
 type
   Data type: string, md5, sha256, ipv4, ip
 data
-  Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ipv6)
+  Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
 dataset-clear
 ~~~~~~~~~~~~~
@@ -182,7 +182,7 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256
+  Data type: string, md5, sha256, ipv4, ip
 
 dataset-lookup
 ~~~~~~~~~~~~~~
@@ -196,9 +196,9 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256
+  Data type: string, md5, sha256, ipv4, ip
 data
-  Data to test in serialized form (base64 for string, hex notation for md5/sha256)
+  Data to test in serialized form (base64 for string, hex notation for md5/sha256, string notation for ipv4/ip)
 
 Example testing if 'google.com' is in the set 'myset'::
 
@@ -230,7 +230,7 @@ sha256
 ipv4
   in the file as string
 ip
-  in the file as string, it can be IPv6 or IPv4 address (in standard notation or in IPv4 in IPv6 one)
+  in the file as string, it can be IPv6 or IPv4 address (standard notation or IPv4 in IPv6 one)
 
 
 dataset
