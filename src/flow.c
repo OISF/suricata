@@ -458,7 +458,7 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
     else
         splt->sapp_bytes = p->payload_len;
 
-    if (f->flow_state == FLOW_STATE_ESTABLISHED) {
+    if (f->flow_state == FLOW_STATE_ESTABLISHED || (f->flow_state == FLOW_STATE_NEW && f->proto == IPPROTO_UDP)) {
 
         if (splt->splt_count < FLOW_SPLT_MAX_COUNT) {
             uint32_t pkt_len = MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
