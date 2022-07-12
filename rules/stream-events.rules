@@ -98,5 +98,6 @@ alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:
 # Disabled by default as this quite common and not malicious.
 #alert tcp any any -> any any (msg:"SURICATA STREAM spurious retransmission"; stream-event:pkt_spurious_retransmission; classtype:protocol-command-decode; sid:2210061; rev:1;)
 
-# next sid 2210062
+alert tcp any any -> any any (msg:"SURICATA STREAM reassembly depth reached"; stream-event:reassembly_depth_reached; classtype:protocol-command-decode; sid:2210062; rev:1;)
+# next sid 2210063
 
