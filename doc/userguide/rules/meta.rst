@@ -22,7 +22,7 @@ To continue the example of the previous chapter, this is the keyword in action i
 
 .. container:: example-rule
 
-    drop tcp $HOME_NET any -> $EXTERNAL_NET any (:example-rule-emphasis:`msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)";` flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http $HOME_NET any -> $EXTERNAL_NET any (:example-rule-emphasis:`msg:”HTTP GET Request Containing Rule in URI”;` flow:established,to_server; http.method; content:”GET”; http.uri; content:”rule”; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
 .. tip::
 
@@ -44,7 +44,7 @@ Example of sid in a signature:
 
 .. container:: example-rule
 
-    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; :example-rule-emphasis:`sid:2008124;` rev:2;)
+    alert http $HOME_NET any -> $EXTERNAL_NET any (msg:”HTTP GET Request Containing Rule in URI”; flow:established,to_server; http.method; content:”GET”; http.uri; content:”rule”; fast_pattern; classtype:bad-unknown; :example-rule-emphasis:`sid:123;` rev:1;)
 
 .. tip::
 
@@ -64,7 +64,7 @@ Example of rev in a signature:
 
 .. container:: example-rule
 
-    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; :example-rule-emphasis:`rev:2;`)
+    alert http $HOME_NET any -> $EXTERNAL_NET any (msg:”HTTP GET Request Containing Rule in URI”; flow:established,to_server; http.method; content:”GET”; http.uri; content:”rule”; fast_pattern; classtype:bad-unknown; sid:123; :example-rule-emphasis:`rev:1;`)
 
 .. tip::
 
@@ -83,8 +83,7 @@ Example of gid in an alert of fast.log. In the part [1:2008124:2], 1 is the gid 
 
 .. container:: example-rule
 
-    10/15/09-03:30:10.219671  [**] [:example-rule-emphasis:`1`:2008124:2] ET TROJAN Likely Bot Nick in IRC (USA +..) [**] [Classification: A Network Trojan was Detected]
-    [Priority: 3] {TCP} 192.168.1.42:1028 -> 72.184.196.31:6667
+    07/12/2022-21:59:26.713297  [**] [:example-rule-emphasis:`1`:123:1] HTTP GET Request Containing Rule in URI [**] [Classification: Potentially Bad Traffic] [Priority: 2] {TCP} 192.168.225.121:12407 -> 172.16.105.84:80
 
 
 classtype
@@ -115,7 +114,7 @@ Our continuing example has also a classtype, this one of trojan-activity:
 
 .. container:: example-rule
 
-    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; :example-rule-emphasis:`classtype:trojan-activity;` sid:2008124; rev:2;)
+        alert http $HOME_NET any -> $EXTERNAL_NET any (msg:”HTTP GET Request Containing Rule in URI”; flow:established,to_server; http.method; content:”GET”; http.uri; content:”rule”; fast_pattern; :example-rule-emphasis:`classtype:bad-unknown;` sid:123; rev:1;)
 
 
 .. tip::
@@ -147,13 +146,6 @@ again, you can use something like this::
 
 This would make a reference to http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-1234.
 All reference types are defined in the reference.config configuration file.
-
-Our continuing example also has a reference:
-
-.. container:: example-rule
-
-    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; :example-rule-emphasis:`reference:url,doc.emergingthreats.net/2008124;` classtype:trojan-activity; sid:2008124; rev:2;)
-
 
 priority
 --------
