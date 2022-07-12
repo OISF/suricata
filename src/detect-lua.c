@@ -103,10 +103,6 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
-static uint8_t InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 /**
  * \brief Registration function for keyword: lua
  */
@@ -125,21 +121,13 @@ void DetectLuaRegister(void)
 #endif
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
-    DetectAppLayerInspectEngineRegister2(
-            "smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, InspectSmtpGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0, InspectSmtpGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister2("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectGenericList, NULL);
 
     SCLogDebug("registering lua rule option");
     return;
-}
-
-static uint8_t InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 #define DATATYPE_PACKET  BIT_U32(0)

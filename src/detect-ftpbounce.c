@@ -57,10 +57,6 @@ static void DetectFtpbounceRegisterTests(void);
 #endif
 static int g_ftp_request_list_id = 0;
 
-static uint8_t InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 /**
  * \brief Registration function for ftpbounce: keyword
  * \todo add support for no_stream and stream_only
@@ -80,15 +76,7 @@ void DetectFtpbounceRegister(void)
     g_ftp_request_list_id = DetectBufferTypeRegister("ftp_request");
 
     DetectAppLayerInspectEngineRegister2(
-            "ftp_request", ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, InspectFtpRequest, NULL);
-}
-
-static uint8_t InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+            "ftp_request", ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 }
 
 /**

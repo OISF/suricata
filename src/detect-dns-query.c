@@ -196,24 +196,6 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
             pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
 }
 
-#ifdef HAVE_LUA
-static uint8_t DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
-
-static uint8_t DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
-#endif
-
 /**
  * \brief Registration function for keyword: dns_query
  */
@@ -246,9 +228,9 @@ void DetectDnsQueryRegister (void)
 #ifdef HAVE_LUA
     /* register these generic engines from here for now */
     DetectAppLayerInspectEngineRegister2(
-            "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsRequest, NULL);
+            "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister2("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectDnsResponse, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     DetectBufferTypeSetDescriptionByName("dns_request",
             "dns requests");
