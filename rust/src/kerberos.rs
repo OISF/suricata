@@ -15,15 +15,15 @@
  * 02110-1301, USA.
  */
 
+use der_parser;
+use der_parser::der::parse_der_oid;
+use der_parser::error::BerError;
+use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
 use kerberos_parser::krb5_parser::parse_ap_req;
-use kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
 use nom;
-use nom::IResult;
 use nom::error::{ErrorKind, ParseError};
 use nom::number::complete::le_u16;
-use der_parser;
-use der_parser::error::BerError;
-use der_parser::der::parse_der_oid;
+use nom::IResult;
 
 #[derive(Debug)]
 pub enum SecBlobError {
@@ -49,18 +49,17 @@ impl<I> ParseError<I> for SecBlobError {
     }
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Kerberos5Ticket {
     pub realm: Realm,
     pub sname: PrincipalName,
 }
 
-fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError>
-{
-    let (_,b) = der_parser::parse_der(blob).map_err(nom::Err::convert)?;
-    let blob = b.as_slice().or(
-        Err(nom::Err::Error(SecBlobError::KrbFmtError))
-    )?;
+fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError> {
+    let (_, b) = der_parser::parse_der(blob).map_err(nom::Err::convert)?;
+    let blob = b
+        .as_slice()
+        .or(Err(nom::Err::Error(SecBlobError::KrbFmtError)))?;
     let (blob, _) = parse_der_oid(blob).map_err(nom::Err::convert)?;
     let (blob, _) = le_u16(blob)?;
     // Should be parse_ap_req(blob).map_err(nom::Err::convert)
@@ -74,8 +73,7 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError
     }
 }
 
-pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError>
-{
+pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     let (rem, req) = parse_kerberos5_request_do(blob)?;
     let t = Kerberos5Ticket {
         realm: req.ticket.realm,
