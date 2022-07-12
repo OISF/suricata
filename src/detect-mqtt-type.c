@@ -42,10 +42,6 @@ static int DetectMQTTTypeSetup (DetectEngineCtx *, Signature *, const char *);
 void MQTTTypeRegisterTests(void);
 void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *);
 
-static uint8_t DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 /**
  * \brief Registration function for ipopts: keyword
  */
@@ -61,18 +57,10 @@ void DetectMQTTTypeRegister (void)
     sigmatch_table[DETECT_AL_MQTT_TYPE].RegisterTests = MQTTTypeRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTTypeGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_type_id = DetectBufferTypeGetByName("mqtt.type");
-}
-
-static uint8_t DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**
