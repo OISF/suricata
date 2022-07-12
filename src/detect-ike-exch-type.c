@@ -41,10 +41,6 @@ static int DetectIkeExchTypeSetup(DetectEngineCtx *, Signature *s, const char *s
 static void DetectIkeExchTypeFree(DetectEngineCtx *, void *);
 static int g_ike_exch_type_buffer_id = 0;
 
-static uint8_t DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectIkeExchTypeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 
@@ -62,20 +58,12 @@ void DetectIkeExchTypeRegister(void)
     sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Free = DetectIkeExchTypeFree;
 
     DetectAppLayerInspectEngineRegister2("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectIkeExchTypeGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister2("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectIkeExchTypeGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     g_ike_exch_type_buffer_id = DetectBufferTypeGetByName("ike.exchtype");
-}
-
-static uint8_t DetectEngineInspectIkeExchTypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

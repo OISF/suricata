@@ -45,10 +45,6 @@ static int DetectMQTTFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 void MQTTFlagsRegisterTests(void);
 void DetectMQTTFlagsFree(DetectEngineCtx *de_ctx, void *);
 
-static uint8_t DetectEngineInspectMQTTFlagsGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 typedef struct DetectMQTTFlagsData_ {
     MQTTFlagState retain, dup;
 } DetectMQTTFlagsData;
@@ -70,18 +66,10 @@ void DetectMQTTFlagsRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.flags", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTFlagsGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "mqtt.flags", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_flags_id = DetectBufferTypeGetByName("mqtt.flags");
-}
-
-static uint8_t DetectEngineInspectMQTTFlagsGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

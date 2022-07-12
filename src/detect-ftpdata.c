@@ -49,9 +49,6 @@ static void DetectFtpdataFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectFtpdataRegisterTests (void);
 #endif
-static uint8_t DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 static int g_ftpdata_buffer_id = 0;
 
 /**
@@ -77,22 +74,14 @@ void DetectFtpdataRegister(void) {
     sigmatch_table[DETECT_FTPDATA].RegisterTests = DetectFtpdataRegisterTests;
 #endif
     DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFtpdataGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectFtpdataGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
     g_ftpdata_buffer_id = DetectBufferTypeGetByName("ftpdata_command");
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-}
-
-static uint8_t DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**
