@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -728,10 +728,14 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
+    bool depth_reached = (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED);
     uint32_t size = StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_SEQ(p), p->payload_len);
     SCLogDebug("ssn %p: check depth returned %"PRIu32, ssn, size);
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        if (!depth_reached)
+            /* Only event when the depth is first reached */
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_DEPTH_REACHED);
         /* increment stream depth counter */
         StatsIncr(tv, ra_ctx->counter_tcp_stream_depth);
     }
