@@ -49,10 +49,6 @@ static void DetectSNMPPduTypeRegisterTests(void);
 #endif
 static int g_snmp_pdu_type_buffer_id = 0;
 
-static uint8_t DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
@@ -73,20 +69,12 @@ void DetectSNMPPduTypeRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSNMPRequestGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectSNMPRequestGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp.pdu_type");
-}
-
-static uint8_t DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

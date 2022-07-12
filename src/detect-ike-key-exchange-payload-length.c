@@ -40,10 +40,6 @@ static int DetectIkeKeyExchangePayloadLengthSetup(DetectEngineCtx *, Signature *
 static void DetectIkeKeyExchangePayloadLengthFree(DetectEngineCtx *, void *);
 static int g_ike_key_exch_payload_length_buffer_id = 0;
 
-static uint8_t DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectIkeKeyExchangePayloadLengthMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *,
         void *, const Signature *, const SigMatchCtx *);
 
@@ -66,21 +62,13 @@ void DetectIkeKeyExchangePayloadLengthRegister(void)
             DetectIkeKeyExchangePayloadLengthFree;
 
     DetectAppLayerInspectEngineRegister2("ike.key_exchange_payload_length", ALPROTO_IKE,
-            SIG_FLAG_TOSERVER, 1, DetectEngineInspectIkeKeyExchangePayloadLengthGeneric, NULL);
+            SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister2("ike.key_exchange_payload_length", ALPROTO_IKE,
-            SIG_FLAG_TOCLIENT, 1, DetectEngineInspectIkeKeyExchangePayloadLengthGeneric, NULL);
+            SIG_FLAG_TOCLIENT, 1, DetectEngineInspectGenericList, NULL);
 
     g_ike_key_exch_payload_length_buffer_id =
             DetectBufferTypeGetByName("ike.key_exchange_payload_length");
-}
-
-static uint8_t DetectEngineInspectIkeKeyExchangePayloadLengthGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

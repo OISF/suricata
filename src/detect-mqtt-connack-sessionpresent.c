@@ -45,10 +45,6 @@ static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *, Signature *,
 void MQTTConnackSessionPresentRegisterTests(void);
 void DetectMQTTConnackSessionPresentFree(DetectEngineCtx *de_ctx, void *);
 
-static uint8_t DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 /**
  * \brief Registration function for mqtt.connack.session_present: keyword
  */
@@ -67,17 +63,9 @@ void DetectMQTTConnackSessionPresentRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister2("mqtt.connack.session_present", ALPROTO_MQTT,
-            SIG_FLAG_TOSERVER, 1, DetectEngineInspectMQTTConnackSessionPresentGeneric, NULL);
+            SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_connack_session_present_id = DetectBufferTypeGetByName("mqtt.connack.session_present");
-}
-
-static uint8_t DetectEngineInspectMQTTConnackSessionPresentGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

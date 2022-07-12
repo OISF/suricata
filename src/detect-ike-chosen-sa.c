@@ -56,10 +56,6 @@ static int DetectIkeChosenSaSetup(DetectEngineCtx *, Signature *s, const char *s
 static void DetectIkeChosenSaFree(DetectEngineCtx *, void *);
 static int g_ike_chosen_sa_buffer_id = 0;
 
-static uint8_t DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectIkeChosenSaMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 void IKEChosenSaRegisterTests(void);
@@ -82,17 +78,9 @@ void DetectIkeChosenSaRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister2("ike.chosen_sa_attribute", ALPROTO_IKE, SIG_FLAG_TOCLIENT,
-            1, DetectEngineInspectIkeChosenSaGeneric, NULL);
+            1, DetectEngineInspectGenericList, NULL);
 
     g_ike_chosen_sa_buffer_id = DetectBufferTypeGetByName("ike.chosen_sa_attribute");
-}
-
-static uint8_t DetectEngineInspectIkeChosenSaGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

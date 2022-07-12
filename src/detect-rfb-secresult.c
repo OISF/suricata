@@ -47,10 +47,6 @@ static void RfbSecresultRegisterTests(void);
 #endif
 void DetectRfbSecresultFree(DetectEngineCtx *, void *);
 
-static uint8_t DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 typedef struct DetectRfbSecresultData_ {
     uint32_t result; /** result code */
 } DetectRfbSecresultData;
@@ -72,17 +68,9 @@ void DetectRfbSecresultRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister2("rfb.secresult", ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectRfbSecresultGeneric, NULL);
+            DetectEngineInspectGenericList, NULL);
 
     rfb_secresult_id = DetectBufferTypeGetByName("rfb.secresult");
-}
-
-static uint8_t DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 enum {

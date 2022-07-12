@@ -75,10 +75,6 @@ static void TlsValidRegisterTests(void);
 static void DetectTlsValidityFree(DetectEngineCtx *, void *);
 static int g_tls_validity_buffer_id = 0;
 
-static uint8_t DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 /**
  * \brief Registration function for tls validity keywords.
  */
@@ -129,17 +125,9 @@ void DetectTlsValidityRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister2("tls_validity", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_CERT_READY, DetectEngineInspectTlsValidity, NULL);
+            TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 
     g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls_validity");
-}
-
-static uint8_t DetectEngineInspectTlsValidity(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

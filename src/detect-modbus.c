@@ -121,26 +121,6 @@ static int DetectModbusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
     return rs_modbus_inspect(txv, (void *)ctx);
 }
 
-/** \brief Do the content inspection & validation for a signature
- *
- *  \param de_ctx   Detection engine context
- *  \param det_ctx  Detection engine thread context
- *  \param s        Signature to inspect ( and sm: SigMatch to inspect)
- *  \param f        Flow
- *  \param flags    App layer flags
- *  \param alstate  App layer state
- *  \param txv      Pointer to Modbus Transaction structure
- *
- *  \retval 0 no match or 1 match
- */
-static uint8_t DetectEngineInspectModbus(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
-
 /**
  * \brief Registration function for Modbus keyword
  */
@@ -155,7 +135,7 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].AppLayerTxMatch = DetectModbusMatch;
 
     DetectAppLayerInspectEngineRegister2(
-            "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectModbus, NULL);
+            "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");
 }
