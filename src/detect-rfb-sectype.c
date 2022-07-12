@@ -38,10 +38,6 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *, Signature *s, const char *s
 static void DetectRfbSectypeFree(DetectEngineCtx *, void *);
 static int g_rfb_sectype_buffer_id = 0;
 
-static uint8_t DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectRfbSectypeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
@@ -58,18 +54,10 @@ void DetectRfbSectypeRegister (void)
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Setup = DetectRfbSectypeSetup;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Free = DetectRfbSectypeFree;
 
-    DetectAppLayerInspectEngineRegister2("rfb.sectype", ALPROTO_RFB, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectRfbSectypeGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "rfb.sectype", ALPROTO_RFB, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     g_rfb_sectype_buffer_id = DetectBufferTypeGetByName("rfb.sectype");
-}
-
-static uint8_t DetectEngineInspectRfbSectypeGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

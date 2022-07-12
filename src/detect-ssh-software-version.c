@@ -76,13 +76,6 @@ static void DetectSshSoftwareVersionRegisterTests(void);
 static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *);
 static int g_ssh_banner_list_id = 0;
 
-static uint8_t InspectSshBanner(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
 
 /**
  * \brief Registration function for keyword: ssh.softwareversion
@@ -106,9 +99,9 @@ void DetectSshSoftwareVersionRegister(void)
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
 
     DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOSERVER,
-            SshStateBannerDone, InspectSshBanner, NULL);
+            SshStateBannerDone, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOCLIENT,
-            SshStateBannerDone, InspectSshBanner, NULL);
+            SshStateBannerDone, DetectEngineInspectGenericList, NULL);
 }
 
 /**

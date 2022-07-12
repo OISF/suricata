@@ -175,14 +175,6 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static uint8_t DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
-
 /**
  * \brief Parse the provided function name or code to its integer
  *     value.
@@ -597,9 +589,9 @@ void DetectDNP3Register(void)
 
     /* Register the list of func, ind and obj. */
     DetectAppLayerInspectEngineRegister2(
-            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectDNP3, NULL);
+            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister2(
-            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectDNP3, NULL);
+            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
 

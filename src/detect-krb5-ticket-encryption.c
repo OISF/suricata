@@ -25,14 +25,6 @@
 
 static int g_krb5_ticket_encryption_list_id = 0;
 
-static uint8_t DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
-
 static void DetectKrb5TicketEncryptionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     rs_krb5_detect_encryption_free(ptr);
@@ -94,7 +86,7 @@ void DetectKrb5TicketEncryptionRegister(void)
 
     // Tickets are only from server to client
     DetectAppLayerInspectEngineRegister2("krb5_ticket_encryption", ALPROTO_KRB5, SIG_FLAG_TOCLIENT,
-            0, DetectEngineInspectKRB5Generic, NULL);
+            0, DetectEngineInspectGenericList, NULL);
 
     g_krb5_ticket_encryption_list_id = DetectBufferTypeRegister("krb5_ticket_encryption");
     SCLogDebug("g_krb5_ticket_encryption_list_id %d", g_krb5_ticket_encryption_list_id);

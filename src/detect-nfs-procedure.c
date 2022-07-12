@@ -55,10 +55,6 @@ static void DetectNfsProcedureRegisterTests(void);
 #endif
 static int g_nfs_request_buffer_id = 0;
 
-static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
 static int DetectNfsProcedureMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
@@ -79,20 +75,12 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectNfsRequestGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");
 
     SCLogDebug("g_nfs_request_buffer_id %d", g_nfs_request_buffer_id);
-}
-
-static uint8_t DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

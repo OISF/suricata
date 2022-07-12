@@ -107,13 +107,6 @@ static int g_http2_match_buffer_id = 0;
 static int g_http2_header_name_buffer_id = 0;
 static int g_http2_header_buffer_id = 0;
 
-static uint8_t DetectEngineInspectHTTP2(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
 
 /**
  * \brief Registration function for HTTP2 keywords
@@ -235,9 +228,9 @@ void DetectHttp2Register(void)
     g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header");
 
     DetectAppLayerInspectEngineRegister2(
-            "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectHTTP2, NULL);
+            "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister2(
-            "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectHTTP2, NULL);
+            "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
     return;
