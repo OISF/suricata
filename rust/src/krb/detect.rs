@@ -20,34 +20,27 @@
 use crate::krb::krb5::KRB5Transaction;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx:  &mut KRB5Transaction,
-                                                ptr: *mut u32)
-{
+pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx: &mut KRB5Transaction, ptr: *mut u32) {
     *ptr = tx.msg_type.0;
 }
 
 /// Get error code, if present in transaction
 /// Return 0 if error code was filled, else 1
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx:  &mut KRB5Transaction,
-                                                ptr: *mut i32) -> u32
-{
+pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &mut KRB5Transaction, ptr: *mut i32) -> u32 {
     match tx.error_code {
         Some(ref e) => {
             *ptr = e.0;
             0
-        },
-        None        => 1
+        }
+        None => 1,
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
-                                              i: u32,
-                                              buffer: *mut *const u8,
-                                              buffer_len: *mut u32)
-                                              -> u8
-{
+pub unsafe extern "C" fn rs_krb5_tx_get_cname(
+    tx: &mut KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(ref s) = tx.cname {
         if (i as usize) < s.name_string.len() {
             let value = &s.name_string[i as usize];
@@ -60,12 +53,9 @@ pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_sname(tx:  &mut KRB5Transaction,
-                                              i: u32,
-                                              buffer: *mut *const u8,
-                                              buffer_len: *mut u32)
-                                              -> u8
-{
+pub unsafe extern "C" fn rs_krb5_tx_get_sname(
+    tx: &mut KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(ref s) = tx.sname {
         if (i as usize) < s.name_string.len() {
             let value = &s.name_string[i as usize];
