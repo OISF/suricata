@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -835,6 +835,10 @@ const struct DecodeEvents_ DEvents[] = {
     {
             "stream.reassembly_overlap_different_data",
             STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
+    },
+    {
+            "stream.reassembly_depth_reached",
+            STREAM_REASSEMBLY_DEPTH_REACHED,
     },
 
     { NULL, 0 },
