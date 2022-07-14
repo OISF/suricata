@@ -68,19 +68,20 @@ PacketAlert *PacketAlertGetTag(void)
  * \param sig Signature pointer
  * \param p Packet structure
  *
- * \retval 1 alert is not suppressed
- * \retval 0 alert is suppressed
+ * \retval THRESHOLD_SILENT_MATCH alert is suppressed, but rule actions apply
+ * \retval THRESHOLD_NOT_SUPPRESSED alert is not suppressed
+ * \retval THRESHOLD_SUPPRESSED alert is suppressed
  */
-static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                             const Signature *s, Packet *p, PacketAlert *pa)
+static SigThresholdResults PacketAlertHandle(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, PacketAlert *pa)
 {
     SCEnter();
-    int ret = 1;
+    SigThresholdResults ret = THRESHOLD_NOT_SUPPRESSED;
     const DetectThresholdData *td = NULL;
     const SigMatchData *smd;
 
     if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
-        SCReturnInt(1);
+        SCReturnInt(THRESHOLD_NOT_SUPPRESSED);
     }
 
     /* handle suppressions first */
@@ -92,11 +93,11 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 
-                /* PacketAlertThreshold returns 2 if the alert is suppressed but
-                 * we do need to apply rule actions to the packet. */
+                /* PacketAlertThreshold returns THRESHOLD_SILENT_MATCH if the alert is suppressed
+                 * but we do need to apply rule actions to the packet. */
                 KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
-                if (ret == 0 || ret == 2) {
+                if (ret == THRESHOLD_SUPPRESSED || ret == THRESHOLD_SILENT_MATCH) {
                     KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
@@ -115,11 +116,11 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 
-                /* PacketAlertThreshold returns 2 if the alert is suppressed but
-                 * we do need to apply rule actions to the packet. */
+                /* PacketAlertThreshold returns THRESHOLD_SILENT_MATCH if the alert is suppressed
+                 * but we do need to apply rule actions to the packet. */
                 KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
-                if (ret == 0 || ret == 2) {
+                if (ret == THRESHOLD_SUPPRESSED || ret == THRESHOLD_SILENT_MATCH) {
                     KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD ,0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
@@ -128,7 +129,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
             }
         } while (smd != NULL);
     }
-    SCReturnInt(1);
+    SCReturnInt(THRESHOLD_NOT_SUPPRESSED);
 }
 
 /**
@@ -344,15 +345,15 @@ static inline void FlowApplySignatureActions(
  * \param pa pointer to packet alert being processed
  * \param s pointer to signature that generated alert
  *
- * \retval 1 alert should be queued
- * \retval 0 alert is discarded
+ * \retval THRESHOLD_NOT_SUPPRESSED alert should be queued
+ * \retval THRESHOLD_SUPPRESSED alert is discarded
  */
-static uint8_t PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Packet *p, PacketAlert *pa, const Signature *s)
+static SigThresholdResults PacketAlertFinalize(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, PacketAlert *pa, const Signature *s)
 {
-    uint8_t res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
+    SigThresholdResults res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
 
-    if (res > 0) {
+    if (res > THRESHOLD_DONT_ALERT) {
         /* Now, if we have an alert, we have to check if we want
          * to tag this session or src/dst host */
         if (s->sm_arrays[DETECT_SM_LIST_TMATCH] != NULL) {
@@ -377,11 +378,12 @@ static uint8_t PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCt
     }
 
     /* Thresholding removes this alert */
-    if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
+    if (res == THRESHOLD_SUPPRESSED || res == THRESHOLD_SILENT_MATCH ||
+            (s->flags & SIG_FLAG_NOALERT)) {
         /* we will not copy this to the AlertQueue */
-        return 0;
+        return THRESHOLD_SUPPRESSED;
     } else {
-        return 1;
+        return THRESHOLD_NOT_SUPPRESSED;
     }
 }
 
@@ -409,10 +411,11 @@ void PacketAlertQueueFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
 
         for (uint16_t i = 0; i < max_pos; i++) {
             const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
-            uint8_t res = PacketAlertFinalize(de_ctx, det_ctx, p, &det_ctx->alert_queue[i], s);
+            SigThresholdResults res =
+                    PacketAlertFinalize(de_ctx, det_ctx, p, &det_ctx->alert_queue[i], s);
 
             /* Thresholding removes this alert */
-            if (res == 0) {
+            if (res == THRESHOLD_SUPPRESSED) {
                 /* we will not copy this to the AlertQueue */
                 p->alerts.suppressed++;
                 SCLogDebug("Suppressing sid %" PRIu32 " alert from alerts' queue", s->id);
