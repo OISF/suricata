@@ -15,7 +15,7 @@ The format of msg is::
 
 Examples::
 
-  msg:"ATTACK-RESPONSES 403 Forbidden";
+  msg:"ET MALWARE Win32/RecordBreaker CnC Checkin";
   msg:"ET EXPLOIT SMB-DS DCERPC PnP bind attempt";
 
 To continue the example of the previous chapter, this is the keyword in action in an actual rule:
