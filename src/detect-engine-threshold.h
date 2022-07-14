@@ -30,6 +30,15 @@
 #include "ippair.h"
 #include "host-storage.h"
 
+typedef enum SigThresholdResults_ {
+    THRESHOLD_DONT_ALERT = 0,
+    THRESHOLD_ALERT = 1,
+    THRESHOLD_SILENT_MATCH = 2,
+    THRESHOLD_SUPPRESSED = 0,
+    THRESHOLD_NOT_SUPPRESSED = 1,
+    THRESHOLD_SUPPRESS_NEED_ACTIONS = 2,
+} SigThresholdResults;
+
 void ThresholdInit(void);
 
 HostStorageId ThresholdHostStorageId(void);
@@ -39,9 +48,8 @@ int ThresholdIPPairHasThreshold(IPPair *pair);
 
 const DetectThresholdData *SigGetThresholdTypeIter(
         const Signature *, const SigMatchData **, int list);
-int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
-        const DetectThresholdData *, Packet *,
-        const Signature *, PacketAlert *);
+SigThresholdResults PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
+        const DetectThresholdData *, Packet *, const Signature *, PacketAlert *);
 
 void ThresholdHashInit(DetectEngineCtx *);
 void ThresholdHashAllocate(DetectEngineCtx *);

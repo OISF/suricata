@@ -255,10 +255,22 @@ static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
     return e;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+/**
+ * \brief Check if packet should be suppressed due to thresholding
+ *
+ * \param p Packet structure
+ * \param td DetectThresholdData structure
+ * \param sid Signature id
+ * \param gid Signature group id
+ *
+ * \retval THRESHOLD_NOT_SUPPRESSED alert is not suppressed
+ * \retval THRESHOLD_SUPPRESSED alert is suppressed
+ * \retval THRESHOLD_SUPPRESSED_NEED_ACTIONS alert is suppressed but actions must be applied
+ */
+static SigThresholdResults ThresholdHandlePacketSuppress(
+        Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_SUPPRESSED;
     DetectAddress *m = NULL;
     switch (td->track) {
         case TRACK_DST:
@@ -284,9 +296,9 @@ static int ThresholdHandlePacketSuppress(Packet *p,
             break;
     }
     if (m == NULL)
-        ret = 1;
+        ret = THRESHOLD_NOT_SUPPRESSED;
     else
-        ret = 2; /* suppressed but still need actions */
+        ret = THRESHOLD_SUPPRESS_NEED_ACTIONS;
 
     return ret;
 }
@@ -317,18 +329,20 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
 }
 
 /**
-* \brief Check if the entry reached threshold count limit
-*
-* \param lookup_tsh Current threshold entry
-* \param td Threshold settings
-* \param packet_time used to compare against previous detection and to set timeouts
-*
-* \retval int 1 if threshold reached for this entry
-*
-*/
-static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, struct timeval packet_time)
+ * \brief Check if the entry reached threshold count limit
+ *
+ * \param lookup_tsh Current threshold entry
+ * \param td Threshold settings
+ * \param packet_time used to compare against previous detection and to set timeouts
+ *
+ * \retval bool true if threshold reached for this entry
+ * \retval bool false if threshold not reached
+ *
+ */
+static bool IsThresholdReached(
+        DetectThresholdEntry *lookup_tsh, const DetectThresholdData *td, struct timeval packet_time)
 {
-    int ret = 0;
+    int ret = false;
 
     /* Check if we have a timeout enabled, if so,
     * we still matching (and enabling the new_action) */
@@ -339,7 +353,7 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
         }
         else {
             /* Already matching */
-            ret = 1;
+            ret = true;
         } /* else - if ((packet_time - lookup_tsh->tv_timeout) > td->timeout) */
 
     }
@@ -352,7 +366,7 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
                 /* Then we must enable the new action by setting a
                 * timeout */
                 lookup_tsh->tv_timeout = packet_time.tv_sec;
-                ret = 1;
+                ret = true;
             }
         } else {
             lookup_tsh->tv1 = packet_time;
@@ -386,18 +400,18 @@ static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, struc
 }
 
 /**
- *  \retval 2 silent match (no alert but apply actions)
- *  \retval 1 normal match
- *  \retval 0 no match
+ *  \retval THRESHOLD_SILENT_MATCH silent match (no alert but apply actions)
+ *  \retval THRESHOLD_ALERT normal match
+ *  \retval THRESHOLD_DONT_ALERT no match
  *
  *  If a new DetectThresholdEntry is generated to track the threshold
  *  for this rule, then it will be returned in new_tsh.
  */
-static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
-        DetectThresholdEntry **new_tsh, const DetectThresholdData *td,
-        uint32_t sid, uint32_t gid, PacketAlert *pa)
+static SigThresholdResults ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
+        DetectThresholdEntry **new_tsh, const DetectThresholdData *td, uint32_t sid, uint32_t gid,
+        PacketAlert *pa)
 {
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_DONT_ALERT;
 
     switch(td->type)   {
         case TYPE_LIMIT:
@@ -410,20 +424,20 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count <= td->count) {
-                        ret = 1;
+                        ret = THRESHOLD_ALERT;
                     } else {
-                        ret = 2;
+                        ret = THRESHOLD_SILENT_MATCH;
                     }
                 } else {
                     lookup_tsh->tv1 = p->ts;
                     lookup_tsh->current_count = 1;
 
-                    ret = 1;
+                    ret = THRESHOLD_ALERT;
                 }
             } else {
                 *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
 
-                ret = 1;
+                ret = THRESHOLD_ALERT;
             }
             break;
         }
@@ -437,7 +451,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
-                        ret = 1;
+                        ret = THRESHOLD_ALERT;
                         lookup_tsh->current_count = 0;
                     }
                 } else {
@@ -446,7 +460,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                 }
             } else {
                 if (td->count == 1)  {
-                    ret = 1;
+                    ret = THRESHOLD_ALERT;
                 } else {
                     *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
                 }
@@ -464,10 +478,10 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
 
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count == td->count) {
-                        ret = 1;
+                        ret = THRESHOLD_ALERT;
                     } else if (lookup_tsh->current_count > td->count) {
                         /* silent match */
-                        ret = 2;
+                        ret = THRESHOLD_SILENT_MATCH;
                     }
                 } else {
                     /* expired, so reset */
@@ -476,7 +490,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
 
                     /* if we have a limit of 1, this is a match */
                     if (lookup_tsh->current_count == td->count) {
-                        ret = 1;
+                        ret = THRESHOLD_ALERT;
                     }
                 }
             } else {
@@ -485,7 +499,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                 /* for the first match we return 1 to
                  * indicate we should alert */
                 if (td->count == 1)  {
-                    ret = 1;
+                    ret = THRESHOLD_ALERT;
                 }
             }
             break;
@@ -501,7 +515,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     /* within timeout */
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count > td->count) {
-                        ret = 1;
+                        ret = THRESHOLD_ALERT;
                     }
                 } else {
                     /* expired, reset */
@@ -517,7 +531,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
         case TYPE_RATE:
         {
             SCLogDebug("rate_filter");
-            ret = 1;
+            ret = THRESHOLD_ALERT;
             if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
@@ -532,10 +546,10 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
     return ret;
 }
 
-static int ThresholdHandlePacketIPPair(IPPair *pair, Packet *p, const DetectThresholdData *td,
-    uint32_t sid, uint32_t gid, PacketAlert *pa)
+static SigThresholdResults ThresholdHandlePacketIPPair(IPPair *pair, Packet *p,
+        const DetectThresholdData *td, uint32_t sid, uint32_t gid, PacketAlert *pa)
 {
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_DONT_ALERT;
 
     DetectThresholdEntry *lookup_tsh = ThresholdIPPairLookupEntry(pair, sid, gid);
     SCLogDebug("ippair lookup_tsh %p sid %u gid %u", lookup_tsh, sid, gid);
@@ -550,14 +564,14 @@ static int ThresholdHandlePacketIPPair(IPPair *pair, Packet *p, const DetectThre
 }
 
 /**
- *  \retval 2 silent match (no alert but apply actions)
- *  \retval 1 normal match
- *  \retval 0 no match
+ *  \retval THRESHOLD_SILENT_MATCH silent match (no alert but apply actions)
+ *  \retval THRESHOLD_MATCH normal match
+ *  \retval THRESHOLD_NO_MATCH no match
  */
-static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdData *td,
-        uint32_t sid, uint32_t gid, PacketAlert *pa)
+static SigThresholdResults ThresholdHandlePacketHost(Host *h, Packet *p,
+        const DetectThresholdData *td, uint32_t sid, uint32_t gid, PacketAlert *pa)
 {
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_DONT_ALERT;
     DetectThresholdEntry *lookup_tsh = ThresholdHostLookupEntry(h, sid, gid);
     SCLogDebug("lookup_tsh %p sid %u gid %u", lookup_tsh, sid, gid);
 
@@ -569,10 +583,10 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
     return ret;
 }
 
-static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
+static SigThresholdResults ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
         const DetectThresholdData *td, const Signature *s, PacketAlert *pa)
 {
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_DONT_ALERT;
 
     DetectThresholdEntry* lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
     SCLogDebug("by_rule lookup_tsh %p num %u", lookup_tsh, s->num);
@@ -597,18 +611,18 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
  * \param p Packet structure
  * \param s Signature structure
  *
- * \retval 2 silent match (no alert but apply actions)
- * \retval 1 alert on this event
- * \retval 0 do not alert on this event
+ *  \retval THRESHOLD_SILENT_MATCH silent match (no alert but apply actions)
+ *  \retval THRESHOLD_MATCH normal match
+ *  \retval THRESHOLD_NO_MATCH no match
  */
-int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+SigThresholdResults PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectThresholdData *td, Packet *p, const Signature *s, PacketAlert *pa)
 {
     SCEnter();
 
-    int ret = 0;
+    SigThresholdResults ret = THRESHOLD_SUPPRESSED;
     if (td == NULL) {
-        SCReturnInt(0);
+        SCReturnInt(THRESHOLD_DONT_ALERT);
     }
 
     if (td->type == TYPE_SUPPRESS) {
