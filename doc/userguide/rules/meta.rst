@@ -3,7 +3,7 @@ Meta Keywords
 
 .. role:: example-rule-emphasis
 
-Meta-settings have no effect on Suricata's inspection; they do have an effect on the way Suricata reports events.
+Meta-settings have no effect on Suricata's inspection of network traffic; they do have an effect on the way Suricata reports events/alerts.
 
 msg (message)
 -------------
