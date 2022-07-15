@@ -6452,8 +6452,8 @@ int StreamTcpSegmentForSession(
     TcpStream *server_stream = &(ssn->server);
     TcpStream *client_stream = &(ssn->client);
 
-    TcpSegment *server_node = RB_ROOT(&(server_stream->seg_tree));
-    TcpSegment *client_node = RB_ROOT(&(client_stream->seg_tree));
+    TcpSegment *server_node = RB_MIN(TCPSEG, &server_stream->seg_tree);
+    TcpSegment *client_node = RB_MIN(TCPSEG, &client_stream->seg_tree);
     if (server_node == NULL && client_node == NULL) {
         return cnt;
     }
