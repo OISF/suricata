@@ -26,9 +26,9 @@ To continue the example of the previous chapter, this is the keyword in action i
 
 .. tip::
 
-   It is convention to make the first part of the signature uppercase and show the class of the signature.
+   It is a standard practice in rule writing to make the first part of the signature uppercase and to indicate the class of the signature.
 
-   It is also convention that ``msg`` is made the first keyword in the signature.
+   It is also a standard practice that ``msg`` is the first keyword in the signature.
 
 .. note:: The following characters must be escaped inside the msg:
 	      ``;`` ``\`` ``"``
