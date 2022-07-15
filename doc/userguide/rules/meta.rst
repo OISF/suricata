@@ -50,6 +50,8 @@ Example of sid in a signature:
 
    It is convention that the signature ``sid`` is provided as the last keyword (or second-to-last if there is a ``rev``) of the signature.
 
+   There are reserved ranges of sids recorded here, https://sidallocation.org/
+
 rev (revision)
 --------------
 The sid keyword is almost every time accompanied by rev. Rev
