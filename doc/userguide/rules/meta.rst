@@ -156,7 +156,7 @@ expressed in the signature. The format of priority is::
 
 metadata
 --------
-The metadata keyword allows additional, non-functional information to
+The metadata keyword allows additional, information to
 be added to the signature. While the format is free-form, it is
 recommended to stick to key, value pairs as Suricata can include these
 in eve alerts. The format is::
