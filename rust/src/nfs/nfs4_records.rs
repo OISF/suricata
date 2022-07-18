@@ -20,6 +20,10 @@ use nom::number::streaming::{be_u32, be_u64};
 
 use crate::nfs::types::*;
 
+// Maximum number of operations per compound
+// Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
+const NFSD_MAX_OPS_PER_COMPOUND: u32 = 64;
+
 #[derive(Debug,PartialEq)]
 pub enum Nfs4RequestContent<'a> {
     PutFH(Nfs4Handle<'a>),
@@ -506,7 +510,7 @@ named!(pub parse_nfs4_request_compound<Nfs4RequestCompoundRecord>,
             tag_len: be_u32
         >>  _tag: cond!(tag_len > 0, take!(tag_len))
         >>  _min_ver: be_u32
-        >>  ops_cnt: be_u32
+        >>  ops_cnt: verify!(be_u32, |&v| v <= NFSD_MAX_OPS_PER_COMPOUND)
         >>  commands: count!(parse_request_compound_command, ops_cnt as usize)
         >> (Nfs4RequestCompoundRecord {
                 commands
@@ -905,7 +909,7 @@ named!(pub parse_nfs4_response_compound<Nfs4ResponseCompoundRecord>,
             status: be_u32
         >>  tag_len: be_u32
         >>  _tag: cond!(tag_len > 0, take!(tag_len))
-        >>  ops_cnt: be_u32
+        >>  ops_cnt: verify!(be_u32, |&v| v <= NFSD_MAX_OPS_PER_COMPOUND)
         >>  commands: count!(nfs4_res_compound_command, ops_cnt as usize)
         >> (Nfs4ResponseCompoundRecord {
                 status: status,
