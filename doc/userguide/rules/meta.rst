@@ -3,11 +3,11 @@ Meta Keywords
 
 .. role:: example-rule-emphasis
 
-Meta-settings have no effect on Suricata's inspection of network traffic; they do have an effect on the way Suricata reports events/alerts.
+Meta keywords have no effect on Suricata's inspection of network traffic; they do have an effect on the way Suricata reports events/alerts.
 
 msg (message)
 -------------
-The keyword msg gives textual information about the signature and the possible alert.
+The keyword msg gives contextual information about the signature.
 
 The format of msg is::
 
@@ -18,7 +18,7 @@ Examples::
   msg:"ET MALWARE Win32/RecordBreaker CnC Checkin";
   msg:"ET EXPLOIT SMB-DS DCERPC PnP bind attempt";
 
-To continue the example of the previous chapter, this is the keyword in action in an actual rule:
+To continue the example from the previous chapter, the msg component of the signature is emphasized below:
 
 .. container:: example-rule
 
@@ -26,7 +26,7 @@ To continue the example of the previous chapter, this is the keyword in action i
 
 .. tip::
 
-   It is a standard practice in rule writing to make the first part of the signature uppercase and to indicate the class of the signature.
+   It is a standard practice in rule writing to make the first part of the signature msg uppercase and to indicate the class of the signature.
 
    It is also a standard practice that ``msg`` is the first keyword in the signature.
 
@@ -35,8 +35,7 @@ To continue the example of the previous chapter, this is the keyword in action i
 
 sid (signature ID)
 ------------------
-
-The keyword sid gives every signature its own id. This id is stated with a number. The format of sid is::
+The keyword sid gives every signature a unique id. This id is expressed as a number. The format of sid is::
 
   sid:123;
 
@@ -48,15 +47,15 @@ Example of sid in a signature:
 
 .. tip::
 
-   It is convention that the signature ``sid`` is provided as the last keyword (or second-to-last if there is a ``rev``) of the signature.
+   It is a standard practice in rule writing that the signature ``sid`` is provided as the last keyword (or second-to-last if there is a ``rev``) of the signature.
 
-   There are reserved ranges of sids recorded here, https://sidallocation.org/
+   There are reserved ranges of sids, the reservations are recorded at https://sidallocation.org/
 
 rev (revision)
 --------------
-The sid keyword is almost every time accompanied by rev. Rev
+The sid keyword is commonly accompanied by the rev keyword. Rev
 represents the version of the signature. If a signature is modified,
-the number of rev will be incremented by the signature writers.  The
+the number of rev will be incremented by the signature writers. The
 format of rev is::
 
   rev:123;
@@ -126,7 +125,6 @@ Our continuing example has also a classtype, this one of trojan-activity:
 
 reference
 ---------
-
 The reference keywords direct to places where information about the
 signature and about the problem the signature tries to address, can be
 found. The reference keyword can appear multiple times in a signature.
@@ -162,7 +160,6 @@ format of priority is::
 
 metadata
 --------
-
 The metadata keyword allows additional, non-functional information to
 be added to the signature. While the format is free-form, it is
 recommended to stick to key, value pairs as Suricata can include these
