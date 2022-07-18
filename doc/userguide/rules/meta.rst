@@ -69,18 +69,15 @@ Example of rev in a signature:
 
 .. tip::
 
-    It is a convention that sid comes before rev, and both are the last
-    of all keywords.
+    It is a standard practice in rule writing that the sid keyword is expressed before the rev keyword. The sid and rev keywords are commonly put as the last two keywords in a signature.
 
 gid (group ID)
 --------------
 The gid keyword can be used to give different groups of signatures
 another id value (like in sid). Suricata uses by default gid 1. It is
-possible to modify this. It is not usual that it will be changed, and
-changing it has no technical implications. You can only notice it in
-the alert.
+possible to modify this. In most cases it will be unnecessary to change the default gid value. Changing the gid value usually has no technical implications, the value is only noticed in the alert.
 
-Example of gid in an alert of fast.log. In the part [1:2008124:2], 1 is the gid (2008124 is the sid and 2 the rev).
+Example of gid in an alert entry in the fast.log file. In the part [1:123], 1 is the gid (123 is the sid and 1 is the rev).
 
 .. container:: example-rule
 
@@ -152,8 +149,8 @@ priority
 The priority keyword comes with a mandatory numeric value which can
 range from 1 till 255. The numbers 1 to 4 are most often used.
 Signatures with a higher priority will be examined first. The highest
-priority is 1.  Normally signatures have already a priority through
-classtype. This can be overruled with the keyword priority.  The
+priority is 1. Normally signatures have already a priority through
+classtype. This can be overruled with the keyword priority. The
 format of priority is::
 
   priority:1;
