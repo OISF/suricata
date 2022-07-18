@@ -89,17 +89,16 @@ classtype
 The classtype keyword gives information about the classification of
 rules and alerts. It consists of a short name, a long name and a
 priority. It can tell for example whether a rule is just informational
-or is about a hack etcetera. For each classtype, the
-classification.config has a priority which will be used in the rule.
+or is about a CVE. For each classtype, the classification.config has a priority which will be used in the rule.
 
 Example classtype definition::
 
   config classification: web-application-attack,Web Application Attack,1
   config classification: not-suspicious,Not Suspicious Traffic,3
 
-Now when we have defined this in the configuration, we can use the classtypes
+Now when we have defined the classification in the configuration file, we can use the classtypes
 in our rules. A rule with classtype web-application-attack will be assigned
-a priority of 1 and the alert will contain 'Web Application Attack':
+a priority of 1 and the alert will contain 'Web Application Attack' in the Suricata logs:
 
 =======================  ======================  ===========
 classtype                Alert                   Priority
@@ -108,7 +107,7 @@ web-application-attack   Web Application Attack  1
 not-suspicious           Not Suspicious Traffic  3
 =======================  ======================  ===========
 
-Our continuing example has also a classtype, this one of trojan-activity:
+Our continuing example has also a classtype, this one of bad-unknown:
 
 .. container:: example-rule
 
@@ -117,8 +116,7 @@ Our continuing example has also a classtype, this one of trojan-activity:
 
 .. tip::
 
-    It is a convention that classtype comes before sid and rev and after
-    the rest of the keywords.
+    It is a standard practice in rule writing that the classtype keyword comes before the sid and rev keywords (as shown in the example rule).
 
 reference
 ---------
