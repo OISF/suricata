@@ -120,27 +120,28 @@ Our continuing example has also a classtype, this one of bad-unknown:
 
 reference
 ---------
-The reference keywords direct to places where information about the
+The reference keyword is used to document where information about the
 signature and about the problem the signature tries to address, can be
 found. The reference keyword can appear multiple times in a signature.
 This keyword is meant for signature-writers and analysts who
 investigate why a signature has matched. It has the following format::
 
-  reference: type, reference
+  reference:type,reference
 
 A typical reference to www.info.com would be::
 
-  reference: url, www.info.com
+  reference:url,www.info.com
 
-However, there are also several systems that can be used as a reference. A
-commonly known example is the CVE-database, that assigns numbers to
-vulnerabilities. To prevent you from typing the same URL over and over
-again, you can use something like this::
+There are several systems that can be used as a reference. A
+commonly known example is the CVE-database, which assigns numbers to
+vulnerabilities. To prevent having to type the same URL over and over
+again. An example reference of a CVE::
 
-  reference: cve, CVE-2014-1234
+  reference:cve,CVE-2014-1234
 
 This would make a reference to http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-1234.
-All reference types are defined in the reference.config configuration file.
+
+All the reference types are defined in the reference.config configuration file.
 
 priority
 --------
