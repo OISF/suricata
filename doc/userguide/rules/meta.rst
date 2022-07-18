@@ -3,7 +3,8 @@ Meta Keywords
 
 .. role:: example-rule-emphasis
 
-Meta keywords have no effect on Suricata's inspection of network traffic; they do have an effect on the way Suricata reports events/alerts.
+Meta keywords have no effect on Suricata's inspection of network traffic;
+they do have an effect on the way Suricata reports events/alerts.
 
 msg (message)
 -------------
@@ -18,7 +19,8 @@ Examples::
   msg:"ET MALWARE Win32/RecordBreaker CnC Checkin";
   msg:"ET EXPLOIT SMB-DS DCERPC PnP bind attempt";
 
-To continue the example from the previous chapter, the msg component of the signature is emphasized below:
+To continue the example from the previous chapter, the msg component of the
+signature is emphasized below:
 
 .. container:: example-rule
 
@@ -26,16 +28,18 @@ To continue the example from the previous chapter, the msg component of the sign
 
 .. tip::
 
-   It is a standard practice in rule writing to make the first part of the signature msg uppercase and to indicate the class of the signature.
+   It is a standard practice in rule writing to make the first part of the
+   signature msg uppercase and to indicate the class of the signature.
 
-   It is also a standard practice that ``msg`` is the first keyword in the signature.
+   It is also standard practice that ``msg`` is the first keyword in the signature.
 
 .. note:: The following characters must be escaped inside the msg:
 	      ``;`` ``\`` ``"``
 
 sid (signature ID)
 ------------------
-The keyword sid gives every signature a unique id. This id is expressed as a number. The format of sid is::
+The keyword sid gives every signature a unique id.
+The sid is expressed as a number. The format of sid is::
 
   sid:123;
 
@@ -47,9 +51,12 @@ Example of sid in a signature:
 
 .. tip::
 
-   It is a standard practice in rule writing that the signature ``sid`` is provided as the last keyword (or second-to-last if there is a ``rev``) of the signature.
+   It is a standard practice in rule writing that the signature ``sid`` is
+   provided as the last keyword (or second-to-last if there is a ``rev``)
+   of the signature.
 
-   There are reserved ranges of sids, the reservations are recorded at https://sidallocation.org/
+   There are reserved ranges of sids, the reservations are recorded
+   at https://sidallocation.org/ .
 
 rev (revision)
 --------------
@@ -69,15 +76,20 @@ Example of rev in a signature:
 
 .. tip::
 
-    It is a standard practice in rule writing that the sid keyword is expressed before the rev keyword. The sid and rev keywords are commonly put as the last two keywords in a signature.
+    It is a standard practice in rule writing that the rev keyword
+    is expressed after the sid keyword. The sid and rev keywords
+    are commonly put as the last two keywords in a signature.
 
 gid (group ID)
 --------------
-The gid keyword can be used to give different groups of signatures
-another id value (like in sid). Suricata uses by default gid 1. It is
-possible to modify this. In most cases it will be unnecessary to change the default gid value. Changing the gid value usually has no technical implications, the value is only noticed in the alert.
+The gid keyword can be used to give different groups of
+signatures another id value (like in sid). Suricata by default uses gid 1.
+It is possible to modify the default value. In most cases, it will be
+unnecessary to change the default gid value. Changing the gid value
+has no technical implications, the value is only noted in alert data.
 
-Example of gid in an alert entry in the fast.log file. In the part [1:123], 1 is the gid (123 is the sid and 1 is the rev).
+Example of the gid value in an alert entry in the fast.log file.
+In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
 
 .. container:: example-rule
 
@@ -89,16 +101,18 @@ classtype
 The classtype keyword gives information about the classification of
 rules and alerts. It consists of a short name, a long name and a
 priority. It can tell for example whether a rule is just informational
-or is about a CVE. For each classtype, the classification.config has a priority which will be used in the rule.
+or is about a CVE. For each classtype, the classification.config has a
+priority that will be used in the rule.
 
 Example classtype definition::
 
   config classification: web-application-attack,Web Application Attack,1
   config classification: not-suspicious,Not Suspicious Traffic,3
 
-Now when we have defined the classification in the configuration file, we can use the classtypes
-in our rules. A rule with classtype web-application-attack will be assigned
-a priority of 1 and the alert will contain 'Web Application Attack' in the Suricata logs:
+Once we have defined the classification in the configuration file,
+we can use the classtypes in our rules. A rule with classtype web-application-attack
+will be assigned a priority of 1 and the alert will contain 'Web Application Attack'
+in the Suricata logs:
 
 =======================  ======================  ===========
 classtype                Alert                   Priority
@@ -116,7 +130,8 @@ Our continuing example also has a classtype: bad-unknown:
 
 .. tip::
 
-    It is a standard practice in rule writing that the classtype keyword comes before the sid and rev keywords (as shown in the example rule).
+    It is a standard practice in rule writing that the classtype keyword comes
+    before the sid and rev keywords (as shown in the example rule).
 
 reference
 ---------
@@ -149,8 +164,9 @@ The priority keyword comes with a mandatory numeric value which can
 range from 1 to 255. The numbers 1 through 4 are most often used.
 Signatures with a higher priority will be examined first. The highest
 priority is 1. Normally signatures have already a priority through
-a classtype definiteion. The classtype definition can be overridden with the priority keyword
-expressed in the signature. The format of priority is::
+a classtype definiteion. The classtype definition can be overridden
+with the priority keyword expressed in the signature.
+The format of priority is::
 
   priority:1;
 
