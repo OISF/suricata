@@ -146,11 +146,11 @@ All the reference types are defined in the reference.config configuration file.
 priority
 --------
 The priority keyword comes with a mandatory numeric value which can
-range from 1 till 255. The numbers 1 to 4 are most often used.
+range from 1 to 255. The numbers 1 through 4 are most often used.
 Signatures with a higher priority will be examined first. The highest
 priority is 1. Normally signatures have already a priority through
-classtype. This can be overruled with the keyword priority. The
-format of priority is::
+a classtype definiteion. The classtype definition can be overridden with the priority keyword
+expressed in the signature. The format of priority is::
 
   priority:1;
 
