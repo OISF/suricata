@@ -36,7 +36,8 @@ To continue the example of the previous chapter, this is the keyword in action i
 sid (signature ID)
 ------------------
 
-The keyword sid gives every signature its own id. This id is stated with a number. The format of sid is::
+The keyword sid gives every signature its own id. This id is stated with a number
+greater than zero. The format of sid is::
 
   sid:123;
 
@@ -49,6 +50,15 @@ Example of sid in a signature:
 .. tip::
 
    It is convention that the signature ``sid`` is provided as the last keyword (or second-to-last if there is a ``rev``) of the signature.
+
+.. Note::
+
+   This value must be unique for all rules within the same :ref:`rule group
+   <gid>` (``gid``).
+
+   As Suricata-update currently considers the rule's ``sid`` only (cf. `Bug#5447
+   <https://redmine.openinfosecfoundation.org/issues/5447>`_), it is adviseable
+   to opt for a completely unique ``sid`` altogether.
 
 rev (revision)
 --------------
@@ -70,6 +80,8 @@ Example of rev in a signature:
 
     It is a convention that sid comes before rev, and both are the last
     of all keywords.
+
+.. _gid:
 
 gid (group ID)
 --------------
