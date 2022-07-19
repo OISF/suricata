@@ -38,8 +38,9 @@ signature is emphasized below:
 
 sid (signature ID)
 ------------------
-The keyword sid gives every signature a unique id.
-The sid is expressed as a number. The format of sid is::
+
+The keyword sid gives every signature its own id. This id is stated with a number
+greater than zero. The format of sid is::
 
   sid:123;
 
@@ -57,6 +58,15 @@ Example of sid in a signature:
 
    There are reserved ranges of sids, the reservations are recorded
    at https://sidallocation.org/ .
+
+.. Note::
+
+   This value must be unique for all rules within the same :ref:`rule group
+   <gid>` (``gid``).
+
+   As Suricata-update currently considers the rule's ``sid`` only (cf. `Bug#5447
+   <https://redmine.openinfosecfoundation.org/issues/5447>`_), it is adviseable
+   to opt for a completely unique ``sid`` altogether.
 
 rev (revision)
 --------------
@@ -79,6 +89,8 @@ Example of rev in a signature:
     It is a standard practice in rule writing that the rev keyword
     is expressed after the sid keyword. The sid and rev keywords
     are commonly put as the last two keywords in a signature.
+
+.. _gid:
 
 gid (group ID)
 --------------
