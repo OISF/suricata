@@ -83,6 +83,7 @@ typedef struct FlowWorkerThreadData_ {
         uint16_t flows_aside_needs_work;
         uint16_t flows_aside_pkt_inject;
     } cnt;
+    FlowEndCounters fec;
 
 } FlowWorkerThreadData;
 
@@ -195,6 +196,12 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
         if (fw->output_thread_flow != NULL)
             (void)OutputFlowLog(tv, fw->output_thread_flow, f);
 
+        FlowEndCountersUpdate(tv, &fw->fec, f);
+        if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+            StatsDecr(tv, fw->dtv->counter_tcp_active_sessions);
+        }
+        StatsDecr(tv, fw->dtv->counter_flow_active);
+
         FlowClearMemory (f, f->protomap);
         FLOWLOCK_UNLOCK(f);
         if (fw->fls.spare_queue.len >= 200) { // TODO match to API? 200 = 2 * block size
@@ -294,6 +301,7 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
 
     DecodeRegisterPerfCounters(fw->dtv, tv);
     AppLayerRegisterThreadCounters(tv);
+    FlowEndCountersRegister(tv, &fw->fec);
 
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueueNoLock));

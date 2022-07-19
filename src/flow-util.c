@@ -240,3 +240,68 @@ void RegisterFlowBypassInfo(void)
     g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *),
                                               NULL, FlowBypassFree);
 }
+
+void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
+{
+    for (int i = 0; i < FLOW_STATE_SIZE; i++) {
+        const char *name = NULL;
+        if (i == FLOW_STATE_NEW) {
+            name = "flow.end.state.new";
+        } else if (i == FLOW_STATE_ESTABLISHED) {
+            name = "flow.end.state.established";
+        } else if (i == FLOW_STATE_CLOSED) {
+            name = "flow.end.state.closed";
+        } else if (i == FLOW_STATE_LOCAL_BYPASSED) {
+            name = "flow.end.state.local_bypassed";
+#ifdef CAPTURE_OFFLOAD
+        } else if (i == FLOW_STATE_CAPTURE_BYPASSED) {
+            name = "flow.end.state.capture_bypassed";
+#endif
+        }
+        if (name) {
+            fec->flow_state[i] = StatsRegisterCounter(name, t);
+        }
+    }
+
+    for (enum TcpState i = TCP_NONE; i <= TCP_CLOSED; i++) {
+        const char *name;
+        switch (i) {
+            case TCP_NONE:
+                name = "flow.end.tcp_state.none";
+                break;
+            case TCP_SYN_SENT:
+                name = "flow.end.tcp_state.syn_sent";
+                break;
+            case TCP_SYN_RECV:
+                name = "flow.end.tcp_state.syn_recv";
+                break;
+            case TCP_ESTABLISHED:
+                name = "flow.end.tcp_state.established";
+                break;
+            case TCP_FIN_WAIT1:
+                name = "flow.end.tcp_state.fin_wait1";
+                break;
+            case TCP_FIN_WAIT2:
+                name = "flow.end.tcp_state.fin_wait2";
+                break;
+            case TCP_TIME_WAIT:
+                name = "flow.end.tcp_state.time_wait";
+                break;
+            case TCP_LAST_ACK:
+                name = "flow.end.tcp_state.last_ack";
+                break;
+            case TCP_CLOSE_WAIT:
+                name = "flow.end.tcp_state.close_wait";
+                break;
+            case TCP_CLOSING:
+                name = "flow.end.tcp_state.closing";
+                break;
+            case TCP_CLOSED:
+                name = "flow.end.tcp_state.closed";
+                break;
+        }
+
+        fec->flow_tcp_state[i] = StatsRegisterCounter(name, t);
+    }
+    fec->flow_tcp_liberal = StatsRegisterCounter("flow.end.tcp_liberal", t);
+}

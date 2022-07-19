@@ -748,6 +748,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (seg == NULL) {
         SCLogDebug("segment_pool is empty");
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
+        ssn->lossy_be_liberal = true;
         SCReturnInt(-1);
     }
 
@@ -767,7 +768,12 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
                 APPLAYER_PROTO_DETECTION_SKIPPED);
     }
 
-    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, seg, p, TCP_GET_SEQ(p), p->payload, p->payload_len) != 0) {
+    int r = StreamTcpReassembleInsertSegment(
+            tv, ra_ctx, stream, seg, p, TCP_GET_SEQ(p), p->payload, p->payload_len);
+    if (r < 0) {
+        if (r == -ENOMEM) {
+            ssn->lossy_be_liberal = true;
+        }
         SCLogDebug("StreamTcpReassembleInsertSegment failed");
         SCReturnInt(-1);
     }
@@ -1009,7 +1015,7 @@ static inline bool GapAhead(TcpStream *stream, StreamingBufferBlock *cur_blk)
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
-            GetAbsLastAck(stream) >= (cur_blk->offset + cur_blk->len)) {
+            GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len)) {
         return true;
     }
     return false;
@@ -1204,6 +1210,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
+            ssn->lossy_be_liberal = true;
 
             /* AppLayerHandleTCPData has likely updated progress. */
             const bool no_progress_update = (app_progress == STREAM_APP_PROGRESS(*stream));

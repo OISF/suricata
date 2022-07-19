@@ -125,9 +125,9 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
 static void CloseFile(const Packet *p, Flow *f, File *file)
 {
-    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, file->txid);
     if (txv) {
-        AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
         if (txd)
             txd->files_stored++;
     }
@@ -227,6 +227,10 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     /* no flow, no files */
     Flow * const f = p->flow;
     if (f == NULL || f->alstate == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+    /* do not log for ICMP packets related to a TCP/UDP flow */
+    if (p->proto != IPPROTO_TCP && p->proto != IPPROTO_UDP) {
         SCReturnInt(TM_ECODE_OK);
     }
 

@@ -6,12 +6,16 @@ people are using existing rulesets.
 
 The official way to install rulesets is described in :doc:`../rule-management/suricata-update`.
 
+There are a number of free rulesets that can be used via suricata-update.
+To aid in learning about writing rules, the Emerging Threats Open ruleset
+is free and a good reference that has a wide range of signature examples.
+
 This Suricata Rules document explains all about signatures; how to
 read, adjust and create them.
 
 A rule/signature consists of the following:
 
-* The **action**, that determines what happens when the signature matches
+* The **action**, determining what happens when the rule matches.
 * The **header**, defining the protocol, IP addresses, ports and direction of
   the rule.
 * The **rule options**, defining the specifics of the rule.
@@ -26,31 +30,28 @@ An example of a rule is as follows:
 
 .. container:: example-rule
 
-    :example-rule-action:`drop` :example-rule-header:`tcp $HOME_NET any -> $EXTERNAL_NET any` :example-rule-options:`(msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)`
+    :example-rule-action:`alert` :example-rule-header:`http $HOME_NET any -> $EXTERNAL_NET any`  :example-rule-options:`(msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)`
 
 In this example, :example-rule-action:`red` is the action,
 :example-rule-header:`green` is the header and :example-rule-options:`blue`
 are the options.
 
 We will be using the above signature as an example throughout
-this section, highlighting the different parts of the signature. It is a
-signature taken from the database of Emerging Threats, an open database
-featuring lots of rules that you can freely download and use in your
-Suricata instance.
+this section, highlighting the different parts of the signature.
 
 Action
 ------
 .. container:: example-rule
 
-    :example-rule-emphasis:`drop` tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    :example-rule-emphasis:`alert` http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
 Valid actions are:
 
-* alert - generate an alert
-* pass - stop further inspection of the packet
-* drop - drop packet and generate alert
+* alert - generate an alert.
+* pass - stop further inspection of the packet.
+* drop - drop packet and generate alert.
 * reject - send RST/ICMP unreach error to the sender of the matching packet.
-* rejectsrc - same as just `reject`
+* rejectsrc - same as just `reject`.
 * rejectdst - send RST/ICMP error packet to receiver of the matching packet.
 * rejectboth - send RST/ICMP error packets to both sides of the conversation.
 
@@ -63,7 +64,7 @@ Protocol
 --------
 .. container:: example-rule
 
-    drop :example-rule-emphasis:`tcp` $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert :example-rule-emphasis:`http` $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
 This keyword in a signature tells Suricata which protocol it
 concerns. You can choose between four basic protocols:
@@ -72,6 +73,11 @@ concerns. You can choose between four basic protocols:
 * udp
 * icmp
 * ip (ip stands for 'all' or 'any')
+
+There are a couple of additional TCP related protocol options:
+
+* tcp-pkt (for matching content in individual tcp packets)
+* tcp-stream (for matching content only in a reassembled tcp stream)
 
 There are also a few so-called application layer protocols, or layer 7 protocols
 you can pick from. These are:
@@ -100,21 +106,21 @@ you can pick from. These are:
 * sip
 * http2
 
-The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
+The availability of these protocols depends on whether the protocol
+is enabled in the configuration file, suricata.yaml.
 
-If you have a signature with for
-instance a http protocol, Suricata makes sure the signature can only
-match if it concerns http-traffic.
+If you have a signature with the protocol declared as 'http', Suricata makes
+sure the signature will only match if the TCP stream contains http traffic.
 
 Source and destination
 ----------------------
 .. container:: example-rule
 
-    drop tcp :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
+*The first emphasized part is the traffic source, the second is the traffic destination (note the direction of the directional arrow).*
 
-With source and destination, you specify the source of the traffic and the
+With the source and destination, you specify the source of the traffic and the
 destination of the traffic, respectively. You can assign IP addresses,
 (both IPv4 and IPv6 are supported) and IP ranges. These can be combined with
 operators:
@@ -128,16 +134,17 @@ Operator        Description
 ==============  =========================
 
 Normally, you would also make use of variables, such as ``$HOME_NET`` and
-``$EXTERNAL_NET``. The configuration file specifies the IP addresses these
-concern, and these settings will be used in place of the variables in you rules.
+``$EXTERNAL_NET``. The suricata.yaml configuration file specifies the IP addresses these
+concern. The respective ``$HOME_NET`` and ``$EXTERNAL_NET`` settings will be used in place of the variables in your rules.
+
 See :ref:`suricata-yaml-rule-vars` for more information.
 
-For example:
+Rule usage examples:
 
 ==================================  ==========================================
 Example                             Meaning
 ==================================  ==========================================
-! 1.1.1.1                           Every IP address but 1.1.1.1
+!1.1.1.1                            Every IP address but 1.1.1.1
 ![1.1.1.1, 1.1.1.2]                 Every IP address but 1.1.1.1 and 1.1.1.2
 $HOME_NET                           Your setting of HOME_NET in yaml
 [$EXTERNAL_NET, !$HOME_NET]         EXTERNAL_NET and not HOME_NET
@@ -151,20 +158,20 @@ $HOME_NET                           Your setting of HOME_NET in yaml
    If you set your configuration to something like this::
 
        HOME_NET: any
-       EXTERNAL_NET: ! $HOME_NET
+       EXTERNAL_NET: !$HOME_NET
 
-   You can not write a signature using ``$EXTERNAL_NET`` because it stands for
-   'not any'. This is an invalid setting.
+   You cannot write a signature using ``$EXTERNAL_NET`` because it evaluates to
+   'not any', which is an invalid value.
 
 Ports (source and destination)
 ------------------------------
 .. container:: example-rule
 
-    drop tcp $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
+*The first emphasized part is the source port, the second is the destination port (note the direction of the directional arrow).*
 
-Traffic comes in and goes out through ports. Different ports have
+Traffic comes in and goes out through ports. Different protocols have
 different port numbers. For example, the default port for HTTP is 80 while 443 is
 typically the port for HTTPS. Note, however, that the port does not
 dictate which protocol is used in the communication. Rather, it determines which
@@ -176,8 +183,7 @@ port by the operating system. When writing a rule for your own HTTP service,
 you would typically write ``any -> 80``, since that would mean any packet from
 any source port to your HTTP application (running on port 80) is matched.
 
-In setting ports you can make use of special operators as well, like
-described above. Signs like:
+In setting ports you can make use of special operators as well. Operators such as:
 
 ==============  ==================
 Operator        Description
@@ -187,7 +193,7 @@ Operator        Description
 [.., ..]        grouping
 ==============  ==================
 
-For example:
+Rule usage examples:
 
 ==============  ==========================================
 Example                             Meaning
@@ -206,24 +212,20 @@ Direction
 ---------
 .. container:: example-rule
 
-    drop tcp $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+    alert http $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-The direction tells in which way the signature has to match. Nearly
-every signature has an arrow to the right (``->``). This means that only
+The directional arrow indicates which way the signature will be evaluated.
+In most signatures an arrow to the right (``->``) is used. This means that only
 packets with the same direction can match. However, it is also possible to
-have a rule match both ways (``<>``)::
+have a rule match both directions (``<>``)::
 
   source -> destination
   source <> destination  (both directions)
 
-.. warning::
-
-   There is no 'reverse' style direction, i.e. there is no ``<-``.
-
-The following example illustrates this. Say, there is a client with IP address
-1.2.3.4 and port 1024, and a server with IP address 5.6.7.8, listening on port
-80 (typically HTTP). The client sends a message to the server, and the server
-replies with its answer.
+The following example illustrates direction. In this example there is a client
+with IP address 1.2.3.4 using port 1024. A server with IP address 5.6.7.8,
+listening on port 80 (typically HTTP). The client sends a message to the server
+and the server replies with its answer.
 
 .. image:: intro/TCP-session.png
 
@@ -231,15 +233,19 @@ Now, let's say we have a rule with the following header::
 
     alert tcp 1.2.3.4 1024 -> 5.6.7.8 80
 
-Only the first packet will be matched by this rule, as the direction specifies
-that we do not match on the response packet.
+Only the traffic from the client to the server will be matched by this rule,
+as the direction specifies that we do not want to evaluate the response packet.
+
+.. warning::
+
+   There is no 'reverse' style direction, i.e. there is no ``<-``.
 
 Rule options
 ------------
 The rest of the rule consists of options. These are enclosed by parenthesis
 and separated by semicolons. Some options have settings (such as ``msg``),
 which are specified by the keyword of the option, followed by a colon,
-followed by the settings. Others have no settings, and are simply the
+followed by the settings. Others have no settings; they are simply the
 keyword (such as ``nocase``)::
 
   <keyword>: <settings>;
@@ -259,7 +265,8 @@ meaning of the rule.
     As a consequence, you must also escape the backslash, as it functions
     as an escape character.
 
-The rest of this chapter in the documentation documents the use of the various keywords.
+The rest of this chapter in the documentation documents the use of the various
+keywords.
 
 Some generic details about keywords follow.
 
@@ -276,11 +283,13 @@ Some keywords function act as modifiers. There are two types of modifiers.
 
   In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
 
-* The more recent type is called the **'sticky buffer'**. It places the buffer name first and all keywords following it apply to that buffer, for instance::
+* The more recent type is called the **'sticky buffer'**. It places the buffer
+  name first and all keywords following it apply to that buffer, for instance::
 
       alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
-  In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+  In the above example the pattern '403 Forbidden' is inspected against the HTTP
+  response line because it follows the ``http_response_line`` keyword.
 
 .. _rules-normalized-buffers:
 

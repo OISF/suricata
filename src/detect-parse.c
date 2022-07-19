@@ -1495,6 +1495,15 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
+    /* since AppProtoEquals is quite permissive wrt dcerpc and smb, make sure
+     * we refuse `alert dcerpc ... smb.share; content...` explicitly. */
+    if (alproto == ALPROTO_SMB && s->alproto == ALPROTO_DCERPC) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                "can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
+                AppProtoToString(s->alproto));
+        return -1;
+    }
+
     if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
         if (AppProtoEquals(alproto, s->alproto)) {
             // happens if alproto = HTTP_ANY and s->alproto = HTTP1
@@ -1920,14 +1929,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
         if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
-        }
-    }
-    if (s->init_data->init_flags & SIG_FLAG_INIT_DCERPC) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-                s->alproto != ALPROTO_SMB) {
-            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support DCERPC keyword",
-                    AppProtoToString(s->alproto));
-            SCReturnInt(0);
         }
     }
     if (s->id == 0) {

@@ -619,56 +619,34 @@ static void FreeDataValue(DataValue *dv)
  * allocated memory)
  *
  * \param dv The head of the linked list (NULL if new list)
- * \param len The output length of the single value
+ * \param olen The output length of the single value
  *
  * \return pointer to a single value, otherwise NULL if it fails or is zero-length
  */
-static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
+static uint8_t *GetFullValue(const DataValue *dv, uint32_t *olen)
 {
-    DataValue *curr;
     uint32_t offset = 0;
     uint8_t *val = NULL;
+    uint32_t len = 0;
+    *olen = 0;
 
     /* First calculate total length */
-    *len = 0;
-    curr = dv;
-    while (curr != NULL) {
-        *len += curr->value_len;
-
-#if 0
-        /* Add CRLF except on last one */
-        if (curr->next != NULL) {
-            *len += 2;
-        }
-#endif
-        curr = curr->next;
+    for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
+        len += curr->value_len;
     }
-
     /* Must have at least one character in the value */
-    if (*len > 0) {
-        val = SCCalloc(1, *len);
+    if (len > 0) {
+        val = SCCalloc(1, len);
         if (unlikely(val == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
-            *len = 0;
             return NULL;
         }
-
-        curr = dv;
-        while (curr != NULL) {
+        for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
             memcpy(val + offset, curr->value, curr->value_len);
             offset += curr->value_len;
-
-#if 0       /* VJ unclear why this is needed ? */
-            /* Add CRLF except on last one */
-            if (curr->next != NULL) {
-                memcpy(val + offset, CRLF, 2);
-                offset += 2;
-            }
-#endif
-            curr = curr->next;
         }
     }
-
+    *olen = len;
     return val;
 }
 
@@ -1152,38 +1130,31 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                 (entity->ctnt_flags & CTNT_IS_HTML)) &&
                 ((entity->ctnt_flags & CTNT_IS_ATTACHMENT) == 0)) {
 
-                /* Remainder from previous line */
-                if (state->linerem_len > 0) {
-                    // TODO
-                } else {
-                    /* No remainder from previous line */
-                    /* Parse each line one by one */
-                    remainPtr = (uint8_t *)chunk;
-                    do {
-                        tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *)chunk),
-                                &remainPtr, &tokLen);
-                        if (tok != remainPtr) {
-                            // DEBUG - ADDED
-                            /* If last token found without CR/LF delimiter, then save
-                             * and reconstruct with next chunk
-                             */
-                            if (tok + tokLen - (uint8_t *) chunk == (int)len) {
-                                PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
-                                        tok, tokLen);
-                                SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n",
-                                        tokLen, len - (uint32_t)(tok + tokLen - (uint8_t *) chunk));
-                            } else {
-                                /* Search line for URL */
-                                ret = FindUrlStrings(tok, tokLen, state);
-                                if (ret != MIME_DEC_OK) {
-                                    SCLogDebug("Error: FindUrlStrings() function"
-                                            " failed: %d", ret);
-                                    break;
-                                }
+                /* Parse each line one by one */
+                remainPtr = (uint8_t *)chunk;
+                do {
+                    tok = GetLine(
+                            remainPtr, len - (remainPtr - (uint8_t *)chunk), &remainPtr, &tokLen);
+                    if (tok != remainPtr) {
+                        /* If last token found without CR/LF delimiter, then save
+                         * and reconstruct with next chunk
+                         */
+                        if (tok + tokLen - (uint8_t *)chunk == (int)len) {
+                            PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF", tok, tokLen);
+                            SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n", tokLen,
+                                    len - (uint32_t)(tok + tokLen - (uint8_t *)chunk));
+                        } else {
+                            /* Search line for URL */
+                            ret = FindUrlStrings(tok, tokLen, state);
+                            if (ret != MIME_DEC_OK) {
+                                SCLogDebug("Error: FindUrlStrings() function"
+                                           " failed: %d",
+                                        ret);
+                                break;
                             }
                         }
-                    } while (tok != remainPtr && remainPtr - (uint8_t *) chunk < (int)len);
-                }
+                    }
+                } while (tok != remainPtr && remainPtr - (uint8_t *)chunk < (int)len);
             }
         }
 
@@ -1227,6 +1198,8 @@ static uint8_t ProcessBase64Remainder(
     uint8_t cnt = 0;
     uint8_t block[B64_BLOCK];
 
+    SCLogDebug("len %u force %d", len, force);
+
     /* should be impossible, but lets be defensive */
     DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
     if (state->bvr_len > B64_BLOCK) {
@@ -1253,6 +1226,17 @@ static uint8_t ProcessBase64Remainder(
             memcpy(state->bvremain, block, cnt);
         }
         state->bvr_len = cnt;
+    } else if (!force && cnt != B64_BLOCK) {
+        SCLogDebug("incomplete data and no buffer to backfill");
+        return 0;
+    }
+
+    /* in force mode pad the block */
+    if (force && cnt != B64_BLOCK) {
+        SCLogDebug("force and cnt %u != %u", cnt, B64_BLOCK);
+        for (uint8_t i = state->bvr_len; i < B64_BLOCK; i++) {
+            state->bvremain[state->bvr_len++] = '=';
+        }
     }
 
     /* If data chunk buffer will be full, then clear it now */
@@ -1269,15 +1253,16 @@ static uint8_t ProcessBase64Remainder(
         uint32_t consumed_bytes = 0;
         uint32_t remdec = 0;
         const uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (bvremain)", state->bvremain, state->bvr_len);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 state->bvremain, state->bvr_len, &consumed_bytes, &remdec, BASE64_MODE_RFC2045);
+        SCLogDebug("DecodeBase64 result %u", code);
         if (remdec > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
+            PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (bvremain)",
+                    state->data_chunk + state->data_chunk_len, remdec);
 
-            /* Track decoded length */
-            state->stack->top->data->decoded_body_len += remdec;
-
-            /* Update length */
             state->data_chunk_len += remdec;
+
             /* If data chunk buffer is now full, then clear */
             if (DATA_CHUNK_SIZE - state->data_chunk_len < ASCII_BLOCK) {
 
@@ -1335,7 +1320,10 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         return MIME_DEC_OK;
     }
 
-    /* First process remaining from previous line */
+    /* First process remaining from previous line. We will consume
+     * state->bvremain, filling it from 'buf' until we have a properly
+     * sized block. Spaces are skipped (rfc2045). If state->bvr_len
+     * is not 0 after procesing we have no data left at 'buf'. */
     if (state->bvr_len > 0) {
         uint32_t consumed = ProcessBase64Remainder(buf, len, state, 0);
         DEBUG_VALIDATE_BUG_ON(consumed > len);
@@ -1344,10 +1332,14 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
 
         uint32_t left = len - consumed;
         if (left < B64_BLOCK) {
+            DEBUG_VALIDATE_BUG_ON(left + state->bvr_len > B64_BLOCK);
+            if (left + state->bvr_len > B64_BLOCK)
+                return MIME_DEC_ERR_PARSE;
             memcpy(state->bvremain, buf + consumed, left);
-            state->bvr_len = (uint8_t)left;
+            state->bvr_len += left;
             return MIME_DEC_OK;
         }
+
         remaining -= consumed;
         offset = consumed;
     }
@@ -1355,17 +1347,19 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
     while (remaining > 0 && remaining >= B64_BLOCK) {
         uint32_t consumed_bytes = 0;
         uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
+        PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (line)", buf + offset, remaining);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
                 buf + offset, remaining, &consumed_bytes, &numDecoded, BASE64_MODE_RFC2045);
+        SCLogDebug("DecodeBase64 result %u", code);
         DEBUG_VALIDATE_BUG_ON(consumed_bytes > remaining);
         if (consumed_bytes > remaining)
             return MIME_DEC_ERR_PARSE;
 
         uint32_t leftover_bytes = remaining - consumed_bytes;
         if (numDecoded > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
-            /* Track decoded length */
-            state->stack->top->data->decoded_body_len += numDecoded;
-            /* Update length */
+            PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (line)",
+                    state->data_chunk + state->data_chunk_len, numDecoded);
+
             state->data_chunk_len += numDecoded;
 
             if ((int)(DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
@@ -1483,13 +1477,11 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         if (c != '=') {
             state->data_chunk[state->data_chunk_len] = c;
             state->data_chunk_len++;
-            entity->decoded_body_len += 1;
 
             /* Add CRLF sequence if end of line, unless its a partial line */
             if (remaining == 1 && state->current_line_delimiter_len > 0) {
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
-                entity->decoded_body_len += EOL_LEN;
             }
         } else if (remaining > 1) {
             /* If last character handle as soft line break by ignoring,
@@ -1521,14 +1513,12 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
 
                         state->data_chunk[state->data_chunk_len] = val;
                         state->data_chunk_len++;
-                        entity->decoded_body_len++;
 
                         /* Add CRLF sequence if end of line, unless for partial lines */
                         if (remaining == 3 && state->current_line_delimiter_len > 0) {
                             memcpy(state->data_chunk + state->data_chunk_len,
                                     CRLF, EOL_LEN);
                             state->data_chunk_len += EOL_LEN;
-                            entity->decoded_body_len += EOL_LEN;
                         }
 
                         /* Account for extra 2 characters in 3-characted QP
@@ -1579,9 +1569,6 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
 
     SCLogDebug("Processing body line");
 
-    /* Track length */
-    entity->body_len += len + 2; /* With CRLF */
-
     /* Process base-64 content if enabled */
     MimeDecConfig *mdcfg = MimeDecGetConfig();
     if (mdcfg != NULL && mdcfg->decode_base64 &&
@@ -1601,23 +1588,16 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
         }
     } else {
         /* Process non-decoded content */
-        remaining = len;
+        remaining = len + state->current_line_delimiter_len;
         offset = 0;
         while (remaining > 0) {
-
             /* Plan to add CRLF to the end of each line */
             avail = DATA_CHUNK_SIZE - state->data_chunk_len;
-            tobuf = avail > remaining + EOL_LEN ? remaining : avail - EOL_LEN;
+            tobuf = avail > remaining ? remaining : avail;
 
             /* Copy over to buffer */
             memcpy(state->data_chunk + state->data_chunk_len, buf + offset, tobuf);
             state->data_chunk_len += tobuf;
-
-            /* Now always add a CRLF to the end, unless its a partial line */
-            if (tobuf == remaining && state->current_line_delimiter_len > 0) {
-                memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
-                state->data_chunk_len += EOL_LEN;
-            }
 
             if ((int) (DATA_CHUNK_SIZE - state->data_chunk_len) < 0) {
                 SCLogDebug("Error: Invalid Chunk length: %u",
@@ -1627,8 +1607,7 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
             }
 
             /* If buffer full, then invoke callback */
-            if (DATA_CHUNK_SIZE - state->data_chunk_len < EOL_LEN + 1) {
-
+            if (DATA_CHUNK_SIZE - state->data_chunk_len == 0) {
                 /* Invoke pre-processor and callback */
                 ret = ProcessDecodedDataChunk(state->data_chunk,
                         state->data_chunk_len, state);
@@ -1705,6 +1684,9 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
     uint32_t hlen, vlen;
     int finish_header = 0, new_header = 0;
     MimeDecConfig *mdcfg = MimeDecGetConfig();
+
+    /* should not get here with incomplete lines */
+    DEBUG_VALIDATE_BUG_ON(state->current_line_delimiter_len == 0);
 
     /* Find first header */
     hname = FindMimeHeaderStart(buf, blen, &hlen);
@@ -2257,9 +2239,31 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
         }
     }
 
-    /* Ignore empty lines */
+    /* pass empty lines on if we're parsing the body, otherwise we have no use
+     * for them, and in fact they would disrupt the state tracking */
     if (len == 0) {
-        return ret;
+        /* don't start a new body after an end bound based on an empty line */
+        if (state->state_flag == BODY_END_BOUND) {
+            SCLogDebug("skip empty line");
+            return MIME_DEC_OK;
+        } else if (state->state_flag == HEADER_DONE) {
+            SCLogDebug("empty line, lets see if we skip it. We're in state %s",
+                    MimeDecParseStateGetStatus(state));
+            MimeDecEntity *entity = (MimeDecEntity *)state->stack->top->data;
+            MimeDecConfig *mdcfg = MimeDecGetConfig();
+            if (entity != NULL && mdcfg != NULL) {
+                if (mdcfg->decode_base64 && (entity->ctnt_flags & CTNT_IS_BASE64)) {
+                    SCLogDebug("skip empty line");
+                    return MIME_DEC_OK;
+                } else if (mdcfg->decode_quoted_printable && (entity->ctnt_flags & CTNT_IS_QP)) {
+                    SCLogDebug("skip empty line");
+                    return MIME_DEC_OK;
+                }
+                SCLogDebug("not skipping empty line");
+            }
+        } else {
+            SCLogDebug("not skipping line at state %s", MimeDecParseStateGetStatus(state));
+        }
     }
 
     /* First look for boundary */
@@ -2292,6 +2296,8 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             if (tlen > BOUNDARY_BUF) {
                 if (state->stack->top->data)
                     state->stack->top->data->anomaly_flags |= ANOM_LONG_BOUNDARY;
+                SCLogDebug("Error: Long boundary: tlen %u > %d. Set ANOM_LONG_BOUNDARY", tlen,
+                        BOUNDARY_BUF);
                 return MIME_DEC_ERR_PARSE;
             }
 
@@ -2299,7 +2305,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             memcpy(temp + 2, node->bdef, node->bdef_len);
 
             /* Find either next boundary or end boundary */
-            bstart = FindBuffer((const uint8_t *)buf, len, temp, tlen);
+            bstart = FindBuffer(buf, len, temp, tlen);
             if (bstart != NULL) {
                 ret = ProcessMimeBoundary(buf, len, node->bdef_len, state);
                 if (ret != MIME_DEC_OK) {
@@ -2708,73 +2714,52 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
 /* Test simple case of line counts */
 static int MimeDecParseLineTest01(void)
 {
-    int ret = MIME_DEC_OK;
-
-    uint32_t expected_count = 3;
     uint32_t line_count = 0;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    const char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    const char *str = "From: Sender1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "To: Recipient1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "Content-Type: text/plain\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 1\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 2";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 2\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    str = "A simple message line 3";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 3\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 1, 1, state) == MIME_DEC_OK);
 
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
     /* Completed */
-    ret = MimeDecParseComplete(state);
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
+    FAIL_IF_NOT(MimeDecParseComplete(state) == MIME_DEC_OK);
 
     MimeDecEntity *msg = state->msg;
-    if (msg->next != NULL || msg->child != NULL) {
-        SCLogInfo("Error: Invalid sibling or child message");
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(msg->next);
+    FAIL_IF_NOT_NULL(msg->child);
 
     MimeDecFreeEntity(msg);
 
     /* De Init parser */
     MimeDecDeInitParser(state);
 
-    SCLogInfo("LINE COUNT FINISHED: %d", line_count);
-
-    if (expected_count != line_count) {
-        SCLogInfo("Error: Line count is invalid: expected - %d actual - %d",
-                expected_count, line_count);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT(line_count == 3);
+    PASS;
 }
 
 /* Test simple case of EXE URL extraction */
 static int MimeDecParseLineTest02(void)
 {
-    int ret = MIME_DEC_OK;
-
-    uint32_t expected_count = 2;
     uint32_t line_count = 0;
 
     ConfNode *url_schemes = ConfNodeNew();
@@ -2796,58 +2781,41 @@ static int MimeDecParseLineTest02(void)
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    const char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    const char *str = "From: Sender1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
-    str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "To: Recipient1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
-    str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "Content-Type: text/plain\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
-    str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
-    str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+    str = "A simple message line 1\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
     str = "A simple message line 2 click on http://www.test.com/malware.exe?"
-            "hahah hopefully you click this link";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
+          "hahah hopefully you click this link\r\n";
+    FAIL_IF_NOT(MimeDecParseLine((uint8_t *)str, strlen(str) - 2, 2, state) == MIME_DEC_OK);
 
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
     /* Completed */
-    ret = MimeDecParseComplete(state);
-    if (ret != MIME_DEC_OK) {
-        return 0;
-    }
+    FAIL_IF_NOT(MimeDecParseComplete(state) == MIME_DEC_OK);
 
     MimeDecEntity *msg = state->msg;
-    if (msg->url_list == NULL || (msg->url_list != NULL &&
-            !(msg->url_list->url_flags & URL_IS_EXE))) {
-        SCLogInfo("Warning: Expected EXE URL not found");
-        return 0;
-    }
-
+    FAIL_IF_NULL(msg);
+    FAIL_IF_NULL(msg->url_list);
+    FAIL_IF_NOT((msg->url_list->url_flags & URL_IS_EXE));
     MimeDecFreeEntity(msg);
 
     /* De Init parser */
     MimeDecDeInitParser(state);
-
     ConfNodeFree(url_schemes);
     MimeDecGetConfig()->extract_urls_schemes = NULL;
 
-    SCLogInfo("LINE COUNT FINISHED: %d", line_count);
-
-    if (expected_count != line_count) {
-        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
-                expected_count, line_count);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT(line_count == 2);
+    PASS;
 }
 
 /* Test error case where no url schemes set in config */

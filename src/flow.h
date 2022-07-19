@@ -550,6 +550,11 @@ enum FlowState {
     FLOW_STATE_CAPTURE_BYPASSED,
 #endif
 };
+#ifdef CAPTURE_OFFLOAD
+#define FLOW_STATE_SIZE 5
+#else
+#define FLOW_STATE_SIZE 4
+#endif
 
 typedef struct FlowProtoTimeout_ {
     uint32_t new_timeout;

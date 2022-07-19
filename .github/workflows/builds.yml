@@ -575,6 +575,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 gcc-9 \
                 git \
                 jq \
@@ -654,6 +655,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 gcc-9 \
                 git \
                 jq \
@@ -730,6 +732,7 @@ jobs:
                 autoconf \
                 automake \
                 llvm-10 \
+                cargo \
                 clang-10 \
                 git \
                 jq \
@@ -808,6 +811,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -949,6 +953,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -1020,6 +1025,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 jq \
                 libtool \
@@ -1114,6 +1120,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                cargo \
                 git \
                 libtool \
                 libpcap-dev \

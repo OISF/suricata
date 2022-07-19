@@ -665,6 +665,7 @@ static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *
             // Whatever came in with first LF should also get discarded
             state->discard_till_lf = false;
             line->len = 0;
+            line->delim_len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
         line->buf = input->buf + o_consumed;
@@ -1274,6 +1275,11 @@ static int SMTPPreProcessCommands(
         SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPInput *input, SMTPLine *line)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
+
+    /* fall back to strict line parsing for mime header parsing */
+    if (state->curr_tx && state->curr_tx->mime_state &&
+            state->curr_tx->mime_state->state_flag < HEADER_DONE)
+        return 1;
 
     bool line_complete = false;
     const int32_t input_len = input->len;

@@ -64,9 +64,6 @@
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
 
-#define SC_MATCH_LIMIT_DEFAULT 3500
-#define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
-
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
 

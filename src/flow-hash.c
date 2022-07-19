@@ -486,6 +486,8 @@ static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
 #ifdef UNITTESTS
     if (tv && dtv) {
 #endif
+        StatsIncr(tv, dtv->counter_flow_total);
+        StatsIncr(tv, dtv->counter_flow_active);
         switch (proto){
             case IPPROTO_UDP:
                 StatsIncr(tv, dtv->counter_flow_udp);
@@ -590,6 +592,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
             if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
                 SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);
                 FlowTimeoutsEmergency();
+                FlowWakeupFlowManagerThread();
             }
 
             f = FlowGetUsedFlow(tv, fls->dtv, &p->ts);

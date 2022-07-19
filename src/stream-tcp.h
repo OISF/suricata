@@ -78,6 +78,7 @@ typedef struct StreamTcpThread_ {
      *  receiving (valid) RST packets */
     PacketQueueNoLock pseudo_queue;
 
+    uint16_t counter_tcp_active_sessions;
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
     uint16_t counter_tcp_ssn_memcap;

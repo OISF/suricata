@@ -467,8 +467,6 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
     stream_config.reassembly_memcap_policy =
             ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
-    SCLogNotice("memcap-policy: %u/%u", stream_config.ssn_memcap_policy,
-            stream_config.reassembly_memcap_policy);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -935,6 +933,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 return -1;
             }
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
 
@@ -1028,6 +1027,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             }
 
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
         }
 
         /* set the state */
@@ -1094,6 +1094,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 return -1;
             }
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
         /* set the state */
@@ -1647,6 +1648,24 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                     "ssn->client.last_ack %"PRIu32"", ssn,
                     ssn->client.isn, ssn->client.next_seq,
                     ssn->client.last_ack);
+        } else if (PKT_IS_TOSERVER(p)) {
+            /*
+             * On retransmitted SYN packets, the timestamp value must be updated,
+             * to avoid dropping any SYN+ACK packets that respond to a retransmitted SYN
+             * with an updated timestamp in StateSynSentValidateTimestamp.
+             */
+            if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP) && TCP_HAS_TS(p)) {
+                uint32_t ts_val = TCP_GET_TSVAL(p);
+
+                // Check whether packets have been received in the correct order (only ever update)
+                if (ssn->client.last_ts < ts_val) {
+                    ssn->client.last_ts = ts_val;
+                    ssn->client.last_pkt_ts = p->ts.tv_sec;
+                }
+
+                SCLogDebug("ssn %p: Retransmitted SYN. Updated timestamp from packet %" PRIu64, ssn,
+                        p->pcap_cnt);
+            }
         }
 
         /** \todo check if it's correct or set event */
@@ -5353,6 +5372,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)stt;
 
+    stt->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
     stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", tv);
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
@@ -5445,6 +5465,10 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
     uint8_t os_policy;
+
+    if (ssn->lossy_be_liberal) {
+        SCReturnInt(1);
+    }
 
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
         if (!StreamTcpValidateTimestamp(ssn, p)) {
@@ -6524,9 +6548,6 @@ const char *StreamTcpStateAsString(const enum TcpState state)
     switch (state) {
         case TCP_NONE:
             tcp_state = "none";
-            break;
-        case TCP_LISTEN:
-            tcp_state = "listen";
             break;
         case TCP_SYN_SENT:
             tcp_state = "syn_sent";

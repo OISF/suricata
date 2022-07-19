@@ -131,11 +131,9 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-        s->alproto != ALPROTO_SMB) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
-    }
+
     void *dod = rs_dcerpc_opnum_parse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
@@ -153,7 +151,6 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     sm->ctx = (void *)dod;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
-    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 

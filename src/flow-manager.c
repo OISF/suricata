@@ -71,6 +71,8 @@
 #include "output-flow.h"
 #include "util-validate.h"
 
+#include "runmode-unix-socket.h"
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -88,6 +90,11 @@ static uint32_t flowrec_number = 1;
 SC_ATOMIC_DECLARE(uint32_t, flowrec_cnt);
 SC_ATOMIC_DECLARE(uint32_t, flowrec_busy);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
+
+SCCtrlCondT flow_manager_ctrl_cond;
+SCCtrlMutex flow_manager_ctrl_mutex;
+SCCtrlCondT flow_recycler_ctrl_cond;
+SCCtrlMutex flow_recycler_ctrl_mutex;
 
 void FlowTimeoutsInit(void)
 {
@@ -295,11 +302,13 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
         FlowQueuePrivateAppendFlow(&recycle, f);
         if (recycle.len == 100) {
             FlowQueueAppendPrivate(&flow_recycle_q, &recycle);
+            FlowWakeupFlowRecyclerThread();
         }
         cnt++;
     }
     if (recycle.len) {
         FlowQueueAppendPrivate(&flow_recycle_q, &recycle);
+        FlowWakeupFlowRecyclerThread();
     }
     return cnt;
 }
@@ -481,22 +490,34 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td,
     return cnt;
 }
 
-static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td,
-        struct timeval *ts,
-        const uint32_t hash_min, const uint32_t hash_max,
-        FlowTimeoutCounters *counters, uint32_t iter, const uint32_t chunks)
+/** \internal
+ *  \brief handle timeout for a slice of hash rows
+ *  If we wrap around we call FlowTimeoutHash twice */
+static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td, struct timeval *ts,
+        const uint32_t hash_min, const uint32_t hash_max, FlowTimeoutCounters *counters,
+        const uint32_t rows, uint32_t *pos)
 {
-    const uint32_t rows = hash_max - hash_min;
-    const uint32_t chunk_size = rows / chunks;
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t cnt = 0;
+    uint32_t rows_left = rows;
 
-    const uint32_t min = iter * chunk_size + hash_min;
-    uint32_t max = min + chunk_size;
-    /* we start at beginning of hash at next iteration so let's check
-     * hash till the end */
-    if (iter + 1 == chunks) {
-        max = hash_max;
+again:
+    start = hash_min + (*pos);
+    if (start >= hash_max) {
+        start = hash_min;
     }
-    const uint32_t cnt = FlowTimeoutHash(td, ts, min, max, counters);
+    end = start + rows_left;
+    if (end > hash_max) {
+        end = hash_max;
+    }
+    *pos = (end == hash_max) ? hash_min : end;
+    rows_left = rows_left - (end - start);
+
+    cnt += FlowTimeoutHash(td, ts, start, end, counters);
+    if (rows_left) {
+        goto again;
+    }
     return cnt;
 }
 
@@ -569,22 +590,13 @@ static uint32_t FlowCleanupHash(void)
         FBLOCK_UNLOCK(fb);
         if (local_queue.len >= 25) {
             FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
+            FlowWakeupFlowRecyclerThread();
         }
     }
     FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
+    FlowWakeupFlowRecyclerThread();
 
     return cnt;
-}
-
-static void Recycler(ThreadVars *tv, void *output_thread_data, Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-
-    (void)OutputFlowLog(tv, output_thread_data, f);
-
-    FlowClearMemory (f, f->protomap);
-    FLOWLOCK_UNLOCK(f);
-    FlowSparePoolReturnFlow(f);
 }
 
 typedef struct FlowQueueTimeoutCounters {
@@ -594,6 +606,8 @@ typedef struct FlowQueueTimeoutCounters {
 
 typedef struct FlowCounters_ {
     uint16_t flow_mgr_full_pass;
+    uint16_t flow_mgr_rows_sec;
+
     uint16_t flow_mgr_cnt_clo;
     uint16_t flow_mgr_cnt_new;
     uint16_t flow_mgr_cnt_est;
@@ -614,6 +628,9 @@ typedef struct FlowCounters_ {
     uint16_t flow_bypassed_cnt_clo;
     uint16_t flow_bypassed_pkts;
     uint16_t flow_bypassed_bytes;
+
+    uint16_t memcap_pressure;
+    uint16_t memcap_pressure_max;
 } FlowCounters;
 
 typedef struct FlowManagerThreadData_ {
@@ -629,6 +646,8 @@ typedef struct FlowManagerThreadData_ {
 static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 {
     fc->flow_mgr_full_pass = StatsRegisterCounter("flow.mgr.full_hash_pass", t);
+    fc->flow_mgr_rows_sec = StatsRegisterCounter("flow.mgr.rows_per_sec", t);
+
     fc->flow_mgr_cnt_clo = StatsRegisterCounter("flow.mgr.closed_pruned", t);
     fc->flow_mgr_cnt_new = StatsRegisterCounter("flow.mgr.new_pruned", t);
     fc->flow_mgr_cnt_est = StatsRegisterCounter("flow.mgr.est_pruned", t);
@@ -648,6 +667,34 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", t);
     fc->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", t);
     fc->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", t);
+
+    fc->memcap_pressure = StatsRegisterCounter("memcap_pressure", t);
+    fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap_pressure_max", t);
+}
+
+static void FlowCountersUpdate(
+        ThreadVars *th_v, const FlowManagerThreadData *ftd, const FlowTimeoutCounters *counters)
+{
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters->clo);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters->new);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters->est);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters->byp);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters->flows_checked);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters->flows_notimeout);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters->flows_timeout);
+    StatsAddUI64(
+            th_v, ftd->cnt.flow_mgr_flows_timeout_inuse, (uint64_t)counters->flows_timeout_inuse);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters->flows_aside);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work,
+            (uint64_t)counters->flows_aside_needs_work);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_cnt_clo, (uint64_t)counters->bypassed_count);
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters->bypassed_pkts);
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters->bypassed_bytes);
+
+    StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters->rows_maxlen);
 }
 
 static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -708,7 +755,37 @@ static uint32_t FlowTimeoutsMin(void)
     return m;
 }
 
-//#define FM_PROFILE
+static void GetWorkUnitSizing(const uint32_t pass_in_sec, const uint32_t rows, const uint32_t mp,
+        const bool emergency, uint64_t *wu_sleep, uint32_t *wu_rows, uint32_t *rows_sec)
+{
+    if (emergency) {
+        *wu_rows = rows;
+        *wu_sleep = 250;
+        return;
+    }
+
+    uint32_t full_pass_in_ms = pass_in_sec * 1000;
+    const float perc = MIN((((float)(100 - mp) / (float)100)), 1.0);
+    full_pass_in_ms *= perc;
+    full_pass_in_ms = MAX(full_pass_in_ms, 333);
+
+    uint32_t work_unit_ms = 999 * perc;
+    work_unit_ms = MAX(work_unit_ms, 250);
+
+    const uint32_t wus_per_full_pass = full_pass_in_ms / work_unit_ms;
+
+    const uint32_t rows_per_wu = MAX(1, rows / wus_per_full_pass);
+    const uint32_t rows_process_cost = rows_per_wu / 1000; // est 1usec per row
+
+    int32_t sleep_per_wu = work_unit_ms - rows_process_cost;
+    sleep_per_wu = MAX(sleep_per_wu, 10);
+
+    const float passes_sec = 1000.0 / (float)full_pass_in_ms;
+
+    *wu_sleep = sleep_per_wu;
+    *wu_rows = rows_per_wu;
+    *rows_sec = (uint32_t)((float)rows * passes_sec);
+}
 
 /** \brief Thread that manages the flow table and times out flows.
  *
@@ -719,28 +796,22 @@ static uint32_t FlowTimeoutsMin(void)
 static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 {
     FlowManagerThreadData *ftd = thread_data;
-    struct timeval ts;
-    uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
+    const uint32_t rows = ftd->max - ftd->min;
+    const uint32_t min_timeout = FlowTimeoutsMin();
+    const uint32_t pass_in_sec = min_timeout ? min_timeout * 8 : 60;
+    const bool time_is_live = TimeModeIsLive();
+
+    uint32_t emerg_over_cnt = 0;
+    uint64_t next_run_ms = 0;
+    uint32_t pos = 0;
+    uint32_t rows_sec = 0;
+    uint32_t rows_per_wu = 0;
+    uint64_t sleep_per_wu = 0;
     bool emerg = false;
     bool prev_emerg = false;
     uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
-    uint32_t flow_last_sec = 0;
-/* VJ leaving disabled for now, as hosts are only used by tags and the numbers
- * are really low. Might confuse ppl
-    uint16_t flow_mgr_host_prune = StatsRegisterCounter("hosts.pruned", th_v);
-    uint16_t flow_mgr_host_active = StatsRegisterCounter("hosts.active", th_v);
-    uint16_t flow_mgr_host_spare = StatsRegisterCounter("hosts.spare", th_v);
-*/
+    struct timeval ts;
     memset(&ts, 0, sizeof(ts));
-    uint32_t hash_passes = 0;
-#ifdef FM_PROFILE
-    uint32_t hash_row_checks = 0;
-    uint32_t hash_passes_chunks = 0;
-#endif
-    uint32_t hash_full_passes = 0;
-
-    const uint32_t min_timeout = FlowTimeoutsMin();
-    const uint32_t pass_in_sec = min_timeout ? min_timeout * 8 : 60;
 
     /* don't start our activities until time is setup */
     while (!TimeModeIsReady()) {
@@ -751,61 +822,30 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     SCLogDebug("FM %s/%d starting. min_timeout %us. Full hash pass in %us", th_v->name,
             ftd->instance, min_timeout, pass_in_sec);
 
-#ifdef FM_PROFILE
-    struct timeval endts;
-    struct timeval active;
-    struct timeval paused;
-    struct timeval sleeping;
-    memset(&endts, 0, sizeof(endts));
-    memset(&active, 0, sizeof(active));
-    memset(&paused, 0, sizeof(paused));
-    memset(&sleeping, 0, sizeof(sleeping));
-#endif
-
-    struct timeval startts;
-    memset(&startts, 0, sizeof(startts));
-    gettimeofday(&startts, NULL);
-
-    uint32_t hash_pass_iter = 0;
-    uint32_t emerg_over_cnt = 0;
-    uint64_t next_run_ms = 0;
+    uint32_t mp = MemcapsGetPressure() * 100;
+    if (ftd->instance == 0) {
+        StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
+        StatsSetUI64(th_v, ftd->cnt.memcap_pressure_max, mp);
+    }
+    GetWorkUnitSizing(pass_in_sec, rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
+    StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
     while (1)
     {
         if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
             TmThreadsSetFlag(th_v, THV_PAUSED);
-#ifdef FM_PROFILE
-            struct timeval pause_startts;
-            memset(&pause_startts, 0, sizeof(pause_startts));
-            gettimeofday(&pause_startts, NULL);
-#endif
             TmThreadTestThreadUnPaused(th_v);
-#ifdef FM_PROFILE
-            struct timeval pause_endts;
-            memset(&pause_endts, 0, sizeof(pause_endts));
-            gettimeofday(&pause_endts, NULL);
-            struct timeval pause_time;
-            memset(&pause_time, 0, sizeof(pause_time));
-            timersub(&pause_endts, &pause_startts, &pause_time);
-            timeradd(&paused, &pause_time, &paused);
-#endif
             TmThreadsUnsetFlag(th_v, THV_PAUSED);
         }
 
         if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
             emerg = true;
         }
-#ifdef FM_PROFILE
-        struct timeval run_startts;
-        memset(&run_startts, 0, sizeof(run_startts));
-        gettimeofday(&run_startts, NULL);
-#endif
         /* Get the time */
         memset(&ts, 0, sizeof(ts));
         TimeGet(&ts);
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
-        const uint64_t ts_ms = ts.tv_sec * 1000 + ts.tv_usec / 1000;
-        const uint32_t rt = (uint32_t)ts.tv_sec;
+        uint64_t ts_ms = ts.tv_sec * 1000 + ts.tv_usec / 1000;
         const bool emerge_p = (emerg && !prev_emerg);
         if (emerge_p) {
             next_run_ms = 0;
@@ -822,7 +862,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                     FlowSparePoolUpdate(sq_len);
                 }
             }
-            const uint32_t secs_passed = rt - flow_last_sec;
 
             /* try to time out flows */
             FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -830,172 +869,113 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
                 FlowTimeoutHash(&ftd->timeout, &ts, ftd->min, ftd->max, &counters);
-                hash_passes++;
-                hash_full_passes++;
-                hash_passes++;
-#ifdef FM_PROFILE
-                hash_passes_chunks += 1;
-                hash_row_checks += counters.rows_checked;
-#endif
                 StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
             } else {
-                /* non-emergency mode: scan part of the hash */
-                const uint32_t chunks = MIN(secs_passed, pass_in_sec);
-                for (uint32_t i = 0; i < chunks; i++) {
-                    FlowTimeoutHashInChunks(&ftd->timeout, &ts, ftd->min, ftd->max,
-                            &counters, hash_pass_iter, pass_in_sec);
-                    hash_pass_iter++;
-                    if (hash_pass_iter == pass_in_sec) {
-                        hash_pass_iter = 0;
-                        hash_full_passes++;
-                        StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
-                    }
+                SCLogDebug("hash %u:%u slice starting at %u with %u rows", ftd->min, ftd->max, pos,
+                        rows_per_wu);
+
+                const uint32_t ppos = pos;
+                FlowTimeoutHashInChunks(
+                        &ftd->timeout, &ts, ftd->min, ftd->max, &counters, rows_per_wu, &pos);
+                if (ppos > pos) {
+                    StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
                 }
-                hash_passes++;
-#ifdef FM_PROFILE
-                hash_row_checks += counters.rows_checked;
-                hash_passes_chunks += chunks;
-#endif
             }
-            flow_last_sec = rt;
 
-            /*
-               StatsAddUI64(th_v, flow_mgr_host_prune, (uint64_t)hosts_pruned);
-               uint32_t hosts_active = HostGetActiveCount();
-               StatsSetUI64(th_v, flow_mgr_host_active, (uint64_t)hosts_active);
-               uint32_t hosts_spare = HostGetSpareCount();
-               StatsSetUI64(th_v, flow_mgr_host_spare, (uint64_t)hosts_spare);
-             */
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters.clo);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters.new);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters.est);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters.byp);
+            const uint32_t spare_pool_len = FlowSpareGetPoolSize();
+            StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)spare_pool_len);
 
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters.flows_checked);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters.flows_notimeout);
+            FlowCountersUpdate(th_v, ftd, &counters);
 
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters.flows_timeout);
-            //StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_removed, (uint64_t)counters.flows_removed);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout_inuse, (uint64_t)counters.flows_timeout_inuse);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters.flows_aside);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work, (uint64_t)counters.flows_aside_needs_work);
-
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_cnt_clo, (uint64_t)counters.bypassed_count);
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters.bypassed_pkts);
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters.bypassed_bytes);
-
-            StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters.rows_maxlen);
-            // TODO AVG MAXLEN
-            // TODO LOOKUP STEPS MAXLEN and AVG LEN
-            /* Don't fear, FlowManagerThread is here...
-             * clear emergency bit if we have at least xx flows pruned. */
-            uint32_t len = FlowSpareGetPoolSize();
-            StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)len);
             if (emerg == true) {
-                SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
-                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
-                        len, flow_config.prealloc, len * 100 / flow_config.prealloc);
+                SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
+                           "flow_spare_q status: %" PRIu32 "%% flows at the queue",
+                        spare_pool_len, flow_config.prealloc,
+                        spare_pool_len * 100 / flow_config.prealloc);
 
-            /* only if we have pruned this "emergency_recovery" percentage
-             * of flows, we will unset the emergency bit */
-            if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
-                emerg_over_cnt++;
-            } else {
-                emerg_over_cnt = 0;
+                /* only if we have pruned this "emergency_recovery" percentage
+                 * of flows, we will unset the emergency bit */
+                if (spare_pool_len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
+                    emerg_over_cnt++;
+                } else {
+                    emerg_over_cnt = 0;
+                }
+
+                if (emerg_over_cnt >= 30) {
+                    SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
+                    FlowTimeoutsReset();
+
+                    emerg = false;
+                    prev_emerg = false;
+                    emerg_over_cnt = 0;
+                    SCLogNotice("Flow emergency mode over, back to normal... unsetting"
+                                " FLOW_EMERGENCY bit (ts.tv_sec: %" PRIuMAX ", "
+                                "ts.tv_usec:%" PRIuMAX ") flow_spare_q status(): %" PRIu32
+                                "%% flows at the queue",
+                            (uintmax_t)ts.tv_sec, (uintmax_t)ts.tv_usec,
+                            spare_pool_len * 100 / flow_config.prealloc);
+
+                    StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
+                }
             }
 
-            if (emerg_over_cnt >= 30) {
-                SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
-                FlowTimeoutsReset();
+            /* update work units */
+            const uint32_t pmp = mp;
+            mp = MemcapsGetPressure() * 100;
+            if (ftd->instance == 0) {
+                StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
+                StatsSetUI64(th_v, ftd->cnt.memcap_pressure_max, mp);
+            }
+            GetWorkUnitSizing(pass_in_sec, rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
+            if (pmp != mp) {
+                StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
+            }
 
-                emerg = false;
-                prev_emerg = false;
-                emerg_over_cnt = 0;
-                hash_pass_iter = 0;
-                SCLogNotice("Flow emergency mode over, back to normal... unsetting"
-                          " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
-                          "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
-                          "%% flows at the queue", (uintmax_t)ts.tv_sec,
-                          (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
-
-                StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
+            next_run_ms = ts_ms + sleep_per_wu;
+        }
+        if (other_last_sec == 0 || other_last_sec < (uint32_t)ts.tv_sec) {
+            if (ftd->instance == 0) {
+                DefragTimeoutHash(&ts);
+                HostTimeoutHash(&ts);
+                IPPairTimeoutHash(&ts);
+                HttpRangeContainersTimeoutHash(&ts);
+                other_last_sec = (uint32_t)ts.tv_sec;
             }
         }
-        next_run_ms = ts_ms + 667;
-        if (emerg)
-            next_run_ms = ts_ms + 250;
-        }
-        if (flow_last_sec == 0) {
-            flow_last_sec = rt;
-        }
-
-        if (ftd->instance == 0 &&
-                (other_last_sec == 0 || other_last_sec < (uint32_t)ts.tv_sec)) {
-            DefragTimeoutHash(&ts);
-            //uint32_t hosts_pruned =
-            HostTimeoutHash(&ts);
-            IPPairTimeoutHash(&ts);
-            HttpRangeContainersTimeoutHash(&ts);
-            other_last_sec = (uint32_t)ts.tv_sec;
-        }
-
-
-#ifdef FM_PROFILE
-        struct timeval run_endts;
-        memset(&run_endts, 0, sizeof(run_endts));
-        gettimeofday(&run_endts, NULL);
-        struct timeval run_time;
-        memset(&run_time, 0, sizeof(run_time));
-        timersub(&run_endts, &run_startts, &run_time);
-        timeradd(&active, &run_time, &active);
-#endif
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
             StatsSyncCounters(th_v);
             break;
         }
 
-#ifdef FM_PROFILE
-        struct timeval sleep_startts;
-        memset(&sleep_startts, 0, sizeof(sleep_startts));
-        gettimeofday(&sleep_startts, NULL);
-#endif
-        usleep(250);
+        if (emerg || !time_is_live) {
+            usleep(250);
+        } else {
+            struct timeval cond_tv;
+            gettimeofday(&cond_tv, NULL);
+            struct timeval add_tv;
+            add_tv.tv_sec = 0;
+            add_tv.tv_usec = (sleep_per_wu * 1000);
+            timeradd(&cond_tv, &add_tv, &cond_tv);
 
-#ifdef FM_PROFILE
-        struct timeval sleep_endts;
-        memset(&sleep_endts, 0, sizeof(sleep_endts));
-        gettimeofday(&sleep_endts, NULL);
+            struct timespec cond_time = FROM_TIMEVAL(cond_tv);
+            SCCtrlMutexLock(&flow_manager_ctrl_mutex);
+            while (1) {
+                int rc = SCCtrlCondTimedwait(
+                        &flow_manager_ctrl_cond, &flow_manager_ctrl_mutex, &cond_time);
+                if (rc == ETIMEDOUT || rc < 0)
+                    break;
+                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                    break;
+                }
+            }
+            SCCtrlMutexUnlock(&flow_manager_ctrl_mutex);
+        }
 
-        struct timeval sleep_time;
-        memset(&sleep_time, 0, sizeof(sleep_time));
-        timersub(&sleep_endts, &sleep_startts, &sleep_time);
-        timeradd(&sleeping, &sleep_time, &sleeping);
-#endif
         SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
 
         StatsSyncCountersIfSignalled(th_v);
     }
-    SCLogPerf("%" PRIu32 " new flows, %" PRIu32 " established flows were "
-              "timed out, %"PRIu32" flows in closed state", new_cnt,
-              established_cnt, closing_cnt);
-
-#ifdef FM_PROFILE
-    SCLogNotice("hash passes %u avg chunks %u full %u rows %u (rows/s %u)",
-            hash_passes, hash_passes_chunks / (hash_passes ? hash_passes : 1),
-            hash_full_passes, hash_row_checks,
-            hash_row_checks / ((uint32_t)active.tv_sec?(uint32_t)active.tv_sec:1));
-
-    gettimeofday(&endts, NULL);
-    struct timeval total_run_time;
-    timersub(&endts, &startts, &total_run_time);
-
-    SCLogNotice("FM: active %u.%us out of %u.%us; sleeping %u.%us, paused %u.%us",
-            (uint32_t)active.tv_sec, (uint32_t)active.tv_usec,
-            (uint32_t)total_run_time.tv_sec, (uint32_t)total_run_time.tv_usec,
-            (uint32_t)sleeping.tv_sec, (uint32_t)sleeping.tv_usec,
-            (uint32_t)paused.tv_sec, (uint32_t)paused.tv_usec);
-#endif
     return TM_ECODE_OK;
 }
 
@@ -1010,6 +990,9 @@ void FlowManagerThreadSpawn()
                 "invalid flow.managers setting %"PRIdMAX, setting);
     }
     flowmgr_number = (uint32_t)setting;
+
+    SCCtrlCondInit(&flow_manager_ctrl_cond, NULL);
+    SCCtrlMutexInit(&flow_manager_ctrl_mutex, NULL);
 
     SCLogConfig("using %u flow manager threads", flowmgr_number);
     StatsRegisterGlobalCounter("flow.memuse", FlowGetMemuse);
@@ -1034,6 +1017,14 @@ void FlowManagerThreadSpawn()
 
 typedef struct FlowRecyclerThreadData_ {
     void *output_thread_data;
+
+    uint16_t counter_flows;
+    uint16_t counter_queue_avg;
+    uint16_t counter_queue_max;
+
+    uint16_t counter_flow_active;
+    uint16_t counter_tcp_active_sessions;
+    FlowEndCounters fec;
 } FlowRecyclerThreadData;
 
 static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -1047,6 +1038,15 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
         return TM_ECODE_FAILED;
     }
     SCLogDebug("output_thread_data %p", ftd->output_thread_data);
+
+    ftd->counter_flows = StatsRegisterCounter("flow.recycler.recycled", t);
+    ftd->counter_queue_avg = StatsRegisterAvgCounter("flow.recycler.queue_avg", t);
+    ftd->counter_queue_max = StatsRegisterMaxCounter("flow.recycler.queue_max", t);
+
+    ftd->counter_flow_active = StatsRegisterCounter("flow.active", t);
+    ftd->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", t);
+
+    FlowEndCountersRegister(t, &ftd->fec);
 
     *data = ftd;
     return TM_ECODE_OK;
@@ -1062,65 +1062,48 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
+{
+    FLOWLOCK_WRLOCK(f);
+
+    (void)OutputFlowLog(tv, ftd->output_thread_data, f);
+
+    FlowEndCountersUpdate(tv, &ftd->fec, f);
+    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+        StatsDecr(tv, ftd->counter_tcp_active_sessions);
+    }
+    StatsDecr(tv, ftd->counter_flow_active);
+
+    FlowClearMemory(f, f->protomap);
+    FLOWLOCK_UNLOCK(f);
+    FlowSparePoolReturnFlow(f);
+}
+
 /** \brief Thread that manages timed out flows.
  *
  *  \param td ThreadVars casted to void ptr
  */
 static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
-    struct timeval ts;
-    uint64_t recycled_cnt = 0;
     FlowRecyclerThreadData *ftd = (FlowRecyclerThreadData *)thread_data;
     BUG_ON(ftd == NULL);
-
+    const bool time_is_live = TimeModeIsLive();
+    uint64_t recycled_cnt = 0;
+    struct timeval ts;
     memset(&ts, 0, sizeof(ts));
-    uint32_t fr_passes = 0;
-
-#ifdef FM_PROFILE
-    struct timeval endts;
-    struct timeval active;
-    struct timeval paused;
-    struct timeval sleeping;
-    memset(&endts, 0, sizeof(endts));
-    memset(&active, 0, sizeof(active));
-    memset(&paused, 0, sizeof(paused));
-    memset(&sleeping, 0, sizeof(sleeping));
-#endif
-    struct timeval startts;
-    memset(&startts, 0, sizeof(startts));
-    gettimeofday(&startts, NULL);
 
     while (1)
     {
         if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
             TmThreadsSetFlag(th_v, THV_PAUSED);
-#ifdef FM_PROFILE
-            struct timeval pause_startts;
-            memset(&pause_startts, 0, sizeof(pause_startts));
-            gettimeofday(&pause_startts, NULL);
-#endif
             TmThreadTestThreadUnPaused(th_v);
-
-#ifdef FM_PROFILE
-            struct timeval pause_endts;
-            memset(&pause_endts, 0, sizeof(pause_endts));
-            gettimeofday(&pause_endts, NULL);
-
-            struct timeval pause_time;
-            memset(&pause_time, 0, sizeof(pause_time));
-            timersub(&pause_endts, &pause_startts, &pause_time);
-            timeradd(&paused, &pause_time, &paused);
-#endif
             TmThreadsUnsetFlag(th_v, THV_PAUSED);
         }
-        fr_passes++;
-#ifdef FM_PROFILE
-        struct timeval run_startts;
-        memset(&run_startts, 0, sizeof(run_startts));
-        gettimeofday(&run_startts, NULL);
-#endif
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
+
+        StatsAddUI64(th_v, ftd->counter_queue_avg, list.len);
+        StatsSetUI64(th_v, ftd->counter_queue_max, list.len);
 
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));
 
@@ -1131,60 +1114,46 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
         Flow *f;
         while ((f = FlowQueuePrivateGetFromTop(&list)) != NULL) {
-            Recycler(th_v, ftd->output_thread_data, f);
+            Recycler(th_v, ftd, f);
             recycled_cnt++;
+            StatsIncr(th_v, ftd->counter_flows);
         }
         SC_ATOMIC_SUB(flowrec_busy,1);
-
-#ifdef FM_PROFILE
-        struct timeval run_endts;
-        memset(&run_endts, 0, sizeof(run_endts));
-        gettimeofday(&run_endts, NULL);
-
-        struct timeval run_time;
-        memset(&run_time, 0, sizeof(run_time));
-        timersub(&run_endts, &run_startts, &run_time);
-        timeradd(&active, &run_time, &active);
-#endif
 
         if (bail) {
             break;
         }
 
-#ifdef FM_PROFILE
-        struct timeval sleep_startts;
-        memset(&sleep_startts, 0, sizeof(sleep_startts));
-        gettimeofday(&sleep_startts, NULL);
-#endif
-        usleep(250);
-#ifdef FM_PROFILE
-        struct timeval sleep_endts;
-        memset(&sleep_endts, 0, sizeof(sleep_endts));
-        gettimeofday(&sleep_endts, NULL);
-        struct timeval sleep_time;
-        memset(&sleep_time, 0, sizeof(sleep_time));
-        timersub(&sleep_endts, &sleep_startts, &sleep_time);
-        timeradd(&sleeping, &sleep_time, &sleeping);
-#endif
+        const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY);
+        if (emerg || !time_is_live) {
+            usleep(250);
+        } else {
+            struct timeval cond_tv;
+            gettimeofday(&cond_tv, NULL);
+            cond_tv.tv_sec += 1;
+            struct timespec cond_time = FROM_TIMEVAL(cond_tv);
+            SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
+            while (1) {
+                int rc = SCCtrlCondTimedwait(
+                        &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
+                if (rc == ETIMEDOUT || rc < 0) {
+                    break;
+                }
+                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                    break;
+                }
+                if (SC_ATOMIC_GET(flow_recycle_q.non_empty) == true) {
+                    break;
+                }
+            }
+            SCCtrlMutexUnlock(&flow_recycler_ctrl_mutex);
+        }
 
         SCLogDebug("woke up...");
 
         StatsSyncCountersIfSignalled(th_v);
     }
     StatsSyncCounters(th_v);
-#ifdef FM_PROFILE
-    gettimeofday(&endts, NULL);
-    struct timeval total_run_time;
-    timersub(&endts, &startts, &total_run_time);
-    SCLogNotice("FR: active %u.%us out of %u.%us; sleeping %u.%us, paused %u.%us",
-            (uint32_t)active.tv_sec, (uint32_t)active.tv_usec,
-            (uint32_t)total_run_time.tv_sec, (uint32_t)total_run_time.tv_usec,
-            (uint32_t)sleeping.tv_sec, (uint32_t)sleeping.tv_usec,
-            (uint32_t)paused.tv_sec, (uint32_t)paused.tv_usec);
-
-    SCLogNotice("FR passes %u passes/s %u", fr_passes,
-            (uint32_t)fr_passes/((uint32_t)active.tv_sec?(uint32_t)active.tv_sec:1));
-#endif
     SCLogPerf("%"PRIu64" flows processed", recycled_cnt);
     return TM_ECODE_OK;
 }
@@ -1213,6 +1182,9 @@ void FlowRecyclerThreadSpawn()
                 "invalid flow.recyclers setting %"PRIdMAX, setting);
     }
     flowrec_number = (uint32_t)setting;
+
+    SCCtrlCondInit(&flow_recycler_ctrl_cond, NULL);
+    SCCtrlMutexInit(&flow_recycler_ctrl_mutex, NULL);
 
     SCLogConfig("using %u flow recycler threads", flowrec_number);
 
@@ -1255,6 +1227,7 @@ void FlowDisableFlowRecyclerThread(void)
 
     /* make sure all flows are processed */
     do {
+        FlowWakeupFlowRecyclerThread();
         usleep(10);
     } while (FlowRecyclerReadyToShutdown() == false);
 
@@ -1288,6 +1261,7 @@ again:
         {
             if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
                 SCMutexUnlock(&tv_root_lock);
+                FlowWakeupFlowRecyclerThread();
                 /* sleep outside lock */
                 SleepMsec(1);
                 goto again;

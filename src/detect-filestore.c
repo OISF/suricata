@@ -198,8 +198,6 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
 static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    uint8_t flags = 0;
-
     SCEnter();
 
     if (det_ctx->filestore_cnt == 0) {
@@ -219,11 +217,8 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
         TcpSession *ssn = (TcpSession *)p->flow->protoctx;
         TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
     }
-    if (p->flowflags & FLOW_PKT_TOCLIENT)
-        flags |= STREAM_TOCLIENT;
-    else
-        flags |= STREAM_TOSERVER;
 
+    const uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
     for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
         AppLayerParserSetStreamDepthFlag(p->flow->proto, p->flow->alproto,
                                          FlowGetAppState(p->flow),

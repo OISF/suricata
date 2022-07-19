@@ -24,6 +24,14 @@
 #ifndef __FLOW_MANAGER_H__
 #define __FLOW_MANAGER_H__
 
+/** flow manager scheduling condition */
+extern SCCtrlCondT flow_manager_ctrl_cond;
+extern SCCtrlMutex flow_manager_ctrl_mutex;
+#define FlowWakeupFlowManagerThread() SCCtrlCondSignal(&flow_manager_ctrl_cond)
+extern SCCtrlCondT flow_recycler_ctrl_cond;
+extern SCCtrlMutex flow_recycler_ctrl_mutex;
+#define FlowWakeupFlowRecyclerThread() SCCtrlCondSignal(&flow_recycler_ctrl_cond)
+
 #define FlowTimeoutsReset() FlowTimeoutsInit()
 void FlowTimeoutsInit(void);
 void FlowTimeoutsEmergency(void);

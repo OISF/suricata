@@ -64,6 +64,10 @@
             "type": "integer",
             "optional": true
         },
+        "pcap_filename": {
+            "type": "string",
+            "optional": true
+        },
         "pkt_src": {
             "type": "string"
         },
@@ -1119,6 +1123,9 @@
                 "ttl": {
                     "type": "integer"
                 },
+                "udplen": {
+                    "type": "integer"
+                },
                 "urg": {
                     "type": "boolean"
                 },
@@ -1135,6 +1142,9 @@
                 "body_md5": {
                     "type": "string"
                 },
+                "date": {
+                    "type": "string"
+                },
                 "from": {
                     "type": "string"
                 },
@@ -1145,6 +1155,9 @@
                     "type": "string"
                 },
                 "subject_md5": {
+                    "type": "string"
+                },
+                "x_mailer": {
                     "type": "string"
                 },
                 "url": {
@@ -4497,6 +4510,9 @@
                 "flow": {
                     "type": "object",
                     "properties": {
+                        "active": {
+                            "type": "integer"
+                        },
                         "emerg_mode_entered": {
                             "type": "integer"
                         },
@@ -4539,8 +4555,80 @@
                         "tcp_reuse": {
                             "type": "integer"
                         },
+                        "total": {
+                            "type": "integer"
+                        },
                         "udp": {
                             "type": "integer"
+                        },
+                        "end": {
+                            "type": "object",
+                            "properties": {
+                                "state": {
+                                    "type": "object",
+                                    "properties": {
+                                        "new": {
+                                            "type": "integer"
+                                        },
+                                        "established": {
+                                            "type": "integer"
+                                        },
+                                        "closed": {
+                                            "type": "integer"
+                                        },
+                                        "local_bypassed": {
+                                            "type": "integer"
+                                        },
+                                        "capture_bypassed": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "tcp_state": {
+                                    "type": "object",
+                                    "properties": {
+                                        "none": {
+                                            "type": "integer"
+                                        },
+                                        "syn_sent": {
+                                            "type": "integer"
+                                        },
+                                        "syn_recv": {
+                                            "type": "integer"
+                                        },
+                                        "established": {
+                                            "type": "integer"
+                                        },
+                                        "fin_wait1": {
+                                            "type": "integer"
+                                        },
+                                        "fin_wait2": {
+                                            "type": "integer"
+                                        },
+                                        "time_wait": {
+                                            "type": "integer"
+                                        },
+                                        "last_ack": {
+                                            "type": "integer"
+                                        },
+                                        "close_wait": {
+                                            "type": "integer"
+                                        },
+                                        "closing": {
+                                            "type": "integer"
+                                        },
+                                        "closed": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "tcp_liberal": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
                         },
                         "mgr": {
                             "type": "object",
@@ -4579,6 +4667,24 @@
                                     "type": "integer"
                                 },
                                 "rows_maxlen": {
+                                    "type": "integer"
+                                },
+                                "rows_per_sec": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "recycler": {
+                            "type": "object",
+                            "properties": {
+                                "recycled": {
+                                    "type": "integer"
+                                },
+                                "queue_avg": {
+                                    "type": "integer"
+                                },
+                                "queue_max": {
                                     "type": "integer"
                                 }
                             },
@@ -4719,6 +4825,9 @@
                 "tcp": {
                     "type": "object",
                     "properties": {
+                        "active_sessions": {
+                            "type": "integer"
+                        },
                         "insert_data_normal_fail": {
                             "type": "integer"
                         },

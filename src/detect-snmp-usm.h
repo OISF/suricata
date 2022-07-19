@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,16 +15,9 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- *  \author Victor Julien <victor@inliniac.net>
- */
+#ifndef __DETECT_SNMP_USM_H__
+#define __DETECT_SNMP_USM_H__
 
-#ifndef __DETECT_IPREP_H__
-#define __DETECT_IPREP_H__
+void DetectSNMPUsmRegister(void);
 
-/* prototypes */
-void DetectIPRepRegister (void);
-
-#endif /* __DETECT_IPREP_H__ */
+#endif /* __DETECT_SNMP_USM_H__ */
