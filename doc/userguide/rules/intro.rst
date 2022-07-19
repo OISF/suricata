@@ -1,6 +1,5 @@
 Rules Format
 ============
-
 Signatures play a very important role in Suricata. In most occasions
 people are using existing rulesets.
 
@@ -274,7 +273,6 @@ Some generic details about keywords follow.
 
 Modifier Keywords
 ~~~~~~~~~~~~~~~~~
-
 Some keywords function act as modifiers. There are two types of modifiers.
 
 * The older style **'content modifiers'** look back in the rule, e.g.::
