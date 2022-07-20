@@ -413,7 +413,7 @@ inline void FlowEncryptedTrafficFinalize(Flow *f)
     if (splt->bd_count == 1) {
         splt->bd_variance = 0.0;
     } else {
-        double variance = sqrt(splt->bd_variance / (splt->bd_count - 1));
+        double variance = sqrt(splt->bd_variance / (float)(splt->bd_count - 1));
         splt->bd_variance = (float)variance;
     }
 
@@ -428,8 +428,8 @@ inline void FlowEncryptedTrafficFinalize(Flow *f)
     splt->bd_entropy = (entropy / logf(2.0));
 
     /* final calculation of producer/consumer ratio (pcr) */
-    float nvalue = ((float)splt->sapp_bytes - splt->dapp_bytes);
-    float dvalue = ((float)splt->sapp_bytes + splt->dapp_bytes);
+    float nvalue = (float)(splt->sapp_bytes - splt->dapp_bytes);
+    float dvalue = (float)(splt->sapp_bytes + splt->dapp_bytes);
 
     if (dvalue > 0)
         splt->pcr = (nvalue / dvalue);
