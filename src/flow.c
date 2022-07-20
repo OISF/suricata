@@ -390,7 +390,7 @@ FlowStorageId GetFlowSPLTInfoID(void)
 
 static void FlowSPLTFree(void *x)
 {
-    FlowSPLT *fsplt = (FlowSPLT *) x;
+    FlowSPLT *fsplt = (FlowSPLT *)x;
 
     if (fsplt == NULL)
         return;
@@ -400,8 +400,7 @@ static void FlowSPLTFree(void *x)
 
 void RegisterFlowSPLTInfo(void)
 {
-    g_splt_info_id = FlowStorageRegister("splt", sizeof(void *),
-                                              NULL, FlowSPLTFree);
+    g_splt_info_id = FlowStorageRegister("splt", sizeof(void *), NULL, FlowSPLTFree);
 }
 
 inline void FlowEncryptedTrafficFinalize(Flow *f)
@@ -441,12 +440,12 @@ inline void FlowEncryptedTrafficFinalize(Flow *f)
 static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
 {
     FlowSPLT *splt = FlowGetStorageById(f, GetFlowSPLTInfoID());
-    if (splt == NULL) {    
+    if (splt == NULL) {
         /* Transfer ownership of SPLT data to the Flow */
         splt = SCCalloc(1, sizeof(*splt));
         if (splt == NULL) {
             SCLogDebug("Unable to allocate SPLT");
-            return; 
+            return;
         }
         if (FlowSetStorageById(f, GetFlowSPLTInfoID(), splt) != 0) {
             SCLogDebug("Unable to set splt flow storage");
@@ -458,7 +457,8 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
     else
         splt->sapp_bytes = p->payload_len;
 
-    if (f->flow_state == FLOW_STATE_ESTABLISHED || (f->flow_state == FLOW_STATE_NEW && f->proto == IPPROTO_UDP)) {
+    if (f->flow_state == FLOW_STATE_ESTABLISHED ||
+            (f->flow_state == FLOW_STATE_NEW && f->proto == IPPROTO_UDP)) {
 
         if (splt->splt_count < FLOW_SPLT_MAX_COUNT) {
             uint32_t pkt_len = MIN(FLOW_SPLT_MAX_LEN, p->payload_len);
@@ -473,12 +473,12 @@ static void FlowEncryptedTrafficUpdate(Flow *f, Packet *p)
                     splt->seq[splt->splt_count].delta = 0;
                 } else {
                     uint64_t delta_epoch_msec = now_epoch_msec - splt->last_epoch_msec;
-                    splt->seq[splt->splt_count].delta =
-                            (delta_epoch_msec > FLOW_SPLT_MAX_MSEC) ? FLOW_SPLT_MAX_MSEC : delta_epoch_msec;
+                    splt->seq[splt->splt_count].delta = (delta_epoch_msec > FLOW_SPLT_MAX_MSEC)
+                                                                ? FLOW_SPLT_MAX_MSEC
+                                                                : delta_epoch_msec;
                     splt->last_epoch_msec = now_epoch_msec;
                 }
                 splt->splt_count++;
-
             }
 
             /* Update byte distribution */

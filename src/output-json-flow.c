@@ -218,8 +218,8 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
 
 void EveAddEncryptedTrafficMetaData(Flow *f, JsonBuilder *js)
 {
-    FlowSPLT* splt = FlowGetStorageById(f, GetFlowSPLTInfoID());
-    if ( splt && (splt->first_epoch_msec > 0) && (splt->splt_count > 0)) {
+    FlowSPLT *splt = FlowGetStorageById(f, GetFlowSPLTInfoID());
+    if (splt && (splt->first_epoch_msec > 0) && (splt->splt_count > 0)) {
         uint32_t i = 0;
         JsonBuilder *js_splt = jb_new_object();
         if (unlikely(js_splt == NULL)) {
@@ -319,7 +319,6 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     } else if (f->flags & FLOW_ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
     }
-
 
     if (g_enable_etm) {
         EveAddEncryptedTrafficMetaData(f, jb);
