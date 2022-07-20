@@ -1091,6 +1091,18 @@ asn1-max-frames: 256
 #  user: suri
 #  group: suri
 
+# Use landlock security module under Linux
+landlock:
+  enabled: no
+  directories:
+    write:
+      - @e_logdir@
+      - @e_rundir@
+    read:
+      - /usr/
+      - /etc/
+      - @e_sysconfdir@
+
 # Some logging modules will use that name in event as identifier. The default
 # value is the hostname
 #sensor-name: suricata
