@@ -7,7 +7,7 @@
 *.rules
 *.pcap
 *.pcapng
-/*.yaml
+/suricata.yaml
 Makefile
 .deps/
 .libs/
