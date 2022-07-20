@@ -7,6 +7,7 @@ Meta-settings have no effect on Suricata's inspection; they do have an effect on
 
 msg (message)
 -------------
+
 The keyword msg gives textual information about the signature and the possible alert.
 
 The format of msg is::
@@ -62,6 +63,7 @@ Example of sid in a signature:
 
 rev (revision)
 --------------
+
 The sid keyword is almost every time accompanied by rev. Rev
 represents the version of the signature. If a signature is modified,
 the number of rev will be incremented by the signature writers.  The
@@ -85,6 +87,7 @@ Example of rev in a signature:
 
 gid (group ID)
 --------------
+
 The gid keyword can be used to give different groups of signatures
 another id value (like in sid). Suricata uses by default gid 1. It is
 possible to modify this. It is not usual that it will be changed, and
@@ -101,6 +104,7 @@ Example of gid in an alert of fast.log. In the part [1:2008124:2], 1 is the gid 
 
 classtype
 ---------
+
 The classtype keyword gives information about the classification of
 rules and alerts. It consists of a short name, a long name and a
 priority. It can tell for example whether a rule is just informational
@@ -169,6 +173,7 @@ Our continuing example also has a reference:
 
 priority
 --------
+
 The priority keyword comes with a mandatory numeric value which can
 range from 1 till 255. The numbers 1 to 4 are most often used.
 Signatures with a higher priority will be examined first. The highest
@@ -191,6 +196,7 @@ in eve alerts. The format is::
 
 target
 ------
+
 The target keyword allows the rules writer to specify which side of the
 alert is the target of the attack. If specified, the alert event is enhanced
 to contain information about source and target.
