@@ -413,6 +413,13 @@
         AC_SUBST(SECLDFLAGS)
     ])
 
+    #check for Landlock support
+    AC_CHECK_HEADERS([linux/landlock.h])
+    enable_landlock="no"
+    if test "$ac_cv_header_linux_landlock_h" = "yes"; then
+        enable_landlock="yes"
+    fi
+
     #check for plugin support
     AC_CHECK_HEADERS([dlfcn.h])
     AC_MSG_CHECKING([for plugin support])
@@ -2559,6 +2566,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
+  Landlock support:                        ${enable_landlock}
 
   Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
