@@ -26,6 +26,7 @@
 
 /** Spinlocks or Mutex for the flow buckets. */
 //#define FBLOCK_SPIN
+#include "flow-storage.h"
 #define FBLOCK_MUTEX
 
 #ifdef FBLOCK_SPIN

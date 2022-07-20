@@ -1162,17 +1162,19 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 void FlowUpdateState(Flow *f, const enum FlowState s)
 {
     if (s != f->flow_state) {
-        /* set the state */
-        // Explicit cast from the enum type to the compact version
-        f->flow_state = (FlowStateType)s;
+        if ((f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) || s == FLOW_STATE_LOCAL_BYPASSED) {
+            /* set the state */
+            // Explicit cast from the enum type to the compact version
+            f->flow_state = (FlowStateType)s;
 
-        /* update timeout policy and value */
-        const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
-        if (timeout_policy != f->timeout_policy) {
-            f->timeout_policy = timeout_policy;
-            const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + timeout_policy;
-            if (timeout_at != f->timeout_at)
-                f->timeout_at = timeout_at;
+            /* update timeout policy and value */
+            const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
+            if (timeout_policy != f->timeout_policy) {
+                f->timeout_policy = timeout_policy;
+                const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + timeout_policy;
+                if (timeout_at != f->timeout_at)
+                    f->timeout_at = timeout_at;
+            }
         }
     }
 #ifdef UNITTESTS
