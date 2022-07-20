@@ -28,46 +28,34 @@
 
 #ifndef HAVE_LINUX_LANDLOCK_H
 
-void LandlockSandboxing(SCInstance *suri) {
+void LandlockSandboxing(SCInstance *suri)
+{
     return;
 }
 
 #else /* HAVE_LINUX_LANDLOCK_H */
 
-#define _LANDLOCK_ACCESS_FS_WRITE ( \
-        LANDLOCK_ACCESS_FS_WRITE_FILE | \
-        LANDLOCK_ACCESS_FS_REMOVE_DIR | \
-        LANDLOCK_ACCESS_FS_REMOVE_FILE | \
-        LANDLOCK_ACCESS_FS_MAKE_CHAR | \
-        LANDLOCK_ACCESS_FS_MAKE_DIR | \
-        LANDLOCK_ACCESS_FS_MAKE_REG | \
-        LANDLOCK_ACCESS_FS_MAKE_SOCK | \
-        LANDLOCK_ACCESS_FS_MAKE_FIFO | \
-        LANDLOCK_ACCESS_FS_MAKE_BLOCK | \
-        LANDLOCK_ACCESS_FS_MAKE_SYM | \
-        LANDLOCK_ACCESS_FS_REFER )
+#define _LANDLOCK_ACCESS_FS_WRITE                                                                  \
+    (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_REMOVE_DIR |                               \
+            LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_CHAR |                        \
+            LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |                            \
+            LANDLOCK_ACCESS_FS_MAKE_SOCK | LANDLOCK_ACCESS_FS_MAKE_FIFO |                          \
+            LANDLOCK_ACCESS_FS_MAKE_BLOCK | LANDLOCK_ACCESS_FS_MAKE_SYM |                          \
+            LANDLOCK_ACCESS_FS_REFER)
 
-#define _LANDLOCK_ACCESS_FS_READ ( \
-        LANDLOCK_ACCESS_FS_READ_FILE | \
-        LANDLOCK_ACCESS_FS_READ_DIR)
+#define _LANDLOCK_ACCESS_FS_READ (LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
-#define _LANDLOCK_SURI_ACCESS_FS_WRITE ( \
-        LANDLOCK_ACCESS_FS_WRITE_FILE | \
-        LANDLOCK_ACCESS_FS_MAKE_DIR | \
-        LANDLOCK_ACCESS_FS_MAKE_REG | \
-        LANDLOCK_ACCESS_FS_REMOVE_FILE | \
-        LANDLOCK_ACCESS_FS_MAKE_SOCK \
-        )
+#define _LANDLOCK_SURI_ACCESS_FS_WRITE                                                             \
+    (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
+            LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK)
 
 static inline int LandlockCreateRuleset()
 {
     int ruleset_fd;
 
     struct landlock_ruleset_attr ruleset_attr = {
-        .handled_access_fs = \
-                             _LANDLOCK_ACCESS_FS_READ | \
-                             _LANDLOCK_ACCESS_FS_WRITE | \
-                             LANDLOCK_ACCESS_FS_EXECUTE,
+        .handled_access_fs =
+                _LANDLOCK_ACCESS_FS_READ | _LANDLOCK_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_EXECUTE,
     };
 
     int abi;
@@ -130,7 +118,8 @@ static inline void LandlockSandboxingReadPath(int ruleset_fd, const char *direct
     }
 }
 
-void LandlockSandboxing(SCInstance *suri) {
+void LandlockSandboxing(SCInstance *suri)
+{
     /* Read configuration variable and exit if no enforcement */
     int conf_status;
     ConfGetBool("landlock.enabled", &conf_status);
@@ -141,19 +130,20 @@ void LandlockSandboxing(SCInstance *suri) {
     int ruleset_fd = LandlockCreateRuleset();
 
     LandlockSandboxingWritePath(ruleset_fd, ConfigGetLogDirectory());
-    LandlockSandboxingAddRule(ruleset_fd, ConfigGetDataDirectory(), _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+    LandlockSandboxingAddRule(ruleset_fd, ConfigGetDataDirectory(),
+            _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
 
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;
         ConfGet("pcap-file.file", &pcap_file);
-        char * base_dir = SCStrdup(pcap_file);
+        char *base_dir = SCStrdup(pcap_file);
         if (base_dir != NULL) {
             LandlockSandboxingReadPath(ruleset_fd, dirname(base_dir));
             SCFree(base_dir);
         }
     }
     if (suri->sig_file) {
-        char * base_dir = SCStrdup(suri->sig_file);
+        char *base_dir = SCStrdup(suri->sig_file);
         if (base_dir != NULL) {
             LandlockSandboxingReadPath(ruleset_fd, dirname(base_dir));
             SCFree(base_dir);
@@ -174,8 +164,8 @@ void LandlockSandboxing(SCInstance *suri) {
                     "Invalid landlock.directories.read configuration section: "
                     "expected a list of directory names.");
         } else {
-            ConfNode * directory;
-            TAILQ_FOREACH(directory, &read_dirs->head, next) {
+            ConfNode *directory;
+            TAILQ_FOREACH (directory, &read_dirs->head, next) {
                 LandlockSandboxingReadPath(ruleset_fd, directory->val);
             }
         }
@@ -187,8 +177,8 @@ void LandlockSandboxing(SCInstance *suri) {
                     "Invalid landlock.directories.write configuration section: "
                     "expected a list of directory names.");
         } else {
-            ConfNode * directory;
-            TAILQ_FOREACH(directory, &write_dirs->head, next) {
+            ConfNode *directory;
+            TAILQ_FOREACH (directory, &write_dirs->head, next) {
                 LandlockSandboxingWritePath(ruleset_fd, directory->val);
             }
         }

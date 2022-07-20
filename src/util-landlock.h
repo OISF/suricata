@@ -33,20 +33,18 @@ void LandlockSandboxing(SCInstance *suri);
 #include <linux/landlock.h>
 
 #ifndef landlock_create_ruleset
-static inline int landlock_create_ruleset(const struct landlock_ruleset_attr *const attr,
-        const size_t size, const __u32 flags)
+static inline int landlock_create_ruleset(
+        const struct landlock_ruleset_attr *const attr, const size_t size, const __u32 flags)
 {
     return syscall(__NR_landlock_create_ruleset, attr, size, flags);
 }
 #endif
 
 #ifndef landlock_add_rule
-static inline int landlock_add_rule(const int ruleset_fd,
-        const enum landlock_rule_type rule_type,
+static inline int landlock_add_rule(const int ruleset_fd, const enum landlock_rule_type rule_type,
         const void *const rule_attr, const __u32 flags)
 {
-    return syscall(__NR_landlock_add_rule, ruleset_fd, rule_type,
-            rule_attr, flags);
+    return syscall(__NR_landlock_add_rule, ruleset_fd, rule_type, rule_attr, flags);
 }
 #endif
 
@@ -58,10 +56,8 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 #endif
 
 #ifndef LANDLOCK_ACCESS_FS_REFER
-#define LANDLOCK_ACCESS_FS_REFER			(1ULL << 13)
+#define LANDLOCK_ACCESS_FS_REFER (1ULL << 13)
 #endif
 
 #endif /* HAVE_LINUX_LANDLOCK_H */
 #endif /* __UTIL_LANDLOCK_H__ */
-
-
