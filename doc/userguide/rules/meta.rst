@@ -154,6 +154,7 @@ Our continuing example also has a reference:
 
     drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; :example-rule-emphasis:`reference:url,doc.emergingthreats.net/2008124;` classtype:trojan-activity; sid:2008124; rev:2;)
 
+.. _priority:
 
 priority
 --------
