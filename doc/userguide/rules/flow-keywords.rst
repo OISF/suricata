@@ -6,6 +6,8 @@ Flow Keywords
 .. role:: example-rule-options
 .. role:: example-rule-emphasis
 
+.. _flowbits:
+
 flowbits
 --------
 
@@ -121,6 +123,7 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
+.. _flowint:
 
 flowint
 -------
