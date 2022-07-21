@@ -1000,6 +1000,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 
     SCJbSetString(ctx.js, "raw", s->sig_str);
     SCJbSetUint(ctx.js, "id", s->id);
+    SCJbSetUint(ctx.js, "iid", s->iid);
     SCJbSetUint(ctx.js, "gid", s->gid);
     SCJbSetUint(ctx.js, "rev", s->rev);
     SCJbSetString(ctx.js, "msg", s->msg);
