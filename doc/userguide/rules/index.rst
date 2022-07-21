@@ -57,3 +57,4 @@ Suricata Rules
    pgsql-keywords
    rule-types
    email-keywords
+   rules-internals
