@@ -164,6 +164,8 @@ back to the default.
 We recommend that you use the default value for this setting unless you are seeing a high number of discarded alerts
 (``alert_queue_overflow``) - see the `Discarded and Suppressed Alerts Stats`_ section for more details.
 
+.. _alert queue overflow impact:
+
 Impact on engine behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -648,6 +650,8 @@ The following shows the configuration options for version 2 of the
       # the use of this output module as it uses the SHA256 as the
       # file naming scheme.
       #force-hash: [sha1, md5]
+
+.. _detection-engine:
 
 Detection engine
 ----------------
