@@ -1,6 +1,8 @@
 Flow Keywords
 =============
 
+.. _flowbits:
+
 flowbits
 --------
 
@@ -113,6 +115,7 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
+.. _flowint:
 
 flowint
 -------

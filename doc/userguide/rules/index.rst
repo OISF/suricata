@@ -39,3 +39,4 @@ Suricata Rules
    datasets
    lua-detection
    differences-from-snort
+   rules-internals
