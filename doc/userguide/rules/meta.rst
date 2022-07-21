@@ -174,6 +174,8 @@ This would make a reference to http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE
 
 All the reference types are defined in the reference.config configuration file.
 
+.. _priority:
+
 priority
 --------
 

@@ -163,6 +163,8 @@ back to the default.
 We recommend that you use the default value for this setting unless you are seeing a high number of discarded alerts
 (``alert_queue_overflow``) - see the `Discarded and Suppressed Alerts Stats`_ section for more details.
 
+.. _alert queue overflow impact:
+
 Impact on engine behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -148,6 +148,8 @@ relative modifiers, so they may only be used within the same
 buffer. You can not relate content matches against different buffers
 with relative modifiers.
 
+.. _http.method:
+
 http.method
 -----------
 
