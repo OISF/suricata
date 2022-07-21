@@ -46,7 +46,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
+#define PARSE_REGEX "^([a-z]+)(?:,\\s*([^,]*))?(?:,\\s*([a-z]+))*"
 static DetectParseRegex parse_regex;
 
 #define MAX_TOKENS 100
@@ -213,14 +213,14 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return 0;
 }
 
-static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
-    int name_len)
+static int DetectFlowbitParse(
+        const char *str, char *cmd, int cmd_len, char *name, int name_len, bool *on_data)
 {
     int count, rc;
     size_t pcre2len;
 
     count = DetectParsePcreExec(&parse_regex, str, 0, 0);
-    if (count != 2 && count != 3) {
+    if (count < 2 || count > 4) {
         SCLogError(SC_ERR_PCRE_MATCH,
             "\"%s\" is not a valid setting for flowbits.", str);
         return 0;
@@ -233,7 +233,7 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
         return 0;
     }
 
-    if (count == 3) {
+    if (count >= 3) {
         pcre2len = name_len;
         rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
         if (rc < 0) {
@@ -257,6 +257,23 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
             }
         }
     }
+    if (count == 4) {
+        char last_option[8];
+        pcre2len = 8;
+        rc = pcre2_substring_copy_bynumber(
+                parse_regex.match, 3, (PCRE2_UCHAR8 *)last_option, &pcre2len);
+        if (rc < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            return 0;
+        }
+        if (!strcmp(last_option, "data"))
+            *on_data = true;
+        else {
+            SCLogError(
+                    SC_ERR_INVALID_SIGNATURE, "option '%s' not allowed with flowbit", last_option);
+            return 0;
+        }
+    }
 
     return 1;
 }
@@ -267,9 +284,10 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     SigMatch *sm = NULL;
     uint8_t fb_cmd = 0;
     char fb_cmd_str[16] = "", fb_name[256] = "";
+    bool on_data = false;
 
-    if (!DetectFlowbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name,
-            sizeof(fb_name))) {
+    if (!DetectFlowbitParse(
+                rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name, sizeof(fb_name), &on_data)) {
         return -1;
     }
 
@@ -340,7 +358,10 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (on_data)
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+            else
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
 
         case DETECT_FLOWBITS_CMD_SET:
@@ -746,39 +767,39 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 static int FlowBitsTestParse01(void)
 {
     char command[16] = "", name[16] = "";
+    bool on_data = false;
 
     /* Single argument version. */
-    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name,
-            sizeof(name)));
+    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name, sizeof(name), &on_data));
     FAIL_IF(strcmp(command, "noalert") != 0);
 
     /* No leading or trailing spaces. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
-            sizeof(name)));
+    FAIL_IF(!DetectFlowbitParse(
+            "set,flowbit", command, sizeof(command), name, sizeof(name), &on_data));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
-            sizeof(name)));
+    FAIL_IF(!DetectFlowbitParse(
+            "set, flowbit", command, sizeof(command), name, sizeof(name), &on_data));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
-            sizeof(name)));
+    FAIL_IF(!DetectFlowbitParse(
+            "set,flowbit ", command, sizeof(command), name, sizeof(name), &on_data));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading and trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
-            sizeof(name)));
+    FAIL_IF(!DetectFlowbitParse(
+            "set, flowbit ", command, sizeof(command), name, sizeof(name), &on_data));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Spaces are not allowed in the name. */
-    FAIL_IF(DetectFlowbitParse("set,namewith space", command, sizeof(command),
-            name, sizeof(name)));
+    FAIL_IF(DetectFlowbitParse(
+            "set,namewith space", command, sizeof(command), name, sizeof(name), &on_data));
 
     PASS;
 }
