@@ -75,6 +75,9 @@ pub struct KRB5Transaction {
     /// Encryption used (only in AS-REP and TGS-REP)
     pub etype: Option<EncryptionType>,
 
+    /// Encryption used for ticket
+    pub ticket_etype: Option<EncryptionType>,
+
     /// Error code, if request has failed
     pub error_code: Option<ErrorCode>,
 
@@ -131,6 +134,7 @@ impl KRB5State {
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
                             tx.sname = Some(kdc_rep.ticket.sname);
+                            tx.ticket_etype = Some(kdc_rep.ticket.enc_part.etype);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
                             if test_weak_encryption(kdc_rep.enc_part.etype) {
@@ -149,6 +153,7 @@ impl KRB5State {
                             tx.msg_type = MessageType::KRB_TGS_REP;
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
+                            tx.ticket_etype = Some(kdc_rep.ticket.enc_part.etype);
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
@@ -233,6 +238,7 @@ impl KRB5Transaction {
             realm: None,
             sname: None,
             etype: None,
+            ticket_etype: None,
             error_code: None,
             id: id,
             tx_data: applayer::AppLayerTxData::new(),
