@@ -1906,6 +1906,12 @@
                 "sname": {
                     "type": "string"
                 },
+                "ticket_encryption": {
+                    "type": "string"
+                },
+                "ticket_weak_encryption": {
+                    "type": "boolean"
+                },
                 "weak_encryption": {
                     "type": "boolean"
                 }
