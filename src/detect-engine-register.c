@@ -186,6 +186,7 @@
 #include "detect-krb5-errcode.h"
 #include "detect-krb5-msgtype.h"
 #include "detect-krb5-sname.h"
+#include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
 #include "detect-sip-protocol.h"
@@ -622,6 +623,7 @@ void SigTableSetup(void)
     DetectKrb5ErrCodeRegister();
     DetectKrb5MsgTypeRegister();
     DetectKrb5SNameRegister();
+    DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();
     DetectSipUriRegister();
     DetectSipProtocolRegister();

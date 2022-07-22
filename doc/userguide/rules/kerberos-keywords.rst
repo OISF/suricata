@@ -111,3 +111,20 @@ Syntax::
 Signature example::
 
  alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 malformed request data"; flow:to_server; app-layer-event:krb5.malformed_data; classtype:protocol-command-decode; sid:2226000; rev:1;)
+
+krb5.ticket_encryption
+----------------------
+
+Kerberos ticket encryption (enumeration).
+
+For a list of encryption types, refer to RFC3961 section 8.
+
+Syntax::
+
+ krb5.ticket_encryption: (!)"weak" or (space or comma)-separated list of integer or string values for an encryption type
+
+Signature example::
+
+ alert krb5 any any -> any any (krb5.ticket_encryption: weak; sid:1;)
+ alert krb5 any any -> any any (krb5.ticket_encryption: 23; sid:2;)
+ alert krb5 any any -> any any (krb5.ticket_encryption: rc4-hmac,rc4-hmac-exp; sid:3;)
