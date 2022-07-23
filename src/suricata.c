@@ -2650,7 +2650,6 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCLogInfo("Encrypted Traffic Metadata generation enabled");
     }
 
-
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
