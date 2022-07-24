@@ -194,7 +194,7 @@ impl HTTP2Transaction {
 
     fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
         for i in 0..blocks.len() {
-            if blocks[i].name == "content-encoding".as_bytes().to_vec() {
+            if &blocks[i].name == "content-encoding".as_bytes() {
                 self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
             }
         }
