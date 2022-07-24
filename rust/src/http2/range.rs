@@ -169,12 +169,12 @@ pub fn http2_range_close(
 ) {
     let added = if let Some(c) = unsafe { SC } {
         let added = (c.HTPFileCloseHandleRange)(
-                files,
-                flags,
-                tx.file_range,
-                data.as_ptr(),
-                data.len() as u32,
-                );
+            files,
+            flags,
+            tx.file_range,
+            data.as_ptr(),
+            data.len() as u32,
+        );
         (c.HttpRangeFreeBlock)(tx.file_range);
         added
     } else {
