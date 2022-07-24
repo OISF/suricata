@@ -97,6 +97,7 @@ pub struct IKETransaction {
     tx_id: u64,
 
     pub ike_version: u8,
+    pub direction: Direction,
     pub hdr: IkeHeaderWrapper,
     pub payload_types: IkePayloadWrapper,
     pub notify_types: Vec<NotifyType>,
@@ -119,6 +120,7 @@ impl IKETransaction {
         IKETransaction {
             tx_id: 0,
             ike_version: 0,
+            direction: Direction::ToServer,
             hdr: IkeHeaderWrapper::new(),
             payload_types: Default::default(),
             notify_types: vec![],
