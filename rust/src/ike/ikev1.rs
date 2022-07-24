@@ -40,27 +40,20 @@ pub struct IkeV1Header {
 pub struct Ikev1ParticipantData {
     pub key_exchange: String,
     pub nonce: String,
-    pub vendor_ids: HashSet<String>,
-    /// nested Vec, outer Vec per Proposal/Transform, inner Vec has the list of attributes.
-    pub transforms: Vec<Vec<SaAttribute>>,
+    pub nb_transforms: usize,
 }
 
 impl Ikev1ParticipantData {
     pub fn reset(&mut self) {
         self.key_exchange.clear();
         self.nonce.clear();
-        self.vendor_ids.clear();
-        self.transforms.clear();
+        self.nb_transforms = 0;
     }
 
-    pub fn update(
-        &mut self, key_exchange: &String, nonce: &String, vendor_ids: &Vec<String>,
-        transforms: &Vec<Vec<SaAttribute>>,
-    ) {
+    pub fn update(&mut self, key_exchange: &String, nonce: &String, nb_transforms: usize) {
         self.key_exchange = key_exchange.clone();
         self.nonce = nonce.clone();
-        self.vendor_ids.extend(vendor_ids.iter().cloned());
-        self.transforms.extend(transforms.iter().cloned());
+        self.nb_transforms += nb_transforms;
     }
 }
 
@@ -77,6 +70,7 @@ pub fn handle_ikev1(
     let mut tx = state.new_tx();
 
     tx.ike_version = 1;
+    tx.direction = direction;
     tx.hdr.spi_initiator = format!("{:016x}", isakmp_header.init_spi);
     tx.hdr.spi_responder = format!("{:016x}", isakmp_header.resp_spi);
     tx.hdr.maj_ver = isakmp_header.maj_ver;
@@ -126,12 +120,11 @@ pub fn handle_ikev1(
                     state.ikev1_container.client.update(
                         &to_hex(tx.hdr.ikev1_header.key_exchange.as_ref()),
                         &to_hex(tx.hdr.ikev1_header.nonce.as_ref()),
-                        &tx.hdr.ikev1_header.vendor_ids,
-                        &tx.hdr.ikev1_transforms,
+                        tx.hdr.ikev1_transforms.len(),
                     );
                 } else {
-                    if state.ikev1_container.server.transforms.len() <= 1
-                        && state.ikev1_container.server.transforms.len()
+                    if state.ikev1_container.server.nb_transforms <= 1
+                        && state.ikev1_container.server.nb_transforms
                             + tx.hdr.ikev1_transforms.len()
                             > 1
                     {
@@ -142,8 +135,7 @@ pub fn handle_ikev1(
                     state.ikev1_container.server.update(
                         &to_hex(tx.hdr.ikev1_header.key_exchange.as_ref()),
                         &to_hex(tx.hdr.ikev1_header.nonce.as_ref()),
-                        &tx.hdr.ikev1_header.vendor_ids,
-                        &tx.hdr.ikev1_transforms,
+                        tx.hdr.ikev1_transforms.len(),
                     );
                 }
 
