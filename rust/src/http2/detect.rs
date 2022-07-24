@@ -489,7 +489,7 @@ fn http2_frames_get_header_firstvalue<'a>(
     for i in 0..frames.len() {
         if let Some(blocks) = http2_header_blocks(&frames[i]) {
             for block in blocks.iter() {
-                if block.name == name.as_bytes().to_vec() {
+                if block.name == name.as_bytes() {
                     return Ok(&block.value);
                 }
             }
@@ -512,7 +512,7 @@ fn http2_frames_get_header_value<'a>(
     for i in 0..frames.len() {
         if let Some(blocks) = http2_header_blocks(&frames[i]) {
             for block in blocks.iter() {
-                if block.name == name.as_bytes().to_vec() {
+                if block.name == name.as_bytes() {
                     if found == 0 {
                         single = Ok(&block.value);
                         found = 1;
