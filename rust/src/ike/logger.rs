@@ -17,6 +17,7 @@
 
 use super::ike::{IKEState, IKETransaction};
 use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
+use crate::core::Direction;
 use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use num_traits::FromPrimitive;
@@ -73,14 +74,14 @@ fn log_ike(
     }
 
     if tx.ike_version == 1 {
-        if state.ikev1_container.server.transforms.len() > 0 {
+        if state.ikev1_container.server.nb_transforms > 0 {
             // log the first transform as the chosen one
-            add_attributes(&state.ikev1_container.server.transforms[0], jb)?;
+            add_attributes(&state.ikev1_container.server.transform, jb)?;
         }
-        if state.ikev1_container.server.transforms.len() > 1 {
+        if tx.direction == Direction::ToClient && tx.hdr.ikev1_transforms.len() > 1 {
             // in case we have multiple server transforms log them in a list
             jb.open_array("server_proposals")?;
-            for server_transform in &state.ikev1_container.server.transforms {
+            for server_transform in &tx.hdr.ikev1_transforms {
                 jb.start_object()?;
                 add_attributes(server_transform, jb)?;
                 jb.close()?;
@@ -156,13 +157,15 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
             }
         }
 
-        jb.open_array("proposals")?;
-        for client_transform in &state.ikev1_container.client.transforms {
-            jb.start_object()?;
-            add_attributes(client_transform, jb)?;
-            jb.close()?;
+        if tx.direction == Direction::ToServer && tx.hdr.ikev1_transforms.len() > 0 {
+            jb.open_array("proposals")?;
+            for client_transform in &tx.hdr.ikev1_transforms {
+                jb.start_object()?;
+                add_attributes(client_transform, jb)?;
+                jb.close()?;
+            }
+            jb.close()?; // proposals
         }
-        jb.close()?; // proposals
         jb.close()?; // client
 
         // server data
@@ -187,16 +190,13 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
         }
         jb.close()?; // server
 
-        jb.open_array("vendor_ids")?;
-        for vendor in state
-            .ikev1_container
-            .client
-            .vendor_ids
-            .union(&state.ikev1_container.server.vendor_ids)
-        {
-            jb.append_string(vendor)?;
+        if tx.hdr.ikev1_header.vendor_ids.len() > 0 {
+            jb.open_array("vendor_ids")?;
+            for vendor in &tx.hdr.ikev1_header.vendor_ids {
+                jb.append_string(vendor)?;
+            }
+            jb.close()?; // vendor_ids
         }
-        jb.close()?; // vendor_ids
     }
     jb.close()?;
 
