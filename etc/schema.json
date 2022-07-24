@@ -1729,6 +1729,9 @@
                 "md5": {
                     "type": "string"
                 },
+                "mimetype": {
+                    "type": "string"
+                },
                 "sha1": {
                     "type": "string"
                 },
@@ -1786,6 +1789,9 @@
                         "type": "string"
                     },
                     "md5": {
+                        "type": "string"
+                    },
+                    "mimetype": {
                         "type": "string"
                     },
                     "sha1": {

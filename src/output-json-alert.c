@@ -65,6 +65,7 @@
 #include "util-buffer.h"
 #include "util-reference-config.h"
 #include "util-validate.h"
+#include "util-mimetype.h"
 
 #include "action-globals.h"
 
