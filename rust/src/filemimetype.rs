@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,20 +15,12 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- */
+use crate::common::rust_string_to_c;
+use std::os::raw::c_char;
 
-#ifndef __DETECT_FILEMAGIC_H__
-#define __DETECT_FILEMAGIC_H__
-
-#ifdef HAVE_MAGIC
-/* prototypes */
-int FilemagicThreadLookup(magic_t *ctx, File *file);
-
-#endif
-void DetectFilemagicRegister (void);
-
-#endif /* __DETECT_FILEMAGIC_H__ */
+#[no_mangle]
+pub unsafe extern "C" fn rs_get_mime_type(input: *const u8, len: u32) -> * mut c_char {
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
+    let result = tree_magic_mini::from_u8(slice);
+    rust_string_to_c(result.to_string())
+}

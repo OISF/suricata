@@ -144,6 +144,9 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     if (ff->magic)
         jb_set_string(jb, "magic", (char *)ff->magic);
 #endif
+    if (ff->mimetype)
+        jb_set_string(jb, "mimetype", (char *)ff->mimetype);
+
     jb_set_bool(jb, "gaps", ff->flags & FILE_HAS_GAPS);
     switch (ff->state) {
         case FILE_STATE_CLOSED:

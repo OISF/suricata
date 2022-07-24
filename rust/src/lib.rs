@@ -100,6 +100,7 @@ pub mod applayer;
 pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
+pub mod filemimetype;
 pub mod kerberos;
 pub mod detect;
 

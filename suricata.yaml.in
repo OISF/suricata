@@ -251,6 +251,7 @@ outputs:
             #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s]
         - files:
             force-magic: no   # force logging magic on all logged files
+            force-mimetype: no # force logging mime type on all logged files
             # force logging of checksums, available hash functions are md5,
             # sha1 and sha256
             #force-hash: [md5]

@@ -30,9 +30,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "detect-filemagic.h"
+#include "util-file.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-magic.h"
+#include "util-mimetype.h"
 
 bool g_file_logger_enabled = false;
 
@@ -135,6 +137,10 @@ static void OutputFileLogFfc(ThreadVars *tv, OutputFileLoggerThreadData *op_thre
                     FilemagicThreadLookup(&op_thread_data->magic_ctx, ff);
                 }
 #endif
+                if (FileForceMimetype() && ff->mimetype == NULL) {
+                    FileMimetypeLookup(ff);
+                }
+
                 const OutputFileLogger *logger = list;
                 const OutputLoggerThreadStore *store = op_thread_data->store;
                 while (logger && store) {

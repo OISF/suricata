@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,17 +18,13 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <el@stamus-networks.com>
+ *
  */
 
-#ifndef __DETECT_FILEMAGIC_H__
-#define __DETECT_FILEMAGIC_H__
+#ifndef __UTIL_MIMETYPE_H__
+#define __UTIL_MIMETYPE_H__
 
-#ifdef HAVE_MAGIC
-/* prototypes */
-int FilemagicThreadLookup(magic_t *ctx, File *file);
+int FileMimetypeLookup(File *file);
 
-#endif
-void DetectFilemagicRegister (void);
-
-#endif /* __DETECT_FILEMAGIC_H__ */
+#endif /* __UTIL_MIMETYPE_H__ */

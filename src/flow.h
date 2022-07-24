@@ -139,18 +139,24 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_NO_SIZE_TS             BIT_U16(10)
 #define FLOWFILE_NO_SIZE_TC             BIT_U16(11)
 
+/** no mime type tracking of files in this flow */
+#define FLOWFILE_NO_MIMETYPE_TS         BIT_U16(12)
+#define FLOWFILE_NO_MIMETYPE_TC         BIT_U16(13)
+
 #define FLOWFILE_NONE_TS (FLOWFILE_NO_MAGIC_TS | \
                           FLOWFILE_NO_STORE_TS | \
                           FLOWFILE_NO_MD5_TS   | \
                           FLOWFILE_NO_SHA1_TS  | \
                           FLOWFILE_NO_SHA256_TS| \
-                          FLOWFILE_NO_SIZE_TS)
+                          FLOWFILE_NO_SIZE_TS  |\
+                          FLOWFILE_NO_MIMETYPE_TS)
 #define FLOWFILE_NONE_TC (FLOWFILE_NO_MAGIC_TC | \
                           FLOWFILE_NO_STORE_TC | \
                           FLOWFILE_NO_MD5_TC   | \
                           FLOWFILE_NO_SHA1_TC  | \
                           FLOWFILE_NO_SHA256_TC| \
-                          FLOWFILE_NO_SIZE_TC)
+                          FLOWFILE_NO_SIZE_TC  | \
+                          FLOWFILE_NO_MIMETYPE_TC)
 #define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
 
 #define FLOW_IS_IPV4(f) \

@@ -564,6 +564,7 @@ noinst_HEADERS = \
 	util-memcpy.h \
 	util-mem.h \
 	util-memrchr.h \
+	util-mimetype.h \
 	util-misc.h \
 	util-mpm-ac-bs.h \
 	util-mpm-ac.h \
@@ -1147,6 +1148,7 @@ libsuricata_c_a_SOURCES = \
 	util-mem.c \
 	util-memcmp.c \
 	util-memrchr.c \
+	util-mimetype.c \
 	util-misc.c \
 	util-mpm-ac-bs.c \
 	util-mpm-ac.c \

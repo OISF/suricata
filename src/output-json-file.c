@@ -316,6 +316,12 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
             SCLogConfig("forcing magic lookup for logged files");
         }
 
+        const char *force_mimetype = ConfNodeLookupChildValue(conf, "force-mimetype");
+        if (force_mimetype != NULL && ConfValIsTrue(force_mimetype)) {
+            FileForceMimetypeEnable();
+            SCLogConfig("forcing mimetype lookup for logged files");
+        }
+
         FileForceHashParseCfg(conf);
     }
 
