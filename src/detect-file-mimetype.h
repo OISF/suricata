@@ -22,29 +22,10 @@
  *
  */
 
-#include "suricata-common.h"
-#include "util-mimetype.h"
-#include "rust.h"
+#ifndef __DETECT_FILE_MIMETYPE_H__
+#define __DETECT_FILE_MIMETYPE_H__
 
-#define FILE_MIMETYPE_MIN_SIZE 512
+/* prototypes */
+void DetectFileMimetypeRegister(void);
 
-int FileMimetypeLookup(File *file)
-{
-    if (file == NULL || FileDataSize(file) == 0) {
-        SCReturnInt(-1);
-    }
-
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-    uint64_t offset = 0;
-
-    StreamingBufferGetData(file->sb, &data, &data_len, &offset);
-    if (offset == 0) {
-        if (FileDataSize(file) >= FILE_MIMETYPE_MIN_SIZE) {
-            file->mimetype = rs_get_mime_type(data, data_len);
-        } else if (file->state >= FILE_STATE_CLOSED) {
-            file->mimetype = rs_get_mime_type(data, data_len);
-        }
-    }
-    SCReturnInt(0);
-}
+#endif /* __DETECT_FILE_MIMETYPE_H__ */

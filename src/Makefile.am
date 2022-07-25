@@ -161,6 +161,7 @@ noinst_HEADERS = \
 	detect-file-hash-common.h \
 	detect-filemagic.h \
 	detect-filemd5.h \
+	detect-file-mimetype.h \
 	detect-filename.h \
 	detect-filesha1.h \
 	detect-filesha256.h \
@@ -762,6 +763,7 @@ libsuricata_c_a_SOURCES = \
 	detect-file-hash-common.c \
 	detect-filemagic.c \
 	detect-filemd5.c \
+	detect-file-mimetype.c \
 	detect-filename.c \
 	detect-filesha1.c \
 	detect-filesha256.c \

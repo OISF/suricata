@@ -110,7 +110,7 @@ void FileForceMagicEnable(void)
 void FileForceMimetypeEnable(void)
 {
     g_file_force_mimetype = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MIMETYPE_TS|FLOWFILE_NO_MIMETYPE_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_MIMETYPE_TS | FLOWFILE_NO_MIMETYPE_TC);
 }
 
 void FileForceMd5Enable(void)

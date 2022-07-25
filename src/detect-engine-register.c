@@ -126,6 +126,7 @@
 #include "detect-filesha1.h"
 #include "detect-filesha256.h"
 #include "detect-filesize.h"
+#include "detect-file-mimetype.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
 #include "detect-dsize.h"
@@ -491,6 +492,7 @@ void SigTableSetup(void)
     DetectFileSha1Register();
     DetectFileSha256Register();
     DetectFilesizeRegister();
+    DetectFileMimetypeRegister();
 
     DetectHttpUARegister();
     DetectHttpHHRegister();
