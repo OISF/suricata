@@ -179,7 +179,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, alert_flags);
 
-    if (s->action & ACTION_DROP) {
+    if (s->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
         PacketDrop(p, PKT_DROP_REASON_RULES);
 
         if (p->alerts.drop.action == 0) {
