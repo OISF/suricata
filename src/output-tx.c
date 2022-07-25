@@ -476,6 +476,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 txd->config.log_flags, logger_expectation);
         if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
             SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
+            // so that AppLayerParserTransactionsCleanup can clean this tx
+            txd->logged.flags |= logger_expectation;
             goto next_tx;
         }
 
