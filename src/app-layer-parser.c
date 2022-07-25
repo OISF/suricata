@@ -1023,7 +1023,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         if (txd && logger_expectation != 0) {
             LoggerId tx_logged = GetTxLogged(txd);
-            if (tx_logged != logger_expectation) {
+            if (tx_logged != logger_expectation &&
+                    !(txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX))) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
                         tx, i, logger_expectation, tx_logged);
                 skipped = true;
