@@ -2934,6 +2934,8 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
     /** alert counter setup */
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
+    det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
+    det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
 #ifdef PROFILING
     uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
     uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
