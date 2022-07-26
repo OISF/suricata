@@ -515,10 +515,10 @@ void SCProfilingDumpPacketStats(void)
             total += pd->tot;
         }
     }
-    for (m = 0; m < ALPROTO_MAX; m++) {
+    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
         int p;
         for (p = 0; p < 257; p++) {
-            SCProfilePacketData *pd = &packet_profile_app_data4[m][p];
+            SCProfilePacketData *pd = &packet_profile_app_data4[a][p];
 
             if (pd->cnt == 0) {
                 continue;
@@ -528,15 +528,18 @@ void SCProfilingDumpPacketStats(void)
             double percent = (long double)pd->tot /
                 (long double)total * 100;
 
-            fprintf(fp, "%-20s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    AppProtoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+            fprintf(fp,
+                    "%-20s    IPv4     %3d  %12" PRIu64 "     %12" PRIu64 "   %12" PRIu64
+                    "  %12" PRIu64 "  %12s  %-6.2f\n",
+                    AppProtoToString(a), p, pd->cnt, pd->min, pd->max,
+                    (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
 
-    for (m = 0; m < ALPROTO_MAX; m++) {
+    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
         int p;
         for (p = 0; p < 257; p++) {
-            SCProfilePacketData *pd = &packet_profile_app_data6[m][p];
+            SCProfilePacketData *pd = &packet_profile_app_data6[a][p];
 
             if (pd->cnt == 0) {
                 continue;
@@ -546,8 +549,11 @@ void SCProfilingDumpPacketStats(void)
             double percent = (long double)pd->tot /
                 (long double)total * 100;
 
-            fprintf(fp, "%-20s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    AppProtoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+            fprintf(fp,
+                    "%-20s    IPv6     %3d  %12" PRIu64 "     %12" PRIu64 "   %12" PRIu64
+                    "  %12" PRIu64 "  %12s  %-6.2f\n",
+                    AppProtoToString(a), p, pd->cnt, pd->min, pd->max,
+                    (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
 
