@@ -234,6 +234,11 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
+      - name: Setup cppclean
+        run: |
+          git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
+          cd cppclean
+          python3 setup.py install
       - name: Configuring
         run: |
           ./autogen.sh
@@ -242,6 +247,9 @@ jobs:
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
+      - name: Checking includes
+        run: |
+          cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
