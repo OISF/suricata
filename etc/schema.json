@@ -122,6 +122,9 @@
                     "magic": {
                         "type": "string"
                     },
+                    "mimetype": {
+                        "type": "string"
+                    },
                     "md5": {
                         "type": "string"
                     },
@@ -1248,6 +1251,9 @@
                     "type": "boolean"
                 },
                 "magic": {
+                    "type": "string"
+                },
+                "mimetype": {
                     "type": "string"
                 },
                 "md5": {
