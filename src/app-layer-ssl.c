@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -701,6 +701,12 @@ static inline int TLSDecodeHSHelloRandom(SSLState *ssl_state,
         SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
         return -1;
+    }
+
+    if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+        memcpy(ssl_state->server_connp.random, input, TLS_RANDOM_LEN);
+    } else if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+        memcpy(ssl_state->client_connp.random, input, TLS_RANDOM_LEN);
     }
 
     /* Skip random */
@@ -2680,6 +2686,8 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     memset(ssl_state, 0, sizeof(SSLState));
     ssl_state->client_connp.cert_log_flag = 0;
     ssl_state->server_connp.cert_log_flag = 0;
+    memset(ssl_state->client_connp.random, 0, TLS_RANDOM_LEN);
+    memset(ssl_state->server_connp.random, 0, TLS_RANDOM_LEN);
     TAILQ_INIT(&ssl_state->server_connp.certs);
 
     return (void *)ssl_state;
