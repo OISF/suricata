@@ -24,9 +24,6 @@
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
-#include "suricata.h"
-#include "tm-threads.h"
-
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
 

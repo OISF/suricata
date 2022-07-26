@@ -46,6 +46,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-time.h"
+#include "tmqh-packetpool.h"
 
 #include "flow-util.h"
 #include "flow-manager.h"

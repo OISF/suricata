@@ -28,8 +28,6 @@
 #include <rte_ethdev.h>
 #endif
 
-#include "queue.h"
-
 typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } DpdkCopyModeEnum;
 
 #define DPDK_BURST_TX_WAIT_US 1

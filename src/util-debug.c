@@ -29,6 +29,7 @@
 #include "util-error.h"
 #include "util-enum.h"
 #include "util-debug-filters.h"
+#include "suricata.h"
 
 #include "decode.h"
 #include "detect.h"

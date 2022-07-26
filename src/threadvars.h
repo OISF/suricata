@@ -24,10 +24,8 @@
 #ifndef __THREADVARS_H__
 #define __THREADVARS_H__
 
-#include "util-affinity.h"
 #include "tm-queues.h"
 #include "counters.h"
-#include "threads.h"
 #include "packet-queue.h"
 #include "util-atomic.h"
 
