@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -128,6 +128,12 @@ enum {
    used by 0-RTT. */
 #define SSL_AL_FLAG_EARLY_DATA                  BIT_U32(23)
 
+/* flag to indicate that server random was filled */
+#define TLS_TS_RANDOM_SET BIT_U32(24)
+
+/* flag to indicate that client random was filled */
+#define TLS_TC_RANDOM_SET BIT_U32(25)
+
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
@@ -144,6 +150,9 @@ enum {
 
 /* Max string length of the TLS version string */
 #define SSL_VERSION_MAX_STRLEN 20
+
+/* TLS random bytes for the sticky buffer */
+#define TLS_RANDOM_LEN 32
 
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
@@ -206,6 +215,7 @@ typedef struct SSLStateConnp_ {
 
     uint16_t session_id_length;
 
+    uint8_t random[TLS_RANDOM_LEN];
     char *cert0_subject;
     char *cert0_issuerdn;
     char *cert0_serial;
