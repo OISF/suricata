@@ -332,6 +332,7 @@ noinst_HEADERS = \
 	detect-tls-ja3-string.h \
 	detect-tls-sni.h \
 	detect-tls-version.h \
+	detect-tls-random.h \
 	detect-tos.h \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
@@ -927,6 +928,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-ja3-string.c \
 	detect-tls-sni.c \
 	detect-tls-version.c \
+	detect-tls-random.c \
 	detect-tos.c \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
