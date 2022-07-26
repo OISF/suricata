@@ -31,6 +31,15 @@ Example::
 
   fileext:"jpg";
 
+file.mime_type
+--------------
+
+Sticky buffer to match on the file mime type.
+
+Example::
+
+  file.mime_type; content:"application/x-executable";
+
 filemagic
 ---------
 
