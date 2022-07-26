@@ -818,10 +818,9 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         setup_ret = st->Setup(de_ctx, s, NULL);
     }
     if (setup_ret < 0) {
-        SCLogDebug("\"%s\" failed to setup", st->name);
-
         /* handle 'silent' error case */
         if (setup_ret == -2) {
+            SCLogDebug("\"%s\" failed to setup", st->name);
             enum DetectKeywordId idx = SigTableGetIndex(st);
             if (de_ctx->sm_types_silent_error[idx] == false) {
                 de_ctx->sm_types_silent_error[idx] = true;
@@ -829,6 +828,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             }
             return -2;
         }
+        SCLogWarning(SC_ERR_INVALID_RULE_ARGUMENT, "\"%s\" failed to setup", st->name);
         return setup_ret;
     }
     s->init_data->negated = false;
