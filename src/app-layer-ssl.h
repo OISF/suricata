@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -145,6 +145,9 @@ enum {
 /* Max string length of the TLS version string */
 #define SSL_VERSION_MAX_STRLEN 20
 
+/* TLS random bytes for the sticky buffer */
+#define TLS_RANDOM_LEN 32
+
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
 enum {
@@ -205,6 +208,8 @@ typedef struct SSLStateConnp_ {
     uint16_t hs_bytes_processed;
 
     uint16_t session_id_length;
+
+    uint8_t random[TLS_RANDOM_LEN];
 
     char *cert0_subject;
     char *cert0_issuerdn;
