@@ -40,6 +40,15 @@
 #include "util-profiling.h"
 #include "detect-engine-build.h"
 
+#define DETECT_CSUM_VALID   "valid"
+#define DETECT_CSUM_INVALID "invalid"
+
+typedef struct DetectCsumData_ {
+    /* Indicates if the csum-<protocol> keyword in a rule holds the
+       keyvalue "valid" or "invalid" */
+    int16_t valid;
+} DetectCsumData;
+
 /* prototypes for the "ipv4-csum" rule keyword */
 static int DetectIPV4CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);

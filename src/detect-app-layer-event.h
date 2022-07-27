@@ -24,16 +24,6 @@
 #ifndef __DETECT_APP_LAYER_EVENT_H__
 #define __DETECT_APP_LAYER_EVENT_H__
 
-typedef struct DetectAppLayerEventData_ {
-    AppProto alproto;
-    uint8_t event_id;
-
-    /* it's used to check if there are event set into the detect engine */
-    bool needs_detctx;
-
-    char *arg;
-} DetectAppLayerEventData;
-
 int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s);
 void DetectAppLayerEventRegister(void);
 

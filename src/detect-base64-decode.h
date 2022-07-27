@@ -18,13 +18,6 @@
 #ifndef __DETECT_BASE64_DECODE_H__
 #define __DETECT_BASE64_DECODE_H__
 
-
-typedef struct DetectBase64Decode_ {
-    uint32_t bytes;
-    uint32_t offset;
-    uint8_t relative;
-} DetectBase64Decode;
-
 void DetectBase64DecodeRegister(void);
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
     const SigMatchData *, const uint8_t *, uint32_t);
