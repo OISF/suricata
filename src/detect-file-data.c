@@ -155,7 +155,7 @@ void DetectFiledataRegister(void)
             "file_data", ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
 
     DetectBufferTypeSetDescriptionByName("file_data",
-            "http response body, smb files or smtp attachments data");
+            "data of file transferred over protocols");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
