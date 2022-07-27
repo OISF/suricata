@@ -27,6 +27,12 @@
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
 
+typedef struct DetectBase64Decode_ {
+    uint32_t bytes;
+    uint32_t offset;
+    uint8_t relative;
+} DetectBase64Decode;
+
 static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
     "\\s*(offset\\s+(\\d+),?)?"
     "\\s*(\\w+)?";

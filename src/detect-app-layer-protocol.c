@@ -38,6 +38,11 @@
 static void DetectAppLayerProtocolRegisterTests(void);
 #endif
 
+typedef struct DetectAppLayerProtocolData_ {
+    AppProto alproto;
+    uint8_t negated;
+} DetectAppLayerProtocolData;
+
 static int DetectAppLayerProtocolPacketMatch(
         DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
