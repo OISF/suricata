@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -158,8 +158,7 @@ void DetectFiledataRegister(void)
     DetectAppLayerInspectEngineRegister2(
             "file_data", ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
 
-    DetectBufferTypeSetDescriptionByName("file_data",
-            "http response body, smb files or smtp attachments data");
+    DetectBufferTypeSetDescriptionByName("file_data", "data from tracked files");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }

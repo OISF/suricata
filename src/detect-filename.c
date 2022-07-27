@@ -159,8 +159,7 @@ void DetectFilenameRegister(void)
                 0);
     }
 
-    DetectBufferTypeSetDescriptionByName("file.name",
-            "http user agent");
+    DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
     g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
 	SCLogDebug("registering filename rule option");
