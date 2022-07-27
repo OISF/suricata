@@ -24,12 +24,12 @@
  */
 
 #include "source-pcap-file-helper.h"
+#include "suricata.h"
 #include "util-datalink.h"
 #include "util-checksum.h"
 #include "util-profiling.h"
 #include "source-pcap-file.h"
 #include "util-exception-policy.h"
-#include "suricata.h"
 
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
