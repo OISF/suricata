@@ -348,7 +348,6 @@ static void DumpFlowWorker(FILE *fp)
 
 void SCProfilingDumpPacketStats(void)
 {
-    int i;
     FILE *fp;
     char totalstr[256];
     uint64_t total;
@@ -375,16 +374,15 @@ void SCProfilingDumpPacketStats(void)
     fprintf(fp, "%-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s  %-3s\n",
             "------", "-----", "----------", "------------", "------------", "-----------", "-----------", "---");
     total = 0;
-    for (i = 0; i < 257; i++) {
+    for (int i = 0; i < 257; i++) {
         SCProfilePacketData *pd = &packet_profile_data4[i];
         total += pd->tot;
         pd = &packet_profile_data6[i];
         total += pd->tot;
     }
 
-    for (i = 0; i < 257; i++) {
+    for (int i = 0; i < 257; i++) {
         SCProfilePacketData *pd = &packet_profile_data4[i];
-
         if (pd->cnt == 0) {
             continue;
         }
@@ -397,9 +395,8 @@ void SCProfilingDumpPacketStats(void)
             pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
     }
 
-    for (i = 0; i < 257; i++) {
+    for (int i = 0; i < 257; i++) {
         SCProfilePacketData *pd = &packet_profile_data6[i];
-
         if (pd->cnt == 0) {
             continue;
         }
@@ -431,14 +428,12 @@ void SCProfilingDumpPacketStats(void)
 #else
     fprintf(fp, "\n");
 #endif
-    int m;
     total = 0;
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
 
@@ -447,14 +442,12 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -474,14 +467,12 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -505,21 +496,18 @@ void SCProfilingDumpPacketStats(void)
             "--------------------", "------", "-----", "----------", "------------", "------------", "-----------");
 
     total = 0;
-    for (m = 0; m < ALPROTO_MAX; m++) {
-        int p;
-        for (p = 0; p < 257; p++) {
-            SCProfilePacketData *pd = &packet_profile_app_data4[m][p];
+    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
+        for (int p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_app_data4[a][p];
             total += pd->tot;
 
-            pd = &packet_profile_app_data6[m][p];
+            pd = &packet_profile_app_data6[a][p];
             total += pd->tot;
         }
     }
     for (AppProto a = 0; a < ALPROTO_MAX; a++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_data4[a][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -537,10 +525,8 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (AppProto a = 0; a < ALPROTO_MAX; a++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_data6[a][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -559,10 +545,8 @@ void SCProfilingDumpPacketStats(void)
 
     /* proto detect output */
     {
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_pd_data4[p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -572,9 +556,8 @@ void SCProfilingDumpPacketStats(void)
                     "Proto detect", p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr);
         }
 
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_pd_data6[p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -586,9 +569,8 @@ void SCProfilingDumpPacketStats(void)
     }
 
     total = 0;
-    for (m = 0; m < PROF_DETECT_SIZE; m++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+    for (int m = 0; m < PROF_DETECT_SIZE; m++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_detect_data4[m][p];
             total += pd->tot;
 
@@ -596,7 +578,6 @@ void SCProfilingDumpPacketStats(void)
             total += pd->tot;
         }
     }
-
 
     fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s  %-3s",
             "Log Thread Module", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot", "%%");
@@ -615,12 +596,11 @@ void SCProfilingDumpPacketStats(void)
     fprintf(fp, "\n");
 #endif
     total = 0;
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
 
@@ -629,14 +609,12 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -656,14 +634,12 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    for (m = 0; m < TMM_SIZE; m++) {
+    for (int m = 0; m < TMM_SIZE; m++) {
         if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
             continue;
 
-        int p;
-        for (p = 0; p < 257; p++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -680,9 +656,8 @@ void SCProfilingDumpPacketStats(void)
     fprintf(fp, "\nLogger/output stats:\n");
 
     total = 0;
-    for (m = 0; m < LOGGER_SIZE; m++) {
-        int p;
-        for (p = 0; p < 256; p++) {
+    for (int m = 0; m < LOGGER_SIZE; m++) {
+        for (int p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
             total += pd->tot;
             pd = &packet_profile_log_data6[m][p];
@@ -694,11 +669,9 @@ void SCProfilingDumpPacketStats(void)
             "Logger", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot");
     fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
             "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------");
-    for (m = 0; m < LOGGER_SIZE; m++) {
-        int p;
-        for (p = 0; p < 256; p++) {
+    for (int m = 0; m < LOGGER_SIZE; m++) {
+        for (int p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -711,11 +684,9 @@ void SCProfilingDumpPacketStats(void)
                     PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
-    for (m = 0; m < LOGGER_SIZE; m++) {
-        int p;
-        for (p = 0; p < 256; p++) {
+    for (int m = 0; m < LOGGER_SIZE; m++) {
+        for (int p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data6[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -732,9 +703,8 @@ void SCProfilingDumpPacketStats(void)
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
     total = 0;
-    for (m = 0; m < PROF_DETECT_SIZE; m++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+    for (int m = 0; m < PROF_DETECT_SIZE; m++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_detect_data4[m][p];
             total += pd->tot;
             pd = &packet_profile_detect_data6[m][p];
@@ -746,11 +716,9 @@ void SCProfilingDumpPacketStats(void)
             "Detection phase", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot");
     fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
             "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------");
-    for (m = 0; m < PROF_DETECT_SIZE; m++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+    for (int m = 0; m < PROF_DETECT_SIZE; m++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_detect_data4[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
@@ -763,11 +731,9 @@ void SCProfilingDumpPacketStats(void)
                     PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
-    for (m = 0; m < PROF_DETECT_SIZE; m++) {
-        int p;
-        for (p = 0; p < 257; p++) {
+    for (int m = 0; m < PROF_DETECT_SIZE; m++) {
+        for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_detect_data6[m][p];
-
             if (pd->cnt == 0) {
                 continue;
             }
