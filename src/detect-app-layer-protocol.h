@@ -24,11 +24,6 @@
 #ifndef __DETECT_APP_LAYER_PROTOCOL__H__
 #define __DETECT_APP_LAYER_PROTOCOL__H__
 
-typedef struct DetectAppLayerProtocolData_ {
-    AppProto alproto;
-    uint8_t negated;
-} DetectAppLayerProtocolData;
-
 void DetectAppLayerProtocolRegister(void);
 
 #endif /* __DETECT_APP_LAYER_PROTOCOL__H__ */

@@ -51,6 +51,17 @@
 
 #define MAX_ALPROTO_NAME 50
 
+typedef struct DetectAppLayerEventData_ {
+    AppProto alproto;
+    uint8_t event_id;
+
+    /* it's used to check if there are event set into the detect engine */
+    bool needs_detctx;
+
+    char *arg;
+} DetectAppLayerEventData;
+
+
 static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
