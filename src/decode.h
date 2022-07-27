@@ -913,7 +913,6 @@ static inline void PacketDrop(Packet *p, enum PacketDropReason r)
 
     PACKET_SET_ACTION(p, ACTION_DROP);
 }
-#define PACKET_DROP(p) PacketDrop((p), PKT_DROP_REASON_NOT_SET)
 
 static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
 {
