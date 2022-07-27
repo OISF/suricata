@@ -248,3 +248,16 @@ You can specify several states with ``|`` (OR) to check for any of the specified
 
 Negation support is not available yet, see https://redmine.openinfosecfoundation.org/issues/1231
 
+tls.random
+----------
+
+Matches on the first 4 bytes of the TLS random field.
+
+Example
+-------
+::
+
+  alert any any -> any any (msg:"TLS random test"; \
+    tls.random; content:"|9b ce 7a 5e|"; sid: 200074;)
+
+``tls.random`` is a sticky buffer.
