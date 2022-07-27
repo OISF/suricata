@@ -25,12 +25,12 @@
  */
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
+#include "util-logopenfile.h"
+#include "suricata.h"
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-byte.h"
-#include "util-logopenfile.h"
 #include "util-time.h"
-#include "suricata.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
 #define BUILD_WITH_UNIXSOCKET
