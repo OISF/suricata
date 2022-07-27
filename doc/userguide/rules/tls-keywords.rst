@@ -248,3 +248,38 @@ You can specify several states with ``|`` (OR) to check for any of the specified
 
 Negation support is not available yet, see https://redmine.openinfosecfoundation.org/issues/1231
 
+tls.random
+----------
+
+Matches on the 32 bytes of the TLS random field.
+
+Example::
+
+  alert any any -> any any (msg:"TLS random test"; \
+    tls.random; content:"|9b ce 7a 5e 57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc|"; sid: 200074;)
+
+``tls.random`` is a sticky buffer.
+
+tls.random_time
+---------------
+
+Matches on the first 4 bytes of the TLS random field.
+
+Example::
+
+  alert any any -> any any (msg:"TLS random_time test"; \
+    tls.random_time; content:"|9b ce 7a 5e|"; sid: 200075;)
+
+``tls.random_time`` is a sticky buffer.
+
+tls.random_bytes
+----------------
+
+Matches on the last 28 bytes of the TLS random field.
+
+Example::
+
+  alert any any -> any any (msg:"TLS random_bytes test"; \
+    tls.random_bytes; content:"|57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc|"; sid: 200076;)
+
+``tls.random_bytes`` is a sticky buffer.
