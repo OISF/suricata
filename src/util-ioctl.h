@@ -24,9 +24,6 @@
 #include "suricata-common.h"
 #include "util-device.h"
 
-#ifdef OS_WIN32
-#endif
-
 int GetIfaceMTU(const char *pcap_dev);
 int GetIfaceMaxPacketSize(const char *pcap_dev);
 int GetIfaceOffloading(const char *dev, int csum, int other);
