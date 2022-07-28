@@ -183,7 +183,8 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, alert_flags);
 
-    if (s->action & ACTION_DROP) {
+    if (s->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+        /* PacketDrop will update the packet action, too */
         PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
 
         if (p->alerts.drop.action == 0) {
@@ -192,6 +193,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
             p->alerts.drop.s = (Signature *)s;
         }
         if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+
             RuleActionToFlow(s->action, p->flow);
         }
     } else {
