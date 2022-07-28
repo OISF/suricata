@@ -33,26 +33,9 @@
 
 #include "source-nflog.h"
 
-const char *RunModeIdsNflogGetDefaultMode(void)
-{
-    return "autofp";
-}
-
-void RunModeIdsNflogRegister(void)
-{
-    RunModeRegisterNewRunMode(RUNMODE_NFLOG, "autofp",
-                              "Multi threaded nflog mode",
-                              RunModeIdsNflogAutoFp);
-    RunModeRegisterNewRunMode(RUNMODE_NFLOG, "single",
-                              "Single threaded nflog mode",
-                              RunModeIdsNflogSingle);
-    RunModeRegisterNewRunMode(RUNMODE_NFLOG, "workers",
-                              "Workers nflog mode",
-                              RunModeIdsNflogWorkers);
-    return;
-}
-
 #ifdef HAVE_NFLOG
+#include "util-time.h"
+
 static void NflogDerefConfig(void *data)
 {
     NflogGroupConfig *nflogconf = (NflogGroupConfig *)data;
@@ -165,23 +148,16 @@ static int NflogConfigGeThreadsCount(void *conf)
 }
 #endif
 
-int RunModeIdsNflogAutoFp(void)
+static int RunModeIdsNflogAutoFp(void)
 {
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    int ret = 0;
-    char *live_dev = NULL;
-
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig,
-                                      NflogConfigGeThreadsCount,
-                                      "ReceiveNFLOG",
-                                      "DecodeNFLOG",
-                                      thread_name_autofp,
-                                      live_dev);
+    int ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig, NflogConfigGeThreadsCount,
+            "ReceiveNFLOG", "DecodeNFLOG", thread_name_autofp, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -192,23 +168,16 @@ int RunModeIdsNflogAutoFp(void)
     SCReturnInt(0);
 }
 
-int RunModeIdsNflogSingle(void)
+static int RunModeIdsNflogSingle(void)
 {
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    int ret = 0;
-    char *live_dev = NULL;
-
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureSingle(ParseNflogConfig,
-                                      NflogConfigGeThreadsCount,
-                                      "ReceiveNFLOG",
-                                      "DecodeNFLOG",
-                                      thread_name_single,
-                                      live_dev);
+    int ret = RunModeSetLiveCaptureSingle(ParseNflogConfig, NflogConfigGeThreadsCount,
+            "ReceiveNFLOG", "DecodeNFLOG", thread_name_single, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -219,23 +188,16 @@ int RunModeIdsNflogSingle(void)
     SCReturnInt(0);
 }
 
-int RunModeIdsNflogWorkers(void)
+static int RunModeIdsNflogWorkers(void)
 {
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    int ret = 0;
-    char *live_dev = NULL;
-
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig,
-                                       NflogConfigGeThreadsCount,
-                                       "ReceiveNFLOG",
-                                       "DecodeNFLOG",
-                                       thread_name_workers,
-                                       live_dev);
+    int ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig, NflogConfigGeThreadsCount,
+            "ReceiveNFLOG", "DecodeNFLOG", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -244,4 +206,20 @@ int RunModeIdsNflogWorkers(void)
 #endif /* HAVE_NFLOG */
 
     SCReturnInt(0);
+}
+
+const char *RunModeIdsNflogGetDefaultMode(void)
+{
+    return "autofp";
+}
+
+void RunModeIdsNflogRegister(void)
+{
+    RunModeRegisterNewRunMode(
+            RUNMODE_NFLOG, "autofp", "Multi threaded nflog mode", RunModeIdsNflogAutoFp);
+    RunModeRegisterNewRunMode(
+            RUNMODE_NFLOG, "single", "Single threaded nflog mode", RunModeIdsNflogSingle);
+    RunModeRegisterNewRunMode(
+            RUNMODE_NFLOG, "workers", "Workers nflog mode", RunModeIdsNflogWorkers);
+    return;
 }
