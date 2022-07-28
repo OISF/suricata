@@ -55,6 +55,13 @@
 #include "detect-filename.h"
 #include "app-layer-parser.h"
 
+typedef struct DetectFilenameData {
+    uint8_t *name; /** name of the file to match */
+    BmCtx *bm_ctx; /** BM context */
+    uint16_t len;  /** name length */
+    uint32_t flags;
+} DetectFilenameData;
+
 static int DetectFilenameMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);

@@ -24,13 +24,6 @@
 #ifndef __DETECT_FILEEXT_H__
 #define __DETECT_FILEEXT_H__
 
-
-typedef struct DetectFileextData_ {
-    uint8_t *ext;  /** file extension to match */
-    uint16_t len;  /** length of the file */
-    uint32_t flags;
-} DetectFileextData;
-
 /* prototypes */
 void DetectFileextRegister (void);
 
