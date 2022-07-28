@@ -184,7 +184,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
             s->action, alert_flags);
 
     if (s->action & ACTION_DROP) {
-        PacketDrop(p, PKT_DROP_REASON_RULES);
+        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
 
         if (p->alerts.drop.action == 0) {
             p->alerts.drop.num = s->num;
