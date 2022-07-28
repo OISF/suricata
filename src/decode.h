@@ -906,12 +906,17 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 
 #define PACKET_TEST_ACTION_DO(p, a) (p)->action &(a)
 
-static inline void PacketDrop(Packet *p, enum PacketDropReason r)
+#define PACKET_UPDATE_ACTION(p, a)                                                                 \
+    do {                                                                                           \
+        ((p)->root ? ((p)->root->action |= a) : ((p)->action |= a));                               \
+    } while (0)
+
+static inline void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r)
 {
     if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
         p->drop_reason = (uint8_t)r;
 
-    PACKET_SET_ACTION(p, ACTION_DROP);
+    PACKET_UPDATE_ACTION(p, action);
 }
 
 static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
