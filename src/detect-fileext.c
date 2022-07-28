@@ -206,16 +206,13 @@ error:
  */
 static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectFileextData *fileext= NULL;
-    SigMatch *sm = NULL;
-
-    fileext = DetectFileextParse(de_ctx, str, s->init_data->negated);
+    DetectFileextData *fileext = DetectFileextParse(de_ctx, str, s->init_data->negated);
     if (fileext == NULL)
-        goto error;
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
 
@@ -228,12 +225,10 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 
 error:
-    if (fileext != NULL)
-        DetectFileextFree(de_ctx, fileext);
+    DetectFileextFree(de_ctx, fileext);
     if (sm != NULL)
         SCFree(sm);
     return -1;
-
 }
 
 /**

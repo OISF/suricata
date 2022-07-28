@@ -230,14 +230,9 @@ static int DetectFilenameMatch (DetectEngineThreadCtx *det_ctx,
  */
 static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
-    DetectFilenameData *filename = NULL;
-
-    /* We have a correct filename option */
-    filename = SCMalloc(sizeof(DetectFilenameData));
+    DetectFilenameData *filename = SCCalloc(1, sizeof(DetectFilenameData));
     if (unlikely(filename == NULL))
-        goto error;
-
-    memset(filename, 0x00, sizeof(DetectFilenameData));
+        return NULL;
 
     if (DetectContentDataParse ("filename", str, &filename->name, &filename->len) == -1) {
         goto error;
@@ -272,8 +267,7 @@ static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const c
     return filename;
 
 error:
-    if (filename != NULL)
-        DetectFilenameFree(de_ctx, filename);
+    DetectFilenameFree(de_ctx, filename);
     return NULL;
 }
 
