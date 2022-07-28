@@ -52,6 +52,12 @@
 #include "stream-tcp.h"
 #include "detect-fileext.h"
 
+typedef struct DetectFileextData_ {
+    uint8_t *ext; /** file extension to match */
+    uint16_t len; /** length of the file */
+    uint32_t flags;
+} DetectFileextData;
+
 static int DetectFileextMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, const char *);
