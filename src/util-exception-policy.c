@@ -41,7 +41,7 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
                 SCLogDebug("EXCEPTION_POLICY_DROP_PACKET");
                 DecodeSetNoPayloadInspectionFlag(p);
                 DecodeSetNoPacketInspectionFlag(p);
-                PacketDrop(p, drop_reason);
+                PacketDrop(p, ACTION_DROP, drop_reason);
                 break;
             case EXCEPTION_POLICY_BYPASS_FLOW:
                 PacketBypassCallback(p);
