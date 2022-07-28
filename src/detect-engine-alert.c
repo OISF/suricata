@@ -32,6 +32,7 @@
 #endif
 
 #include "util-profiling.h"
+#include "util-validate.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -183,7 +184,9 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, alert_flags);
 
-    if (s->action & ACTION_DROP) {
+    /* REJECT also sets ACTION_DROP, just make it more visible with this check */
+    if (s->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+        /* PacketDrop will update the packet action, too */
         PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
 
         if (p->alerts.drop.action == 0) {
@@ -194,6 +197,8 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
         if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(s->action, p->flow);
         }
+
+        DEBUG_VALIDATE_BUG_ON(!PacketTestAction(p, ACTION_DROP));
     } else {
         PacketUpdateAction(p, s->action);
 
@@ -414,5 +419,4 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     }
 
 }
-
 
