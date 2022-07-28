@@ -24,8 +24,6 @@
 #ifndef _DETECT_CIPSERVICE_H
 #define	_DETECT_CIPSERVICE_H
 
-#include "app-layer-enip-common.h"
-
 /**
  * CIP Service rule data structure
  */

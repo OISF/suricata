@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 
 #include "app-layer.h"
+#include "app-layer-enip-common.h"
 
 #include "detect.h"
 #include "detect-cipservice.h"
