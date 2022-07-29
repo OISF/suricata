@@ -83,7 +83,7 @@ void DetectXbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectIPPairbitMatchToggle (Packet *p, const DetectXbitsData *fd)
+static int DetectIPPairbitMatchToggle (Packet *p, const DetectBitsData *fd)
 {
     IPPair *pair = IPPairGetIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
@@ -95,7 +95,7 @@ static int DetectIPPairbitMatchToggle (Packet *p, const DetectXbitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectIPPairbitMatchUnset (Packet *p, const DetectXbitsData *fd)
+static int DetectIPPairbitMatchUnset (Packet *p, const DetectBitsData *fd)
 {
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
@@ -106,7 +106,7 @@ static int DetectIPPairbitMatchUnset (Packet *p, const DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectIPPairbitMatchSet (Packet *p, const DetectXbitsData *fd)
+static int DetectIPPairbitMatchSet (Packet *p, const DetectBitsData *fd)
 {
     IPPair *pair = IPPairGetIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
@@ -117,7 +117,7 @@ static int DetectIPPairbitMatchSet (Packet *p, const DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectIPPairbitMatchIsset (Packet *p, const DetectXbitsData *fd)
+static int DetectIPPairbitMatchIsset (Packet *p, const DetectBitsData *fd)
 {
     int r = 0;
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
@@ -129,7 +129,7 @@ static int DetectIPPairbitMatchIsset (Packet *p, const DetectXbitsData *fd)
     return r;
 }
 
-static int DetectIPPairbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
+static int DetectIPPairbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
 {
     int r = 0;
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
@@ -141,18 +141,18 @@ static int DetectIPPairbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
     return r;
 }
 
-static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
+static int DetectXbitMatchIPPair(Packet *p, const DetectBitsData *xd)
 {
     switch (xd->cmd) {
-        case DETECT_XBITS_CMD_ISSET:
+        case DETECT_BITS_CMD_ISSET:
             return DetectIPPairbitMatchIsset(p,xd);
-        case DETECT_XBITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISNOTSET:
             return DetectIPPairbitMatchIsnotset(p,xd);
-        case DETECT_XBITS_CMD_SET:
+        case DETECT_BITS_CMD_SET:
             return DetectIPPairbitMatchSet(p,xd);
-        case DETECT_XBITS_CMD_UNSET:
+        case DETECT_BITS_CMD_UNSET:
             return DetectIPPairbitMatchUnset(p,xd);
-        case DETECT_XBITS_CMD_TOGGLE:
+        case DETECT_BITS_CMD_TOGGLE:
             return DetectIPPairbitMatchToggle(p,xd);
     }
     return 0;
@@ -166,16 +166,16 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
 
 static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    const DetectXbitsData *fd = (const DetectXbitsData *)ctx;
+    const DetectBitsData *fd = (const DetectBitsData *)ctx;
     if (fd == NULL)
         return 0;
 
     switch (fd->vartype) {
         case VAR_TYPE_HOST_BIT:
-            return DetectXbitMatchHost(p, (const DetectXbitsData *)fd);
+            return DetectXbitMatchHost(p, (const DetectBitsData *)fd);
             break;
         case VAR_TYPE_IPPAIR_BIT:
-            return DetectXbitMatchIPPair(p, (const DetectXbitsData *)fd);
+            return DetectXbitMatchIPPair(p, (const DetectBitsData *)fd);
             break;
         default:
             break;
@@ -187,35 +187,35 @@ static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Sig
  *  \brief parse xbits rule options
  *  \retval 0 ok
  *  \retval -1 bad
- *  \param[out] cdout return DetectXbitsData structure or NULL if noalert
+ *  \param[out] cdout return DetectBitsData structure or NULL if noalert
  */
 static int DetectXbitParse(DetectEngineCtx *de_ctx,
-        const char *rawstr, DetectXbitsData **cdout)
+        const char *rawstr, DetectBitsData **cdout)
 {
-    DetectXbitsData *cd = NULL;
-    cd = rs_xbits_parse(rawstr);
+    DetectBitsData *cd = NULL;
+    cd = rs_xbits_parse(rawstr, 0);
 
     if (cd == NULL) {
         return -1;
     }
     switch (cd->cmd) {
-        case DETECT_XBITS_CMD_NOALERT: {
+        case DETECT_BITS_CMD_NOALERT: {
             if (cd->name != NULL) {
-                rs_xbits_free(cd);
+                rs_bits_free(cd);
                 return -1;
             }
             /* return ok, cd is NULL. Flag sig. */
             *cdout = NULL;
             return 0;
         }
-        case DETECT_XBITS_CMD_ISNOTSET:
-        case DETECT_XBITS_CMD_ISSET:
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
+        case DETECT_BITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISSET:
+        case DETECT_BITS_CMD_SET:
+        case DETECT_BITS_CMD_UNSET:
+        case DETECT_BITS_CMD_TOGGLE:
         default:
             if (strlen(cd->name) == 0) {
-                rs_xbits_free(cd);
+                rs_bits_free(cd);
                 return -1;
             }
             break;
@@ -229,7 +229,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SigMatch *sm = NULL;
-    DetectXbitsData *cd = NULL;
+    DetectBitsData *cd = NULL;
 
     int result = DetectXbitParse(de_ctx, rawstr, &cd);
     if (result < 0) {
@@ -250,17 +250,17 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     sm->ctx = (void *)cd;
 
     switch (cd->cmd) {
-        /* case DETECT_XBITS_CMD_NOALERT can't happen here */
+        /* case DETECT_BITS_CMD_NOALERT can't happen here */
 
-        case DETECT_XBITS_CMD_ISNOTSET:
-        case DETECT_XBITS_CMD_ISSET:
+        case DETECT_BITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISSET:
             /* checks, so packet list */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
 
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
+        case DETECT_BITS_CMD_SET:
+        case DETECT_BITS_CMD_UNSET:
+        case DETECT_BITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
@@ -276,7 +276,7 @@ error:
 
 static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_xbits_free(ptr);
+    rs_bits_free(ptr);
 }
 
 #ifdef UNITTESTS

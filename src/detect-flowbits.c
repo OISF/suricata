@@ -54,7 +54,6 @@ static DetectParseRegex parse_regex;
 int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
-static int FlowbitOrAddData(DetectEngineCtx *, DetectFlowbitsData *, char *);
 void DetectFlowbitFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 void FlowBitsRegisterTests(void);
@@ -77,52 +76,7 @@ void DetectFlowbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
-{
-    char *strarr[MAX_TOKENS];
-    char *token;
-    char *saveptr = NULL;
-    uint8_t i = 0;
-
-    while ((token = strtok_r(arrptr, "|", &saveptr))) {
-        // Check for leading/trailing spaces in the token
-        while(isspace((unsigned char)*token))
-            token++;
-        if (*token == 0)
-            goto next;
-        char *end = token + strlen(token) - 1;
-        while(end > token && isspace((unsigned char)*end))
-            *(end--) = '\0';
-
-        // Check for spaces in between the flowbit names
-        if (strchr(token, ' ') != NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Spaces are not allowed in flowbit names.");
-            return -1;
-        }
-
-        if (i == MAX_TOKENS) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Number of flowbits exceeds "
-                       "maximum allowed: %d.", MAX_TOKENS);
-            return -1;
-        }
-        strarr[i++] = token;
-    next:
-        arrptr = NULL;
-    }
-
-    cd->or_list_size = i;
-    cd->or_list = SCCalloc(cd->or_list_size, sizeof(uint32_t));
-    if (unlikely(cd->or_list == NULL))
-        return -1;
-    for (uint8_t j = 0; j < cd->or_list_size ; j++) {
-        cd->or_list[j] = VarNameStoreSetupAdd(strarr[j], VAR_TYPE_FLOW_BIT);
-        de_ctx->max_fb_id = MAX(cd->or_list[j], de_ctx->max_fb_id);
-    }
-
-    return 1;
-}
-
-static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
+static int DetectFlowbitMatchToggle (Packet *p, const DetectBitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -132,7 +86,7 @@ static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd)
+static int DetectFlowbitMatchUnset (Packet *p, const DetectBitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -142,7 +96,7 @@ static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchSet (Packet *p, const DetectFlowbitsData *fd)
+static int DetectFlowbitMatchSet (Packet *p, const DetectBitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -152,7 +106,7 @@ static int DetectFlowbitMatchSet (Packet *p, const DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchIsset (Packet *p, const DetectFlowbitsData *fd)
+static int DetectFlowbitMatchIsset (Packet *p, const DetectBitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -167,7 +121,7 @@ static int DetectFlowbitMatchIsset (Packet *p, const DetectFlowbitsData *fd)
     return FlowBitIsset(p->flow,fd->idx);
 }
 
-static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
+static int DetectFlowbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -190,7 +144,7 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
 int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    const DetectFlowbitsData *fd = (const DetectFlowbitsData *)ctx;
+    const DetectBitsData *fd = (const DetectBitsData *)ctx;
     if (fd == NULL)
         return 0;
 
@@ -213,118 +167,68 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return 0;
 }
 
-static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
-    int name_len)
+static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
+        const char *rawstr, DetectBitsData **cdout)
 {
-    int count, rc;
-    size_t pcre2len;
+    DetectBitsData *cd = NULL;
+    cd = rs_xbits_parse(rawstr, 1);
 
-    count = DetectParsePcreExec(&parse_regex, str, 0, 0);
-    if (count != 2 && count != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH,
-            "\"%s\" is not a valid setting for flowbits.", str);
-        return 0;
-    }
-
-    pcre2len = cmd_len;
-    rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
-    if (rc < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        return 0;
-    }
-
-    if (count == 3) {
-        pcre2len = name_len;
-        rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
-        if (rc < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-            return 0;
-        }
-
-        /* Trim trailing whitespace. */
-        while (strlen(name) > 0 && isblank(name[strlen(name) - 1])) {
-            name[strlen(name) - 1] = '\0';
-        }
-
-        if (strchr(name, '|') == NULL) {
-            /* Validate name, spaces are not allowed. */
-            for (size_t i = 0; i < strlen(name); i++) {
-                if (isblank(name[i])) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE,
-                        "spaces not allowed in flowbit names");
-                    return 0;
-                }
-            }
-        }
-    }
-
-    return 1;
-}
-
-int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
-{
-    DetectFlowbitsData *cd = NULL;
-    SigMatch *sm = NULL;
-    uint8_t fb_cmd = 0;
-    char fb_cmd_str[16] = "", fb_name[256] = "";
-
-    if (!DetectFlowbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name,
-            sizeof(fb_name))) {
+    if (cd == NULL) {
         return -1;
     }
-
-    if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_NOALERT;
-    } else if (strcmp(fb_cmd_str,"isset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_ISSET;
-    } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_ISNOTSET;
-    } else if (strcmp(fb_cmd_str,"set") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_SET;
-    } else if (strcmp(fb_cmd_str,"unset") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
-    } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
-        goto error;
-    }
-
-    switch (fb_cmd) {
-        case DETECT_FLOWBITS_CMD_NOALERT:
-            if (strlen(fb_name) != 0)
-                goto error;
-            s->flags |= SIG_FLAG_NOALERT;
+    switch (cd->cmd) {
+        case DETECT_BITS_CMD_NOALERT: {
+            if (cd->name != NULL) {
+                SCLogNotice("Freed cd bc noalert");
+                rs_bits_free(cd);
+                return -1;
+            }
+            /* return ok, cd is NULL. Flag sig. */
+            *cdout = NULL;
             return 0;
-        case DETECT_FLOWBITS_CMD_ISNOTSET:
-        case DETECT_FLOWBITS_CMD_ISSET:
-        case DETECT_FLOWBITS_CMD_SET:
-        case DETECT_FLOWBITS_CMD_UNSET:
-        case DETECT_FLOWBITS_CMD_TOGGLE:
+        }
+        case DETECT_BITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISSET:
+        case DETECT_BITS_CMD_SET:
+        case DETECT_BITS_CMD_UNSET:
+        case DETECT_BITS_CMD_TOGGLE:
         default:
-            if (strlen(fb_name) == 0)
-                goto error;
+            if (strlen(cd->name) == 0) {
+                SCLogNotice("Freed cd bc name");
+                rs_bits_free(cd);
+                return -1;
+            }
             break;
     }
 
-    cd = SCCalloc(1, sizeof(DetectFlowbitsData));
-    if (unlikely(cd == NULL))
-        goto error;
-    if (strchr(fb_name, '|') != NULL) {
-        int retval = FlowbitOrAddData(de_ctx, cd, fb_name);
-        if (retval == -1) {
-            goto error;
+    if (cd->or_list_size != 0) {
+        for (int i = 0; i < cd->or_list_size; i++) {
+            int leq = VarNameStoreSetupAdd(cd->fb_names[i], VAR_TYPE_FLOW_BIT);
+            cd->or_list[i] = leq;
+            de_ctx->max_fb_id = MAX(cd->or_list[i], de_ctx->max_fb_id);
         }
-        cd->cmd = fb_cmd;
     } else {
-        cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
-        de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
-        cd->cmd = fb_cmd;
-        cd->or_list_size = 0;
-        cd->or_list = NULL;
-        SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-            cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
+        cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
     }
+    *cdout = cd;
+    return 0;
+}
+
+
+int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    DetectBitsData *cd = NULL;
+    SigMatch *sm = NULL;
+
+    int result = DetectFlowbitParse(de_ctx, rawstr, &cd);
+    if (result < 0) {
+        return -1;
+    /* noalert doesn't use a cd/sm struct. It flags the sig. We're done. */
+    } else if (result == 0 && cd == NULL) {
+        s->flags |= SIG_FLAG_NOALERT;
+        return 0;
+    }
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -334,7 +238,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     sm->type = DETECT_FLOWBITS;
     sm->ctx = (SigMatchCtx *)cd;
 
-    switch (fb_cmd) {
+    switch (cd->cmd) {
         /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
 
         case DETECT_FLOWBITS_CMD_ISNOTSET:
@@ -368,12 +272,7 @@ error:
 
 void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
-    if (fd == NULL)
-        return;
-    if (fd->or_list != NULL)
-        SCFree(fd->or_list);
-    SCFree(fd);
+    rs_bits_free(ptr);
 }
 
 struct FBAnalyze {
@@ -441,7 +340,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 case DETECT_FLOWBITS:
                 {
                     /* figure out the flowbit action */
-                    const DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
+                    const DetectBitsData *fb = (DetectBitsData *)sm->ctx;
                     // Handle flowbit array in case of ORed flowbits
                     for (uint8_t k = 0; k < fb->or_list_size; k++) {
                         array[fb->or_list[k]].cnts[fb->cmd]++;
@@ -519,7 +418,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 case DETECT_FLOWBITS:
                 {
                     /* figure out what flowbit action */
-                    const DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
+                    const DetectBitsData *fb = (DetectBitsData *)sm->ctx;
                     array[fb->idx].cnts[fb->cmd]++;
                     if (has_state)
                         array[fb->idx].state_cnts[fb->cmd]++;
@@ -742,7 +641,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 }
 
 #ifdef UNITTESTS
-
+#if 0
 static int FlowBitsTestParse01(void)
 {
     char command[16] = "", name[16] = "";
@@ -1154,12 +1053,14 @@ static int FlowBitsTestSig08(void)
     SCFree(p);
     PASS;
 }
+#endif
 
 /**
  * \brief this function registers unit tests for FlowBits
  */
 void FlowBitsRegisterTests(void)
 {
+#if 0
     UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01);
     UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01);
     UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02);
@@ -1169,5 +1070,6 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
     UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
     UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08);
+#endif
 }
 #endif /* UNITTESTS */
