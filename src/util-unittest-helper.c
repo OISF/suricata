@@ -26,24 +26,17 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "flow-private.h"
 #include "flow-util.h"
 #include "flow-spare-pool.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-build.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
 
-#include "util-debug.h"
 #include "util-time.h"
-#include "util-error.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -1000,7 +993,6 @@ void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t 
     return memmem(big, big_len, little, little_len);
 }
 #else
-#include "util-spm-bs.h"
 void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len) {
     return BasicSearch(big, big_len, little, little_len);
 }

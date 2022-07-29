@@ -24,7 +24,6 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 
@@ -36,7 +35,6 @@
 
 #include "detect-http2.h"
 #include "util-byte.h"
-#include "rust.h"
 
 #ifdef UNITTESTS
 void DetectHTTP2frameTypeRegisterTests (void);

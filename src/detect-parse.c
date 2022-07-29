@@ -24,51 +24,35 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-build.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-uricontent.h"
-#include "detect-reference.h"
 #include "detect-ipproto.h"
 #include "detect-flow.h"
-#include "detect-app-layer-protocol.h"
-#include "detect-lua.h"
 #include "detect-app-layer-event.h"
-#include "detect-http-method.h"
 
 #include "pkt-var.h"
-#include "host.h"
 #include "util-profiling.h"
-#include "decode.h"
-
-#include "flow.h"
-
-#include "util-rule-vars.h"
-#include "conf.h"
-#include "conf-yaml-loader.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "util-classification-config.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
+
+#ifdef HAVE_LUA
+#include "detect-lua.h"
+#endif
 
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];

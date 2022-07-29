@@ -17,15 +17,11 @@
 
 #include "suricata-common.h"
 
-#include "stream.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-dnp3.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 
 #include "app-layer-dnp3.h"
 #include "util-byte.h"
@@ -601,11 +597,7 @@ void DetectDNP3Register(void)
 #ifdef UNITTESTS
 
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "app-layer-parser.h"
 #include "detect-engine.h"
-#include "flow-util.h"
-#include "stream-tcp.h"
 
 static int DetectDNP3FuncParseFunctionCodeTest(void)
 {

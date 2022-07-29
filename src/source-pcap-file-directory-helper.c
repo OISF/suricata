@@ -26,9 +26,7 @@
 #include "source-pcap-file-directory-helper.h"
 #include "suricata.h"
 #include "runmode-unix-socket.h"
-#include "util-mem.h"
 #include "util-time.h"
-#include "source-pcap-file.h"
 
 static void GetTime(struct timespec *tm);
 static void CopyTime(struct timespec *from, struct timespec *to);

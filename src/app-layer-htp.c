@@ -33,55 +33,23 @@
  * This file provides a HTTP protocol support for the engine using HTP library.
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
-#include "conf.h"
-#include "debug.h"
-#include "decode.h"
-#include "threads.h"
-#include "counters.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-radix-tree.h"
-#include "util-file.h"
 #include "util-byte.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
-#include "stream.h"
-
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
-#include "app-layer-frames.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-libhtp.h"
-#include "app-layer-htp-xff.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
 
-#include "util-spm.h"
-#include "util-debug.h"
-#include "util-time.h"
 #include "util-misc.h"
 #include "util-enum.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "flow-util.h"
-
-#include "detect-engine.h"
-#include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-parse.h"
-
-#include "decode-events.h"
 
 #include "util-memcmp.h"
 #include "util-random.h"
@@ -3227,6 +3195,18 @@ void RegisterHTPParsers(void)
 }
 
 #ifdef UNITTESTS
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "stream-tcp.h"
+#include "conf-yaml-loader.h"
+#include "util-print.h"
+#include "flow-util.h"
+#include "detect-engine.h"
+#include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "app-layer-htp-xff.h"
+
 static HTPCfgRec cfglist_backup;
 
 void HtpConfigCreateBackup(void)
@@ -3892,8 +3872,6 @@ end:
     UTHFreeFlow(f);
     return result;
 }
-
-#include "conf-yaml-loader.h"
 
 /** \test Abort
  */

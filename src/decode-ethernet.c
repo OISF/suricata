@@ -31,13 +31,10 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-ethernet.h"
-#include "decode-events.h"
 
 #include "util-validate.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)

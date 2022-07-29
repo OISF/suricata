@@ -24,8 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-cpu.h"
 #include "util-byte.h"
 

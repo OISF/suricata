@@ -24,13 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "util-hyperscan.h"
 #include "util-spm-hs.h"
 
 #ifdef BUILD_HYPERSCAN
-
+#include "util-hyperscan.h"
 #include <hs.h>
 
 /**

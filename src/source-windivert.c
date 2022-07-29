@@ -26,20 +26,7 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "tm-threads.h"
-
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-error.h"
-#include "util-ioctl.h"
-#include "util-privs.h"
-#include "util-unittest.h"
-
-#include "runmodes.h"
-
-#include "queue.h"
 
 #include "source-windivert-prototypes.h"
 #include "source-windivert.h"

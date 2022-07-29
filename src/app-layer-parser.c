@@ -24,28 +24,15 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
 #include "util-unittest.h"
-#include "decode.h"
-#include "threads.h"
-
-#include "util-print.h"
-#include "util-pool.h"
 
 #include "flow-util.h"
 #include "flow-private.h"
 
-#include "detect-engine-state.h"
-#include "detect-engine-port.h"
-
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream.h"
-#include "stream-tcp-reassemble.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-smb.h"
 #include "app-layer-htp.h"
@@ -58,11 +45,6 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-nfs-tcp.h"
 #include "app-layer-nfs-udp.h"
-#include "app-layer-ntp.h"
-#include "app-layer-tftp.h"
-#include "app-layer-ike.h"
-#include "app-layer-krb5.h"
-#include "app-layer-snmp.h"
 #include "app-layer-sip.h"
 #include "app-layer-rfb.h"
 #include "app-layer-mqtt.h"
@@ -72,17 +54,8 @@
 #include "app-layer-rdp.h"
 #include "app-layer-http2.h"
 
-#include "conf.h"
-#include "util-spm.h"
-
-#include "util-debug.h"
-#include "decode-events.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
-
-#include "runmodes.h"
-
-#include "rust.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];

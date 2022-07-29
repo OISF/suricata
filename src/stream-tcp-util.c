@@ -25,13 +25,8 @@
 
 #include "suricata-common.h"
 
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-inline.h"
 #include "stream-tcp.h"
 #include "stream-tcp-util.h"
-
-#include "util-memcmp.h"
-#include "util-print.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

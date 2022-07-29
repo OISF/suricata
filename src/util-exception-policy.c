@@ -22,7 +22,10 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-exception-policy.h"
+
+#ifdef DEBUG
 #include "util-misc.h"
+#endif
 
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {

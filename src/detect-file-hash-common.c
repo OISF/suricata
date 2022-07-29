@@ -25,12 +25,9 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-file-hash-common.h"
-
-#include "app-layer-htp.h"
 
 /**
  * \brief Read the bytes of a hash from an hexadecimal string

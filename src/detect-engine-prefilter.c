@@ -45,15 +45,9 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-frame.h"
-
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
 
 #include "util-profiling.h"
 #include "util-validate.h"
@@ -700,8 +694,6 @@ const char *PrefilterStoreGetName(const uint32_t id)
     return NULL;
 }
 #endif
-
-#include "util-print.h"
 
 typedef struct PrefilterMpmCtx {
     int list_id;

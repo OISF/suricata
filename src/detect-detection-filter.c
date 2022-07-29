@@ -24,21 +24,13 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "host.h"
 
 #include "detect-detection-filter.h"
-#include "detect-threshold.h"
 #include "detect-parse.h"
 
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 #include "detect-engine-build.h"
 
 #define TRACK_DST      1
@@ -272,10 +264,7 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
  */
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-threshold.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options

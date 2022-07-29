@@ -33,6 +33,8 @@
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "runmode-dpdk.h"
+
+#ifdef HAVE_DPDK
 #include "source-dpdk.h"
 #include "util-runmodes.h"
 #include "util-byte.h"
@@ -42,8 +44,6 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-time.h"
-
-#ifdef HAVE_DPDK
 
 #define RSS_HKEY_LEN 40
 // General purpose RSS key for symmetric bidirectional flow distribution

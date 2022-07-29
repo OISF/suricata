@@ -23,18 +23,10 @@
 
 #include "suricata-common.h"
 
-#include "action-globals.h"
-#include "conf.h"
 #include "conf-yaml-loader.h"
-
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-sigorder.h"
 
 #include "util-unittest.h"
 #include "util-action.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
 
 /* Default order: */
 uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT};

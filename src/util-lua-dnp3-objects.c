@@ -25,7 +25,6 @@
 #include "suricata-common.h"
 
 #include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
 
 #ifdef HAVE_LUA
 
@@ -33,6 +32,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "app-layer-dnp3-objects.h"
 #include "util-lua.h"
 #include "util-lua-dnp3-objects.h"
 

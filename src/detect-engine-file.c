@@ -23,30 +23,12 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect-engine-state.h"
-
 #include "detect-filestore.h"
 
-#include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
-#include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-#include "app-layer-dcerpc-common.h"
-#include "app-layer-smtp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 

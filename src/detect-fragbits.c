@@ -25,25 +25,16 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
 
-#include "flow-var.h"
-#include "decode-events.h"
 #include "app-layer.h"
-#include "app-layer-detect-proto.h"
 
 #include "detect-fragbits.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 #include "pkt-var.h"
-#include "host.h"
 #include "util-profiling.h"
 
 /**

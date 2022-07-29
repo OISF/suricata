@@ -22,19 +22,16 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
 #include "detect-krb5-cname.h"
 
 #include "rust.h"
-#include "app-layer-krb5.h"
 
 static int g_krb5_cname_buffer_id = 0;
 

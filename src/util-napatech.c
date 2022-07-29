@@ -25,14 +25,7 @@
 #include "suricata-common.h"
 
 #ifdef HAVE_NAPATECH
-#include "suricata.h"
-#include "util-device.h"
-#include "util-cpu.h"
-#include "util-byte.h"
-#include "threadvars.h"
-#include "tm-threads.h"
 #include "util-napatech.h"
-#include "source-napatech.h"
 
 #ifdef NAPATECH_ENABLE_BYPASS
 

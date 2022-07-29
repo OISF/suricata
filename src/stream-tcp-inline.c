@@ -24,13 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
 
 #include "util-memcmp.h"
-#include "util-print.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 /**

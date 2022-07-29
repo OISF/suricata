@@ -24,43 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-flowvar.h"
-
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "app-layer.h"
-
-#include "stream-tcp.h"
-
-#include "detect-lua.h"
-
-#include "queue.h"
-#include "util-cpu.h"
-
-#include "app-layer-parser.h"
 
 #ifdef HAVE_LUA
+#include "detect-lua.h"
+#include "flow-var.h"
+#include "app-layer-parser.h"
 
 #include "util-lua.h"
 #include "util-lua-common.h"
@@ -72,6 +40,7 @@
 #include "util-lua-hassh.h"
 #include "util-lua-smtp.h"
 #include "util-lua-dnp3.h"
+
 #include "detect-lua-extensions.h"
 
 static const char luaext_key_ld[] = "suricata:luadata";

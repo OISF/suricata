@@ -24,12 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
@@ -37,18 +32,12 @@
 #include "detect-pcre.h"
 #include "detect-tls-cert-fingerprint.h"
 
-#include "flow.h"
 #include "flow-util.h"
-#include "flow-var.h"
 
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-spm.h"
-#include "util-print.h"
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
 #include "app-layer-ssl.h"
 
 #include "util-unittest.h"

@@ -27,25 +27,15 @@
 
 #include "suricata-common.h"
 
-#include "debug.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-#include "output.h"
-
-#include "app-layer-smtp.h"
-
 #ifdef HAVE_LUA
 
 #include <lua.h>
 #include <lualib.h>
 
+#include "app-layer-smtp.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-smtp.h"
-#include "util-file.h"
 
 /*
  * \brief internal function used by SMTPGetMimeField

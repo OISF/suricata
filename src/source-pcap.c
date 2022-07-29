@@ -25,24 +25,13 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
-#include "packet-queue.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "source-pcap.h"
-#include "conf.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-privs.h"
 #include "util-datalink.h"
-#include "util-device.h"
-#include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
 #include "util-time.h"
-#include "tmqh-packetpool.h"
 
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1

@@ -25,26 +25,13 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-build.h"
-
-#include "conf.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-mpm-hs.h"
-#include "util-memcpy.h"
-#include "util-hash.h"
-#include "util-hash-lookup3.h"
-#include "util-hyperscan.h"
 
 #ifdef BUILD_HYPERSCAN
-
+#include "util-hyperscan.h"
+#include "util-hash-lookup3.h"
 #include <hs.h>
 
 void SCHSInitCtx(MpmCtx *);
@@ -1094,6 +1081,11 @@ void MpmHSGlobalCleanup(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-build.h"
 
 static int SCHSTest01(void)
 {

@@ -33,14 +33,10 @@
  */
 
 #include "suricata-common.h"
-#include "runmodes.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "util-time.h"
-#include "conf.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-reassemble.h"
 
 #ifdef UNITTESTS
 

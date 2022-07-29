@@ -24,9 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
-#include "util-debug.h"
 #include "ippair.h"
 #include "ippair-storage.h"
 
@@ -36,10 +34,6 @@
 #include "util-validate.h"
 
 #include "ippair-queue.h"
-
-#include "detect-tag.h"
-#include "detect-engine-tag.h"
-#include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
 

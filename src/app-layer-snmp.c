@@ -25,13 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
-
-#include "util-unittest.h"
-
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
 
 #include "app-layer-snmp.h"
 #include "rust.h"

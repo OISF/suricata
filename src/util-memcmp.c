@@ -179,8 +179,6 @@ static int MemcmpTest13 (void)
     return 1;
 }
 
-#include "util-cpu.h"
-
 #define TEST_RUNS 1000000
 
 static int MemcmpTest14 (void)

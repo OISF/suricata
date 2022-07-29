@@ -26,16 +26,12 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
 
 #include "util-unittest.h"
 
-#include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-ike.h"
-#include "rust.h"
 
 void RegisterIKEParsers(void)
 {
@@ -47,7 +43,6 @@ void RegisterIKEParsers(void)
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util-unittest-helper.h"
 #include "flow-util.h"
 
 static int IkeParserTest(void)

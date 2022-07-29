@@ -47,16 +47,13 @@
 #include "suricata.h"
 #include "util-unittest.h"
 
-#include "conf.h"
-
 #include "util-spm.h"
-#include "util-spm-bs.h"
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
-#include "util-spm-hs.h"
 #include "util-clock.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"
+#include "util-spm-hs.h"
 #endif
 
 SpmTableElmt spm_table[SPM_TABLE_SIZE];

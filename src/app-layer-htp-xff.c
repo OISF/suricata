@@ -23,15 +23,12 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 
-#include "util-misc.h"
 #include "util-memrchr.h"
-#include "util-unittest.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7
@@ -256,6 +253,9 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
 
 
 #ifdef UNITTESTS
+
+#include "util-unittest.h"
+
 static int XFFTest01(void) {
     char input[] = "1.2.3.4:5678";
     char output[16];

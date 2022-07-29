@@ -23,21 +23,8 @@
  *  Netfilter's netfilter_log support
  */
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "packet-queue.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
 #include "tm-modules.h"
-#include "tm-queuehandlers.h"
-#include "tmqh-packetpool.h"
-
-#include "runmodes.h"
-#include "util-error.h"
-#include "util-device.h"
-#include "util-datalink.h"
 
 #ifndef HAVE_NFLOG
 /** Handle the case where no NFLOG support is compiled in.

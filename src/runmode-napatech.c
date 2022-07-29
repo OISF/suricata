@@ -23,20 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
-#include "runmodes.h"
-#include "output.h"
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-byte.h"
-#include "util-affinity.h"
-#include "util-runmodes.h"
-#include "util-device.h"
-#include "util-napatech.h"
 #include "runmode-napatech.h"
-#include "source-napatech.h" // need NapatechStreamDevConf structure
 
 #define NT_RUNMODE_AUTOFP  1
 #define NT_RUNMODE_WORKERS 2

@@ -22,16 +22,10 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-snmp-version.h"
 #include "detect-engine-uint.h"
-#include "app-layer-parser.h"
-#include "rust.h"
-
 
 static int DetectSNMPVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPVersionFree(DetectEngineCtx *, void *);

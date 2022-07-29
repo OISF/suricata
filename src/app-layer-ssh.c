@@ -26,33 +26,14 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer-detect-proto.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
-#include "rust.h"
 
-#include "conf.h"
-
-#include "util-spm.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-private.h"
-
-#include "util-byte.h"
-#include "util-memcmp.h"
 
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH false

@@ -16,37 +16,22 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
-#include "runmodes.h"
-#include "runmode-pcap-file.h"
-#include "output.h"
 #include "output-json.h"
 
-#include "util-debug.h"
 #include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
 #include "util-var-name.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
 
-#include "flow-manager.h"
-#include "flow-timeout.h"
 #include "stream-tcp.h"
-#include "stream-tcp-reassemble.h"
 #include "source-pcap-file-directory-helper.h"
-#include "host.h"
-#include "defrag.h"
 #include "defrag-hash.h"
 #include "ippair.h"
-#include "app-layer.h"
 #include "app-layer-htp-mem.h"
 #include "host-bit.h"
 
 #include "util-misc.h"
-#include "util-profiling.h"
 
 #include "conf-yaml-loader.h"
 

@@ -26,17 +26,9 @@
  */
 
 #include "suricata-common.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-byte.h"
-#include "util-ip.h"
-#include "util-radix-tree.h"
 #include "util-unittest.h"
-#include "threads.h"
 #include "util-print.h"
-#include "host.h"
-#include "conf.h"
-#include "detect.h"
 #include "reputation.h"
 #include "util-validate.h"
 

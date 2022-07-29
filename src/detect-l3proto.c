@@ -25,27 +25,14 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "detect-ipproto.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-build.h"
-
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
 
 #include "detect-l3proto.h"
 
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "util-debug.h"
 
 static int DetectL3ProtoSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

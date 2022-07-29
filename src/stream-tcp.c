@@ -29,52 +29,24 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "decode.h"
-#include "debug.h"
-#include "detect.h"
-
-#include "flow.h"
 #include "flow-util.h"
 
-#include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "threads.h"
-#include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-pool.h"
-#include "util-pool-thread.h"
 #include "util-checksum.h"
-#include "util-unittest.h"
-#include "util-print.h"
-#include "util-debug.h"
 #include "util-device.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream-tcp-inline.h"
 #include "stream-tcp-sack.h"
-#include "stream-tcp-util.h"
-#include "stream.h"
-
-#include "pkt-var.h"
-#include "host.h"
 
 #include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp-mem.h"
 
 #include "util-host-os-info.h"
-#include "util-privs.h"
-#include "util-profiling.h"
 #include "util-misc.h"
 #include "util-validate.h"
-#include "util-runmodes.h"
 #include "util-random.h"
-#include "util-exception-policy.h"
 #include "util-time.h"
 
 #include "source-pcap-file.h"

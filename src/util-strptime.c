@@ -34,7 +34,6 @@
 __RCSID("$NetBSD: strptime.c,v 1.36 2012/03/13 21:13:48 christos Exp $");
 #endif
 
-#include "namespace.h"
 #include <sys/localedef.h>
 */
 #include "suricata-common.h"
@@ -46,7 +45,6 @@ __RCSID("$NetBSD: strptime.c,v 1.36 2012/03/13 21:13:48 christos Exp $");
 #include <stdint.h>
 /*
 #include <tzfile.h>
-#include "private.h"
 
 #ifdef __weak_alias
 __weak_alias(strptime,_strptime)

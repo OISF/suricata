@@ -24,19 +24,9 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "debug.h"
-#include "flow.h"
-#include "stream.h"
 #include "stream-tcp.h"
-#include "runmodes.h"
-#include "util-hash.h"
-#include "util-debug.h"
-#include "util-memcmp.h"
-#include "util-print.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
-#include "rust.h"
 
 extern int g_detect_disabled;
 

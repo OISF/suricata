@@ -22,24 +22,11 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-tos.h"
 
-#include "app-layer-protos.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
 #include "util-byte.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 

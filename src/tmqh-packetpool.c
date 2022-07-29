@@ -24,31 +24,15 @@
  */
 
 #include "suricata.h"
-#include "packet-queue.h"
-#include "decode.h"
-#include "detect.h"
-#include "detect-uricontent.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "flow.h"
-#include "flow-util.h"
-#include "host.h"
-
-#include "stream.h"
-#include "stream-tcp-reassemble.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "tm-modules.h"
 
 #include "pkt-var.h"
 
 #include "tmqh-packetpool.h"
 
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-profiling.h"
-#include "util-device.h"
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
