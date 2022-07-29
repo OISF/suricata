@@ -24,11 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
 #include "tm-threads.h"
-#include "util-debug.h"
-#include "threads.h"
-#include "util-logopenfile.h"
 
 TmModule tmm_modules[TMM_SIZE];
 

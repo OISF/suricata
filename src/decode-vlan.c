@@ -31,19 +31,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-vlan.h"
-#include "decode-events.h"
-
-#include "flow.h"
 
 #include "util-validate.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 #include "pkt-var.h"
 #include "util-profiling.h"
-#include "host.h"
 
 /**
  * \internal

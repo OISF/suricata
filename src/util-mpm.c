@@ -25,24 +25,17 @@
 
 #include "suricata-common.h"
 #include "util-mpm.h"
-#include "util-debug.h"
 
 /* include pattern matchers */
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-ks.h"
-#include "util-mpm-hs.h"
-#include "util-hashlist.h"
 
 #include "detect-engine.h"
-#include "util-misc.h"
-#include "conf.h"
-#include "conf-yaml-loader.h"
-#include "queue.h"
-#include "util-unittest.h"
 #include "util-memcpy.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"
+#include "util-mpm-hs.h"
 #endif
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
@@ -556,9 +549,6 @@ error:
 
 
 /************************************Unittests*********************************/
-
-#ifdef UNITTESTS
-#endif /* UNITTESTS */
 
 void MpmRegisterTests(void)
 {

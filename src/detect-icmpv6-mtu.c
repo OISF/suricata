@@ -24,7 +24,6 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-icmpv6-mtu.h"

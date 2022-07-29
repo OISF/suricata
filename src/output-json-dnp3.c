@@ -16,28 +16,11 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-debug.h"
-
-#include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
 
 #include "detect-dnp3.h"
 
-#include "output.h"
 #include "output-json.h"
 #include "output-json-dnp3.h"
 #include "output-json-dnp3-objects.h"

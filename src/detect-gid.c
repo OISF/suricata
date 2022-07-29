@@ -24,17 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "flow-var.h"
-#include "decode-events.h"
 
 #include "detect-gid.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 static int DetectGidSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

@@ -25,35 +25,18 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "threads.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
 #include "app-layer-ssl.h"
 
-#include "decode-events.h"
-#include "conf.h"
-
-#include "util-spm.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-byte.h"
-#include "util-ja3.h"
 #include "util-enum.h"
 #include "flow-util.h"
-#include "flow-private.h"
 #include "util-validate.h"
 
 SCEnumCharMap tls_frame_table[] = {

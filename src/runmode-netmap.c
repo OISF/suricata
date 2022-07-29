@@ -34,16 +34,11 @@
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "runmode-netmap.h"
-#include "util-runmodes.h"
-#include "util-ioctl.h"
-#include "util-byte.h"
 
 #ifdef HAVE_NETMAP
 #define NETMAP_WITH_LIBS
 #include <net/netmap_user.h>
 #endif /* HAVE_NETMAP */
-
-#include "source-netmap.h"
 
 extern int max_pending_packets;
 

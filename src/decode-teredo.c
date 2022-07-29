@@ -33,13 +33,9 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-ipv6.h"
 #include "decode-teredo.h"
 
 #include "util-validate.h"
-#include "util-debug.h"
-#include "conf.h"
 #include "detect-engine-port.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH   8

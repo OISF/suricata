@@ -23,16 +23,12 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-content.h"
-#include "output-json.h"
-#include "util-buffer.h"
-#include "util-print.h"
 #include "detect-engine-profile.h"
 
 #ifdef PROFILING
+#include "rust.h"
+#include "output-json.h"
+
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
 
 void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,

@@ -41,32 +41,14 @@
 #include <fnmatch.h>
 #endif
 
-#include "debug.h"
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
 #include "log-pcap.h"
-#include "decode-ipv4.h"
 
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-time.h"
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-cpu.h"
-#include "util-atomic.h"
-
-#include "source-pcap.h"
 
 #include "output.h"
-
-#include "queue.h"
 
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"

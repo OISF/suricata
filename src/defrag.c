@@ -33,31 +33,17 @@
 
 #include "suricata-common.h"
 
-#include "queue.h"
-
-#include "suricata.h"
-#include "threads.h"
-#include "conf.h"
-#include "decode-ipv6.h"
-#include "util-hashlist.h"
-#include "util-pool.h"
 #include "util-time.h"
-#include "util-print.h"
-#include "util-debug.h"
 #include "util-fix_checksum.h"
-#include "util-random.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "util-host-os-info.h"
 #include "util-validate.h"
 
 #include "defrag.h"
 #include "defrag-hash.h"
-#include "defrag-queue.h"
 #include "defrag-config.h"
 
 #include "tmqh-packetpool.h"
-#include "decode.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"

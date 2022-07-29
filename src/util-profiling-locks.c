@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "util-profiling-locks.h"
-#include "util-hashlist.h"
 
 #ifdef PROFILING
 #ifdef PROFILE_LOCKING

@@ -29,7 +29,6 @@
 
 #include "suricata-common.h"
 #include "decode-esp.h"
-#include "flow.h"
 
 #include "util-validate.h"
 

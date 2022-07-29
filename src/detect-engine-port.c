@@ -27,30 +27,18 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "flow-var.h"
 
-#include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-rule-vars.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
-#include "conf.h"
-#include "util-debug.h"
-#include "util-error.h"
-
 #include "pkt-var.h"
-#include "host.h"
 #include "util-profiling.h"
-#include "util-var.h"
 #include "util-byte.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);

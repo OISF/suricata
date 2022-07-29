@@ -25,42 +25,19 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "tm-threads.h"
-#include "threadvars.h"
-#include "util-debug.h"
 #include "util-time.h"
 #include "util-var-name.h"
 #include "util-macset.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-reference.h"
-#include "app-layer-parser.h"
-#include "util-classification-config.h"
-#include "util-syslog.h"
 #include "output-eve-syslog.h"
 
-#include "output.h"
 #include "output-json.h"
 
 #include "util-byte.h"
-#include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
-#include "util-optimize.h"
-#include "util-buffer.h"
-#include "util-logopenfile.h"
-#include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
 #include "util-plugin.h"
@@ -70,8 +47,6 @@
 #include "flow-storage.h"
 
 #include "source-pcap-file.h"
-
-#include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define MODULE_NAME "OutputJSON"

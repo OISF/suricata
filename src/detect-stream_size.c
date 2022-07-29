@@ -24,20 +24,13 @@
  */
 
 #include "suricata-common.h"
-#include "stream-tcp.h"
 #include "util-unittest.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "flow.h"
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
-#include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
-#include "util-debug.h"
-#include "util-byte.h"
-
 
 /*prototypes*/
 static int DetectStreamSizeMatch (DetectEngineThreadCtx *, Packet *,

@@ -26,32 +26,22 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "packet-queue.h"
 
-#include "threads.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "tm-queuehandlers.h"
-#include "tmqh-packetpool.h"
 
-#include "conf.h"
-#include "conf-yaml-loader.h"
-#include "source-nfq-prototypes.h"
-#include "action-globals.h"
-
-#include "util-datalink.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-byte.h"
-#include "util-cpu.h"
 #include "util-privs.h"
-#include "util-device.h"
 
-#include "runmodes.h"
-
+#include "source-nfq-prototypes.h"
 #include "source-nfq.h"
+
+#ifdef NFQ
+#include "suricata.h"
+#include "conf.h"
+#include "runmodes.h"
+#include "util-cpu.h"
+#include "util-datalink.h"
+#include "util-device.h"
+#endif
 
 /* Handle the case where no NFQ support is compiled in. */
 #ifndef NFQ

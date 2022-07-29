@@ -23,17 +23,9 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "conf.h"
-#include "debug.h"
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "runmodes.h"
-#include "threads.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "queue.h"
-#include "util-signal.h"
 
 #include "detect-engine-loader.h"
 #include "detect-engine-build.h"

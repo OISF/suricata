@@ -18,7 +18,6 @@
 #include "suricata-common.h"
 
 #include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
 
 #ifdef HAVE_LUA
 
@@ -30,7 +29,6 @@
 #include "util-lua-common.h"
 #include "util-lua-dnp3.h"
 #include "util-lua-dnp3-objects.h"
-
 /**
  * \brief Helper macro to push key and integer value onto a table.
  */

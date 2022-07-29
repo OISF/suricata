@@ -28,9 +28,6 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
-
-#include "app-layer-ftp.h"
 
 #include "detect-ftpdata.h"
 

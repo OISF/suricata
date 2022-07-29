@@ -29,12 +29,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "ippair-bit.h"
-#include "ippair.h"
-#include "detect.h"
-#include "util-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "ippair-storage.h"
 

@@ -25,19 +25,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "conf.h"
-
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-byte.h"
-#include "util-profiling.h"
-#include "util-profiling-locks.h"
-#include "util-time.h"
 
 #ifdef PROFILING
+#include "util-profiling.h"
+#include "util-time.h"
+#include "util-byte.h"
 
 /**
  * Extra data for rule profiling.

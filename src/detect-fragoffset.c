@@ -24,12 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "decode-ipv4.h"
-#include "decode-ipv6.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-build.h"
@@ -38,7 +33,6 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 #define PARSE_REGEX "^\\s*(?:(<|>))?\\s*([0-9]+)"
 
@@ -329,7 +323,6 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value

@@ -24,14 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
@@ -40,27 +34,20 @@
 #include "detect-byte-extract.h"
 #include "detect-replace.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-uricontent.h"
-#include "detect-urilen.h"
 #include "detect-engine-uint.h"
 #include "detect-bsize.h"
-#include "detect-lua.h"
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
 
-#include "util-spm.h"
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-validate.h"
 
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-profiling.h"
 
 #ifdef HAVE_LUA
-#include "util-lua.h"
+#include "detect-lua.h"
 #endif
 
 /**

@@ -26,19 +26,9 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "suricata.h"
 
 #include "detect-geoip.h"
-
-#include "util-mem.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 #ifndef HAVE_GEOIP
 
@@ -62,6 +52,9 @@ void DetectGeoipRegister(void)
 }
 
 #else /* HAVE_GEOIP */
+
+#include "detect-engine.h"
+#include "detect-parse.h"
 
 #include <maxminddb.h>
 
@@ -454,6 +447,7 @@ static void DetectGeoipDataFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
+#include "util-unittest.h"
 
 static int GeoipParseTest(const char *rule, int ncountries, const char **countries, uint32_t flags)
 {

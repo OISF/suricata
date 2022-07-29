@@ -66,19 +66,14 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
 
-#include "conf.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
-#include "util-memcpy.h"
 #include "util-validate.h"
 #include "util-mpm-ac-ks.h"
 

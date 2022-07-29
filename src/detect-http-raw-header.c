@@ -31,24 +31,15 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-content.h"
 
-#include "flow.h"
-#include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "detect-http-raw-header.h"
 

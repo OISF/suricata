@@ -24,45 +24,30 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "conf.h"
 
-#include "decode.h"
-#include "flow.h"
 #include "stream-tcp.h"
-#include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-frames.h"
 
 #include "detect.h"
 #include "detect-dsize.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
 #include "detect-engine-frame.h"
-#include "detect-engine-profile.h"
 
-#include "detect-engine-alert.h"
-#include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
-#include "detect-engine-proto.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
-#include "detect-engine-threshold.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-state.h"
-#include "detect-engine-analyzer.h"
 
-#include "detect-engine-payload.h"
-#include "detect-engine-event.h"
-
-#include "detect-filestore.h"
 #include "detect-flowvar.h"
 #include "detect-replace.h"
 
 #include "util-validate.h"
-#include "util-detect.h"
 #include "util-profiling.h"
+
+#ifdef PROFILING
+#include "detect-engine-profile.h"
+#endif
 
 typedef struct DetectRunScratchpad {
     const AppProto alproto;

@@ -31,16 +31,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-geneve.h"
 #include "decode-udp.h"
 #include "decode-teredo.h"
 #include "decode-vxlan.h"
-#include "decode-events.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow.h"
-#include "app-layer.h"
 
 static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_t len)
 {

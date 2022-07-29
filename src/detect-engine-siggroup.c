@@ -24,31 +24,15 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "flow-var.h"
-
-#include "app-layer-protos.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
-#include "detect-engine-address.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-prefilter.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-tcp-flags.h"
 
-#include "util-hash.h"
-#include "util-hashlist.h"
-
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"

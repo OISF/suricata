@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "ippair.h"
 #include "ippair-bit.h"
 #include "ippair-timeout.h"
 #include "detect-engine-threshold.h"

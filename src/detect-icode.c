@@ -24,21 +24,15 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
 #include "detect-engine-build.h"
 
 #include "detect-icode.h"
 
-#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 
 /**
  *\brief Regex for parsing our icode options
@@ -198,7 +192,6 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectICodeParseTest01 is a test for setting a valid icode value

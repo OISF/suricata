@@ -27,16 +27,11 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-#include "detect.h"
-#include "detect-parse.h"
 #include "detect-rawbytes.h"
 #include "detect-engine.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
-
-#include "util-debug.h"
 
 static int DetectRawbytesSetup(DetectEngineCtx *, Signature *, const char *);
 

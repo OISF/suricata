@@ -28,29 +28,17 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "detect.h"
-#include "decode.h"
-#include "flow.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-proto.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-build.h"
 
-#include "detect-engine-threshold.h"
 #include "detect-engine-iponly.h"
-#include "detect-threshold.h"
-#include "util-classification-config.h"
 #include "util-rule-vars.h"
 
 #include "flow-util.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-print.h"

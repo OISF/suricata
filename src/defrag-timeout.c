@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "defrag.h"
 #include "defrag-hash.h"
 #include "defrag-timeout.h"
 

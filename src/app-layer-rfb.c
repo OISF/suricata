@@ -32,8 +32,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-rfb.h"
 
-#include "rust-bindings.h"
-
 static int RFBRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_RFB,

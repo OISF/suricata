@@ -31,16 +31,10 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-tcp.h"
-#include "decode-events.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-optimize.h"
-#include "flow.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
-#include "host.h"
 
 #define SET_OPTS(dst, src) \
     (dst).type = (src).type; \

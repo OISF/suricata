@@ -24,9 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-noalert.h"
-#include "util-debug.h"
 
 static int DetectNoalertSetup (DetectEngineCtx *, Signature *, const char *);
 

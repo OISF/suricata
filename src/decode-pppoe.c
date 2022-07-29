@@ -32,17 +32,10 @@
 
 #include "suricata-common.h"
 
-#include "packet-queue.h"
-
-#include "decode.h"
-#include "decode-ppp.h"
 #include "decode-pppoe.h"
-#include "decode-events.h"
-#include "flow.h"
 
 #include "util-validate.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
 /**
  * \brief Main decoding function for PPPOE Discovery packets

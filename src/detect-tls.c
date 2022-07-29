@@ -34,32 +34,14 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "app-layer.h"
 
 #include "app-layer-ssl.h"
 #include "detect-tls.h"
-
-#include "stream-tcp.h"
 
 /**
  * \brief Regex for parsing "id" option, matching number or "number"

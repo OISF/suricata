@@ -24,12 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
-#include "util-debug.h"
 #include "host.h"
-#include "host-storage.h"
-#include "host-bit.h"
 
 #include "util-random.h"
 #include "util-misc.h"
@@ -38,8 +34,6 @@
 
 #include "host-queue.h"
 
-#include "detect-tag.h"
-#include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"

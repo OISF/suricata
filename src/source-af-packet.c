@@ -34,33 +34,18 @@
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
-#include "packet-queue.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
-#include "tm-threads-common.h"
-#include "conf.h"
-#include "util-cpu.h"
-#include "util-datalink.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-ebpf.h"
-#include "util-error.h"
-#include "util-privs.h"
-#include "util-optimize.h"
-#include "util-checksum.h"
-#include "util-ioctl.h"
-#include "util-host-info.h"
-#include "tmqh-packetpool.h"
 #include "source-af-packet.h"
-#include "runmodes.h"
-#include "flow-storage.h"
-#include "util-validate.h"
 
 #ifdef HAVE_AF_PACKET
+
+#include "util-device.h"
+#include "util-privs.h"
+#include "util-ioctl.h"
+#include "util-validate.h"
+#include "util-checksum.h"
+#include "util-datalink.h"
+#include "util-host-info.h"
 
 #if HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
@@ -74,12 +59,16 @@
 #include "util-ebpf.h"
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
+#include "flow-storage.h"
+#include "util-cpu.h"
 #endif
 
 struct bpf_program {
     unsigned int bf_len;
     struct bpf_insn *bf_insns;
 };
+
+#include "util-bpf.h"
 
 #ifdef HAVE_PCAP_H
 #include <pcap.h>
@@ -88,8 +77,6 @@ struct bpf_program {
 #ifdef HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
 #endif
-
-#include "util-bpf.h"
 
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>

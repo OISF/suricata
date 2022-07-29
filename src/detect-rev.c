@@ -24,10 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-rev.h"
-#include "util-debug.h"
-#include "util-error.h"
 
 static int DetectRevSetup (DetectEngineCtx *, Signature *, const char *);
 

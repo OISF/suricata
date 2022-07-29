@@ -25,10 +25,10 @@
  */
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 #include "util-log-redis.h"
-#include "util-logopenfile.h"
-#include "util-byte.h"
 
 #ifdef HAVE_LIBHIREDIS
+#include "util-logopenfile.h"
+#include "util-byte.h"
 
 #ifdef HAVE_LIBEVENT_PTHREADS
 #include <event2/thread.h>

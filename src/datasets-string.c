@@ -22,12 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "datasets.h"
 #include "datasets-string.h"
-#include "util-thash.h"
-#include "util-print.h"
-#include "util-base64.h"    // decode base64
 #include "rust.h"
 
 #if 0

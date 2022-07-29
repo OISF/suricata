@@ -17,15 +17,9 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-tag.h"
-
-#include "decode.h"
-
-#include "flow.h"
-#include "flow-private.h"
 
 #ifdef DEBUG
 #include "util-exception-policy.h"

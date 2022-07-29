@@ -22,45 +22,18 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "conf.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "runmodes.h"
 
-#include "util-random.h"
 #include "util-time.h"
 
-#include "flow.h"
-#include "flow-queue.h"
-#include "flow-hash.h"
-#include "flow-util.h"
-#include "flow-var.h"
 #include "flow-private.h"
-#include "flow-manager.h"
 #include "flow-timeout.h"
-#include "pkt-var.h"
-#include "host.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-
-#include "util-debug.h"
-#include "util-privs.h"
 #include "util-datalink.h"
 
-#include "detect.h"
-#include "detect-engine-state.h"
-#include "stream.h"
-
 #include "app-layer-parser.h"
-#include "app-layer.h"
 
 #include "util-profiling.h"
 

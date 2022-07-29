@@ -25,17 +25,9 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
-#include "flow-var.h"
-#include "decode-events.h"
 
 #include "detect-mark.h"
 #include "detect-parse.h"
-
-#include "util-unittest.h"
-#include "util-debug.h"
 
 #define PARSE_REGEX "([0x]*[0-9a-f]+)/([0x]*[0-9a-f]+)"
 
@@ -250,6 +242,8 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
  */
 
 #if defined UNITTESTS && defined NFQ
+#include "util-unittest.h"
+
 /**
  * \test MarkTestParse01 is a test for a valid mark value
  *

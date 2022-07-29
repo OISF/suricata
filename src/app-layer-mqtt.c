@@ -22,17 +22,12 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
 
 #include "util-misc.h"
-#include "util-unittest.h"
 
-#include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-mqtt.h"
-#include "rust.h"
 
 void RegisterMQTTParsers(void)
 {
@@ -59,6 +54,4 @@ void RegisterMQTTParsers(void)
 
 void MQTTParserRegisterTests(void)
 {
-#ifdef UNITTESTS
-#endif
 }

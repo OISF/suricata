@@ -24,19 +24,14 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-csum.h"
 
 #include "util-unittest.h"
-#include "util-debug.h"
 
 #include "pkt-var.h"
-#include "host.h"
 #include "util-profiling.h"
 #include "detect-engine-build.h"
 

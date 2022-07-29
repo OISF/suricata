@@ -23,18 +23,11 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "debug.h"
-#include "detect.h"
-#include "flow.h"
-#include "flow-private.h"
-#include "flow-util.h"
 #include "flow-worker.h"
-#include "conf.h"
 #include "conf-yaml-loader.h"
 #include "datasets.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
@@ -46,19 +39,11 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
-#include "detect-engine-tag.h"
 #include "detect-engine-frame.h"
 
-#include "detect-engine-file.h"
-
 #include "detect-engine.h"
-#include "detect-engine-state.h"
 #include "detect-engine-payload.h"
 #include "detect-fast-pattern.h"
-#include "detect-byte-extract.h"
-#include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-tcphdr.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-content-inspection.h"
 
@@ -66,16 +51,9 @@
 
 #include "util-classification-config.h"
 #include "util-reference-config.h"
-#include "util-threshold-config.h"
-#include "util-error.h"
-#include "util-hash.h"
 #include "util-byte.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-action.h"
-#include "util-magic.h"
-#include "util-signal.h"
-#include "util-spm.h"
 #include "util-device.h"
 #include "util-var-name.h"
 #include "util-profiling.h"
@@ -84,9 +62,6 @@
 #include "util-enum.h"
 
 #include "tm-threads.h"
-#include "runmodes.h"
-
-#include "reputation.h"
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 

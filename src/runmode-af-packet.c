@@ -31,30 +31,9 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
 #include "output.h"
-#include "log-httplog.h"
-#include "detect-engine-mpm.h"
-
-#include "alert-fastlog.h"
-#include "alert-debuglog.h"
-
-#include "flow-bypass.h"
-
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-ioctl.h"
-#include "util-ebpf.h"
-#include "util-byte.h"
-
-#include "source-af-packet.h"
 
 extern int max_pending_packets;
 
@@ -82,6 +61,17 @@ void RunModeIdsAFPRegister(void)
 
 
 #ifdef HAVE_AF_PACKET
+
+#include "util-byte.h"
+#include "util-cpu.h"
+#include "util-ioctl.h"
+#include "util-device.h"
+#include "util-time.h"
+#include "util-runmodes.h"
+
+#ifdef HAVE_PACKET_EBPF
+#include "util-ebpf.h"
+#endif
 
 static void AFPDerefConfig(void *conf)
 {

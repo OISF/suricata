@@ -23,32 +23,10 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-sigorder.h"
 #include "detect-bypass.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "stream-tcp.h"
-
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-device.h"
 
 static int DetectBypassMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

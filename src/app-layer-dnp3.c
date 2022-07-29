@@ -17,25 +17,16 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "util-hashlist.h"
 
-#include "util-print.h"
-#include "util-spm-bs.h"
 #include "util-enum.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
-
-/* For hexdump(). */
-#include "app-layer-dcerpc-common.h"
 
 /* Default number of unreplied requests to be considered a flood. */
 #define DNP3_DEFAULT_REQ_FLOOD_COUNT 500

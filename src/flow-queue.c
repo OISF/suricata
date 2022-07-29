@@ -24,14 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "flow-private.h"
 #include "flow-queue.h"
-#include "flow-util.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-print.h"
 
 FlowQueue *FlowQueueNew()
 {

@@ -23,8 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "util-device.h"
 #include "decode-sll.h"
 
 #ifdef HAVE_SYS_IOCTL_H

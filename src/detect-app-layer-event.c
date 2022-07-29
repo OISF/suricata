@@ -22,27 +22,16 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-smtp.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
 #include "detect-engine-build.h"
 #include "detect-app-layer-event.h"
 
-#include "flow.h"
-#include "flow-var.h"
 #include "flow-util.h"
 
-#include "decode-events.h"
-#include "util-byte.h"
-#include "util-debug.h"
 #include "util-enum.h"
 #include "util-profiling.h"
 #include "util-unittest.h"
@@ -428,9 +417,6 @@ int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s)
 /**********************************Unittests***********************************/
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
 
 #define APP_LAYER_EVENT_TEST_MAP_EVENT1 0
 #define APP_LAYER_EVENT_TEST_MAP_EVENT2 1

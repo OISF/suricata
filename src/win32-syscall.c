@@ -52,12 +52,6 @@
 #define _snprintf StringCbPrintfA
 
 #include "suricata-common.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-mem.h"
-#include "util-unittest.h"
-
-#include "suricata.h"
 
 #include "win32-syscall.h"
 
@@ -1662,6 +1656,8 @@ release:
 #endif /* NTDDI_VERSION >= NTDDI_VISTA */
 
 #ifdef UNITTESTS
+#include "util-unittest.h"
+
 static int Win32TestStripPcapPrefix(void)
 {
     int result = 1;

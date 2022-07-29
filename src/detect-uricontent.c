@@ -25,35 +25,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-content.h"
 #include "detect-http-uri.h"
 #include "detect-uricontent.h"
-#include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
-#include "flow.h"
-#include "detect-flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-#include "threads.h"
 
-#include "stream-tcp.h"
-#include "stream.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-
-#include "util-mpm.h"
-#include "util-print.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
-#include "conf.h"
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, const char *);
@@ -155,7 +133,6 @@ error:
 #ifdef UNITTESTS
 
 #include "detect-isdataat.h"
-#include "stream-tcp-reassemble.h"
 
 /**
  * \test Checks if a uricontent is registered in a Signature

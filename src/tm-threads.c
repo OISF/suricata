@@ -27,22 +27,12 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "runmodes.h"
-#include "threadvars.h"
-#include "tm-queues.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "tmqh-packetpool.h"
-#include "threads.h"
 #include "util-affinity.h"
-#include "util-debug.h"
 #include "util-privs.h"
 #include "util-cpu.h"
-#include "util-optimize.h"
 #include "util-profiling.h"
-#include "util-signal.h"
-#include "queue.h"
 
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;

@@ -26,31 +26,17 @@
 
 #ifdef UNITTESTS
 
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-address.h"
-#include "detect-engine-proto.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-state.h"
 #include "detect-engine-tag.h"
-#include "detect-engine-enip.h"
-#include "detect-fast-pattern.h"
-#include "flow.h"
-#include "flow-timeout.h"
-#include "flow-manager.h"
-#include "flow-var.h"
 #include "flow-bit.h"
-#include "pkt-var.h"
 
-#include "host.h"
 #include "host-bit.h"
-#include "ippair.h"
 #include "ippair-bit.h"
-#include "unix-manager.h"
 
 #include "stream-tcp.h"
 
@@ -58,51 +44,32 @@
 #include "app-layer-parser.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
-#include "app-layer-ftp.h"
-#include "app-layer-ssl.h"
-#include "app-layer-ssh.h"
 #include "app-layer-smtp.h"
 
 #include "util-action.h"
-#include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
 #include "util-unittest-helper.h"
-#include "util-time.h"
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
 #include "util-threshold-config.h"
 #include "util-reference-config.h"
-#include "util-profiling.h"
 #include "util-magic.h"
 #include "util-memcmp.h"
 #include "util-misc.h"
-#include "util-signal.h"
 
-#include "reputation.h"
-#include "util-atomic.h"
-#include "util-spm.h"
-#include "util-hash.h"
-#include "util-hashlist.h"
 #include "util-bloomfilter.h"
 #include "util-bloomfilter-counting.h"
-#include "util-pool.h"
 #include "util-byte.h"
 #include "util-proto-name.h"
 #include "util-macset.h"
 #include "util-memrchr.h"
 
-#include "util-mpm-ac.h"
-#include "util-mpm-hs.h"
-
-#include "conf.h"
 #include "conf-yaml-loader.h"
 #include "tmqh-flow.h"
 #include "defrag.h"
 #include "detect-engine-siggroup.h"
 
-#include "util-streaming-buffer.h"
-#include "util-lua.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
 #include "decode-chdlc.h"
@@ -120,9 +87,21 @@
 #include "source-windivert.h"
 #endif
 
+#ifdef PROFILING
+#include "util-profiling.h"
+#endif
+
+#ifdef HAVE_LUAJIT
+#include "util-luajit.h"
+#endif
+
+#ifdef BUILD_HYPERSCAN
+#include "util-mpm-hs.h"
+#endif
+
 #endif /* UNITTESTS */
 
-void TmqhSetup (void);
+void TmqhSetup(void);
 
 #ifdef UNITTESTS
 static void RegisterUnittests(void)

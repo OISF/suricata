@@ -34,7 +34,6 @@
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 
 #include "suricata-common.h"
-#include "flow-bypass.h"
 
 #ifdef HAVE_PACKET_EBPF
 
@@ -55,7 +54,6 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include <net/if.h>
-#include "autoconf.h"
 
 #define BPF_MAP_MAX_COUNT 16
 

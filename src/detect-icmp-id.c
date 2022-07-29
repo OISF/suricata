@@ -24,10 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-build.h"
@@ -37,7 +34,6 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
 
@@ -325,7 +321,6 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value

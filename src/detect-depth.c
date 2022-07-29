@@ -26,21 +26,12 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-byte.h"
-#include "detect-byte-extract.h"
 #include "detect-depth.h"
 
-#include "flow-var.h"
-#include "app-layer.h"
-
 #include "util-byte.h"
-#include "util-debug.h"
 
 static int DetectDepthSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectStartsWithSetup (DetectEngineCtx *, Signature *, const char *);
