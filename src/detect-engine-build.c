@@ -1872,8 +1872,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         DetectEngineAppInspectionEngine2Signature(de_ctx, s);
 
         /* built-ins */
-        int type;
-        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+        for (int type = 0; type < DETECT_SM_LIST_MAX; type++) {
             /* skip PMATCH if it is used in a stream 'app engine' instead */
             if (type == DETECT_SM_LIST_PMATCH && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH))
                 continue;
@@ -1888,8 +1887,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             EngineAnalysisRules2(de_ctx, s);
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
-        uint32_t i;
-        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (uint32_t i = 0; i < DETECT_SM_LIST_MAX; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -1897,7 +1895,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 sm = nsm;
             }
         }
-        for (i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
+        for (uint32_t i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
                 int transform = s->init_data->transforms.transforms[i].transform;
                 sigmatch_table[transform].Free(
