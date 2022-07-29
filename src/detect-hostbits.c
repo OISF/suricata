@@ -93,7 +93,7 @@ void DetectHostbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchToggle (Packet *p, const DetectBitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -125,7 +125,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchUnset (Packet *p, const DetectBitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -154,7 +154,7 @@ static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchSet (Packet *p, const DetectBitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -183,7 +183,7 @@ static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchIsset (Packet *p, const DetectBitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -213,7 +213,7 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
     return 0;
 }
 
-static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -243,18 +243,18 @@ static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
     return 0;
 }
 
-int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
+int DetectXbitMatchHost(Packet *p, const DetectBitsData *xd)
 {
     switch (xd->cmd) {
-        case DETECT_XBITS_CMD_ISSET:
+        case DETECT_BITS_CMD_ISSET:
             return DetectHostbitMatchIsset(p,xd);
-        case DETECT_XBITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISNOTSET:
             return DetectHostbitMatchIsnotset(p,xd);
-        case DETECT_XBITS_CMD_SET:
+        case DETECT_BITS_CMD_SET:
             return DetectHostbitMatchSet(p,xd);
-        case DETECT_XBITS_CMD_UNSET:
+        case DETECT_BITS_CMD_UNSET:
             return DetectHostbitMatchUnset(p,xd);
-        case DETECT_XBITS_CMD_TOGGLE:
+        case DETECT_BITS_CMD_TOGGLE:
             return DetectHostbitMatchToggle(p,xd);
         default:
             SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
@@ -273,130 +273,62 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
 static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    const DetectXbitsData *xd = (const DetectXbitsData *)ctx;
+    const DetectBitsData *xd = (const DetectBitsData *)ctx;
     if (xd == NULL)
         return 0;
 
     return DetectXbitMatchHost(p, xd);
 }
 
-static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
-    char *name, int name_len, char *dir, int dir_len)
+static int DetectHostbitParse(const char *rawstr, DetectBitsData **cdout)
 {
-    int count, rc;
-    size_t pcre2len;
+    DetectBitsData *cd = NULL;
+    cd = rs_xbits_parse(rawstr, 0);
 
-    count = DetectParsePcreExec(&parse_regex, str, 0, 0);
-    if (count != 2 && count != 3 && count != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH,
-            "\"%s\" is not a valid setting for hostbits.", str);
-        return 0;
-    }
-
-    pcre2len = cmd_len;
-    rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
-    if (rc < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-        return 0;
-    }
-
-    if (count >= 3) {
-        pcre2len = name_len;
-        rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
-        if (rc < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-            return 0;
-        }
-        if (count >= 4) {
-            pcre2len = dir_len;
-            rc = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 *)dir, &pcre2len);
-            if (rc < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
-                return 0;
-            }
-        }
-    }
-
-    return 1;
-}
-
-int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
-{
-    DetectXbitsData *cd = NULL;
-    SigMatch *sm = NULL;
-    uint8_t fb_cmd = 0;
-    uint8_t hb_dir = 0;
-    char fb_cmd_str[16] = "", fb_name[256] = "";
-    char hb_dir_str[16] = "";
-
-    if (!DetectHostbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str),
-            fb_name, sizeof(fb_name), hb_dir_str, sizeof(hb_dir_str))) {
+    if (cd == NULL) {
         return -1;
     }
-
-    if (strlen(hb_dir_str) > 0) {
-        if (strcmp(hb_dir_str, "src") == 0)
-            hb_dir = DETECT_XBITS_TRACK_IPSRC;
-        else if (strcmp(hb_dir_str, "dst") == 0)
-            hb_dir = DETECT_XBITS_TRACK_IPDST;
-        else if (strcmp(hb_dir_str, "both") == 0) {
-            //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
-            SCLogError(SC_ERR_UNIMPLEMENTED, "'both' not implemented");
-            goto error;
-        } else {
-            // TODO
-            goto error;
-        }
-    }
-
-    if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_NOALERT;
-    } else if (strcmp(fb_cmd_str,"isset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_ISSET;
-    } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_ISNOTSET;
-    } else if (strcmp(fb_cmd_str,"set") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_SET;
-    } else if (strcmp(fb_cmd_str,"unset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_TOGGLE;
-    } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
-        goto error;
-    }
-
-    switch (fb_cmd) {
-        case DETECT_XBITS_CMD_NOALERT:
-            if (strlen(fb_name) != 0)
-                goto error;
-            s->flags |= SIG_FLAG_NOALERT;
+    switch (cd->cmd) {
+        case DETECT_BITS_CMD_NOALERT: {
+            if (cd->name != NULL) {
+                rs_bits_free(cd);
+                return -1;
+            }
+            /* return ok, cd is NULL. Flag sig. */
+            *cdout = NULL;
             return 0;
-        case DETECT_XBITS_CMD_ISNOTSET:
-        case DETECT_XBITS_CMD_ISSET:
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
+        }
+        case DETECT_BITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISSET:
+        case DETECT_BITS_CMD_SET:
+        case DETECT_BITS_CMD_UNSET:
+        case DETECT_BITS_CMD_TOGGLE:
         default:
-            if (strlen(fb_name) == 0)
-                goto error;
+            if (strlen(cd->name) == 0) {
+                rs_bits_free(cd);
+                return -1;
+            }
             break;
     }
 
-    cd = SCMalloc(sizeof(DetectXbitsData));
-    if (unlikely(cd == NULL))
-        goto error;
+    cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
+    *cdout = cd;
+    return 0;
+}
 
-    cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_HOST_BIT);
-    cd->cmd = fb_cmd;
-    cd->tracker = hb_dir;
-    cd->vartype = VAR_TYPE_HOST_BIT;
-    cd->expire = 300;
 
-    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-        cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
+int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    SigMatch *sm = NULL;
+    DetectBitsData *cd = NULL;
 
+    int result = DetectHostbitParse(rawstr, &cd);
+    if (result < 0) {
+        return -1;
+    } else if (result == 0 && cd == NULL) {
+        s->flags |= SIG_FLAG_NOALERT;
+        return 0;
+    }
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -406,18 +338,18 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     sm->type = DETECT_HOSTBITS;
     sm->ctx = (void *)cd;
 
-    switch (fb_cmd) {
-        /* case DETECT_XBITS_CMD_NOALERT can't happen here */
+    switch (cd->cmd) {
+        /* case DETECT_BITS_CMD_NOALERT can't happen here */
 
-        case DETECT_XBITS_CMD_ISNOTSET:
-        case DETECT_XBITS_CMD_ISSET:
+        case DETECT_BITS_CMD_ISNOTSET:
+        case DETECT_BITS_CMD_ISSET:
             /* checks, so packet list */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
 
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
+        case DETECT_BITS_CMD_SET:
+        case DETECT_BITS_CMD_UNSET:
+        case DETECT_BITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
@@ -440,7 +372,7 @@ error:
 
 void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectXbitsData *fd = (DetectXbitsData *)ptr;
+    DetectBitsData *fd = (DetectBitsData *)ptr;
 
     if (fd == NULL)
         return;
@@ -464,6 +396,7 @@ static void HostBitsTestShutdown(void)
     StorageCleanup();
 }
 
+#if 0
 static int HostBitsTestParse01(void)
 {
     char cmd[16] = "", name[256] = "", dir[16] = "";
@@ -541,6 +474,7 @@ static int HostBitsTestParse01(void)
 
     PASS;
 }
+#endif
 
 /**
  * \test HostBitsTestSig01 is a test for a valid noalert flowbits option
@@ -702,7 +636,7 @@ static int HostBitsTestSig03(void)
  */
 void HostBitsRegisterTests(void)
 {
-    UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01);
+//    UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01);
     UtRegisterTest("HostBitsTestSig01", HostBitsTestSig01);
     UtRegisterTest("HostBitsTestSig02", HostBitsTestSig02);
     UtRegisterTest("HostBitsTestSig03", HostBitsTestSig03);

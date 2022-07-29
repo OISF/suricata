@@ -376,7 +376,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
  */
 static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
 {
-    DetectXbitsData *fb = NULL;
+    DetectBitsData *fb = NULL;
     int xbits_user_type = DETECT_XBITS_NOT_USED;
     int read = 0;
     int write = 0;
@@ -384,10 +384,10 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
 
     while (sm != NULL) {
         if (sm->type == DETECT_XBITS) {
-            fb = (DetectXbitsData *)sm->ctx;
+            fb = (DetectBitsData *)sm->ctx;
             if (fb->vartype == type) {
-                if (fb->cmd == DETECT_XBITS_CMD_ISNOTSET ||
-                        fb->cmd == DETECT_XBITS_CMD_ISSET) {
+                if (fb->cmd == DETECT_BITS_CMD_ISNOTSET ||
+                        fb->cmd == DETECT_BITS_CMD_ISSET) {
                     read++;
                 } else {
 #ifdef DEBUG
@@ -403,11 +403,11 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
     sm = sig->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_HOSTBITS) {
-            fb = (DetectXbitsData *)sm->ctx;
+            fb = (DetectBitsData *)sm->ctx;
             if (fb->vartype == type) {
-                if (fb->cmd == DETECT_XBITS_CMD_SET ||
-                        fb->cmd == DETECT_XBITS_CMD_UNSET ||
-                        fb->cmd == DETECT_XBITS_CMD_TOGGLE) {
+                if (fb->cmd == DETECT_BITS_CMD_SET ||
+                        fb->cmd == DETECT_BITS_CMD_UNSET ||
+                        fb->cmd == DETECT_BITS_CMD_TOGGLE) {
                     write++;
                 } else {
 #ifdef DEBUG
