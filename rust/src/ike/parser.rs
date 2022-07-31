@@ -261,18 +261,17 @@ pub fn parse_isakmp_header(i: &[u8]) -> IResult<&[u8], IsakmpHeader> {
     let (i, flags) = be_u8(i)?;
     let (i, msg_id) = be_u32(i)?;
     let (i, length) = be_u32(i)?;
-    let hdr =
-        IsakmpHeader {
-            init_spi,
-            resp_spi,
-            next_payload,
-            maj_ver: vers.0,
-            min_ver: vers.1,
-            exch_type,
-            flags,
-            msg_id,
-            length,
-        };
+    let hdr = IsakmpHeader {
+        init_spi,
+        resp_spi,
+        next_payload,
+        maj_ver: vers.0,
+        min_ver: vers.1,
+        exch_type,
+        flags,
+        msg_id,
+        length,
+    };
     Ok((i, hdr))
 }
 
@@ -280,15 +279,17 @@ pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociatio
     let start_i = i;
     let (i, domain_of_interpretation) = be_u32(i)?;
     let (i, situation) = cond(domain_of_interpretation == 1, take(4_usize))(i)?;
-    let (i, data) = cond(
-        domain_of_interpretation == 1 && start_i.len() >= 8,
-        |b| take(start_i.len() - 8)(b)
-        )(i)?;
-    Ok((i, SecurityAssociationPayload {
-        domain_of_interpretation,
-        situation,
-        data
-    }))
+    let (i, data) = cond(domain_of_interpretation == 1 && start_i.len() >= 8, |b| {
+        take(start_i.len() - 8)(b)
+    })(i)?;
+    Ok((
+        i,
+        SecurityAssociationPayload {
+            domain_of_interpretation,
+            situation,
+            data,
+        },
+    ))
 }
 
 pub fn parse_key_exchange(i: &[u8], length: u16) -> IResult<&[u8], KeyExchangePayload> {
@@ -303,10 +304,9 @@ pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
     let (i, spi_size) = be_u8(i)?;
     let (i, number_transforms) = be_u8(i)?;
     let (i, spi) = take(spi_size as usize)(i)?;
-    let (i, payload_data) = cond(
-        (start_i.len() - 4) >= spi_size.into(),
-        |b| take((start_i.len() - 4) - spi_size as usize)(b)
-        )(i)?;
+    let (i, payload_data) = cond((start_i.len() - 4) >= spi_size.into(), |b| {
+        take((start_i.len() - 4) - spi_size as usize)(b)
+    })(i)?;
     let payload = ProposalPayload {
         proposal_number,
         proposal_type,
@@ -323,11 +323,14 @@ pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload
     let (i, transform_type) = be_u8(i)?;
     let (i, _) = be_u16(i)?;
     let (i, payload_data) = cond(length >= 4, |b| take(length - 4)(b))(i)?;
-    Ok((i, TransformPayload {
-        transform_number,
-        transform_type,
-        sa_attributes: payload_data.unwrap_or_default(),
-    }))
+    Ok((
+        i,
+        TransformPayload {
+            transform_number,
+            transform_type,
+            sa_attributes: payload_data.unwrap_or_default(),
+        },
+    ))
 }
 
 pub fn parse_vendor_id(i: &[u8], length: u16) -> IResult<&[u8], VendorPayload> {
@@ -438,17 +441,18 @@ fn get_group_description(v: u16) -> AttributeValue {
 pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
     fn parse_attribute(i: &[u8]) -> IResult<&[u8], SaAttribute> {
         let (i, b) = be_u16(i)?;
-        let format = (
-            (b >> 15) as u8,
-            b & 0x7f_ff
-            );
+        let format = ((b >> 15) as u8, b & 0x7f_ff);
         let (i, attribute_length_or_value) = be_u16(i)?; // depends on format bit) = 1 -> value | 0 -> number of following bytes
-        let (i, numeric_variable_value) = cond(format.0 == 0 && attribute_length_or_value == 4, be_u32) (i)?; // interpret as number
-        let (i, variable_attribute_value) = cond(format.0 == 0 && attribute_length_or_value != 4, take(attribute_length_or_value))(i)?;
+        let (i, numeric_variable_value) =
+            cond(format.0 == 0 && attribute_length_or_value == 4, be_u32)(i)?; // interpret as number
+        let (i, variable_attribute_value) = cond(
+            format.0 == 0 && attribute_length_or_value != 4,
+            take(attribute_length_or_value),
+        )(i)?;
         let attr = SaAttribute {
             attribute_format: format.0,
             attribute_type: get_attribute_type(format.1),
-            attribute_value : match format.1 {
+            attribute_value: match format.1 {
                 1 => get_encryption_algorithm(attribute_length_or_value),
                 2 => get_hash_algorithm(attribute_length_or_value),
                 3 => get_authentication_method(attribute_length_or_value),
@@ -456,23 +460,20 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
                 11 => match attribute_length_or_value {
                     1 => AttributeValue::LifeTypeSeconds,
                     2 => AttributeValue::LifeTypeKilobytes,
-                    _ => AttributeValue::Unknown
-                }
-                _ => AttributeValue::Unknown
+                    _ => AttributeValue::Unknown,
+                },
+                _ => AttributeValue::Unknown,
             },
             numeric_value: match format.0 {
                 1 => Some(attribute_length_or_value as u32),
-                0 => {
-                    numeric_variable_value
-                },
+                0 => numeric_variable_value,
                 _ => None,
             },
             hex_value: match format.0 {
-                0 => {
-                    variable_attribute_value.map(|_variable_attribute_value| to_hex(_variable_attribute_value))
-                }
+                0 => variable_attribute_value
+                    .map(|_variable_attribute_value| to_hex(_variable_attribute_value)),
                 _ => None,
-            }
+            },
         };
         Ok((i, attr))
     }
@@ -489,14 +490,17 @@ pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload>> 
         let (i, reserved) = be_u8(i)?;
         let (i, payload_length) = be_u16(i)?;
         let (i, payload_data) = cond(payload_length >= 4, |b| take(payload_length - 4)(b))(i)?;
-        Ok((i, IsakmpPayload {
-            payload_header: IsakmpPayloadHeader {
-                next_payload,
-                reserved,
-                payload_length
+        Ok((
+            i,
+            IsakmpPayload {
+                payload_header: IsakmpPayloadHeader {
+                    next_payload,
+                    reserved,
+                    payload_length,
+                },
+                data: payload_data.unwrap_or_default(),
             },
-            data: payload_data.unwrap_or_default(),
-        }))
+        ))
     }
     many0(complete(parse_payload))(i)
 }
