@@ -113,7 +113,6 @@ pub mod smb;
 pub mod krb;
 pub mod dcerpc;
 pub mod modbus;
-pub mod detect_parser;
 
 pub mod ike;
 pub mod snmp;
