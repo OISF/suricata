@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::detect_parser::error::RuleParseError;
+use crate::detect::error::RuleParseError;
 
 use nom7::bytes::complete::is_not;
 use nom7::character::complete::multispace0;
