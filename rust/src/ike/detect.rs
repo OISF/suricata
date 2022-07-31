@@ -142,11 +142,9 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
     debug_validate_bug_on!(value == std::ptr::null_mut());
     let mut ret_val = 0;
     let mut ret_code = 0;
-    let sa_type_s: Result<_,_>;
+    let sa_type_s: Result<_, _>;
 
-    unsafe {
-        sa_type_s = CStr::from_ptr(sa_type).to_str()
-    }
+    unsafe { sa_type_s = CStr::from_ptr(sa_type).to_str() }
     SCLogInfo!("{:#?}", sa_type_s);
 
     if let Ok(sa) = sa_type_s {
@@ -159,7 +157,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
                             if let Some(numeric_value) = attr.numeric_value {
                                 ret_val = numeric_value;
                                 ret_code = 1;
-                                break
+                                break;
                             }
                         }
                     }
