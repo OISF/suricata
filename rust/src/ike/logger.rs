@@ -19,9 +19,9 @@ use super::ike::{IKEState, IKETransaction};
 use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
 use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use num_traits::FromPrimitive;
 use std;
 use std::convert::TryFrom;
-use num_traits::FromPrimitive;
 
 const LOG_EXTENDED: u32 = 0x01;
 
