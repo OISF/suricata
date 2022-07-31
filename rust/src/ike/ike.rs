@@ -320,8 +320,7 @@ pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     return state.handle_input(stream_slice.as_slice(), Direction::ToServer);
@@ -330,8 +329,7 @@ pub unsafe extern "C" fn rs_ike_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
@@ -387,7 +385,7 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
     tx.logged.set(logged);
 }
 
-static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ike\0";
@@ -399,33 +397,33 @@ export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 pub unsafe extern "C" fn rs_ike_register_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
-        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : default_port.as_ptr(),
-        ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(rs_ike_probing_parser),
-        probe_tc           : Some(rs_ike_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : rs_ike_state_new,
-        state_free         : rs_ike_state_free,
-        tx_free            : rs_ike_state_tx_free,
-        parse_ts           : rs_ike_parse_request,
-        parse_tc           : rs_ike_parse_response,
-        get_tx_count       : rs_ike_state_get_tx_count,
-        get_tx             : rs_ike_state_get_tx,
-        tx_comp_st_ts      : 1,
-        tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_ike_tx_get_alstate_progress,
-        get_eventinfo      : Some(IkeEvent::get_event_info),
-        get_eventinfo_byid : Some(IkeEvent::get_event_info_by_id),
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_files          : None,
-        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
-        get_tx_data        : rs_ike_get_tx_data,
-        apply_tx_config    : None,
-        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
-        truncate           : None,
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: Some(rs_ike_probing_parser),
+        probe_tc: Some(rs_ike_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_ike_state_new,
+        state_free: rs_ike_state_free,
+        tx_free: rs_ike_state_tx_free,
+        parse_ts: rs_ike_parse_request,
+        parse_tc: rs_ike_parse_response,
+        get_tx_count: rs_ike_state_get_tx_count,
+        get_tx: rs_ike_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_ike_tx_get_alstate_progress,
+        get_eventinfo: Some(IkeEvent::get_event_info),
+        get_eventinfo_byid: Some(IkeEvent::get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
+        get_tx_data: rs_ike_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };
