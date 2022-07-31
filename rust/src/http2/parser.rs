@@ -17,7 +17,7 @@
 
 use super::huffman;
 use crate::common::nom7::bits;
-use crate::detect::{detect_parse_uint, DetectUintData};
+use crate::detect::detect::{detect_parse_uint, DetectUintData};
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
 use nom7::bits::streaming::take as take_bits;
 use nom7::branch::alt;
@@ -749,7 +749,7 @@ pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSett
 mod tests {
 
     use super::*;
-    use crate::detect::DetectUintMode;
+    use crate::detect::detect::DetectUintMode;
 
     #[test]
     fn test_http2_parse_header() {
