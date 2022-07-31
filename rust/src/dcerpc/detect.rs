@@ -19,7 +19,7 @@ use super::dcerpc::{
     DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
     DCERPC_UUID_ENTRY_FLAG_FF,
 };
-use crate::detect::{detect_match_uint, detect_parse_uint, DetectUintData};
+use crate::detect::detect::{detect_match_uint, detect_parse_uint, DetectUintData};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::detect::DetectUintMode;
+    use crate::detect::detect::DetectUintMode;
 
     fn extract_op_version(i: &str) -> Result<(DetectUintMode, u16), ()> {
         match detect_parse_uint(i) {
