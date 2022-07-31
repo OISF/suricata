@@ -29,7 +29,7 @@ use tls_parser::TlsMessage::Handshake;
 use tls_parser::TlsMessageHandshake::{ClientHello, ServerHello};
 use tls_parser::{
     parse_tls_extensions, parse_tls_message_handshake, TlsCipherSuiteID, TlsExtension,
-    TlsExtensionType,
+    TlsExtensionType, TlsMessage,
 };
 
 /// Tuple of StreamTag and offset
@@ -140,11 +140,22 @@ pub(crate) struct Crypto {
 }
 
 #[derive(Debug, PartialEq)]
+pub(crate) struct CryptoFrag {
+    pub offset: u64,
+    pub length: u64,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, PartialEq)]
 pub(crate) enum Frame {
     Padding,
     Ping,
     Ack(Ack),
+    // this is more than a crypto frame : it contains a fully parsed tls hello
     Crypto(Crypto),
+    // this is a regular quic crypto frame : they can be reassembled
+    // in order to parse a tls hello
+    CryptoFrag(CryptoFrag),
     Stream(Stream),
     Unknown(Vec<u8>),
 }
@@ -272,45 +283,77 @@ fn quic_get_tls_extensions(
     return extv;
 }
 
+fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
+    if let Handshake(hs) = msg {
+        match hs {
+            ClientHello(ch) => {
+                let mut ja3 = String::with_capacity(256);
+                ja3.push_str(&u16::from(ch.version).to_string());
+                ja3.push_str(",");
+                let mut dash = false;
+                for c in &ch.ciphers {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&u16::from(*c).to_string());
+                }
+                ja3.push_str(",");
+                let ciphers = ch.ciphers;
+                let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
+                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+            }
+            ServerHello(sh) => {
+                let mut ja3 = String::with_capacity(256);
+                ja3.push_str(&u16::from(sh.version).to_string());
+                ja3.push_str(",");
+                ja3.push_str(&u16::from(sh.cipher).to_string());
+                ja3.push_str(",");
+                let ciphers = vec![sh.cipher];
+                let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
+                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+            }
+            _ => {}
+        }
+    }
+    return None;
+}
+
 fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
-    let (rest, _offset) = quic_var_uint(input)?;
+    let (rest, offset) = quic_var_uint(input)?;
     let (rest, length) = quic_var_uint(rest)?;
     let (rest, data) = take(length as usize)(rest)?;
 
-    if let Ok((rest, msg)) = parse_tls_message_handshake(data) {
-        if let Handshake(hs) = msg {
-            match hs {
-                ClientHello(ch) => {
-                    let mut ja3 = String::with_capacity(256);
-                    ja3.push_str(&u16::from(ch.version).to_string());
-                    ja3.push_str(",");
-                    let mut dash = false;
-                    for c in &ch.ciphers {
-                        if dash {
-                            ja3.push_str("-");
-                        } else {
-                            dash = true;
-                        }
-                        ja3.push_str(&u16::from(*c).to_string());
-                    }
-                    ja3.push_str(",");
-                    let ciphers = ch.ciphers;
-                    let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
-                }
-                ServerHello(sh) => {
-                    let mut ja3 = String::with_capacity(256);
-                    ja3.push_str(&u16::from(sh.version).to_string());
-                    ja3.push_str(",");
-                    ja3.push_str(&u16::from(sh.cipher).to_string());
-                    ja3.push_str(",");
-                    let ciphers = vec![sh.cipher];
-                    let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
-                    return Ok((rest, Frame::Crypto(Crypto { ciphers, extv, ja3 })));
-                }
-                _ => {}
+    if offset > 0 {
+        return Ok((
+            rest,
+            Frame::CryptoFrag(CryptoFrag {
+                offset,
+                length,
+                data: data.to_vec(),
+            }),
+        ));
+    }
+    // if we have offset 0, try quick path : parse directly
+    match parse_tls_message_handshake(data) {
+        Ok((_, msg)) => {
+            if let Some(c) = parse_quic_handshake(msg) {
+                return Ok((rest, c));
             }
         }
+        Err(nom7::Err::Incomplete(_)) => {
+            // offset 0 but incomplete : save it as a fragment for later reassembly
+            return Ok((
+                rest,
+                Frame::CryptoFrag(CryptoFrag {
+                    offset,
+                    length,
+                    data: data.to_vec(),
+                }),
+            ));
+        }
+        _ => {}
     }
     return Err(nom::Err::Error(QuicError::InvalidPacket));
 }
@@ -449,7 +492,44 @@ impl Frame {
     }
 
     pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
-        let (rest, frames) = many0(complete(Frame::decode_frame))(input)?;
+        let (rest, mut frames) = many0(complete(Frame::decode_frame))(input)?;
+
+        // reassemble crypto fragments : first find total size
+        let mut crypto_max_size = 0;
+        let mut crypto_total_size = 0;
+        for f in &frames {
+            match f {
+                Frame::CryptoFrag(c) => {
+                    if crypto_max_size < c.offset + c.length {
+                        crypto_max_size = c.offset + c.length;
+                    }
+                    crypto_total_size += c.length;
+                }
+                _ => {}
+            }
+        }
+        if crypto_max_size > 0 && crypto_total_size == crypto_max_size {
+            // we have some, and no gaps from offset 0
+            let mut d = vec![0; crypto_max_size as usize];
+            for f in &frames {
+                match f {
+                    Frame::CryptoFrag(c) => {
+                        d[c.offset as usize..(c.offset + c.length) as usize]
+                            .clone_from_slice(&c.data);
+                    }
+                    _ => {}
+                }
+            }
+            match parse_tls_message_handshake(&d) {
+                Ok((_, msg)) => {
+                    if let Some(c) = parse_quic_handshake(msg) {
+                        // add a parsed crypto frame
+                        frames.push(c);
+                    }
+                }
+                _ => {}
+            }
+        }
 
         Ok((rest, frames))
     }
