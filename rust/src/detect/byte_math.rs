@@ -17,8 +17,8 @@
 
 // Author: Jeff Lucovsky <jlucovsky@oisf.net>
 
-use crate::detect_parser::error::RuleParseError;
-use crate::detect_parser::parser::{parse_token, take_until_whitespace};
+use crate::detect::error::RuleParseError;
+use crate::detect::parser::{parse_token, take_until_whitespace};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
