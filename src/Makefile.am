@@ -1219,6 +1219,7 @@ EXTRA_DIST = \
 	tests/detect-ttl.c \
 	tests/source-pcap.c \
 	tests/app-layer-htp-file.c \
+	tests/detect-engine-alert.c \
 	tests/detect-engine-content-inspection.c \
 	tests/detect-icmpv4hdr.c \
 	tests/detect-parse.c \
