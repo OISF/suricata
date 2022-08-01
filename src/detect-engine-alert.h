@@ -36,5 +36,6 @@ void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 int PacketAlertCheck(Packet *, uint32_t);
 void PacketAlertTagInit(void);
 PacketAlert *PacketAlertGetTag(void);
+void DetectEngineAlertRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_ALERT_H__ */
