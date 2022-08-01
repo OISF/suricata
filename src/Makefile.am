@@ -584,6 +584,7 @@ EXTRA_DIST = \
 	tests/app-layer-htp-file.c \
 	tests/detect-bsize.c \
 	tests/detect.c \
+	tests/detect-engine-alert.c \
 	tests/detect-engine-content-inspection.c \
 	tests/detect-file-data.c \
 	tests/detect-http2.c \

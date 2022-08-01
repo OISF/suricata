@@ -404,6 +404,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     if (p->flow != NULL && p->alerts.cnt > 0) {
         FlowSetHasAlertsFlag(p->flow);
     }
-
 }
 
+#ifdef UNITTESTS
+#include "tests/detect-engine-alert.c"
+#endif
