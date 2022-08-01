@@ -199,6 +199,7 @@ static void RegisterUnittests(void)
     DetectAddressTests();
     DetectProtoTests();
     DetectPortTests();
+    DetectEngineAlertRegisterTests();
     SCAtomicRegisterTests();
     MemrchrRegisterTests();
     AppLayerUnittestsRegister();
