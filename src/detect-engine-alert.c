@@ -23,6 +23,8 @@
 #include "detect-engine-tag.h"
 
 #include "decode.h"
+#include "decode-icmpv4.h"
+#include "decode-ipv4.h"
 
 #include "flow.h"
 #include "flow-private.h"
@@ -31,7 +33,10 @@
 #include "util-exception-policy.h"
 #endif
 
+#include "util-mpm-ac.h"
 #include "util-profiling.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -417,4 +422,63 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
 }
 
+#ifdef UNITTESTS
 
+/**
+ * \brief Tests that the reject action is correctly set in Packet->action
+ */
+static int TestDetectAlertPacketApplySignatureActions01(void)
+{
+    uint8_t payload[] = "GET / HTTP/1.1\r\n"
+                        "Host: www.testmyids.com\r\n"
+                        "User-Agent: curl/7.43.0\r\n"
+                        "Accept: */*\r\n\r\n";
+
+    uint16_t length = strlen((char *)payload);
+    Packet *p = UTHBuildPacketReal(
+            payload, length, IPPROTO_TCP, "10.16.1.11", "82.165.177.154", 54186, 80);
+
+    FAIL_IF_NULL(p);
+
+    char sig[] = "reject tcp any any -> any 80 (sid:1; rev:1;)";
+    FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
+    FAIL_IF_NOT(p->action & ACTION_REJECT_ANY);
+
+    UTHFreePackets(&p, 1);
+    PASS;
+}
+
+/**
+ * \brief Tests that the packet has the drop action correctly updated in Packet->action
+ */
+static int TestDetectAlertPacketApplySignatureActions02(void)
+{
+    uint8_t payload[] = "Hi all!";
+    uint16_t length = sizeof(payload) - 1;
+    Packet *p = UTHBuildPacketReal(
+            (uint8_t *)payload, length, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+
+    FAIL_IF_NULL(p);
+
+    const char sig[] = "drop tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
+
+    FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
+    FAIL_IF_NOT(p->action & ACTION_DROP);
+
+    UTHFreePackets(&p, 1);
+    PASS;
+}
+#endif /* UNITTESTS */
+
+/**
+ * \brief Registers Detect Engine Alert unit tests
+ */
+void DetectEngineAlertRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("TestDetectAlertPacketApplySignatureActions01",
+            TestDetectAlertPacketApplySignatureActions01);
+    UtRegisterTest("TestDetectAlertPacketApplySignatureActions02",
+            TestDetectAlertPacketApplySignatureActions02);
+#endif /* UNITTESTS */
+}
