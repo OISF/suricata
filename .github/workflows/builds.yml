@@ -1396,6 +1396,7 @@ jobs:
                 libjansson-dev \
                 libgeoip-dev \
                 liblua5.1-dev \
+                libluajit-5.1-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -1422,7 +1423,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-luajit
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
