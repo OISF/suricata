@@ -72,12 +72,16 @@ struct lcore_values {
     struct rte_mempool *message_mp;
     struct rte_table_hash *bt; // bypass table
     ring_buffer *tmp_ring_bufs;
-    FlowKeyExtended *fke_arr;
+    FlowKeyExtended fke_arr;
     FlowKey **fk_arr; // points flowkeys of fke_arr
     rte_atomic16_t *state;
     struct lcore_stats stats;
     //    struct rte_table_hash *bypass_table;
     //    struct rte_mempool *mp;
+    struct rte_mbuf *pkts[2 * BURST_SIZE];
+    struct rte_mbuf *pkts_to_inspect[2 * BURST_SIZE];
+    struct rte_mbuf *pkts_to_bypass[2 * BURST_SIZE];
+    struct BypassHashTableData *bypass_data[2 * BURST_SIZE];
 };
 
 int ThreadMain(void *init_values);

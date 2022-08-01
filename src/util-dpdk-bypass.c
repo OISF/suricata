@@ -469,16 +469,16 @@ static uint16_t FlowKeyExtendedInitUnifiedVlan(
 }
 
 static uint16_t FlowKeyExtendedInitUnifiedIpv4(
-        FlowKeyExtended *flow_key, struct rte_ipv4_hdr *ip4_hdr, uint16_t *hdr_len)
+        FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_ipv4_hdr *ip4_hdr, uint16_t *hdr_len)
 {
     if (ip4_hdr->src_addr < ip4_hdr->dst_addr) {
-        flow_key->fd.src_addr = 0;
-        FlowKeySetIpv4Address(&flow_key->fk.src, ip4_hdr->src_addr);
-        FlowKeySetIpv4Address(&flow_key->fk.dst, ip4_hdr->dst_addr);
+        fd->src_addr = 0;
+        FlowKeySetIpv4Address(&flow_key->src, ip4_hdr->src_addr);
+        FlowKeySetIpv4Address(&flow_key->dst, ip4_hdr->dst_addr);
     } else {
-        flow_key->fd.src_addr = 1;
-        FlowKeySetIpv4Address(&flow_key->fk.src, ip4_hdr->dst_addr);
-        FlowKeySetIpv4Address(&flow_key->fk.dst, ip4_hdr->src_addr);
+        fd->src_addr = 1;
+        FlowKeySetIpv4Address(&flow_key->src, ip4_hdr->dst_addr);
+        FlowKeySetIpv4Address(&flow_key->dst, ip4_hdr->src_addr);
     }
 
     *hdr_len = rte_ipv4_hdr_len(ip4_hdr);
@@ -487,19 +487,19 @@ static uint16_t FlowKeyExtendedInitUnifiedIpv4(
 }
 
 static uint16_t FlowKeyExtendedInitUnifiedIpv6(
-        FlowKeyExtended *flow_key, struct rte_ipv6_hdr *ip6_hdr, uint16_t *hdr_len)
+        FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_ipv6_hdr *ip6_hdr, uint16_t *hdr_len)
 {
     uint32_t *ip6_src = (uint32_t *)ip6_hdr->src_addr;
     uint32_t *ip6_dst = (uint32_t *)ip6_hdr->dst_addr;
 
     if (FlowHashRawAddressIPv6GtU32(ip6_src, ip6_dst)) {
-        flow_key->fd.src_addr = 0;
-        FlowKeySetIpv6Address(&flow_key->fk.src, ip6_src);
-        FlowKeySetIpv6Address(&flow_key->fk.dst, ip6_dst);
+        fd->src_addr = 0;
+        FlowKeySetIpv6Address(&flow_key->src, ip6_src);
+        FlowKeySetIpv6Address(&flow_key->dst, ip6_dst);
     } else {
-        flow_key->fd.src_addr = 1;
-        FlowKeySetIpv6Address(&flow_key->fk.src, ip6_dst);
-        FlowKeySetIpv6Address(&flow_key->fk.dst, ip6_src);
+        fd->src_addr = 1;
+        FlowKeySetIpv6Address(&flow_key->src, ip6_dst);
+        FlowKeySetIpv6Address(&flow_key->dst, ip6_src);
     }
 
     *hdr_len = sizeof(struct rte_ipv6_hdr);
@@ -507,31 +507,31 @@ static uint16_t FlowKeyExtendedInitUnifiedIpv6(
     return ip6_hdr->proto;
 }
 
-static void FlowKeyExtendedInitUnifiedTcp(FlowKeyExtended *flow_key, struct rte_tcp_hdr *tcp_hdr)
+static void FlowKeyExtendedInitUnifiedTcp(FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_tcp_hdr *tcp_hdr)
 {
-    flow_key->fk.proto = IPPROTO_TCP;
+    flow_key->proto = IPPROTO_TCP;
     if (rte_cpu_to_be_16(tcp_hdr->src_port) < rte_cpu_to_be_16(tcp_hdr->dst_port)) {
-        flow_key->fd.src_port = 0;
-        flow_key->fk.sp = rte_cpu_to_be_16(tcp_hdr->src_port);
-        flow_key->fk.dp = rte_cpu_to_be_16(tcp_hdr->dst_port);
+        fd->src_port = 0;
+        flow_key->sp = rte_cpu_to_be_16(tcp_hdr->src_port);
+        flow_key->dp = rte_cpu_to_be_16(tcp_hdr->dst_port);
     } else {
-        flow_key->fd.src_port = 1;
-        flow_key->fk.sp = rte_cpu_to_be_16(tcp_hdr->dst_port);
-        flow_key->fk.dp = rte_cpu_to_be_16(tcp_hdr->src_port);
+        fd->src_port = 1;
+        flow_key->sp = rte_cpu_to_be_16(tcp_hdr->dst_port);
+        flow_key->dp = rte_cpu_to_be_16(tcp_hdr->src_port);
     }
 }
 
-static void FlowKeyExtendedInitUnifiedUdp(FlowKeyExtended *flow_key, struct rte_udp_hdr *udp_hdr)
+static void FlowKeyExtendedInitUnifiedUdp(FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_udp_hdr *udp_hdr)
 {
-    flow_key->fk.proto = IPPROTO_UDP;
+    flow_key->proto = IPPROTO_UDP;
     if (rte_cpu_to_be_16(udp_hdr->src_port) < rte_cpu_to_be_16(udp_hdr->dst_port)) {
-        flow_key->fd.src_port = 0;
-        flow_key->fk.sp = rte_cpu_to_be_16(udp_hdr->src_port);
-        flow_key->fk.dp = rte_cpu_to_be_16(udp_hdr->dst_port);
+        fd->src_port = 0;
+        flow_key->sp = rte_cpu_to_be_16(udp_hdr->src_port);
+        flow_key->dp = rte_cpu_to_be_16(udp_hdr->dst_port);
     } else {
-        flow_key->fd.src_port = 1;
-        flow_key->fk.sp = rte_cpu_to_be_16(udp_hdr->dst_port);
-        flow_key->fk.dp = rte_cpu_to_be_16(udp_hdr->src_port);
+        fd->src_port = 1;
+        flow_key->sp = rte_cpu_to_be_16(udp_hdr->dst_port);
+        flow_key->dp = rte_cpu_to_be_16(udp_hdr->src_port);
     }
 }
 
@@ -545,46 +545,46 @@ static void FlowKeyExtendedInitUnifiedUdp(FlowKeyExtended *flow_key, struct rte_
  * @param mbuf source of information
  * @return < 0 when error occurs, 0 on success, 1 when parsing hits unsupported protocol
  */
-int FlowKeyExtendedInitFromMbuf(FlowKeyExtended *flow_key, struct rte_mbuf *mbuf)
+int FlowKeyExtendedInitFromMbuf(FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_mbuf *mbuf)
 {
     uint16_t l3_hdr_len;
     uint16_t l3_next_proto;
     uint8_t vlan_hdrs_len = 0;
     struct rte_ether_hdr *ether_hdr;
 
-    memset(flow_key->fk.spare8, 0, sizeof(flow_key->fk.spare8) / sizeof(flow_key->fk.spare8[0]));
-    flow_key->fk.recursion_level = 0;
+    memset(flow_key->spare8, 0, sizeof(flow_key->spare8) / sizeof(flow_key->spare8[0]));
+    flow_key->recursion_level = 0;
 
     ether_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
     if (ether_hdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN)) {
         vlan_hdrs_len = FlowKeyExtendedInitUnifiedVlan(
-                ether_hdr, &flow_key->fk.vlan_id[0], &flow_key->fk.vlan_id[1]);
+                ether_hdr, &flow_key->vlan_id[0], &flow_key->vlan_id[1]);
         ether_hdr = (void *)ether_hdr + vlan_hdrs_len;
     }
 
     if (ether_hdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
         struct rte_ipv4_hdr *ip4_hdr = (void *)ether_hdr + sizeof(struct rte_ether_hdr);
-        l3_next_proto = FlowKeyExtendedInitUnifiedIpv4(flow_key, ip4_hdr, &l3_hdr_len);
+        l3_next_proto = FlowKeyExtendedInitUnifiedIpv4(flow_key, fd, ip4_hdr, &l3_hdr_len);
 
         if (l3_next_proto == IPPROTO_TCP) {
             struct rte_tcp_hdr *tcp_hdr = (void *)ip4_hdr + l3_hdr_len;
-            FlowKeyExtendedInitUnifiedTcp(flow_key, tcp_hdr);
+            FlowKeyExtendedInitUnifiedTcp(flow_key, fd, tcp_hdr);
         } else if (l3_next_proto == IPPROTO_UDP) {
             struct rte_udp_hdr *udp_hdr = (void *)ip4_hdr + l3_hdr_len;
-            FlowKeyExtendedInitUnifiedUdp(flow_key, udp_hdr);
+            FlowKeyExtendedInitUnifiedUdp(flow_key, fd, udp_hdr);
         } else {
             return 1;
         }
     } else if (ether_hdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV6)) {
         struct rte_ipv6_hdr *ip6_hdr = (void *)ether_hdr + sizeof(struct rte_ether_hdr);
-        l3_next_proto = FlowKeyExtendedInitUnifiedIpv6(flow_key, ip6_hdr, &l3_hdr_len);
+        l3_next_proto = FlowKeyExtendedInitUnifiedIpv6(flow_key, fd, ip6_hdr, &l3_hdr_len);
 
         if (l3_next_proto == IPPROTO_TCP) {
             struct rte_tcp_hdr *tcp_hdr = (void *)ip6_hdr + l3_hdr_len;
-            FlowKeyExtendedInitUnifiedTcp(flow_key, tcp_hdr);
+            FlowKeyExtendedInitUnifiedTcp(flow_key, fd, tcp_hdr);
         } else if (l3_next_proto == IPPROTO_UDP) {
             struct rte_udp_hdr *udp_hdr = (void *)ip6_hdr + sizeof(struct rte_ipv6_hdr);
-            FlowKeyExtendedInitUnifiedUdp(flow_key, udp_hdr);
+            FlowKeyExtendedInitUnifiedUdp(flow_key, fd, udp_hdr);
         } else {
             return 1;
         }

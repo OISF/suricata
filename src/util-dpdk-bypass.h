@@ -96,8 +96,8 @@ struct FlowKeyDirection {
 };
 
 typedef struct FlowKeyExtended {
-    FlowKey fk;
-    struct FlowKeyDirection fd;
+    FlowKey *fk;
+    struct FlowKeyDirection *fd;
 } FlowKeyExtended;
 
 void PFMessageAddBypassInit(struct PFMessage *msg);
@@ -111,7 +111,7 @@ int FlowKeyInitFromFlow(FlowKey *fk, Flow *f);
 
 struct FlowKeyDirection FlowKeyUnify(FlowKey *fk);
 void FlowKeyReconstruct(FlowKey *fk, struct FlowKeyDirection *fd);
-int FlowKeyExtendedInitFromMbuf(FlowKeyExtended *flow_key, struct rte_mbuf *mbuf);
+int FlowKeyExtendedInitFromMbuf(FlowKey *flow_key, struct FlowKeyDirection *fd, struct rte_mbuf *mbuf);
 
 int DPDKBypassManagerAssistantInit(ThreadVars *th_v, struct timespec *curtime, void *data);
 int DPDKCheckBypassMessages(

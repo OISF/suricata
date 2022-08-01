@@ -526,10 +526,20 @@ struct lcore_values *ThreadSuricataInit(struct lcore_init *init_vals)
         return NULL;
     }
 
-    lv->fke_arr = rte_calloc("FlowKeyExtended", sizeof(FlowKeyExtended), BURST_SIZE * 2, 0);
-    if (lv->fke_arr == NULL) {
+    lv->fke_arr.fk = (FlowKey *)rte_calloc("FlowKey", sizeof(FlowKey), BURST_SIZE * 2, 0);
+    if (lv->fke_arr.fk == NULL) {
         Log().error(EINVAL,
-                "Error (%s): Unable to allocate memory for an array of FlowKeyExtended of ring "
+                "Error (%s): Unable to allocate memory for an array of FlowKey of ring "
+                "entry %s "
+                "lcoreid %u",
+                rte_strerror(-ret), re->main_ring.name_base, lv->qid);
+        return NULL;
+    }
+
+    lv->fke_arr.fd = (struct FlowKeyDirection *)rte_calloc("FlowKeyDirection", sizeof(struct FlowKeyDirection), BURST_SIZE * 2, 0);
+    if (lv->fke_arr.fd == NULL) {
+        Log().error(EINVAL,
+                "Error (%s): Unable to allocate memory for an array of FlowKeyDirection of ring "
                 "entry %s "
                 "lcoreid %u",
                 rte_strerror(-ret), re->main_ring.name_base, lv->qid);
@@ -546,7 +556,7 @@ struct lcore_values *ThreadSuricataInit(struct lcore_init *init_vals)
         return NULL;
     }
     for (int i = 0; i < BURST_SIZE * 2; i++) {
-        lv->fk_arr[i] = &lv->fke_arr[i].fk;
+        lv->fk_arr[i] = &lv->fke_arr.fk[i];
     }
 
     lv->state = init_vals->state;
@@ -595,7 +605,8 @@ static uint32_t MbufAddToRing(
  * @param pkts - incoming pkts
  * @param pkt_cnt
  * @param inspect_pkts - expected passed array
- * @param fke_arr - extracted flow keys for lookup
+ * @param fk_arr - extracted flow keys for lookup
+ * @param fd_arr - extracted original flow directions
  * @param no_inspect_rings - for packets that can not be bypassed, pkts are inserted in these rings
  * directly (e.g. pkt can't be parsed)
  * @param rings_cnt - number of rings
@@ -603,13 +614,25 @@ static uint32_t MbufAddToRing(
  * @return number of packets for bypass
  */
 static uint16_t MbufsBypassSort(struct rte_mbuf **pkts, uint16_t pkt_cnt,
-        struct rte_mbuf **inspect_pkts, FlowKeyExtended *fke_arr, ring_buffer *no_inspect_rings,
+        struct rte_mbuf **inspect_pkts, FlowKey *fk_arr, struct FlowKeyDirection *fd_arr, ring_buffer *no_inspect_rings,
         uint16_t rings_cnt, bool on_port1)
 {
     int ret;
     uint16_t fke_len = 0;
+    if (pkt_cnt > 1)
+        rte_prefetch0(pkts[1]);
+
     for (uint16_t i = 0; i < pkt_cnt; i++) {
-        ret = FlowKeyExtendedInitFromMbuf(&fke_arr[fke_len], pkts[i]);
+        if (i < (pkt_cnt - 1)) {
+            rte_prefetch0((void *)&fk_arr[i + 1]);
+            rte_prefetch0((void *)&fd_arr[i + 1]);
+            rte_prefetch0(rte_pktmbuf_mtod(pkts[i + 1], void *));
+            rte_prefetch0(RTE_PTR_ADD(rte_pktmbuf_mtod(pkts[i + 1], void *), 64));
+
+            if (i < (pkt_cnt - 2))
+                rte_prefetch0(pkts[i + 2]);
+        }
+        ret = FlowKeyExtendedInitFromMbuf(&fk_arr[fke_len], &fd_arr[fke_len], pkts[i]);
         Log().debug("conversion mbuf to FlowKey: %s", ret == 0 ? "success" : "failure");
         if (ret != 0) {
             MbufAddToRing(pkts[i], no_inspect_rings, rings_cnt, on_port1);
@@ -659,13 +682,13 @@ static uint32_t PktsHandleBypassedIPS(
 
 static uint32_t PktsBypassSort(struct rte_mbuf **pkts, uint32_t pkt_cnt, struct rte_mbuf **bypassed,
         struct lcore_values *lv, uint64_t hmask, struct BypassHashTableData **b_data,
-        FlowKeyExtended *fke_arr, bool pkt_origin_port1)
+        struct FlowKeyDirection *fd, bool pkt_origin_port1)
 {
     uint32_t bypassed_cnt = 0;
     for (uint32_t i = 0; i < pkt_cnt; i++) {
         if (hmask & (1 << i)) {
             Log().debug("Putting pkt %d (%p) to free array 0x%x", i, pkts[i], hmask);
-            BypassHashTableUpdateStats(b_data[i], &fke_arr[i].fd, pkts[i]->pkt_len);
+            BypassHashTableUpdateStats(b_data[i], &fd[i], pkts[i]->pkt_len);
             bypassed[bypassed_cnt++] = pkts[i];
             continue;
         }
@@ -678,34 +701,30 @@ static uint32_t PktsBypassSort(struct rte_mbuf **pkts, uint32_t pkt_cnt, struct 
 static void PktsReceiveIDS(struct lcore_values *lv)
 {
     uint16_t ret;
-    struct rte_mbuf *pkts[2 * BURST_SIZE] = { NULL };
-    struct rte_mbuf *pkts_to_inspect[2 * BURST_SIZE] = { NULL };
-    struct rte_mbuf *pkts_to_bypass[2 * BURST_SIZE] = { NULL };
-    struct BypassHashTableData *bypass_data[2 * BURST_SIZE];
     uint32_t pkt_count1 = 0;
     uint16_t pkts_to_inspect_cnt1 = 0, pkts_to_bypass_len = 0;
     uint64_t bypass_hit_mask;
 
-    pkt_count1 = rte_eth_rx_burst(lv->port1_id, lv->qid, pkts, BURST_SIZE);
+    pkt_count1 = rte_eth_rx_burst(lv->port1_id, lv->qid, lv->pkts, BURST_SIZE);
     if (pkt_count1 <= 0)
         return;
 
     lv->stats.pkts_p1_rx += pkt_count1;
 
     pkts_to_inspect_cnt1 = MbufsBypassSort(
-            pkts, pkt_count1, pkts_to_inspect, lv->fke_arr, lv->tmp_ring_bufs, lv->rings_cnt, true);
+            lv->pkts, pkt_count1, lv->pkts_to_inspect, lv->fke_arr.fk, lv->fke_arr.fd, lv->tmp_ring_bufs, lv->rings_cnt, true);
     lv->stats.pkts_inspected += pkts_to_inspect_cnt1;
 
     // todo: optimization -  possibly make looked up keys unique to reduce key set to lookup
     ret = BypassHashTableLookup(lv->bt, (const void **)lv->fk_arr, pkts_to_inspect_cnt1,
-            &bypass_hit_mask, (void **)bypass_data);
+            &bypass_hit_mask, (void **)lv->bypass_data);
     lv->stats.pkts_bypassed += ret;
-    pkts_to_bypass_len = PktsBypassSort(pkts_to_inspect, pkts_to_inspect_cnt1, pkts_to_bypass, lv,
-            bypass_hit_mask, bypass_data, lv->fke_arr, true);
+    pkts_to_bypass_len = PktsBypassSort(lv->pkts_to_inspect, pkts_to_inspect_cnt1, lv->pkts_to_bypass, lv,
+            bypass_hit_mask, lv->bypass_data, lv->fke_arr.fd, true);
 
     // packets have been filtered out from the bypassed ones, freeing the byppassed
     if (pkts_to_bypass_len > 0) {
-        PktsHandleBypassedIDS(pkts_to_bypass, pkts_to_bypass_len);
+        PktsHandleBypassedIDS(lv->pkts_to_bypass, pkts_to_bypass_len);
     }
 }
 
