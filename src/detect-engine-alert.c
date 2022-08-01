@@ -417,6 +417,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             p->flags |= PKT_FIRST_ALERTS;
         }
     }
-
 }
 
+#ifdef UNITTESTS
+#include "tests/detect-engine-alert.c"
+#endif
