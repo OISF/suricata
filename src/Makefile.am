@@ -14,7 +14,6 @@ noinst_HEADERS = \
 	alert-debuglog.h \
 	alert-fastlog.h \
 	alert-syslog.h \
-	app-layer-dcerpc-common.h \
 	app-layer-detect-proto.h \
 	app-layer-dnp3.h \
 	app-layer-dnp3-objects.h \
