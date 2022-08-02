@@ -239,6 +239,7 @@ pub struct DNSResponse {
 #[derive(Debug)]
 pub struct DNSTransaction {
     pub id: u64,
+    pub is_tcp: bool,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
     pub tx_data: AppLayerTxData,
@@ -255,6 +256,7 @@ impl DNSTransaction {
     pub fn new() -> Self {
         return Self {
             id: 0,
+            is_tcp: false,
             request: None,
             response: None,
             tx_data: AppLayerTxData::new(),
@@ -395,7 +397,7 @@ impl DNSState {
         tx.tx_data.set_event(event as u8);
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> bool {
+    fn parse_request(&mut self, input: &[u8], is_tcp: bool) -> bool {
         match parser::dns_parse_request(input) {
             Ok((_, request)) => {
                 if request.header.flags & 0x8000 != 0 {
@@ -408,6 +410,7 @@ impl DNSState {
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
+                tx.is_tcp = is_tcp;
                 self.transactions.push_back(tx);
 
                 if z_flag {
@@ -435,7 +438,7 @@ impl DNSState {
     fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
-        self.parse_request(input)
+        self.parse_request(input, false)
     }
 
     fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
@@ -518,7 +521,7 @@ impl DNSState {
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
                 let _pdu = Frame::new(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
-                if self.parse_request(msg) {
+                if self.parse_request(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size  + 2;
                 } else {
@@ -773,13 +776,17 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
 {
     // This is a stateless parser, just the existence of a transaction
-    // means its complete.
+    // means its complete. However this is only true for UDP and not TCP
+    let tx = cast_pointer!(_tx, DNSTransaction);
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
+    if tx.is_tcp && _direction & core::STREAM_TOCLIENT != 0 && !tx.response.is_some() {
+        return 0;
+    }
     return 1;
 }
 
