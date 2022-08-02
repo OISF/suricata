@@ -29,28 +29,29 @@
 #include "util-base64.h"
 
 /* Content Flags */
-#define CTNT_IS_MSG           1
-#define CTNT_IS_ENV           2
-#define CTNT_IS_ENCAP         4
-#define CTNT_IS_BODYPART      8
-#define CTNT_IS_MULTIPART    16
-#define CTNT_IS_ATTACHMENT   32
-#define CTNT_IS_BASE64       64
-#define CTNT_IS_QP          128
-#define CTNT_IS_TEXT        256
-#define CTNT_IS_HTML        512
+#define CTNT_IS_MSG        BIT_U16(0)
+#define CTNT_IS_ENV        BIT_U16(1)
+#define CTNT_IS_ENCAP      BIT_U16(2)
+#define CTNT_IS_BODYPART   BIT_U16(3)
+#define CTNT_IS_MULTIPART  BIT_U16(4)
+#define CTNT_IS_ATTACHMENT BIT_U16(5)
+#define CTNT_IS_BASE64     BIT_U16(6)
+#define CTNT_IS_QP         BIT_U16(7)
+#define CTNT_IS_TEXT       BIT_U16(8)
+#define CTNT_IS_HTML       BIT_U16(9)
 
 /* Anomaly Flags */
-#define ANOM_INVALID_BASE64      1  /* invalid base64 chars */
-#define ANOM_INVALID_QP          2  /* invalid quoted-printable chars */
-#define ANOM_LONG_HEADER_NAME    4  /* header is abnormally long */
-#define ANOM_LONG_HEADER_VALUE   8  /* header value is abnormally long
-                                     * (includes multi-line) */
-#define ANOM_LONG_LINE          16  /* Lines that exceed 998 octets */
-#define ANOM_LONG_ENC_LINE      32  /* Lines that exceed 76 octets */
-#define ANOM_MALFORMED_MSG      64  /* Misc msg format errors found */
-#define ANOM_LONG_BOUNDARY     128  /* Boundary too long */
-#define ANOM_LONG_FILENAME     256  /* filename truncated */
+#define ANOM_INVALID_BASE64   BIT_U16(0) /* invalid base64 chars */
+#define ANOM_INVALID_QP       BIT_U16(1) /* invalid quoted-printable chars */
+#define ANOM_LONG_HEADER_NAME BIT_U16(2) /* header is abnormally long */
+#define ANOM_LONG_HEADER_VALUE                                                                     \
+    BIT_U16(3)                        /* header value is abnormally long                           \
+                                       * (includes multi-line) */
+#define ANOM_LONG_LINE     BIT_U16(4) /* Lines that exceed 998 octets */
+#define ANOM_LONG_ENC_LINE BIT_U16(5) /* Lines that exceed 76 octets */
+#define ANOM_MALFORMED_MSG BIT_U16(6) /* Misc msg format errors found */
+#define ANOM_LONG_BOUNDARY BIT_U16(7) /* Boundary too long */
+#define ANOM_LONG_FILENAME BIT_U16(8) /* filename truncated */
 
 /* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
@@ -114,7 +115,7 @@ typedef struct MimeDecField {
  */
 typedef struct MimeDecUrl {
     uint8_t *url;  /**< String representation of full or partial URL (lowercase) */
-    uint32_t url_len;  /**< Length of the URL string */
+    uint32_t url_len;         /**< Length of the URL string */
     struct MimeDecUrl *next;  /**< Pointer to next URL */
 } MimeDecUrl;
 

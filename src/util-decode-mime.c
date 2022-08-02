@@ -347,7 +347,7 @@ MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name) {
  * \return URL entry or NULL if the operation fails
  *
  */
-static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len)
+static MimeDecUrl *MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len)
 {
     MimeDecUrl *node = SCMalloc(sizeof(MimeDecUrl));
     if (unlikely(node == NULL)) {
