@@ -32,7 +32,7 @@ Rate filters allow changing of a rule action when a rule matches.
 
 Syntax::
 
-  rate_filter: rate_filter gen_id <gid>, sig_id <sid>, track <tracker>, \
+  rate_filter gen_id <gid>, sig_id <sid>, track <tracker>, \
     count <c>, seconds <s>, new_action <action>, timeout <timeout>
 
 Example::
