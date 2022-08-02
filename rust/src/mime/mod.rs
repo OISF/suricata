@@ -17,9 +17,9 @@
 
 use crate::common::nom7::take_until_and_consume;
 use nom7::branch::alt;
-use nom7::bytes::complete::{take_till, take_until, take_while};
+use nom7::bytes::complete::{tag, take, take_till, take_until, take_while};
 use nom7::character::complete::char;
-use nom7::combinator::{complete, opt, rest};
+use nom7::combinator::{complete, opt, rest, value};
 use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
 use std;
@@ -40,7 +40,7 @@ fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
             if input[i] == b'"' && !escaping {
                 return Ok((&input[i + 1..], &input[..i]));
             }
-            //TODOmime unescape later
+            // unescape can be processed later
             escaping = false;
         }
     }
@@ -53,8 +53,8 @@ fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
 fn mime_parse_value_until(input: &[u8]) -> IResult<&[u8], &[u8]> {
     let (input, value) = alt((take_till(|ch: u8| ch == b';'), rest))(input)?;
     for i in 0..value.len() {
-        if !is_mime_space(value[value.len()-i-1]) {
-            return Ok((input, &value[..value.len()-i]));
+        if !is_mime_space(value[value.len() - i - 1]) {
+            return Ok((input, &value[..value.len() - i]));
         }
     }
     return Ok((input, value));
@@ -175,6 +175,336 @@ pub unsafe extern "C" fn rs_mime_find_header_token(
         _ => {}
     }
     return false;
+}
+
+#[derive(Debug)]
+enum MimeParserState {
+    MimeStart = 0,
+    MimeHeader = 1,
+    MimeHeaderEnd = 2,
+    MimeChunk = 3,
+    MimeBoundaryWaitingForEol = 4,
+}
+
+impl Default for MimeParserState {
+    fn default() -> Self {
+        MimeParserState::MimeStart
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct MimeStateHTTP {
+    boundary: Vec<u8>,
+    filename: Vec<u8>,
+    state: MimeParserState,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
+pub enum MimeParserResult {
+    MimeNeedsMore = 0,
+    MimeFileOpen = 1,
+    MimeFileChunk = 2,
+    MimeFileClose = 3,
+}
+
+fn mime_parse_skip_line(input: &[u8]) -> IResult<&[u8], MimeParserState> {
+    let (input, _) = take_till(|ch: u8| ch == b'\n')(input)?;
+    let (input, _) = char('\n')(input)?;
+    return Ok((input, MimeParserState::MimeStart));
+}
+
+fn mime_parse_boundary_regular<'a, 'b>(
+    boundary: &'b [u8], input: &'a [u8],
+) -> IResult<&'a [u8], MimeParserState> {
+    let (input, _) = tag(boundary)(input)?;
+    let (input, _) = take_till(|ch: u8| ch == b'\n')(input)?;
+    let (input, _) = char('\n')(input)?;
+    return Ok((input, MimeParserState::MimeHeader));
+}
+
+// Number of characters after boundary, without end of line, before changing state to streaming
+const MIME_BOUNDARY_MAX_BEFORE_EOL: usize = 128;
+const MIME_HEADER_MAX_LINE: usize = 4096;
+
+fn mime_parse_boundary_missing_eol<'a, 'b>(
+    boundary: &'b [u8], input: &'a [u8],
+) -> IResult<&'a [u8], MimeParserState> {
+    let (input, _) = tag(boundary)(input)?;
+    let (input, _) = take(MIME_BOUNDARY_MAX_BEFORE_EOL)(input)?;
+    return Ok((input, MimeParserState::MimeBoundaryWaitingForEol));
+}
+
+fn mime_parse_boundary<'a, 'b>(
+    boundary: &'b [u8], input: &'a [u8],
+) -> IResult<&'a [u8], MimeParserState> {
+    let r = mime_parse_boundary_regular(boundary, input);
+    if r.is_ok() {
+        return r;
+    }
+    let r2 = mime_parse_skip_line(input);
+    if r2.is_ok() {
+        return r2;
+    }
+    return mime_parse_boundary_missing_eol(boundary, input);
+}
+
+fn mime_consume_until_eol(input: &[u8]) -> IResult<&[u8], bool> {
+    return alt((value(true, mime_parse_skip_line), value(false, rest)))(input);
+}
+
+fn mime_parse_header_line(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, name) = take_till(|ch: u8| ch == b':')(input)?;
+    let (input, _) = char(':')(input)?;
+    return Ok((input, name));
+}
+
+// s2 is already lower case
+fn rs_equals_lowercase(s1: &[u8], s2: &[u8]) -> bool {
+    if s1.len() == s2.len() {
+        for i in 0..s1.len() {
+            if s1[i].to_ascii_lowercase() != s2[i] {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+fn mime_parse_headers<'a, 'b>(
+    ctx: &'b mut MimeStateHTTP, i: &'a [u8],
+) -> IResult<&'a [u8], (MimeParserState, bool)> {
+    let mut fileopen = false;
+    let mut input = i;
+    while input.len() > 0 {
+        match take_until::<_, &[u8], nom7::error::Error<&[u8]>>("\r\n")(input) {
+            Ok((input2, line)) => {
+                match mime_parse_header_line(line) {
+                    Ok((value, name)) => {
+                        if rs_equals_lowercase(name, "content-disposition".as_bytes()) {
+                            let mut sections_values = Vec::new();
+                            if let Ok(filename) = mime_find_header_token(
+                                value,
+                                "filename".as_bytes(),
+                                &mut sections_values,
+                            ) {
+                                if filename.len() > 0 {
+                                    ctx.filename = Vec::with_capacity(filename.len());
+                                    fileopen = true;
+                                    for c in filename {
+                                        // unescape
+                                        if *c != b'\\' {
+                                            ctx.filename.push(*c);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                let (input3, _) = tag("\r\n")(input2)?;
+                input = input3;
+                if line.len() == 0 || (line.len() == 1 && line[0] == b'\r') {
+                    return Ok((input, (MimeParserState::MimeHeaderEnd, fileopen)));
+                }
+            }
+            _ => {
+                // guard against too long header lines
+                if input.len() > MIME_HEADER_MAX_LINE {
+                    return Ok((
+                        input,
+                        (MimeParserState::MimeBoundaryWaitingForEol, fileopen),
+                    ));
+                }
+                if input.len() < i.len() {
+                    return Ok((input, (MimeParserState::MimeHeader, fileopen)));
+                } // else only an incomplete line, ask for more
+                return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+            }
+        }
+    }
+    return Ok((input, (MimeParserState::MimeHeader, fileopen)));
+}
+
+fn mime_consume_chunk<'a, 'b>(boundary: &'b [u8], input: &'a [u8]) -> IResult<&'a [u8], bool> {
+    let r: Result<(&[u8], &[u8]), Err<nom7::error::Error<&[u8]>>> = take_until("\r\n")(input);
+    match r {
+        Ok((input, line)) => {
+            let (input2, _) = tag("\r\n")(input)?;
+            if input2.len() < boundary.len() {
+                if input2 == &boundary[..input2.len()] {
+                    if line.len() > 0 {
+                        // consume as chunk up to eol (not consuming eol)
+                        return Ok((input, false));
+                    }
+                    // new line beignning like boundary, with nothin to consume as chunk : request more
+                    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+                }
+                // not like boundary : consume everything as chunk
+                return Ok((&input[input.len()..], false));
+            } // else
+            if &input2[..boundary.len()] == boundary {
+                // end of file with boundary, consume eol but do not consume boundary
+                return Ok((input2, true));
+            }
+            // not like boundary : consume everything as chunk
+            return Ok((input2, false));
+        }
+        _ => {
+            return Ok((&input[input.len()..], false));
+        }
+    }
+}
+
+fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32) {
+    let mut input = i;
+    let mut consumed = 0;
+    while input.len() > 0 {
+        match ctx.state {
+            MimeParserState::MimeStart => {
+                if let Ok((rem, next)) = mime_parse_boundary(&ctx.boundary, input) {
+                    ctx.state = next;
+                    consumed += (input.len() - rem.len()) as u32;
+                    input = rem;
+                } else {
+                    return (MimeParserResult::MimeNeedsMore, consumed);
+                }
+            }
+            MimeParserState::MimeBoundaryWaitingForEol => {
+                if let Ok((rem, found)) = mime_consume_until_eol(input) {
+                    if found {
+                        ctx.state = MimeParserState::MimeHeader;
+                    }
+                    consumed += (input.len() - rem.len()) as u32;
+                    input = rem;
+                } else {
+                    // should never happen
+                    return (MimeParserResult::MimeNeedsMore, consumed);
+                }
+            }
+            MimeParserState::MimeHeader => {
+                if let Ok((rem, (next, fileopen))) = mime_parse_headers(ctx, input) {
+                    ctx.state = next;
+                    consumed += (input.len() - rem.len()) as u32;
+                    input = rem;
+                    if fileopen {
+                        return (MimeParserResult::MimeFileOpen, consumed);
+                    }
+                } else {
+                    return (MimeParserResult::MimeNeedsMore, consumed);
+                }
+            }
+            MimeParserState::MimeHeaderEnd => {
+                // check if we start with the boundary
+                // and transition to chunk, or empty file and back to start
+                if input.len() < ctx.boundary.len() {
+                    if input == &ctx.boundary[..input.len()] {
+                        return (MimeParserResult::MimeNeedsMore, consumed);
+                    }
+                    ctx.state = MimeParserState::MimeChunk;
+                } else {
+                    if &input[..ctx.boundary.len()] == ctx.boundary {
+                        ctx.state = MimeParserState::MimeStart;
+                        ctx.filename.clear();
+                        return (MimeParserResult::MimeFileClose, consumed);
+                    } else {
+                        ctx.state = MimeParserState::MimeChunk;
+                    }
+                }
+            }
+            MimeParserState::MimeChunk => {
+                if let Ok((rem, eof)) = mime_consume_chunk(&ctx.boundary, input) {
+                    consumed += (input.len() - rem.len()) as u32;
+                    if eof {
+                        ctx.state = MimeParserState::MimeStart;
+                        ctx.filename.clear();
+                        return (MimeParserResult::MimeFileClose, consumed);
+                    } else {
+                        // + 2 for \r\n
+                        if rem.len() < ctx.boundary.len() + 2 {
+                            return (MimeParserResult::MimeFileChunk, consumed);
+                        }
+                        input = rem;
+                    }
+                } else {
+                    return (MimeParserResult::MimeNeedsMore, consumed);
+                }
+            }
+        }
+    }
+    return (MimeParserResult::MimeNeedsMore, consumed);
+}
+
+pub fn mime_state_init(i: &[u8]) -> Option<MimeStateHTTP> {
+    let mut sections_values = Vec::new();
+    match mime_find_header_token(i, "boundary".as_bytes(), &mut sections_values) {
+        Ok(value) => {
+            if value.len() <= RS_MIME_MAX_TOKEN_LEN {
+                let mut r = MimeStateHTTP::default();
+                r.boundary = Vec::with_capacity(2 + value.len());
+                // start wih 2 additional hyphens
+                r.boundary.push(b'-');
+                r.boundary.push(b'-');
+                for c in value {
+                    // unescape
+                    if *c != b'\\' {
+                        r.boundary.push(*c);
+                    }
+                }
+                return Some(r);
+            }
+        }
+        _ => {}
+    }
+    return None;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_state_init(
+    input: *const u8, input_len: u32,
+) -> *mut MimeStateHTTP {
+    let slice = build_slice!(input, input_len as usize);
+
+    if let Some(ctx) = mime_state_init(slice) {
+        let boxed = Box::new(ctx);
+        return Box::into_raw(boxed) as *mut _;
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_parse(
+    ctx: &mut MimeStateHTTP, input: *const u8, input_len: u32, consumed: *mut u32,
+) -> MimeParserResult {
+    let slice = build_slice!(input, input_len as usize);
+    let (r, c) = mime_process(ctx, slice);
+    *consumed = c;
+    return r;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_state_get_filename(
+    ctx: &mut MimeStateHTTP, buffer: *mut *const u8, filename_len: *mut u16,
+) {
+    if ctx.filename.len() > 0 {
+        *buffer = ctx.filename.as_ptr();
+        if ctx.filename.len() < u16::MAX.into() {
+            *filename_len = ctx.filename.len() as u16;
+        } else {
+            *filename_len = u16::MAX;
+        }
+    } else {
+        *buffer = std::ptr::null_mut();
+        *filename_len = 0;
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_state_free(ctx: &mut MimeStateHTTP) {
+    // Just unbox...
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[cfg(test)]
