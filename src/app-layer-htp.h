@@ -60,9 +60,6 @@
 #define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
 #define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
 
-/** a boundary should be smaller in size */
-#define HTP_BOUNDARY_MAX                            200U
-
 // 0x0001 not used
 #define HTP_FLAG_STATE_CLOSED_TS    0x0002    /**< Flag to indicate that HTTP
                                              connection is closed */
@@ -218,8 +215,6 @@ typedef struct HtpTxUserData_ {
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
 
-    uint8_t boundary_len;
-
     uint8_t tsflags;
     uint8_t tcflags;
 
@@ -235,10 +230,7 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
-    /** Holds the boundary identification string if any (used on
-     *  multipart/form-data only)
-     */
-    uint8_t *boundary;
+    MimeStateHTTP *mime_state;
 
     AppLayerTxData tx_data;
 } HtpTxUserData;

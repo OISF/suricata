@@ -97,6 +97,10 @@ static HTPCfgRec cfglist;
 /** Limit to the number of libhtp messages that can be handled */
 #define HTP_MAX_MESSAGES 512
 
+/** a boundary should be smaller in size */
+// RFC 2046 states that max boundary size is 70
+#define HTP_BOUNDARY_MAX 200U
+
 SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
 
 #ifdef DEBUG
@@ -362,8 +366,8 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
         AppLayerDecoderEventsFreeEvents(&htud->tx_data.events);
-        if (htud->boundary)
-            HTPFree(htud->boundary, htud->boundary_len);
+        if (htud->mime_state)
+            rs_mime_state_free(htud->mime_state);
         if (htud->tx_data.de_state != NULL) {
             DetectEngineStateFree(htud->tx_data.de_state);
         }
@@ -1073,92 +1077,6 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
 }
 
 /**
- *  \param name /Lowercase/ version of the variable name
- */
-static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
-        uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
-{
-    SCEnter();
-#ifdef PRINT
-    printf("DATA START: \n");
-    PrintRawDataFp(stdout, data, len);
-    printf("DATA END: \n");
-#endif
-    size_t x;
-    int quote = 0;
-
-    for (x = 0; x < len; x++) {
-        if (!(isspace(data[x])))
-            break;
-    }
-
-    if (x >= len) {
-        SCReturnInt(0);
-    }
-
-    uint8_t *line = data+x;
-    size_t line_len = len-x;
-    size_t offset = 0;
-#ifdef PRINT
-    printf("LINE START: \n");
-    PrintRawDataFp(stdout, line, line_len);
-    printf("LINE END: \n");
-#endif
-    for (x = 0 ; x < line_len; x++) {
-        if (x > 0) {
-            if (line[x - 1] != '\\' && line[x] == '\"') {
-                quote++;
-            }
-
-            if (((line[x - 1] != '\\' && line[x] == ';') || ((x + 1) == line_len)) && (quote == 0 || quote % 2 == 0)) {
-                uint8_t *token = line + offset;
-                size_t token_len = x - offset;
-
-                if ((x + 1) == line_len) {
-                    token_len++;
-                }
-
-                offset = x + 1;
-
-                while (offset < line_len && isspace(line[offset])) {
-                    x++;
-                    offset++;
-                }
-#ifdef PRINT
-                printf("TOKEN START: \n");
-                PrintRawDataFp(stdout, token, token_len);
-                printf("TOKEN END: \n");
-#endif
-                if (token_len > name_len) {
-                    if (name == NULL || SCMemcmpLowercase(name, token, name_len) == 0) {
-                        uint8_t *value = token + name_len;
-                        size_t value_len = token_len - name_len;
-
-                        if (value[0] == '\"') {
-                            value++;
-                            value_len--;
-                        }
-                        if (value[value_len-1] == '\"') {
-                            value_len--;
-                        }
-#ifdef PRINT
-                        printf("VALUE START: \n");
-                        PrintRawDataFp(stdout, value, value_len);
-                        printf("VALUE END: \n");
-#endif
-                        *retptr = value;
-                        *retlen = value_len;
-                        SCReturnInt(1);
-                    }
-                }
-            }
-        }
-    }
-
-    SCReturnInt(0);
-}
-
-/**
  *  \brief setup multipart parsing: extract boundary and store it
  *
  *  \param d HTTP transaction
@@ -1176,121 +1094,13 @@ static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
     htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
-        uint8_t *boundary = NULL;
-        size_t boundary_len = 0;
-
-        int r = HTTPParseContentTypeHeader((uint8_t *)"boundary=", 9,
-                (uint8_t *) bstr_ptr(h->value), bstr_len(h->value),
-                &boundary, &boundary_len);
-        if (r == 1) {
-#ifdef PRINT
-            printf("BOUNDARY START: \n");
-            PrintRawDataFp(stdout, boundary, boundary_len);
-            printf("BOUNDARY END: \n");
-#endif
-            if (boundary_len < HTP_BOUNDARY_MAX) {
-                htud->boundary = HTPMalloc(boundary_len);
-                if (htud->boundary == NULL) {
-                    return -1;
-                }
-                htud->boundary_len = (uint8_t)boundary_len;
-                memcpy(htud->boundary, boundary, boundary_len);
-
-                htud->tsflags |= HTP_BOUNDARY_SET;
-            } else {
-                SCLogDebug("invalid boundary");
-                return -1;
-            }
+        htud->mime_state = rs_mime_state_init(bstr_ptr(h->value), bstr_len(h->value));
+        if (htud->mime_state) {
+            htud->tsflags |= HTP_BOUNDARY_SET;
             SCReturnInt(1);
         }
-        //SCReturnInt(1);
     }
     SCReturnInt(0);
-}
-
-#define C_D_HDR "content-disposition:"
-#define C_D_HDR_LEN 20
-#define C_T_HDR "content-type:"
-#define C_T_HDR_LEN 13
-
-static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
-        HtpTxUserData *htud,
-        uint8_t *header, uint32_t header_len,
-        uint8_t **filename, uint16_t *filename_len,
-        uint8_t **filetype, uint16_t *filetype_len)
-{
-    uint8_t *fn = NULL;
-    size_t fn_len = 0;
-    uint8_t *ft = NULL;
-    size_t ft_len = 0;
-
-#ifdef PRINT
-    printf("HEADER START: \n");
-    PrintRawDataFp(stdout, header, header_len);
-    printf("HEADER END: \n");
-#endif
-
-    while (header_len > 0) {
-        uint8_t *next_line = Bs2bmSearch(header, header_len, (uint8_t *)"\r\n", 2);
-        uint8_t *line = header;
-        uint32_t line_len;
-
-        if (next_line == NULL) {
-            line_len = header_len;
-        } else {
-            line_len = next_line - header;
-        }
-        uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
-        if (sc == NULL) {
-            HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
-            /* if the : we found is the final char, it means we have
-             * no value */
-        } else if (line_len > 0 && sc == &line[line_len - 1]) {
-            HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
-        } else {
-#ifdef PRINT
-            printf("LINE START: \n");
-            PrintRawDataFp(stdout, line, line_len);
-            printf("LINE END: \n");
-#endif
-            if (line_len >= C_D_HDR_LEN &&
-                    SCMemcmpLowercase(C_D_HDR, line, C_D_HDR_LEN) == 0) {
-                uint8_t *value = line + C_D_HDR_LEN;
-                uint32_t value_len = line_len - C_D_HDR_LEN;
-
-                /* parse content-disposition */
-                (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                        value, value_len, &fn, &fn_len);
-            } else if (line_len >= C_T_HDR_LEN &&
-                    SCMemcmpLowercase(C_T_HDR, line, C_T_HDR_LEN) == 0) {
-                SCLogDebug("content-type line");
-                uint8_t *value = line + C_T_HDR_LEN;
-                uint32_t value_len = line_len - C_T_HDR_LEN;
-
-                (void)HTTPParseContentTypeHeader(NULL, 0,
-                        value, value_len, &ft, &ft_len);
-            }
-        }
-
-        if (next_line == NULL) {
-            SCLogDebug("no next_line");
-            break;
-        }
-        header_len -= ((next_line + 2) - header);
-        header = next_line + 2;
-    } /* while (header_len > 0) */
-
-    if (fn_len > USHRT_MAX)
-        fn_len = USHRT_MAX;
-    if (ft_len > USHRT_MAX)
-        ft_len = USHRT_MAX;
-
-    *filename = fn;
-    *filename_len = (uint16_t)fn_len;
-    *filetype = ft;
-    *filetype_len = (uint16_t)ft_len;
 }
 
 /**
@@ -1322,115 +1132,78 @@ static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
     }
 }
 
-/**
- *  \brief Setup boundary buffers
- */
-static void HtpRequestBodySetupBoundary(HtpTxUserData *htud,
-        uint8_t *boundary, uint32_t boundary_len)
-{
-    memset(boundary, '-', boundary_len);
-    memcpy(boundary + 2, htud->boundary, htud->boundary_len);
-}
-
 static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, void *tx,
-        const uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
+        const uint8_t *chunks_buffer, uint32_t chunks_buffer_len, bool eof)
 {
-    int result = 0;
-    uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
-    uint16_t expected_boundary_len = htud->boundary_len + 2;
-    uint16_t expected_boundary_end_len = htud->boundary_len + 4;
-    int tx_progress = 0;
-
 #ifdef PRINT
     printf("CHUNK START: \n");
     PrintRawDataFp(stdout, chunks_buffer, chunks_buffer_len);
     printf("CHUNK END: \n");
 #endif
 
-    HtpRequestBodySetupBoundary(htud, boundary, htud->boundary_len + 4);
+    // libhtp will not call us back too late
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
+                                  STREAM_TOSERVER) > HTP_REQUEST_BODY);
 
-    /* search for the header start, header end and form end */
-    const uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            boundary, expected_boundary_len);
-    /* end of the multipart form */
-    const uint8_t *form_end = NULL;
-    /* end marker belonging to header_start */
-    const uint8_t *header_end = NULL;
-    if (header_start != NULL) {
-        header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
-                (uint8_t *)"\r\n\r\n", 4);
-        form_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
-                boundary, expected_boundary_end_len);
+    const uint8_t *cur_buf = chunks_buffer;
+    uint32_t cur_buf_len = chunks_buffer_len;
+
+    if (eof) {
+        // abrupt end of connection
+        if (htud->tsflags & HTP_FILENAME_SET && !(htud->tsflags & HTP_DONTSTORE)) {
+            /* we currently only handle multipart for ts.  When we support it for tc,
+             * we will need to supply right direction */
+            HTPFileClose(hstate, htud, cur_buf, cur_buf_len, FILE_TRUNCATED, STREAM_TOSERVER);
+        }
+        htud->tsflags &= ~HTP_FILENAME_SET;
+        goto end;
     }
 
-    SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
-            header_end, form_end);
+    uint32_t consumed;
+    uint32_t warnings;
+    int result = 0;
+    const uint8_t *filename = NULL;
+    uint16_t filename_len = 0;
 
-    /* we currently only handle multipart for ts.  When we support it for tc,
-     * we will need to supply right direction */
-    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, STREAM_TOSERVER);
-    /* if we're in the file storage process, deal with that now */
-    if (htud->tsflags & HTP_FILENAME_SET) {
-        if (header_start != NULL || (tx_progress > HTP_REQUEST_BODY)) {
-            SCLogDebug("reached the end of the file");
-
-            const uint8_t *filedata = chunks_buffer;
-            uint32_t filedata_len = 0;
-            uint8_t flags = 0;
-
-            if (header_start != NULL) {
-                if (header_start == filedata + 2) {
-                    /* last chunk had all data, but not the boundary */
-                    SCLogDebug("last chunk had all data, but not the boundary");
-                    filedata_len = 0;
-                } else if (header_start > filedata + 2) {
-                    SCLogDebug("some data from last file before the boundary");
-                    /* some data from last file before the boundary */
-                    filedata_len = header_start - filedata - 2;
-                }
+    // keep parsing mime and use callbacks when needed
+    while (cur_buf_len > 0) {
+        MimeParserResult r =
+                rs_mime_parse(htud->mime_state, cur_buf, cur_buf_len, &consumed, &warnings);
+        DEBUG_VALIDATE_BUG_ON(consumed > cur_buf_len);
+        htud->request_body.body_parsed += consumed;
+        if (warnings) {
+            if (warnings & MIME_EVENT_FLAG_INVALID_HEADER) {
+                HTPSetEvent(
+                        hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
             }
-            /* body parsing done, we did not get our form end. Use all data
-             * we still have and signal to files API we have an issue. */
-            if (tx_progress > HTP_REQUEST_BODY) {
-                filedata_len = chunks_buffer_len;
-                flags = FILE_TRUNCATED;
+            if (warnings & MIME_EVENT_FLAG_NO_FILEDATA) {
+                HTPSetEvent(
+                        hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA);
             }
-
-            if (filedata_len > chunks_buffer_len) {
-                HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                        HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
+        }
+        switch (r) {
+            case MimeNeedsMore:
+                // there is not enough data, wait for more next time
                 goto end;
-            }
-#ifdef PRINT
-            printf("FILEDATA (final chunk) START: \n");
-            PrintRawDataFp(stdout, filedata, filedata_len);
-            printf("FILEDATA (final chunk) END: \n");
-#endif
-            if (!(htud->tsflags & HTP_DONTSTORE)) {
-                if (HTPFileClose(hstate, htud, filedata, filedata_len, flags, STREAM_TOSERVER) ==
-                        -1) {
-                    goto end;
+            case MimeFileOpen:
+                // get filename owned by mime state
+                rs_mime_state_get_filename(htud->mime_state, &filename, &filename_len);
+                if (filename_len > 0) {
+                    htud->tsflags |= HTP_FILENAME_SET;
+                    htud->tsflags &= ~HTP_DONTSTORE;
+                    result = HTPFileOpen(hstate, htud, filename, filename_len, NULL, 0,
+                            HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
+                    if (result == -1) {
+                        goto end;
+                    } else if (result == -2) {
+                        htud->tsflags |= HTP_DONTSTORE;
+                    }
+                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
                 }
-            }
-
-            htud->tsflags &=~ HTP_FILENAME_SET;
-
-            /* fall through */
-        } else {
-            SCLogDebug("not yet at the end of the file");
-
-            if (chunks_buffer_len > expected_boundary_end_len) {
-                const uint8_t *filedata = chunks_buffer;
-                uint32_t filedata_len = chunks_buffer_len - expected_boundary_len;
-#ifdef PRINT
-                printf("FILEDATA (part) START: \n");
-                PrintRawDataFp(stdout, filedata, filedata_len);
-                printf("FILEDATA (part) END: \n");
-#endif
-
-                if (!(htud->tsflags & HTP_DONTSTORE)) {
-                    result = HTPFileStoreChunk(hstate, filedata,
-                            filedata_len, STREAM_TOSERVER);
+                break;
+            case MimeFileChunk:
+                if (htud->tsflags & HTP_FILENAME_SET && !(htud->tsflags & HTP_DONTSTORE)) {
+                    result = HTPFileStoreChunk(hstate, cur_buf, consumed, STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1438,202 +1211,24 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                         htud->tsflags |= HTP_DONTSTORE;
                     }
                 }
-
-                htud->request_body.body_parsed += filedata_len;
-            } else {
-                SCLogDebug("chunk too small to already process in part");
-            }
-
-            goto end;
-        }
-    }
-
-    while (header_start != NULL && header_end != NULL &&
-            header_end != form_end &&
-            header_start < (chunks_buffer + chunks_buffer_len) &&
-            header_end < (chunks_buffer + chunks_buffer_len) &&
-            header_start < header_end)
-    {
-        uint8_t *filename = NULL;
-        uint16_t filename_len = 0;
-        uint8_t *filetype = NULL;
-        uint16_t filetype_len = 0;
-
-        uint32_t header_len = header_end - header_start;
-        SCLogDebug("header_len %u", header_len);
-        uint8_t *header = (uint8_t *)header_start;
-
-        /* skip empty records */
-        if (expected_boundary_len == header_len) {
-            goto next;
-        } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
-            header_len -= (expected_boundary_len + 2);
-            header = (uint8_t *)header_start + (expected_boundary_len + 2); // + for 0d 0a
-        }
-
-        HtpRequestBodyMultipartParseHeader(hstate, htud, header, header_len,
-                &filename, &filename_len, &filetype, &filetype_len);
-
-        if (filename != NULL) {
-            const uint8_t *filedata = NULL;
-            uint32_t filedata_len = 0;
-
-            SCLogDebug("we have a filename");
-
-            htud->tsflags |= HTP_FILENAME_SET;
-            htud->tsflags &= ~HTP_DONTSTORE;
-
-            SCLogDebug("header_end %p", header_end);
-            SCLogDebug("form_end %p", form_end);
-
-            /* everything until the final boundary is the file */
-            if (form_end != NULL) {
-                SCLogDebug("have form_end");
-
-                filedata = header_end + 4;
-                if (form_end == filedata) {
-                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                            HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA);
-                    goto end;
-                } else if (form_end < filedata) {
-                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
-                    goto end;
-                }
-
-                filedata_len = form_end - (header_end + 4 + 2);
-                SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
-
-                /* or is it? */
-                uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        boundary, expected_boundary_len);
-                if (header_next != NULL) {
-                    filedata_len -= (form_end - header_next);
-                }
-
-                if (filedata_len > chunks_buffer_len) {
-                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
-                    goto end;
-                }
-                SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
-#ifdef PRINT
-                printf("FILEDATA START: \n");
-                PrintRawDataFp(stdout, filedata, filedata_len);
-                printf("FILEDATA END: \n");
-#endif
-
-                result = HTPFileOpen(hstate, htud, filename, filename_len, filedata, filedata_len,
-                        HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
-                if (result == -1) {
-                    goto end;
-                } else if (result == -2) {
-                    htud->tsflags |= HTP_DONTSTORE;
-                } else {
-                    if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
-                        goto end;
-                    }
-                }
-                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
-
-                htud->request_body.body_parsed += (header_end - chunks_buffer);
-                htud->tsflags &= ~HTP_FILENAME_SET;
-            } else {
-                SCLogDebug("chunk doesn't contain form end");
-
-                filedata = header_end + 4;
-                filedata_len = chunks_buffer_len - (filedata - chunks_buffer);
-                SCLogDebug("filedata_len %u (chunks_buffer_len %u)", filedata_len, chunks_buffer_len);
-
-                if (filedata_len > chunks_buffer_len) {
-                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
-                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
-                    goto end;
-                }
-
-#ifdef PRINT
-                printf("FILEDATA START: \n");
-                PrintRawDataFp(stdout, filedata, filedata_len);
-                printf("FILEDATA END: \n");
-#endif
-                /* form doesn't end in this chunk, but the part might. Lets
-                 * see if have another coming up */
-                uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        boundary, expected_boundary_len);
-                SCLogDebug("header_next %p", header_next);
-                if (header_next == NULL) {
-                    SCLogDebug("more file data to come");
-
-                    uint32_t offset = (header_end + 4) - chunks_buffer;
-                    SCLogDebug("offset %u", offset);
-                    htud->request_body.body_parsed += offset;
-
-                    if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
-                        filedata_len -= (expected_boundary_len + 2 - 1);
-                        SCLogDebug("opening file with partial data");
-                    } else {
-                        filedata = NULL;
-                        filedata_len = 0;
-                    }
-                    result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
-                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
-                    if (result == -1) {
-                        goto end;
-                    } else if (result == -2) {
-                        htud->tsflags |= HTP_DONTSTORE;
-                    }
-                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
-                    htud->request_body.body_parsed += filedata_len;
-                    SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
-
-                } else if (header_next - filedata > 2) {
-                    filedata_len = header_next - filedata - 2;
-                    SCLogDebug("filedata_len %u", filedata_len);
-
-                    result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
-                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
-                    if (result == -1) {
-                        goto end;
-                    } else if (result == -2) {
-                        htud->tsflags |= HTP_DONTSTORE;
-                    } else {
-                        if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
-                            goto end;
+                break;
+            case MimeFileClose:
+                if (htud->tsflags & HTP_FILENAME_SET && !(htud->tsflags & HTP_DONTSTORE)) {
+                    uint32_t lastsize = consumed;
+                    if (lastsize > 0 && cur_buf[lastsize - 1] == '\n') {
+                        lastsize--;
+                        if (lastsize > 0 && cur_buf[lastsize - 1] == '\r') {
+                            lastsize--;
                         }
                     }
-                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
-
-                    htud->tsflags &= ~HTP_FILENAME_SET;
-                    htud->request_body.body_parsed += (header_end - chunks_buffer);
+                    HTPFileClose(hstate, htud, cur_buf, lastsize, 0, STREAM_TOSERVER);
                 }
-            }
+                htud->tsflags &= ~HTP_FILENAME_SET;
+                break;
+                // TODO event on parsing error ?
         }
-next:
-        SCLogDebug("header_start %p, header_end %p, form_end %p",
-                header_start, header_end, form_end);
-
-        /* Search next boundary entry after the start of body */
-        uint32_t cursizeread = header_end - chunks_buffer;
-        header_start = Bs2bmSearch(header_end + 4,
-                chunks_buffer_len - (cursizeread + 4),
-                boundary, expected_boundary_len);
-        if (header_start != NULL) {
-            header_end = Bs2bmSearch(header_end + 4,
-                    chunks_buffer_len - (cursizeread + 4),
-                    (uint8_t *) "\r\n\r\n", 4);
-        }
-    }
-
-    /* if we're parsing the multipart and we're not currently processing a
-     * file, we move the body pointer forward. */
-    if (form_end == NULL && !(htud->tsflags & HTP_FILENAME_SET) && header_start == NULL) {
-        if (chunks_buffer_len > expected_boundary_end_len) {
-            uint32_t move = chunks_buffer_len - expected_boundary_end_len + 1;
-
-            htud->request_body.body_parsed += move;
-            SCLogDebug("form not ready, file not set, parsing non-file "
-                    "record: moved %u", move);
-        }
+        cur_buf += consumed;
+        cur_buf_len -= consumed;
     }
 
 end:
@@ -1873,7 +1468,8 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             printf("REASSCHUNK END: \n");
 #endif
 
-            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
+            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len,
+                    (d->data == NULL && d->len == 0));
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
                    tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
@@ -6036,7 +5632,11 @@ static int HTPBodyReassemblyTest01(void)
     printf("REASSCHUNK END: \n");
 #endif
 
-    HtpRequestBodyHandleMultipart(&hstate, &htud, &tx, chunks_buffer, chunks_buffer_len);
+    htud.mime_state = rs_mime_state_init((const uint8_t *)"multipart/form-data; boundary=toto",
+            strlen("multipart/form-data; boundary=toto"));
+    FAIL_IF_NULL(htud.mime_state);
+    htud.tsflags |= HTP_BOUNDARY_SET;
+    HtpRequestBodyHandleMultipart(&hstate, &htud, &tx, chunks_buffer, chunks_buffer_len, false);
 
     if (htud.request_body.content_len_so_far != 669) {
         printf("htud.request_body.content_len_so_far %"PRIu64": ", htud.request_body.content_len_so_far);
