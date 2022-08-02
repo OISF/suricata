@@ -33,7 +33,6 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-dcerpc-common.h"
 #include "output-json-dcerpc.h"
 
 #include "rust.h"
