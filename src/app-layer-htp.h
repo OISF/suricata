@@ -264,10 +264,7 @@ typedef struct HtpState_ {
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
-#define HTP_REQUIRE_REQUEST_BODY        (1 << 0)
-/** part of the engine needs the request body multipart header (e.g. filename
- *  and / or fileext keywords) */
-#define HTP_REQUIRE_REQUEST_MULTIPART   (1 << 1)
+#define HTP_REQUIRE_REQUEST_BODY (1 << 0)
 /** part of the engine needs the request file (e.g. log-file module) */
 #define HTP_REQUIRE_REQUEST_FILE        (1 << 2)
 /** part of the engine needs the request body (e.g. file_data keyword) */
