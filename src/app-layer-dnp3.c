@@ -34,8 +34,6 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 
-/* For hexdump(). */
-
 /* Default number of unreplied requests to be considered a flood. */
 #define DNP3_DEFAULT_REQ_FLOOD_COUNT 500
 
