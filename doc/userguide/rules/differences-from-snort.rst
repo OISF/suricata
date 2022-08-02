@@ -263,6 +263,20 @@ See :doc:`http-keywords` for all HTTP keywords.
    use ``byte_extract`` and ``byte_test`` to verify that they
    work as expected.
 
+``byte_math`` Keyword
+---------------------
+
+-  Suricata accepts ``dce`` as an endian value or as a separate keyword.
+   ``endian dce`` or ``dce`` are equivalent.
+
+-  Suricata's rule parser rejects rules that repeat keywords in a single
+   rule. E.g., ``byte_math: endian big, endian little``.
+
+-  Suricata's rule parser accepts ``rvalue`` values of ``0`` to the maximum
+   uint32 value. Snort rejects ``rvalue`` values of ``0`` and requires
+   values to be between ``[1..max-uint32 value]``.
+
+
 ``isdataat`` Keyword
 --------------------
 
