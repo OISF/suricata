@@ -26,10 +26,6 @@
 #ifndef MIME_DECODE_H_
 #define MIME_DECODE_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
 #include "util-base64.h"
 
 /* Content Flags */
@@ -43,11 +39,6 @@
 #define CTNT_IS_QP          128
 #define CTNT_IS_TEXT        256
 #define CTNT_IS_HTML        512
-
-/* URL Flags */
-#define URL_IS_IP4          1
-#define URL_IS_IP6          2
-#define URL_IS_EXE          4
 
 /* Anomaly Flags */
 #define ANOM_INVALID_BASE64      1  /* invalid base64 chars */
@@ -119,12 +110,11 @@ typedef struct MimeDecField {
  *
  * Since HTML can sometimes contain a high number of URLs, this
  * structure only features the URL host name/IP or those that are
- * pointing to an executable file (see url_flags to determine which).
+ * pointing to an executable file.
  */
 typedef struct MimeDecUrl {
     uint8_t *url;  /**< String representation of full or partial URL (lowercase) */
     uint32_t url_len;  /**< Length of the URL string */
-    uint32_t url_flags;  /**< Flags indicating type of URL */
     struct MimeDecUrl *next;  /**< Pointer to next URL */
 } MimeDecUrl;
 

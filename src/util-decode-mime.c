@@ -74,10 +74,6 @@
 /* Memory Usage Constants */
 #define STACK_FREE_NODES  10
 
-/* Other Constants */
-#define MAX_IP4_CHARS  15
-#define MAX_IP6_CHARS  39
-
 /* Globally hold configuration data */
 static MimeDecConfig mime_dec_config = { true, true, true, NULL, false, false, MAX_HEADER_VALUE };
 
@@ -91,16 +87,6 @@ static const char *StateFlags[] = { "NONE",
         "BODY_END_BOUND",
         "PARSE_DONE",
         "PARSE_ERROR",
-        NULL };
-
-/* URL executable file extensions */
-static const char *UrlExeExts[] = { ".exe",
-        ".vbs",
-        ".bin",
-        ".cmd",
-        ".bat",
-        ".jar",
-        ".js",
         NULL };
 
 /**
@@ -361,7 +347,7 @@ MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name) {
  * \return URL entry or NULL if the operation fails
  *
  */
-static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len, uint8_t flags)
+static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len)
 {
     MimeDecUrl *node = SCMalloc(sizeof(MimeDecUrl));
     if (unlikely(node == NULL)) {
@@ -372,7 +358,6 @@ static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t 
 
     node->url = url;
     node->url_len = url_len;
-    node->url_flags = flags;
 
     /* If list is empty, then set as head of list */
     if (entity->url_list == NULL) {
@@ -847,110 +832,6 @@ static int StoreMimeHeader(MimeDecParseState *state)
 }
 
 /**
- * \brief Function determines whether a url string points to an executable
- * based on file extension only.
- *
- * \param url The url string
- * \param len The url string length
- *
- * \retval 1 The url points to an EXE
- * \retval 0 The url does NOT point to an EXE
- */
-static int IsExeUrl(const uint8_t *url, uint32_t len)
-{
-    int isExeUrl = 0;
-    uint32_t i, extLen;
-    uint8_t *ext;
-
-    /* Now check for executable extensions and if not found, cut off at first '/' */
-    for (i = 0; UrlExeExts[i] != NULL; i++) {
-        extLen = strlen(UrlExeExts[i]);
-        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], (uint16_t)strlen(UrlExeExts[i]));
-        if (ext != NULL && (ext + extLen - url == (int)len || ext[extLen] == '?')) {
-            isExeUrl = 1;
-            break;
-        }
-    }
-
-    return isExeUrl;
-}
-
-/**
- * \brief Function determines whether a host string is a numeric IP v4 address
- *
- * \param urlhost The host string
- * \param len The host string length
- *
- * \retval 1 The host is a numeric IP
- * \retval 0 The host is NOT a numeric IP
- */
-static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
-{
-    struct sockaddr_in sa;
-    char tempIp[MAX_IP4_CHARS + 1];
-
-    /* Cut off at '/'  */
-    uint32_t i = 0;
-    for ( ; i < len && urlhost[i] != 0; i++) {
-
-        if (urlhost[i] == '/') {
-            break;
-        }
-    }
-
-    /* Too many chars */
-    if (i > MAX_IP4_CHARS) {
-        return 0;
-    }
-
-    /* Create null-terminated string */
-    memcpy(tempIp, urlhost, i);
-    tempIp[i] = '\0';
-
-    if (!IPv4AddressStringIsValid(tempIp))
-        return 0;
-
-    return inet_pton(AF_INET, tempIp, &(sa.sin_addr));
-}
-
-/**
- * \brief Function determines whether a host string is a numeric IP v6 address
- *
- * \param urlhost The host string
- * \param len The host string length
- *
- * \retval 1 The host is a numeric IP
- * \retval 0 The host is NOT a numeric IP
- */
-static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
-{
-    struct in6_addr in6;
-    char tempIp[MAX_IP6_CHARS + 1];
-
-    /* Cut off at '/'  */
-    uint32_t i = 0;
-    for (i = 0; i < len && urlhost[i] != 0; i++) {
-        if (urlhost[i] == '/') {
-            break;
-        }
-    }
-
-    /* Too many chars */
-    if (i > MAX_IP6_CHARS) {
-        return 0;
-    }
-
-    /* Create null-terminated string */
-    memcpy(tempIp, urlhost, i);
-    tempIp[i] = '\0';
-
-    if (!IPv6AddressStringIsValid(tempIp))
-        return 0;
-
-    return inet_pton(AF_INET6, tempIp, &in6);
-}
-
-/**
  * \brief Traverses through the list of URLs for an exact match of the specified
  * string
  *
@@ -1002,10 +883,9 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     MimeDecConfig *mdcfg = MimeDecGetConfig();
-    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl, *urlHost;
-    uint32_t tokLen = 0, i, tempUrlLen, urlHostLen;
+    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
+    uint32_t tokLen = 0, i, tempUrlLen;
     uint16_t schemeStrLen = 0;
-    uint8_t flags = 0;
     ConfNode *scheme = NULL;
     char *schemeStr = NULL;
 
@@ -1050,50 +930,17 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                         tempUrlLen++;
                     }
 
-                    urlHost = tempUrl;
-                    urlHostLen = tempUrlLen;
-                    if (mdcfg->log_url_scheme) {
-                        /* tempUrl contains the scheme in the string but
-                         * IsIpv4Host & IsPv6Host methods below require
-                         * an input URL string with scheme stripped. Get a
-                         * reference sub-string urlHost which starts with
-                         * the host instead of the scheme. */
-                        urlHost += schemeStrLen;
-                        urlHostLen -= schemeStrLen;
-                    }
-
-                    /* Determine if URL points to an EXE */
-                    if (IsExeUrl(tempUrl, tempUrlLen)) {
-                        flags |= URL_IS_EXE;
-
-                        PrintChars(SC_LOG_DEBUG, "EXE URL", tempUrl, tempUrlLen);
-                    }
-
                     /* Make sure remaining URL exists */
                     if (tempUrlLen > 0) {
                         if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
-                            /* Now look for numeric IP */
-                            if (IsIpv4Host(urlHost, urlHostLen)) {
-                                flags |= URL_IS_IP4;
-
-                                PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
-                            } else if (IsIpv6Host(urlHost, urlHostLen)) {
-                                flags |= URL_IS_IP6;
-
-                                PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
-                            }
-
                             /* Add URL list item */
-                            MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
+                            MimeDecAddUrl(entity, tempUrl, tempUrlLen);
                         } else {
                             SCFree(tempUrl);
                         }
                     } else {
                         SCFree(tempUrl);
                     }
-
-                    /* Reset flags for next URL */
-                    flags = 0;
                 }
             }
         } while (fptr != NULL);
@@ -2806,7 +2653,6 @@ static int MimeDecParseLineTest02(void)
     MimeDecEntity *msg = state->msg;
     FAIL_IF_NULL(msg);
     FAIL_IF_NULL(msg->url_list);
-    FAIL_IF_NOT((msg->url_list->url_flags & URL_IS_EXE));
     MimeDecFreeEntity(msg);
 
     /* De Init parser */
@@ -2885,7 +2731,6 @@ static int MimeFindUrlStringsTest02(void)
 
     FAIL_IF(msg->url_list == NULL);
 
-    FAIL_IF_NOT(msg->url_list->url_flags & URL_IS_EXE);
     FAIL_IF_NOT(
             memcmp("www.test.com/malware.exe?", msg->url_list->url, msg->url_list->url_len) == 0);
 
@@ -3066,11 +2911,9 @@ static int MimeFindUrlStringsTest05(void)
     FAIL_IF(msg->url_list == NULL);
 
     MimeDecUrl *url = msg->url_list;
-    FAIL_IF_NOT(url->url_flags & URL_IS_IP6);
     FAIL_IF_NOT(memcmp("http://0:0:0:0:0:0:0:0/test/02.php", url->url, url->url_len) == 0);
 
     url = url->next;
-    FAIL_IF_NOT(url->url_flags & URL_IS_IP4);
     FAIL_IF_NOT(memcmp("http://192.168.1.1/test/01.html", url->url, url->url_len) == 0);
 
     MimeDecFreeEntity(msg);
@@ -3192,69 +3035,6 @@ static int MimeBase64DecodeTest01(void)
 
     return ret;
 }
-
-static int MimeIsExeURLTest01(void)
-{
-    int ret = 0;
-    const char *url1 = "http://www.google.com/";
-    const char *url2 = "http://www.google.com/test.exe";
-
-    if(IsExeUrl((const uint8_t *)url1, strlen(url1)) != 0){
-        SCLogDebug("Debug: URL1 error");
-        goto end;
-    }
-    if(IsExeUrl((const uint8_t *)url2, strlen(url2)) != 1){
-        SCLogDebug("Debug: URL2 error");
-        goto end;
-    }
-    ret = 1;
-
-    end:
-
-    return ret;
-}
-
-#define TEST(str, len, expect) {                        \
-    SCLogDebug("str %s", (str));                        \
-    int r = IsIpv4Host((const uint8_t *)(str),(len));   \
-    FAIL_IF_NOT(r == (expect));                         \
-}
-static int MimeIsIpv4HostTest01(void)
-{
-    TEST("192.168.1.1", 11, 1);
-    TEST("192.168.1.1.4", 13, 0);
-    TEST("999.168.1.1", 11, 0);
-    TEST("1111.168.1.1", 12, 0);
-    TEST("999.oogle.com", 14, 0);
-    TEST("0:0:0:0:0:0:0:0", 15, 0);
-    TEST("192.168.255.255", 15, 1);
-    TEST("192.168.255.255/testurl.html", 28, 1);
-    TEST("www.google.com", 14, 0);
-    PASS;
-}
-#undef TEST
-
-#define TEST(str, len, expect) {                        \
-    SCLogDebug("str %s", (str));                        \
-    int r = IsIpv6Host((const uint8_t *)(str),(len));   \
-    FAIL_IF_NOT(r == (expect));                         \
-}
-static int MimeIsIpv6HostTest01(void)
-{
-    TEST("0:0:0:0:0:0:0:0", 19, 1);
-    TEST("0000:0000:0000:0000:0000:0000:0000:0000", 39, 1);
-    TEST("XXXX:0000:0000:0000:0000:0000:0000:0000", 39, 0);
-    TEST("00001:0000:0000:0000:0000:0000:0000:0000", 40, 0);
-    TEST("0:0:0:0:0:0:0:0", 19, 1);
-    TEST("0:0:0:0:0:0:0:0:0", 20, 0);
-    TEST("192:168:1:1:0:0:0:0", 19, 1);
-    TEST("999.oogle.com", 14, 0);
-    TEST("192.168.255.255", 15, 0);
-    TEST("192.168.255.255/testurl.html", 28, 0);
-    TEST("www.google.com", 14, 0);
-    PASS;
-}
-#undef TEST
 
 static int MimeDecParseLongFilename01(void)
 {
@@ -3592,9 +3372,6 @@ void MimeDecRegisterTests(void)
     UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01);
     UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02);
     UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01);
-    UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01);
-    UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01);
-    UtRegisterTest("MimeIsIpv6HostTest01", MimeIsIpv6HostTest01);
     UtRegisterTest("MimeDecParseLongFilename01", MimeDecParseLongFilename01);
     UtRegisterTest("MimeDecParseLongFilename02", MimeDecParseLongFilename02);
     UtRegisterTest("MimeDecParseSmallRemInp", MimeDecParseSmallRemInp);
