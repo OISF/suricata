@@ -358,7 +358,7 @@ Format::
 |		 | - dec - Converted string represented in decimal				|
 |		 | - oct - Converted string represented in octal				|
 +----------------+------------------------------------------------------------------------------+
-| [dce]		 | Allow the DCE module determine the byte order 				|
+| [dce]		 | Allow the DCE module to determine the byte order 				|
 +----------------+------------------------------------------------------------------------------+
 | [bitmask]	 | Applies the AND operator on the bytes converted				|
 +----------------+------------------------------------------------------------------------------+
@@ -401,6 +401,44 @@ When ``relative`` is included, there must be a previous ``content`` or ``pcre`` 
 The result can be stored in a result variable and referenced by
 other rule options later in the rule.
 
+Format::
+
+  byte_math:bytes <num of bytes>, offset <offset>, oper <operator>, rvalue <rvalue>, \
+        result <result_var> [, relative] [, endian <endian>] [, string <number-type>] \
+        [, dce] [, bitmask <value>];
+
+
+
++-----------------------+-----------------------------------------------------------------------+
+| <num of bytes>        | The number of bytes selected from the packet                          |
++-----------------------+-----------------------------------------------------------------------+
+| <offset>              | Number of bytes into the payload                                      |
++-----------------------+-----------------------------------------------------------------------+
+| oper <operator>       | Mathematical operation to perform: +, -, \*, /, <<, >>                |
++-----------------------+-----------------------------------------------------------------------+
+| rvalue <rvalue>       | Value to perform the math operation with                              |
++-----------------------+-----------------------------------------------------------------------+
+| result <result-var>   | Where to store the computed value                                     |
++-----------------------+-----------------------------------------------------------------------+
+| [relative]            | Offset relative to last content match                                 |
++-----------------------+-----------------------------------------------------------------------+
+| [endian <type>]       | - big (Most significant byte at lowest address)                       |
+|                       | - little (Most significant byte at the highest address)               |
+|                       | - dce (Allow the DCE module to determine the byte order)              |
++-----------------------+-----------------------------------------------------------------------+
+| [string <num_type>]   |                                                                       |
+|                       | - hex Converted data is represented in hex                            |
+|                       | - dec Converted data is represented in decimal                        |
+|                       | - oct Converted data is represented as octal                          |
++-----------------------+-----------------------------------------------------------------------+
+| [dce]                 | Allow the DCE module to determine the byte order                      |
++-----------------------+-----------------------------------------------------------------------+
+| [bitmask] <value>     | The AND operator will be applied to the extracted value               |
+|                       | The result will be right shifted by the number of bits equal to the   |
+|                       | number of trailing zeros in the mask                                  |
++-----------------------+-----------------------------------------------------------------------+
+
+
 ==============	==================================
  Keyword	Modifier
 ============== 	==================================
@@ -409,40 +447,6 @@ other rule options later in the rule.
  byte_jump	offset
  isdataat	offset
 ==============	==================================
-
-Format::
-
-  byte_math:bytes <num of bytes>, offset <offset>, oper <operator>, rvalue <rvalue>, \
-	result <result_var> [, relative] [, endian <endian>] [, string <number-type>] \
-	[, dce] [, bitmask <value>];
-
-+-----------------------+-----------------------------------------------------------------------+
-| <num of bytes>	| The number of bytes selected from the packet 				|
-+-----------------------+-----------------------------------------------------------------------+
-| <offset>		| Number of bytes into the payload					|
-+-----------------------+-----------------------------------------------------------------------+
-| oper <operator>	| Mathematical operation to perform: +, -, \*, /, <<, >> 		|
-+-----------------------+-----------------------------------------------------------------------+
-| rvalue <rvalue>	| Value to perform the math operation with 				|
-+-----------------------+-----------------------------------------------------------------------+
-| result <result-var>	| Where to store the computed value 					|
-+-----------------------+-----------------------------------------------------------------------+
-| [relative]		| Offset relative to last content match					|
-+-----------------------+-----------------------------------------------------------------------+
-| [endian <type>]	| - big (Most significant byte at lowest address)			|
-|		       	| - little (Most significant byte at the highest address)		|
-+-----------------------+-----------------------------------------------------------------------+
-| [string <num_type>]  	| 									|
-|		       	| - hex Converted data is represented in hex				|
-|		       	| - dec Converted data is represented in decimal			|
-|		       	| - oct Converted data is represented as octal				|
-+-----------------------+-----------------------------------------------------------------------+
-| [dce]			| Allow the DCE module determine the byte order				|
-+-----------------------+-----------------------------------------------------------------------+
-| [bitmask] <value>	| The AND operator will be applied to the extracted value		|
-|			| The result will be right shifted by the number of bits equal to the	|
-|			| number of trailing zeros in the mask					|
-+-----------------------+-----------------------------------------------------------------------+
 
 Example::
 
@@ -468,11 +472,13 @@ The ``byte_jump`` keyword allows for the ability to select a ``<num of bytes>`` 
 Format::
 
   byte_jump:<num of bytes>, <offset> [, relative][, multiplier <mult_value>] \
-	[, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \ 
+        [, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \
         [, post_offset <value>][, dce][, bitmask <value>];
 
+
+
 +-----------------------+-----------------------------------------------------------------------+
-| <num of bytes>	| The number of bytes selected from the packet to be converted		|
+| <num of bytes>        | The number of bytes selected from the packet to be converted          |
 +-----------------------+-----------------------------------------------------------------------+
 | <offset>		| Number of bytes into the payload					|
 +-----------------------+-----------------------------------------------------------------------+
@@ -499,11 +505,12 @@ Format::
 | [post_offset] <value>	| After the jump operation has been performed, it will			|
 |			| jump an additional number of bytes specified by <value>		|
 +-----------------------+-----------------------------------------------------------------------+
-| [dce]			| Allow the DCE module determine the byte order				|
+| [dce]                 | Allow the DCE module to determine the byte order                      |
 +-----------------------+-----------------------------------------------------------------------+
 | [bitmask] <value>	| The AND operator will be applied by <value> and the			|
 |			| converted bytes, then jump operation is performed			|
 +-----------------------+-----------------------------------------------------------------------+
+
 
 Example::
 
@@ -552,10 +559,10 @@ Format::
 |		     | - dec - Converted string represented in decimal				|
 |		     | - oct - Converted string represented in octal				|
 +--------------------+--------------------------------------------------------------------------+
-| [dce]		     | Allow the DCE module determine the byte order 				|
+| [dce]              | Allow the DCE module to determine the byte order                         |
 +--------------------+--------------------------------------------------------------------------+
-| align <align-value>| Round the extracted value up to the next 				|
-|                    | next <align-value> byte boundary post-multiplication (if any)            |
+| align <align-value>| Round the extracted value up to the next                                 |
+|                    | <align-value> byte boundary post-multiplication (if any)                 |
 |                    | ; <align-value> may be 2 or 4                                            |
 +--------------------+--------------------------------------------------------------------------+
 
