@@ -263,6 +263,16 @@ See :doc:`http-keywords` for all HTTP keywords.
    use ``byte_extract`` and ``byte_test`` to verify that they
    work as expected.
 
+``byte_math`` Keyword
+---------------------
+
+-  Suricata accepts ``dce`` as an endian value or as a separate keyword.
+   ``endian dce`` or ``dce`` are equivalent.
+
+-  Suricata's rule parser rejects rules that repeat keywords in a single
+   rule. E.g., ``byte_math: endian big, endian little``.
+
+
 ``isdataat`` Keyword
 --------------------
 
