@@ -486,21 +486,6 @@ void AppLayerHtpEnableResponseBodyCallback(void)
 
 /**
  * \brief Sets a flag that informs the HTP app layer that some module in the
- *        engine needs the http request multi part header.
- *
- * \initonly
- */
-static void AppLayerHtpNeedMultipartHeader(void)
-{
-    SCEnter();
-    AppLayerHtpEnableRequestBodyCallback();
-
-    SC_ATOMIC_OR(htp_config_flags, HTP_REQUIRE_REQUEST_MULTIPART);
-    SCReturn;
-}
-
-/**
- * \brief Sets a flag that informs the HTP app layer that some module in the
  *        engine needs the http request file.
  *
  * \initonly
@@ -508,7 +493,6 @@ static void AppLayerHtpNeedMultipartHeader(void)
 void AppLayerHtpNeedFileInspection(void)
 {
     SCEnter();
-    AppLayerHtpNeedMultipartHeader();
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpEnableResponseBodyCallback();
 
