@@ -16,10 +16,10 @@
  */
 use super::error::QuicError;
 use super::frames::Frame;
-use nom::bytes::complete::take;
-use nom::combinator::{all_consuming, map};
-use nom::number::complete::{be_u24, be_u32, be_u8};
-use nom::IResult;
+use nom7::bytes::complete::take;
+use nom7::combinator::{all_consuming, map};
+use nom7::number::complete::{be_u24, be_u32, be_u8};
+use nom7::IResult;
 use std::convert::TryFrom;
 
 /*
@@ -246,7 +246,7 @@ impl QuicHeader {
                     },
                 ));
             } else {
-                return Err(nom::Err::Error(QuicError::InvalidPacket));
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
             }
         } else if !flags.is_long {
             // Decode short header
@@ -266,7 +266,7 @@ impl QuicHeader {
                     },
                 ));
             } else {
-                return Err(nom::Err::Error(QuicError::InvalidPacket));
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
             }
         } else {
             // Decode Long header
@@ -284,7 +284,7 @@ impl QuicHeader {
                         0x7d => QuicType::Handshake,
                         0x7c => QuicType::ZeroRTT,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(nom7::Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 } else {
@@ -294,7 +294,7 @@ impl QuicHeader {
                         0x02 => QuicType::Handshake,
                         0x03 => QuicType::Retry,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(nom7::Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 }
@@ -350,18 +350,18 @@ impl QuicHeader {
             let (rest, length) = if has_length {
                 let (rest2, plength) = quic_var_uint(rest)?;
                 if plength > rest2.len() as u64 {
-                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
                 }
                 if let Ok(length) = u16::try_from(plength) {
                     (rest2, length)
                 } else {
-                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
                 }
             } else {
                 if let Ok(length) = u16::try_from(rest.len()) {
                     (rest, length)
                 } else {
-                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
                 }
             };
 
