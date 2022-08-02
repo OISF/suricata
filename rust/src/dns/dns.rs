@@ -778,8 +778,11 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  -> std::os::raw::c_int
 {
     // This is a stateless parser, just the existence of a transaction
-    // means its complete.
+    // means its complete. However this is only true for UDP and not TCP
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
+    if _direction & core::STREAM_TOCLIENT != 0 {
+        return 0;
+    }
     return 1;
 }
 
