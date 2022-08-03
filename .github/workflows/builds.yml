@@ -1302,8 +1302,7 @@ jobs:
 
   macos-latest:
     name: MacOS Latest
-    # use 10.15 for now. Build fails on macos-11 (aka macos-latest)
-    runs-on: macos-10.15
+    runs-on: macos-latest
     needs: [prepare-deps]
     steps:
       # Cache Rust stuff.
@@ -1343,7 +1342,8 @@ jobs:
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
-      - run: make check
+      # somehow it gets included by some C++ stdlib header (case unsensitive)
+      - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
