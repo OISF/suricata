@@ -110,7 +110,14 @@ void Daemonize (void)
               through conf file */
 
     /* Creates a new process */
+#if defined(OS_DARWIN) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
     pid = fork();
+#if defined(OS_DARWIN) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
     if (pid < 0) {
         /* Fork error */
