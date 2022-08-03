@@ -17,7 +17,8 @@
 
 use crate::common::nom7::take_until_and_consume;
 use nom7::branch::alt;
-use nom7::bytes::streaming::{tag, take_until, take_while};
+use nom7::bytes::complete::{take_till, take_until, take_while};
+use nom7::character::complete::char;
 use nom7::combinator::{complete, opt, rest};
 use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
@@ -29,27 +30,49 @@ pub struct MIMEHeaderTokens<'a> {
     pub tokens: HashMap<&'a [u8], &'a [u8]>,
 }
 
-pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, _) = tag("\"")(input)?;
+fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, _) = char('"')(input)?;
+    let mut escaping = false;
+    for i in 0..input.len() {
+        if input[i] == b'\\' {
+            escaping = true;
+        } else {
+            if input[i] == b'"' && !escaping {
+                return Ok((&input[i + 1..], &input[..i]));
+            }
+            //TODOmime unescape later
+            escaping = false;
+        }
+    }
+    // should fail
     let (input, value) = take_until("\"")(input)?;
-    let (input, _) = tag("\"")(input)?;
+    let (input, _) = char('"')(input)?;
     return Ok((input, value));
+}
+
+fn mime_parse_value_until(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, value) = alt((take_till(|ch: u8| ch == b';'), rest))(input)?;
+    for i in 0..value.len() {
+        if !is_mime_space(value[value.len()-i-1]) {
+            return Ok((input, &value[..value.len()-i]));
+        }
+    }
+    return Ok((input, value));
+}
+
+#[inline]
+fn is_mime_space(ch: u8) -> bool {
+    ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0d
 }
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
-    let (input, _) = take_while(|ch: u8| ch == 0x20
-        || ch == 0x09
-        || ch == 0x0a
-        || ch == 0x0d)(input)?;
+    let (input, _) = take_while(|ch: u8| is_mime_space(ch))(input)?;
     let (input, name) = take_until("=")(input)?;
-    let (input, _) = tag("=")(input)?;
-    let (input, value) = alt((
-        mime_parse_value_delimited,
-        complete(take_until(";")),
-        rest
-    ))(input)?;
-    let (input, _) = opt(complete(tag(";")))(input)?;
+    let (input, _) = char('=')(input)?;
+    let (input, value) = alt((mime_parse_value_delimited, mime_parse_value_until))(input)?;
+    let (input, _) = take_while(|ch: u8| is_mime_space(ch))(input)?;
+    let (input, _) = opt(complete(char(';')))(input)?;
     return Ok((input, (name, value)));
 }
 
@@ -174,6 +197,13 @@ mod test {
             &mut outvec,
         );
         assert_eq!(delimok, Ok("test2".as_bytes()));
+
+        let escaped = mime_find_header_token(
+            "attachment; filename=\"test\\\"2\";".as_bytes(),
+            "filename".as_bytes(),
+            &mut outvec,
+        );
+        assert_eq!(escaped, Ok("test\\\"2".as_bytes()));
 
         let evasion_othertoken = mime_find_header_token(
             "attachment; dummy=\"filename=wrong\"; filename=real;".as_bytes(),
