@@ -8,3 +8,4 @@ Configuration
    snort-to-suricata
    multi-tenant
    dropping-privileges
+   landlock
