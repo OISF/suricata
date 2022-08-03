@@ -165,7 +165,7 @@ impl HTTP2DecoderHalf {
         }
     }
 
-    pub fn http2_encoding_fromvec(&mut self, input: &Vec<u8>) {
+    pub fn http2_encoding_fromvec(&mut self, input: &[u8]) {
         //use first encoding...
         if self.encoding == HTTP2ContentEncoding::HTTP2ContentEncodingUnknown {
             if *input == "gzip".as_bytes().to_vec() {
@@ -240,7 +240,7 @@ impl HTTP2Decoder {
         }
     }
 
-    pub fn http2_encoding_fromvec(&mut self, input: &Vec<u8>, dir: Direction) {
+    pub fn http2_encoding_fromvec(&mut self, input: &[u8], dir: Direction) {
         if dir == Direction::ToClient {
             self.decoder_tc.http2_encoding_fromvec(input);
         } else {
