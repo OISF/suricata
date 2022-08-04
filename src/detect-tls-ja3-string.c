@@ -95,7 +95,7 @@ void DetectTlsJa3StringRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].name = "ja3.string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].alias = "ja3_string";
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].desc = "content modifier to match the JA3 string buffer";
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].desc = "sticky buffer to match the JA3 string buffer";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = "/rules/ja3-keywords.html#ja3-string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Setup = DetectTlsJa3StringSetup;
 #ifdef UNITTESTS
