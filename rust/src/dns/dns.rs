@@ -437,13 +437,13 @@ impl DNSState {
 
     fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new_ts(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
         self.parse_request(input, false)
     }
 
     fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new_tc(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
         self.parse_response(input)
     }
 
@@ -520,7 +520,7 @@ impl DNSState {
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new_ts(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                let _pdu = Frame::new(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
                 if self.parse_request(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size  + 2;
@@ -569,7 +569,7 @@ impl DNSState {
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new_tc(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                let _pdu = Frame::new(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
                 if self.parse_response(msg) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
@@ -1086,7 +1086,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
+            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, STREAM_TOSERVER, 0))
         );
     }
 
@@ -1122,7 +1122,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 52),
-            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
+            state.parse_request_tcp(std::ptr::null(), StreamSlice::from_slice(&request, STREAM_TOSERVER, 0))
         );
     }
 
@@ -1163,7 +1163,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
+            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, STREAM_TOCLIENT, 0))
         );
     }
 
@@ -1207,7 +1207,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 103),
-            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, 0, 0))
+            state.parse_response_tcp(std::ptr::null(), StreamSlice::from_slice(&request, STREAM_TOCLIENT, 0))
         );
     }
 
@@ -1413,7 +1413,7 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(flow, StreamSlice::from_slice(buf, 0, 0))
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf, STREAM_TOSERVER, 0))
         );
     }
 
@@ -1450,15 +1450,15 @@ mod tests {
         let mut state = DNSState::new();
         assert_eq!(
             AppLayerResult::incomplete(0, 30),
-            state.parse_request_tcp(flow, StreamSlice::from_slice(buf1, 0, 0))
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf1, STREAM_TOSERVER, 0))
         );
         assert_eq!(
             AppLayerResult::incomplete(30, 30),
-            state.parse_request_tcp(flow, StreamSlice::from_slice(buf2, 0, 0))
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf2, STREAM_TOSERVER, 0))
         );
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_request_tcp(flow, StreamSlice::from_slice(buf3, 0, 0))
+            state.parse_request_tcp(flow, StreamSlice::from_slice(buf3, STREAM_TOSERVER, 0))
         );
     }
 

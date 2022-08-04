@@ -16,14 +16,21 @@
  */
 
 use super::error::QuicError;
-use nom::bytes::complete::take;
-use nom::combinator::{all_consuming, complete};
-use nom::multi::{count, many0};
-use nom::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
-use nom::sequence::pair;
-use nom::IResult;
+use crate::quic::parser::quic_var_uint;
+use nom7::bytes::complete::take;
+use nom7::combinator::{all_consuming, complete};
+use nom7::multi::{count, many0};
+use nom7::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
+use nom7::sequence::pair;
+use nom7::IResult;
 use num::FromPrimitive;
 use std::fmt;
+use tls_parser::TlsMessage::Handshake;
+use tls_parser::TlsMessageHandshake::{ClientHello, ServerHello};
+use tls_parser::{
+    parse_tls_extensions, parse_tls_message_handshake, TlsCipherSuiteID, TlsExtension,
+    TlsExtensionType, TlsMessage,
+};
 
 /// Tuple of StreamTag and offset
 type TagOffset = (StreamTag, u32);
@@ -116,16 +123,245 @@ impl fmt::Display for StreamTag {
 }
 
 #[derive(Debug, PartialEq)]
+pub(crate) struct Ack {
+    pub largest_acknowledged: u64,
+    pub ack_delay: u64,
+    pub ack_range_count: u64,
+    pub first_ack_range: u64,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct Crypto {
+    pub ciphers: Vec<TlsCipherSuiteID>,
+    // We remap the Vec<TlsExtension> from tls_parser::parse_tls_extensions because of
+    // the lifetime of TlsExtension due to references to the slice used for parsing
+    pub extv: Vec<QuicTlsExtension>,
+    pub ja3: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct CryptoFrag {
+    pub offset: u64,
+    pub length: u64,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, PartialEq)]
 pub(crate) enum Frame {
     Padding,
+    Ping,
+    Ack(Ack),
+    // this is more than a crypto frame : it contains a fully parsed tls hello
+    Crypto(Crypto),
+    // this is a regular quic crypto frame : they can be reassembled
+    // in order to parse a tls hello
+    CryptoFrag(CryptoFrag),
     Stream(Stream),
     Unknown(Vec<u8>),
+}
+
+fn parse_padding_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    // nom take_while: cannot infer type for type parameter `Error` declared on the function `take_while`
+    let mut offset = 0;
+    while offset < input.len() {
+        if input[offset] != 0 {
+            break;
+        }
+        offset = offset + 1;
+    }
+    return Ok((&input[offset..], Frame::Padding));
+}
+
+fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    let (rest, largest_acknowledged) = quic_var_uint(input)?;
+    let (rest, ack_delay) = quic_var_uint(rest)?;
+    let (rest, ack_range_count) = quic_var_uint(rest)?;
+    let (mut rest, first_ack_range) = quic_var_uint(rest)?;
+
+    for _ in 0..ack_range_count {
+        //RFC9000 section 19.3.1.  ACK Ranges
+        let (rest1, _gap) = quic_var_uint(rest)?;
+        let (rest1, _ack_range_length) = quic_var_uint(rest1)?;
+        rest = rest1;
+    }
+
+    Ok((
+        rest,
+        Frame::Ack(Ack {
+            largest_acknowledged,
+            ack_delay,
+            ack_range_count,
+            first_ack_range,
+        }),
+    ))
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct QuicTlsExtension {
+    pub etype: TlsExtensionType,
+    pub values: Vec<Vec<u8>>,
+}
+
+fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
+    ja3.push_str(",");
+    let mut dash = false;
+    for e in &exts {
+        match e {
+            TlsExtension::EllipticCurves(x) => {
+                for ec in x {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&ec.0.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    ja3.push_str(",");
+    dash = false;
+    for e in &exts {
+        match e {
+            TlsExtension::EcPointFormats(x) => {
+                for ec in *x {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&ec.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+// get interesting stuff out of parsed tls extensions
+fn quic_get_tls_extensions(
+    input: Option<&[u8]>, ja3: &mut String, client: bool,
+) -> Vec<QuicTlsExtension> {
+    let mut extv = Vec::new();
+    if let Some(extr) = input {
+        if let Ok((_, exts)) = parse_tls_extensions(extr) {
+            let mut dash = false;
+            for e in &exts {
+                let etype = TlsExtensionType::from(e);
+                if dash {
+                    ja3.push_str("-");
+                } else {
+                    dash = true;
+                }
+                ja3.push_str(&u16::from(etype).to_string());
+                let mut values = Vec::new();
+                match e {
+                    TlsExtension::SNI(x) => {
+                        for sni in x {
+                            let mut value = Vec::new();
+                            value.extend_from_slice(sni.1);
+                            values.push(value);
+                        }
+                    }
+                    TlsExtension::ALPN(x) => {
+                        for alpn in x {
+                            let mut value = Vec::new();
+                            value.extend_from_slice(alpn);
+                            values.push(value);
+                        }
+                    }
+                    _ => {}
+                }
+                extv.push(QuicTlsExtension { etype, values })
+            }
+            if client {
+                quic_tls_ja3_client_extends(ja3, exts);
+            }
+        }
+    }
+    return extv;
+}
+
+fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
+    if let Handshake(hs) = msg {
+        match hs {
+            ClientHello(ch) => {
+                let mut ja3 = String::with_capacity(256);
+                ja3.push_str(&u16::from(ch.version).to_string());
+                ja3.push_str(",");
+                let mut dash = false;
+                for c in &ch.ciphers {
+                    if dash {
+                        ja3.push_str("-");
+                    } else {
+                        dash = true;
+                    }
+                    ja3.push_str(&u16::from(*c).to_string());
+                }
+                ja3.push_str(",");
+                let ciphers = ch.ciphers;
+                let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
+                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+            }
+            ServerHello(sh) => {
+                let mut ja3 = String::with_capacity(256);
+                ja3.push_str(&u16::from(sh.version).to_string());
+                ja3.push_str(",");
+                ja3.push_str(&u16::from(sh.cipher).to_string());
+                ja3.push_str(",");
+                let ciphers = vec![sh.cipher];
+                let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
+                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+            }
+            _ => {}
+        }
+    }
+    return None;
+}
+
+fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    let (rest, offset) = quic_var_uint(input)?;
+    let (rest, length) = quic_var_uint(rest)?;
+    let (rest, data) = take(length as usize)(rest)?;
+
+    if offset > 0 {
+        return Ok((
+            rest,
+            Frame::CryptoFrag(CryptoFrag {
+                offset,
+                length,
+                data: data.to_vec(),
+            }),
+        ));
+    }
+    // if we have offset 0, try quick path : parse directly
+    match parse_tls_message_handshake(data) {
+        Ok((_, msg)) => {
+            if let Some(c) = parse_quic_handshake(msg) {
+                return Ok((rest, c));
+            }
+        }
+        Err(nom7::Err::Incomplete(_)) => {
+            // offset 0 but incomplete : save it as a fragment for later reassembly
+            return Ok((
+                rest,
+                Frame::CryptoFrag(CryptoFrag {
+                    offset,
+                    length,
+                    data: data.to_vec(),
+                }),
+            ));
+        }
+        _ => {}
+    }
+    return Err(nom7::Err::Error(QuicError::InvalidPacket));
 }
 
 fn parse_tag(input: &[u8]) -> IResult<&[u8], StreamTag, QuicError> {
     let (rest, tag) = be_u32(input)?;
 
-    let tag = StreamTag::from_u32(tag).ok_or(nom::Err::Error(QuicError::StreamTagNoMatch(tag)))?;
+    let tag = StreamTag::from_u32(tag).ok_or(nom7::Err::Error(QuicError::StreamTagNoMatch(tag)))?;
 
     Ok((rest, tag))
 }
@@ -151,7 +387,7 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
         // offsets should be increasing
         let value_len = offset
             .checked_sub(previous_offset)
-            .ok_or(nom::Err::Error(QuicError::InvalidPacket))?;
+            .ok_or(nom7::Err::Error(QuicError::InvalidPacket))?;
         let (new_rest, value) = take(value_len)(rest)?;
 
         previous_offset = offset;
@@ -164,8 +400,6 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
 }
 
 fn parse_stream_frame(input: &[u8], frame_ty: u8) -> IResult<&[u8], Frame, QuicError> {
-    let rest = input;
-
     // 0b1_f_d_ooo_ss
     let fin = frame_ty & 0x40 == 0x40;
     let has_data_length = frame_ty & 0x20 == 0x20;
@@ -180,7 +414,7 @@ fn parse_stream_frame(input: &[u8], frame_ty: u8) -> IResult<&[u8], Frame, QuicE
 
     let stream_id_hdr_length = usize::from((frame_ty & 0x03) + 1);
 
-    let (rest, stream_id) = take(stream_id_hdr_length)(rest)?;
+    let (rest, stream_id) = take(stream_id_hdr_length)(input)?;
     let (rest, offset) = take(offset_hdr_length)(rest)?;
 
     let (rest, data_length) = if has_data_length {
@@ -210,6 +444,31 @@ fn parse_stream_frame(input: &[u8], frame_ty: u8) -> IResult<&[u8], Frame, QuicE
     ))
 }
 
+fn parse_crypto_stream_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    let (rest, _offset) = quic_var_uint(input)?;
+    let (rest, data_length) = quic_var_uint(rest)?;
+    if data_length > u32::MAX as u64 {
+        return Err(nom7::Err::Error(QuicError::Unhandled));
+    }
+    let (rest, stream_data) = take(data_length as u32)(rest)?;
+
+    let tags = if let Ok((_, tags)) = all_consuming(parse_crypto_stream)(stream_data) {
+        Some(tags)
+    } else {
+        None
+    };
+
+    Ok((
+        rest,
+        Frame::Stream(Stream {
+            fin: false,
+            stream_id: Vec::new(),
+            offset: Vec::new(),
+            tags,
+        }),
+    ))
+}
+
 impl Frame {
     fn decode_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         let (rest, frame_ty) = be_u8(input)?;
@@ -220,7 +479,11 @@ impl Frame {
             parse_stream_frame(rest, frame_ty)?
         } else {
             match frame_ty {
-                0x00 => (rest, Frame::Padding),
+                0x00 => parse_padding_frame(rest)?,
+                0x01 => (rest, Frame::Ping),
+                0x02 => parse_ack_frame(rest)?,
+                0x06 => parse_crypto_frame(rest)?,
+                0x08 => parse_crypto_stream_frame(rest)?,
                 _ => ([].as_ref(), Frame::Unknown(rest.to_vec())),
             }
         };
@@ -229,7 +492,44 @@ impl Frame {
     }
 
     pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
-        let (rest, frames) = many0(complete(Frame::decode_frame))(input)?;
+        let (rest, mut frames) = many0(complete(Frame::decode_frame))(input)?;
+
+        // reassemble crypto fragments : first find total size
+        let mut crypto_max_size = 0;
+        let mut crypto_total_size = 0;
+        for f in &frames {
+            match f {
+                Frame::CryptoFrag(c) => {
+                    if crypto_max_size < c.offset + c.length {
+                        crypto_max_size = c.offset + c.length;
+                    }
+                    crypto_total_size += c.length;
+                }
+                _ => {}
+            }
+        }
+        if crypto_max_size > 0 && crypto_total_size == crypto_max_size {
+            // we have some, and no gaps from offset 0
+            let mut d = vec![0; crypto_max_size as usize];
+            for f in &frames {
+                match f {
+                    Frame::CryptoFrag(c) => {
+                        d[c.offset as usize..(c.offset + c.length) as usize]
+                            .clone_from_slice(&c.data);
+                    }
+                    _ => {}
+                }
+            }
+            match parse_tls_message_handshake(&d) {
+                Ok((_, msg)) => {
+                    if let Some(c) = parse_quic_handshake(msg) {
+                        // add a parsed crypto frame
+                        frames.push(c);
+                    }
+                }
+                _ => {}
+            }
+        }
 
         Ok((rest, frames))
     }

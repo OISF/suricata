@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::quic::quic::{QuicTransaction};
+use crate::quic::quic::QuicTransaction;
 use std::ptr;
 
 #[no_mangle]
@@ -40,6 +40,21 @@ pub unsafe extern "C" fn rs_quic_tx_get_sni(
     if let Some(sni) = &tx.sni {
         *buffer = sni.as_ptr();
         *buffer_len = sni.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_ja3(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some(ja3) = &tx.ja3 {
+        *buffer = ja3.as_ptr();
+        *buffer_len = ja3.len() as u32;
         1
     } else {
         *buffer = ptr::null();

@@ -16,10 +16,11 @@
  */
 use super::error::QuicError;
 use super::frames::Frame;
-use nom::bytes::complete::take;
-use nom::combinator::{all_consuming, map};
-use nom::number::complete::{be_u32, be_u8};
-use nom::IResult;
+use nom7::bytes::complete::take;
+use nom7::combinator::{all_consuming, map};
+use nom7::number::complete::{be_u24, be_u32, be_u8};
+use nom7::IResult;
+use std::convert::TryFrom;
 
 /*
    gQUIC is the Google version of QUIC.
@@ -39,6 +40,7 @@ use nom::IResult;
 pub struct QuicVersion(pub u32);
 
 impl QuicVersion {
+    pub const Q039: QuicVersion = QuicVersion(0x51303339);
     pub const Q043: QuicVersion = QuicVersion(0x51303433);
     pub const Q044: QuicVersion = QuicVersion(0x51303434);
     pub const Q045: QuicVersion = QuicVersion(0x51303435);
@@ -55,6 +57,7 @@ impl QuicVersion {
 impl From<QuicVersion> for String {
     fn from(from: QuicVersion) -> Self {
         match from {
+            QuicVersion(0x51303339) => "Q039".to_string(),
             QuicVersion(0x51303433) => "Q043".to_string(),
             QuicVersion(0x51303434) => "Q044".to_string(),
             QuicVersion(0x51303435) => "Q045".to_string(),
@@ -85,16 +88,75 @@ pub enum QuicType {
     Short,
 }
 
+const QUIC_FLAG_MULTIPATH: u8 = 0x40;
+const QUIC_FLAG_DCID_LEN: u8 = 0x8;
+const QUIC_FLAG_NONCE: u8 = 0x4;
+const QUIC_FLAG_VERSION: u8 = 0x1;
+
 #[derive(Debug, PartialEq)]
 pub struct PublicFlags {
     pub is_long: bool,
+    pub raw: u8,
 }
 
 impl PublicFlags {
     pub fn new(value: u8) -> Self {
         let is_long = value & 0x80 == 0x80;
+        let raw = value;
 
-        PublicFlags { is_long }
+        PublicFlags { is_long, raw }
+    }
+}
+
+pub fn quic_pkt_num(input: &[u8]) -> u64 {
+    // There must be a more idiomatic way sigh...
+    match input.len() {
+        1 => {
+            return input[0] as u64;
+        }
+        2 => {
+            return ((input[0] as u64) << 8) | (input[1] as u64);
+        }
+        3 => {
+            return ((input[0] as u64) << 16) | ((input[1] as u64) << 8) | (input[2] as u64);
+        }
+        4 => {
+            return ((input[0] as u64) << 24)
+                | ((input[1] as u64) << 16)
+                | ((input[2] as u64) << 8)
+                | (input[3] as u64);
+        }
+        _ => {
+            // should not be reachable
+            debug_validate_fail!("Unexpected length for quic pkt num");
+            return 0;
+        }
+    }
+}
+
+pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
+    let (rest, first) = be_u8(input)?;
+    let msb = first >> 6;
+    let lsb = (first & 0x3F) as u64;
+    match msb {
+        3 => {
+            // nom does not have be_u56
+            let (rest, second) = be_u24(rest)?;
+            let (rest, third) = be_u32(rest)?;
+            return Ok((rest, (lsb << 56) | ((second as u64) << 32) | (third as u64)));
+        }
+        2 => {
+            let (rest, second) = be_u24(rest)?;
+            return Ok((rest, (lsb << 24) | (second as u64)));
+        }
+        1 => {
+            let (rest, second) = be_u8(rest)?;
+            return Ok((rest, (lsb << 8) | (second as u64)));
+        }
+        _ => {
+            // only remaining case is msb==0
+            return Ok((rest, lsb));
+        }
     }
 }
 
@@ -107,6 +169,7 @@ pub struct QuicHeader {
     pub version_buf: Vec<u8>,
     pub dcid: Vec<u8>,
     pub scid: Vec<u8>,
+    pub length: u16,
 }
 
 #[derive(Debug, PartialEq)]
@@ -126,30 +189,85 @@ impl QuicHeader {
             version_buf: Vec::new(),
             dcid,
             scid,
+            length: 0,
         }
     }
 
     pub(crate) fn from_bytes(
-        input: &[u8], dcid_len: usize,
+        input: &[u8], _dcid_len: usize,
     ) -> IResult<&[u8], QuicHeader, QuicError> {
         let (rest, first) = be_u8(input)?;
         let flags = PublicFlags::new(first);
 
-        if !flags.is_long {
+        if !flags.is_long && (flags.raw & QUIC_FLAG_MULTIPATH) == 0 {
+            let (mut rest, dcid) = if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                take(8_usize)(rest)?
+            } else {
+                take(0_usize)(rest)?
+            };
+            if (flags.raw & QUIC_FLAG_NONCE) != 0 && (flags.raw & QUIC_FLAG_DCID_LEN) == 0 {
+                let (rest1, _) = take(32_usize)(rest)?;
+                rest = rest1;
+            }
+            let version_buf: &[u8];
+            let version;
+            if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                let (_, version_buf1) = take(4_usize)(rest)?;
+                let (rest1, version1) = map(be_u32, QuicVersion)(rest)?;
+                rest = rest1;
+                version = version1;
+                version_buf = version_buf1;
+            } else {
+                version = QuicVersion(0);
+                version_buf = &rest[..0];
+            }
+            let pkt_num_len = 1 + ((flags.raw & 0x30) >> 4);
+            let (mut rest, _pkt_num) = take(pkt_num_len)(rest)?;
+            if (flags.raw & QUIC_FLAG_DCID_LEN) != 0 {
+                let (rest1, _msg_auth_hash) = take(12_usize)(rest)?;
+                rest = rest1;
+            }
+            let ty = if (flags.raw & QUIC_FLAG_VERSION) != 0 {
+                QuicType::Initial
+            } else {
+                QuicType::Short
+            };
+            if let Ok(plength) = u16::try_from(rest.len()) {
+                return Ok((
+                    rest,
+                    QuicHeader {
+                        flags,
+                        ty: ty,
+                        version: version,
+                        version_buf: version_buf.to_vec(),
+                        dcid: dcid.to_vec(),
+                        scid: Vec::new(),
+                        length: plength,
+                    },
+                ));
+            } else {
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
+            }
+        } else if !flags.is_long {
             // Decode short header
-            let (rest, dcid) = take(dcid_len)(rest)?;
+            // depends on version let (rest, dcid) = take(_dcid_len)(rest)?;
 
-            return Ok((
-                rest,
-                QuicHeader {
-                    flags,
-                    ty: QuicType::Short,
-                    version: QuicVersion(0),
-                    version_buf: Vec::new(),
-                    dcid: dcid.to_vec(),
-                    scid: Vec::new(),
-                },
-            ));
+            if let Ok(plength) = u16::try_from(rest.len()) {
+                return Ok((
+                    rest,
+                    QuicHeader {
+                        flags,
+                        ty: QuicType::Short,
+                        version: QuicVersion(0),
+                        version_buf: Vec::new(),
+                        dcid: Vec::new(),
+                        scid: Vec::new(),
+                        length: plength,
+                    },
+                ));
+            } else {
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
+            }
         } else {
             // Decode Long header
             let (_, version_buf) = take(4_usize)(rest)?;
@@ -166,7 +284,7 @@ impl QuicHeader {
                         0x7d => QuicType::Handshake,
                         0x7c => QuicType::ZeroRTT,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(nom7::Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 } else {
@@ -176,7 +294,7 @@ impl QuicHeader {
                         0x02 => QuicType::Handshake,
                         0x03 => QuicType::Retry,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(nom7::Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 }
@@ -212,14 +330,39 @@ impl QuicHeader {
                 (rest, dcid.to_vec(), scid.to_vec())
             };
 
+            let mut has_length = false;
             let rest = match ty {
                 QuicType::Initial => {
-                    let (rest, _pkt_num) = be_u32(rest)?;
-                    let (rest, _msg_auth_hash) = take(12usize)(rest)?;
+                    if version.is_gquic() {
+                        let (rest, _pkt_num) = be_u32(rest)?;
+                        let (rest, _msg_auth_hash) = take(12usize)(rest)?;
 
-                    rest
+                        rest
+                    } else {
+                        let (rest, token_length) = quic_var_uint(rest)?;
+                        let (rest, _token) = take(token_length as usize)(rest)?;
+                        has_length = true;
+                        rest
+                    }
                 }
                 _ => rest,
+            };
+            let (rest, length) = if has_length {
+                let (rest2, plength) = quic_var_uint(rest)?;
+                if plength > rest2.len() as u64 {
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                }
+                if let Ok(length) = u16::try_from(plength) {
+                    (rest2, length)
+                } else {
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                }
+            } else {
+                if let Ok(length) = u16::try_from(rest.len()) {
+                    (rest, length)
+                } else {
+                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                }
             };
 
             Ok((
@@ -231,6 +374,7 @@ impl QuicHeader {
                     version_buf: version_buf.to_vec(),
                     dcid,
                     scid,
+                    length,
                 },
             ))
         }
@@ -253,7 +397,13 @@ mod tests {
     #[test]
     fn public_flags_test() {
         let pf = PublicFlags::new(0xcb);
-        assert_eq!(PublicFlags { is_long: true }, pf);
+        assert_eq!(
+            PublicFlags {
+                is_long: true,
+                raw: 0xcb
+            },
+            pf
+        );
     }
 
     const TEST_DEFAULT_CID_LENGTH: usize = 8;
@@ -266,7 +416,10 @@ mod tests {
             QuicHeader::from_bytes(data.as_ref(), TEST_DEFAULT_CID_LENGTH).unwrap();
         assert_eq!(
             QuicHeader {
-                flags: PublicFlags { is_long: true },
+                flags: PublicFlags {
+                    is_long: true,
+                    raw: 0xcb
+                },
                 ty: QuicType::Initial,
                 version: QuicVersion(0xff00001d),
                 version_buf: vec![0xff, 0x00, 0x00, 0x1d],
@@ -275,7 +428,8 @@ mod tests {
                     .to_vec(),
                 scid: hex::decode("09b15e86dd0990aaf906c5de620c4538398ffa58")
                     .unwrap()
-                    .to_vec()
+                    .to_vec(),
+                length: 1154,
             },
             value
         );
@@ -289,12 +443,16 @@ mod tests {
 
         assert_eq!(
             QuicHeader {
-                flags: PublicFlags { is_long: true },
+                flags: PublicFlags {
+                    is_long: true,
+                    raw: 0xff
+                },
                 ty: QuicType::Initial,
                 version: QuicVersion::Q044,
                 version_buf: vec![0x51, 0x30, 0x34, 0x34],
                 dcid: hex::decode("05cad2cc06c4d0e4").unwrap().to_vec(),
                 scid: Vec::new(),
+                length: 1042,
             },
             header
         );

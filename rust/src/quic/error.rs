@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::error::{ErrorKind, ParseError};
+use nom7::error::{ErrorKind, ParseError};
 use std::error::Error;
 use std::fmt;
 
@@ -24,6 +24,7 @@ pub enum QuicError {
     StreamTagNoMatch(u32),
     InvalidPacket,
     Incomplete,
+    Unhandled,
     NomError(ErrorKind),
 }
 
@@ -45,6 +46,7 @@ impl fmt::Display for QuicError {
             }
             QuicError::Incomplete => write!(f, "Incomplete data"),
             QuicError::InvalidPacket => write!(f, "Invalid packet"),
+            QuicError::Unhandled => write!(f, "Unhandled packet"),
             QuicError::NomError(e) => write!(f, "Internal parser error {:?}", e),
         }
     }
@@ -52,12 +54,12 @@ impl fmt::Display for QuicError {
 
 impl Error for QuicError {}
 
-impl From<nom::Err<QuicError>> for QuicError {
-    fn from(err: nom::Err<QuicError>) -> Self {
+impl From<nom7::Err<QuicError>> for QuicError {
+    fn from(err: nom7::Err<QuicError>) -> Self {
         match err {
-            nom::Err::Incomplete(_) => QuicError::Incomplete,
-            nom::Err::Error(e) => e,
-            nom::Err::Failure(e) => e,
+            nom7::Err::Incomplete(_) => QuicError::Incomplete,
+            nom7::Err::Error(e) => e,
+            nom7::Err::Failure(e) => e,
         }
     }
 }
