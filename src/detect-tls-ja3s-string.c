@@ -94,7 +94,7 @@ static InspectionBuffer *GetJa3Data(DetectEngineThreadCtx *det_ctx,
 void DetectTlsJa3SStringRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].name = "ja3s.string";
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].desc = "content modifier to match the JA3S string sticky buffer";
+    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].desc = "sticky buffer to match the JA3S string buffer";
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].url = "/rules/ja3-keywords.html#ja3s-string";
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].Setup = DetectTlsJa3SStringSetup;
 #ifdef UNITTESTS

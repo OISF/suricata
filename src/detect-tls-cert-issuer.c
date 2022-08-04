@@ -71,7 +71,7 @@ void DetectTlsIssuerRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls.cert_issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].alias = "tls_cert_issuer";
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc = "content modifier to match specifically and only on the TLS cert issuer buffer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc = "sticky buffer to match specifically and only on the TLS cert issuer buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = "/rules/tls-keywords.html#tls-cert-issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
 #ifdef UNITTESTS
