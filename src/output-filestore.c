@@ -397,6 +397,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
 
+    FileStoreEnable();
+
     intmax_t version = 0;
     if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
         SCLogWarning(SC_WARN_DEPRECATED,

@@ -236,6 +236,9 @@ int FileForceSha1(void);
 void FileForceSha256Enable(void);
 int FileForceSha256(void);
 
+int FileStoreIsEnabled(void);
+void FileStoreEnable(void);
+
 void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction);
 
 void FileForceHashParseCfg(ConfNode *);

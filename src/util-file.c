@@ -159,6 +159,17 @@ int FileForceSha256(void)
     return g_file_force_sha256;
 }
 
+int FileStoreIsEnabled(void)
+{
+    return g_file_store_enable;
+}
+
+void FileStoreEnable(void)
+{
+    SCLogInfo("Enabling file store");
+    g_file_store_enable = 1;
+}
+
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
