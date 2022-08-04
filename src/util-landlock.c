@@ -23,6 +23,7 @@
 
 #include "suricata.h"
 #include "util-conf.h"
+#include "util-file.h"
 #include "util-landlock.h"
 #include "util-mem.h"
 
@@ -102,7 +103,13 @@ static inline struct landlock_ruleset* LandlockCreateRuleset()
         return NULL;
     }
     if (abi < 2) {
-        ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
+        if (FileStoreIsEnabled()) {
+            SCLogError(SC_ERR_NOT_SUPPORTED, "Landlock disabled: need Linux 5.19+ for file store support");
+            SCFree(ruleset);
+            return NULL;
+        } else {
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
+        }
     }
 
     ruleset->fd = landlock_create_ruleset(&ruleset->attr, sizeof(ruleset->attr), 0);
