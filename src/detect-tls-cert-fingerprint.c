@@ -75,7 +75,8 @@ void DetectTlsFingerprintRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].name = "tls.cert_fingerprint";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].alias = "tls_cert_fingerprint";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].desc = "match on the TLS cert fingerprint buffer";
+    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].desc =
+            "sticky byffer to match the TLS cert fingerprint buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].url = "/rules/tls-keywords.html#tls-cert-fingerprint";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
 #ifdef UNITTESTS
