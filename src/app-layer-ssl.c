@@ -2562,6 +2562,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     uint32_t counter = 0;
     ssl_state->f = f;
     const uint8_t *input = StreamSliceGetData(&stream_slice);
+    const uint8_t *init_input = input;
     int32_t input_len = (int32_t)StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL &&
@@ -2648,6 +2649,11 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                         "state.  Let's get outta here");
                 SSLParserReset(ssl_state);
                 return APP_LAYER_ERROR;
+            } else if (r.needed) {
+                input += r.retval;
+                SCLogDebug("returning consumed %" PRIuMAX " needed %u",
+                        (uintmax_t)(input - init_input), r.needed);
+                SCReturnStruct(APP_LAYER_INCOMPLETE(input - init_input, r.needed));
             }
             input_len -= r.retval;
             input += r.retval;
