@@ -199,7 +199,6 @@ typedef struct SSLStateConnp_ {
     uint32_t record_lengths_length;
 
     /* offset of the beginning of the current message (including header) */
-    uint32_t message_start;
     uint32_t message_length;
 
     uint16_t version;
@@ -210,8 +209,6 @@ typedef struct SSLStateConnp_ {
 
     /* the no of bytes processed in the currently parsed record */
     uint32_t bytes_processed;
-    /* the no of bytes processed in the currently parsed handshake */
-    uint16_t hs_bytes_processed;
 
     uint16_t session_id_length;
 
@@ -235,6 +232,13 @@ typedef struct SSLStateConnp_ {
     JA3Buffer *ja3_str;
     char *ja3_hash;
 
+    /* handshake tls fragmentation buffer. Handshake messages can be fragmented over multiple
+     * TLS records. */
+    uint8_t *hs_buffer;
+    uint8_t hs_buffer_message_type;
+    uint32_t hs_buffer_message_size;
+    uint32_t hs_buffer_size;   /**< allocation size */
+    uint32_t hs_buffer_offset; /**< write offset */
 } SSLStateConnp;
 
 /**
