@@ -265,7 +265,7 @@ void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
     }
 
     for (enum TcpState i = TCP_NONE; i <= TCP_CLOSED; i++) {
-        const char *name;
+        const char *name = NULL;
         switch (i) {
             case TCP_NONE:
                 name = "flow.end.tcp_state.none";
