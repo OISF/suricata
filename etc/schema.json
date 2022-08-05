@@ -3997,6 +3997,9 @@
                         "vlan_qinq": {
                             "type": "integer"
                         },
+                        "vlan_qinqinq": {
+                            "type": "integer"
+                        },
                         "vntag": {
                             "type": "integer"
                         },
