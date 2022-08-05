@@ -260,25 +260,13 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
 #define ValidateRecordState(...)
 #endif
 
-#ifdef DEBUG_VALIDATION
-#define ValidateTrecBuffer(connp)                                               \
-    do {                                                                        \
-        DEBUG_VALIDATE_BUG_ON((connp)->trec_pos > (connp)->trec_len);           \
-        DEBUG_VALIDATE_BUG_ON((connp)->trec == NULL && (connp)->trec_len > 0);  \
-        DEBUG_VALIDATE_BUG_ON((connp)->trec == NULL && (connp)->trec_pos > 0);  \
-    } while(0)
-#else
-#define ValidateTrecBuffer(...)
-#endif
-
-#define SSLParserHSReset(connp)             \
-    do {                                    \
-        (connp)->trec_pos = 0;              \
-        (connp)->handshake_type = 0;        \
-        (connp)->hs_bytes_processed = 0;    \
-        (connp)->message_length = 0;        \
-        (connp)->message_start = 0;         \
-    } while(0)
+#define SSLParserHSReset(connp)                                                                    \
+    do {                                                                                           \
+        (connp)->handshake_type = 0;                                                               \
+        (connp)->hs_bytes_processed = 0;                                                           \
+        (connp)->message_length = 0;                                                               \
+        (connp)->message_start = 0;                                                                \
+    } while (0)
 
 #define SSLParserReset(state)                       \
     do {                                            \
@@ -1407,94 +1395,6 @@ end:
     return 0;
 }
 
-/** \internal
- *  \brief Get Certificates len so we can know now much (more) we need to buffer
- *  If we already have a few bytes queued up in 'trec' we use those or a mix of
- *  those with the input.
- */
-static uint32_t GetCertsLen(SSLStateConnp *curr_connp, const uint8_t *input,
-        const uint32_t input_len)
-{
-    if (curr_connp->trec != NULL && curr_connp->trec_pos > 0) {
-        if (curr_connp->trec_pos >= 3) {
-            const uint8_t * const ptr = curr_connp->trec;
-            uint32_t len = (*ptr << 16 | *(ptr + 1) << 8 | *(ptr + 2)) + 3;
-            SCLogDebug("length %u (trec)", len);
-            return len;
-        } else if (input_len + curr_connp->trec_pos >= 3) {
-            uint8_t buf[3] = { 0, 0, 0, }; // init to 0 to make scan-build happy
-            uint32_t i = 0;
-            for (uint32_t x = 0; x < curr_connp->trec_pos && i < 3;  x++) {
-                buf[i++] = curr_connp->trec[x];
-            }
-            for (uint32_t x = 0; x < input_len && i < 3;  x++) {
-                buf[i++] = input[x];
-            }
-            uint32_t len = (buf[0] << 16 | buf[1] << 8 | buf[2]) + 3;
-            SCLogDebug("length %u (part trec, part input)", len);
-            return len;
-        }
-        return 0;
-    } else if (input_len >= 3) {
-        uint32_t len = (*input << 16 | *(input + 1) << 8 | *(input + 2)) + 3;
-        SCLogDebug("length %u (input)", len);
-        return len;
-    } else {
-        SCLogDebug("length unknown (input len %u)", input_len);
-        return 0;
-    }
-}
-
-// For certificates whose size is bigger than this,
-// we do not allocate all the required memory straight away,
-// to avoid DOS by RAM exhaustion, but we will allocate
-// this memory once a consequent part of the certificate has been seen.
-#define SSL_CERT_MAX_FIRST_ALLOC 65536 // 0x10000
-
-/** \internal
- *  \brief setup or grow the `trec` space in the connp
- */
-static int EnsureRecordSpace(SSLStateConnp *curr_connp, const uint8_t * const input,
-        const uint32_t input_len)
-{
-    ValidateTrecBuffer(curr_connp);
-
-    uint32_t certs_len = GetCertsLen(curr_connp, input, input_len);
-    if (certs_len == 0) {
-        SCLogDebug("cert_len unknown still, create small buffer to start");
-        certs_len = 256;
-    }
-    // Limit in a first time allocation for very large certificates
-    if (certs_len > SSL_CERT_MAX_FIRST_ALLOC && certs_len > curr_connp->trec_pos + input_len) {
-        certs_len = SSL_CERT_MAX_FIRST_ALLOC;
-    }
-
-    if (curr_connp->trec == NULL) {
-        curr_connp->trec_len = certs_len;
-        curr_connp->trec = SCMalloc(curr_connp->trec_len);
-        if (unlikely(curr_connp->trec == NULL))
-            goto error;
-    }
-
-    if (certs_len > curr_connp->trec_len) {
-        curr_connp->trec_len = certs_len;
-        void *ptmp = SCRealloc(curr_connp->trec, curr_connp->trec_len);
-        if (unlikely(ptmp == NULL)) {
-            SCFree(curr_connp->trec);
-            curr_connp->trec = NULL;
-            goto error;
-        }
-        curr_connp->trec = ptmp;
-    }
-    ValidateTrecBuffer(curr_connp);
-    return 0;
-error:
-    curr_connp->trec_len = 0;
-    curr_connp->trec_pos = 0;
-    ValidateTrecBuffer(curr_connp);
-    return -1;
-}
-
 static inline bool
 HaveEntireRecord(const SSLStateConnp *curr_connp, const uint32_t input_len)
 {
@@ -1515,75 +1415,18 @@ static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state,
         const uint8_t * const initial_input,
         const uint32_t input_len)
 {
-    ValidateTrecBuffer(ssl_state->curr_connp);
-    const uint32_t certs_len = GetCertsLen(ssl_state->curr_connp, initial_input, input_len);
-    SCLogDebug("certs_len %u", certs_len);
-
-    if (EnsureRecordSpace(ssl_state->curr_connp, initial_input, input_len) < 0) {
-        /* error, skip input data */
-        ssl_state->curr_connp->bytes_processed += input_len;
-        return -1;
-    }
-    ValidateTrecBuffer(ssl_state->curr_connp);
-
-    uint32_t write_len = 0;
-    if (certs_len != 0 && ssl_state->curr_connp->trec_pos + input_len >= certs_len) {
-        write_len = certs_len - ssl_state->curr_connp->trec_pos;
-        /* get data left in this frag. The length field may indicate more
-         * data than just in this record. */
-        uint32_t cur_frag_left = ssl_state->curr_connp->record_length +
-                SSLV3_RECORD_HDR_LEN - ssl_state->curr_connp->bytes_processed;
-        SCLogDebug("write_len %u cur_frag_left %u", write_len, cur_frag_left);
-        write_len = MIN(write_len, cur_frag_left);
-    } else {
-        uint32_t cur_frag_left = (ssl_state->curr_connp->record_length +
-                SSLV3_RECORD_HDR_LEN - ssl_state->curr_connp->bytes_processed);
-        SCLogDebug("cur_frag_left %u", cur_frag_left);
-        write_len = MIN(input_len, cur_frag_left);
-        SCLogDebug("write_len %u", write_len);
-    }
-    if (write_len == 0) {
-        /* no (new) data, so we're done */
-        ValidateTrecBuffer(ssl_state->curr_connp);
-        return 0;
-    }
-    BUG_ON(write_len > input_len);
-
-    if (SafeMemcpy(ssl_state->curr_connp->trec,
-                ssl_state->curr_connp->trec_pos,
-                ssl_state->curr_connp->trec_len,
-                initial_input, 0, input_len, write_len) != 0) {
-        return -1;
-    }
-    ssl_state->curr_connp->trec_pos += write_len;
-    SCLogDebug("ssl_state->curr_connp->trec_pos %u", ssl_state->curr_connp->trec_pos);
-    DEBUG_VALIDATE_BUG_ON(certs_len != 0 && certs_len < ssl_state->curr_connp->trec_pos);
-
-    /* if we didn't yet get enough to determine the certs len, or we can
-     * see we didn't buffer enough for the certs, don't bother trying to
-     * parse it the data */
-    if (certs_len == 0 || certs_len > ssl_state->curr_connp->trec_pos) {
-        ssl_state->curr_connp->bytes_processed += write_len;
-        SCLogDebug("bytes_processed %u record_len %u",
-                ssl_state->curr_connp->bytes_processed, ssl_state->curr_connp->record_length);
-        ValidateTrecBuffer(ssl_state->curr_connp);
-        return write_len;
-    }
-
-    int rc = TlsDecodeHSCertificate(ssl_state, ssl_state->curr_connp->trec,
-            ssl_state->curr_connp->trec_pos);
+    int rc = TlsDecodeHSCertificate(ssl_state, initial_input, input_len);
     SCLogDebug("rc %d", rc);
     if (rc > 0) {
-        DEBUG_VALIDATE_BUG_ON(rc != (int)ssl_state->curr_connp->trec_pos);
+        DEBUG_VALIDATE_BUG_ON(rc > (int)input_len);
         SSLParserHSReset(ssl_state->curr_connp);
     } else if (rc < 0) {
         SCLogDebug("error parsing cert, reset state");
         SSLParserHSReset(ssl_state->curr_connp);
         /* fall through to still consume the cert bytes */
     }
-    ssl_state->curr_connp->bytes_processed += write_len;
-    ValidateTrecBuffer(ssl_state->curr_connp);
-    return write_len;
+    ssl_state->curr_connp->bytes_processed += input_len;
+    return input_len;
 }
 
 /**
@@ -2763,8 +2606,6 @@ static void SSLStateFree(void *p)
     SSLState *ssl_state = (SSLState *)p;
     SSLCertsChain *item;
 
-    if (ssl_state->client_connp.trec)
-        SCFree(ssl_state->client_connp.trec);
     if (ssl_state->client_connp.cert0_subject)
         rs_cstring_free(ssl_state->client_connp.cert0_subject);
     if (ssl_state->client_connp.cert0_issuerdn)
@@ -2778,8 +2619,6 @@ static void SSLStateFree(void *p)
     if (ssl_state->client_connp.session_id)
         SCFree(ssl_state->client_connp.session_id);
 
-    if (ssl_state->server_connp.trec)
-        SCFree(ssl_state->server_connp.trec);
     if (ssl_state->server_connp.cert0_subject)
         rs_cstring_free(ssl_state->server_connp.cert0_subject);
     if (ssl_state->server_connp.cert0_issuerdn)
