@@ -41,6 +41,7 @@
 #ifdef HAVE_NETMAP
 #define NETMAP_WITH_LIBS
 #include <net/netmap_user.h>
+#include "util-time.h"
 #endif /* HAVE_NETMAP */
 
 #include "source-netmap.h"
