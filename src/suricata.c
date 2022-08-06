@@ -155,6 +155,7 @@
 #include "runmodes.h"
 #include "runmode-unittests.h"
 #include "runmode-af-packet.h"
+#include "runmode-netmap.h"
 
 #include "util-debug.h"
 #include "util-error.h"
