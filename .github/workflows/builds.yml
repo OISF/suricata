@@ -253,6 +253,9 @@ jobs:
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
+      - run: make install
+      - run: suricatasc -h
+      - run: suricata-update -V
       - name: Preparing distribution
         run: |
           mkdir dist
@@ -326,6 +329,8 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-verify.tar.gz
       - run: python3 ./suricata-verify/run.py -q
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   fedora-36:
     name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
@@ -383,6 +388,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -413,6 +419,9 @@ jobs:
       - run: test -e /usr/local/lib/libsuricata_rust.a
       - run: test -e /usr/local/bin/libsuricata-config
       - run: test ! -e /usr/local/lib/libsuricata.so
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   fedora-35:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
@@ -470,6 +479,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -500,6 +510,9 @@ jobs:
       - run: test -e /usr/local/lib/libsuricata_rust.a
       - run: test -e /usr/local/bin/libsuricata-config
       - run: test ! -e /usr/local/lib/libsuricata.so
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   fedora-35-no-jansson:
     name: Fedora 35 (no jansson)
@@ -857,6 +870,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -885,6 +899,8 @@ jobs:
       - run: test -e /usr/local/bin/libsuricata-config
       - run: test -e /usr/local/lib/libsuricata.so
       - run: test -e /usr/local/lib/$(readlink /usr/local/lib/libsuricata.so)
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   ubuntu-20-04-too-old-rust:
     name: Ubuntu 20.04 (unsupported rust)
@@ -1238,6 +1254,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   debian-9:
     name: Debian 9
@@ -1299,6 +1318,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   macos-latest:
     name: MacOS Latest
@@ -1340,6 +1362,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
@@ -1347,6 +1370,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   windows-msys2-mingw64-npcap:
     name: Windows MSYS2 MINGW64 (NPcap)
@@ -1396,6 +1422,8 @@ jobs:
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
 
   windows-msys2-mingw64-libpcap:
     name: Windows MSYS2 MINGW64 (libpcap)
@@ -1433,3 +1461,5 @@ jobs:
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
           python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
