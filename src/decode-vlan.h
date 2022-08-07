@@ -39,6 +39,7 @@ uint16_t DecodeVLANGetId(const struct Packet_ *, uint8_t layer);
 /* return vlan id in host byte order */
 #define VLAN_GET_ID1(p)             DecodeVLANGetId((p), 0)
 #define VLAN_GET_ID2(p)             DecodeVLANGetId((p), 1)
+#define VLAN_GET_ID3(p)             DecodeVLANGetId((p), 2)
 
 /** Vlan header struct */
 typedef struct VLANHdr_ {
