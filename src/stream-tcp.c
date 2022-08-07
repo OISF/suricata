@@ -6211,8 +6211,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_IGNORE_CHECKSUM;
     np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
-    np->vlan_id[0] = f->vlan_id[0];
-    np->vlan_id[1] = f->vlan_id[1];
+    memcpy(&np->vlan_id[0], &f->vlan_id[0], sizeof(np->vlan_id));
     np->vlan_idx = f->vlan_idx;
     np->livedev = (struct LiveDevice_ *)f->livedev;
 

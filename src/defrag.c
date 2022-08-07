@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2253,6 +2253,41 @@ static int DefragVlanQinQTest(void)
     PASS;
 }
 
+/**
+ * Like DefragVlanTest, but for QinQinQ, testing the third level VLAN ID.
+ */
+static int DefragVlanQinQinQTest(void)
+{
+    Packet *r = NULL;
+
+    DefragInit();
+
+    Packet *p1 = BuildTestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
+    FAIL_IF_NULL(p1);
+    Packet *p2 = BuildTestPacket(IPPROTO_ICMP, 1, 1, 0, 'B', 8);
+    FAIL_IF_NULL(p2);
+
+    /* With no VLAN IDs set, packets should re-assemble. */
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) == NULL);
+    SCFree(r);
+
+    /* With mismatched VLANs, packets should not re-assemble. */
+    p1->vlan_id[0] = 1;
+    p2->vlan_id[0] = 1;
+    p1->vlan_id[1] = 2;
+    p2->vlan_id[1] = 2;
+    p1->vlan_id[2] = 3;
+    p2->vlan_id[2] = 4;
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) != NULL);
+
+    PacketFree(p1);
+    PacketFree(p2);
+    DefragDestroy();
+
+    PASS;
+}
 static int DefragTrackerReuseTest(void)
 {
     int id = 1;
@@ -2502,6 +2537,7 @@ void DefragRegisterTests(void)
 
     UtRegisterTest("DefragVlanTest", DefragVlanTest);
     UtRegisterTest("DefragVlanQinQTest", DefragVlanQinQTest);
+    UtRegisterTest("DefragVlanQinQinQTest", DefragVlanQinQinQTest);
     UtRegisterTest("DefragTrackerReuseTest", DefragTrackerReuseTest);
     UtRegisterTest("DefragTimeoutTest", DefragTimeoutTest);
     UtRegisterTest("DefragMfIpv4Test", DefragMfIpv4Test);

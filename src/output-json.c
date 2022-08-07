@@ -861,6 +861,9 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         if (p->vlan_idx > 1) {
             jb_append_uint(js, p->vlan_id[1]);
         }
+        if (p->vlan_idx > 2) {
+            jb_append_uint(js, p->vlan_id[2]);
+        }
         jb_close(js);
     }
 
