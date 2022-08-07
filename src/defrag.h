@@ -84,7 +84,7 @@ typedef struct DefragTracker_ {
     SCMutex lock; /**< Mutex for locking list operations on
                            * this tracker. */
 
-    uint16_t vlan_id[2]; /**< VLAN ID tracker applies to. */
+    uint16_t vlan_id[3]; /**< VLAN ID tracker applies to. */
 
     uint32_t id; /**< IP ID for this tracker.  32 bits for IPv6, 16
                   * for IPv4. */

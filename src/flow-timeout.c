@@ -90,8 +90,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
     p->flags |= PKT_PSEUDO_STREAM_END;
-    p->vlan_id[0] = f->vlan_id[0];
-    p->vlan_id[1] = f->vlan_id[1];
+    memcpy(&p->vlan_id[0], &f->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = f->vlan_idx;
     p->livedev = (struct LiveDevice_ *)f->livedev;
 
