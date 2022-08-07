@@ -408,8 +408,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     p->tenant_id = parent->tenant_id;
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
-    p->vlan_id[0] = parent->vlan_id[0];
-    p->vlan_id[1] = parent->vlan_id[1];
+    memcpy(&p->vlan_id[0], &parent->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = parent->vlan_idx;
     p->livedev = parent->livedev;
 
@@ -544,6 +543,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_gre = StatsRegisterCounter("decoder.gre", tv);
     dtv->counter_vlan = StatsRegisterCounter("decoder.vlan", tv);
     dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", tv);
+    dtv->counter_vlan_qinqinq = StatsRegisterCounter("decoder.vlan_qinqinq", tv);
     dtv->counter_vxlan = StatsRegisterCounter("decoder.vxlan", tv);
     dtv->counter_vntag = StatsRegisterCounter("decoder.vntag", tv);
     dtv->counter_ieee8021ah = StatsRegisterCounter("decoder.ieee8021ah", tv);

@@ -233,7 +233,6 @@ typedef struct Address_ {
     (p)->pktlen = (len); \
     } while (0)
 
-
 /* Port is just a uint16_t */
 typedef uint16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
@@ -459,7 +458,7 @@ typedef struct Packet_
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
 
-    uint16_t vlan_id[2];
+    uint16_t vlan_id[VLAN_MAX_LAYERS];
     uint8_t vlan_idx;
 
     /* flow */
@@ -695,6 +694,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_gre;
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
+    uint16_t counter_vlan_qinqinq;
     uint16_t counter_vxlan;
     uint16_t counter_vntag;
     uint16_t counter_ieee8021ah;
@@ -1230,7 +1230,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021AD:
         case ETHERNET_TYPE_8021QINQ:
-            if (p->vlan_idx >= 2) {
+            if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
                 ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
             } else {
                 DecodeVLAN(tv, dtv, p, data, len);
