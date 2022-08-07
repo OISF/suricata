@@ -137,8 +137,7 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
         dt->af = AF_INET6;
     }
     dt->proto = IP_GET_IPPROTO(p);
-    dt->vlan_id[0] = p->vlan_id[0];
-    dt->vlan_id[1] = p->vlan_id[1];
+    memcpy(&dt->vlan_id[0], &p->vlan_id[0], sizeof(dt->vlan_id));
     dt->policy = DefragGetOsPolicy(p);
     dt->host_timeout = DefragPolicyGetHostTimeout(p);
     dt->remove = 0;
@@ -359,7 +358,7 @@ typedef struct DefragHashKey4_ {
         struct {
             uint32_t src, dst;
             uint32_t id;
-            uint16_t vlan_id[2];
+            uint16_t vlan_id[3];
         };
         uint32_t u32[4];
     };
@@ -370,7 +369,7 @@ typedef struct DefragHashKey6_ {
         struct {
             uint32_t src[4], dst[4];
             uint32_t id;
-            uint16_t vlan_id[2];
+            uint16_t vlan_id[3];
         };
         uint32_t u32[10];
     };
@@ -399,8 +398,7 @@ static inline uint32_t DefragHashGetKey(Packet *p)
             dhk.dst = p->src.addr_data32[0];
         }
         dhk.id = (uint32_t)IPV4_GET_IPID(p);
-        dhk.vlan_id[0] = p->vlan_id[0];
-        dhk.vlan_id[1] = p->vlan_id[1];
+        memcpy(&dhk.vlan_id[0], &p->vlan_id[0], sizeof(dhk.vlan_id));
 
         uint32_t hash = hashword(dhk.u32, 4, defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
@@ -426,8 +424,7 @@ static inline uint32_t DefragHashGetKey(Packet *p)
             dhk.dst[3] = p->src.addr_data32[3];
         }
         dhk.id = IPV6_EXTHDR_GET_FH_ID(p);
-        dhk.vlan_id[0] = p->vlan_id[0];
-        dhk.vlan_id[1] = p->vlan_id[1];
+        memcpy(&dhk.vlan_id[0], &p->vlan_id[0], sizeof(dhk.vlan_id));
 
         uint32_t hash = hashword(dhk.u32, 10, defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
@@ -439,15 +436,12 @@ static inline uint32_t DefragHashGetKey(Packet *p)
 
 /* Since two or more trackers can have the same hash key, we need to compare
  * the tracker with the current tracker key. */
-#define CMP_DEFRAGTRACKER(d1,d2,id) \
-    (((CMP_ADDR(&(d1)->src_addr, &(d2)->src) && \
-       CMP_ADDR(&(d1)->dst_addr, &(d2)->dst)) || \
-      (CMP_ADDR(&(d1)->src_addr, &(d2)->dst) && \
-       CMP_ADDR(&(d1)->dst_addr, &(d2)->src))) && \
-     (d1)->proto == IP_GET_IPPROTO(d2) &&   \
-     (d1)->id == (id) && \
-     (d1)->vlan_id[0] == (d2)->vlan_id[0] && \
-     (d1)->vlan_id[1] == (d2)->vlan_id[1])
+#define CMP_DEFRAGTRACKER(d1, d2, id)                                                              \
+    (((CMP_ADDR(&(d1)->src_addr, &(d2)->src) && CMP_ADDR(&(d1)->dst_addr, &(d2)->dst)) ||          \
+             (CMP_ADDR(&(d1)->src_addr, &(d2)->dst) && CMP_ADDR(&(d1)->dst_addr, &(d2)->src))) &&  \
+            (d1)->proto == IP_GET_IPPROTO(d2) && (d1)->id == (id) &&                               \
+            (d1)->vlan_id[0] == (d2)->vlan_id[0] && (d1)->vlan_id[1] == (d2)->vlan_id[1] &&        \
+            (d1)->vlan_id[2] == (d2)->vlan_id[2])
 
 static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 {

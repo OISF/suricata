@@ -89,7 +89,7 @@ typedef struct FlowHashKey4_ {
             uint16_t ports[2];
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
-            uint16_t vlan_id[2];
+            uint16_t vlan_id[3];
         };
         const uint32_t u32[5];
     };
@@ -102,7 +102,7 @@ typedef struct FlowHashKey6_ {
             uint16_t ports[2];
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
-            uint16_t vlan_id[2];
+            uint16_t vlan_id[3];
         };
         const uint32_t u32[11];
     };
@@ -143,6 +143,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
              * is disabled. */
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+            fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
@@ -163,6 +164,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.recur = (uint16_t)p->recursion_level;
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+            fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
@@ -177,6 +179,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.recur = (uint16_t)p->recursion_level;
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+            fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
         }
@@ -209,6 +212,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
         fhk.recur = (uint16_t)p->recursion_level;
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+        fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 11, flow_config.hash_rand);
     }
@@ -242,6 +246,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         fhk.recur = (uint16_t)fk->recursion_level;
         fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
+        fhk.vlan_id[2] = fk->vlan_id[2] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 5, flow_config.hash_rand);
     } else {
@@ -274,6 +279,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         fhk.recur = (uint16_t)fk->recursion_level;
         fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
+        fhk.vlan_id[2] = fk->vlan_id[2] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 11, flow_config.hash_rand);
     }
@@ -300,10 +306,11 @@ static inline bool CmpAddrsAndPorts(const uint32_t src1[4],
             src_port1 == dst_port2 && dst_port1 == src_port2);
 }
 
-static inline bool CmpVlanIds(const uint16_t vlan_id1[2], const uint16_t vlan_id2[2])
+static inline bool CmpVlanIds(const uint16_t vlan_id1[3], const uint16_t vlan_id2[3])
 {
     return ((vlan_id1[0] ^ vlan_id2[0]) & g_vlan_mask) == 0 &&
-           ((vlan_id1[1] ^ vlan_id2[1]) & g_vlan_mask) == 0;
+           ((vlan_id1[1] ^ vlan_id2[1]) & g_vlan_mask) == 0 &&
+           ((vlan_id1[2] ^ vlan_id2[2]) & g_vlan_mask) == 0;
 }
 
 /* Since two or more flows can have the same hash key, we need to compare
@@ -374,28 +381,22 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
         /* first check the direction of the flow, in other words, the client ->
          * server direction as it's most likely the ICMP error will be a
          * response to the clients traffic */
-        if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32( ICMPV4_GET_EMB_IPV4(p) )) &&
-                (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32( ICMPV4_GET_EMB_IPV4(p) )) &&
-                f->sp == p->icmpv4vars.emb_sport &&
-                f->dp == p->icmpv4vars.emb_dport &&
-                f->proto == ICMPV4_GET_EMB_PROTO(p) &&
-                f->recursion_level == p->recursion_level &&
-                f->vlan_id[0] == p->vlan_id[0] &&
-                f->vlan_id[1] == p->vlan_id[1])
-        {
+        if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+                (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+                f->sp == p->icmpv4vars.emb_sport && f->dp == p->icmpv4vars.emb_dport &&
+                f->proto == ICMPV4_GET_EMB_PROTO(p) && f->recursion_level == p->recursion_level &&
+                f->vlan_id[0] == p->vlan_id[0] && f->vlan_id[1] == p->vlan_id[1] &&
+                f->vlan_id[2] == p->vlan_id[2]) {
             return 1;
 
         /* check the less likely case where the ICMP error was a response to
          * a packet from the server. */
-        } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32( ICMPV4_GET_EMB_IPV4(p) )) &&
-                (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32( ICMPV4_GET_EMB_IPV4(p) )) &&
-                f->dp == p->icmpv4vars.emb_sport &&
-                f->sp == p->icmpv4vars.emb_dport &&
-                f->proto == ICMPV4_GET_EMB_PROTO(p) &&
-                f->recursion_level == p->recursion_level &&
-                f->vlan_id[0] == p->vlan_id[0] &&
-                f->vlan_id[1] == p->vlan_id[1])
-        {
+        } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+                   (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+                   f->dp == p->icmpv4vars.emb_sport && f->sp == p->icmpv4vars.emb_dport &&
+                   f->proto == ICMPV4_GET_EMB_PROTO(p) &&
+                   f->recursion_level == p->recursion_level && f->vlan_id[0] == p->vlan_id[0] &&
+                   f->vlan_id[1] == p->vlan_id[1] && f->vlan_id[2] == p->vlan_id[2]) {
             return 1;
         }
 
@@ -893,8 +894,8 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
         return NULL;
     }
     f->proto = key->proto;
-    f->vlan_id[0] = key->vlan_id[0];
-    f->vlan_id[1] = key->vlan_id[1];
+    memcpy(&f->vlan_id[0], &key->vlan_id[0], sizeof(f->vlan_id));
+    ;
     f->src.addr_data32[0] = key->src.addr_data32[0];
     f->src.addr_data32[1] = key->src.addr_data32[1];
     f->src.addr_data32[2] = key->src.addr_data32[2];

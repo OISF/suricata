@@ -116,6 +116,9 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
         if (f->vlan_idx > 1) {
             jb_append_uint(jb, f->vlan_id[1]);
         }
+        if (f->vlan_idx > 2) {
+            jb_append_uint(jb, f->vlan_id[2]);
+        }
         jb_close(jb);
     }
 
