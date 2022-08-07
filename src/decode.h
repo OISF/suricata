@@ -459,7 +459,7 @@ typedef struct Packet_
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
 
-    uint16_t vlan_id[2];
+    uint16_t vlan_id[VLAN_MAX_LAYERS];
     uint8_t vlan_idx;
 
     /* flow */
@@ -695,6 +695,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_gre;
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
+    uint16_t counter_vlan_qinqinq;
     uint16_t counter_vxlan;
     uint16_t counter_vntag;
     uint16_t counter_ieee8021ah;
@@ -777,6 +778,126 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
             (p)->ext_pkt = NULL;                    \
         }                                           \
     } while(0)
+
+/**
+ *  \brief Initialize a packet structure for use.
+ */
+#define PACKET_INITIALIZE(p)                                                                       \
+    {                                                                                              \
+        SCMutexInit(&(p)->tunnel_mutex, NULL);                                                     \
+        (p)->alerts.alerts = PacketAlertCreate();                                                  \
+        PACKET_RESET_CHECKSUMS((p));                                                               \
+        (p)->livedev = NULL;                                                                       \
+    }
+
+#define PACKET_RELEASE_REFS(p)                                                                     \
+    do {                                                                                           \
+        FlowDeReference(&((p)->flow));                                                             \
+        HostDeReference(&((p)->host_src));                                                         \
+        HostDeReference(&((p)->host_dst));                                                         \
+    } while (0)
+
+/**
+ *  \brief Recycle a packet structure for reuse.
+ */
+#define PACKET_REINIT(p)                                                                           \
+    do {                                                                                           \
+        CLEAR_ADDR(&(p)->src);                                                                     \
+        CLEAR_ADDR(&(p)->dst);                                                                     \
+        (p)->sp = 0;                                                                               \
+        (p)->dp = 0;                                                                               \
+        (p)->proto = 0;                                                                            \
+        (p)->recursion_level = 0;                                                                  \
+        PACKET_FREE_EXTDATA((p));                                                                  \
+        (p)->flags = (p)->flags & PKT_ALLOC;                                                       \
+        (p)->flowflags = 0;                                                                        \
+        (p)->pkt_src = 0;                                                                          \
+        (p)->vlan_id[0] = 0;                                                                       \
+        (p)->vlan_id[1] = 0;                                                                       \
+        (p)->vlan_id[2] = 0;                                                                       \
+        (p)->vlan_idx = 0;                                                                         \
+        (p)->ts.tv_sec = 0;                                                                        \
+        (p)->ts.tv_usec = 0;                                                                       \
+        (p)->datalink = 0;                                                                         \
+        (p)->drop_reason = 0;                                                                      \
+        (p)->action = 0;                                                                           \
+        if ((p)->pktvar != NULL) {                                                                 \
+            PktVarFree((p)->pktvar);                                                               \
+            (p)->pktvar = NULL;                                                                    \
+        }                                                                                          \
+        (p)->ethh = NULL;                                                                          \
+        if ((p)->ip4h != NULL) {                                                                   \
+            CLEAR_IPV4_PACKET((p));                                                                \
+        }                                                                                          \
+        if ((p)->ip6h != NULL) {                                                                   \
+            CLEAR_IPV6_PACKET((p));                                                                \
+        }                                                                                          \
+        if ((p)->tcph != NULL) {                                                                   \
+            CLEAR_TCP_PACKET((p));                                                                 \
+        }                                                                                          \
+        if ((p)->udph != NULL) {                                                                   \
+            CLEAR_UDP_PACKET((p));                                                                 \
+        }                                                                                          \
+        if ((p)->sctph != NULL) {                                                                  \
+            CLEAR_SCTP_PACKET((p));                                                                \
+        }                                                                                          \
+        if ((p)->esph != NULL) {                                                                   \
+            CLEAR_ESP_PACKET((p));                                                                 \
+        }                                                                                          \
+        if ((p)->icmpv4h != NULL) {                                                                \
+            CLEAR_ICMPV4_PACKET((p));                                                              \
+        }                                                                                          \
+        if ((p)->icmpv6h != NULL) {                                                                \
+            CLEAR_ICMPV6_PACKET((p));                                                              \
+        }                                                                                          \
+        (p)->ppph = NULL;                                                                          \
+        (p)->pppoesh = NULL;                                                                       \
+        (p)->pppoedh = NULL;                                                                       \
+        (p)->greh = NULL;                                                                          \
+        (p)->payload = NULL;                                                                       \
+        (p)->payload_len = 0;                                                                      \
+        (p)->BypassPacketsFlow = NULL;                                                             \
+        (p)->pktlen = 0;                                                                           \
+        (p)->alerts.cnt = 0;                                                                       \
+        (p)->alerts.discarded = 0;                                                                 \
+        (p)->alerts.suppressed = 0;                                                                \
+        (p)->alerts.drop.action = 0;                                                               \
+        (p)->pcap_cnt = 0;                                                                         \
+        (p)->tunnel_rtv_cnt = 0;                                                                   \
+        (p)->tunnel_tpr_cnt = 0;                                                                   \
+        (p)->events.cnt = 0;                                                                       \
+        AppLayerDecoderEventsResetEvents((p)->app_layer_events);                                   \
+        (p)->next = NULL;                                                                          \
+        (p)->prev = NULL;                                                                          \
+        (p)->root = NULL;                                                                          \
+        (p)->livedev = NULL;                                                                       \
+        PACKET_RESET_CHECKSUMS((p));                                                               \
+        PACKET_PROFILING_RESET((p));                                                               \
+        p->tenant_id = 0;                                                                          \
+        p->nb_decoded_layers = 0;                                                                  \
+    } while (0)
+
+#define PACKET_RECYCLE(p)                                                                          \
+    do {                                                                                           \
+        PACKET_RELEASE_REFS((p));                                                                  \
+        PACKET_REINIT((p));                                                                        \
+    } while (0)
+
+/**
+ *  \brief Cleanup a packet so that we can free it. No memset needed..
+ */
+#define PACKET_DESTRUCTOR(p)                                                                       \
+    do {                                                                                           \
+        PACKET_RELEASE_REFS((p));                                                                  \
+        if ((p)->pktvar != NULL) {                                                                 \
+            PktVarFree((p)->pktvar);                                                               \
+        }                                                                                          \
+        PacketAlertFree((p)->alerts.alerts);                                                       \
+        PACKET_FREE_EXTDATA((p));                                                                  \
+        SCMutexDestroy(&(p)->tunnel_mutex);                                                        \
+        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events);                                   \
+        PACKET_PROFILING_RESET((p));                                                               \
+    } while (0)
 
 /* macro's for setting the action
  * handle the case of a root packet
@@ -1230,7 +1351,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021AD:
         case ETHERNET_TYPE_8021QINQ:
-            if (p->vlan_idx >= 2) {
+            if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
                 ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
             } else {
                 DecodeVLAN(tv, dtv, p, data, len);
