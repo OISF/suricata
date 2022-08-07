@@ -62,6 +62,8 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         StatsIncr(tv, dtv->counter_vlan);
     else if (p->vlan_idx == 1)
         StatsIncr(tv, dtv->counter_vlan_qinq);
+    else if (p->vlan_idx == 2)
+        StatsIncr(tv, dtv->counter_vlan_qinqinq);
 
     if(len < VLAN_HEADER_LEN)    {
         ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);
@@ -70,7 +72,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (!PacketIncreaseCheckLayers(p)) {
         return TM_ECODE_FAILED;
     }
-    if (p->vlan_idx >= 2) {
+    if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
         ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
         return TM_ECODE_FAILED;
     }
@@ -95,7 +97,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 uint16_t DecodeVLANGetId(const Packet *p, uint8_t layer)
 {
-    if (unlikely(layer > 1))
+    if (unlikely(layer > 2))
         return 0;
     if (p->vlan_idx > layer) {
         return p->vlan_id[layer];
