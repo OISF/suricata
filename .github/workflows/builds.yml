@@ -240,6 +240,9 @@ jobs:
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
+      - run: make install
+      - run: suricatasc -h
+      - run: suricata-update -V
       - name: Preparing distribution
         run: |
           mkdir dist
@@ -284,6 +287,7 @@ jobs:
                 nss-devel \
                 pcre-devel \
                 pkgconfig \
+                python36-PyYAML \
                 rust \
                 sudo \
                 which \
@@ -306,6 +310,8 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   fedora-36:
     name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
@@ -365,6 +371,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -382,6 +389,9 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   fedora-35:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
@@ -441,6 +451,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -458,6 +469,9 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   ubuntu-20-04:
     name: Ubuntu 20.04 (no nss, no nspr)
@@ -575,6 +589,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -590,6 +605,9 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   ubuntu-20-04-too-old-rust:
     name: Ubuntu 20.04 (unsupported rust)
@@ -1004,6 +1022,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   debian-9:
     name: Debian 9
@@ -1068,6 +1089,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   macos-latest:
     name: MacOS Latest
@@ -1112,6 +1136,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
@@ -1119,6 +1144,9 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   windows-msys2-mingw64:
     name: Windows MSYS2 MINGW64
@@ -1168,3 +1196,5 @@ jobs:
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
