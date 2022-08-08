@@ -32,7 +32,7 @@ waiting for processing packets.)
 Runmodes
 --------
 
-By default the runmode option is disabled With the runmodes setting
+By default the runmode option is disabled. With the runmodes setting
 you can set the runmode you would like to use. For all runmodes
 available, enter **--list-runmodes** in your command line. For more
 information, see :doc:`../performance/runmodes`.
