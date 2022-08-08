@@ -1693,62 +1693,70 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
         return 0;
     }
 
-    SCLogDebug("bytes_processed %u", ssl_state->curr_connp->bytes_processed);
-    SCLogDebug("ssl_state->curr_connp->hs_bytes_processed %u input %p input_len %u",
-            ssl_state->curr_connp->hs_bytes_processed, input, input_len);
+    while (input_len) {
+        SCLogDebug("bytes_processed %u", ssl_state->curr_connp->bytes_processed);
+        SCLogDebug("ssl_state->curr_connp->hs_bytes_processed %u input %p input_len %u",
+                ssl_state->curr_connp->hs_bytes_processed, input, input_len);
 
-    switch (ssl_state->curr_connp->hs_bytes_processed) {
-        case 0:
-            ssl_state->curr_connp->handshake_type = *(input++);
-            ssl_state->curr_connp->bytes_processed++;
-            ssl_state->curr_connp->hs_bytes_processed++;
-            if (--input_len == 0 || ssl_state->curr_connp->bytes_processed ==
-                    (ssl_state->curr_connp->record_length +
-                    SSLV3_RECORD_HDR_LEN)) {
-                return (input - initial_input);
-            }
+        switch (ssl_state->curr_connp->hs_bytes_processed) {
+            case 0:
+                ssl_state->curr_connp->handshake_type = *(input++);
+                SCLogDebug("handshake_type %u", ssl_state->curr_connp->handshake_type);
+                ssl_state->curr_connp->bytes_processed++;
+                ssl_state->curr_connp->hs_bytes_processed++;
+                if (--input_len == 0 ||
+                        ssl_state->curr_connp->bytes_processed ==
+                                (ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN)) {
+                    return (input - initial_input);
+                }
 
-            /* fall through */
-        case 1:
-            ssl_state->curr_connp->message_length = *(input++) << 16;
-            ssl_state->curr_connp->bytes_processed++;
-            ssl_state->curr_connp->hs_bytes_processed++;
-            if (--input_len == 0 || ssl_state->curr_connp->bytes_processed ==
-                    (ssl_state->curr_connp->record_length +
-                    SSLV3_RECORD_HDR_LEN)) {
-                return (input - initial_input);
-            }
+                /* fall through */
+            case 1:
+                ssl_state->curr_connp->message_length = *(input++) << 16;
+                ssl_state->curr_connp->bytes_processed++;
+                ssl_state->curr_connp->hs_bytes_processed++;
+                if (--input_len == 0 ||
+                        ssl_state->curr_connp->bytes_processed ==
+                                (ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN)) {
+                    return (input - initial_input);
+                }
 
-            /* fall through */
-        case 2:
-            ssl_state->curr_connp->message_length |= *(input++) << 8;
-            ssl_state->curr_connp->bytes_processed++;
-            ssl_state->curr_connp->hs_bytes_processed++;
-            if (--input_len == 0 || ssl_state->curr_connp->bytes_processed ==
-                    (ssl_state->curr_connp->record_length +
-                    SSLV3_RECORD_HDR_LEN)) {
-                return (input - initial_input);
-            }
+                /* fall through */
+            case 2:
+                ssl_state->curr_connp->message_length |= *(input++) << 8;
+                ssl_state->curr_connp->bytes_processed++;
+                ssl_state->curr_connp->hs_bytes_processed++;
+                if (--input_len == 0 ||
+                        ssl_state->curr_connp->bytes_processed ==
+                                (ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN)) {
+                    return (input - initial_input);
+                }
 
-            /* fall through */
-        case 3:
-            ssl_state->curr_connp->message_length |= *(input++);
-            ssl_state->curr_connp->bytes_processed++;
-            ssl_state->curr_connp->hs_bytes_processed++;
-            --input_len;
-            ssl_state->curr_connp->message_start = ssl_state->curr_connp->bytes_processed;
+                /* fall through */
+            case 3:
+                ssl_state->curr_connp->message_length |= *(input++);
+                SCLogDebug("message len %u", ssl_state->curr_connp->message_length);
+                ssl_state->curr_connp->bytes_processed++;
+                ssl_state->curr_connp->hs_bytes_processed++;
+                --input_len;
+                ssl_state->curr_connp->message_start = ssl_state->curr_connp->bytes_processed;
 
-            /* fall through */
+                /* fall through */
+        }
+        SCLogDebug("message len %u input %p input_len %u", ssl_state->curr_connp->message_length,
+                input, input_len);
+
+        int retval = SSLv3ParseHandshakeType(ssl_state, input, input_len, direction);
+        if (retval < 0 || retval > (int)input_len) {
+            DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
+            return (retval);
+        }
+        SCLogDebug("retval %d input_len %u", retval, input_len);
+        input += retval;
+        input_len -= retval;
+
+        SSLParserHSReset(ssl_state->curr_connp);
     }
-    SCLogDebug("message len %u input %p", ssl_state->curr_connp->message_length, input);
-
-    int retval = SSLv3ParseHandshakeType(ssl_state, input, input_len, direction);
-    if (retval < 0 || retval > (int)input_len) {
-        DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
-        return retval;
-    }
-    SCLogDebug("retval %d input_len %u", retval, input_len);
-    input += retval;
 
     return (input - initial_input);
 }
