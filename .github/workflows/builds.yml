@@ -139,6 +139,106 @@ jobs:
           name: prep
           path: .
 
+  almalinux-9:
+    name: AlmaLinux 9
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                rust-toolset \
+                sudo \
+                which \
+                zlib-devel
+          # These packages required to build the PDF.
+          dnf -y install \
+                texlive-latex \
+                texlive-cmap \
+                texlive-collection-latexrecommended \
+                texlive-fncychap \
+                texlive-titlesec \
+                texlive-tabulary \
+                texlive-framed \
+                texlive-wrapfig \
+                texlive-upquote \
+                texlive-capt-of \
+                texlive-needspace
+      - name: Configuring
+        run: |
+          ./autogen.sh
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j2 distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+      - run: test -e doc/userguide/suricata.1
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - run: make install
+      - run: suricatasc -h
+      - run: suricata-update -V
+
+  # This build also creates the distribution package that some other builds
+  # depend on.
   alma-8:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
@@ -228,7 +328,7 @@ jobs:
                 texlive-wrapfig \
                 texlive-upquote \
                 texlive-capt-of \
-                texlive-needspace \
+                texlive-needspace
       - name: Configuring
         run: |
           ./autogen.sh
