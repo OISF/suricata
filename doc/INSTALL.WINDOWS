@@ -165,7 +165,7 @@ driver and Windows port of the libnetfilter_queue library):
 4. Install the driver
 
     - copy inf/* files and the freshly built netfilter.sys to a separate directory
-    - open network connecions
+    - open network connections
 	- right-click an interface, select properties
 	- click install...
 	- select service
