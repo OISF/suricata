@@ -646,7 +646,7 @@ Example of icmp_seq in a rule:
 icmpv4.hdr
 ^^^^^^^^^^
 
-Sitcky buffer to match on the whole ICMPv4 header.
+Sticky buffer to match on the whole ICMPv4 header.
 
 icmpv6.hdr
 ^^^^^^^^^^
