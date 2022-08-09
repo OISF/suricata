@@ -1535,7 +1535,7 @@ static int AFPComputeRingParams(AFPThreadVars *ptv, int order)
 
        Compute frame size:
        described in packet_mmap.txt
-       dependant on snaplen (need to use a variable ?)
+       dependent on snaplen (need to use a variable ?)
 snaplen: MTU ?
 tp_hdrlen determine_version in daq_afpacket
 in V1:  sizeof(struct tpacket_hdr);
