@@ -245,7 +245,7 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
     exp_list = IPPairGetStorageById(ipp, g_ippair_expectation_id);
     if (exp_list) {
         CIRCLEQ_INSERT_HEAD(&exp_list->list, exp, entries);
-        /* In case there is already EXPECTATION_MAX_LEVEL expectations waiting to be fullfill,
+        /* In case there is already EXPECTATION_MAX_LEVEL expectations waiting to be fulfilled,
          * we remove the older expectation to limit the total number of expectations */
         if (exp_list->length >= EXPECTATION_MAX_LEVEL) {
             Expectation *last_exp = CIRCLEQ_LAST(&exp_list->list);
