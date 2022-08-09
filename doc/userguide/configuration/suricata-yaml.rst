@@ -866,7 +866,7 @@ per available CPU/CPU core.
       - worker-cpu-set:
           cpu: [ "all" ]
           mode: "exclusive"
-          # Use explicitely 3 threads and don't compute number by using
+          # Use explicitly 3 threads and don't compute number by using
           # detect-thread-ratio variable:
           # threads: 3
           prio:
