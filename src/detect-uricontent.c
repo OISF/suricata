@@ -81,7 +81,7 @@ void DetectUricontentRegister (void)
 /**
  * \brief this function will Free memory associated with DetectContentData
  *
- * \param cd pointer to DetectUricotentData
+ * \param cd pointer to DetectUricontentData
  */
 void DetectUricontentFree(DetectEngineCtx *de_ctx, void *ptr)
 {
