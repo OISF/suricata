@@ -214,7 +214,7 @@ fn parse_dcerpc_flags1(i:&[u8]) -> IResult<&[u8],(u8,u8,u8)> {
 fn parse_dcerpc_flags2(i:&[u8]) -> IResult<&[u8],(u32,u32,u32)> {
     bits(tuple((
        take_bits(3u32),
-       take_bits(1u32),     // endianess
+       take_bits(1u32),     // endianness
        take_bits(28u32),
     )))(i)
 }
