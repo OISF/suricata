@@ -70,7 +70,7 @@ typedef struct AlertDebugLogThread_ {
 /**
  *  \brief Function to log the FlowVars in to alert-debug.log
  *
- *  \param aft Pointer to AltertDebugLog Thread
+ *  \param aft Pointer to AlertDebugLog Thread
  *  \param p Pointer to the packet
  *
  */
@@ -118,7 +118,7 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
 /**
  *  \brief Function to log the PktVars in to alert-debug.log
  *
- *  \param aft Pointer to AltertDebugLog Thread
+ *  \param aft Pointer to AlertDebugLog Thread
  *  \param p Pointer to the packet
  *
  */
