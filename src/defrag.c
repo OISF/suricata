@@ -23,7 +23,7 @@
  * Defragmentation module.
  * References:
  *   - RFC 815
- *   - OpenBSD PF's IP normalizaton (pf_norm.c)
+ *   - OpenBSD PF's IP normalization (pf_norm.c)
  *
  * \todo pool for frag packet storage
  * \todo policy bsd-right
