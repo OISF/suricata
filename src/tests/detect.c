@@ -3626,7 +3626,7 @@ end:
 
 /**
  * \test SigTest42NoPayloadInspection is a test to check that when PKT_NOPAYLOAD_INSPECTION
- *  flasg is set, we don't need to inspect the packet contents.
+ *  flag is set, we don't need to inspect the packet contents.
  */
 
 static int SigTest40NoPayloadInspection02(void)
