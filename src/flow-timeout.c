@@ -362,7 +362,7 @@ void FlowForceReassemblyForFlow(Flow *f)
  * done are:
  * - code consistency
  * - silence complaining profilers
- * - allow us to aggressively check using debug valdation assertions
+ * - allow us to aggressively check using debug validation assertions
  * - be robust in case of future changes
  * - locking overhead if neglectable when no other thread fights us
  *
