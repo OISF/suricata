@@ -1,6 +1,6 @@
 -- This is a simple example script to show what you can do with lua output scripts.
 -- It prints logs similar to the ones produced by the builtin fast.log output
--- faciltiy to stdout, hence its name.
+-- facility to stdout, hence its name.
 
 -- In the init() function we tell suricata, that we want the log function to be
 -- called for every packet that produces an alert (see needs variable)
