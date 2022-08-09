@@ -496,7 +496,7 @@ while ( $successcnt < $loopnum ) {
         if ( $exit ne 0 ) {
             my $knownerr = 0;
 
-            #fuzzer genrated some random link type we can't deal with
+            #fuzzer generated some random link type we can't deal with
             if ( $err =~
                     /datalink type \d+ not \(yet\) supported in module PcapFile\./ )
             {
