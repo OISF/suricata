@@ -1845,7 +1845,7 @@ end:
 
 /**
  * \test Checks if a http_stat_code is registered in a Signature, if content is not
- *       specified in the signature or rawbyes is specified or fast_pattern is
+ *       specified in the signature or rawbytes is specified or fast_pattern is
  *       provided in the signature.
  */
 static int DetectHttpStatCodeTest01(void)
