@@ -317,7 +317,7 @@ int SCLogMatchFGFilterBL(const char *file, const char *function, int line)
  *        allows messages that match this filter, to be logged, while the filter
  *        is defined using a file_name, function_name and line_number.
  *
- *        If a particular paramter in the fg-filter(file, function and line),
+ *        If a particular parameter in the fg-filter(file, function and line),
  *        shouldn't be considered while logging the message, one can supply
  *        NULL for the file_name or function_name and a negative line_no.
  *
@@ -338,7 +338,7 @@ int SCLogAddFGFilterWL(const char *file, const char *function, int line)
  *        allows messages that don't match this filter, to be logged, while the
  *        filter is defined using a file_name, function_name and line_number
  *
- *        If a particular paramter in the fg-filter(file, function and line),
+ *        If a particular parameter in the fg-filter(file, function and line),
  *        shouldn't be considered while logging the message, one can supply
  *        NULL for the file_name or function_name and a negative line_no.
  *

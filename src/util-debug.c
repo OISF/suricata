@@ -1139,7 +1139,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
 /**
  * \brief Returns a pointer to a new SCLogInitData.  This is a public interface
- *        intended to be used after the logging paramters are read from the
+ *        intended to be used after the logging parameters are read from the
  *        conf file
  *
  * \retval sc_lid Pointer to the newly created SCLogInitData
