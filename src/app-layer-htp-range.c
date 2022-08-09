@@ -408,7 +408,7 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
         int r = 0;
         if (c->files) {
             if (data == NULL) {
-                // gap overlaping already known data
+                // gap overlapping already known data
                 r = FileAppendData(c->files, NULL, len - c->toskip);
             } else {
                 r = FileAppendData(c->files, data + c->toskip, len - c->toskip);
