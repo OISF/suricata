@@ -298,9 +298,8 @@ static void PrefilterMpmHttpHeaderFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
 
@@ -337,9 +336,8 @@ static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx,
     return r;
 }
 
-static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
 

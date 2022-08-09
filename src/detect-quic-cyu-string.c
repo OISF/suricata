@@ -159,7 +159,7 @@ static void PrefilterMpmListIdFree(void *ptr)
 }
 
 static int PrefilterMpmListIdRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

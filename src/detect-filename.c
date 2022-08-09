@@ -73,9 +73,8 @@ static void DetectFilenameFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 static int g_file_name_buffer_id = 0;
 
-static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
 static uint8_t DetectEngineInspectFilename(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id);
@@ -467,9 +466,8 @@ static void PrefilterMpmFilenameFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmFilename *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

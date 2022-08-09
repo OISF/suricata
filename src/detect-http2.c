@@ -85,17 +85,15 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char 
 void DetectHTTP2settingsFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
-static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx,
-                                               SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                                               const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
-static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
-                                               SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                                               const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
@@ -733,9 +731,8 @@ static void PrefilterTxHttp2HName(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     //TODOask use PrefilterMpmListId elsewhere
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
@@ -864,9 +861,8 @@ static void PrefilterTxHttp2Header(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

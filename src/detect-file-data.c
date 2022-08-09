@@ -63,15 +63,14 @@ static inline HtpBody *GetResponseBody(htp_tx_t *tx);
 
 /* HTTP */
 static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 /* file API */
 static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id);
-int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
@@ -474,7 +473,7 @@ static void PrefilterTxHTTPFiledata(DetectEngineThreadCtx *det_ctx, const void *
 }
 
 static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmFiledata *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
@@ -692,9 +691,8 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmFiledata *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

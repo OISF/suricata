@@ -79,20 +79,17 @@ const char *builtin_mpms[] = {
  * Keywords are registered at engine start up
  */
 
-static DetectBufferMpmRegistery *g_mpm_list[DETECT_BUFFER_MPM_TYPE_SIZE] = { NULL, NULL, NULL };
+static DetectBufferMpmRegistry *g_mpm_list[DETECT_BUFFER_MPM_TYPE_SIZE] = { NULL, NULL, NULL };
 static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
 
 /** \brief register a MPM engine
  *
  *  \note to be used at start up / registration only. Errors are fatal.
  */
-void DetectAppLayerMpmRegister2(const char *name,
-        int direction, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectBufferMpmRegistery *mpm_reg, int list_id),
-        InspectionBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData, AppProto alproto, int tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
@@ -112,7 +109,7 @@ void DetectAppLayerMpmRegister2(const char *name,
                 "MPM engine registration for %s failed", name);
     }
 
-    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
@@ -131,7 +128,7 @@ void DetectAppLayerMpmRegister2(const char *name,
     if (g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP] == NULL) {
         g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP] = am;
     } else {
-        DetectBufferMpmRegistery *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP];
+        DetectBufferMpmRegistry *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP];
         while (t->next != NULL) {
             t = t->next;
         }
@@ -151,10 +148,10 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 {
     SCLogDebug("registering %d/%d", id, parent_id);
 
-    DetectBufferMpmRegistery *t = de_ctx->app_mpms_list;
+    DetectBufferMpmRegistry *t = de_ctx->app_mpms_list;
     while (t) {
         if (t->sm_list == parent_id) {
-            DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+            DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
             am->direction = t->direction;
@@ -214,10 +211,10 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
-    const DetectBufferMpmRegistery *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP];
-    DetectBufferMpmRegistery *toadd = de_ctx->app_mpms_list;
+    const DetectBufferMpmRegistry *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP];
+    DetectBufferMpmRegistry *toadd = de_ctx->app_mpms_list;
     while (list != NULL) {
-        DetectBufferMpmRegistery *n = SCCalloc(1, sizeof(*n));
+        DetectBufferMpmRegistry *n = SCCalloc(1, sizeof(*n));
         BUG_ON(n == NULL);
 
         *n = *list;
@@ -268,7 +265,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
 {
     int r = 0;
-    const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
+    const DetectBufferMpmRegistry *am = de_ctx->app_mpms_list;
     while (am != NULL) {
         int dir = (am->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
 
@@ -292,7 +289,7 @@ int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
  */
 void DetectFrameMpmRegister(const char *name, int direction, int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         AppProto alproto, uint8_t type)
 {
     SCLogDebug("registering %s/%d/%p/%s/%u", name, priority, PrefilterRegister,
@@ -306,7 +303,7 @@ void DetectFrameMpmRegister(const char *name, int direction, int priority,
         FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
     }
 
-    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
@@ -324,7 +321,7 @@ void DetectFrameMpmRegister(const char *name, int direction, int priority,
     if (g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME] == NULL) {
         g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME] = am;
     } else {
-        DetectBufferMpmRegistery *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
+        DetectBufferMpmRegistry *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
         while (t->next != NULL) {
             t = t->next;
         }
@@ -343,10 +340,10 @@ void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, con
 {
     SCLogDebug("registering %d/%d", id, parent_id);
 
-    DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+    DetectBufferMpmRegistry *t = de_ctx->frame_mpms_list;
     while (t) {
         if (t->sm_list == parent_id) {
-            DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+            DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
@@ -380,7 +377,7 @@ void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, con
 void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int direction,
         int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         AppProto alproto, uint8_t type)
 {
     SCLogDebug("registering %s/%d/%p/%s/%u", name, priority, PrefilterRegister,
@@ -395,7 +392,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
     DetectEngineBufferTypeSupportsFrames(de_ctx, name);
     DetectEngineBufferTypeSupportsTransformations(de_ctx, name);
 
-    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
@@ -426,7 +423,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
     if (de_ctx->frame_mpms_list == NULL) {
         de_ctx->frame_mpms_list = am;
     } else {
-        DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+        DetectBufferMpmRegistry *t = de_ctx->frame_mpms_list;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -441,9 +438,9 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
 
 void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
 {
-    const DetectBufferMpmRegistery *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
+    const DetectBufferMpmRegistry *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
     while (list != NULL) {
-        DetectBufferMpmRegistery *n = SCCalloc(1, sizeof(*n));
+        DetectBufferMpmRegistry *n = SCCalloc(1, sizeof(*n));
         BUG_ON(n == NULL);
 
         *n = *list;
@@ -452,7 +449,7 @@ void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
         if (de_ctx->frame_mpms_list == NULL) {
             de_ctx->frame_mpms_list = n;
         } else {
-            DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+            DetectBufferMpmRegistry *t = de_ctx->frame_mpms_list;
             while (t->next != NULL) {
                 t = t->next;
             }
@@ -498,7 +495,7 @@ int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx)
 {
     SCLogDebug("preparing frame mpm");
     int r = 0;
-    const DetectBufferMpmRegistery *am = de_ctx->frame_mpms_list;
+    const DetectBufferMpmRegistry *am = de_ctx->frame_mpms_list;
     while (am != NULL) {
         SCLogDebug("am %p %s sgh_mpm_context %d", am, am->name, am->sgh_mpm_context);
         SCLogDebug("%s", am->name);
@@ -522,11 +519,9 @@ int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx)
  *
  *  \note to be used at start up / registration only. Errors are fatal.
  */
-void DetectPktMpmRegister(const char *name,
-        int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectBufferMpmRegistery *mpm_reg, int list_id),
+void DetectPktMpmRegister(const char *name, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         InspectionBufferGetPktDataPtr GetData)
 {
     SCLogDebug("registering %s/%d/%p/%p", name, priority,
@@ -545,7 +540,7 @@ void DetectPktMpmRegister(const char *name,
                 "MPM engine registration for %s failed", name);
     }
 
-    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
@@ -560,7 +555,7 @@ void DetectPktMpmRegister(const char *name,
     if (g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT] == NULL) {
         g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT] = am;
     } else {
-        DetectBufferMpmRegistery *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT];
+        DetectBufferMpmRegistry *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT];
         while (t->next != NULL) {
             t = t->next;
         }
@@ -580,10 +575,10 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 {
     SCLogDebug("registering %d/%d", id, parent_id);
 
-    DetectBufferMpmRegistery *t = de_ctx->pkt_mpms_list;
+    DetectBufferMpmRegistry *t = de_ctx->pkt_mpms_list;
     while (t) {
         if (t->sm_list == parent_id) {
-            DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+            DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
@@ -614,9 +609,9 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 
 void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
 {
-    const DetectBufferMpmRegistery *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT];
+    const DetectBufferMpmRegistry *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_PKT];
     while (list != NULL) {
-        DetectBufferMpmRegistery *n = SCCalloc(1, sizeof(*n));
+        DetectBufferMpmRegistry *n = SCCalloc(1, sizeof(*n));
         BUG_ON(n == NULL);
 
         *n = *list;
@@ -625,7 +620,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
         if (de_ctx->pkt_mpms_list == NULL) {
             de_ctx->pkt_mpms_list = n;
         } else {
-            DetectBufferMpmRegistery *t = de_ctx->pkt_mpms_list;
+            DetectBufferMpmRegistry *t = de_ctx->pkt_mpms_list;
             while (t->next != NULL) {
                 t = t->next;
             }
@@ -671,7 +666,7 @@ int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx)
 {
     SCLogDebug("preparing pkt mpm");
     int r = 0;
-    const DetectBufferMpmRegistery *am = de_ctx->pkt_mpms_list;
+    const DetectBufferMpmRegistry *am = de_ctx->pkt_mpms_list;
     while (am != NULL) {
         SCLogDebug("%s", am->name);
         if (am->sgh_mpm_context != MPM_CTX_FACTORY_UNIQUE_CONTEXT)
@@ -1337,10 +1332,10 @@ static MpmStore *MpmStoreLookup(DetectEngineCtx *de_ctx, MpmStore *s)
     return rs;
 }
 
-static const DetectBufferMpmRegistery *GetByMpmStore(const DetectEngineCtx *de_ctx,
-        const MpmStore *ms)
+static const DetectBufferMpmRegistry *GetByMpmStore(
+        const DetectEngineCtx *de_ctx, const MpmStore *ms)
 {
-    const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
+    const DetectBufferMpmRegistry *am = de_ctx->app_mpms_list;
     while (am != NULL) {
         if (ms->sm_list == am->sm_list &&
             ms->direction == am->direction) {
@@ -1384,7 +1379,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         if (ms->buffer < MPMB_MAX)
             stats[ms->buffer]++;
         else if (ms->sm_list != DETECT_SM_LIST_PMATCH) {
-            const DetectBufferMpmRegistery *am = GetByMpmStore(de_ctx, ms);
+            const DetectBufferMpmRegistry *am = GetByMpmStore(de_ctx, ms);
             if (am != NULL) {
                 switch (am->type) {
                     case DETECT_BUFFER_MPM_TYPE_PKT:
@@ -1421,7 +1416,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         for (int x = 0; x < MPMB_MAX; x++) {
             SCLogPerf("Builtin MPM \"%s\": %u", builtin_mpms[x], stats[x]);
         }
-        const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
+        const DetectBufferMpmRegistry *am = de_ctx->app_mpms_list;
         while (am != NULL) {
             if (appstats[am->sm_list] > 0) {
                 const char *name = am->name;
@@ -1431,7 +1426,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
             }
             am = am->next;
         }
-        const DetectBufferMpmRegistery *pm = de_ctx->pkt_mpms_list;
+        const DetectBufferMpmRegistry *pm = de_ctx->pkt_mpms_list;
         while (pm != NULL) {
             if (pktstats[pm->sm_list] > 0) {
                 const char *name = pm->name;
@@ -1439,7 +1434,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
             }
             pm = pm->next;
         }
-        const DetectBufferMpmRegistery *um = de_ctx->frame_mpms_list;
+        const DetectBufferMpmRegistry *um = de_ctx->frame_mpms_list;
         while (um != NULL) {
             if (framestats[um->sm_list] > 0) {
                 const char *name = um->name;
@@ -1709,7 +1704,7 @@ struct SidsArray {
 };
 
 static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
+        const DetectBufferMpmRegistry *am, const struct SidsArray *sa)
 {
     SCLogDebug("handling %s direction %s for list %d", am->name,
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
@@ -1756,7 +1751,7 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx, SigGroup
 }
 
 static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
+        const DetectBufferMpmRegistry *am, const struct SidsArray *sa)
 {
     SCLogDebug("handling %s for list %d", am->name,
             am->sm_list);
@@ -1800,7 +1795,7 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx, SigGroupHead 
 }
 
 static MpmStore *MpmStorePrepareBufferFrame(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
+        const DetectBufferMpmRegistry *am, const struct SidsArray *sa)
 {
     SCLogDebug("handling %s for list %d", am->name, am->sm_list);
 
@@ -1869,12 +1864,12 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
 
     /* flag the list+directions we have engines for as active */
-    for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
         struct SidsArray *sa = &sids[a->sm_list][0];
         sa->active = true;
         sa->type = a->type;
     }
-    for (DetectBufferMpmRegistery *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
         sids[a->sm_list][0].type = a->type;
         if ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh)) {
             struct SidsArray *sa = &sids[a->sm_list][0];
@@ -1885,7 +1880,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sa->active = true;
         }
     }
-    for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
         sids[a->sm_list][0].type = a->type;
         if ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh)) {
             struct SidsArray *sa = &sids[a->sm_list][0];
@@ -1964,7 +1959,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     sh->init->frame_mpms = SCCalloc(de_ctx->frame_mpms_list_cnt, sizeof(MpmCtx *));
     BUG_ON(sh->init->frame_mpms == NULL);
 
-    for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
         struct SidsArray *sa = &sids[a->sm_list][0];
 
         MpmStore *mpm_store = MpmStorePrepareBufferPkt(de_ctx, sh, a, sa);
@@ -1985,7 +1980,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
     }
-    for (DetectBufferMpmRegistery *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
         if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
                 (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh))) {
             const int dir = a->direction == SIG_FLAG_TOCLIENT;
@@ -2012,7 +2007,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
     }
-    for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
+    for (DetectBufferMpmRegistry *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
         if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
                 (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh))) {
             const int dir = a->direction == SIG_FLAG_TOCLIENT;

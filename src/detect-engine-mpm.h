@@ -88,23 +88,18 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
  *  \note direction must be set to either toserver or toclient.
  *        If both are needed, register the keyword twice.
  */
-void DetectAppLayerMpmRegister2(const char *name,
-        int direction, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectBufferMpmRegistery *mpm_reg, int list_id),
-        InspectionBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress);
+void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData, AppProto alproto, int tx_min_progress);
 void DetectAppLayerMpmRegisterByParentId(
         DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
-void DetectPktMpmRegister(const char *name,
-        int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectBufferMpmRegistery *mpm_reg, int list_id),
+void DetectPktMpmRegister(const char *name, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         InspectionBufferGetPktDataPtr GetData);
 void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
@@ -112,22 +107,21 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 
 void DetectFrameMpmRegister(const char *name, int direction, int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         AppProto alproto, uint8_t type);
 void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int direction,
         int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+                const DetectBufferMpmRegistry *mpm_reg, int list_id),
         AppProto alproto, uint8_t type);
 
-int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
-         SigGroupHead *sgh, MpmCtx *mpm_ctx,
-         const DetectBufferMpmRegistery *mpm_reg, int list_id);
+int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 typedef struct PrefilterMpmListId {
     int list_id;

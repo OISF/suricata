@@ -170,9 +170,8 @@ static void PrefilterMpmKrb5NameFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmKrb5CNameRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmKrb5CNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmKrb5Name *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

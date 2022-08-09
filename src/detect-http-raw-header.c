@@ -66,12 +66,10 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id);
 
-static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
-static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
+static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_raw_header" keyword.
@@ -294,9 +292,8 @@ static void PrefilterMpmHttpHeaderRawFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
 
@@ -333,9 +330,8 @@ static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx,
     return r;
 }
 
-static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
 

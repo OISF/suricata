@@ -102,9 +102,8 @@ static int g_file_match_list_id = 0;
 static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static int g_file_magic_buffer_id = 0;
 
-static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id);
@@ -571,9 +570,8 @@ static void PrefilterMpmFilemagicFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmFilemagic *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

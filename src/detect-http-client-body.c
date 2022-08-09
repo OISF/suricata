@@ -73,7 +73,7 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int PrefilterMpmHttpRequestBodyRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_client_body" keyword.
@@ -370,7 +370,7 @@ static void PrefilterTxHttpRequestBody(DetectEngineThreadCtx *det_ctx, const voi
 }
 
 static int PrefilterMpmHttpRequestBodyRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmHttpRequestBody *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

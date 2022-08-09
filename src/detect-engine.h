@@ -42,7 +42,7 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
 InspectionBuffer *InspectionBufferMultipleForListGet(
         DetectEngineThreadCtx *det_ctx, const int list_id, uint32_t local_id);
 
-/* start up registery funcs */
+/* start up registry funcs */
 
 int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);

@@ -1622,9 +1622,9 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(ilist);
             ilist = next;
         }
-        DetectBufferMpmRegistery *mlist = de_ctx->app_mpms_list;
+        DetectBufferMpmRegistry *mlist = de_ctx->app_mpms_list;
         while (mlist) {
-            DetectBufferMpmRegistery *next = mlist->next;
+            DetectBufferMpmRegistry *next = mlist->next;
             SCFree(mlist);
             mlist = next;
         }
@@ -1634,9 +1634,9 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(plist);
             plist = next;
         }
-        DetectBufferMpmRegistery *pmlist = de_ctx->pkt_mpms_list;
+        DetectBufferMpmRegistry *pmlist = de_ctx->pkt_mpms_list;
         while (pmlist) {
-            DetectBufferMpmRegistery *next = pmlist->next;
+            DetectBufferMpmRegistry *next = pmlist->next;
             SCFree(pmlist);
             pmlist = next;
         }
@@ -1646,9 +1646,9 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(framelist);
             framelist = next;
         }
-        DetectBufferMpmRegistery *framemlist = de_ctx->frame_mpms_list;
+        DetectBufferMpmRegistry *framemlist = de_ctx->frame_mpms_list;
         while (framemlist) {
-            DetectBufferMpmRegistery *next = framemlist->next;
+            DetectBufferMpmRegistry *next = framemlist->next;
             SCFree(framemlist);
             framemlist = next;
         }

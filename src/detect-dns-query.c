@@ -181,9 +181,8 @@ static void PrefilterMpmDnsQueryFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmDnsQuery *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)

@@ -62,9 +62,8 @@ static void DetectTlsCertsRegisterTests(void);
 static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id);
-static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
 static int g_tls_certs_buffer_id = 0;
 
@@ -231,9 +230,8 @@ static void PrefilterMpmTlsCertsFree(void *ptr)
     SCFree(ptr);
 }
 
-static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     PrefilterMpmTlsCerts *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
