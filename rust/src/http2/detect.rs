@@ -426,7 +426,7 @@ fn http2_frames_get_header_firstvalue<'a>(
 }
 
 // same as http2_frames_get_header_value but returns a new Vec
-// instead of using the transation to store the result slice
+// instead of using the transaction to store the result slice
 pub fn http2_frames_get_header_value_vec(
     tx: &HTTP2Transaction, direction: Direction, name: &str,
 ) -> Result<Vec<u8>, ()> {
