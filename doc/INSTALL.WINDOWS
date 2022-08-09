@@ -138,7 +138,7 @@ Make sure you have winpcap runtime and driver installed and then:
 Inline Mode
 ===========
 
-You need to downoad, compile and install netfilterforwin (the netfilter.sys
+You need to download, compile and install netfilterforwin (the netfilter.sys
 driver and Windows port of the libnetfilter_queue library):
 
 1. Download and install Windows Driver Kit from Microsoft
