@@ -59,7 +59,7 @@
  *         integrate it's status as a final state or not in the
  *         topmost byte.  We are already doing it if state_count is >
  *         2 ** 16.
- *       - Test case-senstive patterns if they have any ascii chars.
+ *       - Test case-sensitive patterns if they have any ascii chars.
  *         If they don't treat them as nocase.
  *       - Reorder the compressed alphabet to put the most common characters
  *         first.
@@ -1189,7 +1189,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
             continue;
 
-        /* Double check case-sensitve match now. */
+        /* Double check case-sensitive match now. */
         if (patterns[k] >> 31) {
             const uint16_t patlen = pat->patlen;
             if (SCMemcmp(pat->cs, buf_offset - patlen, patlen) != 0) {
