@@ -330,13 +330,12 @@ struct IPv6Tuple4
     uint16_t dp;    /*!< Destination port */
 };
 
-
 /**
  * \brief Compares the byte order value of two IPv6 addresses.
  *
  *
  * \param addr_a The first address to compare
- * \param addr_b The second adress to compare
+ * \param addr_b The second address to compare
  *
  * \return -1 if addr_a < addr_b
  *          1 if addr_a > addr_b

@@ -601,7 +601,7 @@ static DetectAddress *DetectAddressParseSingle(const char *str)
 
 /**
  * \brief Setup a single address string, parse it and add the resulting
- *        Address-Range(s) to the AddessHead(DetectAddressHead instance).
+ *        Address-Range(s) to the AddressHead(DetectAddressHead instance).
  *
  * \param gh Pointer to the Address-Head(DetectAddressHead) to which the
  *           resulting Address-Range(s) from the parsed ip string has to
