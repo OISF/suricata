@@ -610,7 +610,7 @@ FILE *SCClassConfGenerateValidDummyClassConfigFD01(void)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void)
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD02(void)
 {
     const char *buffer =
         "config classification: not-suspicious,Not Suspicious Traffic,3\n"
@@ -634,7 +634,7 @@ FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void)
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD03(void)
 {
     const char *buffer =
         "conig classification: not-suspicious,Not Suspicious Traffic,3\n"
@@ -687,7 +687,7 @@ static int SCClassConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD03();
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)
@@ -710,7 +710,7 @@ static int SCClassConfTest03(void)
 
     FAIL_IF_NULL(de_ctx);
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD02();
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD02();
     FAIL_IF(SCClassConfLoadClassificationConfigFile(de_ctx, fd));
 
     DetectEngineCtxFree(de_ctx);
@@ -763,7 +763,7 @@ static int SCClassConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD03();
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)

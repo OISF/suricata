@@ -1144,7 +1144,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD01(void)
  *
  * \retval fd Pointer to file descriptor.
  */
-static FILE *SCThresholdConfGenerateInValidDummyFD02(void)
+static FILE *SCThresholdConfGenerateInvalidDummyFD02(void)
 {
     FILE *fd;
     const char *buffer =
@@ -1454,7 +1454,7 @@ static int SCThresholdConfTest04(void)
     FAIL_IF_NULL(sig);
 
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
-    g_ut_threshold_fp = SCThresholdConfGenerateInValidDummyFD02();
+    g_ut_threshold_fp = SCThresholdConfGenerateInvalidDummyFD02();
     FAIL_IF_NULL(g_ut_threshold_fp);
     FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
