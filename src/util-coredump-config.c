@@ -211,7 +211,7 @@ int32_t CoredumpLoadConfig (void)
         }
 
         if (errno == EINVAL || errno == EPERM) {
-            /* could't increase the hard limit, or the soft limit exceeded the hard
+            /* couldn't increase the hard limit, or the soft limit exceeded the hard
              * limit; try to raise the soft limit to the hard limit */
             if ((lim.rlim_cur < max_dump && lim.rlim_cur < lim.rlim_max)
 #ifdef RLIM_SAVED_CUR
@@ -228,7 +228,7 @@ int32_t CoredumpLoadConfig (void)
         }
     }
     /* failed to set the coredump limit */
-    SCLogInfo ("Could't set coredump size to %s.", dump_size_config);
+    SCLogInfo("Couldn't set coredump size to %s.", dump_size_config);
 #endif /* HAVE_SYS_RESOURCE_H */
     return 0;
 }

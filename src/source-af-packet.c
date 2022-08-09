@@ -1990,9 +1990,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if (ptv->cluster_type == PACKET_FANOUT_EBPF) {
         r = SockFanoutSeteBPF(ptv);
         if (r < 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                       "Coudn't set EBPF, error %s",
-                       strerror(errno));
+            SCLogError(SC_ERR_AFP_CREATE, "Couldn't set EBPF, error %s", strerror(errno));
             goto socket_err;
         }
     }
