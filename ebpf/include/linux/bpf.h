@@ -1625,9 +1625,9 @@ union bpf_attr {
  * 		the time running for event since last normalization. The
  * 		enabled and running times are accumulated since the perf event
  * 		open. To achieve scaling factor between two invocations of an
- * 		eBPF program, users can can use CPU id as the key (which is
- * 		typical for perf array usage model) to remember the previous
- * 		value and do the calculation inside the eBPF program.
+ * 		eBPF program, users can use CPU id as the key (which is typical
+ * 		for perf array usage model) to remember the previous value and
+ * 		do the calculation inside the eBPF program.
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
