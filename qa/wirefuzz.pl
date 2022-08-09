@@ -22,7 +22,7 @@
 #It is simply a reimplementation of the technique described here, hence the name:
 #http://wiki.wireshark.org/FuzzTesting
 #
-#Options for getting thre required perl modules:
+#Options for getting the required perl modules:
 #Ubuntu 9.10
 #sudo apt-get install libdevel-gdb-perl libcapture-tiny-perl
 #
