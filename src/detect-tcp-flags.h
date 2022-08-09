@@ -38,7 +38,7 @@
 typedef struct DetectFlagsData_ {
     uint8_t flags;  /**< TCP flags */
     uint8_t modifier; /**< !(1) +(2) *(3) modifiers */
-    uint8_t ignored_flags;  /**< Ignored TCP flags defined by modifer , */
+    uint8_t ignored_flags; /**< Ignored TCP flags defined by modifier , */
 } DetectFlagsData;
 
 /**
