@@ -618,7 +618,7 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
         } while (try < 3 && cmd_over == 0);
 
         if (try == 3 && cmd_over == 0) {
-            SCLogInfo("Unix socket: imcomplete client message, closing connection");
+            SCLogInfo("Unix socket: incomplete client message, closing connection");
             UnixCommandClose(this, client->fd);
             return;
         }
