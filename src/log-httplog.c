@@ -316,7 +316,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
 
 static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
-    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* referer */
     htp_header_t *h_referer = NULL;
@@ -331,7 +331,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
         MemBufferWriteString(aft->buffer, "<no referer>");
     }
 
-    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* method */
     if (tx->request_method != NULL) {
@@ -339,7 +339,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
                        (uint8_t *)bstr_ptr(tx->request_method),
                        bstr_len(tx->request_method));
     }
-    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* protocol */
     if (tx->request_protocol != NULL) {
@@ -349,7 +349,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     } else {
         MemBufferWriteString(aft->buffer, "<no protocol>");
     }
-    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* response status */
     if (tx->response_status != NULL) {
@@ -372,7 +372,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     }
 
     /* length */
-    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
     MemBufferWriteString(aft->buffer, "%"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
@@ -440,7 +440,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         } else {
             MemBufferWriteString(aft->buffer, "<hostname unknown>");
         }
-        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+        LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
         /* uri */
         if (tx->request_uri != NULL) {
@@ -448,7 +448,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
                     (uint8_t *)bstr_ptr(tx->request_uri),
                     bstr_len(tx->request_uri));
         }
-        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+        LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
@@ -467,7 +467,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         }
 
         /* ip/tcp header info */
-        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+        LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
         MemBufferWriteString(aft->buffer,
                 "%s:%" PRIu16 " -> %s:%" PRIu16 "\n",
                 srcip, sp, dstip, dp);
