@@ -2270,7 +2270,7 @@ end:
 }
 
 /** \test Check the signature working to alert when http_stat_code is matched for
- *        for negatoin or not */
+ *        for negation or not */
 static int DetectHttpStatCodeSigTest04(void)
 {
     int result = 0;
