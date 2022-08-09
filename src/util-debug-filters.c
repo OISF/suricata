@@ -42,7 +42,7 @@ int sc_log_fd_filters_present = 0;
 SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 
 /**
- * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
+ * \brief Mutex for accessing the fine-grained filters sc_log_fg_filters
  */
 static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { SCMUTEX_INITIALIZER,
                                                           SCMUTEX_INITIALIZER };
