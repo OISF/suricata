@@ -713,7 +713,7 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
     de_ctx->ths_ctx.th_entry = SCCalloc(de_ctx->ths_ctx.th_size, sizeof(DetectThresholdEntry *));
     if (de_ctx->ths_ctx.th_entry == NULL) {
         FatalError("Error allocating memory for rule "
-                   "thresholds (tried to allocate %" PRIu32 " th_entrys for "
+                   "thresholds (tried to allocate %" PRIu32 " th_entries for "
                    "rule tracking)",
                 de_ctx->ths_ctx.th_size);
     }
