@@ -541,7 +541,7 @@ Bug #2944: ssh: heap buffer overflow (master)
 Bug #2945: mpls: heapbuffer overflow in file decode-mpls.c (master)
 Bug #2946: decode-ethernet: heapbuffer overflow in file decode-ethernet.c (master)
 Bug #2947: rust/dhcp: panic in dhcp parser (master)
-Bug #2948: mpls: cast of misaligned data leads to undefined behvaviour (master)
+Bug #2948: mpls: cast of misaligned data leads to undefined behaviour (master)
 Bug #2949: rust/ftp: panic in ftp parser (master)
 Bug #2950: rust/nfs: integer underflow (master)
 Task #2297: deprecate: dns.log
