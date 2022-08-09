@@ -231,8 +231,8 @@ typedef struct DNP3Transaction_ {
     DNP3TransportHeader    response_th;
     DNP3ApplicationHeader  response_ah;
     DNP3InternalInd        response_iin;
-    uint8_t               *response_buffer; /**< Reassembed response
-                                             * buffer. */
+    uint8_t *response_buffer; /**< Reassembled response
+                               * buffer. */
     uint32_t               response_buffer_len;
     uint8_t                response_complete; /**< Was the decode
                                          * complete.  It will not be
