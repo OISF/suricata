@@ -207,7 +207,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
 
 #if 0
     /* Domain of Interest (DOI) of 0 is reserved and thus invalid */
-    /** \todo Aparently a DOI of zero is fine in practice - verify. */
+    /** \todo Apparently a DOI of zero is fine in practice - verify. */
     if (doi == 0) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
