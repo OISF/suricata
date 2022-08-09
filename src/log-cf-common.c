@@ -204,7 +204,7 @@ void LogCustomFormatAddNode(LogCustomFormat *cf, LogCustomFormatNode *node)
  *  \brief Writes a timestamp with given format into a MemBuffer
  *  \param MemBuffer * buffer - where to write
  *  \param const char * fmt - format to be used write timestamp
- *  \param const struct timeveal *ts  - the timetstamp
+ *  \param const struct timeveal *ts  - the timestamp
  *
  */
 void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const struct timeval *ts) {
