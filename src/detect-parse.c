@@ -304,7 +304,7 @@ bool SigMatchStrictEnabled(const enum DetectKeywordId id)
     return false;
 }
 
-void SigTableApplyStrictCommandlineOption(const char *str)
+void SigTableApplyStrictCommandLineOption(const char *str)
 {
     if (str == NULL) {
         /* nothing to be done */

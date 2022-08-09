@@ -1784,7 +1784,7 @@ Optimization #1041: remove mkinstalldirs from git
 - Scripts for looking up files / file md5's at Virus Total and others (contributed by Martin Holste)
 - Test mode: -T option to test the config (#271)
 - Ringbuffer and zero copy support for AF_PACKET
-- Commandline options to list supported app layer protocols and keywords (#344, #414)
+- CommandLine options to list supported app layer protocols and keywords (#344, #414)
 - File extraction for HTTP POST request that do not use multipart bodies
 - On the fly md5 checksum calculation of extracted files
 - Line based file log, in json format

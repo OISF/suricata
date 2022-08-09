@@ -73,7 +73,7 @@ bool SigMatchStrictEnabled(const enum DetectKeywordId id);
 const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);
 
-void SigTableApplyStrictCommandlineOption(const char *str);
+void SigTableApplyStrictCommandLineOption(const char *str);
 
 SigMatch *DetectGetLastSM(const Signature *);
 SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s);

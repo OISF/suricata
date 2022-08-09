@@ -108,7 +108,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
 
 #ifndef DEBUG
 
-int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
+int ExceptionSimulationCommandLineParser(const char *name, const char *arg)
 {
     return 0;
 }
@@ -127,7 +127,7 @@ uint64_t g_eps_defrag_memcap = UINT64_MAX;
 bool g_eps_is_alert_queue_fail_mode = false;
 
 /* 1: parsed, 0: not for us, -1: error */
-int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
+int ExceptionSimulationCommandLineParser(const char *name, const char *arg)
 {
     if (strcmp(name, "simulate-applayer-error-at-offset-ts") == 0) {
         BUG_ON(arg == NULL);

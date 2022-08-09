@@ -1737,7 +1737,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
             } else {
-                int r = ExceptionSimulationCommandlineParser(
+                int r = ExceptionSimulationCommandLineParser(
                         (long_opts[option_index]).name, optarg);
                 if (r < 0)
                     return TM_ECODE_FAILED;
@@ -2686,7 +2686,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
+    SigTableApplyStrictCommandLineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
 
     TagInitCtx();
