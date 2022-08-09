@@ -1491,7 +1491,7 @@ static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue 
     ssn->client.last_ack = q->ack;
     ssn->server.last_ack = ssn->server.isn + 1;
 
-    /** check for the presense of the ws ptr to determine if we
+    /** check for the presence of the ws ptr to determine if we
      *  support wscale at all */
     if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
             (q->flags & STREAMTCP_QUEUE_FLAG_WS))
