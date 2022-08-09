@@ -2383,7 +2383,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state, AppLayerParserSta
                     ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0))
                 break;
 
-            /* if we see (encrypted) aplication data, then this means the
+            /* if we see (encrypted) application data, then this means the
                handshake must be done */
             ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
 
