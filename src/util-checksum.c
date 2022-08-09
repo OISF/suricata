@@ -20,7 +20,7 @@
  *
  * \author Eric Leblond <eric@regit.org>
  *
- * Util functions for checskum.
+ * Util functions for checksum.
  */
 
 #include "suricata-common.h"
