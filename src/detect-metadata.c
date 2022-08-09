@@ -23,7 +23,7 @@
  * Implements metadata keyword support
  *
  * \todo Do we need to do anything more this is used in snort host attribute table
- *       It is also used for rule managment.
+ *       It is also used for rule management.
  */
 
 #include "suricata-common.h"
