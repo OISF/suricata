@@ -1264,7 +1264,7 @@ Bug #1206: ZC pf_ring not working with Suricata 2.0.1 (or latest git)
 Bug #1211: defrag issue
 Bug #1212: core dump (after a while) when app-layer.protocols.http.enabled = yes
 Bug #1214: Global Thresholds (sig_id 0, gid_id 0) not applied correctly if a signature has event vars
-Bug #1217: Segfault in unix-manager.c line 529 when using --unix-socket and sending pcap files to be analized via socket
+Bug #1217: Segfault in unix-manager.c line 529 when using --unix-socket and sending pcap files to be analyzed via socket
 Feature #781: IDS using NFLOG iptables target
 Feature #1158: Parser DNS TXT data parsing and logging
 Feature #1197: liblua support
