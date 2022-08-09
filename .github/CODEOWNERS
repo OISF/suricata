@@ -5,7 +5,7 @@
 # only ppl with push rights in the repo can be owners
 # https://github.com/isaacs/github/issues/989#issuecomment-320475904
 #
-# additionally, it seems only the directoy syntax works.
+# additionally, it seems only the directory syntax works.
 # e.g. '/src/source-*.[ch]  @regit' seems to have no effect.
 *                           @victorjulien
 /src/                       @victorjulien
