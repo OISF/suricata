@@ -1134,7 +1134,7 @@ void *FlowGetAppState(const Flow *f)
 /**
  *  \brief get 'disruption' flags: GAP/DEPTH/PASS
  *  \param f locked flow
- *  \param flags existing flags to be ammended
+ *  \param flags existing flags to be amended
  *  \retval flags original flags + disrupt flags (if any)
  *  \TODO handle UDP
  */
