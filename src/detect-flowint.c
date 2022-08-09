@@ -1096,7 +1096,7 @@ error:
  *        and when that counter reach 6 packets.
  *
  *        All the Signatures generate an alert(its for testing)
- *        but the ignature that increment the second counter +1, that has
+ *        but the signature that increment the second counter +1, that has
  *        a "noalert", so we can do all increments
  *        silently until we reach 6 next packets counted
  */

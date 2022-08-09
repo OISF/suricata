@@ -289,7 +289,7 @@ static int SCRuleVarsPositiveTest03(void)
 
 /**
  * \test Check that Signatures with invalid address and port groups, are
- *       are invalidated by the Singature parsing API.
+ *       are invalidated by the Signature parsing API.
  */
 static int SCRuleVarsNegativeTest04(void)
 {

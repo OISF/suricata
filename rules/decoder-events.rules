@@ -52,7 +52,7 @@ alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown code"; decode-even
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 truncated packet"; decode-event:icmpv4.ipv4_trunc_pkt; classtype:protocol-command-decode; sid:2200026; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown version"; decode-event:icmpv4.ipv4_unknown_ver; classtype:protocol-command-decode; sid:2200027; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 packet too small"; decode-event:icmpv6.pkt_too_small; classtype:protocol-command-decode; sid:2200028; rev:2;)
-# uncomment the following sginature if you plan to update suricata code to support more ICMPv6 type
+# uncomment the following signature if you plan to update suricata code to support more ICMPv6 type
 #alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 unknown type"; decode-event:icmpv6.unknown_type; classtype:protocol-command-decode; sid:2200029; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 unknown code"; decode-event:icmpv6.unknown_code; classtype:protocol-command-decode; sid:2200030; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 truncated packet"; decode-event:icmpv6.ipv6_trunc_pkt; classtype:protocol-command-decode; sid:2200031; rev:2;)
