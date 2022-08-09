@@ -175,7 +175,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
      */
 
     bool update_ct = false;
-    if ((s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICT) != 0) {
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICIT) != 0) {
         /* don't touch Signature::prio */
         update_ct = true;
     } else if (s->prio == -1) {

@@ -255,7 +255,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_HAS_TRANSFORM         BIT_U32(5)
 #define SIG_FLAG_INIT_STATE_MATCH           BIT_U32(6)  /**< signature has matches that require stateful inspection */
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
-#define SIG_FLAG_INIT_PRIO_EXPLICT          BIT_U32(8)  /**< priority is explicitly set by the priority keyword */
+#define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \
+    BIT_U32(8) /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 
 /* signature mask flags */
