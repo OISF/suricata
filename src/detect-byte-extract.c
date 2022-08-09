@@ -50,7 +50,7 @@
 #include "util-unittest-helper.h"
 #include "util-spm.h"
 
-/* the default value of endianess to be used, if none's specified */
+/* the default value of endianness to be used, if none's specified */
 #define DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT DETECT_BYTE_EXTRACT_ENDIAN_BIG
 
 /* the base to be used if string mode is specified.  These options would be
