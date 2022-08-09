@@ -71,7 +71,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
     if(smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Transaction ending or not found");
     }
-    /* pointer to tail of msg list of MimeDecEntitys in current transaction. */
+    /* pointer to tail of msg list of MimeDecEntities in current transaction. */
     MimeDecEntity *mime = smtp_tx->msg_tail;
     /* check if msg_tail was hit */
     if(mime == NULL){
