@@ -381,7 +381,7 @@ void RunModeDispatch(int runmode, const char *custom_mode,
                 FatalError(SC_ERR_FATAL, "Unknown runtime mode. Aborting");
         }
     } else { /* if (custom_mode == NULL) */
-        /* Add compability with old 'worker' name */
+        /* Add compatibility with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
             SCLogWarning(SC_ERR_RUNMODE, "'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");

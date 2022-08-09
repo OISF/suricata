@@ -2410,7 +2410,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state, AppLayerParserSta
         case SSLV3_HANDSHAKE_PROTOCOL: {
             if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
                 /* In TLSv1.3, ChangeCipherSpec is only used for middlebox
-                   compability (rfc8446, appendix D.4). */
+                   compatibility (rfc8446, appendix D.4). */
                 // Client hello flags is needed to have a valid version
                 if ((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
                         (ssl_state->client_connp.version > TLS_VERSION_12) &&

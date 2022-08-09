@@ -380,7 +380,7 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
     output_ctx->data = NULL;
     output_ctx->DeInit = LogTlsStoreLogDeInitCtx;
 
-    /* FIXME we need to implement backward compability here */
+    /* FIXME we need to implement backward compatibility here */
     const char *s_default_log_dir = NULL;
     s_default_log_dir = ConfigGetLogDirectory();
 
