@@ -54,7 +54,7 @@ typedef struct MpmThreadCtx_ {
 typedef struct MpmPattern_ {
     /* length of the pattern */
     uint16_t len;
-    /* flags decribing the pattern */
+    /* flags describing the pattern */
     uint8_t flags;
 
     /* offset into the buffer where match may start */
