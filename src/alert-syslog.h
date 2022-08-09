@@ -20,7 +20,7 @@
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  *
- * alert syslog modeule header file
+ * alert syslog module header file
  *
  */
 
