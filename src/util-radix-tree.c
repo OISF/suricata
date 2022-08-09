@@ -734,7 +734,7 @@ static SCRadixNode *SCRadixAddKey(
         node->parent = new_node;
         /* stick our new_node into the tree.  Create a node that holds the
          * differing bit position and break the branch.  Also handle the
-         * tranfer of netmasks between node and inter_node(explained in more
+         * transfer of netmasks between node and inter_node(explained in more
          * detail below) */
     } else {
         inter_node = SCRadixCreateNode();
