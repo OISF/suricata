@@ -623,7 +623,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 #endif
 
     /* If kernel is older than 3.0, VLAN is not stripped so we don't
-     * get the info from packt extended header but we will use a standard
+     * get the info from packet extended header but we will use a standard
      * parsing */
     ptv->vlan_in_ext_header = 1;
     if (! SCKernelVersionIsAtLeast(3, 0)) {
