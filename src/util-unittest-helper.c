@@ -583,7 +583,7 @@ int UTHRemoveSessionFromFlow(Flow *f)
  * \brief UTHGenericTest: function that perfom a generic check taking care of
  *                      as maximum common unittest elements as possible.
  *                      It will create a detection engine, append an array
- *                      of signatures an check the spected results for each
+ *                      of signatures an check the expected results for each
  *                      of them, it check matches for an array of packets
  *
  * \param pkt pointer to the array of packets
