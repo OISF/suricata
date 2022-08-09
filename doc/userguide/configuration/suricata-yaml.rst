@@ -1453,7 +1453,7 @@ use of libhtp.
        # detection change between runs. It is set to 'yes' by default.
        #randomize-inspection-sizes: yes
        # If randomize-inspection-sizes is active, the value of various
-       # inspection size will be choosen in the [1 - range%, 1 + range%]
+       # inspection size will be chosen in the [1 - range%, 1 + range%]
        # range
        # Default value of randomize-inspection-range is 10.
        #randomize-inspection-range: 10
