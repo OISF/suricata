@@ -403,7 +403,7 @@ Bug #1776: Multiple Content-Length headers causes HTP_STREAM_ERROR
 Bug #2080: Rules with bad port group var do not error
 Bug #2146: DNS answer not logged with eve-log
 Bug #2210: logging: SC_LOG_OP_FILTER still displays some lines not matching filter
-Bug #2264: file-store.stream-depth not working as expected when configured to a specfic value
+Bug #2264: file-store.stream-depth not working as expected when configured to a specific value
 Bug #2395: File_data inspection depth while inspecting base64 decoded data
 Bug #2619: Malformed HTTP causes FN using http_header_names;
 Bug #2626: doc/err: More descriptive message on err for escaping backslash

@@ -77,7 +77,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
     if(mime == NULL){
         return LuaCallbackError(luastate, "Internal error: no fields in transaction");
     }
-    /* extract MIME field based on spesific field name. */
+    /* extract MIME field based on specific field name. */
     MimeDecField *field = MimeDecFindField(mime, name);
     /* check MIME field */
     if(field == NULL) {
