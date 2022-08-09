@@ -60,7 +60,7 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  * \param buffer compressed buffer
  * \param buffer_len compressed buffer length
  * \param decompressed_buffer buffer that store decompressed data
- * \param decompressed_buffer_len decompressesd data length
+ * \param decompressed_buffer_len decompressed data length
  * \param swf_type decompression algorithm to use
  * \param decompress_depth how much decompressed data we want to store
  * \param compress_depth how much compressed data we want to decompress
