@@ -32,7 +32,7 @@
 /** When dbg threads is defined, if a mutex fail to lock, it's
  * initialized, logged, and does a second try; This is to prevent the system to freeze;
  * It is for Mac OS X users;
- * If you see a mutex, spinlock or condiion not initialized, report it please!
+ * If you see a mutex, spinlock or condition not initialized, report it please!
  */
 #define SCMutexLock_dbg(mut) ({ \
     printf("%16s(%s:%d): (thread:%"PRIuMAX") locking mutex %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut); \
@@ -242,7 +242,7 @@
 
 /** When dbg threads is defined, if a rwlock fail to lock, it's
  * initialized, logged, and does a second try; This is to prevent the system to freeze;
- * If you see a rwlock, spinlock or condiion not initialized, report it please!
+ * If you see a rwlock, spinlock or condition not initialized, report it please!
  */
 #define SCRWLockRDLock_dbg(rwl) ({ \
     printf("%16s(%s:%d): (thread:%"PRIuMAX") locking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
