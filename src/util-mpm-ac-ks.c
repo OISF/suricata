@@ -184,7 +184,7 @@ static inline void SCACTileHistogramAlphabet(SCACTileCtx *ctx,
     }
 }
 
-/* Use Alpahbet Histogram to create compressed alphabet.
+/* Use Alphabet Histogram to create compressed alphabet.
  */
 static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
 {
