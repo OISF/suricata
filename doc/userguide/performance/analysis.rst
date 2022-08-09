@@ -1,7 +1,7 @@
 Performance Analysis
 ====================
 
-There are many potential causes for for performance issues. In this section we
+There are many potential causes for performance issues. In this section we
 will guide you through some options. The first part will cover basic steps and
 introduce some helpful tools. The second part will cover more in-depth
 explanations and corner cases.
