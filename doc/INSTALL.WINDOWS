@@ -73,7 +73,7 @@ the following packages to c:\mingw (use newer versions if you like):
     http://code.google.com/p/msysgit/
 
     - unpack to /msys/1.0
-    - don't forget to edit your ~/.gitconfig to at least give youreself a name :-)
+    - don't forget to edit your ~/.gitconfig to at least give yourself a name :-)
 
 5. Get libpcre2
 
