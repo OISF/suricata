@@ -20,7 +20,7 @@
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  *
- * Bs2Bm use a simple context array to determine the charactes
+ * Bs2Bm use a simple context array to determine the characters
  * that are not present on the pattern. This way on partial matches
  * broken by a char not present, we can skip to the next character
  * making less checks

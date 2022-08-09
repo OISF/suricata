@@ -212,7 +212,7 @@ static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
     SCLogDebug("  Alphabet size %d", ctx->alphabet_size);
 
     /* Round alphabet size up to next power-of-two Leave one extra
-     * space For the unused-chararacters = 0 mapping.
+     * space For the unused-characters = 0 mapping.
      */
     ctx->alphabet_size += 1; /* Extra space for unused-character */
     if (ctx->alphabet_size  <= 8) {
