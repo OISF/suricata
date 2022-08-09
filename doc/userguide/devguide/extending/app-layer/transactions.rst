@@ -114,7 +114,7 @@ is completed (NFS, SMB), it is possible to create a level of abstraction to hand
 
 This is controlled by implementing progress states. In Suricata, those will be enums that are incremented as the parsing
 progresses. A state will start at 0. The higher its value, the closer the transaction would be to completion. Due to how
-the engine tracks detection accross states, there is an upper limit of 48 to the state progress (it must be < 48).
+the engine tracks detection across states, there is an upper limit of 48 to the state progress (it must be < 48).
 
 The engine interacts with transactions' state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 

@@ -230,7 +230,7 @@ int g_default_mtu = 0;
 
 bool g_system = false;
 
-/** disable randomness to get reproducible results accross runs */
+/** disable randomness to get reproducible results across runs */
 #ifndef AFLFUZZ_NO_RANDOM
 int g_disable_randomness = 0;
 #else
