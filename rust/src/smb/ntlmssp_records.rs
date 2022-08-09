@@ -72,7 +72,7 @@ fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
 }
 
 pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
-    let record_len = i.len() + 12; // idenfier (8) and type (4) are cut before we are called
+    let record_len = i.len() + 12; // identifier (8) and type (4) are cut before we are called
 
     let (i, _lm_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _lm_blob_maxlen) = le_u16(i)?;
@@ -101,7 +101,7 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
     let (i, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
 
-    // subtrack 12 as idenfier (8) and type (4) are cut before we are called
+    // subtrack 12 as identifier (8) and type (4) are cut before we are called
     // subtract 60 for the len/offset/maxlen fields above
     let (i, _) = cond(nego_flags.1==1 && domain_blob_offset > 72, |b| take(domain_blob_offset - (12 + 60))(b))(i)?;
     // or 52 if we have no version
