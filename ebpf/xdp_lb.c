@@ -158,7 +158,7 @@ static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_o
     if (grhdr->flags & GRE_SEQ)
         nh_off += 4;
 
-    /* Update offset to skip ERPSAN header if we have one */
+    /* Update offset to skip ERSPAN header if we have one */
     if (proto == __constant_htons(ETH_P_ERSPAN)) {
         nh_off += 8;
     }
