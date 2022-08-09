@@ -79,7 +79,7 @@ typedef struct SCFmem_ {
 /**
  * \brief Seek the mem file from offset and whence
  * \param handler pointer to the memfile
- * \param osffset number of bytes to move from whence
+ * \param offset number of bytes to move from whence
  * \param whence SEEK_SET, SEEK_CUR, SEEK_END
  * \retval pos the position by the last operation, -1 if sizes are out of bounds
  */
