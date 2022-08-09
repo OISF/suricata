@@ -363,7 +363,7 @@ static int DetectHttpUATestSigParse(const char *sig, const bool expect)
 }
 
 /**
- * \test Test that a signature containting a http_user_agent is correctly parsed
+ * \test Test that a signature containing a http_user_agent is correctly parsed
  *       and the keyword is registered.
  */
 static int DetectHttpUATest01(void)

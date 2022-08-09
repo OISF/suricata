@@ -821,7 +821,7 @@ libhtp:\n\
 }
 
 /**
- * \test Test that a signature containting a http_client_body is correctly parsed
+ * \test Test that a signature containing a http_client_body is correctly parsed
  *       and the keyword is registered.
  */
 static int DetectHttpClientBodyTest01(void)

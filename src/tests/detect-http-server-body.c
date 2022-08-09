@@ -5249,7 +5249,7 @@ libhtp:\n\
 }
 
 /**
- * \test Test that a signature containting a http_server_body is correctly parsed
+ * \test Test that a signature containing a http_server_body is correctly parsed
  *       and the keyword is registered.
  */
 static int DetectHttpServerBodyTest01(void)
