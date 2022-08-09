@@ -1,5 +1,6 @@
 .. _Coding Style:
 
+============
 Coding Style
 ============
 
@@ -22,6 +23,7 @@ Format your Changes
 Before opening a pull request, please also try to ensure it is formatted
 properly. We use ``clang-format`` for this, which has git integration through the
 ``git-clang-format`` script to only format your changes.
+
 On some systems, it may already be installed (or be installable via your package
 manager). If so, you can simply run it.
 
@@ -48,7 +50,8 @@ The following command will format only the code changed in the most recent commi
     # Or with script:
     $ scripts/clang-format.sh commit
 
-Note that this modifies the files, but doesn’t commit them – you’ll likely want to run
+Note that this modifies the files, but doesn't commit them. If the changes are
+trivial, you’ll likely want to run
 
 .. code-block:: bash
 
@@ -56,9 +59,13 @@ Note that this modifies the files, but doesn’t commit them – you’ll likely
 
 in order to update the last commit with all pending changes.
 
+For bigger formatting changes, we do ask you to add them to separate, dedicated
+commits.
+
 Formatting code in staging
 """"""""""""""""""""""""""
-The following command will format the changes in staging, i.e. files you ``git add``-ed:
+The following command will format the changes in staging, i.e. files you
+``git add``-ed:
 
 .. code-block:: bash
 
@@ -74,8 +81,8 @@ If you also want to change the unstaged changes, do:
     # Or with script:
     $ scripts/clang-format.sh cached --force
 
-Formatting your branch' commits
-"""""""""""""""""""""""""""""""
+Formatting your branch's commits
+""""""""""""""""""""""""""""""""
 In case you have multiple commits on your branch already and forgot to
 format them you can fix that up as well.
 
@@ -89,18 +96,19 @@ Tip: Create a new version of your branch first and run this off the new version.
     # In a new version of your pull request:
     $ scripts/clang-format.sh rewrite-branch
 
-You could also add the formatting as an additional commit "at the end". However,
-this is frowned upon. It's preferred to use ``rewrite-branch`` instead.
+Note that the above should only be used for rather minimal formatting changes.
+As mentioned, we prefer that you add such changes to a dedicated commit for
+formatting changes:
 
 .. code-block:: bash
 
-    # It's preferred to use rewrite-branch instead of this:
+    # Format all changes by commits on your branch:
     $ git clang-format first_commit_on_your_branch^
     # Or with script:
     $ scripts/clang-format.sh branch
 
 Note the usage of ``first_commit_on_your_branch^``, not ``master``, to avoid picking up
-new commits on master in case you've updated master since you've branched.
+new commits on ``master`` in case you've updated master since you've branched.
 
 Check formatting
 """"""""""""""""
