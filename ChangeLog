@@ -1657,7 +1657,7 @@ Optimization #1041: remove mkinstalldirs from git
 - If not explicit fast_pattern is set, pick HTTP patterns over stream patterns. HTTP method, stat code and stat msg are excluded.
 - Fix compilation on architectures other than x86 and x86_64 (#572)
 - Fix FP with anchored pcre combined with relative matching (#529)
-- Fix engine hanging instead of exitting if the pcap device doesn't exist (#533)
+- Fix engine hanging instead of exiting if the pcap device doesn't exist (#533)
 - Work around for potential FP, will get properly fixed in next release (#574)
 - Improve ERF handling. Thanks to Jason Ish
 - Always set cluster_id in PF_RING
