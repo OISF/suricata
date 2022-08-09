@@ -656,7 +656,7 @@ pub enum Nfs4ResponseContent<'a> {
     DestroyClientID(u32),
 }
 
-// might need improvment with a stateid_present = yes case
+// might need improvement with a stateid_present = yes case
 fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, _stateid_present) = verify(be_u32, |&v| v <= 1)(i)?;
