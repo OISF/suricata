@@ -65,7 +65,7 @@
 
 typedef struct LogCustomFormatNode_ {
     uint32_t type;              /**< Node format type. ie: LOG_CF_LITERAL, ... */
-    uint32_t maxlen;            /**< Maximun length of the data */
+    uint32_t maxlen;            /**< Maximum length of the data */
     char data[LOG_NODE_STRLEN]; /**< optional data. ie: http header name */
 } LogCustomFormatNode;
 
