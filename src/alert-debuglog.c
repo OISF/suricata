@@ -386,7 +386,7 @@ static TmEcode AlertDebugLogThreadInit(ThreadVars *t, const void *initdata, void
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     /* 1 mb seems sufficient enough */

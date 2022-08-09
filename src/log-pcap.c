@@ -1095,7 +1095,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 
     PcapLogLock(td->pcap_log);
 
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     td->pcap_log->pkt_cnt = 0;
     td->pcap_log->pcap_dead_handle = NULL;
     td->pcap_log->pcap_dumper = NULL;

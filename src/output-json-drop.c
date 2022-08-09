@@ -190,7 +190,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->drop_ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = CreateEveThreadCtx(t, aft->drop_ctx->eve_ctx);
     if (!aft->ctx) {

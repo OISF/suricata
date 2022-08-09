@@ -199,7 +199,7 @@ TmEcode LogTcpDataLogThreadInit(ThreadVars *t, const void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->tcpdatalog_ctx= ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;

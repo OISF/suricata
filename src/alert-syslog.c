@@ -161,7 +161,7 @@ static TmEcode AlertSyslogThreadInit(ThreadVars *t, const void *initdata, void *
 
     memset(ast, 0, sizeof(AlertSyslogThread));
 
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     ast->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)ast;

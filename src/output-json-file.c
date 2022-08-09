@@ -243,7 +243,7 @@ static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->filelog_ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = CreateEveThreadCtx(t, aft->filelog_ctx->eve_ctx);
     if (!aft->ctx) {

@@ -376,7 +376,7 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
         goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->dnslog_ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = CreateEveThreadCtx(t, aft->dnslog_ctx->eve_ctx);
     if (!aft->ctx) {

@@ -197,7 +197,7 @@ TmEcode AlertFastLogThreadInit(ThreadVars *t, const void *initdata, void **data)
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
