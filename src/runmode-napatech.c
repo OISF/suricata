@@ -170,7 +170,7 @@ static int NapatechRegisterDeviceStreams(void)
         last_stream = stream_config[inst].stream_id;
     }
 
-    /* Napatech stats come from a separate thread.  This will surpress
+    /* Napatech stats come from a separate thread.  This will suppress
      * the counters when suricata exits.
      */
     LiveDeviceHasNoStats();
