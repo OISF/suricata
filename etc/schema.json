@@ -1475,7 +1475,7 @@
                             "type": "integer"
                         }
                     },
-                    "additionalProperites": false
+                    "additionalProperties": false
                 },
                 "bytes_toclient": {
                     "type": "integer"
