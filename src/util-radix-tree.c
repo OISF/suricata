@@ -417,7 +417,7 @@ static void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
  * \brief Creates a new Radix tree
  *
  * \param Free Function pointer supplied by the user to be used by the Radix
- *             cleanup API to free the user suppplied data
+ *             cleanup API to free the user supplied data
  *
  * \retval tree The newly created radix tree on success
  *
