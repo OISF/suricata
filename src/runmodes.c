@@ -188,8 +188,8 @@ static const char *RunModeTranslateModeToName(int runmode)
  * \brief Dispatcher function for runmodes.  Calls the required runmode function
  *        based on runmode + runmode_custom_id.
  *
- * \param runmode            The runmode type.
- * \param runmode_customd_id The runmode custom id.
+ * \param runmode           The runmode type.
+ * \param runmode_custom_id The runmode custom id.
  */
 static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_mode)
 {
