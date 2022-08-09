@@ -1449,7 +1449,7 @@ Feature #944: detect nic offloading
 Feature #956: Implement IPv6 reject
 Feature #957: reject: iface setup
 Feature #959: Move post config initialisation code to PostConfLoadedSetup
-Feature #981: Update all switch case fall throughs with comments on false throughs
+Feature #981: Update all switch case fall-throughs with comments on fall-throughs
 Feature #983: Provide rule support for specifying icmpv4 and icmpv6.
 Feature #986: set htp request and response size limits
 Feature #1008: Optionally have http_uri buffer start with uri path for use in proxied environments
