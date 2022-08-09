@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements Unidirectiontal NetFlow JSON logging portion of the engine.
+ * Implements Unidirectional NetFlow JSON logging portion of the engine.
  */
 
 #include "suricata-common.h"
