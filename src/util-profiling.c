@@ -118,7 +118,7 @@ thread_local int profiling_rules_entered = 0;
 
 void SCProfilingDumpPacketStats(void);
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
-const char * PacketProfileLoggertIdToString(LoggerId id);
+const char *PacketProfileLoggerIdToString(LoggerId id);
 static void PrintCSVHeader(void);
 
 static void FormatNumber(uint64_t num, char *str, size_t size)
@@ -680,8 +680,11 @@ void SCProfilingDumpPacketStats(void)
             double percent = (long double)pd->tot /
                 (long double)total * 100;
 
-            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+            fprintf(fp,
+                    "%-24s    IPv4     %3d  %12" PRIu64 "     %12" PRIu64 "   %12" PRIu64
+                    "  %12" PRIu64 "  %12s  %-6.2f\n",
+                    PacketProfileLoggerIdToString(m), p, pd->cnt, pd->min, pd->max,
+                    (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
     for (int m = 0; m < LOGGER_SIZE; m++) {
@@ -695,8 +698,11 @@ void SCProfilingDumpPacketStats(void)
             double percent = (long double)pd->tot /
                 (long double)total * 100;
 
-            fprintf(fp, "%-24s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+            fprintf(fp,
+                    "%-24s    IPv6     %3d  %12" PRIu64 "     %12" PRIu64 "   %12" PRIu64
+                    "  %12" PRIu64 "  %12s  %-6.2f\n",
+                    PacketProfileLoggerIdToString(m), p, pd->cnt, pd->min, pd->max,
+                    (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
 
@@ -767,7 +773,7 @@ static void PrintCSVHeader(void)
 
     /* individual loggers */
     for (LoggerId i = 0; i < LOGGER_SIZE; i++) {
-        fprintf(packet_profile_csv_fp, "%s,", PacketProfileLoggertIdToString(i));
+        fprintf(packet_profile_csv_fp, "%s,", PacketProfileLoggerIdToString(i));
     }
 
     fprintf(packet_profile_csv_fp, "\n");
@@ -1259,7 +1265,7 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
  *
  * \retval string equivalent for the LoggerId id
  */
-const char * PacketProfileLoggertIdToString(LoggerId id)
+const char *PacketProfileLoggerIdToString(LoggerId id)
 {
     switch (id) {
         CASE_CODE (LOGGER_UNDEFINED);

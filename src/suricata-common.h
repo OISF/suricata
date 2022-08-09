@@ -433,7 +433,7 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_SIZE,
 } PacketProfileDetectId;
 
-/** \note update PacketProfileLoggertIdToString if you change anything here */
+/** \note update PacketProfileLoggerIdToString if you change anything here */
 typedef enum {
     LOGGER_UNDEFINED,
 
