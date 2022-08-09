@@ -46,7 +46,7 @@ the following packages to c:\mingw (use newer versions if you like):
     http://sourceforge.net/projects/mingw/files/
 
     MSYS-1.0.11.exe (MSYS Base System)
-    msysDTK-1.0.1.exe (MSYS Suplementary Tools)
+    msysDTK-1.0.1.exe (MSYS Supplementary Tools)
     autoconf-2.63–1-msys-1.0.11-bin.tar.lzma
     automake-1.11–1-msys-1.0.11-bin.tar.lzma
     libtool-2.2.7a-1-msys-1.0.11-bin.tar.lzma
