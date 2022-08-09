@@ -333,7 +333,7 @@ sub printhelp {
         3.-y Shuffle the array of pcaps this is useful if running multiple instances of this script.
         4.-c Tell suricata to use the suricata.yaml in the current dir.
         6.-e Tell editcap to introduce a 2% error ratio, i.e. there is a 2% chance that a byte will be fuzzed see http://wiki.wireshark.org/FuzzTesting for more info.
-        7.-p Use src/suricata as our suricata bin file. The script will determin if the argument passed is a bin file or a txt wrapper and will adjust accordingly.
+        7.-p Use src/suricata as our suricata bin file. The script will determine if the argument passed is a bin file or a txt wrapper and will adjust accordingly.
 
         /usr/bin/wirefuzz.pl -r=/home/somepath/pcaps/*/* -s=/home/somepath/current-all.rules -y -c=suricata.yaml -e=0.02 -p src/suricata
 
