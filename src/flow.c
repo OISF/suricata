@@ -1178,7 +1178,7 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 #ifdef UNITTESTS
     if (f->fb != NULL) {
 #endif
-        /* and reset the flow buckup next_ts value so that the flow manager
+        /* and reset the flow bucket next_ts value so that the flow manager
          * has to revisit this row */
         SC_ATOMIC_SET(f->fb->next_ts, 0);
 #ifdef UNITTESTS
