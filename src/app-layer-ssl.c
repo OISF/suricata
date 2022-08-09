@@ -2521,7 +2521,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state, AppLayerParserSta
  * \brief SSLv2, SSLv23, SSLv3, TLSv1.1, TLSv1.2, TLSv1.3 parser.
  *
  *        On parsing error, this should be the only function that should reset
- *        the parser state, to avoid multiple functions in the chain reseting
+ *        the parser state, to avoid multiple functions in the chain resetting
  *        the parser state.
  *
  * \param direction 0 for toserver, 1 for toclient.
@@ -2601,7 +2601,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
             int retval = SSLv2Decode(direction, ssl_state, pstate, input, input_len, stream_slice);
             if (retval < 0 || retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(retval > input_len);
-                SCLogDebug("Error parsing SSLv2. Reseting parser "
+                SCLogDebug("Error parsing SSLv2. Resetting parser "
                         "state. Let's get outta here");
                 SSLParserReset(ssl_state);
                 SSLSetEvent(ssl_state,
@@ -2622,7 +2622,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
             int retval = SSLv3Decode(direction, ssl_state, pstate, input, input_len, stream_slice);
             if (retval < 0 || retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(retval > input_len);
-                SCLogDebug("Error parsing TLS. Reseting parser "
+                SCLogDebug("Error parsing TLS. Resetting parser "
                         "state.  Let's get outta here");
                 SSLParserReset(ssl_state);
                 return APP_LAYER_ERROR;
