@@ -737,7 +737,7 @@ static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool 
  * flow pointer. Then compares the packet with the found flow to see if it is
  * the flow we need. If it isn't, walk the list until the right flow is found.
  *
- * If the flow is not found or the bucket was emtpy, a new flow is taken from
+ * If the flow is not found or the bucket was empty, a new flow is taken from
  * the spare pool. The pool will alloc new flows as long as we stay within our
  * memcap limit.
  *
