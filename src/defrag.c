@@ -213,7 +213,7 @@ DefragContextNew(void)
             FatalError("defrag: Timeout less than minimum allowed value.");
         }
         else if (timeout > TIMEOUT_MAX) {
-            FatalError("defrag: Tiemout greater than maximum allowed value.");
+            FatalError("defrag: Timeout greater than maximum allowed value.");
         }
         dc->timeout = timeout;
     }
