@@ -2206,11 +2206,11 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
     /* normal pkt */
     } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
-            SCLogDebug("ssn %p: server => Asynchrouns stream, packet SEQ"
-                    " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
-                    " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    "%" PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
-                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+            SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ"
+                       " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
+                       " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
+                       "%" PRIu32 "(%" PRIu32 ")",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
                     ssn->client.last_ack, ssn->client.next_win,
                     TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
@@ -2406,11 +2406,11 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
     } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->server.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
 
-            SCLogDebug("ssn %p: client => Asynchrouns stream, packet SEQ"
-                    " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
-                    " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    " %"PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
-                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+            SCLogDebug("ssn %p: client => Asynchronous stream, packet SEQ"
+                       " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
+                       " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
+                       " %" PRIu32 "(%" PRIu32 ")",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
                     ssn->server.last_ack, ssn->server.next_win,
                     TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win);
 
