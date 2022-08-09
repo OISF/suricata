@@ -34,7 +34,7 @@ Bug #4156: dnp3: signed integer overflow
 Bug #4158: PacketCopyData sets packet length even on failure 
 Bug #4173: dnp3: SV tests fail on big endian 
 Bug #4177: Rustc nightly warning getting the inner pointer of a temporary `CString` 
-Optimization #4114: Optmize Rust logging macros: SCLogInfo, SCLogDebug and friends 
+Optimization #4114: Optimize Rust logging macros: SCLogInfo, SCLogDebug and friends 
 Task #4137: deprecate: eve.dns v1 record support 
 Task #4180: libhtp 0.5.36
 
