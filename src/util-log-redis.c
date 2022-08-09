@@ -101,7 +101,7 @@ static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
 /** \brief SCRedisAsyncCommandCallback() Callback when reply from redis happens.
  *  \param ac redis async context
  *  \param r redis reply
- *  \param privvata opaque datq with pointer to LogFileCtx
+ *  \param privdata opaque data with pointer to LogFileCtx
  */
 static void SCRedisAsyncCommandCallback(redisAsyncContext *ac, void *r, void *privdata)
 {
@@ -123,7 +123,7 @@ static void SCRedisAsyncCommandCallback(redisAsyncContext *ac, void *r, void *pr
  *         This is used to check if redis is connected.
  *  \param ac redis async context
  *  \param r redis reply
- *  \param privvata opaque datq with pointer to LogFileCtx
+ *  \param privdata opaque data with pointer to LogFileCtx
  */
 static void SCRedisAsyncEchoCommandCallback(redisAsyncContext *ac, void *r, void *privdata)
 {
@@ -161,7 +161,7 @@ static void SCLogAsyncRedisSendEcho(SCLogRedisContext * ctx)
  *         This is used to terminate connection with redis.
  *  \param ac redis async context
  *  \param r redis reply
- *  \param privvata opaque datq with pointer to LogFileCtx
+ *  \param privdata opaque data with pointer to LogFileCtx
  */
 static void SCRedisAsyncQuitCommandCallback(redisAsyncContext *ac, void *r, void *privdata)
 {
