@@ -31,7 +31,7 @@
  * \brief Container for a Classtype from the Classification.config file.
  */
 typedef struct SCClassConfClasstype_ {
-    /* The index of the classification within classification.confg */
+    /* The index of the classification within classification.config */
     uint16_t classtype_id;
 
     /* The priority this classification type carries */
