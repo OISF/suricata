@@ -1521,7 +1521,7 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                             state->data_chunk_len += EOL_LEN;
                         }
 
-                        /* Account for extra 2 characters in 3-characted QP
+                        /* Account for extra 2 characters in 3-character QP
                          * sequence */
                         remaining -= 2;
                         offset += 2;
