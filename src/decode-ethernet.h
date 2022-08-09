@@ -33,7 +33,7 @@
 #define ETHERNET_TYPE_PUP             0x0200 /* PUP protocol */
 #define ETHERNET_TYPE_IP              0x0800
 #define ETHERNET_TYPE_ARP             0x0806
-#define ETHERNET_TYPE_BRIDGE          0x6558 /* transparant ethernet bridge (GRE) */
+#define ETHERNET_TYPE_BRIDGE          0x6558 /* transparent ethernet bridge (GRE) */
 #define ETHERNET_TYPE_REVARP          0x8035
 #define ETHERNET_TYPE_EAPOL           0x888e
 #define ETHERNET_TYPE_IPV6            0x86dd
