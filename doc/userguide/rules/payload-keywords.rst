@@ -157,7 +157,7 @@ Example::
 
 ``endswith`` is a short hand notation for::
 
-    content:".php"; isdatat:!1,relative;
+    content:".php"; isdataat:!1,relative;
 
 ``endswith`` cannot be mixed with ``offset``, ``within`` or
 ``distance`` for the same pattern.
