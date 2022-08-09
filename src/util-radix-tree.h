@@ -67,7 +67,7 @@ typedef struct SCRadixNode_ {
 
     /* total no of netmasks that are registered under this node */
     uint16_t netmask_cnt;
-    /* holds a list of netmaks that come under this node in the tree */
+    /* holds a list of netmasks that come under this node in the tree */
     uint8_t *netmasks;
 
     /* holds the prefix that the path to this node holds */
