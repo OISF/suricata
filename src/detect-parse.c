@@ -4175,7 +4175,7 @@ end:
     return result;
 }
 
-static int SigParseTestUnblanacedQuotes01(void)
+static int SigParseTestUnbalancedQuotes01(void)
 {
     DetectEngineCtx *de_ctx;
     Signature *s;
@@ -4184,7 +4184,10 @@ static int SigParseTestUnblanacedQuotes01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any (msg:\"SigParseTestUnblanacedQuotes01\"; pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
+    s = SigInit(de_ctx,
+            "alert http any any -> any any (msg:\"SigParseTestUnbalancedQuotes01\"; "
+            "pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" "
+            "flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
     FAIL_IF_NOT_NULL(s);
 
     PASS;
@@ -4395,8 +4398,7 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01);
     UtRegisterTest("SigParseTestAppLayerTLS02", SigParseTestAppLayerTLS02);
     UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03);
-    UtRegisterTest("SigParseTestUnblanacedQuotes01",
-        SigParseTestUnblanacedQuotes01);
+    UtRegisterTest("SigParseTestUnbalancedQuotes01", SigParseTestUnbalancedQuotes01);
 
     UtRegisterTest("SigParseTestContentGtDsize01",
             SigParseTestContentGtDsize01);
