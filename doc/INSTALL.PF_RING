@@ -130,7 +130,7 @@ cp suricata.yaml /etc/suricata/
 cp classification.config /etc/suricata/
 mkdir /var/log/suricata
 
-#Setup options for when we intialize the module (here is the output from modinfo)
+#Setup options for when we initialize the module (here is the output from modinfo)
 #parm:           num_slots:Number of ring slots (uint)
 #parm:           transparent_mode:0=standard Linux, 1=direct2pfring+transparent, 2=direct2pfring+non transparentFor 1 and 2 you need to use a PF_RING aware driver (uint)
 #parm:           enable_tx_capture:Set to 1 to capture outgoing packets (uint)
