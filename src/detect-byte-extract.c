@@ -73,7 +73,7 @@
 #define STRING_MAX_BYTES_TO_EXTRACT_FOR_OCT 23
 #define STRING_MAX_BYTES_TO_EXTRACT_FOR_DEC 20
 #define STRING_MAX_BYTES_TO_EXTRACT_FOR_HEX 14
-/* the max no of bytes that can be extraced in non-string mode */
+/* the max no of bytes that can be extracted in non-string mode */
 #define NO_STRING_MAX_BYTES_TO_EXTRACT 8
 
 #define PARSE_REGEX "^"                                                  \
