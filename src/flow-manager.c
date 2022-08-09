@@ -80,7 +80,7 @@ extern int run_mode;
 /** queue to pass flows to cleanup/log thread(s) */
 FlowQueue flow_recycle_q;
 
-/* multi flow mananger support */
+/* multi flow manager support */
 static uint32_t flowmgr_number = 1;
 /* atomic counter for flow managers, to assign instance id */
 SC_ATOMIC_DECLARE(uint32_t, flowmgr_cnt);
