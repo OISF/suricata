@@ -104,7 +104,7 @@ static int DetectFtpbounceMatchArgs(
     /* PrintRawDataFp(stdout, payload, payload_len); */
 
     if (payload_len < 7) {
-        /* we need at least a differet ip address
+        /* we need at least a different ip address
          * in the format 1,2,3,4,x,y where x,y is the port
          * in two byte representation so let's look at
          * least for the IP octets in comma separated */
