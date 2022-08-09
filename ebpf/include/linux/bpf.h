@@ -2755,7 +2755,7 @@ struct bpf_btf_info {
 
 /* User bpf_sock_addr struct to access socket fields and sockaddr struct passed
  * by user and intended to be used by socket (e.g. to bind to, depends on
- * attach attach type).
+ * attach type).
  */
 struct bpf_sock_addr {
 	__u32 user_family;	/* Allows 4-byte read, but no write. */
