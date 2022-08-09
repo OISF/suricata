@@ -339,7 +339,7 @@ sub printhelp {
 
         If an error is encountered a file named <fuzzedfile>ERR.txt will be created in the log dir (current dir in this example) that will contain output from stderr,stdout, and gdb.
 
-        Take a look at the opts make it work for you environtment and from the OISF QA team thanks for helping us make our meerkat fuzzier! ;-)\n";
+        Take a look at the opts make it work for you environment and from the OISF QA team thanks for helping us make our meerkat fuzzier! ;-)\n";
         exit;
 }
 
