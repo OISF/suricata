@@ -149,7 +149,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
             }
 
             /* Get the window size if it's a valid value (in packets, we
-             * should alert if this doesn't happend from decode) */
+             * should alert if this doesn't happen from decode) */
             if (StringParseUint16(&wd->size, 10, 0, copy_str) < 0) {
                 goto error;
             }
