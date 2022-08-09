@@ -333,7 +333,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
     }
 
-    /* If a Signature file is specified from commandline, parse it too */
+    /* If a Signature file is specified from command-line, parse it too */
     if (sig_file != NULL) {
         ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
 

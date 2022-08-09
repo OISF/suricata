@@ -679,7 +679,7 @@ Feature #2222: Batch submission of PCAPs over the socket
 Feature #2253: Log rule metadata in alert event
 Feature #2285: modify memcaps over unix socket
 Feature #2295: decoder: support PCAP LINKTYPE_IPV4
-Feature #2299: pcap: read directory with pcaps from the commandline
+Feature #2299: pcap: read directory with pcaps from the command-line
 Feature #2303: file-store enhancements (aka file-store v2): deduplication; hash-based naming; json metadata and cleanup tooling
 Feature #2352: eve: add "metadata" field to alert (rework of vars)
 Feature #2382: deprecate: CUDA support
@@ -1581,7 +1581,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - Interactive unix socket mode (#571, #552)
 - IP Reputation: loading and matching (#647)
-- Improved --list-keywords commandline option gives detailed info for supported keyword, including doc link (#435)
+- Improved --list-keywords command-line option gives detailed info for supported keyword, including doc link (#435)
 - Rule analyzer improvement wrt ipv4/ipv6, invalid rules (#494)
 - User-Agent added to file log and filestore meta files (#629)
 - Endace DAG supports live stats and at exit drop stats (#638)

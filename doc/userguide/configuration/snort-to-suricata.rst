@@ -126,7 +126,7 @@ snort.conf
 Suricata
 
 To set the user and group use the --user <username> and --group
-<groupname> commandline options.
+<groupname> command-line options.
 
 Snaplen
 ~~~~~~~
@@ -188,7 +188,7 @@ suricata.yaml
 
   default-log-dir: /var/log/suricata/
 
-This value is overridden by the -l commandline option.
+This value is overridden by the -l command-line option.
 
 Packet acquisition
 ------------------

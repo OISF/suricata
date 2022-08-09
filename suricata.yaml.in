@@ -1748,7 +1748,7 @@ capture:
   #disable-offloading: false
   #
   # disable checksum validation. Same as setting '-k none' on the
-  # commandline.
+  # command-line.
   #checksum-validation: none
 
 # Netmap support

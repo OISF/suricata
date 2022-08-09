@@ -33,7 +33,7 @@ If you want more info about the unittests, regular debug mode can help. This is 
 
     --enable-debug
 
-Then, set the debug level from the commandline::
+Then, set the debug level from the command-line::
 
     SC_LOG_LEVEL=Debug suricata -u
 

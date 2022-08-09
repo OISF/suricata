@@ -1719,9 +1719,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     return TM_ECODE_FAILED;
                 }
                 if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
-                    SCLogError(SC_ERR_LOGDIR_CMDLINE, "The data directory \"%s\""
-                            " supplied at the commandline (-d %s) doesn't "
-                            "exist. Shutting down the engine.", optarg, optarg);
+                    SCLogError(SC_ERR_LOGDIR_CMDLINE,
+                            "The data directory \"%s\""
+                            " supplied at the command-line (-d %s) doesn't "
+                            "exist. Shutting down the engine.",
+                            optarg, optarg);
                     return TM_ECODE_FAILED;
                 }
                 suri->set_datadir = true;
@@ -1814,15 +1816,19 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
             }
             if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
-                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
-                        " supplied at the commandline (-l %s) doesn't "
-                        "exist. Shutting down the engine.", optarg, optarg);
+                SCLogError(SC_ERR_LOGDIR_CMDLINE,
+                        "The logging directory \"%s\""
+                        " supplied at the command-line (-l %s) doesn't "
+                        "exist. Shutting down the engine.",
+                        optarg, optarg);
                 return TM_ECODE_FAILED;
             }
             if (!IsLogDirectoryWritable(optarg)) {
-                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
-                        " supplied at the commandline (-l %s) is not "
-                        "writable. Shutting down the engine.", optarg, optarg);
+                SCLogError(SC_ERR_LOGDIR_CMDLINE,
+                        "The logging directory \"%s\""
+                        " supplied at the command-line (-l %s) is not "
+                        "writable. Shutting down the engine.",
+                        optarg, optarg);
                 return TM_ECODE_FAILED;
             }
             suri->set_logdir = true;
@@ -1973,7 +1979,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         return TM_ECODE_FAILED;
     }
 
-    /* save the runmode from the commandline (if any) */
+    /* save the runmode from the command-line (if any) */
     suri->aux_run_mode = suri->run_mode;
 
     if (list_app_layer_protocols)
