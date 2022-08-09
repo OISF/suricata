@@ -1803,7 +1803,7 @@ Optimization #1041: remove mkinstalldirs from git
 - Much improved file extraction
 - CUDA build fixes (#421)
 - Various FP's reported by Rmkml (#403, #405, #411)
-- IPv6 decoding and detection issues (reported by Michel Sarborde)
+- IPv6 decoding and detection issues (reported by Michel Saborde)
 - PCAP logging crash (#422)
 - Fixed many (potential) issues with the help of the Coverity source code analyzer
 - Fixed several (potential) issues with the help of the cppcheck and clang/scan-build source code analyzers
