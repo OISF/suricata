@@ -315,8 +315,8 @@ sub printhelp {
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
         -v=<(optional) (memcheck|drd|helgrind|callgrind) will run the command through one of the specified valgrind tools.>
-        -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
-        -z=<(optional) regex for excluding certian files from fuzzing but still process them note: the original files will be processed and not removed.>
+        -x=<(optional) regex for excluding certain files incase something blows up but we want to continue fuzzing .>
+        -z=<(optional) regex for excluding certain files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
         -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run.>
         Example usage:
