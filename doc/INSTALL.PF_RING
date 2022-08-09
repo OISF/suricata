@@ -134,7 +134,7 @@ mkdir /var/log/suricata
 #parm:           num_slots:Number of ring slots (uint)
 #parm:           transparent_mode:0=standard Linux, 1=direct2pfring+transparent, 2=direct2pfring+non transparentFor 1 and 2 you need to use a PF_RING aware driver (uint)
 #parm:           enable_tx_capture:Set to 1 to capture outgoing packets (uint)
-#parm:           enable_ip_defrag:Set to 1 to enable IP defragmentation(only rx traffic is defragmentead) (uint)
+#parm:           enable_ip_defrag:Set to 1 to enable IP defragmentation(only rx traffic is defragmented) (uint)
 echo "options pf_ring transparent_mode=0 num_slots=32768 enable_tx_capture=0" > /etc/modprobe.d/pf_ring.conf
 
 #start up suricata with PF_RING support currently these options don't have very much effect with the AutoMode but see src/runmodes.c for more more options.
