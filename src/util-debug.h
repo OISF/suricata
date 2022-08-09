@@ -345,10 +345,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
                                   }                                             \
                               } while(0)
 
-
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that don't return
@@ -364,7 +363,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns an
@@ -382,7 +381,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns an
@@ -400,7 +399,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -418,7 +417,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a var
@@ -436,7 +435,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -455,10 +454,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
                                  return x;                                   \
                               } while(0)
 
-
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a var
@@ -479,7 +477,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -501,7 +499,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
