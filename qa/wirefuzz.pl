@@ -37,7 +37,7 @@
 #Fedora Core 12
 #yum -y install perl-Capture-Tiny perl-Devel-GDB
 #
-#Other debian based versions, try the Ubunutu instructions if this doesn't work try the following.
+#Other debian based versions, try the Ubuntu instructions if this doesn't work try the following.
 #sudo apt-get install dh-make-perl
 #mkdir fuzzmodules && cd fuzzmodules
 #dh-make-perl --cpan Devel-GDB --build
