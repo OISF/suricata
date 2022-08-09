@@ -1937,7 +1937,7 @@ Some of the possible request messages are:
 Examples
 ~~~~~~~~
 
-The two ``pgsql`` events in this example reprensent a rejected ``SSL handshake`` and a following connection request where the authentication method indicated by the backend was ``md5``::
+The two ``pgsql`` events in this example represent a rejected ``SSL handshake`` and a following connection request where the authentication method indicated by the backend was ``md5``::
 
   {
     "timestamp": "2021-11-24T16:56:19.435242+0000",
