@@ -20,7 +20,7 @@
  *
  * \author Kevin Wong <kwong@solananetworks.com>
  *
- * Set up ENIP Commnad and CIP Service rule parsing and entry point for matching
+ * Set up ENIP Command and CIP Service rule parsing and entry point for matching
  */
 
 #include "suricata-common.h"
@@ -291,7 +291,7 @@ static void DetectCipServiceRegisterTests(void)
  */
 
 /**
- * \brief ENIP Commond Detect Prototypes
+ * \brief ENIP Command Detect Prototypes
  */
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectEnipCommandFree(DetectEngineCtx *, void *);
