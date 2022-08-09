@@ -909,7 +909,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             FLOWLOCK_UNLOCK(p->flow);
         }
 
-        /* Now the queues shoul be updated */
+        /* Now the queues should be updated */
         UTHFreePacket(p);
     }
 
