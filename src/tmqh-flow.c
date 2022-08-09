@@ -23,7 +23,7 @@
  *
  * Simple output queue handler that makes sure all packets of the same flow
  * are sent to the same queue. We support different kind of q handlers.  Have
- * a look at "autofp-scheduler" conf to further undertsand the various q
+ * a look at "autofp-scheduler" conf to further understand the various q
  * handlers we provide.
  */
 
