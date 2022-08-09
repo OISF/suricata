@@ -429,7 +429,7 @@ void DetectFlowintFree(DetectEngineCtx *de_ctx, void *tmp)
 
 #ifdef UNITTESTS
 /**
- * \brief This is a helper funtion used for debugging purposes
+ * \brief This is a helper function used for debugging purposes
  */
 static void DetectFlowintPrintData(DetectFlowintData *sfd)
 {
