@@ -1697,7 +1697,7 @@ static void DetectNoFlow(ThreadVars *tv,
                          DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                          Packet *p)
 {
-    /* No need to perform any detection on this packet, if the the given flag is set.*/
+    /* No need to perform any detection on this packet, if the given flag is set.*/
     if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketTestAction(p, ACTION_DROP))) {
         return;
     }

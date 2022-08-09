@@ -75,7 +75,7 @@ Metadata::
               # Include the decoded application layer (ie. http, dns)
               #app-layer: true
 
-              # Log the the current state of the flow record.
+              # Log the current state of the flow record.
               #flow: true
 
               #rule:

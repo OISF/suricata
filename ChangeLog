@@ -395,7 +395,7 @@ Feature #3074: DNS full domain matching within the dns_query buffer
 Feature #3080: Provide a IP pair XDP load balancing
 Feature #3081: Decapsulation of GRE in XDP filter
 Feature #3084: SIP parser, logging and detection
-Feature #3165: New rule keyword: dns.opcode; For matching on the the opcode in the DNS header.
+Feature #3165: New rule keyword: dns.opcode; For matching on the opcode in the DNS header.
 Bug #941: Support multiple stacked compression, compression that specifies the wrong compression type
 Bug #1271: Creating core dump with dropped privileges
 Bug #1656: several silent bypasses at the HTTP application level (chunking, compression, HTTP 0.9...)

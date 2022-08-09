@@ -1765,7 +1765,7 @@ static int DetectAddressMatch(DetectAddress *dd, Address *a)
 #ifdef DEBUG
 /**
  * \brief Prints the address data held by the DetectAddress. If the address
- *        data family is IPv4, we print the the ipv4 address and mask, and
+ *        data family is IPv4, we print the ipv4 address and mask, and
  *        if the address data family is IPv6, we print the ipv6 address and
  *        mask.
  *

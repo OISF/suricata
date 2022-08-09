@@ -393,7 +393,7 @@ static int UpdateCachedTime(int n, time_t time)
 /** \brief Return a formatted string for the provided time.
  *
  * Cache the Month/Day/Year - Hours:Min part of the time string for
- * the current minute. Copy that result into the the return string and
+ * the current minute. Copy that result into the return string and
  * then only print the seconds for each call.
  */
 void CreateTimeString (const struct timeval *ts, char *str, size_t size)

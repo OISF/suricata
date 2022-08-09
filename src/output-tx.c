@@ -326,7 +326,7 @@ next_tx:
         tx_id++;
     }
 
-    /* Update the the last ID that has been logged with all
+    /* Update the last ID that has been logged with all
      * transactions before it. */
     if (logged) {
         SCLogDebug("updating log tx_id %"PRIu64, max_id);

@@ -490,7 +490,7 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
     return;
 }
 
-/** number of packets to keep reserved when calculating the the pending
+/** number of packets to keep reserved when calculating the pending
  *  return packets count. This assumes we need at max 10 packets in one
  *  PacketPoolWaitForN call. The actual number is 9 now, so this has a
  *  bit of margin. */

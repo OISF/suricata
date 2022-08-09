@@ -1221,7 +1221,7 @@ int StatsSetupPrivate(ThreadVars *tv)
  * \brief the private stats store with the public stats store
  *
  * \param pca      Pointer to the StatsPrivateThreadContext
- * \param pctx     Pointer the the tv's StatsPublicThreadContext
+ * \param pctx     Pointer the tv's StatsPublicThreadContext
  *
  * \retval  1 on success
  * \retval -1 on error

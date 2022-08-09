@@ -119,7 +119,7 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
  * \param key_stream Data that has to be wrapped in a SCRadixPrefix instance to
  *                   be processed for insertion/lookup/removal of a node by the
  *                   radix tree
- * \param key_bitlen The bitlen of the the above stream.  For example if the
+ * \param key_bitlen The bitlen of the above stream.  For example if the
  *                   stream holds the ipv4 address(4 bytes), bitlen would be 32
  * \param user       Pointer to the user data that has to be associated with
  *                   this key
@@ -477,7 +477,7 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
  * \brief Adds a key to the Radix tree.  Used internally by the API.
  *
  * \param key_stream Data that has to added to the Radix tree
- * \param key_bitlen The bitlen of the the above stream.  For example if the
+ * \param key_bitlen The bitlen of the above stream.  For example if the
  *                   stream is the string "abcd", the bitlen would be 32.  If
  *                   the stream is an IPV6 address bitlen would be 128
  * \param tree       Pointer to the Radix tree
@@ -1169,7 +1169,7 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
  * \brief Removes a key from the Radix tree
  *
  * \param key_stream Data that has to be removed from the Radix tree
- * \param key_bitlen The bitlen of the the above stream.  For example if the
+ * \param key_bitlen The bitlen of the above stream.  For example if the
  *                   stream holds an IPV4 address(4 bytes), bitlen would be 32
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
@@ -1306,7 +1306,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
  * \brief Removes a key from the Radix tree
  *
  * \param key_stream Data that has to be removed from the Radix tree
- * \param key_bitlen The bitlen of the the above stream.
+ * \param key_bitlen The bitlen of the above stream.
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
  */

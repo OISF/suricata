@@ -50,7 +50,7 @@ typedef struct SCRadixPrefix_ {
 
     /* any user data that has to be associated with this key.  We need a user
      * data field for each netblock value possible since one ip can be associated
-     * with any of the the 32 or 128 netblocks.  Also for non-ips, we store the
+     * with any of the 32 or 128 netblocks.  Also for non-ips, we store the
      * netmask as 255 in SCRadixUserData->netmask */
     SCRadixUserData *user_data;
 } SCRadixPrefix;

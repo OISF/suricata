@@ -180,7 +180,7 @@ error:
 /* Add to the head of the replace-list.
  *
  * The first to add to the replace-list has the highest priority. So,
- * adding the the head of the list results in the newest modifications
+ * adding the head of the list results in the newest modifications
  * of content being applied first, so later changes can over ride
  * earlier changes. Thus the highest priority modifications should be
  * applied last.

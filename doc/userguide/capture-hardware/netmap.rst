@@ -75,7 +75,7 @@ threads for ``igb0`` and 4 capture threads for ``igb1``.
 
 .. warning:: This multi threaded setup only works correctly if the NIC
              has symmetric RSS hashing. If this is not the case, consider
-             using the the 'lb' method below.
+             using the 'lb' method below.
 
 IPS
 ~~~

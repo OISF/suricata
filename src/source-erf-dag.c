@@ -517,7 +517,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Take into account for link type Ethernet ETH frame starts
-     * after ther ERF header + pad.
+     * after the ERF header + pad.
      */
     if (unlikely(PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p)))) {
         TmqhOutputPacketpool(ewtn->tv, p);
