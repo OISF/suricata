@@ -288,7 +288,7 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
         LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
         lua_settable(luastate, -3);
     }
-    /* return 1 since we allways push one table to luastate */
+    /* return 1 since we always push one table to luastate */
     return 1;
 }
 
@@ -318,7 +318,7 @@ static int SMTPGetRcptList(lua_State *luastate)
 
     GetRcptList(luastate, flow);
 
-    /* return 1 since we allways push one table to luastate */
+    /* return 1 since we always push one table to luastate */
     return 1;
 }
 
