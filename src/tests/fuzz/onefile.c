@@ -35,7 +35,7 @@ static int runOneFile(const char *fname)
         return 2;
     }
 
-    //lauch fuzzer
+    //launch fuzzer
     LLVMFuzzerTestOneInput(data, size);
     free(data);
     fclose(fp);
