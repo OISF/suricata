@@ -409,7 +409,7 @@ int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBl
         int r = 0;
         if (c->files) {
             if (data == NULL) {
-                // gap overlaping already known data
+                // gap overlapping already known data
                 r = FileAppendData(c->files, sbcfg, NULL, len - c->toskip);
             } else {
                 r = FileAppendData(c->files, sbcfg, data + c->toskip, len - c->toskip);
