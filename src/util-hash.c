@@ -95,7 +95,7 @@ void HashTableFree(HashTable *ht)
         }
     }
 
-    /* free the arrray */
+    /* free the array */
     if (ht->array != NULL)
         SCFree(ht->array);
 
