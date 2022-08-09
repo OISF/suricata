@@ -406,7 +406,7 @@ static int NFLOGSetnlbufsiz(void *data, unsigned int size)
 /**
  * \brief Recieves packets from a group via libnetfilter_log.
  *
- *  This function recieves packets from a group and passes
+ *  This function receives packets from a group and passes
  *  the packet on to the nflog callback function.
  *
  * \param tv pointer to ThreadVars

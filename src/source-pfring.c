@@ -330,7 +330,7 @@ static int PfringBypassCallback(Packet *p)
 /**
  * \brief Recieves packets from an interface via libpfring.
  *
- *  This function recieves packets from an interface and passes
+ *  This function receives packets from an interface and passes
  *  the packet on to the pfring callback function.
  *
  * \param tv pointer to ThreadVars
