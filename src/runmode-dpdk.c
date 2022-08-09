@@ -991,8 +991,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         rxq_conf.rx_free_thresh = 0;
         rxq_conf.rx_drop_en = 0;
         SCLogPerf("Creating Q %d of P %d using desc RX: %d TX: %d RX hthresh: %d RX pthresh %d "
-                  "wtresh "
-                  "%d free_tresh %d drop_en %d Offloads %lu",
+                  "wthresh "
+                  "%d free_thresh %d drop_en %d Offloads %lu",
                 queue_id, iconf->port_id, iconf->nb_rx_desc, iconf->nb_tx_desc,
                 rxq_conf.rx_thresh.hthresh, rxq_conf.rx_thresh.pthresh, rxq_conf.rx_thresh.wthresh,
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en, rxq_conf.offloads);
