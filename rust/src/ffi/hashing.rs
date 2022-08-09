@@ -135,7 +135,7 @@ pub unsafe extern "C" fn SCSha1HashBuffer(
     return true;
 }
 
-// Start of MD5 C bindins.
+// Start of MD5 C bindings.
 
 pub struct SCMd5(Md5);
 
