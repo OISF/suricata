@@ -2371,7 +2371,7 @@ fi
         CFLAGS_ORIG=$CFLAGS
         CFLAGS="-Werror"
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
-                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [AC_DEFINE([AFLFUZZ_PERSISTENT_MODE], [1], [Enable AFL PERSISTENT_MODE])],
                 [])
         CFLAGS=$CFLAGS_ORIG
         AC_LANG_PUSH(C++)

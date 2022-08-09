@@ -51,9 +51,9 @@ int main(int argc, char **argv)
     if (argc != 2) {
         return 1;
     }
-#ifdef AFLFUZZ_PERSISTANT_MODE
+#ifdef AFLFUZZ_PERSISTENT_MODE
     while (__AFL_LOOP(1000)) {
-#endif /* AFLFUZZ_PERSISTANT_MODE */
+#endif /* AFLFUZZ_PERSISTENT_MODE */
 
         d = opendir(argv[1]);
         if (d == NULL) {
@@ -80,9 +80,9 @@ int main(int argc, char **argv)
             }
             closedir(d);
         }
-#ifdef AFLFUZZ_PERSISTANT_MODE
+#ifdef AFLFUZZ_PERSISTENT_MODE
     }
-#endif /* AFLFUZZ_PERSISTANT_MODE */
+#endif /* AFLFUZZ_PERSISTENT_MODE */
 
     return 0;
 }
