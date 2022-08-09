@@ -661,7 +661,7 @@ static void DNP3ObjectFree(DNP3Object *object)
 }
 
 /**
- * \breif Allocate a DNP3 object.
+ * \brief Allocate a DNP3 object.
  */
 static DNP3Object *DNP3ObjectAlloc(void)
 {
