@@ -733,7 +733,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                 k++;
             }
             /* if we have any non 0 transitions from our previous for search,
-             * store the acii codes as well the corresponding states */
+             * store the ascii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
                 if (state != 0)
@@ -805,7 +805,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                 k++;
             }
             /* if we have any non 0 transitions from our previous for search,
-             * store the acii codes as well the corresponding states */
+             * store the ascii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
                 if (state != 0)
