@@ -18,7 +18,7 @@ Example::
 
     not host 1.2.3.4
 
-Capture filters are specified on the commandline after all other options::
+Capture filters are specified on the command-line after all other options::
 
     suricata -i eth0 -v not host 1.2.3.4
     suricata -i eno1 -c suricata.yaml tcp or udp
