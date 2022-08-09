@@ -204,7 +204,7 @@ static int SMTPGetMimeList(lua_State *luastate)
  * \param flow flow to get state for SMTP
  *
  * \retval 1 if mailfrom field found.
- * Retruns error int and msg pushed to luastate stack if error occurs
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
 static int GetMailFrom(lua_State *luastate, Flow *flow)
@@ -234,7 +234,7 @@ static int GetMailFrom(lua_State *luastate, Flow *flow)
  * \param luastate luastate stack to pop and push attributes for I/O to lua.
  *
  * \retval 1 if mailfrom field found.
- * Retruns error int and msg pushed to luastate stack if error occurs
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
 static int SMTPGetMailFrom(lua_State *luastate)
