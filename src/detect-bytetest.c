@@ -97,7 +97,7 @@ void DetectBytetestRegister (void)
  *
  *  \param det_ctx thread de ctx
  *  \param s signature
- *  \param m sigmatch for this bytettest
+ *  \param m sigmatch for this bytetest
  *  \param payload ptr to the start of the buffer to inspect
  *  \param payload_len length of the payload
  *  \retval 1 match
