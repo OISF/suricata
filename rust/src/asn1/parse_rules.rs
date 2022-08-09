@@ -315,7 +315,7 @@ mod tests {
         "test that we break on invalid format (missing option)")]
     #[test_case("bitstring_overflowabsolute_offset",
         DetectAsn1Data::default() => panics "Error((\"absolute_offset\", Verify))";
-        "test that we break on invalid format (missing seperator)")]
+        "test that we break on invalid format (missing separator)")]
     fn test_asn1_parse_rule(input: &str, expected: DetectAsn1Data) {
         let (rest, res) = asn1_parse_rule(input).unwrap();
 

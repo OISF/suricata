@@ -786,7 +786,7 @@ static int DetectFlowTestParseNocase11 (void)
 }
 
 /**
- * \test DetectFlowTestParse12 is a test for setting an invalid seperator :
+ * \test DetectFlowTestParse12 is a test for setting an invalid separator :
  */
 static int DetectFlowTestParse12 (void)
 {
