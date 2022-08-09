@@ -760,7 +760,7 @@ Feature #2152: Packet and Drop Counters for Napatech
 
 Feature #2138: Create a sample systemd service file.
 Feature #2184: rust: increase minimally supported rustc version to 1.15
-Bug #2169: dns/tcp: reponse traffic leads to 'app_proto_tc: failed'
+Bug #2169: dns/tcp: response traffic leads to 'app_proto_tc: failed'
 Bug #2170: Suricata fails on large BPFs with AF_PACKET
 Bug #2185: rust: build failure if libjansson is missing
 Bug #2186: smb dcerpc segfaults in StubDataParser

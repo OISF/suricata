@@ -6004,7 +6004,7 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
     if (ssn->state > TCP_SYN_SENT && SEQ_GT(ack, stream->next_win)) {
         SCLogDebug("ACK %"PRIu32" is after next_win %"PRIu32, ack, stream->next_win);
         goto invalid;
-    /* a toclient RST as a reponse to SYN, next_win is 0, ack will be isn+1, just like
+    /* a toclient RST as a response to SYN, next_win is 0, ack will be isn+1, just like
      * the syn ack */
     } else if (ssn->state == TCP_SYN_SENT && PKT_IS_TOCLIENT(p) &&
             p->tcph->th_flags & TH_RST &&
