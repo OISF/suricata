@@ -637,7 +637,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
     pd->parse_regex.regex =
             pcre2_compile((PCRE2_SPTR8)re, PCRE2_ZERO_TERMINATED, opts, &en, &eo2, NULL);
-    if (pd->parse_regex.regex == NULL && en == 115) { // reference to non-existent subpattern
+    if (pd->parse_regex.regex == NULL && en == 115) { // reference to nonexistent subpattern
         opts &= ~PCRE2_NO_AUTO_CAPTURE;
         pd->parse_regex.regex =
                 pcre2_compile((PCRE2_SPTR8)re, PCRE2_ZERO_TERMINATED, opts, &en, &eo2, NULL);
