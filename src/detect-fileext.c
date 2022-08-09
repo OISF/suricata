@@ -137,7 +137,7 @@ static int DetectFileextMatch (DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief This function is used to parse fileet
+ * \brief This function is used to parse fileext
  *
  * \param de_ctx Pointer to the detection engine context
  * \param str Pointer to the fileext value string
