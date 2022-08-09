@@ -395,7 +395,7 @@ void TmModuleReceiveAFPRegister (void)
  *
  * AF_PACKET has an IPS mode were interface are peered: packet from
  * on interface are sent the peered interface and the other way. The ::AFPPeer
- * list is maitaining the list of peers. Each ::AFPPeer is storing the needed
+ * list is maintaining the list of peers. Each ::AFPPeer is storing the needed
  * information to be able to send packet on the interface.
  * A element of the list must not be destroyed during the run of Suricata as it
  * is used by ::Packet and other threads.
