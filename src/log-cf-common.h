@@ -22,7 +22,7 @@
  * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
  * \author Paulo Pacheco <fooinha@gmail.com>
  *
- * Common custom loggging format
+ * Common custom logging format
  */
 
 #ifndef __LOG_CF_COMMON_H__
