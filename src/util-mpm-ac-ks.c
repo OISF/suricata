@@ -1177,7 +1177,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
         if (mpm_bitarray[pindex / 8] & (1 << (pindex % 8))) {
             /* Pattern already seen by this MPM. */
             /* NOTE: This is faster then rechecking if it is a case-sensitive match
-             * since we know this pattern has already been seen, but imcrementing
+             * since we know this pattern has already been seen, but incrementing
              * matches here could over report matches. For example if the case-sensitive
              * pattern is "Foo" and the string is "Foo bar foo", matches would be reported
              * as 2, when it should really be 1, since "foo" is not a true match.
