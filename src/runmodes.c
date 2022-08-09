@@ -382,7 +382,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 return NULL;
         }
     } else {
-        /* Add compability with old 'worker' name */
+        /* Add compatibility with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
             SCLogWarning("'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");
