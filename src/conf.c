@@ -460,7 +460,7 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
 
 
 /**
- * \brief Retrieve a configuration value as an boolen.
+ * \brief Retrieve a configuration value as a boolean.
  *
  * \param name Name of configuration parameter to get.
  * \param val Pointer to an int that will be set to 1 for true, or 0
