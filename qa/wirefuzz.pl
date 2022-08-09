@@ -19,7 +19,7 @@
 #02110-1301, USA.
 
 #This script is useful if you want to fuzz and or otherwise try to make suricata explode during decoding/proto parsing using saved pcaps.
-#It is simply a reimplimentation of the technique described here, hence the name:
+#It is simply a reimplementation of the technique described here, hence the name:
 #http://wiki.wireshark.org/FuzzTesting
 #
 #Options for getting thre required perl modules:
