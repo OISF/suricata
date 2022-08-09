@@ -162,7 +162,7 @@ static int StreamTcpTest02(void)
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          SYN packet of the session. The session is setup only if midstream
  *          sessions are allowed to setup.
  *
@@ -236,7 +236,7 @@ end:
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          SYN/ACK packet of the session. The session is setup only if
  *          midstream sessions are allowed to setup.
  *
@@ -303,7 +303,7 @@ end:
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          3WHS packet of the session. The session is setup only if
  *          midstream sessions are allowed to setup.
  *

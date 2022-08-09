@@ -1574,7 +1574,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - Flow engine memory leak fixed by Ludovico Cavedon (#651)
 - Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#664)
-- Flow manager mutex used unintialized, fixed by Ludovico Cavedon (#654)
+- Flow manager mutex used uninitialized, fixed by Ludovico Cavedon (#654)
 - Windows building in CYGWIN fixed (#630)
 
 1.4rc1 2012-11-29
