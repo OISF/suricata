@@ -62,10 +62,11 @@ TODO:
     hostbits:set,bitname,both,120;
  */
 
-#define PARSE_REGEX "^([a-z]+)"          /* Action */                    \
-    "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                     \
-    "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                \
-    "(.+)?"                             /* Any remainding data. */
+#define PARSE_REGEX                                                                                \
+    "^([a-z]+)"                         /* Action */                                               \
+    "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                                                \
+    "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                                           \
+    "(.+)?"                             /* Any remaining data. */
 static DetectParseRegex parse_regex;
 
 static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
