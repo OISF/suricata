@@ -942,7 +942,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
         /* reply but not a command we have stored, fall through */
     } else if (IsReplyToCommand(state, SMTP_COMMAND_STARTTLS)) {
         if (reply_code == SMTP_REPLY_220) {
-            /* we are entering STARRTTLS data mode */
+            /* we are entering STARTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             AppLayerRequestProtocolTLSUpgrade(f);
             if (state->curr_tx) {
