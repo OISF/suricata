@@ -184,7 +184,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
  * within the range of valid function codes.  If function name is
  * passed it will be resolved to its function code.
  *
- * \retval The function code as an integer if successul, -1 on
+ * \retval The function code as an integer if successful, -1 on
  *     failure.
  */
 static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)

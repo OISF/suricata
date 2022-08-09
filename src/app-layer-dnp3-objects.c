@@ -351,7 +351,7 @@ static int DNP3ReadPrefix(
 /**
  * \brief Add an object to a DNP3PointList.
  *
- * \retval 1 if successfull, 0 on failure.
+ * \retval 1 if successful, 0 on failure.
  */
 static int DNP3AddPoint(DNP3PointList *list, void *object, uint32_t point_index,
     uint8_t prefix_code, uint32_t prefix)
