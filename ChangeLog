@@ -1834,7 +1834,7 @@ Optimization #1041: remove mkinstalldirs from git
 - PCRE-JIT is now enabled by default if available (#356)
 - many file inspection and extraction improvements
 - flowbits and flowints are now modified in a post-match action list
-- general performance increasements
+- general performance increments
 - fixed parsing really high sid numbers >2 Billion (#393)
 - fixed ICMPv6 not matching in IP-only sigs (#363)
 
