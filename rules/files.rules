@@ -18,7 +18,7 @@
 #alert http any any -> any any (msg:"FILEMAGIC jpg(1)"; flow:established,to_server; filemagic:"JPEG image data"; filestore; sid:10; rev:1;)
 #alert http any any -> any any (msg:"FILEMAGIC jpg(2)"; flow:established,to_server; filemagic:"JFIF"; filestore; sid:11; rev:1;)
 
-# Unually short file
+# Unusually short file
 #alert http any any -> any any (msg:"FILEMAGIC short"; flow:established,to_server; filemagic:"very short file (no magic)"; filestore; sid:12; rev:1;)
 
 # Simply store all files we encounter, no alerts.
