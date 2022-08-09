@@ -184,7 +184,7 @@ void UtilCpuPrintSummary(void)
 /**
  * Get the current number of ticks from the CPU.
  *
- * \todo We'll have to deal with removig ticks from the extra cpuids inbetween
+ * \todo We'll have to deal with removig ticks from the extra cpuids in between
  *       2 calls.
  */
 uint64_t UtilCpuGetTicks(void)
