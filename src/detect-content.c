@@ -828,7 +828,7 @@ static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 
 /**
- * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
+ * \test DetectContentParseTest01 this is a test to make sure we can deal with escaped colons
  */
 static int DetectContentParseTest01 (void)
 {
@@ -859,7 +859,7 @@ static int DetectContentParseTest01 (void)
 }
 
 /**
- * \test DetectCotentParseTest02 this is a test to make sure we can deal with escaped semi-colons
+ * \test DetectContentParseTest02 this is a test to make sure we can deal with escaped semi-colons
  */
 static int DetectContentParseTest02 (void)
 {
@@ -890,7 +890,7 @@ static int DetectContentParseTest02 (void)
 }
 
 /**
- * \test DetectCotentParseTest03 this is a test to make sure we can deal with escaped double-quotes
+ * \test DetectContentParseTest03 this is a test to make sure we can deal with escaped double-quotes
  */
 static int DetectContentParseTest03 (void)
 {
@@ -921,7 +921,7 @@ static int DetectContentParseTest03 (void)
 }
 
 /**
- * \test DetectCotentParseTest04 this is a test to make sure we can deal with escaped backslashes
+ * \test DetectContentParseTest04 this is a test to make sure we can deal with escaped backslashes
  */
 static int DetectContentParseTest04 (void)
 {
@@ -953,7 +953,7 @@ static int DetectContentParseTest04 (void)
 }
 
 /**
- * \test DetectCotentParseTest05 test illegal escape
+ * \test DetectContentParseTest05 test illegal escape
  */
 static int DetectContentParseTest05 (void)
 {
@@ -978,7 +978,7 @@ static int DetectContentParseTest05 (void)
 }
 
 /**
- * \test DetectCotentParseTest06 test a binary content
+ * \test DetectContentParseTest06 test a binary content
  */
 static int DetectContentParseTest06 (void)
 {
@@ -1010,7 +1010,7 @@ static int DetectContentParseTest06 (void)
 }
 
 /**
- * \test DetectCotentParseTest07 test an empty content
+ * \test DetectContentParseTest07 test an empty content
  */
 static int DetectContentParseTest07 (void)
 {
@@ -1033,7 +1033,7 @@ static int DetectContentParseTest07 (void)
 }
 
 /**
- * \test DetectCotentParseTest08 test an empty content
+ * \test DetectContentParseTest08 test an empty content
  */
 static int DetectContentParseTest08 (void)
 {

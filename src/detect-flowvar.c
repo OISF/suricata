@@ -71,7 +71,7 @@ void DetectFlowvarRegister (void)
 /**
  * \brief this function will SCFree memory associated with DetectFlowvarData
  *
- * \param cd pointer to DetectCotentData
+ * \param cd pointer to DetectContentData
  */
 static void DetectFlowvarDataFree(DetectEngineCtx *de_ctx, void *ptr)
 {
