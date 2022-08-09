@@ -1708,7 +1708,7 @@ profiling:
 # accept the packet if Suricata is not able to keep pace.
 # bypass mark and mask can be used to implement NFQ bypass. If bypass mark is
 # set then the NFQ bypass is activated. Suricata will set the bypass mark/mask
-# on packet of a flow that need to be bypassed. The Nefilter ruleset has to
+# on packet of a flow that need to be bypassed. The Netfilter ruleset has to
 # directly accept all packets of a flow once a packet has been marked.
 nfq:
 #  mode: accept
