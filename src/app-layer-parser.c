@@ -1861,7 +1861,7 @@ typedef struct TestState_ {
 
 /**
  *  \brief  Test parser function to test the memory deallocation of app layer
- *          parser of occurence of an error.
+ *          parser of occurrence of an error.
  */
 static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
         StreamSlice stream_slice, void *local_data)
@@ -1933,7 +1933,7 @@ void AppLayerParserRestoreParserTable(void)
 }
 
 /**
- * \test Test the deallocation of app layer parser memory on occurance of
+ * \test Test the deallocation of app layer parser memory on occurrence of
  *       error in the parsing process.
  */
 static int AppLayerParserTest01(void)
@@ -1978,7 +1978,7 @@ static int AppLayerParserTest01(void)
 }
 
 /**
- * \test Test the deallocation of app layer parser memory on occurance of
+ * \test Test the deallocation of app layer parser memory on occurrence of
  *       error in the parsing process for UDP.
  */
 static int AppLayerParserTest02(void)
