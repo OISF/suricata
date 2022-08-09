@@ -699,7 +699,7 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 
 /**
  * \test UTHMatchPacketsWithResults Match a packet or a array of packets against sigs
- * of a de_ctx, checking that each signature match match X times for certain packets
+ * of a de_ctx, checking that each signature matches X times for certain packets
  *
  * \param de_ctx pointer with the signatures loaded
  * \param p pointer to the array of packets
