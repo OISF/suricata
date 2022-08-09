@@ -458,7 +458,6 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
     return ret;
 }
 
-
 /**
  * \brief Retrieve a configuration value as a boolean.
  *

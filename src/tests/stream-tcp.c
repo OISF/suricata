@@ -526,7 +526,7 @@ static int StreamTcpTest07(void)
 }
 
 /**
- *  \test   Test the working on PAWS. The packet will be accpeted by engine as
+ *  \test   Test the working on PAWS. The packet will be accepted by engine as
  *          the timestamp is valid and it is in window.
  */
 
