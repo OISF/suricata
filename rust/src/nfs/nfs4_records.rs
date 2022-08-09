@@ -1443,7 +1443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nfs4_request_sequenece() {
+    fn test_nfs4_request_sequence() {
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x35, /*opcode*/

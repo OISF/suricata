@@ -924,7 +924,7 @@ void ConfNodePrune(ConfNode *node)
  *
  * \param node the node to check.
  *
- * \return 1 if node is a seuence, otherwise 0.
+ * \return 1 if node is a sequence, otherwise 0.
  */
 int ConfNodeIsSequence(const ConfNode *node)
 {
