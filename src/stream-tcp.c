@@ -1770,7 +1770,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             return -1;
 
         bool reset = true;
-        /* After receiveing the RST in SYN_RECV state and if detection
+        /* After receiving the RST in SYN_RECV state and if detection
            evasion flags has been set, then the following operating
            systems will not closed the connection. As they consider the
            packet as stray packet and not belonging to the current

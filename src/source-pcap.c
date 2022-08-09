@@ -373,7 +373,7 @@ static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
 /**
  * \brief Init function for ReceivePcap.
  *
- * This is a setup function for recieving packets
+ * This is a setup function for receiving packets
  * via libpcap. There are two versions of this function
  * depending on the major version of libpcap used.
  * For versions prior to 1.x we use open_pcap_live,

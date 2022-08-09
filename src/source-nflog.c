@@ -200,7 +200,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
 /**
  * \brief Receives packet from a nflog group via libnetfilter_log
- * This is a setup function for recieving packets via libnetfilter_log.
+ * This is a setup function for receiving packets via libnetfilter_log.
  * \param tv pointer to ThreadVars
  * \param initdata pointer to the group passed from the user
  * \param data pointer gets populated with NFLOGThreadVars

@@ -469,7 +469,7 @@ TmEcode PfringBreakLoop(ThreadVars *tv, void *data)
 /**
  * \brief Init function for RecievePfring.
  *
- * This is a setup function for recieving packets
+ * This is a setup function for receiving packets
  * via libpfring.
  *
  * \param tv pointer to ThreadVars
