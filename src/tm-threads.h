@@ -201,7 +201,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 /** \brief inject packet if THV_CAPTURE_INJECT_PKT is set
  *  Allow caller to supply their own packet
  *
- *  Meant for detect reload process that interupts an sleeping capture thread
+ *  Meant for detect reload process that interrupts an sleeping capture thread
  *  to force a packet through the engine to complete a reload */
 static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, Packet *p)
 {
