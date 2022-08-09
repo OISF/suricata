@@ -120,7 +120,7 @@ static TAILQ_HEAD(, OutputFreeList_) output_free_list =
 
 /**
  * \internal
- * \brief Translate a runmode mode to a printale string.
+ * \brief Translate a runmode mode to a printable string.
  *
  * \param runmode Runmode to be converted into a printable string.
  *
