@@ -251,7 +251,7 @@ static uint16_t TestStreamConfig(
 /**
  * \brief  Updates Napatech packet counters
  *
- * \param tv Pointer to TheardVars structure
+ * \param tv Pointer to ThreadVars structure
  * \param hInfo Handle to Napatech Info Stream.
  * \param hstat_stream Handle to Napatech Statistics stream
  * \param num_streams the number of streams that are currently active
@@ -470,7 +470,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
  * Instantiated on the stats thread. Periodically retrieves
  * statistics from the Napatech card and updates the packet counters
  *
- * \param arg Pointer that is cast into a TheardVars structure
+ * \param arg Pointer that is cast into a ThreadVars structure
  */
 static void *NapatechStatsLoop(void *arg)
 {
