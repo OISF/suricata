@@ -1371,7 +1371,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     const char *filename = NULL;
 
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         filename = ConfNodeLookupChildValue(conf, "filename");
     }
 
@@ -1615,7 +1615,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *ts_format = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         ts_format = ConfNodeLookupChildValue(conf, "ts-format");
     }
     if (ts_format != NULL) {
@@ -1630,7 +1630,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *use_stream_depth = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         use_stream_depth = ConfNodeLookupChildValue(conf, "use-stream-depth");
     }
     if (use_stream_depth != NULL) {
@@ -1644,7 +1644,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *honor_pass_rules = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         honor_pass_rules = ConfNodeLookupChildValue(conf, "honor-pass-rules");
     }
     if (honor_pass_rules != NULL) {
