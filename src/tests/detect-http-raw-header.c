@@ -3012,8 +3012,7 @@ end:
     return result;
 }
 
-/**
- *\test Test that the http_header content matches against a http request
+/*\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
 static int DetectHttpRawHeaderTest06(void)
