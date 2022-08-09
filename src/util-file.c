@@ -42,7 +42,7 @@ extern int g_detect_disabled;
 
 /** \brief mask of file flags we'll not set
  *  This mask is set based on global file settings and
- *  cannot be overriden by detection.
+ *  cannot be overridden by detection.
  */
 static uint16_t g_file_flow_mask = 0;
 

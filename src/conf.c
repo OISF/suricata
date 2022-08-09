@@ -1044,7 +1044,7 @@ static int ConfTestOverrideValue1(void)
 }
 
 /**
- * Test that a final value will not be overrided by a ConfSet.
+ * Test that a final value will not be overridden by a ConfSet.
  */
 static int ConfTestOverrideValue2(void)
 {
