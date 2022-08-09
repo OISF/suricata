@@ -4,7 +4,7 @@ https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Installation_wi
 #Install DKMS
 apt-get install dkms
 
-#We need subversion for checking out the PF_RING code we need flex and bisonfor libpcap
+#We need subversion for checking out the PF_RING code we need flex and bison for libpcap
 apt-get install subversion flex bison
 
 #Install the debs needed for suricata.
