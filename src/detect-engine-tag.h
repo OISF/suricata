@@ -31,7 +31,7 @@
 #include "detect.h"
 #include "detect-tag.h"
 
-/* This limit should be overwriten/predefined at the config file
+/* This limit should be overwritten/predefined at the config file
  * to limit the options to prevent possible DOS situations. We should also
  * create a limit for bytes and a limit for number of packets */
 #define TAG_MAX_LAST_TIME_SEEN 600
