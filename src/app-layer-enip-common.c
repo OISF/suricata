@@ -558,9 +558,8 @@ int DecodeCIPRequestPDU(const uint8_t *input, uint32_t input_len,
     return ret;
 }
 
-
 /**
- * \brief Deocde CIP Request Path
+ * \brief Decode CIP Request Path
  * @param input, input_len data stream
  * @param enip_data stores data from Packet
  * @param offset current point in the packet
