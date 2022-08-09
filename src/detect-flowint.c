@@ -685,7 +685,7 @@ static int DetectFlowintTestParseVar04(void)
 
 /**
  * \test DetectFlowintTestParseVal05 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if not equal to a valid target value
+ *  DetectFlowint correctly for checking if not equal to a valid target value
  */
 static int DetectFlowintTestParseVal05(void)
 {
@@ -742,7 +742,7 @@ static int DetectFlowintTestParseVar05(void)
 
 /**
  * \test DetectFlowintTestParseVal06 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if greater than a valid target value
+ *  DetectFlowint correctly for checking if greater than a valid target value
  */
 static int DetectFlowintTestParseVal06(void)
 {
@@ -799,7 +799,7 @@ static int DetectFlowintTestParseVar06(void)
 
 /**
  * \test DetectFlowintTestParseVal07 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if greater or equal than a valid target value
+ *  DetectFlowint correctly for checking if greater or equal than a valid target value
  */
 static int DetectFlowintTestParseVal07(void)
 {
@@ -856,7 +856,7 @@ static int DetectFlowintTestParseVar07(void)
 
 /**
  * \test DetectFlowintTestParseVal08 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if lower or equal than a valid target value
+ *  DetectFlowint correctly for checking if lower or equal than a valid target value
  */
 static int DetectFlowintTestParseVal08(void)
 {
@@ -913,7 +913,7 @@ static int DetectFlowintTestParseVar08(void)
 
 /**
  * \test DetectFlowintTestParseVal09 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if lower than a valid target value
+ *  DetectFlowint correctly for checking if lower than a valid target value
  */
 static int DetectFlowintTestParseVal09(void)
 {
