@@ -1080,7 +1080,7 @@ static int FlowBitsTestSig07(void)
 }
 
 /**
- * \test FlowBitsTestSig08 is a test toogle flowbits option
+ * \test FlowBitsTestSig08 is a test toggle flowbits option
  *
  *  \retval 1 on success
  *  \retval 0 on failure
