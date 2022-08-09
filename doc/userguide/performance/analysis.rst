@@ -117,7 +117,7 @@ https://en.wikipedia.org/wiki/IEEE_802.1ad) most implementations only add
 0x8100 on each layer. If the first seen layer has the same VLAN tag but the
 inner one has different VLAN tags it will still end up in the same queue in
 **cluster_qm** mode. This was observed with the i40e driver up to 2.8.20 and
-the firmare version up to 7.00, feel free to report if newer versions have
+the firmware version up to 7.00, feel free to report if newer versions have
 fixed this (see https://suricata.io/support/).
 
 
