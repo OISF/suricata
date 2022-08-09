@@ -286,9 +286,9 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
         }
 
         entity = (MimeDecEntity *)mime_state->stack->top->data;
-        int attch_cnt = 0;
+        int attach_cnt = 0;
         int url_cnt = 0;
-        JsonBuilder *js_attch = jb_new_array();
+        JsonBuilder *js_attach = jb_new_array();
         JsonBuilder *js_url = jb_new_array();
         if (entity->url_list != NULL) {
             MimeDecUrl *url;
@@ -307,9 +307,9 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
 
                 char *s = BytesToString((uint8_t *)entity->filename,
                                         (size_t)entity->filename_len);
-                jb_append_string(js_attch, s);
+                jb_append_string(js_attach, s);
                 SCFree(s);
-                attch_cnt += 1;
+                attach_cnt += 1;
             }
             if (entity->url_list != NULL) {
                 MimeDecUrl *url;
@@ -324,11 +324,11 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
                 }
             }
         }
-        if (attch_cnt > 0) {
-            jb_close(js_attch);
-            jb_set_object(sjs, "attachment", js_attch);
+        if (attach_cnt > 0) {
+            jb_close(js_attach);
+            jb_set_object(sjs, "attachment", js_attach);
         }
-        jb_free(js_attch);
+        jb_free(js_attach);
         if (url_cnt > 0) {
             jb_close(js_url);
             jb_set_object(sjs, "url", js_url);
