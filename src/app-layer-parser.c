@@ -158,7 +158,7 @@ struct AppLayerParserState_ {
 
 enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 
-static void AppLayerConfg(void)
+static void AppLayerConfig(void)
 {
     g_applayerparser_error_policy = ExceptionPolicyParse("app-layer.error-policy", true);
 }
@@ -1740,7 +1740,7 @@ void AppLayerParserRegisterProtocolParsers(void)
 {
     SCEnter();
 
-    AppLayerConfg();
+    AppLayerConfig();
 
     RegisterHTPParsers();
     RegisterSSLParsers();
