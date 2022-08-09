@@ -561,7 +561,7 @@ static void AFPPeersListReachedInc(void)
     if ((SC_ATOMIC_ADD(peerslist.reached, 1) + 1) == peerslist.turn) {
         SCLogInfo("All AFP capture threads are running.");
         (void)SC_ATOMIC_SET(peerslist.reached, 0);
-        /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
+        /* Set turn to 0 to skip synchronization when ReceiveAFPLoop is
          * restarted.
          */
         peerslist.turn = 0;
