@@ -54,7 +54,7 @@ uint64_t LuaStateGetTxId(lua_State *luastate);
 
 /** \brief get flow pointer from lua state
  *
- *  \retval f flow poiner or NULL if it was not set
+ *  \retval f flow pointer or NULL if it was not set
  */
 Flow *LuaStateGetFlow(lua_State *luastate);
 
