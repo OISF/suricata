@@ -1945,7 +1945,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - LibHTP updated to 0.2.6
 - Large number of (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
-- Large number of (potential) issues fixed after source code scans with the Clang static analizer.
+- Large number of (potential) issues fixed after source code scans with the Clang static analyzer.
 
 1.0.3 -- 2011-04-13
 
