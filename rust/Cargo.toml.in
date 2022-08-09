@@ -59,6 +59,11 @@ base64 = "~0.13.0"
 
 suricata-derive = { path = "./derive" }
 
+# We don't directly depend on serde, but a dependency is created via
+# sawp-modbus. Pin serde to 1.0.142 as it works on Rust 1.48, where serde
+# 1.0.143 depends on a new Rust for now.
+serde = "=1.0.142"
+
 [dev-dependencies]
 test-case = "~1.1.0"
 hex = "~0.4.3"
