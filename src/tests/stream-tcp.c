@@ -3173,7 +3173,7 @@ static int StreamTcpTest32(void)
     }
 
     if (((TcpSession *)p.flow->protoctx)->state != TCP_ESTABLISHED) {
-        printf("the TCP state should be TCP_ESTABLISEHD\n");
+        printf("the TCP state should be TCP_ESTABLISHED\n");
         goto end;
     }
     StreamTcpSessionClear(p.flow->protoctx);
@@ -3340,7 +3340,7 @@ static int StreamTcpTest34 (void)
         goto end;
 
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED) {
-        printf("Tcp session should have been establisehd\n");
+        printf("Tcp session should have been established\n");
         goto end;
     }
 
@@ -3405,7 +3405,7 @@ static int StreamTcpTest35 (void)
         goto end;
 
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED) {
-        printf("Tcp session should have been establisehd\n");
+        printf("Tcp session should have been established\n");
         goto end;
     }
 
@@ -3475,7 +3475,7 @@ static int StreamTcpTest36(void)
     }
 
     if (((TcpSession *)p.flow->protoctx)->state != TCP_ESTABLISHED) {
-        printf("the TCP state should be TCP_ESTABLISEHD\n");
+        printf("the TCP state should be TCP_ESTABLISHED\n");
         goto end;
     }
 
@@ -3566,7 +3566,7 @@ static int StreamTcpTest37(void)
     }
 
     if (((TcpSession *)p->flow->protoctx)->state != TCP_ESTABLISHED) {
-        printf("the TCP state should be TCP_ESTABLISEHD\n");
+        printf("the TCP state should be TCP_ESTABLISHED\n");
         goto end;
     }
 
