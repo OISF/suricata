@@ -27,7 +27,7 @@
 
 /**
  * \test Test that a signature containing tls.certs is correctly parsed
- *       and that the keyword is registred.
+ *       and that the keyword is registered.
  */
 static int DetectTlsCertsTest01(void)
 {

@@ -78,7 +78,7 @@ typedef struct ThreadVars_ {
     uint8_t tmm_flags;
 
     uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
-                            TmModules resgitered under this thread */
+                            TmModules registered under this thread */
     uint8_t inq_id;
     uint8_t outq_id;
 
