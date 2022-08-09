@@ -553,7 +553,7 @@ typedef struct FlowLookupStruct_ // TODO name
 } FlowLookupStruct;
 
 /** \brief prepare packet for a life with flow
- *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
+ *  Set PKT_WANTS_FLOW flag to indicate workers should do a flow lookup
  *  and calc the hash value to be used in the lookup and autofp flow
  *  balancing. */
 void FlowSetupPacket(Packet *p);
