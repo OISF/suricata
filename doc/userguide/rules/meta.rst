@@ -66,7 +66,7 @@ Example of sid in a signature:
    <gid>` (``gid``).
 
    As Suricata-update currently considers the rule's ``sid`` only (cf. `Bug#5447
-   <https://redmine.openinfosecfoundation.org/issues/5447>`_), it is adviseable
+   <https://redmine.openinfosecfoundation.org/issues/5447>`_), it is advisable
    to opt for a completely unique ``sid`` altogether.
 
 rev (revision)
