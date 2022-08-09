@@ -328,7 +328,7 @@ void DetectEnipCommandRegister(void)
  * \brief This function is used to parse cip_service options passed via enip_command: keyword
  *
  * \param rulestr Pointer to the user provided rulestr options
- * Takes single single numeric value
+ * Takes single numeric value
  *
  * \retval enipcmdd pointer to DetectCipServiceData on success
  * \retval NULL on failure
