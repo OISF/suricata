@@ -1965,7 +1965,7 @@ impl SMBState {
 
         for tx in &mut self.transactions {
             if !tx.request_done {
-                SCLogDebug!("TRUNCING TX {} in TOSERVER direction", tx.id);
+                SCLogDebug!("TRUNCATING TX {} in TOSERVER direction", tx.id);
                 tx.request_done = true;
             }
        }
@@ -1976,7 +1976,7 @@ impl SMBState {
 
         for tx in &mut self.transactions {
             if !tx.response_done {
-                SCLogDebug!("TRUNCING TX {} in TOCLIENT direction", tx.id);
+                SCLogDebug!("TRUNCATING TX {} in TOCLIENT direction", tx.id);
                 tx.response_done = true;
             }
         }
