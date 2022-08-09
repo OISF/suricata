@@ -68,7 +68,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len)
 }
 
 /**
- * \brief Setup a Booyer Moore context.
+ * \brief Setup a Boyer Moore context.
  *
  * \param str pointer to the pattern string
  * \param size length of the string
@@ -87,7 +87,7 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 
     /* Prepare good Suffixes */
     if (PreBmGs(needle, needle_len, new->bmGs) == -1) {
-        FatalError("Fatal error encountered in BooyerMooreCtxInit. Exiting...");
+        FatalError("Fatal error encountered in BoyerMooreCtxInit. Exiting...");
     }
 
 
@@ -95,7 +95,7 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 }
 
 /**
- * \brief Setup a Booyer Moore context for nocase search
+ * \brief Setup a Boyer Moore context for nocase search
  *
  * \param str pointer to the pattern string
  * \param size length of the string
@@ -112,7 +112,7 @@ BmCtx *BoyerMooreNocaseCtxInit(uint8_t *needle, uint16_t needle_len)
 }
 
 /**
- * \brief Free the memory allocated to Booyer Moore context.
+ * \brief Free the memory allocated to Boyer Moore context.
  *
  * \param bmCtx pointer to the Context for the pattern
  */
