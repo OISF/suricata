@@ -336,7 +336,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                     }
                 }
 
-                // server_selected_procotol not logged
+                // server_selected_protocol not logged
 
                 if let Some(width) = client.desktop_physical_width {
                     js.set_uint("physical_width", width as u64)?;

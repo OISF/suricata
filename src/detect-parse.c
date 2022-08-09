@@ -888,7 +888,7 @@ error:
  *                 protocol has to be added.
  * \param protostr Pointer to the character string containing the protocol name.
  *
- * \retval  0 On successfully parsing the protocl sent as the argument.
+ * \retval  0 On successfully parsing the protocol sent as the argument.
  * \retval -1 On failure
  */
 static int SigParseProto(Signature *s, const char *protostr)
