@@ -510,7 +510,7 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
     } else {
         /* data has been recycled before it went into the spare queue */
 
-        /* data is initialized (recylced) but *unlocked* */
+        /* data is initialized (recycled) but *unlocked* */
     }
 
     // setup the data

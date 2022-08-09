@@ -460,7 +460,7 @@ static Host *HostGetNew(Address *a)
     } else {
         /* host has been recycled before it went into the spare queue */
 
-        /* host is initialized (recylced) but *unlocked* */
+        /* host is initialized (recycled) but *unlocked* */
     }
 
     (void) SC_ATOMIC_ADD(host_counter, 1);

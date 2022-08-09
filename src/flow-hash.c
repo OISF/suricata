@@ -630,7 +630,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     } else {
         /* flow has been recycled before it went into the spare queue */
 
-        /* flow is initialized (recylced) but *unlocked* */
+        /* flow is initialized (recycled) but *unlocked* */
     }
 
     FLOWLOCK_WRLOCK(f);

@@ -503,7 +503,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
     } else {
         /* ippair has been recycled before it went into the spare queue */
 
-        /* ippair is initialized (recylced) but *unlocked* */
+        /* ippair is initialized (recycled) but *unlocked* */
     }
 
     (void) SC_ATOMIC_ADD(ippair_counter, 1);

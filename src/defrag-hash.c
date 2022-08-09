@@ -516,7 +516,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
     } else {
         /* tracker has been recycled before it went into the spare queue */
 
-        /* tracker is initialized (recylced) but *unlocked* */
+        /* tracker is initialized (recycled) but *unlocked* */
     }
 
     (void) SC_ATOMIC_ADD(defragtracker_counter, 1);
