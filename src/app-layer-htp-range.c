@@ -464,7 +464,7 @@ static void HttpRangeFileClose(
 }
 
 /**
- *  \note if `f` is non-NULL, the ownership of the file is transfered to the caller.
+ *  \note if `f` is non-NULL, the ownership of the file is transferred to the caller.
  */
 File *HttpRangeClose(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c, uint16_t flags)
 {
