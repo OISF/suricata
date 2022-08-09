@@ -61,7 +61,7 @@ void CoredumpEnable(void)
     dumpable = prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
     if (dumpable == -1) {
         SCLogNotice("Failed to get dumpable state of process, "
-           "core dumps may not be abled: %s", strerror(errno));
+           "core dumps may not be enabled: %s", strerror(errno));
     }
     else if (unlimited || max_dump > 0) {
         /* try to enable core dump for this process */
