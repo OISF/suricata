@@ -1818,7 +1818,7 @@ be found in other capture interfaces. The individual items contain the usual con
 such as `threads`/`copy-mode`/`checksum-checks` settings. Other capture interfaces, such as AF_PACKET, rely on the user that NICs are appropriately configured.
 Configuration through kernel does not apply to applications running under DPDK. The application is solely responsible for the
 initialization of NICs it is using. So, before the start of Suricata, NICs that Suricata uses, must undergo the process of initialization.
-As a result, there are extra extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
+As a result, there are extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
 At the start of the configuration process, all NIC offloads are disabled to prevent any packet modification.
 According to the configuration, checksum validation offload can be enabled to drop invalid packets.
 Other offloads can not be currently enabled.
