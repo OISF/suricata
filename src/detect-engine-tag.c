@@ -534,7 +534,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
 }
 
 /**
- * \brief Removes the entries exceding the max timeout value
+ * \brief Removes the entries exceeding the max timeout value
  *
  * \param tag_ctx Tag context
  * \param ts the current time
