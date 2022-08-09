@@ -2369,7 +2369,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
-    if (!SCClassConfLoadClassficationConfigFile(de_ctx, NULL)) {
+    if (!SCClassConfLoadClassificationConfigFile(de_ctx, NULL)) {
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
             goto error;
     }
