@@ -317,7 +317,7 @@ static thread_local struct tm cached_local_tm[2];
  *
  * To convert a time in seconds into year, month, day, hours, minutes
  * and seconds, call localtime_r(), which uses the current time zone
- * to compute these values. Note, glibc's localtime_r() aquires a lock
+ * to compute these values. Note, glibc's localtime_r() acquires a lock
  * each time it is called, which limits parallelism. To call
  * localtime_r() less often, the values returned are cached for the
  * current and previous minute and then seconds are adjusted to
