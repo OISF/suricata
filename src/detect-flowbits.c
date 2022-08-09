@@ -784,7 +784,7 @@ static int FlowBitsTestParse01(void)
 /**
  * \test FlowBitsTestSig01 is a test for a valid noalert flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -809,7 +809,7 @@ static int FlowBitsTestSig01(void)
 /**
  * \test FlowBitsTestSig02 is a test for a valid isset,set,isnotset,unset,toggle flowbits options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -853,7 +853,7 @@ static int FlowBitsTestSig02(void)
 /**
  * \test FlowBitsTestSig03 is a test for a invalid flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -878,7 +878,7 @@ static int FlowBitsTestSig03(void)
 /**
  * \test FlowBitsTestSig04 is a test check idx value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -906,7 +906,7 @@ static int FlowBitsTestSig04(void)
 /**
  * \test FlowBitsTestSig05 is a test check noalert flag
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -932,7 +932,7 @@ static int FlowBitsTestSig05(void)
 /**
  * \test FlowBitsTestSig06 is a test set flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -1005,7 +1005,7 @@ static int FlowBitsTestSig06(void)
 /**
  * \test FlowBitsTestSig07 is a test unset flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -1080,7 +1080,7 @@ static int FlowBitsTestSig07(void)
 /**
  * \test FlowBitsTestSig08 is a test toogle flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 

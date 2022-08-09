@@ -503,7 +503,7 @@ static int XBitsTestSig01(void)
 /**
  * \test various options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 

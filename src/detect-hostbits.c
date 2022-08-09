@@ -545,7 +545,7 @@ static int HostBitsTestParse01(void)
 /**
  * \test HostBitsTestSig01 is a test for a valid noalert flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -595,7 +595,7 @@ static int HostBitsTestSig01(void)
 /**
  * \test various options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -644,7 +644,7 @@ static int HostBitsTestSig02(void)
 /**
  * \test HostBitsTestSig03 is a test check idx value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
