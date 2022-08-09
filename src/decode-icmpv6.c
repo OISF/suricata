@@ -1141,7 +1141,7 @@ static int ICMPV6EchoRepTest02(void)
     PASS;
 }
 
-/**\test icmpv6 packet decoding and setting up of payload_len and payload buufer
+/**\test icmpv6 packet decoding and setting up of payload_len and payload buffer
  * \retval retval 0 = Error ; 1 = ok
  */
 static int ICMPV6PayloadTest01(void)
