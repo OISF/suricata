@@ -83,7 +83,7 @@ void DetectMetadataHashFree(DetectEngineCtx *de_ctx)
         HashTableFree(de_ctx->metadata_table);
 }
 
-static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *string)
+static const char *DetectMetadataHashAdd(DetectEngineCtx *de_ctx, const char *string)
 {
     const char *hstring = (char *)HashTableLookup(
             de_ctx->metadata_table, (void *)string, (uint16_t)strlen(string));
@@ -205,13 +205,13 @@ static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char
             goto next;
         }
 
-        const char *hkey = DetectMedatataHashAdd(de_ctx, key);
+        const char *hkey = DetectMetadataHashAdd(de_ctx, key);
         if (hkey == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata key");
             continue;
         }
 
-        const char *hval = DetectMedatataHashAdd(de_ctx, val);
+        const char *hval = DetectMetadataHashAdd(de_ctx, val);
         if (hval == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata value");
             goto next;
