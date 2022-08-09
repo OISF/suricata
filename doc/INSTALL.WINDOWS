@@ -106,7 +106,7 @@ the following packages to c:\mingw (use newer versions if you like):
     git clone git://phalanx.openinfosecfoundation.org/oisf.git
     cd oisf
 
-    Because of some weird autools port bug we do the following:
+    Because of some weird autotools port bug we do the following:
     dos2unix.exe libhtp/configure.ac
     dos2unix.exe libhtp/htp.pc.in
     dos2unix.exe libhtp/Makefile.am
