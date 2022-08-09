@@ -40,7 +40,7 @@
  *         uint32_t for state type, so that we can integrate it's status as a
  *         final state or not in the topmost byte.  We are already doing it if
  *         state_count is > 2 ** 16.
- *       - Test case-senstive patterns if they have any ascii chars.  If they
+ *       - Test case-sensitive patterns if they have any ascii chars.  If they
  *         don't treat them as nocase.
  *       - Carry out other optimizations we are working on.  hashes, compression.
  */
