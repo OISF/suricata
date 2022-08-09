@@ -680,7 +680,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
                 return TM_ECODE_OK;
             }
 
-            /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
+            /* PcapLogDumpSegment has written over the PcapLogData variables so need to update */
             pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
             pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
             if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {

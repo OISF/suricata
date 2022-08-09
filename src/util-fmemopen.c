@@ -144,7 +144,7 @@ static int ReadFn(void *handler, char *buf, int size)
  * \param handler pointer to the memfile
  * \param buf buffer to write in the handler
  * \param number of bytes to write
- * \retval count , the number of bytes writen
+ * \retval count , the number of bytes written
  */
 static int WriteFn(void *handler, const char *buf, int size)
 {
