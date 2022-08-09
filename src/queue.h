@@ -220,7 +220,7 @@ struct {								\
  * and used by Suricata.
  *
  * This implementation copied from FreeBSD sys/queue.h with the addition
- * of our _Q_ASSERT macros to satisy scan-build.
+ * of our _Q_ASSERT macros to satisfy scan-build.
  */
 #ifndef TAILQ_HEAD
 
