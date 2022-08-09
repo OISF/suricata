@@ -579,7 +579,7 @@ Example:
   function log (args)
       asked_domain = TlsGetSNI()
       if string.find(asked_domain, "badguys") then
-          -- ok connection to bad guys let's do someting
+          -- ok connection to bad guys let's do something
       end
   end
 
