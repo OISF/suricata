@@ -82,7 +82,7 @@ socket system using x710:
 The commands above can be reviewed in detail in the help or manpages of the 
 ``ethtool``. In brief the sequence makes sure the NIC is reset, the number of 
 RSS queues is set to 16, load balancing is enabled for the NIC, a low entropy 
-toepiltz key is inserted to allow for symmetric hashing, receive offloading is 
+toeplitz key is inserted to allow for symmetric hashing, receive offloading is 
 disabled, the adaptive control is disabled for lowest possible latency and 
 last but not least, the ring rx descriptor size is set to 1024.
 Make sure the RSS hash function is Toeplitz:
