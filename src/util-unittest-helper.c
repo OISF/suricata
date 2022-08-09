@@ -580,7 +580,7 @@ int UTHRemoveSessionFromFlow(Flow *f)
 }
 
 /**
- * \brief UTHGenericTest: function that perfom a generic check taking care of
+ * \brief UTHGenericTest: function that perform a generic check taking care of
  *                      as maximum common unittest elements as possible.
  *                      It will create a detection engine, append an array
  *                      of signatures an check the expected results for each
