@@ -181,7 +181,7 @@ impl RdpState {
             if self.tls_parsing {
                 match parse_tls_plaintext(available) {
                     Ok((remainder, _tls)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                     }
 
@@ -202,7 +202,7 @@ impl RdpState {
                 match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
@@ -274,7 +274,7 @@ impl RdpState {
             if self.tls_parsing {
                 match parse_tls_plaintext(available) {
                     Ok((remainder, tls)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         for message in &tls.msg {
                             match message {
@@ -314,7 +314,7 @@ impl RdpState {
                 match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
