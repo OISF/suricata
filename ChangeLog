@@ -1614,7 +1614,7 @@ Optimization #1041: remove mkinstalldirs from git
 - fixes and improvements to daemon mode (#624)
 - fix drop rules not working correctly when thresholded (#613)
 - fixed a possible FP when a regular and "chopped" fast_pattern were the same (#581)
-- fix a false possitive condition in http_header (#607)
+- fix a false positive condition in http_header (#607)
 - fix inaccuracy in byte_jump keyword when using "from_beginning" option (#627)
 - fixes to rule profiling (#576)
 - cleanups and misc fixes (#379, #395)
@@ -1635,9 +1635,9 @@ Optimization #1041: remove mkinstalldirs from git
 1.3.3 -- 2012-11-01
 
 - fix drop rules not working correctly when thresholded (#615)
-- fix a false possitive condition in http_header (#606)
+- fix a false positive condition in http_header (#606)
 - fix extracted file corruption (#601)
-- fix a false possitive condition with the pcre keyword and relative matching (#588)
+- fix a false positive condition with the pcre keyword and relative matching (#588)
 - fix PF_RING set cluster problem on dma interfaces (#598)
 - improve http handling in low memory conditions (#586, #587)
 - fix FreeBSD inline mode crash (#612)
