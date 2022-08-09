@@ -19,7 +19,7 @@
  * \defgroup sigstate State support
  *
  * State is stored in the ::DetectEngineState structure. This is
- * basically a containter for storage item of type ::DeStateStore.
+ * basically a container for storage item of type ::DeStateStore.
  * They contains an array of ::DeStateStoreItem which store the
  * state of match for an individual signature identified by
  * DeStateStoreItem::sid.
