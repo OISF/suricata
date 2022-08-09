@@ -3,7 +3,7 @@ Bypass Keyword
 
 Suricata has a ``bypass`` keyword that can be used in signatures to exclude traffic from further evaluation.
 
-The ``bypass`` keyword is useful in cases where there is a large flow expected (e.g. Netflix, Spotify, Youtube).
+The ``bypass`` keyword is useful in cases where there is a large flow expected (e.g. Netflix, Spotify, YouTube).
 
 The ``bypass`` keyword is considered a post-match keyword.
 
