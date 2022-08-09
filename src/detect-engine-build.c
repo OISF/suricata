@@ -1553,8 +1553,8 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
     uint32_t groups = 0;
     DetectPort *list;
 
-   /* insert the addresses into the tmplist, where it will
-     * be sorted descending on 'cnt' and on wehther a group
+    /* insert the addresses into the tmplist, where it will
+     * be sorted descending on 'cnt' and on whether a group
      * is whitelisted. */
 
     DetectPort *oldhead = port_list;
