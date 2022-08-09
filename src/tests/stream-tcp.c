@@ -2692,7 +2692,7 @@ static int StreamTcpTest37(void)
     }
 
     if (((TcpSession *)p->flow->protoctx)->state != TCP_ESTABLISHED) {
-        printf("the TCP state should be TCP_ESTABLISEHD\n");
+        printf("the TCP state should be TCP_ESTABLISHED\n");
         goto end;
     }
 
