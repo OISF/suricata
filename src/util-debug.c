@@ -183,7 +183,7 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
 }
 
 /**
- * \brief Output function that logs a character string throught the syslog iface
+ * \brief Output function that logs a character string through the syslog iface
  *
  * \param syslog_log_level Holds the syslog_log_level that the message should be
  *                         logged as
