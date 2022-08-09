@@ -140,7 +140,7 @@ def TestRepoSync(branch):
         return -1
     return 0
 
-def TestGithubSync(branch):
+def TestGitHubSync(branch):
     request = urllib.request.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch + "&per_page=1")
     try:
         page = urllib.request.urlopen(request)
@@ -251,15 +251,15 @@ def WaitForBuildResult(builder, buildid, extension="", builder_name = None):
 
     # check that github branch and OISF master branch are sync
 if not args.local:
-    ret = TestGithubSync(args.branch)
+    ret = TestGitHubSync(args.branch)
     if ret != 0:
         if ret == -2:
-            print("Branch " + args.branch + " is not pushed to Github.")
+            print("Branch " + args.branch + " is not pushed to GitHub.")
             sys.exit(-1)
         if args.norebase:
-            print("Branch " + args.branch + " is not in sync with corresponding Github branch. Continuing due to --norebase option.")
+            print("Branch " + args.branch + " is not in sync with corresponding GitHub branch. Continuing due to --norebase option.")
         else:
-            print("Branch " + args.branch + " is not in sync with corresponding Github branch. Push may be needed.")
+            print("Branch " + args.branch + " is not in sync with corresponding GitHub branch. Push may be needed.")
             sys.exit(-1)
     if TestRepoSync(args.branch) != 0:
         if args.norebase:
