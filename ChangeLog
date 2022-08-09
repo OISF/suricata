@@ -2,7 +2,7 @@
 
 Feature #2689: http: Normalized HTTP client body buffer 
 Feature #4121: http2: support file inspection API 
-Bug #1275: ET Rule 2003927 not matchin in suricata 
+Bug #1275: ET Rule 2003927 not matching in suricata 
 Bug #3467: Alert metadata not present in EVE output when using Socket Control Pcap Processing Mode 
 Bug #3616: strip_whitespace causes FN 
 Bug #3726: Segmentation fault on rule reload when using libmagic 
