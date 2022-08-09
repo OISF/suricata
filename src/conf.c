@@ -387,7 +387,7 @@ int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
  * configuration value.
  *
  * \retval 1 will be returned if the name is found and was properly
- * converted to an interger, otherwise 0 will be returned.
+ * converted to an integer, otherwise 0 will be returned.
  */
 int ConfGetInt(const char *name, intmax_t *val)
 {
