@@ -342,7 +342,7 @@ Bug #2490: Filehash rule does not fire without filestore keyword
 Bug #2668: make install-full fails if CARGO_TARGET_DIR has spaces in the directory path
 Bug #2669: make install-full fails due to being unable to find libhtp.so.2
 Bug #2955: lua issues on arm (fedora:29)
-Bug #3113: python-yaml dependency is actually ptyhon3-yaml dependency
+Bug #3113: python-yaml dependency is actually python3-yaml dependency
 Bug #3139: enip: compile warnings on gcc-8
 Bug #3143: datasets: don't use list in global config
 Bug #3190: file_data inspection inhibited by additional (non-file_data) content match rule
