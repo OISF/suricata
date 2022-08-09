@@ -1430,7 +1430,7 @@
         [Disable suricata-update]), [enable_suricata_update=$enableval],
       [enable_suricata_update="yes"])
 
-    # Assume suircata-update will not be installed.
+    # Assume suricata-update will not be installed.
     have_suricata_update="no"
 
     if test "$enable_suricata_update" = "yes"; then
