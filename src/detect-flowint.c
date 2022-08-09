@@ -86,7 +86,7 @@ void DetectFlowintRegister(void)
  * \param m pointer to the sigmatch that we will cast into DetectFlowintData
  *
  * \retval 0 no match, when a var doesn't exist
- * \retval 1 match, when a var is initialized well, add/substracted, or a true
+ * \retval 1 match, when a var is initialized well, add/subtracted, or a true
  * condition
  */
 int DetectFlowintMatch(DetectEngineThreadCtx *det_ctx,
