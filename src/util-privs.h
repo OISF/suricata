@@ -39,7 +39,7 @@
 #else
 #include <cap-ng.h>
 
-/**Drop the previliges of the given thread tv, based on the thread cap_flags
+/**Drop the privileges of the given thread tv, based on the thread cap_flags
  * which implies the capability requirement of the given thread. Initially all
  * caps are dropped and later, the required caps are set for the given thread
  */

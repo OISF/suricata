@@ -50,7 +50,7 @@ extern int sc_set_caps;
 extern int run_mode;
 
 /**
- * \brief   Drop the previliges of the main thread
+ * \brief   Drop the privileges of the main thread
  */
 void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 {
