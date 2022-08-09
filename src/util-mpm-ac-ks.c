@@ -50,7 +50,7 @@
  *               the alphabet, so that it is constant inside the
  *               function for better optimization.
  *
- * \todo - Do a proper analyis of our existing MPMs and suggest a good
+ * \todo - Do a proper analysis of our existing MPMs and suggest a good
  *         one based on the pattern distribution and the expected
  *         traffic(say http).
 
