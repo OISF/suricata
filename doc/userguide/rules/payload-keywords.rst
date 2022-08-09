@@ -243,7 +243,7 @@ payload for a match, use within.
 rawbytes
 --------
 
-The rawbytes keyword has no effect but is included to be comaptible with
+The rawbytes keyword has no effect but is included to be compatible with
 signatures that use it, for example signatures used with Snort.
 
 isdataat
