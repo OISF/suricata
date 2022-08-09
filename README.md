@@ -36,7 +36,7 @@ For this reason, we have developed a QA process that is quite extensive. A conse
 
 On a high level, the steps are:
 
-1. Github-CI based checks. This runs automatically when a pull request is made.
+1. GitHub-CI based checks. This runs automatically when a pull request is made.
 
 2. Review by devs from the team and community
 
@@ -91,11 +91,11 @@ A: It depends, if it's a major feature or considered a high risk change, it will
 
 __Q: Why was my PR closed?__
 
-A: As documented in the Suricata Github workflow here https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Github_work_flow, we expect a new pull request for every change.
+A: As documented in the Suricata GitHub workflow here https://redmine.openinfosecfoundation.org/projects/suricata/wiki/GitHub_work_flow, we expect a new pull request for every change.
 
 Normally, the team (or community) will give feedback on a pull request after which it is expected to be replaced by an improved PR. So look at the comments. If you disagree with the comments we can still discuss them in the closed PR.
 
-If the PR was closed without comments it's likely due to QA failure. If the Github-CI checks failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
+If the PR was closed without comments it's likely due to QA failure. If the GitHub-CI checks failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
 
 
 __Q: the compiler/code analyser/tool is wrong, what now?__

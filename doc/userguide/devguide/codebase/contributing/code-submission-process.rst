@@ -32,7 +32,7 @@ Information that needs to be part of a commit (if applicable):
 Pull Requests
 ~~~~~~~~~~~~~
 
-A github pull request is actually just a pointer to a branch in your tree. Github provides a review interface that we use.
+A github pull request is actually just a pointer to a branch in your tree. GitHub provides a review interface that we use.
 
 #. A branch can only be used in for an individual PR.
 #. A branch should not be updated after the pull request

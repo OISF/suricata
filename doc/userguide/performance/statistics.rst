@@ -158,4 +158,4 @@ Tools to plot graphs
 Some people made nice tools to plot graphs of the statistics file.
 
 * `ipython and matplotlib script <https://github.com/regit/suri-stats>`_
-* `Monitoring with Zabbix or other <http://christophe.vandeplas.com/2013/11/suricata-monitoring-with-zabbix-or-other.html>`_ and `Code on Github <https://github.com/cvandeplas/suricata_stats>`_
+* `Monitoring with Zabbix or other <http://christophe.vandeplas.com/2013/11/suricata-monitoring-with-zabbix-or-other.html>`_ and `Code on GitHub <https://github.com/cvandeplas/suricata_stats>`_

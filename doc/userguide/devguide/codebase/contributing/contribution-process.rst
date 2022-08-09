@@ -166,7 +166,7 @@ for each pull request. So, when you address the first feedback, you will work in
 "geoip-feature-123-v2" and so on.
 
 For more details check: `Creating a branch to do your changes <https://redmine.
-openinfosecfoundation.org/projects/suricata/wiki/Github_work_flow#Creating-a-
+openinfosecfoundation.org/projects/suricata/wiki/GitHub_work_flow#Creating-a-
 branch-to-do-your-changes>`_
 
 
