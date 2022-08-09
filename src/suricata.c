@@ -2282,19 +2282,19 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             if (SCServiceInstall(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly installed.");
+            SCLogInfo("Suricata service has been successfully installed.");
             return TM_ECODE_DONE;
         case RUNMODE_REMOVE_SERVICE:
             if (SCServiceRemove(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly removed.");
+            SCLogInfo("Suricata service has been successfully removed.");
             return TM_ECODE_DONE;
         case RUNMODE_CHANGE_SERVICE_PARAMS:
             if (SCServiceChangeParams(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+            SCLogInfo("Suricata service startup parameters has been successfully changed.");
             return TM_ECODE_DONE;
 #endif /* OS_WIN32 */
         default:

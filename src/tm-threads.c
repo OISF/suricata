@@ -1199,7 +1199,7 @@ static bool ThreadStillHasPackets(ThreadVars *tv)
  * \param tv A ThreadVars instance corresponding to the thread that has to be
  *           killed.
  *
- * \retval r 1 killed succesfully
+ * \retval r 1 killed successfully
  *           0 not yet ready, needs another look
  */
 static int TmThreadKillThread(ThreadVars *tv)

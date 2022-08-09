@@ -672,7 +672,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], i
  * \param numsigs number of signatures to load from the array
  *                (size of the array)
  *
- * \retval int 0 if we have errors; 1 if all the signatures loaded succesfuly
+ * \retval int 0 if we have errors; 1 if all the signatures loaded successfully
  */
 int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 {
