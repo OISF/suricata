@@ -712,9 +712,9 @@ Bug #2356: coverity issues in new pcap file/directory handling
 Bug #2360: possible deadlock with signal handling
 Bug #2364: rust/dns: logging missing string versions of rtypes and rcodes
 Bug #2365: rust/dns: flooded by 'LogDnsLogger not implemented for Rust DNS'
-Bug #2367: Conf: Multipe NULL-pointer dereferences in HostInitConfig
-Bug #2368: Conf: Multipe NULL-pointer dereferences after ConfGetBool in StreamTcpInitConfig
-Bug #2370: Conf: Multipe NULL-pointer dereferences in PostConfLoadedSetup
+Bug #2367: Conf: Multiple NULL-pointer dereferences in HostInitConfig
+Bug #2368: Conf: Multiple NULL-pointer dereferences after ConfGetBool in StreamTcpInitConfig
+Bug #2370: Conf: Multiple NULL-pointer dereferences in PostConfLoadedSetup
 Bug #2390: mingw linker error with rust
 Bug #2391: libhtp 0.5.26
 Bug #2394: Pcap Directory May Miss Files
