@@ -63,7 +63,7 @@ LogCustomFormat *LogCustomFormatAlloc(void)
 
 /**
  *  \brief Frees memory held by a custom format node
- *  \param LogCustomFormatNode * node - node to relaease
+ *  \param LogCustomFormatNode * node - node to release
  */
 void LogCustomFormatNodeFree(LogCustomFormatNode *node)
 {
@@ -75,7 +75,7 @@ void LogCustomFormatNodeFree(LogCustomFormatNode *node)
 
 /**
  *  \brief Frees memory held by a custom format
- *  \param LogCustomFormat * cf - format to relaease
+ *  \param LogCustomFormat * cf - format to release
  */
 void LogCustomFormatFree(LogCustomFormat *cf)
 {
