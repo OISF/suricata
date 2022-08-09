@@ -22,7 +22,7 @@
  *
  * Ports part of the detection engine.
  *
- * \todo more unittesting
+ * \todo more unit testing
  *
  */
 
