@@ -169,7 +169,7 @@ uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 }
 
 /** \brief Increment effective reputation version after
- *         a rule/reputatio reload is complete. */
+ *         a rule/reputation reload is complete. */
 void SRepReloadComplete(void)
 {
     (void) SC_ATOMIC_ADD(srep_eversion, 1);
