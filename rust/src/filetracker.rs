@@ -226,7 +226,7 @@ impl FileTransferTracker {
                             self.file_is_truncated = true;
                         },
                         _ => {
-                            SCLogDebug!("got error so truncing file");
+                            SCLogDebug!("got error so truncating file");
                             self.file_is_truncated = true;
                         },
                     }
@@ -279,7 +279,7 @@ impl FileTransferTracker {
                                             self.file_is_truncated = true;
                                         },
                                         _ => {
-                                            SCLogDebug!("got error so truncing file");
+                                            SCLogDebug!("got error so truncating file");
                                             self.file_is_truncated = true;
                                         },
                                     }
@@ -319,7 +319,7 @@ impl FileTransferTracker {
                             self.file_is_truncated = true;
                         },
                         _ => {
-                            SCLogDebug!("got error so truncing file");
+                            SCLogDebug!("got error so truncating file");
                             self.file_is_truncated = true;
                         },
                     }
