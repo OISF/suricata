@@ -87,7 +87,7 @@ void DetectUricontentRegister (void)
 /**
  * \brief this function will Free memory associated with DetectContentData
  *
- * \param cd pointer to DetectUricotentData
+ * \param cd pointer to DetectUricontentData
  */
 void DetectUricontentFree(DetectEngineCtx *de_ctx, void *ptr)
 {
@@ -121,18 +121,22 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *con
     const char *legacy = NULL;
     if (ConfGet("legacy.uricontent", &legacy) == 1) {
         if (strcasecmp("disabled", legacy) == 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "uriconent deprecated.  To "
-                       "use a rule with \"uricontent\", either set the "
-                       "option - \"legacy.uricontent\" in the conf to "
-                       "\"enabled\" OR replace uricontent with "
-                       "\'content:%s; http_uri;\'.", contentstr);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "uricontent deprecated.  To "
+                    "use a rule with \"uricontent\", either set the "
+                    "option - \"legacy.uricontent\" in the conf to "
+                    "\"enabled\" OR replace uricontent with "
+                    "\'content:%s; http_uri;\'.",
+                    contentstr);
             goto error;
         } else if (strcasecmp("enabled", legacy) == 0) {
             ;
         } else {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
-                       "for legacy.uriconent - \"%s\".  Valid values are "
-                       "\"enabled\" OR \"disabled\".", legacy);
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "Invalid value found "
+                    "for legacy.uricontent - \"%s\".  Valid values are "
+                    "\"enabled\" OR \"disabled\".",
+                    legacy);
             goto error;
         }
     }
