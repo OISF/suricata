@@ -358,7 +358,7 @@
 
     #Enable support for gcc compile time security options. There is no great way to do detection of valid cflags that I have found
     #AX_CFLAGS_GCC_OPTION don't seem to do a better job than the code below and are a pain because of extra m4 files etc.
-    #These flags seem to be supported on CentOS 5+, Ubuntu 8.04+, and FedoreCore 11+
+    #These flags seem to be supported on CentOS 5+, Ubuntu 8.04+, and FedoraCore 11+
     #Options are taken from https://wiki.ubuntu.com/CompilerFlags
     AC_ARG_ENABLE(gccprotect,
            AS_HELP_STRING([--enable-gccprotect], [Detect and use gcc hardening options]),[enable_gccprotect=$enableval],[enable_gccprotect=no])
