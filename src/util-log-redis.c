@@ -78,7 +78,7 @@ static SCLogRedisContext *SCLogRedisContextAlloc(void)
 static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx);
 #include <hiredis/adapters/libevent.h>
 
-/** \brief SCLogRedisAsyncContextAlloc() - Allocates and initalizes redis context with async
+/** \brief SCLogRedisAsyncContextAlloc() - Allocates and initializes redis context with async
  */
 static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
 {
