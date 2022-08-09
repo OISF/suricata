@@ -488,7 +488,7 @@ end:
     return res;
 }
 
-/** \test Check a signature with gievn urilen */
+/** \test Check a signature with given urilen */
 static int DetectUrilenSigTest01(void)
 {
     int result = 0;
