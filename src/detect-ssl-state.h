@@ -24,8 +24,7 @@
 #ifndef DETECT_SSL_STATE_H
 #define	DETECT_SSL_STATE_H
 
-
-/* we pick these flags flags from the parser */
+/* we pick these flags from the parser */
 #define DETECT_SSL_STATE_CLIENT_HELLO SSL_AL_FLAG_STATE_CLIENT_HELLO
 #define DETECT_SSL_STATE_SERVER_HELLO SSL_AL_FLAG_STATE_SERVER_HELLO
 #define DETECT_SSL_STATE_CLIENT_KEYX  SSL_AL_FLAG_STATE_CLIENT_KEYX
