@@ -81,7 +81,7 @@ SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
 /** atomic int that is used when freeing a flow from the hash. In this
  *  case we walk the hash to find a flow to free. This var records where
  *  we left off in the hash. Without this only the top rows of the hash
- *  are freed. This isn't just about fairness. Under severe presure, the
+ *  are freed. This isn't just about fairness. Under severe pressure, the
  *  hash rows on top would be all freed and the time to find a flow to
  *  free increased with every run. */
 SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
