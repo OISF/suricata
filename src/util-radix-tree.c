@@ -3667,10 +3667,9 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     PASS;
 }
 
-
 /**
  * \test SCRadixTestIPV4NetblockInsertion15 insert a node searching on it.
- *       Should always return true but the purposse of the test is to monitor
+ *       Should always return true but the purpose of the test is to monitor
  *       the memory usage to detect memleaks (there was one on searching)
  */
 static int SCRadixTestIPV4NetblockInsertion25(void)
@@ -3700,7 +3699,7 @@ static int SCRadixTestIPV4NetblockInsertion25(void)
 
 /**
  * \test SCRadixTestIPV4NetblockInsertion26 insert a node searching on it.
- *       Should always return true but the purposse of the test is to monitor
+ *       Should always return true but the purpose of the test is to monitor
  *       the memory usage to detect memleaks (there was one on searching)
  */
 static int SCRadixTestIPV4NetblockInsertion26(void)
