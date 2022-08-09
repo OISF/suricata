@@ -66,7 +66,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto end;
     }
 
-    /* retrive the sm to apply the nocase against */
+    /* retrieve the sm to apply the nocase against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs "

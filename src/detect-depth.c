@@ -67,7 +67,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* retrive the sm to apply the depth against */
+    /* retrieve the sm to apply the depth against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "

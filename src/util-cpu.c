@@ -177,7 +177,7 @@ void UtilCpuPrintSummary(void)
     if (cpus_online > 0)
         SCLogInfo("CPUs/cores online: %"PRIu16, cpus_online);
     if (cpus_online == 0 && cpus_conf == 0)
-        SCLogInfo("Couldn't retireve any information of CPU's, please, send your operating "
+        SCLogInfo("Couldn't retrieve any information of CPU's, please, send your operating "
                   "system info and check util-cpu.{c,h}");
 }
 

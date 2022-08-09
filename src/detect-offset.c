@@ -57,7 +57,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* retrive the sm to apply the offset against */
+    /* retrieve the sm to apply the offset against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
