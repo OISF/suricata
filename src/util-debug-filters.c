@@ -299,7 +299,7 @@ int SCLogMatchFGFilterWL(const char *file, const char *function, int line)
  *        of the FG filters.  If there is a match it rejects the logging
  *        for that messages, else it allows that message to be logged
  *
- * \praram file    File_name from where the log_message originated
+ * \param file    File_name from where the log_message originated
  * \param function Function_name from where the log_message originated
  * \param line     Line number from where the log_message originated
  *
