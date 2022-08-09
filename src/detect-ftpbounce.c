@@ -227,14 +227,14 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
     sm->type = DETECT_FTPBOUNCE;
 
     /* We don't need to allocate any data for ftpbounce here.
-    *
-    * TODO: As a suggestion, maybe we can add a flag in the flow
-    * to set the stream as "bounce detected" for fast Match.
-    * When you do a ftp bounce attack you usually use the same
-    * communication control stream to "setup" various destinations
-    * whithout breaking the connection, so I guess we can make it a bit faster
-    * with a flow flag set lookup in the Match function.
-    */
+     *
+     * TODO: As a suggestion, maybe we can add a flag in the flow
+     * to set the stream as "bounce detected" for fast Match.
+     * When you do a ftp bounce attack you usually use the same
+     * communication control stream to "setup" various destinations
+     * without breaking the connection, so I guess we can make it a bit faster
+     * with a flow flag set lookup in the Match function.
+     */
     sm->ctx = NULL;
 
     SigMatchAppendSMToList(s, sm, g_ftp_request_list_id);
