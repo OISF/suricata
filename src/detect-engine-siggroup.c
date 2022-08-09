@@ -756,7 +756,7 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         if ( !(sgh->init->sig_array[sig / 8] & (1 << (sig % 8))) )
             continue;
 
-        /* If we have reached here, we have an entry for sid in the SigGrouHead.
+        /* If we have reached here, we have an entry for sid in the SigGroupHead.
          * Retrieve the Signature from the detection engine context */
         s = de_ctx->sig_array[sig];
         if (s == NULL)
