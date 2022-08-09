@@ -338,7 +338,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                 goto final;
             }
             /* otherwise, if nonmpm is done jump to final for mpm
-             * mpm ptrs alrady updated */
+             * mpm ptrs already updated */
             if (unlikely(--n_cnt == 0)) {
                 final_ptr = mpm_ptr;
                 final_cnt = m_cnt;
