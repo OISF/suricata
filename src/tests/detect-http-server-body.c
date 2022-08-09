@@ -5918,7 +5918,7 @@ end:
 
 /**
  *\test Test that the http_server_body content matches against a http request
- *      which holds the content. Case insensitve.
+ *      which holds the content. Case insensitive.
  */
 static int DetectHttpServerBodyTest10(void)
 {
@@ -7906,7 +7906,7 @@ end:
 
 /**
  *\test Test that the http_server_body content matches against a http request
- *      which holds the content. Case insensitve.
+ *      which holds the content. Case insensitive.
  */
 static int DetectHttpServerBodyFileDataTest05(void)
 {
