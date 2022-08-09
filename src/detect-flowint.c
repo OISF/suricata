@@ -157,7 +157,7 @@ int DetectFlowintMatch(DetectEngineThreadCtx *det_ctx,
         }
 
         if (sfd->modifier == FLOWINT_MODIFIER_SUB) {
-            SCLogDebug("Substracting %u to %s", targetval, sfd->name);
+            SCLogDebug("Subtracting %u to %s", targetval, sfd->name);
             FlowVarAddIntNoLock(p->flow, sfd->idx, fv->data.fv_int.value -
                            targetval);
             ret = 1;
