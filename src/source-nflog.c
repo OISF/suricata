@@ -530,7 +530,7 @@ TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data)
  * \brief This an Init function for DecodeNFLOG
  *
  * \param tv pointer to ThreadVars
- * \param initdata pointer to initilization data.
+ * \param initdata pointer to initialization data.
  * \param data pointer that gets cast into NFLOGThreadVars
  * \retval TM_ECODE_OK is returned on success
  * \retval TM_ECODE_FAILED is returned on error
