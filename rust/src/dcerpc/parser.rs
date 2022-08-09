@@ -170,7 +170,7 @@ pub fn parse_dcerpc_bindack(i: &[u8]) -> IResult<&[u8], DCERPCBindAck> {
 pub fn parse_bindctx_item(i: &[u8], endianness: Endianness) -> IResult<&[u8], BindCtxItem> {
     let (i, ctxid) = u16(endianness)(i)?;
     let (i, _num_trans_items) = le_u8(i)?;
-    let (i, _) = take(1_usize)(i)?; // Reservid bit
+    let (i, _) = take(1_usize)(i)?; // Reserved bit
     let (i, uuid) = take(16_usize)(i)?;
     let (i, version) = u16(endianness)(i)?;
     let (i, versionminor) = u16(endianness)(i)?;
