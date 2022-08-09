@@ -642,7 +642,7 @@ impl DCERPCState {
             }
             Err(_) => {
                 // Error, probably malformed data.
-                SCLogDebug!("An error occured while parsing DCERPC header");
+                SCLogDebug!("An error occurred while parsing DCERPC header");
                 -2
             }
         }

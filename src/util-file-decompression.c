@@ -66,7 +66,7 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  * \param compress_depth how much compressed data we want to decompress
  *
  * \retval 1 if decompression works
- * \retval 0 an error occured, and event set
+ * \retval 0 an error occurred, and event set
  */
 int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
                          DetectEngineThreadCtx *det_ctx,
