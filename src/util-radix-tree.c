@@ -1729,13 +1729,13 @@ static int SCRadixTestIPV4Insertion03(void)
     /* add a key that already exists in the tree */
     SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.6", &servaddr.sin_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV4ExactMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == NULL);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
         return 0;
@@ -2119,7 +2119,7 @@ static int SCRadixTestIPV6Removal08(void)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
-    /* test for existance */
+    /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
                   &servaddr.sin6_addr) <= 0)
@@ -2169,7 +2169,7 @@ static int SCRadixTestIPV6Removal08(void)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
-    /* test for existance */
+    /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
@@ -2231,7 +2231,7 @@ static int SCRadixTestIPV6Removal08(void)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
-    /* test for existance */
+    /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
@@ -2527,7 +2527,7 @@ static int SCRadixTestIPV4NetblockInsertion09(void)
         return 0;
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 16);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.6", &servaddr.sin_addr) <= 0)
         return 0;
@@ -2638,7 +2638,7 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
 
     SCRadixPrintTree(tree);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.53", &servaddr.sin_addr) <= 0)
         return 0;
@@ -2755,7 +2755,7 @@ static int SCRadixTestIPV4NetblockInsertion11(void)
         return 0;
     node = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 0);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.53", &servaddr.sin_addr) <= 0)
         return 0;
@@ -2919,7 +2919,7 @@ static int SCRadixTestIPV4NetblockInsertion12(void)
         return 0;
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 32);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.53", &servaddr.sin_addr) <= 0)
         return 0;
@@ -3686,7 +3686,7 @@ static int SCRadixTestIPV4NetblockInsertion25(void)
         return 0;
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 16);
 
-    /* test for the existance of a key */
+    /* test for the existence of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.128.53", &servaddr.sin_addr) <= 0)
         return 0;
@@ -3736,8 +3736,8 @@ static int SCRadixTestIPV4NetblockInsertion26(void)
     node = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 7);
     FAIL_IF_NULL(node);
 
-    /* test for the existance of a key */
-    //result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+    /* test for the existence of a key */
+    // result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree) != NULL);
 
     SCRadixReleaseRadixTree(tree);
 

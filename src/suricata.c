@@ -2725,7 +2725,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
-    /* Check for the existance of the default logging directory which we pick
+    /* Check for the existence of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
     suri->log_dir = ConfigGetLogDirectory();
 
