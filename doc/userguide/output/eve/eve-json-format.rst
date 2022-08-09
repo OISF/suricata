@@ -1216,7 +1216,7 @@ The optional "client" field is a sub-object that may contain the following:
 * "capabilities": List of any of the following: "support_errinfo_pdf", "want_32bpp_session", "support_statusinfo_pdu", "strong_asymmetric_keys", "valid_connection_type", "support_monitor_layout_pdu", "support_netchar_autodetect", "support_dynvc_gfx_protocol", "support_dynamic_time_zone", "support_heartbeat_pdu".
 * "id": Client product id string.
 * "connection_hint": Possible values are "modem", "low_broadband", "satellite", "high_broadband", "wan", "lan", "autodetect".
-* "physical_width": Numeric phyical width of display.
+* "physical_width": Numeric physical width of display.
 * "physical_height": Numeric physical height of display.
 * "desktop_orientation": Numeric angle of orientation.
 * "scale_factor": Numeric scale factor of desktop.
