@@ -144,7 +144,7 @@ uint32_t UTHSetIPv4Address(const char *str)
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations (IPV6)
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  * \param src pointer to a string containing the ip source
@@ -230,7 +230,7 @@ error:
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  * \param src pointer to a string containing the ip source
@@ -329,7 +329,7 @@ error:
  * \brief UTHBuildPacket is a wrapper that build packets with default ip
  * and port fields
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
@@ -410,7 +410,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize)
  * \brief UTHBuildPacketSrcDst is a wrapper that build packets specifying IPs
  * and defaulting ports
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
@@ -446,7 +446,7 @@ Packet *UTHBuildPacketIPV6SrcDst(uint8_t *payload, uint16_t payload_len,
  * \brief UTHBuildPacketSrcDstPorts is a wrapper that build packets specifying
  * src and dst ports and defaulting IPs
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
