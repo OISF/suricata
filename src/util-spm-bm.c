@@ -24,7 +24,7 @@
  *
  * Boyer Moore algorithm has a really good performance. It need two arrays
  * of context for each pattern that hold applicable shifts on the text
- * to seach in, based on characters not available in the pattern
+ * to search in, based on characters not available in the pattern
  * and combinations of characters that start a sufix of the pattern.
  * If possible, we should store the context of patterns that we are going
  * to search for multiple times, so we don't spend time on rebuilding them.
