@@ -96,7 +96,7 @@ the following packages to c:\mingw (use newer versions if you like):
 7. Get libpcap
 
     Guide can be found here:
-    - Download Devlopers pack http://www.winpcap.org/devel.htm
+    - Download Developers pack http://www.winpcap.org/devel.htm
     - Download and install a corresponding installer package http://www.winpcap.org/install/default.htm (to have the driver in the system)
     - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
     - Rename libwpcap to libpcap
