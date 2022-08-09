@@ -140,7 +140,7 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 }
 
 /**
- * \brief Function to initialize the AlertSystlogThread and sets the output
+ * \brief Function to initialize the AlertSyslogThread and sets the output
  *        context pointer
  *
  * \param tv            Pointer to the threadvars
@@ -169,7 +169,7 @@ static TmEcode AlertSyslogThreadInit(ThreadVars *t, const void *initdata, void *
 }
 
 /**
- * \brief Function to deinitialize the AlertSystlogThread
+ * \brief Function to deinitialize the AlertSyslogThread
  *
  * \param tv            Pointer to the threadvars
  * \param data          pointer to the AlertSyslogThread to be cleared
