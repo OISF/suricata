@@ -1044,7 +1044,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
  *  detection.
  *
  *  \param stored_flags pointer to stored flags or NULL.
- *         If stored_flags is set it means we're continueing
+ *         If stored_flags is set it means we're continuing
  *         inspection from an earlier run.
  *
  *  \retval bool true sig matched, false didn't match
@@ -1479,7 +1479,7 @@ static void DetectRunTx(ThreadVars *tv,
 
             if (inspect_flags) {
                 /* continue previous inspection */
-                SCLogDebug("%p/%"PRIu64" Continueing sid %u", tx.tx_ptr, tx.tx_id, s->id);
+                SCLogDebug("%p/%" PRIu64 " Continuing sid %u", tx.tx_ptr, tx.tx_id, s->id);
             } else {
                 /* start new inspection */
                 SCLogDebug("%p/%"PRIu64" Start sid %u", tx.tx_ptr, tx.tx_id, s->id);
