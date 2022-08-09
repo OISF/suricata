@@ -933,7 +933,7 @@ int ConfNodeIsSequence(const ConfNode *node)
 
 /**
  * @brief Finds an interface from the list of interfaces.
- * @param ifaces_node_name - name of the node which holds a list of intefaces
+ * @param ifaces_node_name - name of the node which holds a list of interfaces
  * @param iface - interfaces name
  * @return NULL on failure otherwise a valid pointer
  */

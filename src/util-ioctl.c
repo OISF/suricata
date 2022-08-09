@@ -152,7 +152,7 @@ int GetIfaceMaxPacketSize(const char *pcap_dev)
 #ifdef SIOCGIFFLAGS
 /**
  * \brief Get interface flags.
- * \param ifname Inteface name.
+ * \param ifname Interface name.
  * \return Interface flags or -1 on error
  */
 int GetIfaceFlags(const char *ifname)
@@ -188,7 +188,7 @@ int GetIfaceFlags(const char *ifname)
 #ifdef SIOCSIFFLAGS
 /**
  * \brief Set interface flags.
- * \param ifname Inteface name.
+ * \param ifname Interface name.
  * \param flags Flags to set.
  * \return Zero on success.
  */
