@@ -62,7 +62,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
 {
     /* extract state from flow */
     SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    /* check that state exsists */
+    /* check that state exists */
     if(state == NULL) {
         return LuaCallbackError(luastate, "Internal error: no state in flow");
     }
