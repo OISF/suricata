@@ -76,8 +76,8 @@ void DetectTargetRegister(void) {
  *
  * \param targetstr Pointer to the user provided target options
  *
- * \retval targetd pointer to DetectTargetData on success
- * \retval NULL on failure
+ * \retval 0 on Success
+ * \retval -1 on Failure
  */
 static int DetectTargetParse(Signature *s, const char *targetstr)
 {
