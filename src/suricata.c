@@ -199,7 +199,7 @@ volatile sig_atomic_t sigusr2_count = 0;
  */
 SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
-/* Max packets processed simultaniously per thread. */
+/* Max packets processed simultaneously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
