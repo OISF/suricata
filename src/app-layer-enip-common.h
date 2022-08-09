@@ -113,13 +113,13 @@ typedef struct ENIPEncapDataHdr_
 /**
  * ENIP encapsulation address item
  */
-typedef struct ENIPEncapAddresItem_
+typedef struct ENIPEncapAddressItem_
 {
     uint16_t type;
     uint16_t length;
     uint32_t conn_id;
     uint32_t sequence_num;
-} ENIPEncapAddresItem;
+} ENIPEncapAddressItem;
 
 /**
  * ENIP encapsulation data item
@@ -198,7 +198,7 @@ typedef struct ENIPTransaction_
 
     ENIPEncapHdr header;                        /**< encapsulation header */
     ENIPEncapDataHdr encap_data_header;         /**< encapsulation data header */
-    ENIPEncapAddresItem encap_addr_item;        /**< encapsulated address item */
+    ENIPEncapAddressItem encap_addr_item;        /**< encapsulated address item */
     ENIPEncapDataItem encap_data_item;          /**< encapsulated data item */
 
     TAILQ_HEAD(, CIPServiceEntry_) service_list; /**< list for CIP  */
