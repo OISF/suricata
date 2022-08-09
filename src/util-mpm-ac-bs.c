@@ -33,7 +33,7 @@
  *           If you can fit the ruleset with this mpm on your box without hitting
  *           swap, this is the MPM to go for.
  *
- * \todo - Do a proper analyis of our existing MPMs and suggest a good one based
+ * \todo - Do a proper analysis of our existing MPMs and suggest a good one based
  *         on the pattern distribution and the expected traffic(say http).
  *       - Tried out loop unrolling without any perf increase.  Need to dig deeper.
  *       - Irrespective of whether we cross 2 ** 16 states or not,shift to using
