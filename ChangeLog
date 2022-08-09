@@ -104,7 +104,7 @@ Bug #3866: http2: http1 to http2 upgrade support
 Bug #3871: Include acsite.m4 in distribution
 Bug #3872: Fail CROSS_COMPILE check for PCRE JIT EXEC
 Bug #3874: configure: fails to check for netfilter_queue headers on older header packages
-Bug #3879: detasets related memleak
+Bug #3879: datasets related memleak
 Bug #3880: http parsing/alerting - continue
 Bug #3882: Plugin support typo
 Bug #3883: Runmode Single Memory Leak
