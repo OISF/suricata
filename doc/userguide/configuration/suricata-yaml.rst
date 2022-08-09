@@ -1161,7 +1161,7 @@ Suricata inspects traffic in a sliding window manner.
 
 .. image:: suricata-yaml/inline_mode.png
 
-**Example 13     Normal/IDS (reasembly on ACK'D data)**
+**Example 13     Normal/IDS (reassembly on ACK'D data)**
 
 .. image:: suricata-yaml/Normal_ids_ack_d.png
 

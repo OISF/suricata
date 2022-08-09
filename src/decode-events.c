@@ -441,7 +441,7 @@ const struct DecodeEvents_ DEvents[] = {
             ESP_PKT_TOO_SMALL,
     },
 
-    /* Fragmentation reasembly events. */
+    /* Fragmentation reassembly events. */
     {
             "decoder.ipv4.frag_pkt_too_large",
             IPV4_FRAG_PKT_TOO_LARGE,

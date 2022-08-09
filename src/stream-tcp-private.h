@@ -121,7 +121,8 @@ typedef struct TcpStream_ {
                                          This will be used to validate the last_ts, when connection has been idle for
                                          longer time.(RFC 1323)*/
     /* reassembly */
-    uint32_t base_seq;              /**< seq where we are left with reassebly. Matches STREAM_BASE_OFFSET below. */
+    uint32_t base_seq; /**< seq where we are left with reassembly. Matches STREAM_BASE_OFFSET below.
+                        */
 
     uint32_t app_progress_rel;      /**< app-layer progress relative to STREAM_BASE_OFFSET */
     uint32_t raw_progress_rel;      /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
