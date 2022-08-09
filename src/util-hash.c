@@ -23,7 +23,7 @@
  * Chained hash table implementation
  *
  * The 'Free' pointer can be used to have the API free your
- * hashed data. If it's NULL it's the callers responsebility
+ * hashed data. If it's NULL it's the callers responsibility
  */
 
 #include "suricata-common.h"
