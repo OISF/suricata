@@ -370,8 +370,8 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
 #ifdef UNITTESTS
 
-/** \test Not the first but the second occurence of "abc" should be used
-  *       for the 2nd match */
+/** \test Not the first but the second occurrence of "abc" should be used
+ *       for the 2nd match */
 static int PayloadTestSig01 (void)
 {
     uint8_t *buf = (uint8_t *)

@@ -27,7 +27,7 @@
 #include "app-layer-ftp.h"
 
 /** Per keyword data. This is set up by the DetectFtpcommandSetup() function.
- *  Each signature will have an instance of DetectFtpcommandData per occurence
+ *  Each signature will have an instance of DetectFtpcommandData per occurrence
  *  of the keyword.
  *  The structure should be considered static/readonly after initialization.
  */

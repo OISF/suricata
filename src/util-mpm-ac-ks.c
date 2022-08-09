@@ -169,10 +169,9 @@ static void SCACTileGetConfig(void)
 {
 }
 
-
 /**
  * \internal
- * \brief Count the occurences of each character in the pattern and
+ * \brief Count the occurrences of each character in the pattern and
  * accumulate into a histogram. Really only used to detect unused
  * characters, so could just set to 1 instead of counting.
  */

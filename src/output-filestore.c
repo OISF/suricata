@@ -288,7 +288,7 @@ static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
 
     /* File system type errors (open, write, rename) will only be
      * logged once. But this stat will be incremented for every
-     * occurence. */
+     * occurrence. */
     aft->fs_error_counter = StatsRegisterCounter("file_store.fs_errors", t);
 
     *data = (void *)aft;
