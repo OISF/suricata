@@ -743,7 +743,7 @@ pub struct SMBState<> {
 
     pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
 
-    // store partial data records that are transfered in multiple
+    // store partial data records that are transferred in multiple
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 

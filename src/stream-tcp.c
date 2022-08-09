@@ -5507,7 +5507,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
     }
 
     /* RFC 2385 md5 signature header or RFC 5925 TCP AO headerpresent. Since we can't
-     * validate these (requires key that is set/transfered out of band), we can't know
+     * validate these (requires key that is set/transferred out of band), we can't know
      * if the RST will be accepted or rejected by the end host. We accept it, but keep
      * tracking if the sender of it ignores it, which would be a sign of injection. */
     if (p->tcpvars.md5_option_present || p->tcpvars.ao_option_present) {

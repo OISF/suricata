@@ -19,7 +19,7 @@
  *
  * \author Giuseppe Longo <giuseppe@glongo.it>
  *
- * \brief Decompress files transfered via HTTP corresponding to file_data
+ * \brief Decompress files transferred via HTTP corresponding to file_data
  * keyword.
  *
  */
