@@ -2082,7 +2082,7 @@ static int DefragTimeoutTest(void)
 {
     int i;
 
-    /* Setup a small numberr of trackers. */
+    /* Setup a small number of trackers. */
     FAIL_IF_NOT(ConfSet("defrag.trackers", "16"));
 
     DefragInit();
