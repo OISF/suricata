@@ -2745,7 +2745,7 @@ static int StreamTcpTest29(void)
                                            p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -2762,7 +2762,7 @@ static int StreamTcpTest29(void)
                                                   p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -2776,7 +2776,7 @@ static int StreamTcpTest29(void)
     p.tcph->th_sum = 12345;
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -2882,7 +2882,7 @@ static int StreamTcpTest30(void)
     p.tcph->th_sum = 12345;
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -2900,7 +2900,7 @@ static int StreamTcpTest30(void)
                                                   p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -2917,7 +2917,7 @@ static int StreamTcpTest30(void)
                                                   p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -3021,7 +3021,7 @@ static int StreamTcpTest31(void)
     p.tcph->th_sum = 12345;
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -3039,7 +3039,7 @@ static int StreamTcpTest31(void)
                                            p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -3059,7 +3059,7 @@ static int StreamTcpTest31(void)
                                            p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
@@ -3078,7 +3078,7 @@ static int StreamTcpTest31(void)
                                            p.tcpvars.hlen) );
 
     if (StreamTcp(&tv, &p, (void *)&stt, NULL, NULL) != TM_ECODE_OK) {
-        printf("failed in segment reassmebling\n");
+        printf("failed in segment reassembling\n");
         result &= 0;
         goto end;
     }
