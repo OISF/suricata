@@ -499,7 +499,7 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
 /**
  *  \brief Set the max_pending_return_packets value
  *
- *  Set it to the max pending packets value, devided by the number
+ *  Set it to the max pending packets value, divided by the number
  *  of lister threads. Normally, in autofp these are the stream/detect/log
  *  worker threads.
  *
