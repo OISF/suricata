@@ -429,7 +429,7 @@ Bug #2999: AddressSanitizer: heap-buffer-overflow in HTPParseContentRange
 Bug #3000: tftp: missing logs because of broken tx handling
 Bug #3004: SC_ERR_PCAP_DISPATCH with message "error code -2" upon rule reload completion
 Bug #3006: improve rule keyword alproto registration
-Bug #3007: rust: updated libc crate causes depration warnings
+Bug #3007: rust: updated libc crate causes deprecation warnings
 Bug #3009: Fixes warning about size of integers in string formats
 Bug #3051: mingw/msys: compile errors
 Bug #3054: Build failure with --enable-rust-debug
