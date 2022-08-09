@@ -10,7 +10,7 @@ apt-get install subversion flex bison
 #Install the debs needed for suricata.
 apt-get install libpcap-dev libyaml-dev zlib1g-dev libcap-ng-dev libnet1-dev libpcre2-dev
 
-#In the exmple we will build from the GIT repo so we will need some extra packages
+#In the example we will build from the GIT repo so we will need some extra packages
 apt-get install git-core automake autoconf libtool
 
 
