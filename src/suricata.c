@@ -2821,7 +2821,7 @@ int InitGlobal(void) {
 
     SCSetThreadName("Suricata-Main");
 
-    /* Ignore SIGUSR2 as early as possble. We redeclare interest
+    /* Ignore SIGUSR2 as early as possible. We redeclare interest
      * once we're done launching threads. The goal is to either die
      * completely or handle any and all SIGUSR2s correctly.
      */
