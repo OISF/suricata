@@ -2029,7 +2029,7 @@ static int StreamTcpPacketStateSynSent(
         if (!stream_config.async_oneside)
             return 0;
 
-        /* we are in AYNC (one side) mode now. */
+        /* we are in ASYNC (one side) mode now. */
 
         /* one side async means we won't see a SYN/ACK, so we can
          * only check the SYN. */
