@@ -1708,7 +1708,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
         uint16_t port = temp_dp->port;
         if (port == 0 && temp_dp->port2 != 0)
             port++;
-        for ( ; port <= temp_dp->port2; port++) {
+        for (;;) {
             AppLayerProtoDetectInsertNewProbingParser(&alpd_ctx.ctx_pp,
                                                       ipproto,
                                                       port,
@@ -1717,6 +1717,11 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                                       direction,
                                                       ProbingParser1,
                                                       ProbingParser2);
+            if (port == temp_dp->port2) {
+                break;
+            } else {
+                port++;
+            }
         }
         temp_dp = temp_dp->next;
     }
