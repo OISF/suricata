@@ -58,8 +58,8 @@ void SCClassConfDeinit(void);
 #ifdef UNITTESTS
 void SCClassConfRegisterTests(void);
 FILE *SCClassConfGenerateValidDummyClassConfigFD01(void);
-FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void);
-FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void);
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD02(void);
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD03(void);
 #endif
 
 #endif /* __UTIL_CLASSIFICATION_CONFIG_H__ */

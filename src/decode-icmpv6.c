@@ -1556,7 +1556,7 @@ void DecodeICMPV6RegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("ICMPV6CalculateValidChecksumtest01",
                    ICMPV6CalculateValidChecksumtest01);
-    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02",
+    UtRegisterTest("ICMPV6CalculateInvalidChecksumtest02",
                    ICMPV6CalculateInvalidChecksumtest02);
 
     UtRegisterTest("ICMPV6ParamProbTest01 (Valid)", ICMPV6ParamProbTest01);
