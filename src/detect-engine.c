@@ -98,9 +98,9 @@ static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
 static void TenantIdFree(void *d);
-static uint32_t DetectEngineTentantGetIdFromLivedev(const void *ctx, const Packet *p);
-static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p);
-static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p);
+static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet *p);
+static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
+static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
@@ -3017,15 +3017,15 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             SCLogDebug("TENANT_SELECTOR_UNKNOWN");
             break;
         case TENANT_SELECTOR_VLAN:
-            det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
+            det_ctx->TenantGetId = DetectEngineTenantGetIdFromVlanId;
             SCLogDebug("TENANT_SELECTOR_VLAN");
             break;
         case TENANT_SELECTOR_LIVEDEV:
-            det_ctx->TenantGetId = DetectEngineTentantGetIdFromLivedev;
+            det_ctx->TenantGetId = DetectEngineTenantGetIdFromLivedev;
             SCLogDebug("TENANT_SELECTOR_LIVEDEV");
             break;
         case TENANT_SELECTOR_DIRECT:
-            det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
+            det_ctx->TenantGetId = DetectEngineTenantGetIdFromPcap;
             SCLogDebug("TENANT_SELECTOR_DIRECT");
             break;
     }
@@ -3900,7 +3900,7 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappi
             ld->tenant_id = tenant_id;
             ld->tenant_id_set = true;
 
-            if (DetectEngineTentantRegisterLivedev(tenant_id, ld->id) != 0) {
+            if (DetectEngineTenantRegisterLivedev(tenant_id, ld->id) != 0) {
                 goto error;
             }
 
@@ -3956,7 +3956,7 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
                 goto bad_mapping;
             }
 
-            if (DetectEngineTentantRegisterVlanId(tenant_id, vlan_id) != 0) {
+            if (DetectEngineTenantRegisterVlanId(tenant_id, vlan_id) != 0) {
                 goto error;
             }
             SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
@@ -4135,7 +4135,7 @@ error:
     return -1;
 }
 
-static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
+static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p)
 {
     const DetectEngineThreadCtx *det_ctx = ctx;
     uint32_t x = 0;
@@ -4159,7 +4159,7 @@ static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet
     return 0;
 }
 
-static uint32_t DetectEngineTentantGetIdFromLivedev(const void *ctx, const Packet *p)
+static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet *p)
 {
     const DetectEngineThreadCtx *det_ctx = ctx;
     const LiveDevice *ld = p->livedev;
@@ -4171,8 +4171,8 @@ static uint32_t DetectEngineTentantGetIdFromLivedev(const void *ctx, const Packe
     return ld->tenant_id;
 }
 
-static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors selector,
-                                           uint32_t tenant_id, uint32_t traffic_id)
+static int DetectEngineTenantRegisterSelector(
+        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, uint32_t traffic_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
@@ -4212,8 +4212,8 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
     return 0;
 }
 
-static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelectors selector,
-                                           uint32_t tenant_id, uint32_t traffic_id)
+static int DetectEngineTenantUnregisterSelector(
+        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, uint32_t traffic_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
@@ -4248,34 +4248,35 @@ static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelector
     return -1;
 }
 
-int DetectEngineTentantRegisterLivedev(uint32_t tenant_id, int device_id)
+int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id)
 {
-    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_LIVEDEV, tenant_id, (uint32_t)device_id);
+    return DetectEngineTenantRegisterSelector(
+            TENANT_SELECTOR_LIVEDEV, tenant_id, (uint32_t)device_id);
 }
 
-int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
-    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
 }
 
-int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+int DetectEngineTenantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
-    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
 }
 
-int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id)
+int DetectEngineTenantRegisterPcapFile(uint32_t tenant_id)
 {
     SCLogInfo("registering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
-    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
 }
 
-int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id)
+int DetectEngineTenantUnregisterPcapFile(uint32_t tenant_id)
 {
     SCLogInfo("unregistering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
-    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
 }
 
-static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
+static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p)
 {
     return p->pcap_v.tenant_id;
 }

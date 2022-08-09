@@ -125,11 +125,11 @@ int DetectEngineReloadIsIdle(void);
 int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml);
 int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt);
 
-int DetectEngineTentantRegisterLivedev(uint32_t tenant_id, int device_id);
-int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
-int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
-int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
-int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
+int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id);
+int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
+int DetectEngineTenantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
+int DetectEngineTenantRegisterPcapFile(uint32_t tenant_id);
+int DetectEngineTenantUnregisterPcapFile(uint32_t tenant_id);
 
 uint8_t DetectEngineInspectGenericList(DetectEngineCtx *, DetectEngineThreadCtx *,
         const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,

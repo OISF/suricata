@@ -814,7 +814,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
     /* 4 add to system */
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
-        r = DetectEngineTentantRegisterPcapFile(tenant_id);
+        r = DetectEngineTenantRegisterPcapFile(tenant_id);
     } else if (strcmp(htype, "vlan") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
@@ -826,7 +826,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         }
 
         SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTentantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
+        r = DetectEngineTenantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler setup failure"));
@@ -895,7 +895,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
     /* 4 add to system */
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
-        r = DetectEngineTentantUnregisterPcapFile(tenant_id);
+        r = DetectEngineTenantUnregisterPcapFile(tenant_id);
     } else if (strcmp(htype, "vlan") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
@@ -907,7 +907,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         }
 
         SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
+        r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler unregister failure"));
