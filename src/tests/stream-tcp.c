@@ -1962,7 +1962,7 @@ end:
 }
 
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest18(void)
 {
     StreamTcpThread stt;
@@ -2009,7 +2009,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest19(void)
 {
     StreamTcpThread stt;
@@ -2059,7 +2059,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest20(void)
 {
     StreamTcpThread stt;
@@ -2109,7 +2109,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest21(void)
 {
     StreamTcpThread stt;
@@ -2159,7 +2159,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest22(void)
 {
     StreamTcpThread stt;
