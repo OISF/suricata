@@ -454,7 +454,7 @@ Bug #3185: decode/der: crafted input can lead to resource starvation (5.x)
 Bug #3189: NSS Shutdown triggers crashes in test mode (5.x)
 Optimization #879: update configure.ac with autoupdate
 Optimization #1218: BoyerMooreNocase could avoid tolower() call
-Optimization #1220: Boyer Moore SPM pass in ctx instead of indivual bmBc and bmBg
+Optimization #1220: Boyer Moore SPM pass in ctx instead of individual bmBc and bmBg
 Optimization #2602: add keywords to --list-keywords output
 Optimization #2843: suricatact/filestore/prune: check that directory is a filestore directory before removing files
 Optimization #2848: Rule reload when run with -s or -S arguments
