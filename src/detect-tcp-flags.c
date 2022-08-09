@@ -618,7 +618,7 @@ static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 /**
  * \test FlagsTestParse01 is a test for a  valid flags value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FlagsTestParse01 (void)
@@ -633,7 +633,7 @@ static int FlagsTestParse01 (void)
 /**
  * \test FlagsTestParse02 is a test for an invalid flags value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FlagsTestParse02 (void)
@@ -705,7 +705,7 @@ error:
 /**
  * \test FlagsTestParse04 check if ACK bit is set. Must fails.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FlagsTestParse04 (void)
@@ -1141,7 +1141,7 @@ error:
 /**
  * \test FlagsTestParse12 check if no flags are set. Must fails.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FlagsTestParse12 (void)
@@ -1198,7 +1198,7 @@ error:
 /**
  * \test test for a  valid flags value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FlagsTestParse13 (void)

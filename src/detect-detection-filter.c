@@ -280,7 +280,7 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse01 (void)
@@ -298,7 +298,7 @@ static int DetectDetectionFilterTestParse01 (void)
 /**
  * \test DetectDetectionFilterTestParse02 is a test for a invalid detection_filter options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse02 (void)
@@ -316,7 +316,7 @@ static int DetectDetectionFilterTestParse02 (void)
 /**
  * \test DetectDetectionfilterTestParse03 is a test for a valid detection_filter options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse03 (void)
@@ -335,7 +335,7 @@ static int DetectDetectionFilterTestParse03 (void)
 /**
  * \test DetectDetectionFilterTestParse04 is a test for an invalid detection_filter options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse04 (void)
@@ -353,7 +353,7 @@ static int DetectDetectionFilterTestParse04 (void)
 /**
  * \test DetectDetectionFilterTestParse05 is a test for a valid detection_filter options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse05 (void)
@@ -371,7 +371,7 @@ static int DetectDetectionFilterTestParse05 (void)
 /**
  * \test DetectDetectionFilterTestParse06 is a test for an invalid value in detection_filter
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse06 (void)
@@ -388,10 +388,10 @@ static int DetectDetectionFilterTestParse06 (void)
 
 /**
  * \test DetectDetectionFilterTestSig1 is a test for checking the working of detection_filter keyword
- *       by setting up the signature and later testing its working by matching
- *       the received packet against the sig.
+ *       by setting up the signature and later testing its working by matching the received packet
+ *       against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestSig1(void)
@@ -458,10 +458,10 @@ end:
 
 /**
  * \test DetectDetectionFilterTestSig2 is a test for checking the working of detection_filter keyword
- *       by setting up the signature and later testing its working by matching
- *       the received packet against the sig.
+ *       by setting up the signature and later testing its working by matching the received packet
+ *       against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 

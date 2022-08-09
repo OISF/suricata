@@ -213,7 +213,7 @@ static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
 /**
  * \test one valid reference.
  *
- *  \retval 1 on succces.
+ *  \retval 1 on success.
  *  \retval 0 on failure.
  */
 static int DetectReferenceParseTest01(void)
@@ -242,7 +242,7 @@ static int DetectReferenceParseTest01(void)
 /**
  * \test for two valid references.
  *
- *  \retval 1 on succces.
+ *  \retval 1 on success.
  *  \retval 0 on failure.
  */
 static int DetectReferenceParseTest02(void)
@@ -278,7 +278,7 @@ static int DetectReferenceParseTest02(void)
 /**
  * \test parsing: invalid reference.
  *
- *  \retval 1 on succces.
+ *  \retval 1 on success.
  *  \retval 0 on failure.
  */
 static int DetectReferenceParseTest03(void)

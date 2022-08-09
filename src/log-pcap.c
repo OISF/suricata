@@ -355,7 +355,7 @@ static void PcapFileNameFree(PcapFileName *pf)
  * \param t Thread Variable containing  input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  *
- * \retval 0 on succces
+ * \retval 0 on success
  * \retval -1 on failure
  */
 static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
@@ -1211,7 +1211,7 @@ static void PcapLogDataFree(PcapLogData *pl)
  *
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param data PcapLog thread data.
- *  \retval TM_ECODE_OK on succces
+ *  \retval TM_ECODE_OK on success
  *  \retval TM_ECODE_FAILED on failure
  */
 static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)

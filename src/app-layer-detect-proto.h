@@ -105,7 +105,7 @@ int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
  * \brief The first function to be called.  This initializes a global
  *        protocol detection context.
  *
- * \retval 0 On succcess;
+ * \retval 0 On success;
  * \retval -1 On failure.
  */
 int AppLayerProtoDetectSetup(void);
