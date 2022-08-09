@@ -1738,7 +1738,7 @@ static inline void StreamTcp3whsStoreSynApplyToSsn(TcpSession *ssn, const TcpSta
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateSynSent(
@@ -2103,7 +2103,7 @@ static int StreamTcpPacketStateSynSent(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval  0 ok
  *  \retval -1 error
@@ -2524,7 +2524,7 @@ static int StreamTcpPacketStateSynRecv(
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 static int HandleEstablishedPacketToServer(
         ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
@@ -2700,7 +2700,7 @@ static int HandleEstablishedPacketToServer(
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 static int HandleEstablishedPacketToClient(
         ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
@@ -3047,7 +3047,7 @@ static int StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateEstablished(
@@ -3248,7 +3248,7 @@ static int StreamTcpPacketStateEstablished(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval 0 success
  *  \retval -1 something wrong with the packet
@@ -3376,7 +3376,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval 0 success
  *  \retval -1 something wrong with the packet
@@ -3823,7 +3823,7 @@ static int StreamTcpPacketStateFinWait1(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateFinWait2(
@@ -4125,7 +4125,7 @@ static int StreamTcpPacketStateFinWait2(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateClosing(
@@ -4286,7 +4286,7 @@ static int StreamTcpPacketStateClosing(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateCloseWait(
@@ -4585,7 +4585,7 @@ static int StreamTcpPacketStateCloseWait(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateLastAck(
@@ -4707,7 +4707,7 @@ static int StreamTcpPacketStateLastAck(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateTimeWait(
