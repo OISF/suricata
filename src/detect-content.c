@@ -1341,7 +1341,7 @@ static int DetectContentParseTest09(void)
 }
 
 /**
- * \test Test cases where if within specified is < content lenggth we invalidate
+ * \test Test cases where if within specified is < content length we invalidate
  *       the sig.
  */
 static int DetectContentParseTest17(void)
