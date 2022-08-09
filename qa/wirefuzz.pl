@@ -589,7 +589,7 @@ sub process_core_dump {
     my @coredumps = <${coremask}>;
     if (@coredumps eq 1 ) {
         my $corefile = $coredumps[0];
-        print "gdb: core dump found $corefile processesing with";
+        print "gdb: core dump found $corefile processing with";
         if ( $useltsuri eq "yes" ) {
             $gdbbin = $ltsuribin;
         }
