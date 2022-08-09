@@ -2657,7 +2657,7 @@ static int StreamTcpTest28(void)
 
 #if 0
 /**
- *  \test   Test the resetting of the sesison with bad checksum packet and later
+ *  \test   Test the resetting of the session with bad checksum packet and later
  *          send the malicious contents on the session. Engine should drop the
  *          packet with the bad checksum.
  *
