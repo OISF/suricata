@@ -85,7 +85,7 @@ A protocol parser, like modbus, could permit to set a different
 store-depth value and use it rather than ``file-store.stream-depth``.
 
 Using the SHA256 for file names allows for automatic de-duplication of
-extracted files. However, the timestamp of a pre-existing file will be
+extracted files. However, the timestamp of a preexisting file will be
 updated if the same files is extracted again, similar to the `touch`
 command.
 
