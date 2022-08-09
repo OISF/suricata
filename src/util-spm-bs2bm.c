@@ -34,7 +34,7 @@
 /**
  * \brief Array setup function for Bs2Bm of bad characters index (not found at the needle)
  *
- * \param neddle pointer to the pattern we ar searching for
+ * \param needle pointer to the pattern we ar searching for
  * \param needle_len length limit of the needle
  * \param badchars pointer to an empty array of bachars. The array prepared contains
  *                 characters that can't be inside the needle_len. So the skips can be
@@ -56,7 +56,7 @@ void Bs2BmBadchars(const uint8_t *needle, uint16_t needle_len, uint8_t *badchars
 /**
  * \brief Array setup function for Bs2BmNocase of bad characters index (not found at the needle)
  *
- * \param neddle pointer to the pattern we ar searching for
+ * \param needle pointer to the pattern we ar searching for
  * \param needle_len length limit of the needle
  * \param badchars pointer to an empty array of bachars. The array prepared contains
  *                 characters that can't be inside the needle_len. So the skips can be
@@ -76,7 +76,6 @@ void Bs2BmBadcharsNocase(const uint8_t *needle, uint16_t needle_len, uint8_t *ba
     }
 }
 
-
 /**
  * \brief Basic search with a bad characters array. The array badchars contains
  *        flags at character's ascii index that can't be inside the needle. So the skips can be
@@ -84,7 +83,7 @@ void Bs2BmBadcharsNocase(const uint8_t *needle, uint16_t needle_len, uint8_t *ba
  *
  * \param haystack pointer to the buffer to search in
  * \param haystack_len length limit of the buffer
- * \param neddle pointer to the pattern we ar searching for
+ * \param needle pointer to the pattern we ar searching for
  * \param needle_len length limit of the needle
  * \param badchars pointer to an array of bachars prepared by Bs2BmBadchars()
  *
@@ -134,7 +133,7 @@ uint8_t *Bs2Bm(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *ne
  *
  * \param haystack pointer to the buffer to search in
  * \param haystack_len length limit of the buffer
- * \param neddle pointer to the pattern we ar searching for
+ * \param needle pointer to the pattern we ar searching for
  * \param needle_len length limit of the needle
  * \param badchars pointer to an array of bachars prepared by Bs2BmBadchars()
  *
