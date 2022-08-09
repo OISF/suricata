@@ -1564,7 +1564,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - Decoder event matching fixed (#672)
 - Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#665)
-- Add more events to IPv6 extension header anomolies (#678)
+- Add more events to IPv6 extension header anomalies (#678)
 - Fix ICMPv6 payload and checksum calculation (#677, #674)
 - Clean up flow timeout handling (#656)
 - Fix a shutdown bug when using AF_PACKET under high load (#653)
