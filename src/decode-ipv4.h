@@ -182,7 +182,7 @@ void DecodeIPV4RegisterTests(void);
 /** ----- Inline functions ----- */
 
 /**
- * \brief Calculateor validate the checksum for the IP packet
+ * \brief Calculate or validate the checksum for the IP packet
  *
  * \param pkt  Pointer to the start of the IP packet
  * \param hlen Length of the IP header
