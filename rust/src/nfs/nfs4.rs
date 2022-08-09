@@ -275,23 +275,23 @@ impl NFSState {
 
             if let RpcRequestCreds::GssApi(ref creds) = r.creds {
                 if creds.procedure == 0 && creds.service == 2 {
-                    SCLogDebug!("GSS INTEGRITIY: {:?}", creds);
+                    SCLogDebug!("GSS INTEGRITY: {:?}", creds);
                     match parse_rpc_gssapi_integrity(r.prog_data) {
                         Ok((_rem, rec)) => {
-                            SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
+                            SCLogDebug!("GSS INTEGRITY wrapper: {:?}", rec);
                             data = rec.data;
                             // store proc and serv for the reply
                             xidmap.gssapi_proc = creds.procedure;
                             xidmap.gssapi_service = creds.service;
                         }
                         Err(Err::Incomplete(_n)) => {
-                            SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
+                            SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: INCOMPLETE {:?}", _n);
                             self.set_event(NFSEvent::MalformedData);
                             return;
                         }
                         Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                             SCLogDebug!(
-                                "NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}",
+                                "NFSPROC4_COMPOUND/GSS INTEGRITY: Parsing failed: {:?}",
                                 _e
                             );
                             self.set_event(NFSEvent::MalformedData);
@@ -410,19 +410,19 @@ impl NFSState {
             let mut data = r.prog_data;
 
             if xidmap.gssapi_proc == 0 && xidmap.gssapi_service == 2 {
-                SCLogDebug!("GSS INTEGRITIY as set by call: {:?}", xidmap);
+                SCLogDebug!("GSS INTEGRITY as set by call: {:?}", xidmap);
                 match parse_rpc_gssapi_integrity(r.prog_data) {
                     Ok((_rem, rec)) => {
-                        SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
+                        SCLogDebug!("GSS INTEGRITY wrapper: {:?}", rec);
                         data = rec.data;
                     }
                     Err(Err::Incomplete(_n)) => {
-                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
+                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: INCOMPLETE {:?}", _n);
                         self.set_event(NFSEvent::MalformedData);
                         return;
                     }
                     Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
-                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
+                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: Parsing failed: {:?}", _e);
                         self.set_event(NFSEvent::MalformedData);
                         return;
                     }
