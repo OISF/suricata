@@ -561,7 +561,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
 fn http2_parse_headers_block<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
-    //caller garantees o have at least one byte
+    //caller guarantees o have at least one byte
     if input[0] & 0x80 != 0 {
         return http2_parse_headers_block_indexed(input, dyn_headers);
     } else if input[0] & 0x40 != 0 {
