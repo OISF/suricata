@@ -280,7 +280,7 @@ end:
 
 /**
  * \test DetectL3protoTestSig03 is a test for checking the working of l3proto keyword
- *       in conjonction with ip_proto keyword.
+ *       in conjunction with ip_proto keyword.
  */
 
 static int DetectL3protoTestSig3(void)
