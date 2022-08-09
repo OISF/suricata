@@ -431,7 +431,8 @@ function CheckBranch {
             Error "Branch requires formatting"
             Debug "View required changes with clang-format: ${italic}$format_changes${normal}"
             Error "View required changes with: ${italic}$EXEC $command --diff${normal}"
-            Error "Use ${italic}$EXEC rewrite-branch${normal} or ${italic}$EXEC branch${normal} to fix formatting"
+            Error "Use ${italic}./scripts/$EXEC branch${normal} to fix formatting,
+            then add formatting changes to a new commit"
             ExitWith $EXIT_CODE_FORMATTING_REQUIRED
         else
             return $EXIT_CODE_FORMATTING_REQUIRED
