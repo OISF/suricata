@@ -19,45 +19,17 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::ffi::CString;
-use std::str::FromStr;
 
 const BITTORRENT_DHT_PAYLOAD_PREFIX: &[u8] = b"d1:ad2:id20:";
 const BITTORRENT_DHT_PAYLOAD_PREFIX_LEN: u32 = 12;
 
 static mut ALPROTO_BITTORRENT_DHT: AppProto = ALPROTO_UNKNOWN;
 
-#[repr(u32)]
-#[derive(AppLayerEvent)]
+#[derive(AppLayerEvent, Debug, PartialEq)]
 pub enum BitTorrentDHTEvent {
-    MalformedPacket = 0,
-}
-
-impl BitTorrentDHTEvent {
-    pub fn to_cstring(&self) -> &str {
-        match *self {
-            BitTorrentDHTEvent::MalformedPacket => "malformed_packet\0",
-        }
-    }
-
-    pub fn from_id(id: u32) -> Option<BitTorrentDHTEvent> {
-        match id {
-            0 => Some(BitTorrentDHTEvent::MalformedPacket),
-            _ => None,
-        }
-    }
-}
-
-impl FromStr for BitTorrentDHTEvent {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<BitTorrentDHTEvent, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "malformed_packet" => Ok(BitTorrentDHTEvent::MalformedPacket),
-            _ => Err(()),
-        }
-    }
+    MalformedPacket,
 }
 
 pub struct BitTorrentDHTTransaction {
@@ -69,8 +41,6 @@ pub struct BitTorrentDHTTransaction {
     pub transaction_id: String,
     pub client_version: Option<String>,
 
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -84,30 +54,13 @@ impl BitTorrentDHTTransaction {
             error: None,
             transaction_id: String::new(),
             client_version: None,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
-    }
-
-    pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 
     /// Set an event on the transaction
     pub fn set_event(&mut self, event: BitTorrentDHTEvent) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
-    }
-}
-
-impl Drop for BitTorrentDHTTransaction {
-    fn drop(&mut self) {
-        self.free();
+        self.tx_data.set_event(event as u8);
     }
 }
 
@@ -271,14 +224,6 @@ pub unsafe extern "C" fn rs_bittorrent_dht_tx_get_alstate_progress(
         return 1;
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, BitTorrentDHTTransaction);
-    return tx.events;
 }
 
 #[no_mangle]
