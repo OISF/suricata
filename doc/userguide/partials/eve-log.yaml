@@ -158,11 +158,11 @@ outputs:
             # to yes
             #md5: [body, subject]
 
-        # NFS logging. Requires Rust.
+        # NFS logging.
         - nfs
-        # IKE logging. Requires Rust.
+        # IKE logging.
         - ike
-        # BitTorrent DHT logging. Requires Rust.
+        # BitTorrent DHT logging.
         - bittorrent-dht
         - ssh
         - stats:
@@ -170,7 +170,7 @@ outputs:
             threads: no       # per thread stats
             deltas: no        # include delta values
         - dhcp:
-            # DHCP logging requires Rust.
+            # DHCP logging.
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
             # with full detail. When extended mode is off (the
