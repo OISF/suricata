@@ -1420,6 +1420,7 @@ static int SupportedHandshakeType(const uint8_t type)
         case SSLV3_HS_CERTIFICATE_URL:
         case SSLV3_HS_CERTIFICATE_STATUS:
         case SSLV3_HS_NEW_SESSION_TICKET:
+        case SSLV3_HS_SERVER_HELLO_DONE:
             return true;
             break;
 
@@ -1492,6 +1493,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             break;
         case SSLV3_HS_NEW_SESSION_TICKET:
             SCLogDebug("new session ticket");
+            break;
+        case SSLV3_HS_SERVER_HELLO_DONE:
             break;
         default:
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
