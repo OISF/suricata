@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,9 +21,9 @@ use crate::bittorrent_dht::parser::{
 };
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::ffi::CString;
+use std::os::raw::c_char;
 
-const BITTORRENT_DHT_PAYLOAD_PREFIX: &[u8] = b"d1:ad2:id20:";
-const BITTORRENT_DHT_PAYLOAD_PREFIX_LEN: u32 = 12;
+const BITTORRENT_DHT_PAYLOAD_PREFIX: &[u8] = b"d1:ad2:id20:\0";
 
 static mut ALPROTO_BITTORRENT_DHT: AppProto = ALPROTO_UNKNOWN;
 
@@ -127,35 +127,10 @@ impl BitTorrentDHTState {
     }
 }
 
-/// Probe to see if this flow looks like BitTorrent DHT
-fn probe(input: &[u8]) -> bool {
-    // Ensure the flow started with a request from the client which
-    // contained the BitTorrent DHT request payload prefix bytes
-    if input.starts_with(BITTORRENT_DHT_PAYLOAD_PREFIX) {
-        return true;
-    }
-    return false;
-}
-
 // C exports.
 
 export_tx_data_get!(rs_bittorrent_dht_get_tx_data, BitTorrentDHTTransaction);
 export_state_data_get!(rs_bittorrent_dht_get_state_data, BitTorrentDHTState);
-
-/// C entry point for BitTorrent DHT probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_probing_parser(
-    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
-) -> AppProto {
-    // Need more than BITTORRENT_DHT_PAYLOAD_PREFIX_LEN bytes.
-    if input_len > BITTORRENT_DHT_PAYLOAD_PREFIX_LEN && input != std::ptr::null_mut() {
-        let slice = build_slice!(input, input_len as usize);
-        if probe(slice) {
-            return ALPROTO_BITTORRENT_DHT;
-        }
-    }
-    return ALPROTO_UNKNOWN;
-}
 
 #[no_mangle]
 pub extern "C" fn rs_bittorrent_dht_state_new(
@@ -249,13 +224,12 @@ const PARSER_NAME: &[u8] = b"bittorrent-dht\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
-    let default_port = CString::new("[1024:65535]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: IPPROTO_UDP,
-        probe_ts: Some(rs_bittorrent_dht_probing_parser),
-        probe_tc: Some(rs_bittorrent_dht_probing_parser),
+        probe_ts: None,
+        probe_tc: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_bittorrent_dht_state_new,
@@ -291,6 +265,30 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+
+        if AppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_UDP as u8,
+            ALPROTO_BITTORRENT_DHT,
+            BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
+            BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,
+            0,
+            crate::core::Direction::ToServer.into(),
+        ) < 0
+        {
+            SCLogDebug!("Failed to register protocol detection pattern for direction TOSERVER");
+        };
+        if AppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_UDP as u8,
+            ALPROTO_BITTORRENT_DHT,
+            BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
+            BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,
+            0,
+            crate::core::Direction::ToClient.into(),
+        ) < 0
+        {
+            SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");
+        }
+
         SCLogDebug!("Parser registered for bittorrent-dht.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for bittorrent-dht.");
