@@ -382,6 +382,9 @@ extern {
                                                alproto_name: *const c_char, alproto: AppProto,
                                                min_depth: u16, max_depth: u16,
                                                pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
+    pub fn AppLayerProtoDetectPMRegisterPatternCS(ipproto: u8, alproto: AppProto,
+                                                  pattern: *const c_char, depth: u16,
+                                                  offset: u16, direction: u8) -> c_int;
     pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(ipproto: u8, alproto: AppProto,
                                                      pattern: *const c_char, depth: u16,
                                                      offset: u16, direction: u8, ppfn: ProbeFn,
