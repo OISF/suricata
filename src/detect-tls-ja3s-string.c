@@ -59,9 +59,6 @@
 #include "util-unittest-helper.h"
 
 static int DetectTlsJa3SStringSetup(DetectEngineCtx *, Signature *, const char *);
-#ifdef UNITTESTS
-static void DetectTlsJa3SStringRegisterTests(void);
-#endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *f, const uint8_t flow_flags,
@@ -98,9 +95,6 @@ void DetectTlsJa3SStringRegister(void)
             "sticky buffer to match the JA3S string buffer";
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].url = "/rules/ja3-keywords.html#ja3s-string";
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].Setup = DetectTlsJa3SStringSetup;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].RegisterTests = DetectTlsJa3SStringRegisterTests;
-#endif
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_JA3S_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
@@ -177,7 +171,3 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     return buffer;
 }
-
-#ifdef UNITTESTS
-#include "tests/detect-tls-ja3s-string.c"
-#endif
