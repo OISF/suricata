@@ -621,11 +621,6 @@ EXTRA_DIST = \
 	tests/detect-tls-cert-serial.c \
 	tests/detect-tls-cert-subject.c \
 	tests/detect-tls-cert-validity.c \
-	tests/detect-tls-ja3-hash.c \
-	tests/detect-tls-ja3s-hash.c \
-	tests/detect-tls-ja3s-string.c \
-	tests/detect-tls-ja3-string.c \
-	tests/detect-tls-sni.c \
 	tests/detect-tls-version.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-ttl.c \
