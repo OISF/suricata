@@ -1398,13 +1398,6 @@ static uint32_t GetCertsLen(SSLStateConnp *curr_connp, const uint8_t *input,
     return len;
 }
 
-static inline bool
-HaveEntireRecord(const SSLStateConnp *curr_connp, const uint32_t input_len)
-{
-    return (curr_connp->bytes_processed + input_len) >=
-                      (curr_connp->record_length + SSLV3_RECORD_HDR_LEN);
-}
-
 #ifdef DEBUG_VALIDATION
 static inline bool
 RecordAlreadyProcessed(const SSLStateConnp *curr_connp)
