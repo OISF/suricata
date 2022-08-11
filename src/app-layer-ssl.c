@@ -266,16 +266,16 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
         SSLParserHSReset((state)->curr_connp);      \
     } while(0)
 
-void SSLSetEvent(SSLState *ssl_state, uint8_t event)
-{
-    if (ssl_state == NULL) {
-        SCLogDebug("Could not set decoder event: %u", event);
-        return;
-    }
-
-    AppLayerDecoderEventsSetEventRaw(&ssl_state->tx_data.events, event);
-    ssl_state->events++;
-}
+#define SSLSetEvent(ssl_state, event)                                                              \
+    do {                                                                                           \
+        SCLogDebug("setting event %u", (event));                                                   \
+        if ((ssl_state) == NULL) {                                                                 \
+            SCLogDebug("could not set decoder event %u", event);                                   \
+        } else {                                                                                   \
+            AppLayerDecoderEventsSetEventRaw(&(ssl_state)->tx_data.events, (event));               \
+            (ssl_state)->events++;                                                                 \
+        }                                                                                          \
+    } while (0)
 
 static void *SSLGetTx(void *state, uint64_t tx_id)
 {
