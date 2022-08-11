@@ -1650,7 +1650,6 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
 
             SSLParserHSReset(ssl_state->curr_connp);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
             continue;
         }
 
@@ -2411,8 +2410,6 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                 DEBUG_VALIDATE_BUG_ON(retval > (int)record_len);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
-                SSLSetEvent(ssl_state,
-                        TLS_DECODER_EVENT_INVALID_SSL_RECORD);
                 SCLogDebug("SSLv3ParseHandshakeProtocol returned %d", retval);
                 return SSL_DECODER_ERROR(-1);
             }
@@ -2431,9 +2428,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             break;
         }
         default:
-            /* \todo fix the event from invalid rule to unknown rule */
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
             SCLogDebug("unsupported record type");
             return SSL_DECODER_ERROR(-1);
     }
