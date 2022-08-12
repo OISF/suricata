@@ -283,7 +283,7 @@ static void AlertJsonBitTorrentDHT(const Flow *f, const uint64_t tx_id, JsonBuil
         if (tx != NULL) {
             JsonBuilderMark mark = { 0, 0, 0 };
             jb_get_mark(js, &mark);
-            jb_open_object(js, "bittorrent-dht");
+            jb_open_object(js, "bittorrent_dht");
             if (rs_bittorrent_dht_logger_log(tx, js)) {
                 jb_close(js);
             } else {
