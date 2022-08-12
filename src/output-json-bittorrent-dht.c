@@ -61,12 +61,12 @@ static int JsonBitTorrentDHTLogger(ThreadVars *tv, void *thread_data, const Pack
     LogBitTorrentDHTLogThread *thread = thread_data;
 
     JsonBuilder *js = CreateEveHeader(
-            p, LOG_DIR_PACKET, "bittorrent-dht", NULL, thread->bittorrent_dht_log_ctx->eve_ctx);
+            p, LOG_DIR_PACKET, "bittorrent_dht", NULL, thread->bittorrent_dht_log_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(js, "bittorrent-dht");
+    jb_open_object(js, "bittorrent_dht");
     if (!rs_bittorrent_dht_logger_log(tx, js)) {
         goto error;
     }
