@@ -1024,14 +1024,14 @@ Examples:
 
 Ping and response::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "request_type": "ping",
     "request": {
       "id": "abcdefghij0123456789"
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "response": {
       "id": "mnopqrstuvwxyz123456"
@@ -1040,7 +1040,7 @@ Ping and response::
 
 Find_node and response::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "client_version": "UT01",
     "request_type": "find_node",
@@ -1049,7 +1049,7 @@ Find_node and response::
       "target": "mnopqrstuvwxyz123456"
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "client_version": "UT01",
     "response": {
@@ -1060,7 +1060,7 @@ Find_node and response::
 
 Get_peers and response with values param::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "request_type": "get_peers",
     "request": {
@@ -1068,7 +1068,7 @@ Get_peers and response with values param::
       "info_hash": "mnopqrstuvwxyz123456"
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "client_version": "UT12",
     "response": {
@@ -1083,7 +1083,7 @@ Get_peers and response with values param::
 
 Get_peers and response with nodes param::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "request_type": "get_peers",
     "request": {
@@ -1091,7 +1091,7 @@ Get_peers and response with nodes param::
       "info_hash": "mnopqrstuvwxyz123456"
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "response": {
       "id": "abcdefghij0123456789",
@@ -1102,7 +1102,7 @@ Get_peers and response with nodes param::
 
 Announce_peer and response::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "request_type": "announce_peer",
     "request": {
@@ -1112,7 +1112,7 @@ Announce_peer and response::
       "port": 6881
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "response": {
       "id": "mnopqrstuvwxyz123456"
@@ -1121,7 +1121,7 @@ Announce_peer and response::
 
 Announce_peer with implied_port param and response::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "request_type": "announce_peer",
     "request": {
@@ -1132,7 +1132,7 @@ Announce_peer with implied_port param and response::
       "port": 6881
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "response": {
       "id": "mnopqrstuvwxyz123456"
@@ -1141,14 +1141,14 @@ Announce_peer with implied_port param and response::
 
 Sample error responses::
 
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "error": {
       "num": 201,
       "msg": "A Generic Error Ocurred"
     }
   }
-  "bittorrent-dht": {
+  "bittorrent_dht": {
     "transaction_id": "aa",
     "error": {
       "num": 203,
