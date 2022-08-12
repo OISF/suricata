@@ -303,7 +303,7 @@
             },
             "additionalProperties": false
         },
-        "bittorrent-dht": {
+        "bittorrent_dht": {
             "type": "object",
             "optional": true,
             "properties": {
