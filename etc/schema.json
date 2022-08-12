@@ -299,6 +299,89 @@
             },
             "additionalProperties": false
         },
+        "bittorrent-dht": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "transaction_id": {
+                    "type": "string"
+                },
+                "client_version": {
+                    "type": "string"
+                },
+                "request_type": {
+                    "type": "string"
+                },
+                "request": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "optional": true,
+                    "properties": {
+                        "id": {
+                            "type": "string"
+                        },
+                        "target": {
+                            "type": "string",
+                            "optional": true
+                        },
+                        "implied_port": {
+                            "type": "integer"
+                        },
+                        "info_hash": {
+                            "type": "string",
+                            "optional": true
+                        },
+                        "port": {
+                            "type": "integer"
+                        },
+                        "token": {
+                            "type": "string",
+                            "optional": true
+                        }
+                    }
+                },
+                "response": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "optional": true,
+                    "properties": {
+                        "id": {
+                            "type": "string",
+                            "optional": false
+                        },
+                        "nodes": {
+                            "type": "string",
+                            "optional": true
+                        },
+                        "token": {
+                            "type": "string",
+                            "optional": true
+                        },
+                        "values": {
+                            "type": "array",
+                            "optional": true,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "error": {
+                    "type": "object",
+                    "optional": true,
+                    "additionalProperties": false,
+                    "properties": {
+                        "num": {
+                            "type": "integer"
+                        },
+                        "msg": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
         "dcerpc": {
             "type": "object",
             "optional": true,
@@ -3549,6 +3632,7 @@
                         "error": {
                             "type": "object",
                             "properties": {
+                                "bittorrent-dht": { "$ref": "#/$defs/stats_applayer_error"},
                                 "dcerpc_tcp": { "$ref": "#/$defs/stats_applayer_error" },
                                 "dcerpc_udp": { "$ref": "#/$defs/stats_applayer_error" },
                                 "dhcp": { "$ref": "#/$defs/stats_applayer_error" },
@@ -3588,6 +3672,9 @@
                         "flow": {
                             "type": "object",
                             "properties": {
+                                "bittorrent-dht": {
+                                    "type": "integer"
+                                },
                                 "dcerpc_tcp": {
                                     "type": "integer"
                                 },
@@ -3702,6 +3789,9 @@
                         "tx": {
                             "type": "object",
                             "properties": {
+                                "bittorrent-dht": {
+                                    "type": "integer"
+                                },
                                 "dcerpc_tcp": {
                                     "type": "integer"
                                 },
