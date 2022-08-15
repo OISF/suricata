@@ -4229,6 +4229,38 @@ static int SigParseBidirWithSameSrcAndDest02(void)
     PASS;
 }
 
+static int SigParseTestActionReject(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = SigInit(
+            de_ctx, "reject tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+#ifdef HAVE_LIBNET11
+    FAIL_IF_NULL(sig);
+#else
+    FAIL_IF_NOT_NULL(sig);
+#endif
+
+    SigFree(de_ctx, sig);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int SigParseTestActionDrop(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = SigInit(
+            de_ctx, "drop tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    FAIL_IF_NULL(sig);
+
+    SigFree(de_ctx, sig);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 #ifdef UNITTESTS
@@ -4303,5 +4335,7 @@ void SigParseRegisterTests(void)
             SigParseBidirWithSameSrcAndDest01);
     UtRegisterTest("SigParseBidirWithSameSrcAndDest02",
             SigParseBidirWithSameSrcAndDest02);
+    UtRegisterTest("SigParseTestActionReject", SigParseTestActionReject);
+    UtRegisterTest("SigParseTestActionDrop", SigParseTestActionDrop);
 #endif /* UNITTESTS */
 }
