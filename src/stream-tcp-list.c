@@ -760,22 +760,10 @@ static inline uint64_t GetLeftEdgeForApp(Flow *f, TcpSession *ssn, TcpStream *st
 
 static inline uint64_t GetLeftEdge(Flow *f, TcpSession *ssn, TcpStream *stream)
 {
-    bool use_app = true;
-    bool use_raw = true;
-    bool use_log = true;
-
     uint64_t left_edge = 0;
-    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        use_app = false; // app is dead
-    }
-
-    if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW) {
-        use_raw = false; // raw is dead
-    }
-    if (!stream_config.streaming_log_api) {
-        use_log = false;
-    }
-
+    const bool use_app = !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    const bool use_raw = !(stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW);
+    const bool use_log = stream_config.streaming_log_api;
     SCLogDebug("use_app %d use_raw %d use_log %d", use_app, use_raw, use_log);
 
     if (use_raw) {
