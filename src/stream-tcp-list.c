@@ -819,21 +819,19 @@ static inline uint64_t GetLeftEdge(Flow *f, TcpSession *ssn, TcpStream *stream)
         }
     }
 
-    /* in inline mode keep at least unack'd segments so we can check for overlaps */
-    if (StreamTcpInlineMode() == TRUE) {
-        uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
-        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-            /* get window of data that is acked */
-            const uint32_t delta = stream->last_ack - stream->base_seq;
-            /* get max absolute offset */
-            last_ack_abs += delta;
-        }
-        left_edge = MIN(left_edge, last_ack_abs);
+    uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
+    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+        last_ack_abs += (stream->last_ack - stream->base_seq);
+    }
+    /* in IDS mode we shouldn't see the base_seq pass last_ack */
+    DEBUG_VALIDATE_BUG_ON(last_ack_abs < left_edge && StreamTcpInlineMode() == FALSE && !f->ffr &&
+                          ssn->state < TCP_CLOSED);
+    left_edge = MIN(left_edge, last_ack_abs);
 
     /* if we're told to look for overlaps with different data we should
      * consider data that is ack'd as well. Injected packets may have
      * been ack'd or injected packet may be too late. */
-    } else if (check_overlap_different_data) {
+    if (StreamTcpInlineMode() == FALSE && check_overlap_different_data) {
         const uint32_t window = stream->window ? stream->window : 4096;
         if (window < left_edge)
             left_edge -= window;
