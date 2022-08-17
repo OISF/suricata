@@ -23,6 +23,7 @@
 #include "suricata.h"
 #include "util-exception-policy.h"
 #include "util-misc.h"
+#include "stream-tcp-reassemble.h"
 
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {
@@ -35,6 +36,9 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
                 SCLogDebug("EXCEPTION_POLICY_DROP_FLOW");
                 if (p->flow) {
                     p->flow->flags |= FLOW_ACTION_DROP;
+                    FlowSetNoPayloadInspectionFlag(p->flow);
+                    FlowSetNoPacketInspectionFlag(p->flow);
+                    StreamTcpDisableAppLayer(p->flow);
                 }
                 /* fall through */
             case EXCEPTION_POLICY_DROP_PACKET:
