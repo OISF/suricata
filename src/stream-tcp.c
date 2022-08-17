@@ -468,6 +468,7 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
     stream_config.reassembly_memcap_policy =
             ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
+    stream_config.midstream_policy = ExceptionPolicyParse("stream.midstream-policy", true);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -927,6 +928,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (!stream_config.midstream && stream_config.async_oneside == FALSE)
             return 0;
 
+        /* Drop reason will only be used if midstream policy is set to fail closed */
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_FLOW_DROP);
+
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
@@ -1087,6 +1091,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
     } else if (p->tcph->th_flags & TH_ACK) {
         if (!stream_config.midstream)
             return 0;
+
+        /* Drop reason will only be used if midstream policy is set to fail closed */
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_FLOW_DROP);
 
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
