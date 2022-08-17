@@ -66,6 +66,7 @@ typedef struct TcpStreamCnf_ {
 
     enum ExceptionPolicy ssn_memcap_policy;
     enum ExceptionPolicy reassembly_memcap_policy;
+    enum ExceptionPolicy midstream_policy;
 
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
