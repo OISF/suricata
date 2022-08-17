@@ -24,11 +24,11 @@ use bendy::decoding::{Decoder, Error, FromBencode, Object, ResultExt};
 #[derive(Debug, Eq, PartialEq)]
 pub struct BitTorrentDHTRequest {
     /// q = * - 20 byte string, sender's node ID in network byte order
-    pub id: String,
+    pub id: Vec<u8>,
     /// q = find_node - target node ID
     pub target: Option<String>,
     /// q = get_peers/announce_peer - 20-byte info hash of target torrent
-    pub info_hash: Option<String>,
+    pub info_hash: Option<Vec<u8>>,
     /// q = announce_peer - token key received from previous get_peers query
     pub token: Option<String>,
     /// q = announce_peer - 0 or 1, if 1 ignore provided port and
@@ -41,15 +41,15 @@ pub struct BitTorrentDHTRequest {
 #[derive(Debug, Eq, PartialEq)]
 pub struct BitTorrentDHTResponse {
     /// q = * - 20 byte string, receiver's node ID in network byte order
-    pub id: String,
+    pub id: Vec<u8>,
     /// q = find_node/get_peers - compact node info for target node or
     ///                           K(8) closest good nodes in routing table
-    pub nodes: Option<String>,
+    pub nodes: Option<Vec<u8>>,
     /// q = get_peers - list of compact peer infos
     pub values: Option<Vec<String>>,
     /// q = get_peers - token key required for sender's future
     ///                 announce_peer query
-    pub token: Option<String>,
+    pub token: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -94,9 +94,7 @@ impl FromBencode for BitTorrentDHTRequest {
         while let Some(pair) = dict_dec.next_pair()? {
             match pair {
                 (b"id", value) => {
-                    id = String::decode_bencode_object(value)
-                        .context("id")
-                        .map(Some)?;
+                    id = value.try_into_bytes().context("id").map(Some)?;
                 }
                 (b"target", value) => {
                     target = String::decode_bencode_object(value)
@@ -104,9 +102,10 @@ impl FromBencode for BitTorrentDHTRequest {
                         .map(Some)?;
                 }
                 (b"info_hash", value) => {
-                    info_hash = String::decode_bencode_object(value)
+                    info_hash = value
+                        .try_into_bytes()
                         .context("info_hash")
-                        .map(Some)?;
+                        .map(|v| Some(v.to_vec()))?;
                 }
                 (b"token", value) => {
                     token = String::decode_bencode_object(value)
@@ -130,7 +129,7 @@ impl FromBencode for BitTorrentDHTRequest {
         let id = id.ok_or_else(|| Error::missing_field("id"))?;
 
         Ok(BitTorrentDHTRequest {
-            id,
+            id: id.to_vec(),
             target,
             info_hash,
             token,
@@ -170,14 +169,13 @@ impl FromBencode for BitTorrentDHTResponse {
         while let Some(pair) = dict_dec.next_pair()? {
             match pair {
                 (b"id", value) => {
-                    id = String::decode_bencode_object(value)
-                        .context("id")
-                        .map(Some)?;
+                    id = value.try_into_bytes().context("id").map(Some)?;
                 }
                 (b"nodes", value) => {
-                    nodes = String::decode_bencode_object(value)
+                    nodes = value
+                        .try_into_bytes()
                         .context("nodes")
-                        .map(Some)?;
+                        .map(|v| Some(v.to_vec()))?;
                 }
                 (b"values", value) => {
                     values = Vec::decode_bencode_object(value)
@@ -185,9 +183,10 @@ impl FromBencode for BitTorrentDHTResponse {
                         .map(Some)?;
                 }
                 (b"token", value) => {
-                    token = String::decode_bencode_object(value)
+                    token = value
+                        .try_into_bytes()
                         .context("token")
-                        .map(Some)?;
+                        .map(|v| Some(v.to_vec()))?;
                 }
                 (_unknown_field, _) => {}
             }
@@ -196,7 +195,7 @@ impl FromBencode for BitTorrentDHTResponse {
         let id = id.ok_or_else(|| Error::missing_field("id"))?;
 
         Ok(BitTorrentDHTResponse {
-            id,
+            id: id.to_vec(),
             nodes,
             values,
             token,
@@ -311,15 +310,14 @@ pub fn parse_bittorrent_dht_packet(
             }
             (b"t", value) => {
                 // transaction id found
-                transaction_id = String::decode_bencode_object(value)
-                    .context("transaction_id")
-                    .map(Some)?;
+                transaction_id = value.try_into_bytes().context("transaction_id").map(Some)?;
             }
             (b"v", value) => {
                 // client version string found
-                client_version = String::decode_bencode_object(value)
+                client_version = value
+                    .try_into_bytes()
                     .context("client_version")
-                    .map(Some)?;
+                    .map(|v| Some(v.to_vec()))?;
             }
             (_unknown_field, _) => {}
         }
@@ -347,7 +345,9 @@ pub fn parse_bittorrent_dht_packet(
         return Err(Error::missing_field("packet_type"));
     }
 
-    tx.transaction_id = transaction_id.ok_or_else(|| Error::missing_field("transaction_id"))?;
+    tx.transaction_id = transaction_id
+        .ok_or_else(|| Error::missing_field("transaction_id"))?
+        .to_vec();
     // Client version string is an optional field
     tx.client_version = client_version;
 
@@ -361,19 +361,19 @@ mod tests {
 
     #[test_case(
         b"d2:id20:abcdefghij012345678912:implied_porti1e9:info_hash20:mnopqrstuvwxyz1234564:porti6881e5:token8:aoeusnthe",
-        BitTorrentDHTRequest { id: "abcdefghij0123456789".to_string(), implied_port: Some(1u8), info_hash: Some("mnopqrstuvwxyz123456".to_string()), port: Some(6881u16), token: Some("aoeusnth".to_string()), target: None } ;
+        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: Some(1u8), info_hash: Some(b"mnopqrstuvwxyz123456".to_vec()), port: Some(6881u16), token: Some("aoeusnth".to_string()), target: None } ;
         "test request from bencode 1")]
     #[test_case(
         b"d2:id20:abcdefghij0123456789e",
-        BitTorrentDHTRequest { id: "abcdefghij0123456789".to_string(), implied_port: None, info_hash: None, port: None, token: None, target: None } ;
+        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: None, port: None, token: None, target: None } ;
         "test request from bencode 2")]
     #[test_case(
         b"d2:id20:abcdefghij01234567896:target20:mnopqrstuvwxyz123456e",
-        BitTorrentDHTRequest { id: "abcdefghij0123456789".to_string(), implied_port: None, info_hash: None, port: None, token: None, target: Some("mnopqrstuvwxyz123456".to_string()) } ;
+        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: None, port: None, token: None, target: Some("mnopqrstuvwxyz123456".to_string()) } ;
         "test request from bencode 3")]
     #[test_case(
         b"d2:id20:abcdefghij01234567899:info_hash20:mnopqrstuvwxyz123456e",
-        BitTorrentDHTRequest { id: "abcdefghij0123456789".to_string(), implied_port: None, info_hash: Some("mnopqrstuvwxyz123456".to_string()), port: None, token: None, target: None } ;
+        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: Some(b"mnopqrstuvwxyz123456".to_vec()), port: None, token: None, target: None } ;
         "test request from bencode 4")]
     fn test_request_from_bencode(encoded: &[u8], expected: BitTorrentDHTRequest) {
         let decoded = BitTorrentDHTRequest::from_bencode(encoded).unwrap();
@@ -411,27 +411,27 @@ mod tests {
 
     #[test_case(
         b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valueslee",
-        BitTorrentDHTResponse { id: "abcdefghij0123456789".to_string(), token: Some("aoeusnth".to_string()), values: Some(vec![]), nodes: None } ;
+        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec![]), nodes: None } ;
         "test response from bencode 1")]
     #[test_case(
         b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.uee",
-        BitTorrentDHTResponse { id: "abcdefghij0123456789".to_string(), token: Some("aoeusnth".to_string()), values: Some(vec!["axje.u".to_string()]), nodes: None } ;
+        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string()]), nodes: None } ;
         "test response from bencode 2")]
     #[test_case(
         b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.u6:idhtnmee",
-        BitTorrentDHTResponse { id: "abcdefghij0123456789".to_string(), token: Some("aoeusnth".to_string()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None } ;
+        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None } ;
         "test response from bencode 3")]
     #[test_case(
         b"d2:id20:mnopqrstuvwxyz123456e",
-        BitTorrentDHTResponse { id: "mnopqrstuvwxyz123456".to_string(), token: None, values: None, nodes: None } ;
+        BitTorrentDHTResponse { id: b"mnopqrstuvwxyz123456".to_vec(), token: None, values: None, nodes: None } ;
         "test response from bencode 4")]
     #[test_case(
         b"d2:id20:0123456789abcdefghij5:nodes9:def456...e",
-        BitTorrentDHTResponse { id: "0123456789abcdefghij".to_string(), token: None, values: None, nodes: Some("def456...".to_string()) } ;
+        BitTorrentDHTResponse { id: b"0123456789abcdefghij".to_vec(), token: None, values: None, nodes: Some(b"def456...".to_vec()) } ;
         "test response from bencode 5")]
     #[test_case(
         b"d2:id20:abcdefghij01234567895:nodes9:def456...5:token8:aoeusnthe",
-        BitTorrentDHTResponse { id: "abcdefghij0123456789".to_string(), token: Some("aoeusnth".to_string()), values: None, nodes: Some("def456...".to_string()) } ;
+        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: None, nodes: Some(b"def456...".to_vec()) } ;
         "test response from bencode 6")]
     fn test_response_from_bencode(encoded: &[u8], expected: BitTorrentDHTResponse) {
         let decoded = BitTorrentDHTResponse::from_bencode(encoded).unwrap();
@@ -500,20 +500,20 @@ mod tests {
     #[test_case(
         b"d1:ad2:id20:abcdefghij0123456789e1:q4:ping1:t2:aa1:v4:UT011:y1:qe",
         Some("ping".to_string()),
-        Some(BitTorrentDHTRequest { id: "abcdefghij0123456789".to_string(), implied_port: None, info_hash: None, port: None, token: None, target: None }),
+        Some(BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: None, port: None, token: None, target: None }),
         None,
         None,
-        "aa".to_string(),
-        Some("UT01".to_string()) ;
+        b"aa".to_vec(),
+        Some(b"UT01".to_vec()) ;
         "test parse bittorrent dht packet 1"
     )]
     #[test_case(
         b"d1:rd2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.u6:idhtnmee1:t2:aa1:y1:re",
         None,
         None,
-        Some(BitTorrentDHTResponse { id: "abcdefghij0123456789".to_string(), token: Some("aoeusnth".to_string()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None}),
+        Some(BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None}),
         None,
-        "aa".to_string(),
+        b"aa".to_vec(),
         None ;
         "test parse bittorrent dht packet 2"
     )]
@@ -523,16 +523,16 @@ mod tests {
         None,
         None,
         Some(BitTorrentDHTError { num: 201u16, msg: "A Generic Error Ocurred".to_string() }),
-        "aa".to_string(),
-        Some("UT01".to_string()) ;
+        b"aa".to_vec(),
+        Some(b"UT01".to_vec()) ;
         "test parse bittorrent dht packet 3"
     )]
     fn test_parse_bittorrent_dht_packet(
         encoded: &[u8], request_type: Option<String>,
         expected_request: Option<BitTorrentDHTRequest>,
         expected_response: Option<BitTorrentDHTResponse>,
-        expected_error: Option<BitTorrentDHTError>, expected_transaction_id: String,
-        expected_client_version: Option<String>,
+        expected_error: Option<BitTorrentDHTError>, expected_transaction_id: Vec<u8>,
+        expected_client_version: Option<Vec<u8>>,
     ) {
         let mut tx = BitTorrentDHTTransaction::new();
         parse_bittorrent_dht_packet(encoded, &mut tx).unwrap();
