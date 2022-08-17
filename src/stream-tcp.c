@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -468,6 +468,7 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
     stream_config.reassembly_memcap_policy =
             ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
+    stream_config.midstream_policy = ExceptionPolicyParse("stream.midstream-policy", true);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -923,9 +924,21 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         return -1;
 
     /* SYN/ACK */
-    } else if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        if (!stream_config.midstream && stream_config.async_oneside == FALSE)
+    } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
+        /* Drop reason will only be used if midstream policy is set to fail closed */
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+
+        if (!stream_config.midstream && stream_config.async_oneside == FALSE) {
+            SCLogDebug("Midstream not enabled, so won't pick up a session");
             return 0;
+        }
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_IGNORE ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
+            SCLogDebug("Midstream policy not permissive, so won't pick up a session");
+            return 0;
+        }
+        SCLogDebug("midstream picked up");
 
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
@@ -1085,8 +1098,20 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 ssn->client.last_ack);
 
     } else if (p->tcph->th_flags & TH_ACK) {
-        if (!stream_config.midstream)
+        /* Drop reason will only be used if midstream policy is set to fail closed */
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+
+        if (!stream_config.midstream) {
+            SCLogDebug("Midstream not enabled, so won't pick up a session");
             return 0;
+        }
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_IGNORE ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
+            SCLogDebug("Midstream policy not permissive, so won't pick up a session");
+            return 0;
+        }
+        SCLogDebug("midstream picked up");
 
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
