@@ -38,8 +38,8 @@ pub struct BitTorrentDHTTransaction {
     pub request: Option<BitTorrentDHTRequest>,
     pub response: Option<BitTorrentDHTResponse>,
     pub error: Option<BitTorrentDHTError>,
-    pub transaction_id: String,
-    pub client_version: Option<String>,
+    pub transaction_id: Vec<u8>,
+    pub client_version: Option<Vec<u8>>,
 
     tx_data: AppLayerTxData,
 }
@@ -52,7 +52,7 @@ impl BitTorrentDHTTransaction {
             request: None,
             response: None,
             error: None,
-            transaction_id: String::new(),
+            transaction_id: Vec::new(),
             client_version: None,
             tx_data: AppLayerTxData::new(),
         }
