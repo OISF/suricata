@@ -21,9 +21,9 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 fn log_bittorrent_dht(
     tx: &BitTorrentDHTTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
-    js.set_string("transaction_id", &tx.transaction_id)?;
+    js.set_hex("transaction_id", &tx.transaction_id)?;
     if let Some(client_version) = &tx.client_version {
-        js.set_string("client_version", client_version)?;
+        js.set_hex("client_version", client_version)?;
     }
     if let Some(request_type) = &tx.request_type {
         js.set_string("request_type", request_type)?;
@@ -36,12 +36,12 @@ fn log_bittorrent_dht(
     };
     if let Some(request) = &tx.request {
         js.open_object("request")?;
-        js.set_string("id", &request.id)?;
+        js.set_hex("id", &request.id)?;
         if let Some(target) = &request.target {
             js.set_string("target", target)?;
         }
         if let Some(info_hash) = &request.info_hash {
-            js.set_string("info_hash", info_hash)?;
+            js.set_hex("info_hash", info_hash)?;
         }
         if let Some(token) = &request.token {
             js.set_string("token", token)?;
@@ -56,9 +56,9 @@ fn log_bittorrent_dht(
     };
     if let Some(response) = &tx.response {
         js.open_object("response")?;
-        js.set_string("id", &response.id)?;
+        js.set_hex("id", &response.id)?;
         if let Some(nodes) = &response.nodes {
-            js.set_string("nodes", nodes)?;
+            js.set_hex("nodes", nodes)?;
         }
         if let Some(values) = &response.values {
             js.open_array("values")?;
@@ -68,7 +68,7 @@ fn log_bittorrent_dht(
             js.close()?;
         }
         if let Some(token) = &response.token {
-            js.set_string("token", token)?;
+            js.set_hex("token", token)?;
         }
         js.close()?;
     };
