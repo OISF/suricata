@@ -1178,6 +1178,7 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
+                libpython3.10 \
                 make \
                 parallel \
                 python3-yaml \
