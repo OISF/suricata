@@ -2039,11 +2039,9 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
     return (input - initial_input);
 }
 
-static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
-                       AppLayerParserState *pstate, const uint8_t *input,
-                       uint32_t input_len)
+static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_state,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len)
 {
-    int retval = 0;
     const uint8_t *initial_input = input;
 
     if (ssl_state->curr_connp->bytes_processed == 0) {
@@ -2058,32 +2056,44 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
        to read the msg_type */
     if (ssl_state->curr_connp->bytes_processed <
             (ssl_state->curr_connp->record_lengths_length + 1)) {
-        retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
+        const int retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
+        SCLogDebug("retval %d ssl_state->curr_connp->record_length %u", retval,
+                ssl_state->curr_connp->record_length);
         if (retval < 0 || retval > (int)input_len) {
             DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
-            return -1;
+            return SSL_DECODER_ERROR(-1);
         }
         input += retval;
         input_len -= retval;
     }
 
+    /* if we don't have the full record, we return incomplete */
+    if (ssl_state->curr_connp->record_lengths_length + ssl_state->curr_connp->record_length >
+            input_len + ssl_state->curr_connp->bytes_processed) {
+        uint32_t needed = ssl_state->curr_connp->record_length;
+        SCLogDebug("record len %u input_len %u parsed %u: need %u bytes more data",
+                ssl_state->curr_connp->record_length, input_len, (uint32_t)(input - initial_input),
+                needed);
+        return SSL_DECODER_INCOMPLETE((input - initial_input), needed);
+    }
+
     if (input_len == 0) {
-        return (input - initial_input);
+        return SSL_DECODER_OK((input - initial_input));
     }
 
     /* record_length should never be zero */
     if (ssl_state->curr_connp->record_length == 0) {
         SCLogDebug("SSLv2 record length is zero");
         SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
-        return -1;
+        return SSL_DECODER_ERROR(-1);
     }
 
     /* record_lenghts_length should never be zero */
     if (ssl_state->curr_connp->record_lengths_length == 0) {
         SCLogDebug("SSLv2 record lengths length is zero");
         SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
-        return -1;
+        return SSL_DECODER_ERROR(-1);
     }
 
     switch (ssl_state->curr_connp->content_type) {
@@ -2297,15 +2307,14 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 ssl_state->curr_connp->bytes_processed;
         input += diff;
         SSLParserReset(ssl_state);
-        return (input - initial_input);
 
-    /* we still don't have the entire record for the one we are
-       currently parsing */
+        /* we still don't have the entire record for the one we are
+           currently parsing */
     } else {
         input += input_len;
         ssl_state->curr_connp->bytes_processed += input_len;
-        return (input - initial_input);
     }
+    return SSL_DECODER_OK((input - initial_input));
 }
 
 static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_state,
@@ -2599,20 +2608,24 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
             } else {
                 SCLogDebug("Continuing parsing SSLv2 record");
             }
-            int retval = SSLv2Decode(direction, ssl_state, pstate, input,
-                    input_len);
-            if (retval < 0 || retval > input_len) {
-                DEBUG_VALIDATE_BUG_ON(retval > input_len);
+            struct SSLDecoderResult r = SSLv2Decode(direction, ssl_state, pstate, input, input_len);
+            if (r.retval < 0 || r.retval > input_len) {
+                DEBUG_VALIDATE_BUG_ON(r.retval > input_len);
                 SCLogDebug("Error parsing SSLv2. Reseting parser "
                         "state. Let's get outta here");
                 SSLParserReset(ssl_state);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                return APP_LAYER_OK;
+                return APP_LAYER_ERROR;
+            } else if (r.needed) {
+                input += r.retval;
+                SCLogDebug("returning consumed %" PRIuMAX " needed %u",
+                        (uintmax_t)(input - init_input), r.needed);
+                SCReturnStruct(APP_LAYER_INCOMPLETE(input - init_input, r.needed));
             }
-            input_len -= retval;
-            input += retval;
-            SCLogDebug("SSLv2 decoder consumed %d bytes: %u left", retval, input_len);
+            input_len -= r.retval;
+            input += r.retval;
+            SCLogDebug("SSLv2 decoder consumed %d bytes: %u left", r.retval, input_len);
         } else {
             if (ssl_state->curr_connp->bytes_processed == 0) {
                 SCLogDebug("New TLS record: record_length %u",
