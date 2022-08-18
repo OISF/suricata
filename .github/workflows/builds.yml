@@ -1181,6 +1181,7 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
+                python-is-python3 \
                 rustc \
                 software-properties-common \
                 zlib1g \
