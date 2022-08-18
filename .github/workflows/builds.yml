@@ -1063,10 +1063,10 @@ jobs:
             exit 0
           fi
 
-  ubuntu-18-04-debug-validation:
-    name: Ubuntu 18.04 (Debug Validation)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
+  ubuntu-22-04-debug-validation:
+    name: Ubuntu 22.04 (Debug Validation)
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1103,7 +1103,7 @@ jobs:
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
-                libevent-pthreads-2.1.6 \
+                libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
                 make \
@@ -1135,10 +1135,10 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
 
-  ubuntu-18-04:
-    name: Ubuntu 18.04 (Cocci)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
+  ubuntu-22-04:
+    name: Ubuntu 22.04 (Cocci)
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1175,7 +1175,7 @@ jobs:
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
-                libevent-pthreads-2.1.6 \
+                libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
                 make \
@@ -1228,10 +1228,10 @@ jobs:
         run: python3 ./suricata-verify/run.py -q
 
   # test build with afl and fuzztargets
-  ubuntu-18-04-fuzz:
-    name: Ubuntu 18.04 (Fuzz)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
+  ubuntu-22-04-fuzz:
+    name: Ubuntu 22.04 (Fuzz)
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
