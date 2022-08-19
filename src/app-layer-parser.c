@@ -926,7 +926,7 @@ extern bool g_filedata_logger_enabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-void AppLayerParserTransactionsCleanup(Flow *f)
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
 {
     SCEnter();
     DEBUG_ASSERT_FLOW_LOCKED(f);
