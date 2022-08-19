@@ -169,7 +169,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 break;
             }
 
-            AppLayerParserTransactionsCleanup(f);
+            AppLayerParserTransactionsCleanup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
 
             if (f->alstate && f->alparser) {
                 // check if we have too many open transactions

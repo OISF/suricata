@@ -298,7 +298,7 @@ void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alst
 AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);
 
-void AppLayerParserTransactionsCleanup(Flow *f);
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir);
 
 #ifdef DEBUG
 void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);
