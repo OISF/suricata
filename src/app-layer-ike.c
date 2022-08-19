@@ -166,7 +166,7 @@ static int IkeParserTest(void)
             sizeof(encrypted));
     FAIL_IF_NOT(r == 0);
 
-    AppLayerParserTransactionsCleanup(&f);
+    AppLayerParserTransactionsCleanup(&f, STREAM_TOCLIENT);
     UTHAppLayerParserStateGetIds(f.alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 5); // inspect_id[0]
     FAIL_IF_NOT(ret[1] == 5); // inspect_id[1]
