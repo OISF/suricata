@@ -449,7 +449,7 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
 
     /* run tx cleanup last */
-    AppLayerParserTransactionsCleanup(p->flow);
+    AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
 
     FlowDeReference(&p->flow);
     /* flow is unlocked later in FlowFinish() */
@@ -592,7 +592,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         }
 
         /* run tx cleanup last */
-        AppLayerParserTransactionsCleanup(p->flow);
+        AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
 
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
