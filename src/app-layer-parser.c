@@ -156,7 +156,7 @@ typedef struct AppLayerParserCtx_ {
 
 struct AppLayerParserState_ {
     /* coccinelle: AppLayerParserState:flags:APP_LAYER_PARSER_ */
-    uint8_t flags;
+    uint16_t flags;
 
     /* Indicates the current transaction that is being inspected.
      * We have a var per direction. */
@@ -1742,7 +1742,7 @@ void AppLayerParserRegisterProtocolParsers(void)
 
 
 /* coccinelle: AppLayerParserStateSetFlag():2,2:APP_LAYER_PARSER_ */
-void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
+void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
     SCEnter();
     pstate->flags |= flag;
@@ -1750,10 +1750,10 @@ void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
 }
 
 /* coccinelle: AppLayerParserStateIssetFlag():2,2:APP_LAYER_PARSER_ */
-int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag)
+uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
     SCEnter();
-    SCReturnInt(pstate->flags & flag);
+    SCReturnUInt(pstate->flags & flag);
 }
 
 
