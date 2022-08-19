@@ -424,12 +424,12 @@ extern {
 }
 
 // Defined in app-layer-parser.h
-pub const APP_LAYER_PARSER_EOF_TS : u8 = BIT_U8!(5);
-pub const APP_LAYER_PARSER_EOF_TC : u8 = BIT_U8!(6);
-pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = BIT_U8!(1);
-pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = BIT_U8!(2);
-pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = BIT_U8!(3);
-pub const APP_LAYER_PARSER_BYPASS_READY : u8 = BIT_U8!(4);
+pub const APP_LAYER_PARSER_NO_INSPECTION : u16 = BIT_U16!(1);
+pub const APP_LAYER_PARSER_NO_REASSEMBLY : u16 = BIT_U16!(2);
+pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u16 = BIT_U16!(3);
+pub const APP_LAYER_PARSER_BYPASS_READY : u16 = BIT_U16!(4);
+pub const APP_LAYER_PARSER_EOF_TS : u16 = BIT_U16!(5);
+pub const APP_LAYER_PARSER_EOF_TC : u16 = BIT_U16!(6);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
@@ -442,8 +442,8 @@ pub type AppLayerGetTxIteratorFn = unsafe extern "C" fn (ipproto: u8,
                                                   istate: &mut u64) -> applayer::AppLayerGetTxIterTuple;
 
 extern {
-    pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
-    pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
+    pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u16);
+    pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
