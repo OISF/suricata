@@ -26,12 +26,6 @@
 
 #include "datasets-reputation.h"
 
-#if defined(OS_DARWIN ) || defined(OS_FREEBSD) || defined(__OpenBSD__)
-#ifndef s6_addr32
-#define	s6_addr32 __u6_addr.__u6_addr32
-#endif
-#endif /* BSD check */
-
 typedef struct IPv6Type {
     uint8_t ipv6[16];
     DataRepType rep;
