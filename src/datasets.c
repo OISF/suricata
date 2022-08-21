@@ -236,48 +236,30 @@ static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
     /* Checking IPv6 case */
     char *got_colon = strchr(line, ':');
     if (got_colon) {
-        if (inet_pton(AF_INET6, line, in6) != 1)
+        uint32_t ip6addr[4];
+        if (inet_pton(AF_INET6, line, in6) != 1) {
             FatalError(SC_ERR_FATAL, "dataset data parse failed %s/%s: %s", set->name, set->load,
                     line);
-            /* IPv4 in IPv6 notation needs transformation to internal Suricata storage */
-#ifndef OS_WIN32
-        if (in6->s6_addr32[0] == 0 && in6->s6_addr32[1] == 0 && in6->s6_addr32[2] == 0xFFFF0000) {
-            in6->s6_addr32[0] = in6->s6_addr32[3];
-            in6->s6_addr32[2] = 0;
-            in6->s6_addr32[3] = 0;
+            return -1;
         }
-#else  /* !OS_WIN32 */
-        if (in6->u.Word[0] == 0 && in6->u.Word[1] == 0 && in6->u.Word[2] == 0 &&
-                in6->u.Word[3] == 0 && in6->u.Word[4] == 0xFFFF && in6->u.Word[5] == 0) {
-            in6->u.Word[0] = in6->u.Word[6];
-            in6->u.Word[1] = in6->u.Word[7];
-            in6->u.Word[4] = 0;
-            in6->u.Word[6] = 0;
-            in6->u.Word[7] = 0;
+        memcpy(&ip6addr, in6->s6_addr, sizeof(ip6addr));
+        /* IPv4 in IPv6 notation needs transformation to internal Suricata storage */
+        if (ip6addr[0] == 0 && ip6addr[1] == 0 && ip6addr[2] == 0xFFFF0000) {
+            ip6addr[0] = ip6addr[3];
+            ip6addr[2] = 0;
+            ip6addr[3] = 0;
+            memcpy(in6, ip6addr, sizeof(struct in6_addr));
         }
-#endif /* !OS_WIN32 */
     } else {
         /* IPv4 case */
         struct in_addr in;
-        if (inet_pton(AF_INET, line, &in) != 1)
+        if (inet_pton(AF_INET, line, &in) != 1) {
             FatalError(SC_ERR_FATAL, "dataset data parse failed %s/%s: %s", set->name, set->load,
                     line);
-
-#ifndef OS_WIN32
-        in6->s6_addr32[0] = in.s_addr;
-        in6->s6_addr32[1] = 0;
-        in6->s6_addr32[2] = 0;
-        in6->s6_addr32[3] = 0;
-#else  /* !OS_WIN32 */
-        in6->u.Word[0] = in.S_un.S_un_w.s_w1;
-        in6->u.Word[1] = in.S_un.S_un_w.s_w2;
-        in6->u.Word[2] = 0;
-        in6->u.Word[3] = 0;
-        in6->u.Word[4] = 0;
-        in6->u.Word[5] = 0;
-        in6->u.Word[6] = 0;
-        in6->u.Word[7] = 0;
-#endif /* !OS_WIN32 */
+            return -1;
+        }
+        memset(in6, 0, sizeof(struct in6_addr));
+        memcpy(in6, &in, sizeof(struct in_addr));
     }
     return 0;
 }
