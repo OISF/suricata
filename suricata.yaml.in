@@ -714,13 +714,19 @@ pcap-file:
 ## Step 4: App Layer Protocol configuration
 ##
 
-# Configure the app-layer parsers. The protocol's section details each
-# protocol.
+# Configure the app-layer parsers.
+#
+# The error-policy setting applies to all app-layer parsers. Values can be
+# "drop-flow", "pass-flow", "bypass", "drop-packet", "pass-packet" or "ignore"
+# (the default).
+#
+# The protocol's section details each protocol.
 #
 # The option "enabled" takes 3 values - "yes", "no", "detection-only".
 # "yes" enables both detection and the parser, "no" disables both, and
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
+  # error-policy: ignore
   protocols:
     rfb:
       enabled: yes
@@ -1152,8 +1158,11 @@ host-os-policy:
 
 # Defrag settings:
 
+# The memcap-policy value can be "drop-flow", "pass-flow", "bypass",
+# "drop-packet", "pass-packet" or "ignore" (which is the default).
 defrag:
   memcap: 32mb
+  # memcap-policy: ignore
   hash-size: 65536
   trackers: 65535 # number of defragmented flows to follow
   max-frags: 65535 # number of fragments to keep (higher than trackers)
@@ -1193,9 +1202,12 @@ defrag:
 # last time seen flows.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
 # in bytes.
+# The memcap-policy can be "drop-flow", "pass-flow", "bypass", "drop-packet",
+# "pass-packet" or "ignore" (which is the default).
 
 flow:
   memcap: 128mb
+  #memcap-policy: ignore
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
@@ -1268,6 +1280,9 @@ flow-timeouts:
 # stream:
 #   memcap: 64mb                # Can be specified in kb, mb, gb.  Just a
 #                               # number indicates it's in bytes.
+#   memcap-policy: ignore       # Can be "drop-flow", "pass-flow", "bypass",
+#                               # "drop-packet", "pass-packet" or "ignore"
+#                               # default is "ignore"
 #   checksum-validation: yes    # To validate the checksum of received
 #                               # packet. If csum validation is specified as
 #                               # "yes", then packets with invalid csum values will not
@@ -1279,6 +1294,9 @@ flow-timeouts:
 #                               # option
 #   prealloc-sessions: 2k       # 2k sessions prealloc'd per stream thread
 #   midstream: false            # don't allow midstream session pickups
+#   midstream-policy: ignore    # Can be "drop-flow", "pass-flow", "bypass",
+#                               # "drop-packet", "pass-packet" or "ignore"
+#                               # default is "ignore"
 #   async-oneside: false        # don't enable async stream handling
 #   inline: no                  # stream inline mode
 #   drop-invalid: yes           # in inline mode, drop packets that are invalid with regards to streaming engine
@@ -1290,6 +1308,9 @@ flow-timeouts:
 #   reassembly:
 #     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
+#     memcap-policy: ignore     # Can be "drop-flow", "pass-flow", "bypass",
+#                               # "drop-packet", "pass-packet" or "ignore"
+#                               # default is "ignore"
 #     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
@@ -1323,10 +1344,14 @@ flow-timeouts:
 #
 stream:
   memcap: 64mb
+  #memcap-policy: ignore
   checksum-validation: yes      # reject incorrect csums
+  #midstream: false
+  #midstream-policy: ignore
   inline: auto                  # auto will use inline mode in IPS mode, yes or no set it statically
   reassembly:
     memcap: 256mb
+    #memcap-policy: ignore
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
