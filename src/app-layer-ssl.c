@@ -1628,7 +1628,13 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
             input_len -= avail_record_len;
 
             SSLParserHSReset(ssl_state->curr_connp);
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+
+            if ((direction && (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) ||
+                    (!direction && (ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC))) {
+                // after Change Cipher Spec we get Encrypted Handshake Messages
+            } else {
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+            }
             continue;
         }
 
