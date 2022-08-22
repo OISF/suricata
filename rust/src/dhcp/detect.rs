@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use super::dhcp::{DHCPTransaction, DHCP_OPT_ADDRESS_TIME};
+use super::dhcp::{DHCPTransaction, DHCP_OPT_ADDRESS_TIME, DHCP_OPT_REBINDING_TIME};
 use super::parser::DHCPOptionWrapper;
 
 #[no_mangle]
@@ -26,6 +26,21 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_leasetime(
         if option.code == DHCP_OPT_ADDRESS_TIME {
             if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
                 *leasetime = time_value.seconds as u64;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dhcp_tx_get_rebinding_time(
+    tx: &mut DHCPTransaction, res: *mut u64,
+) -> u8 {
+    for option in &tx.message.options {
+        if option.code == DHCP_OPT_REBINDING_TIME {
+            if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
+                *res = time_value.seconds as u64;
                 return 1;
             }
         }
