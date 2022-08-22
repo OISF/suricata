@@ -115,7 +115,8 @@ void DetectDHCPRebindingTimeRegister(void)
 {
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].name = "dhcp.rebinding_time";
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].desc = "match DHCP rebinding time";
-    sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].url = "/rules/dhcp-keywords.html#dhcp-rebinding-time";
+    sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].url =
+            "/rules/dhcp-keywords.html#dhcp-rebinding-time";
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].AppLayerTxMatch = DetectDHCPRebindingTimeMatch;
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].Setup = DetectDHCPRebindingTimeSetup;
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].Free = DetectDHCPRebindingTimeFree;
