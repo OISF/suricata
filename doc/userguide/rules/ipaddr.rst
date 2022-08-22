@@ -1,3 +1,5 @@
+.. _ipaddr:
+
 IP Addresses Match
 ==================
 
