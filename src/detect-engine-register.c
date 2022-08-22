@@ -201,6 +201,7 @@
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
 #include "detect-dhcp-leasetime.h"
+#include "detect-dhcp-rebinding-time.h"
 #include "detect-snmp-usm.h"
 #include "detect-snmp-version.h"
 #include "detect-snmp-community.h"
@@ -639,6 +640,7 @@ void SigTableSetup(void)
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
     DetectDHCPLeaseTimeRegister();
+    DetectDHCPRebindingTimeRegister();
     DetectSNMPUsmRegister();
     DetectSNMPVersionRegister();
     DetectSNMPCommunityRegister();
