@@ -164,6 +164,11 @@ $HOME_NET                           Your setting of HOME_NET in yaml
    You cannot write a signature using ``$EXTERNAL_NET`` because it evaluates to
    'not any', which is an invalid value.
 
+.. note::
+
+   Please note that the source and destination address can also be matched via the ``ip.src`` and ``ip.dst`` keywords (See :ref:`ipaddr`). These
+   keywords are mostly used in conjuction with the dataset feature (:ref:`datasets`).
+
 Ports (source and destination)
 ------------------------------
 .. container:: example-rule
