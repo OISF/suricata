@@ -1148,12 +1148,14 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
  */
 void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id)
 {
-    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
-    if (txd != NULL) {
-        if (direction & STREAM_TOSERVER) {
-            txd->file_flags |= FLOWFILE_NO_STORE_TS;
-        } else {
-            txd->file_flags |= FLOWFILE_NO_STORE_TC;
+    if (g_file_force_filestore == 0) {
+        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+        if (txd != NULL) {
+            if (direction & STREAM_TOSERVER) {
+                txd->file_flags |= FLOWFILE_NO_STORE_TS;
+            } else {
+                txd->file_flags |= FLOWFILE_NO_STORE_TC;
+            }
         }
     }
 }
