@@ -70,6 +70,8 @@
 #include "output-flow.h"
 #include "util-validate.h"
 
+#include "runmode-unix-socket.h"
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -704,6 +706,38 @@ static uint32_t FlowTimeoutsMin(void)
     return m;
 }
 
+static void GetWorkUnitSizing(const uint32_t pass_in_sec, const uint32_t rows, const uint32_t mp,
+        const bool emergency, uint64_t *wu_sleep, uint32_t *wu_rows, uint32_t *rows_sec)
+{
+    if (emergency) {
+        *wu_rows = rows;
+        *wu_sleep = 250;
+        return;
+    }
+
+    uint32_t full_pass_in_ms = pass_in_sec * 1000;
+    const float perc = MIN((((float)(100 - mp) / (float)100)), 1.0);
+    full_pass_in_ms *= perc;
+    full_pass_in_ms = MAX(full_pass_in_ms, 333);
+
+    uint32_t work_unit_ms = 999 * perc;
+    work_unit_ms = MAX(work_unit_ms, 250);
+
+    const uint32_t wus_per_full_pass = full_pass_in_ms / work_unit_ms;
+
+    const uint32_t rows_per_wu = MAX(1, rows / wus_per_full_pass);
+    const uint32_t rows_process_cost = rows_per_wu / 1000; // est 1usec per row
+
+    int32_t sleep_per_wu = work_unit_ms - rows_process_cost;
+    sleep_per_wu = MAX(sleep_per_wu, 10);
+
+    const float passes_sec = 1000.0 / (float)full_pass_in_ms;
+
+    *wu_sleep = sleep_per_wu;
+    *wu_rows = rows_per_wu;
+    *rows_sec = (uint32_t)((float)rows * passes_sec);
+}
+
 //#define FM_PROFILE
 
 /** \brief Thread that manages the flow table and times out flows.
@@ -715,6 +749,7 @@ static uint32_t FlowTimeoutsMin(void)
 static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 {
     FlowManagerThreadData *ftd = thread_data;
+    const uint32_t rows = ftd->max - ftd->min;
     struct timeval ts;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
     bool emerg = false;
@@ -729,6 +764,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 */
     memset(&ts, 0, sizeof(ts));
     uint32_t hash_passes = 0;
+
+    uint32_t rows_sec = 0;
+    uint32_t rows_per_wu = 0;
+    uint64_t sleep_per_wu = 0;
 #ifdef FM_PROFILE
     uint32_t hash_row_checks = 0;
     uint32_t hash_passes_chunks = 0;
@@ -765,6 +804,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t hash_pass_iter = 0;
     uint32_t emerg_over_cnt = 0;
     uint64_t next_run_ms = 0;
+
+    uint32_t mp = MemcapsGetPressure() * 100;
+    GetWorkUnitSizing(pass_in_sec, rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
 
     while (1)
     {
