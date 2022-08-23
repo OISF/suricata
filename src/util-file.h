@@ -233,8 +233,6 @@ void FileForceHashParseCfg(ConfNode *);
 
 void FileForceTrackingEnable(void);
 
-void FileStoreAllFiles(FileContainer *);
-void FileStoreAllFilesForTx(FileContainer *, uint64_t);
 void FileStoreFileById(FileContainer *fc, uint32_t);
 
 void FileTruncateAllOpenFiles(FileContainer *);
