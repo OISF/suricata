@@ -135,6 +135,8 @@ enum {
 /* flag to indicate that client random was filled */
 #define TLS_TC_RANDOM_SET BIT_U32(25)
 
+#define SSL_AL_FLAG_NEED_CLIENT_CERT BIT_U32(26)
+
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
