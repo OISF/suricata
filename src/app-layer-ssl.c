@@ -498,9 +498,8 @@ static inline int TlsDecodeHSCertificateAddCertToChain(SSLState *ssl_state,
 }
 
 /** \retval consumed bytes consumed or -1 on error */
-static int TlsDecodeHSCertificate(SSLState *ssl_state,
-                                  const uint8_t * const initial_input,
-                                  const uint32_t input_len)
+static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
+        const uint8_t *const initial_input, const uint32_t input_len)
 {
     const uint8_t *input = (uint8_t *)initial_input;
     uint32_t err_code = 0;
@@ -532,11 +531,8 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
             goto invalid_cert;
 
         /* only store fields from the first certificate in the chain */
-        if (processed_len == 0 &&
-                ssl_state->server_connp.cert0_subject == NULL &&
-                ssl_state->server_connp.cert0_issuerdn == NULL &&
-                ssl_state->server_connp.cert0_serial == NULL)
-        {
+        if (processed_len == 0 && connp->cert0_subject == NULL && connp->cert0_issuerdn == NULL &&
+                connp->cert0_serial == NULL) {
             int64_t not_before, not_after;
 
             x509 = rs_x509_decode(input, cert_len, &err_code);
@@ -550,29 +546,29 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
                 err_code = ERR_EXTRACT_SUBJECT;
                 goto error;
             }
-            ssl_state->server_connp.cert0_subject = str;
+            connp->cert0_subject = str;
 
             str = rs_x509_get_issuer(x509);
             if (str == NULL) {
                 err_code = ERR_EXTRACT_ISSUER;
                 goto error;
             }
-            ssl_state->server_connp.cert0_issuerdn = str;
+            connp->cert0_issuerdn = str;
 
             str = rs_x509_get_serial(x509);
             if (str == NULL) {
                 err_code = ERR_INVALID_SERIAL;
                 goto error;
             }
-            ssl_state->server_connp.cert0_serial = str;
+            connp->cert0_serial = str;
 
             rc = rs_x509_get_validity(x509, &not_before, &not_after);
             if (rc != 0) {
                 err_code = ERR_EXTRACT_VALIDITY;
                 goto error;
             }
-            ssl_state->server_connp.cert0_not_before = (time_t)not_before;
-            ssl_state->server_connp.cert0_not_after = (time_t)not_after;
+            connp->cert0_not_before = (time_t)not_before;
+            connp->cert0_not_after = (time_t)not_after;
 
             rs_x509_free(x509);
             x509 = NULL;
@@ -1403,18 +1399,17 @@ RecordAlreadyProcessed(const SSLStateConnp *curr_connp)
 }
 #endif
 
-static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state,
-        const uint8_t * const initial_input,
-        const uint32_t input_len)
+static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state, SSLStateConnp *connp,
+        const uint8_t *const initial_input, const uint32_t input_len)
 {
-    int rc = TlsDecodeHSCertificate(ssl_state, initial_input, input_len);
+    int rc = TlsDecodeHSCertificate(ssl_state, connp, initial_input, input_len);
     SCLogDebug("rc %d", rc);
     if (rc > 0) {
         DEBUG_VALIDATE_BUG_ON(rc > (int)input_len);
-        SSLParserHSReset(ssl_state->curr_connp);
+        SSLParserHSReset(connp);
     } else if (rc < 0) {
         SCLogDebug("error parsing cert, reset state");
-        SSLParserHSReset(ssl_state->curr_connp);
+        SSLParserHSReset(connp);
         /* fall through to still consume the cert bytes */
     }
     return input_len;
@@ -1493,8 +1488,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
                 break;
             }
 
-            rc = SSLv3ParseHandshakeTypeCertificate(ssl_state,
-                    initial_input, input_len);
+            rc = SSLv3ParseHandshakeTypeCertificate(
+                    ssl_state, &ssl_state->server_connp, initial_input, input_len);
             if (rc < 0)
                 return rc;
             break;
