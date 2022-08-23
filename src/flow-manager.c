@@ -756,6 +756,13 @@ static uint32_t FlowTimeoutsMin(void)
     return m;
 }
 
+/** \internal
+ *  \brief calculate number of rows to scan and how much time to sleep
+ *  Based on the busy score `mp` (0 idle, 100 max busy), calculate a linear
+ *  path to doing more work in less time by adjusting the number of rows
+ *  inspected and the time spent sleeping, while being as little bursty as
+ *  possible.
+ */
 static void GetWorkUnitSizing(const uint32_t pass_in_sec, const uint32_t rows, const uint32_t mp,
         const bool emergency, uint64_t *wu_sleep, uint32_t *wu_rows, uint32_t *rows_sec)
 {
@@ -765,22 +772,31 @@ static void GetWorkUnitSizing(const uint32_t pass_in_sec, const uint32_t rows, c
         return;
     }
 
+    /* in how many ms do we want to have scanned the whole hash? Worst case 3 times a second. */
     uint32_t full_pass_in_ms = pass_in_sec * 1000;
     const float perc = MIN((((float)(100 - mp) / (float)100)), 1.0);
     full_pass_in_ms *= perc;
     full_pass_in_ms = MAX(full_pass_in_ms, 333);
 
+    /* how long should the current work unit run for? Minimum 250 msec. */
     uint32_t work_unit_ms = 999 * perc;
     work_unit_ms = MAX(work_unit_ms, 250);
 
+    /* how many work units are needed to do a full pass? */
     const uint32_t wus_per_full_pass = full_pass_in_ms / work_unit_ms;
 
+    /* how many rows do we scan per work unit */
     const uint32_t rows_per_wu = MAX(1, rows / wus_per_full_pass);
+
+    /* assuming 1usec per row, how much time do we predict we spend on the actual scan? */
     const uint32_t rows_process_cost = rows_per_wu / 1000; // est 1usec per row
 
+    /* then, how much do we need to sleep to satisfy the `work_unit_ms` */
     int32_t sleep_per_wu = work_unit_ms - rows_process_cost;
-    sleep_per_wu = MAX(sleep_per_wu, 10);
+    /* however, sleep at least 250 msec to avoid constant rescanning when in stress */
+    sleep_per_wu = MAX(sleep_per_wu, 250);
 
+    /* how many passes a second are we doing (for logging) */
     const float passes_sec = 1000.0 / (float)full_pass_in_ms;
 
     *wu_sleep = sleep_per_wu;
