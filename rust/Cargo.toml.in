@@ -57,6 +57,7 @@ lazy_static = "~1.4.0"
 base64 = "~0.13.0"
 time = "=0.3.13"
 bendy = { version = "~0.3.3", default-features = false }
+psl = "~2"
 
 suricata-derive = { path = "./derive" }
 

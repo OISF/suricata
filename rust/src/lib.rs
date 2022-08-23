@@ -122,3 +122,4 @@ pub mod bittorrent_dht;
 pub mod plugin;
 pub mod util;
 pub mod ffi;
+pub mod domain;

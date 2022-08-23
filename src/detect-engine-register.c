@@ -246,6 +246,7 @@
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
+#include "detect-transform-domain.h"
 
 #include "util-rule-vars.h"
 
@@ -691,6 +692,7 @@ void SigTableSetup(void)
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
     DetectTransformXorRegister();
+    DetectTransformDomainRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
