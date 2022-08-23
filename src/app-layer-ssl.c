@@ -1479,21 +1479,21 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             break;
 
         case SSLV3_HS_CERTIFICATE:
-            /* For now, only decode the server certificate */
-            if (direction == 0) {
-                SCLogDebug("Incorrect SSL Record type sent in the toserver "
-                           "direction!");
-                break;
-            }
 
-            rc = SSLv3ParseHandshakeTypeCertificate(
-                    ssl_state, &ssl_state->server_connp, initial_input, input_len);
+            rc = SSLv3ParseHandshakeTypeCertificate(ssl_state,
+                    direction ? &ssl_state->server_connp : &ssl_state->client_connp, initial_input,
+                    input_len);
             if (rc < 0)
                 return rc;
             break;
 
         case SSLV3_HS_HELLO_REQUEST:
+            break;
         case SSLV3_HS_CERTIFICATE_REQUEST:
+            if (direction) {
+                ssl_state->current_flags = SSL_AL_FLAG_NEED_CLIENT_CERT;
+            }
+            break;
         case SSLV3_HS_CERTIFICATE_VERIFY:
         case SSLV3_HS_FINISHED:
         case SSLV3_HS_CERTIFICATE_URL:
@@ -2588,8 +2588,12 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     } /* while (input_len) */
 
     /* mark handshake as done if we have subject and issuer */
-    if (ssl_state->server_connp.cert0_subject &&
-            ssl_state->server_connp.cert0_issuerdn) {
+    if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) &&
+            ssl_state->client_connp.cert0_subject && ssl_state->client_connp.cert0_issuerdn) {
+        SCLogDebug("SSL_AL_FLAG_HANDSHAKE_DONE");
+        ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+    } else if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) == 0 &&
+               ssl_state->server_connp.cert0_subject && ssl_state->server_connp.cert0_issuerdn) {
         SCLogDebug("SSL_AL_FLAG_HANDSHAKE_DONE");
         ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
     }
@@ -2631,6 +2635,7 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     memset(ssl_state->client_connp.random, 0, TLS_RANDOM_LEN);
     memset(ssl_state->server_connp.random, 0, TLS_RANDOM_LEN);
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    TAILQ_INIT(&ssl_state->client_connp.certs);
 
     return (void *)ssl_state;
 }
@@ -2695,6 +2700,12 @@ static void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    /* Free certificate chain */
+    while ((item = TAILQ_FIRST(&ssl_state->client_connp.certs))) {
+        TAILQ_REMOVE(&ssl_state->client_connp.certs, item, next);
+        SCFree(item);
+    }
+    TAILQ_INIT(&ssl_state->client_connp.certs);
 
     SCFree(ssl_state);
 
