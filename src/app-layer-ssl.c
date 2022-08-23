@@ -454,33 +454,29 @@ static void TlsDecodeHSCertificateErrSetEvent(SSLState *ssl_state, uint32_t err)
     }
 }
 
-static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
-                                                    const uint8_t *input,
-                                                    uint32_t cert_len)
+static inline int TlsDecodeHSCertificateFingerprint(
+        SSLStateConnp *connp, const uint8_t *input, uint32_t cert_len)
 {
-    if (unlikely(ssl_state->server_connp.cert0_fingerprint != NULL))
+    if (unlikely(connp->cert0_fingerprint != NULL))
         return 0;
 
-    ssl_state->server_connp.cert0_fingerprint = SCCalloc(1, SHA1_STRING_LENGTH *
-                                                         sizeof(char));
-    if (ssl_state->server_connp.cert0_fingerprint == NULL)
+    connp->cert0_fingerprint = SCCalloc(1, SHA1_STRING_LENGTH * sizeof(char));
+    if (connp->cert0_fingerprint == NULL)
         return -1;
 
     uint8_t hash[SHA1_LENGTH];
     if (ComputeSHA1(input, cert_len, hash, sizeof(hash)) == 1) {
         for (int i = 0, x = 0; x < SHA1_LENGTH; x++)
         {
-            i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
-                    SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
-                    hash[x]);
+            i += snprintf(connp->cert0_fingerprint + i, SHA1_STRING_LENGTH - i,
+                    i == 0 ? "%02x" : ":%02x", hash[x]);
         }
     }
     return 0;
 }
 
-static inline int TlsDecodeHSCertificateAddCertToChain(SSLState *ssl_state,
-                                                       const uint8_t *input,
-                                                       uint32_t cert_len)
+static inline int TlsDecodeHSCertificateAddCertToChain(
+        SSLStateConnp *connp, const uint8_t *input, uint32_t cert_len)
 {
     SSLCertsChain *cert = SCCalloc(1, sizeof(SSLCertsChain));
     if (cert == NULL)
@@ -488,7 +484,7 @@ static inline int TlsDecodeHSCertificateAddCertToChain(SSLState *ssl_state,
 
     cert->cert_data = (uint8_t *)input;
     cert->cert_len = cert_len;
-    TAILQ_INSERT_TAIL(&ssl_state->server_connp.certs, cert, next);
+    TAILQ_INSERT_TAIL(&connp->certs, cert, next);
 
     return 0;
 }
@@ -569,14 +565,14 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             rs_x509_free(x509);
             x509 = NULL;
 
-            rc = TlsDecodeHSCertificateFingerprint(ssl_state, input, cert_len);
+            rc = TlsDecodeHSCertificateFingerprint(connp, input, cert_len);
             if (rc != 0) {
                 SCLogDebug("TlsDecodeHSCertificateFingerprint failed with %d", rc);
                 goto error;
             }
         }
 
-        rc = TlsDecodeHSCertificateAddCertToChain(ssl_state, input, cert_len);
+        rc = TlsDecodeHSCertificateAddCertToChain(connp, input, cert_len);
         if (rc != 0) {
             SCLogDebug("TlsDecodeHSCertificateAddCertToChain failed with %d", rc);
             goto error;
