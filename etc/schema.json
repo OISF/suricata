@@ -5088,6 +5088,31 @@
             "type": "object",
             "optional": true,
             "properties": {
+                "client": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "fingerprint": {
+                            "type": "string"
+                        },
+                        "issuerdn": {
+                            "type": "string"
+                        },
+                        "notafter": {
+                            "type": "string"
+                        },
+                        "notbefore": {
+                            "type": "string"
+                        },
+                        "serial": {
+                            "type": "string"
+                        },
+                        "subject": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "fingerprint": {
                     "type": "string"
                 },
