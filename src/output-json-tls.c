@@ -255,13 +255,13 @@ static void JsonTlsLogJa3S(JsonBuilder *js, SSLState *ssl_state)
     }
 }
 
-static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
+static void JsonTlsLogCertificate(JsonBuilder *js, SSLStateConnp *connp)
 {
-    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
+    if (TAILQ_EMPTY(&connp->certs)) {
         return;
     }
 
-    SSLCertsChain *cert = TAILQ_FIRST(&ssl_state->server_connp.certs);
+    SSLCertsChain *cert = TAILQ_FIRST(&connp->certs);
     if (cert == NULL) {
         return;
     }
@@ -269,16 +269,16 @@ static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
     jb_set_base64(js, "certificate", cert->cert_data, cert->cert_len);
 }
 
-static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
+static void JsonTlsLogChain(JsonBuilder *js, SSLStateConnp *connp)
 {
-    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
+    if (TAILQ_EMPTY(&connp->certs)) {
         return;
     }
 
     jb_open_array(js, "chain");
 
     SSLCertsChain *cert;
-    TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
+    TAILQ_FOREACH (cert, &connp->certs, next) {
         jb_append_base64(js, cert->cert_data, cert->cert_len);
     }
 
@@ -338,11 +338,11 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
 
     /* tls certificate */
     if (tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE)
-        JsonTlsLogCertificate(js, ssl_state);
+        JsonTlsLogCertificate(js, &ssl_state->server_connp);
 
     /* tls chain */
     if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
-        JsonTlsLogChain(js, ssl_state);
+        JsonTlsLogChain(js, &ssl_state->server_connp);
 
     /* tls ja3_hash */
     if (tls_ctx->fields & LOG_TLS_FIELD_JA3)
