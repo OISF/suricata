@@ -912,14 +912,6 @@ static inline void PacketSetAction(Packet *p, const uint8_t a)
 
 #define PACKET_ACCEPT(p) PACKET_SET_ACTION(p, ACTION_ACCEPT)
 
-#define PACKET_REJECT(p) PACKET_SET_ACTION(p, (ACTION_REJECT|ACTION_DROP))
-
-#define PACKET_REJECT_DST(p) PACKET_SET_ACTION(p, (ACTION_REJECT_DST|ACTION_DROP))
-
-#define PACKET_REJECT_BOTH(p) PACKET_SET_ACTION(p, (ACTION_REJECT_BOTH|ACTION_DROP))
-
-#define PACKET_PASS(p) PACKET_SET_ACTION(p, ACTION_PASS)
-
 #define PACKET_TEST_ACTION(p, a) (p)->action &(a)
 
 #define PACKET_UPDATE_ACTION(p, a) (p)->action |= (a)
