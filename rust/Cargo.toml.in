@@ -77,6 +77,7 @@ bendy = { version = "~0.3.3", default-features = false }
 asn1-rs = { version = "~0.6.1" }
 ldap-parser = { version = "~0.4.1" }
 hex = "~0.4.3"
+psl = "2"
 
 time = "~0.3.36"
 
