@@ -1180,24 +1180,6 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
     }
 }
 
-void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
-{
-    abort();
-}
-
-void FileStoreAllFiles(FileContainer *fc)
-{
-    File *ptr = NULL;
-
-    SCEnter();
-
-    if (fc != NULL) {
-        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            FileStore(ptr);
-        }
-    }
-}
-
 void FileTruncateAllOpenFiles(FileContainer *fc)
 {
     File *ptr = NULL;
