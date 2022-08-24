@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::applayer::*;
+use crate::applayer::{self, *};
 use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
@@ -24,6 +24,7 @@ use crate::dcerpc::dcerpc::{
 use nom7::Err;
 use std;
 use std::ffi::CString;
+use std::collections::VecDeque;
 use crate::dcerpc::parser;
 
 // Constant DCERPC UDP Header length
@@ -55,7 +56,17 @@ pub struct DCERPCHdrUdp {
 #[derive(Default, Debug)]
 pub struct DCERPCUDPState {
     pub tx_id: u64,
-    pub transactions: Vec<DCERPCTransaction>,
+    pub transactions: VecDeque<DCERPCTransaction>,
+}
+
+impl State<DCERPCTransaction> for DCERPCUDPState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&DCERPCTransaction> {
+        self.transactions.get(index)
+    }
 }
 
 impl DCERPCUDPState {
@@ -137,8 +148,8 @@ impl DCERPCUDPState {
         if otx.is_none() {
             let ntx = self.create_tx(hdr);
             SCLogDebug!("new tx id {}, last tx_id {}, {} {}", ntx.id, self.tx_id, ntx.seqnum, ntx.activityuuid[0]);
-            self.transactions.push(ntx);
-            otx = self.transactions.last_mut();
+            self.transactions.push_back(ntx);
+            otx = self.transactions.back_mut();
         }
 
         if let Some(tx) = otx {
@@ -347,7 +358,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCUDPState, DCERPCTransaction>),
         get_tx_data: rs_dcerpc_udp_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
