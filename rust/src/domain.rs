@@ -31,3 +31,18 @@ pub unsafe extern "C" fn rs_get_domain(input: *const u8, len: u32, output: *mut 
         None    => false
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_get_tld(input: *const u8, len: u32, output: *mut u8, olen: *mut u64) -> bool {
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
+    let result = psl::domain(slice);
+    match result {
+        Some(x) => {
+            let tld = x.suffix().as_bytes();
+            ptr::copy(tld.as_ptr(), output, tld.len());
+            *olen = tld.len() as u64;
+            true
+        },
+        None    => false
+    }
+}
