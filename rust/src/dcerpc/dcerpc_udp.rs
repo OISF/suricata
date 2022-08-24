@@ -22,6 +22,7 @@ use crate::core;
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
+use std::collections::VecDeque;
 use crate::dcerpc::parser;
 
 // Constant DCERPC UDP Header length
@@ -53,14 +54,14 @@ pub struct DCERPCHdrUdp {
 #[derive(Debug)]
 pub struct DCERPCUDPState {
     pub tx_id: u64,
-    pub transactions: Vec<DCERPCTransaction>,
+    pub transactions: VecDeque<DCERPCTransaction>,
 }
 
 impl DCERPCUDPState {
     pub fn new() -> DCERPCUDPState {
         return DCERPCUDPState {
             tx_id: 0,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
         };
     }
 
@@ -138,8 +139,8 @@ impl DCERPCUDPState {
         if otx.is_none() {
             let ntx = self.create_tx(hdr);
             SCLogDebug!("new tx id {}, last tx_id {}, {} {}", ntx.id, self.tx_id, ntx.seqnum, ntx.activityuuid[0]);
-            self.transactions.push(ntx);
-            otx = self.transactions.last_mut();
+            self.transactions.push_back(ntx);
+            otx = self.transactions.back_mut();
         }
 
         if let Some(tx) = otx {
