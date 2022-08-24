@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_DOMAIN_H__
 
 /* prototypes */
-void DetectTransformDomainRegister (void);
+void DetectTransformDomainRegister(void);
 
 #endif /* __DETECT_TRANSFORM_DOMAIN_H__ */

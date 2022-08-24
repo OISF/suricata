@@ -38,26 +38,36 @@
 #include "util-memcpy.h"
 #include "rust.h"
 
-static int DetectTransformDomainSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformDomainSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformTLDSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformDomainRegisterTests(void);
+static void DetectTransformTLDRegisterTests(void);
 #endif
 static void TransformDomain(InspectionBuffer *buffer, void *options);
+static void TransformTLD(InspectionBuffer *buffer, void *options);
 
 void DetectTransformDomainRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_DOMAIN].name = "domain";
-    sigmatch_table[DETECT_TRANSFORM_DOMAIN].desc =
-        "modify buffer to extract the domain";
-    sigmatch_table[DETECT_TRANSFORM_DOMAIN].url =
-        "/rules/transforms.html#domain";
+    sigmatch_table[DETECT_TRANSFORM_DOMAIN].desc = "modify buffer to extract the domain";
+    sigmatch_table[DETECT_TRANSFORM_DOMAIN].url = "/rules/transforms.html#domain";
     sigmatch_table[DETECT_TRANSFORM_DOMAIN].Transform = TransformDomain;
     sigmatch_table[DETECT_TRANSFORM_DOMAIN].Setup = DetectTransformDomainSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_DOMAIN].RegisterTests =
-        DetectTransformDomainRegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_DOMAIN].RegisterTests = DetectTransformDomainRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_DOMAIN].flags |= SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_TRANSFORM_TLD].name = "tld";
+    sigmatch_table[DETECT_TRANSFORM_TLD].desc = "modify buffer to extract the tld";
+    sigmatch_table[DETECT_TRANSFORM_TLD].url = "/rules/transforms.html#tld";
+    sigmatch_table[DETECT_TRANSFORM_TLD].Transform = TransformTLD;
+    sigmatch_table[DETECT_TRANSFORM_TLD].Setup = DetectTransformTLDSetup;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_TRANSFORM_TLD].RegisterTests = DetectTransformTLDRegisterTests;
+#endif
+    sigmatch_table[DETECT_TRANSFORM_TLD].flags |= SIGMATCH_NOOPT;
 }
 
 /**
@@ -69,7 +79,7 @@ void DetectTransformDomainRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformDomainSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformDomainSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOMAIN, NULL);
@@ -89,6 +99,41 @@ static void TransformDomain(InspectionBuffer *buffer, void *options)
         uint8_t output[input_len];
 
         bool res = rs_get_domain(buffer->inspect, input_len, output, &output_len);
+        if (res == true) {
+            InspectionBufferCopy(buffer, output, output_len);
+        }
+    }
+}
+
+/**
+ *  \internal
+ *  \brief Extract the dotprefix, if any, the last pattern match, either content or uricontent
+ *  \param det_ctx detection engine ctx
+ *  \param s signature
+ *  \param nullstr should be null
+ *  \retval 0 ok
+ *  \retval -1 failure
+ */
+static int DetectTransformTLDSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+{
+    SCEnter();
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_TLD, NULL);
+    SCReturnInt(r);
+}
+
+/**
+ * \brief Return the domain, if any, in the last pattern match.
+ *
+ */
+static void TransformTLD(InspectionBuffer *buffer, void *options)
+{
+    const size_t input_len = buffer->inspect_len;
+    size_t output_len = 0;
+
+    if (input_len) {
+        uint8_t output[input_len];
+
+        bool res = rs_get_tld(buffer->inspect, input_len, output, &output_len);
         if (res == true) {
             InspectionBufferCopy(buffer, output, output_len);
         }
@@ -138,7 +183,8 @@ static int DetectTransformDomainTest02(void)
 
 static int DetectTransformDomainTest03(void)
 {
-    const char rule[] = "alert dns any any -> any any (dns.query; domain; content:\"google.com\"; sid:1;)";
+    const char rule[] =
+            "alert dns any any -> any any (dns.query; domain; content:\"google.com\"; sid:1;)";
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
@@ -159,5 +205,70 @@ static void DetectTransformDomainRegisterTests(void)
     UtRegisterTest("DetectTransformDomainTest01", DetectTransformDomainTest01);
     UtRegisterTest("DetectTransformDomainTest02", DetectTransformDomainTest02);
     UtRegisterTest("DetectTransformDomainTest03", DetectTransformDomainTest03);
+}
+
+static int DetectTransformTLDTest01(void)
+{
+    const uint8_t *input = (const uint8_t *)"www.example.com";
+    uint32_t input_len = strlen((char *)input);
+
+    const char *result = "com";
+    uint32_t result_len = strlen((char *)result);
+
+    InspectionBuffer buffer;
+    InspectionBufferInit(&buffer, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    TransformTLD(&buffer, NULL);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    FAIL_IF_NOT(buffer.inspect_len == result_len);
+    FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
+    InspectionBufferFree(&buffer);
+    PASS;
+}
+
+static int DetectTransformTLDTest02(void)
+{
+    const uint8_t *input = (const uint8_t *)"hello.example.co.uk";
+    uint32_t input_len = strlen((char *)input);
+
+    const char *result = "co.uk";
+    uint32_t result_len = strlen((char *)result);
+
+    InspectionBuffer buffer;
+    InspectionBufferInit(&buffer, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    TransformTLD(&buffer, NULL);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    FAIL_IF_NOT(buffer.inspect_len == result_len);
+    FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
+    InspectionBufferFree(&buffer);
+    PASS;
+}
+
+static int DetectTransformTLDTest03(void)
+{
+    const char rule[] = "alert dns any any -> any any (dns.query; tld; content:\"com\"; sid:1;)";
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, rule);
+    FAIL_IF_NULL(s);
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static void DetectTransformTLDRegisterTests(void)
+{
+    UtRegisterTest("DetectTransformTLDTest01", DetectTransformTLDTest01);
+    UtRegisterTest("DetectTransformTLDTest02", DetectTransformTLDTest02);
+    UtRegisterTest("DetectTransformTLDTest03", DetectTransformTLDTest03);
 }
 #endif
