@@ -89,7 +89,6 @@ app-layer:\n\
       enabled: yes\n\
       detection-ports:\n\
         dp: 44818\n\
-        sp: 44818\n\
     sip:\n\
       enabled: yes\n\
     ssh:\n\
