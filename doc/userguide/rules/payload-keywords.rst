@@ -295,29 +295,42 @@ Examples of bsize values:
 
    alert dns any any -> any any (msg:"bsize buffer range value"; dns.query; content:"google.com"; bsize:8<>20; sid:6; rev:1;)
 
-
 dsize
 -----
 
 With the dsize keyword, you can match on the size of the packet
-payload. You can use the keyword for example to look for abnormal
+payload/data. You can use the keyword for example to look for abnormal
 sizes of payloads which are equal to some n i.e. 'dsize:n'
 not equal 'dsize:!n' less than 'dsize:<n' or greater than 'dsize:>n'
 This may be convenient in detecting buffer overflows.
+
+dsize cannot be used when using app/streamlayer protocol keywords (i.e. http.uri)
 
 Format::
 
   dsize:[<>!]number; || dsize:min<>max;
 
-Example of dsize in a rule:
+Examples of dsize values:
 
 .. container:: example-rule
 
-    alert udp $EXTERNAL_NET any -> $HOME_NET 65535 (msg:"GPL DELETED EXPLOIT LANDesk Management Suite Alerting Service buffer overflow"; :example-rule-emphasis:`dsize:>268;` reference: bugtraq,23483; reference: cve,2007-1674; classtype: attempted-admin; sid:100000928; rev:1;)
-    alert tcp $EXTERNAL_NET any -> $HOME_NET 8081 (msg:"Example Negation"; :example-rule-emphasis:`dsize:!10;` sid:123; rev:1;)
+   alert tcp any any -> any any (msg:"dsize exact size"; dsize:10; sid:1; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize less than value"; dsize:<10; sid:2; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize less than or equal value"; dsize:<=10; sid:3; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize greater than value"; dsize:>8; sid:4; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize greater than or equal value"; dsize:>=10; sid:5; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize range value"; dsize:8<>20; sid:6; rev:1;)
+
+   alert tcp any any -> any any (msg:"dsize not equal value"; dsize:!9; sid:7; rev:1;)
 
 byte_test
 ---------
+
 The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation selected
 with ``<operator>`` against the value in ``<test value>`` at a particular ``<offset>``.
 The ``<bitmask value>`` is applied to the extracted bytes (before the operator is applied),
