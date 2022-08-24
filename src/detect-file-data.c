@@ -97,6 +97,8 @@ void DetectFiledataRegister(void)
             ALPROTO_SMTP, 0);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmHTTPFiledataRegister,
             NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
+            NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
@@ -124,6 +126,8 @@ void DetectFiledataRegister(void)
 
     DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_BODY, DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata, NULL);
@@ -207,14 +211,6 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
                     s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP &&
                     s->alproto != ALPROTO_NFS)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        return -1;
-    }
-
-    if ((s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) &&
-            (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOSERVER) &&
-            !(s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
-                "flow:to_server or flow:from_client with http.");
         return -1;
     }
 
