@@ -16,9 +16,9 @@
  */
 
 pub mod byte_math;
-pub mod detect;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod stream_size;
 pub mod uint;
 pub mod uri;
