@@ -106,22 +106,6 @@ static int DetectFiledataParseTest04(void)
     PASS;
 }
 
-/**
- * \test Test the file_data fails with flow:to_server.
- */
-static int DetectFiledataParseTest05(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert http any any -> any any "
-            "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
-    FAIL_IF_NOT_NULL(s);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
 static int DetectFiledataIsdataatParseTest1(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -184,7 +168,6 @@ void DetectFiledataRegisterTests(void)
     UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02);
     UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
     UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
-    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05);
 
     UtRegisterTest("DetectFiledataIsdataatParseTest1",
             DetectFiledataIsdataatParseTest1);
