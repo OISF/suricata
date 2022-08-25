@@ -119,6 +119,9 @@ static void TransformUrlDecode(InspectionBuffer *buffer, void *options)
 
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
+    if (input_len == 0) {
+        return;
+    }
     uint8_t output[input_len]; // we can only shrink
 
     changed = BufferUrlDecode(input, input_len, output, &output_size);
