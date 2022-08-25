@@ -16,6 +16,7 @@
  */
 
 pub mod byte_math;
+pub mod uint;
 pub mod detect;
 pub mod error;
 pub mod parser;
