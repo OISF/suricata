@@ -126,12 +126,12 @@ static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *n
         double avgticks_match = 0;
         double avgticks_no_match = 0;
         if (ticks && d->checks) {
-            avgticks = (ticks / d->checks);
+            avgticks = (double)(ticks / d->checks);
 
             if (d->ticks_match && d->matches)
-                avgticks_match = (d->ticks_match / d->matches);
+                avgticks_match = (double)(d->ticks_match / d->matches);
             if (d->ticks_no_match && (d->checks - d->matches) != 0)
-                avgticks_no_match = (d->ticks_no_match / (d->checks - d->matches));
+                avgticks_no_match = (double)(d->ticks_no_match / (d->checks - d->matches));
         }
 
         fprintf(fp,
