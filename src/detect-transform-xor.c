@@ -131,6 +131,9 @@ static void DetectTransformXor(InspectionBuffer *buffer, void *options)
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
     DetectTransformXorData *pxd = options;
+    if (input_len == 0) {
+        return;
+    }
     uint8_t output[input_len];
 
     for (uint32_t i = 0; i < input_len; i++) {
