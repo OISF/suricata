@@ -15,10 +15,9 @@
  * 02110-1301, USA.
  */
 
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, take_while};
+use nom7::bytes::complete::{is_a, take_while};
 use nom7::character::complete::{alpha0, char, digit1};
-use nom7::combinator::{all_consuming, map_opt, map_res, opt, value};
+use nom7::combinator::{all_consuming, map_opt, map_res, opt};
 use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
@@ -96,59 +95,6 @@ pub unsafe extern "C" fn rs_detect_stream_size_parse(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_stream_size_free(ctx: &mut DetectStreamSizeData) {
-    // Just unbox...
-    std::mem::drop(Box::from_raw(ctx));
-}
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct DetectUrilenData {
-    pub du16: DetectUintData<u16>,
-    pub raw_buffer: bool,
-}
-
-pub fn detect_parse_urilen_raw(i: &str) -> IResult<&str, bool> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = char(',')(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    return alt((value(true, tag("raw")), value(false, tag("norm"))))(i);
-}
-
-pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
-    let (i, du16) = detect_parse_uint_notending::<u16>(i)?;
-    let (i, raw) = opt(detect_parse_urilen_raw)(i)?;
-    match raw {
-        Some(raw_buffer) => {
-            return Ok((i, DetectUrilenData { du16, raw_buffer }));
-        }
-        None => {
-            return Ok((
-                i,
-                DetectUrilenData {
-                    du16,
-                    raw_buffer: false,
-                },
-            ));
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_urilen_parse(
-    ustr: *const std::os::raw::c_char,
-) -> *mut DetectUrilenData {
-    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
-    if let Ok(s) = ft_name.to_str() {
-        if let Ok((_, ctx)) = detect_parse_urilen(s) {
-            let boxed = Box::new(ctx);
-            return Box::into_raw(boxed) as *mut _;
-        }
-    }
-    return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_urilen_free(ctx: &mut DetectUrilenData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
