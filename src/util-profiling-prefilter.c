@@ -115,7 +115,7 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
         uint64_t ticks = d->total;
         double avgticks = 0;
         if (ticks && d->called) {
-            avgticks = (ticks / d->called);
+            avgticks = (double)(ticks / d->called);
         }
 
         fprintf(fp,
