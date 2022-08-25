@@ -15,13 +15,13 @@
  * 02110-1301, USA.
  */
 
+use super::uint::*;
 use nom7::bytes::complete::{is_a, take_while};
 use nom7::character::complete::{alpha0, char, digit1};
 use nom7::combinator::{all_consuming, map_opt, map_res, opt};
 use nom7::IResult;
-use super::uint::*;
 
-use std::ffi::{CStr};
+use std::ffi::CStr;
 use std::str::FromStr;
 
 #[repr(u8)]
