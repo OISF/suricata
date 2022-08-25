@@ -414,12 +414,21 @@ When ``relative`` is included, there must be a previous ``content`` or ``pcre`` 
 The result can be stored in a result variable and referenced by
 other rule options later in the rule.
 
+
+==============	==================================
+ Keyword	    Modifier
+============== 	==================================
+ content	    offset,depth,distance,within
+ byte_test	    offset,value
+ byte_jump	    offset
+ isdataat	    offset
+==============	==================================
+
 Format::
 
   byte_math:bytes <num of bytes>, offset <offset>, oper <operator>, rvalue <rvalue>, \
         result <result_var> [, relative] [, endian <endian>] [, string <number-type>] \
         [, dce] [, bitmask <value>];
-
 
 
 +-----------------------+-----------------------------------------------------------------------+
@@ -451,15 +460,6 @@ Format::
 |                       | number of trailing zeros in the mask                                  |
 +-----------------------+-----------------------------------------------------------------------+
 
-
-==============	==================================
- Keyword	Modifier
-============== 	==================================
- content	offset,depth,distance,within
- byte_test	offset,value
- byte_jump	offset
- isdataat	offset
-==============	==================================
 
 Example::
 
