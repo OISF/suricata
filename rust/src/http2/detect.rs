@@ -20,7 +20,7 @@ use super::http2::{
 };
 use super::parser;
 use crate::core::Direction;
-use crate::detect::detect::{detect_match_uint, DetectUintData};
+use crate::detect::uint::{detect_match_uint, DetectUintData};
 use std::ffi::CStr;
 use std::str::FromStr;
 
