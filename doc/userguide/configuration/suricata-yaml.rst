@@ -928,19 +928,21 @@ a component of Suricata; the defragment-engine. After a fragmented
 packet is reconstructed by the defragment-engine, the engine sends on
 the reassembled packet to rest of Suricata.
 
-There are three options within defrag: max-frags, prealloc and
-timeout. At the moment Suricata receives a fragment of a packet, it
+At the moment Suricata receives a fragment of a packet, it
 keeps in memory that other fragments of that packet will appear soon
 to complete the packet. However, there is a possibility that one of
 the fragments does not appear. To prevent Suricata for keeping waiting
 for that packet (thereby using memory) there is a timespan after which
-Suricata discards the fragments. This occurs by default after 60
+Suricata discards the fragments (timeout). This occurs by default after 60
 seconds.
 
 ::
 
   defrag:
-    max-frags: 65535
+    memcap: 32mb
+    hash-size: 65536
+    trackers: 65535    # number of defragmented flows to follow
+    max-frags: 65535   # number of fragments do keep (higher than trackers)
     prealloc: yes
     timeout: 60
 
