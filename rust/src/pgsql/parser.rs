@@ -545,7 +545,7 @@ impl From<u8> for PgsqlErrorNoticeFieldType {
 fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
     let (i, param_name) = take_until1("\x00")(i)?;
     let (i, _) = tag("\x00")(i)?;
-    let (i, param_value) = take_until1("\x00")(i)?;
+    let (i, param_value) = take_until("\x00")(i)?;
     let (i, _) = tag("\x00")(i)?;
     Ok((i, PgsqlParameter {
         name: PgsqlParameters::from(param_name),
