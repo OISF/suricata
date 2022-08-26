@@ -89,7 +89,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
             det_ctx, ctx->transforms, p, frames, frame, ctx->list_id, idx, true);
     if (buffer == NULL)
         return;
-    DEBUG_VALIDATE_BUG_ON(buffer->orig_len > frame->len);
+    DEBUG_VALIDATE_BUG_ON(frame->len >= 0 && buffer->orig_len > frame->len);
 
     const uint32_t data_len = buffer->inspect_len;
     const uint8_t *data = buffer->inspect;
