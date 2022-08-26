@@ -1479,7 +1479,7 @@ Other parameters are customizable from Suricata.
 #   double-decode-query:    Double decode query section of the URI
 
 decompression-time-limit
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 decompression-time-limit was implemented to avoid DOS by resource exhaustion
 on inputs such as decompression bombs (found by fuzzing).
@@ -1519,7 +1519,7 @@ SMB is commonly used to transfer the DCERPC protocol. This traffic is also handl
 this parser.
 
 Resource limits
----------------
+^^^^^^^^^^^^^^^
 
 Several options are available for limiting record sizes and data chunk tracking.
 
@@ -1571,6 +1571,131 @@ the limits are exceeded, and an event will be raised.
 
 `max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
 but then for WRITEs.
+
+Configure HTTP2
+~~~~~~~~~~~~~~~
+
+HTTP2 has 2 parameters that can be customized.
+The point of these 2 parameters is to find a balance between the completeness
+of analysis and the resource consumption.
+
+`http2.max-table-size` refers to `SETTINGS_HEADER_TABLE_SIZE` from rfc 7540 section 6.5.2.
+Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
+
+`http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
+Its default value is unlimited.
+
+SSL/TLS
+~~~~~~~
+
+SSL/TLS parsers track encrypted SSLv2, SSLv3, TLSv1, TLSv1.1 and TLSv1.2
+sessions.
+
+Protocol detection is done using patterns and a probing parser running
+on only TCP/443 by default. The pattern based protocol detection is
+port independent.
+
+::
+
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+
+      # What to do when the encrypted communications start:
+      # - default: keep tracking TLS session, check for protocol anomalies,
+      #            inspect tls_* keywords. Disables inspection of unmodified
+      #            'content' signatures.
+      # - bypass:  stop processing this flow as much as possible. No further
+      #            TLS parsing and inspection. Offload flow bypass to kernel
+      #            or hardware if possible.
+      # - full:    keep tracking and inspection as normal. Unmodified content
+      #            keyword signatures are inspected as well.
+      #
+      # For best performance, select 'bypass'.
+      #
+      #encrypt-handling: default
+
+
+Encrypted traffic
+^^^^^^^^^^^^^^^^^
+
+There is no decryption of encrypted traffic, so once the handshake is complete
+continued tracking of the session is of limited use. The ``encrypt-handling``
+option controls the behavior after the handshake.
+
+If ``encrypt-handling`` is set to ``default`` (or if the option is not set),
+Suricata will continue to track the SSL/TLS session. Inspection will be limited,
+as raw ``content`` inspection will still be disabled. There is no point in doing
+pattern matching on traffic known to be encrypted. Inspection for (encrypted)
+Heartbleed and other protocol anomalies still happens.
+
+When ``encrypt-handling`` is set to ``bypass``, all processing of this session is
+stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
+this will lead to the flow being bypassed, either inside Suricata or by the
+capture method if it supports it and is configured for it.
+
+Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
+flow as normal, without inspection limitations or bypass.
+
+The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
+present, and ``encrypt-handling`` is not, ``false`` is interpreted as
+``encrypt-handling: default`` and ``true`` is interpreted as
+``encrypt-handling: bypass``.
+
+
+Modbus
+~~~~~~
+
+According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it
+is recommended to keep the TCP connection opened with a remote device
+and not to open and close it for each MODBUS/TCP transaction.
+In that case, it is important to set the stream-depth of the modbus as
+unlimited.
+
+::
+
+      modbus:
+        # Stream reassembly size for modbus, default is 0
+        stream-depth: 0
+
+
+MQTT
+~~~~
+
+MQTT messages could theoretically be up to 256MB in size, potentially
+containing a lot of payload data (such as properties, topics, or
+published payloads) that would end up parsed and logged. To acknowledge
+the fact that most MQTT messages, however, will be quite small and to
+reduce the potential for denial of service issues, it is possible to limit
+the maximum length of a message that we are willing to parse. Any message
+larger than the limit will just be logged with reduced metadata, and rules
+will only be evaluated against a subset of fields.
+The default is 1 MB.
+
+::
+
+      mqtt:
+        max-msg-length: 1mb
+
+SMTP
+~~~~~~
+
+SMTP parsers can extract files from attachments.
+It is also possible to extract raw conversations as files with the
+key ``raw-extraction``. Note that in this case the whole conversation
+will be stored as a file, including SMTP headers and body content. The filename
+will be set to "rawmsg". Usual file-related signatures will match on the raw
+content of the email.
+This configuration parameter has a ``false`` default value. It is
+incompatible with ``decode-mime``. If both are enabled,
+``raw-extraction`` will be automatically disabled.
+
+::
+
+      smtp:
+        # extract messages in raw format from SMTP
+        raw-extraction: true
 
 Engine Logging
 --------------
@@ -2249,121 +2374,6 @@ in which two threads have to wait for each other. When using two
 threads, the time threads might have to wait for each other will be
 taken in account when/during profiling packets. For more information
 see :doc:`../performance/packet-profiling`.
-
-Application layers
-------------------
-
-SSL/TLS
-~~~~~~~
-
-SSL/TLS parsers track encrypted SSLv2, SSLv3, TLSv1, TLSv1.1 and TLSv1.2
-sessions.
-
-Protocol detection is done using patterns and a probing parser running
-on only TCP/443 by default. The pattern based protocol detection is
-port independent.
-
-::
-
-    tls:
-      enabled: yes
-      detection-ports:
-        dp: 443
-
-      # What to do when the encrypted communications start:
-      # - default: keep tracking TLS session, check for protocol anomalies,
-      #            inspect tls_* keywords. Disables inspection of unmodified
-      #            'content' signatures.
-      # - bypass:  stop processing this flow as much as possible. No further
-      #            TLS parsing and inspection. Offload flow bypass to kernel
-      #            or hardware if possible.
-      # - full:    keep tracking and inspection as normal. Unmodified content
-      #            keyword signatures are inspected as well.
-      #
-      # For best performance, select 'bypass'.
-      #
-      #encrypt-handling: default
-
-
-Encrypted traffic
-^^^^^^^^^^^^^^^^^
-
-There is no decryption of encrypted traffic, so once the handshake is complete
-continued tracking of the session is of limited use. The ``encrypt-handling``
-option controls the behavior after the handshake.
-
-If ``encrypt-handling`` is set to ``default`` (or if the option is not set),
-Suricata will continue to track the SSL/TLS session. Inspection will be limited,
-as raw ``content`` inspection will still be disabled. There is no point in doing
-pattern matching on traffic known to be encrypted. Inspection for (encrypted)
-Heartbleed and other protocol anomalies still happens.
-
-When ``encrypt-handling`` is set to ``bypass``, all processing of this session is
-stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
-this will lead to the flow being bypassed, either inside Suricata or by the
-capture method if it supports it and is configured for it.
-
-Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
-flow as normal, without inspection limitations or bypass.
-
-The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
-present, and ``encrypt-handling`` is not, ``false`` is interpreted as
-``encrypt-handling: default`` and ``true`` is interpreted as
-``encrypt-handling: bypass``.
-
-
-Modbus
-~~~~~~
-
-According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it
-is recommended to keep the TCP connection opened with a remote device
-and not to open and close it for each MODBUS/TCP transaction.
-In that case, it is important to set the stream-depth of the modbus as
-unlimited.
-
-::
-
-      modbus:
-        # Stream reassembly size for modbus, default is 0
-        stream-depth: 0
-
-
-MQTT
-~~~~
-
-MQTT messages could theoretically be up to 256MB in size, potentially
-containing a lot of payload data (such as properties, topics, or
-published payloads) that would end up parsed and logged. To acknowledge
-the fact that most MQTT messages, however, will be quite small and to
-reduce the potential for denial of service issues, it is possible to limit
-the maximum length of a message that we are willing to parse. Any message
-larger than the limit will just be logged with reduced metadata, and rules
-will only be evaluated against a subset of fields.
-The default is 1 MB.
-
-::
-
-      mqtt:
-        max-msg-length: 1mb
-
-SMTP
-~~~~~~
-
-SMTP parsers can extract files from attachments.
-It is also possible to extract raw conversations as files with the
-key ``raw-extraction``. Note that in this case the whole conversation
-will be stored as a file, including SMTP headers and body content. The filename
-will be set to "rawmsg". Usual file-related signatures will match on the raw
-content of the email.
-This configuration parameter has a ``false`` default value. It is
-incompatible with ``decode-mime``. If both are enabled,
-``raw-extraction`` will be automatically disabled.
-
-::
-
-      smtp:
-        # extract messages in raw format from SMTP
-        raw-extraction: true
 
 Decoder
 -------
