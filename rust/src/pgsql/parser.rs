@@ -21,7 +21,7 @@
 
 use crate::common::nom7::take_until_and_consume;
 use nom7::branch::alt;
-use nom7::bytes::streaming::{tag, tag_no_case, take, take_until, take_until1};
+use nom7::bytes::streaming::{tag, take, take_until, take_until1};
 use nom7::character::streaming::{alphanumeric1, char};
 use nom7::combinator::{all_consuming, cond, eof, map_parser, opt, peek, rest, verify};
 use nom7::error::{make_error, ErrorKind};
@@ -526,28 +526,6 @@ impl From<u8> for PgsqlErrorNoticeFieldType {
     }
 }
 
-fn parse_user_param(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
-    let (i, param_name) = tag_no_case("user")(i)?;
-    let (i, _) = tag("\x00")(i)?;
-    let (i, param_value) = take_until1("\x00")(i)?;
-    let (i, _) = tag("\x00")(i)?;
-    Ok((i, PgsqlParameter {
-        name: PgsqlParameters::from(param_name),
-        value: param_value.to_vec(),
-    }))
-}
-
-fn parse_database_param(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
-    let (i, param_name) = tag_no_case("database")(i)?;
-    let (i, _) = tag("\x00")(i)?;
-    let (i, param_value) = take_until1("\x00")(i)?;
-    let (i, _) = tag("\x00")(i)?;
-    Ok((i, PgsqlParameter {
-        name: PgsqlParameters::from(param_name),
-        value: param_value.to_vec(),
-    }))
-}
-
 // Currently the set of parameters that could trigger a ParameterStatus message is fixed:
 // server_version
 // server_encoding
@@ -576,14 +554,29 @@ fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
 }
 
 pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupParameters> {
-    let (i, user) = parse_user_param(i)?;
-    let (i, database) = opt(parse_database_param)(i)?;
     let (i, optional) = opt(terminated(many1(pgsql_parse_generic_parameter), tag("\x00")))(i)?;
-    Ok((i, PgsqlStartupParameters{
-        user,
-        database,
-        optional_params: optional,
-    }))
+    if let Some(ref params) = optional {
+        let mut user = PgsqlParameter{name: PgsqlParameters::User, value: Vec::new() };
+        let mut database = None;
+        for j in 0..params.len() {
+            if params[j].name == PgsqlParameters::User {
+                user.value.extend_from_slice(&params[j].value);
+            } else if params[j].name == PgsqlParameters::Database {
+                let mut d1 = PgsqlParameter{name: PgsqlParameters::Database, value: Vec::new() };
+                d1.value.extend_from_slice(&params[j].value);
+                database = Some(d1);
+            }
+        }
+        if user.value.len() == 0 {
+            return Err(Err::Error(make_error(i, ErrorKind::Tag)));
+        }
+        return Ok((i, PgsqlStartupParameters{
+            user,
+            database,
+            optional_params: optional,
+        }));
+    }
+    return Err(Err::Error(make_error(i, ErrorKind::Tag)));
 }
 
 fn parse_sasl_initial_response_payload(i: &[u8]) -> IResult<&[u8], (SASLAuthenticationMechanism, u32, Vec<u8>)> {
