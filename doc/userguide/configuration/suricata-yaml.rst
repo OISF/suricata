@@ -933,13 +933,18 @@ for that packet (thereby using memory) there is a timespan after which
 Suricata discards the fragments (timeout). This occurs by default after 60
 seconds.
 
+In IPS mode, it is possible to tell the engine what to do in case the memcap for
+the defrag engine is reached: "drop-flow", "pass-flow", "bypass", "drop-packet",
+"pass-packet", or "ignore" (default behavior).
+
 ::
 
   defrag:
     memcap: 32mb
+    memcap-policy: ignore  # in IPS mode, what to do if memcap is reached
     hash-size: 65536
-    trackers: 65535    # number of defragmented flows to follow
-    max-frags: 65535   # number of fragments do keep (higher than trackers)
+    trackers: 65535        # number of defragmented flows to follow
+    max-frags: 65535       # number of fragments do keep (higher than trackers)
     prealloc: yes
     timeout: 60
 
@@ -991,10 +996,14 @@ the packet processing. This thread is called the flow-manager. This
 thread ensures that wherever possible and within the memcap. there
 will be 10000 flows prepared.
 
+In IPS mode, a memcap-policy exception policy can be set, telling Suricata
+what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
+
 ::
 
   flow:
     memcap: 33554432              #The maximum amount of bytes the flow-engine will make use of.
+    memcap-policy: bypass         #How to handle the flow if memcap is reached (IPS mode)
     hash_size: 65536              #Flows will be organized in a hash-table. With this option you can set the
                                   #size of the hash-table.
     Prealloc: 10000               #The amount of flows Suricata has to keep ready in memory.
@@ -1087,7 +1096,9 @@ reassembly-engine reconstructs the flow as it used to be, so it will
 be recognized by Suricata.
 
 The stream-engine has two memcaps that can be set. One for the
-stream-tracking-engine and one for the reassembly-engine.
+stream-tracking-engine and one for the reassembly-engine. For both cases,
+in IPS mode, an exception policy (memcap-policy) can be set, telling Suricata
+what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
 
 The stream-tracking-engine keeps information of the flow in
 memory. Information about the state, TCP-sequence-numbers and the TCP
@@ -1103,6 +1114,7 @@ option can be set off by entering 'no' instead of 'yes'.
 
   stream:
     memcap: 64mb                # Max memory usage (in bytes) for TCP session tracking
+    memcap-policy: ignore       # In IPS mode, call memcap policy if memcap is reached
     checksum_validation: yes    # Validate packet checksum, reject packets with invalid checksums.
 
 To mitigate Suricata from being overloaded by fast session creation,
@@ -1116,13 +1128,14 @@ started. This way, Suricata misses the original setup of those
 sessions. This setup always includes a lot of information. If you want
 Suricata to check the stream from that time on, you can do so by
 setting the option 'midstream' to 'true'. The default setting is
-'false'. Normally Suricata is able to see all packets of a
-connection. Some networks make it more complicated though. Some of the
-network-traffic follows a different route than the other part, in
-other words: the traffic goes asynchronous. To make sure Suricata will
-check the one part it does see, instead of getting confused, the
-option 'async-oneside' is brought to life. By default the option is
-set to 'false'.
+'false'. In IPS mode, it is possible to define a 'midstream-policy',
+indicating whether Suricata should drop, pass or bypass a midstream flow.
+Normally Suricata is able to see all packets of a connection. Some networks
+make it more complicated though. Some of the network-traffic follows a
+different route than the other part, in other words: the traffic goes
+asynchronous. To make sure Suricata will check the one part it does see,
+instead of getting confused, the option 'async-oneside' is brought to life. By
+default the option is set to 'false'.
 
 Suricata inspects content in the normal/IDS mode in chunks. In the
 inline/IPS mode it does that on the sliding window way (see example
@@ -1137,6 +1150,7 @@ anomalies in streams. See :ref:`host-os-policy`.
 
     prealloc_sessions: 32768     # 32k sessions prealloc'd
     midstream: false             # do not allow midstream session pickups
+    midstream-policy: drop-flow  # in IPS mode, drop flows that start midstream
     async_oneside: false         # do not enable async stream handling
     inline: no                   # stream inline mode
     drop-invalid: yes            # drop invalid packets
@@ -1173,7 +1187,9 @@ Suricata inspects traffic in a sliding window manner.
 
 The reassembly-engine has to keep data segments in memory in order to
 be able to reconstruct a stream. To avoid resource starvation a memcap
-is used to limit the memory used.
+is used to limit the memory used. In IPS mode, an exception policy
+(memcap-policy) can be set, telling Suricata what to do in case memcap
+is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
 
 Reassembling a stream is an expensive operation. With the option depth
 you can control how far into a stream reassembly is done. By default
@@ -1189,6 +1205,7 @@ adding in a random factor.
 
     reassembly:
       memcap: 256mb             # Memory reserved for stream data reconstruction (in bytes)
+      memcap-policy: ignore     # What to do when a midstream session is seen
       depth: 1mb                # The depth of the reassembling.
       toserver_chunk_size: 2560 # inspect raw stream in chunks of at least this size
       toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
@@ -1229,6 +1246,16 @@ network inspection.
 
 Application Layer Parsers
 -------------------------
+
+The ``app-layer`` section holds application layer specific configurations.
+
+A in IPS mode, a global exception policy accessed via the ``error-policy``
+setting can be defined to indicate what the engine should do in case if
+encounters an app-layer error. Possible values are "drop-flow", "pass-flow",
+"bypass", "drop-packet", "pass-packet" or "ignore" (which will mean keeping
+the default behavior).
+
+Each supported protocol will have a dedicated subsection under ``protocols``.
 
 Asn1_max_frames (new in 1.0.3 and 1.1)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
