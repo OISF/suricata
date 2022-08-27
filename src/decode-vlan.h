@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,11 +35,6 @@ uint16_t DecodeVLANGetId(const struct Packet_ *, uint8_t layer);
 #define GET_VLAN_CFI(vlanh)         ((SCNtohs((vlanh)->vlan_cfi) & 0x0100) >> 12)
 #define GET_VLAN_ID(vlanh)          ((uint16_t)(SCNtohs((vlanh)->vlan_cfi) & 0x0FFF))
 #define GET_VLAN_PROTO(vlanh)       ((SCNtohs((vlanh)->protocol)))
-
-/* return vlan id in host byte order */
-#define VLAN_GET_ID1(p)             DecodeVLANGetId((p), 0)
-#define VLAN_GET_ID2(p)             DecodeVLANGetId((p), 1)
-#define VLAN_GET_ID3(p)             DecodeVLANGetId((p), 2)
 
 /** Vlan header struct */
 typedef struct VLANHdr_ {
