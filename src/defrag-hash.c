@@ -465,7 +465,7 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
  *  Get a new defrag tracker. We're checking memcap first and will try to make room
  *  if the memcap is reached.
  *
- *  \retval dt *LOCKED* tracker on succes, NULL on error.
+ *  \retval dt *LOCKED* tracker on success, NULL on error.
  */
 static DefragTracker *DefragTrackerGetNew(Packet *p)
 {
