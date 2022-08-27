@@ -568,7 +568,7 @@ static inline void NoFlowHandleIPS(Packet *p)
  *  \param tv thread vars
  *  \param fls lookup support vars
  *
- *  \retval f *LOCKED* flow on succes, NULL on error.
+ *  \retval f *LOCKED* flow on success, NULL on error.
  */
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
@@ -632,7 +632,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     } else {
         /* flow has been recycled before it went into the spare queue */
 
-        /* flow is initialized (recylced) but *unlocked* */
+        /* flow is initialized (recycled) but *unlocked* */
     }
 
     FLOWLOCK_WRLOCK(f);
@@ -739,7 +739,7 @@ static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool 
  * flow pointer. Then compares the packet with the found flow to see if it is
  * the flow we need. If it isn't, walk the list until the right flow is found.
  *
- * If the flow is not found or the bucket was emtpy, a new flow is taken from
+ * If the flow is not found or the bucket was empty, a new flow is taken from
  * the spare pool. The pool will alloc new flows as long as we stay within our
  * memcap limit.
  *
