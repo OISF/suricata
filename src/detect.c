@@ -997,17 +997,20 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
  *  \brief sort helper for sorting match candidates by id: ascending
  *
  *  The id field is set from Signature::num, so we sort the candidates to match the signature
- *  sort order (ascending).
- *
- *  \todo maybe let one with flags win if equal? */
+ *  sort order (ascending), where candidates that have flags go first.
+ */
 static int
 DetectRunTxSortHelper(const void *a, const void *b)
 {
     const RuleMatchCandidateTx *s0 = a;
     const RuleMatchCandidateTx *s1 = b;
-    if (s1->id == s0->id)
+    if (s1->id == s0->id) {
+        if (s1->flags && !s0->flags)
+            return 1;
+        else if (!s1->flags && s0->flags)
+            return -1;
         return 0;
-    else
+    } else
         return s0->id > s1->id ? 1 : -1;
 }
 
@@ -1422,6 +1425,13 @@ static void DetectRunTx(ThreadVars *tv,
         det_ctx->tx_id_set = true;
         det_ctx->p = p;
 
+#ifdef DEBUG
+        for (uint32_t i = 0; i < array_idx; i++) {
+            RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
+            const Signature *s = det_ctx->tx_candidates[i].s;
+            SCLogDebug("%u: sid %u flags %p", i, s->id, can->flags);
+        }
+#endif
         /* run rules: inspect the match candidates */
         for (uint32_t i = 0; i < array_idx; i++) {
             RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
@@ -1431,24 +1441,13 @@ static void DetectRunTx(ThreadVars *tv,
             /* deduplicate: rules_array is sorted, but not deduplicated:
              * both mpm and stored state could give us the same sid.
              * As they are back to back in that case we can check for it
-             * here. We select the stored state one. */
-            if ((i + 1) < array_idx) {
-                if (det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i+1].s) {
-                    if (det_ctx->tx_candidates[i].flags != NULL) {
-                        i++;
-                        SCLogDebug("%p/%"PRIu64" inspecting SKIP NEXT: sid %u (%u), flags %08x",
-                                tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
-                    } else if (det_ctx->tx_candidates[i+1].flags != NULL) {
-                        SCLogDebug("%p/%"PRIu64" inspecting SKIP CURRENT: sid %u (%u), flags %08x",
-                                tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
-                        continue;
-                    } else {
-                        // if it's all the same, inspect the current one and skip next.
-                        i++;
-                        SCLogDebug("%p/%"PRIu64" inspecting SKIP NEXT: sid %u (%u), flags %08x",
-                                tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
-                    }
-                }
+             * here. We select the stored state one as that comes first
+             * in the array. */
+            while ((i + 1) < array_idx &&
+                    det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i + 1].s) {
+                SCLogDebug("%p/%" PRIu64 " inspecting SKIP NEXT: sid %u (%u), flags %08x",
+                        tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
+                i++;
             }
 
             SCLogDebug("%p/%"PRIu64" inspecting: sid %u (%u), flags %08x",
