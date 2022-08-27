@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,16 +93,6 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
     return TM_ECODE_OK;
-}
-
-uint16_t DecodeVLANGetId(const Packet *p, uint8_t layer)
-{
-    if (unlikely(layer > 2))
-        return 0;
-    if (p->vlan_idx > layer) {
-        return p->vlan_id[layer];
-    }
-    return 0;
 }
 
 typedef struct IEEE8021ahHdr_ {
