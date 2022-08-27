@@ -634,7 +634,7 @@ static inline void NoFlowHandleIPS(Packet *p)
  *  \param tv thread vars
  *  \param fls lookup support vars
  *
- *  \retval f *LOCKED* flow on succes, NULL on error.
+ *  \retval f *LOCKED* flow on success, NULL on error.
  */
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
