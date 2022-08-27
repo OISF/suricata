@@ -23,7 +23,7 @@
  * Defragmentation module.
  * References:
  *   - RFC 815
- *   - OpenBSD PF's IP normalizaton (pf_norm.c)
+ *   - OpenBSD PF's IP normalization (pf_norm.c)
  *
  * \todo pool for frag packet storage
  * \todo policy bsd-right
@@ -218,8 +218,7 @@ DefragContextNew(void)
                            "defrag: Timeout less than minimum allowed value.");
         }
         else if (timeout > TIMEOUT_MAX) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Tiemout greater than maximum allowed value.");
+            FatalError(SC_ERR_FATAL, "defrag: Timeout greater than maximum allowed value.");
         }
         dc->timeout = timeout;
     }
@@ -2082,7 +2081,7 @@ static int DefragTimeoutTest(void)
 {
     int i;
 
-    /* Setup a small numberr of trackers. */
+    /* Setup a small number of trackers. */
     FAIL_IF_NOT(ConfSet("defrag.trackers", "16"));
 
     DefragInit();
