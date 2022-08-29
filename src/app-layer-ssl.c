@@ -489,100 +489,81 @@ static inline int TlsDecodeHSCertificateAddCertToChain(
     return 0;
 }
 
-/** \retval consumed bytes consumed or -1 on error */
 static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
-        const uint8_t *const initial_input, const uint32_t input_len)
+        const uint8_t *const initial_input, const uint32_t input_len, const int certn)
 {
     const uint8_t *input = (uint8_t *)initial_input;
     uint32_t err_code = 0;
     X509 *x509 = NULL;
+    int rc = 0;
 
     if (!(HAS_SPACE(3)))
-        return 0;
+        goto invalid_cert;
 
-    uint32_t cert_chain_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
+    uint32_t cert_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
     input += 3;
 
-    if (!(HAS_SPACE(cert_chain_len)))
-        return 0;
+    if (!(HAS_SPACE(cert_len)))
+        goto invalid_cert;
 
-    uint32_t processed_len = 0;
-    /* coverity[tainted_data] */
-    while (processed_len < cert_chain_len)
-    {
-        err_code = 0;
-        int rc = 0;
+    /* only store fields from the first certificate in the chain */
+    if (certn == 0 && connp->cert0_subject == NULL && connp->cert0_issuerdn == NULL &&
+            connp->cert0_serial == NULL) {
+        int64_t not_before, not_after;
 
-        if (!(HAS_SPACE(3)))
-            goto invalid_cert;
-
-        uint32_t cert_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
-        input += 3;
-
-        if (!(HAS_SPACE(cert_len)))
-            goto invalid_cert;
-
-        /* only store fields from the first certificate in the chain */
-        if (processed_len == 0 && connp->cert0_subject == NULL && connp->cert0_issuerdn == NULL &&
-                connp->cert0_serial == NULL) {
-            int64_t not_before, not_after;
-
-            x509 = rs_x509_decode(input, cert_len, &err_code);
-            if (x509 == NULL) {
-                TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
-                goto next;
-            }
-
-            char *str = rs_x509_get_subject(x509);
-            if (str == NULL) {
-                err_code = ERR_EXTRACT_SUBJECT;
-                goto error;
-            }
-            connp->cert0_subject = str;
-
-            str = rs_x509_get_issuer(x509);
-            if (str == NULL) {
-                err_code = ERR_EXTRACT_ISSUER;
-                goto error;
-            }
-            connp->cert0_issuerdn = str;
-
-            str = rs_x509_get_serial(x509);
-            if (str == NULL) {
-                err_code = ERR_INVALID_SERIAL;
-                goto error;
-            }
-            connp->cert0_serial = str;
-
-            rc = rs_x509_get_validity(x509, &not_before, &not_after);
-            if (rc != 0) {
-                err_code = ERR_EXTRACT_VALIDITY;
-                goto error;
-            }
-            connp->cert0_not_before = (time_t)not_before;
-            connp->cert0_not_after = (time_t)not_after;
-
-            rs_x509_free(x509);
-            x509 = NULL;
-
-            rc = TlsDecodeHSCertificateFingerprint(connp, input, cert_len);
-            if (rc != 0) {
-                SCLogDebug("TlsDecodeHSCertificateFingerprint failed with %d", rc);
-                goto error;
-            }
+        x509 = rs_x509_decode(input, cert_len, &err_code);
+        if (x509 == NULL) {
+            TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
+            goto next;
         }
 
-        rc = TlsDecodeHSCertificateAddCertToChain(connp, input, cert_len);
-        if (rc != 0) {
-            SCLogDebug("TlsDecodeHSCertificateAddCertToChain failed with %d", rc);
+        char *str = rs_x509_get_subject(x509);
+        if (str == NULL) {
+            err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
+        connp->cert0_subject = str;
 
-next:
-        input += cert_len;
-        processed_len += cert_len + 3;
+        str = rs_x509_get_issuer(x509);
+        if (str == NULL) {
+            err_code = ERR_EXTRACT_ISSUER;
+            goto error;
+        }
+        connp->cert0_issuerdn = str;
+
+        str = rs_x509_get_serial(x509);
+        if (str == NULL) {
+            err_code = ERR_INVALID_SERIAL;
+            goto error;
+        }
+        connp->cert0_serial = str;
+
+        rc = rs_x509_get_validity(x509, &not_before, &not_after);
+        if (rc != 0) {
+            err_code = ERR_EXTRACT_VALIDITY;
+            goto error;
+        }
+        connp->cert0_not_before = (time_t)not_before;
+        connp->cert0_not_after = (time_t)not_after;
+
+        rs_x509_free(x509);
+        x509 = NULL;
+
+        rc = TlsDecodeHSCertificateFingerprint(connp, input, cert_len);
+        if (rc != 0) {
+            SCLogDebug("TlsDecodeHSCertificateFingerprint failed with %d", rc);
+            goto error;
+        }
     }
 
+    rc = TlsDecodeHSCertificateAddCertToChain(connp, input, cert_len);
+    if (rc != 0) {
+        SCLogDebug("TlsDecodeHSCertificateAddCertToChain failed with %d", rc);
+        goto error;
+    }
+
+next:
+    input += cert_len;
     return (input - initial_input);
 
 error:
@@ -596,6 +577,57 @@ invalid_cert:
     SCLogDebug("TLS invalid certificate");
     SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
     return -1;
+}
+
+/** \internal
+ * \brief parse cert data in a certificate handshake message
+ *        will be called with all data.
+ * \retval consumed bytes consumed or -1 on error
+ */
+static int TlsDecodeHSCertificates(SSLState *ssl_state, SSLStateConnp *connp,
+        const uint8_t *const initial_input, const uint32_t input_len)
+{
+    const uint8_t *input = (uint8_t *)initial_input;
+
+    if (!(HAS_SPACE(3)))
+        return -1;
+
+    const uint32_t cert_chain_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
+    input += 3;
+
+    if (!(HAS_SPACE(cert_chain_len)))
+        return -1;
+
+    if (connp->certs_buffer != NULL) {
+        // TODO should we set an event here?
+        return -1;
+    }
+
+    connp->certs_buffer = SCCalloc(1, cert_chain_len);
+    if (connp->certs_buffer == NULL) {
+        return -1;
+    }
+    connp->certs_buffer_size = cert_chain_len;
+    memcpy(connp->certs_buffer, input, cert_chain_len);
+
+    int cert_cnt = 0;
+    uint32_t processed_len = 0;
+    /* coverity[tainted_data] */
+    while (processed_len < cert_chain_len) {
+        int rc = TlsDecodeHSCertificate(ssl_state, connp, connp->certs_buffer + processed_len,
+                connp->certs_buffer_size - processed_len, cert_cnt);
+        if (rc <= 0) { // 0 should be impossible, but lets be defensive
+            return -1;
+        }
+        DEBUG_VALIDATE_BUG_ON(processed_len + (uint32_t)rc > cert_chain_len);
+        if (processed_len + (uint32_t)rc > cert_chain_len) {
+            return -1;
+        }
+
+        processed_len += (uint32_t)rc;
+    }
+
+    return processed_len + 3;
 }
 
 /**
@@ -1386,7 +1418,7 @@ RecordAlreadyProcessed(const SSLStateConnp *curr_connp)
 static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state, SSLStateConnp *connp,
         const uint8_t *const initial_input, const uint32_t input_len)
 {
-    int rc = TlsDecodeHSCertificate(ssl_state, connp, initial_input, input_len);
+    int rc = TlsDecodeHSCertificates(ssl_state, connp, initial_input, input_len);
     SCLogDebug("rc %d", rc);
     if (rc > 0) {
         DEBUG_VALIDATE_BUG_ON(rc > (int)input_len);
@@ -2557,6 +2589,8 @@ static void SSLStateFree(void *p)
     }
 
     /* Free certificate chain */
+    if (ssl_state->server_connp.certs_buffer)
+        SCFree(ssl_state->server_connp.certs_buffer);
     while ((item = TAILQ_FIRST(&ssl_state->server_connp.certs))) {
         TAILQ_REMOVE(&ssl_state->server_connp.certs, item, next);
         SCFree(item);
