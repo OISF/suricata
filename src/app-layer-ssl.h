@@ -230,6 +230,9 @@ typedef struct SSLStateConnp_ {
 
     TAILQ_HEAD(, SSLCertsChain_) certs;
 
+    uint8_t *certs_buffer;
+    uint32_t certs_buffer_size;
+
     uint32_t cert_log_flag;
 
     JA3Buffer *ja3_str;
