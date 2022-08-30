@@ -271,6 +271,9 @@
                     "properties": {
                         "ip": {
                             "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
                         }
                     },
                     "additionalProperties": false
@@ -280,6 +283,9 @@
                     "properties": {
                         "ip": {
                             "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
                         }
                     },
                     "additionalProperties": false
