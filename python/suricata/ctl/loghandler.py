@@ -1,4 +1,4 @@
-# Copyright (C) 2017 Open Information Security Foundation
+# Copyright (C) 2017-2022 Open Information Security Foundation
 # Copyright (c) 2016 Jason Ish
 #
 # You can copy, redistribute or modify this Program under the terms of

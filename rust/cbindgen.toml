@@ -10,7 +10,7 @@ language = "C"
 
 # An optional string of text to output at the beginning of the generated file
 # default: doesn't emit anything
-header = """/* Copyright (C) 2019 Open Information Security Foundation
+header = """/* Copyright (C) 2022 Open Information Security Foundation
 *
 * You can copy, redistribute or modify this Program under the terms of
 * the GNU General Public License version 2 as published by the Free
