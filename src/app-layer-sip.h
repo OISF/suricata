@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2015 Open Information Security Foundation
+# Copyright (C) 2015-2022 Open Information Security Foundation
 #
 # You can copy, redistribute or modify this Program under the terms of
 # the GNU General Public License version 2 as published by the Free
@@ -30,7 +30,7 @@ import jinja2
 IN_PLACE_START = "/* START GENERATED CODE */"
 IN_PLACE_END = "/* END GENERATED CODE */"
 
-util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Security Foundation
+util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -124,7 +124,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
 
 """
 
-output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Security Foundation
+output_json_dnp3_objects_template = """/* Copyright (C) 2015-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
