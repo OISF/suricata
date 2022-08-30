@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-
 void HTPParseMemcap(void);
 void *HTPMalloc(size_t size);
 void *HTPCalloc(size_t n, size_t size);
