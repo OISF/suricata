@@ -1178,13 +1178,13 @@
                         "type": "string"
                     }
                 },
-               "has_ipv6_url": {
+                "has_ipv6_url": {
                     "type": "boolean"
                 },
-               "has_ipv4_url": {
+                "has_ipv4_url": {
                     "type": "boolean"
                 },
-               "has_exe_url": {
+                "has_exe_url": {
                     "type": "boolean"
                 }
             },
@@ -3549,39 +3549,105 @@
                         "error": {
                             "type": "object",
                             "properties": {
-                                "dcerpc_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "dcerpc_udp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "dhcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "dnp3": { "$ref": "#/$defs/stats_applayer_error" },
-                                "dns_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "dns_udp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "enip_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "enip_udp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "failed_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "ftp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "ftp-data": { "$ref": "#/$defs/stats_applayer_error" },
-                                "http": { "$ref": "#/$defs/stats_applayer_error" },
-                                "http2": { "$ref": "#/$defs/stats_applayer_error" },
-                                "ike": { "$ref": "#/$defs/stats_applayer_error" },
-                                "imap": { "$ref": "#/$defs/stats_applayer_error" },
-                                "krb5_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "krb5_udp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "mqtt": { "$ref": "#/$defs/stats_applayer_error" },
-                                "nfs_tcp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "nfs_udp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "ntp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "pgsql": { "$ref": "#/$defs/stats_applayer_error" },
-                                "quic": { "$ref": "#/$defs/stats_applayer_error" },
-                                "rdp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "rfb": { "$ref": "#/$defs/stats_applayer_error" },
-                                "sip": { "$ref": "#/$defs/stats_applayer_error" },
-                                "smb": { "$ref": "#/$defs/stats_applayer_error" },
-                                "smtp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "snmp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "ssh": { "$ref": "#/$defs/stats_applayer_error" },
-                                "telnet": { "$ref": "#/$defs/stats_applayer_error" },
-                                "tftp": { "$ref": "#/$defs/stats_applayer_error" },
-                                "tls": { "$ref": "#/$defs/stats_applayer_error" }
+                                "dcerpc_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "dcerpc_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "dhcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "dnp3": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "dns_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "dns_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "enip_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "enip_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "failed_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ftp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ftp-data": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "http": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "http2": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ike": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "imap": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "krb5_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "krb5_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "mqtt": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "nfs_tcp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "nfs_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ntp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "pgsql": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "quic": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "rdp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "rfb": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "sip": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "smb": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "smtp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "snmp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ssh": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "telnet": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "tftp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "tls": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                }
                             },
                             "additionalProperties": false
                         },
