@@ -244,12 +244,6 @@
                                 "type": "string"
                             }
                         },
-                        "tag": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
                         "updated_at": {
                             "type": "array",
                             "items": {
@@ -257,7 +251,7 @@
                             }
                         }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": true
                 },
                 "source": {
                     "type": "object",
