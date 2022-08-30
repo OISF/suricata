@@ -25,5 +25,6 @@
 #define __DETECT_TLS_CERTS_H__
 
 void DetectTlsCertsRegister(void);
+void DetectTlsCertChainLenRegister(void);
 
 #endif /* __DETECT_TLS_CERTS_H__ */
