@@ -521,6 +521,7 @@ void SigTableSetup(void)
     DetectTlsSerialRegister();
     DetectTlsFingerprintRegister();
     DetectTlsCertsRegister();
+    DetectTlsCertChainLenRegister();
     DetectTlsRandomRegister();
 
     DetectTlsJa3HashRegister();
