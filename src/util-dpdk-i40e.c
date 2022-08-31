@@ -160,8 +160,14 @@ static int i40eDeviceSetRSSFlowQueues(
     rss_action_conf.func = RTE_ETH_HASH_FUNCTION_DEFAULT;
     rss_action_conf.level = 0;
     rss_action_conf.types = 0; // queues region can not be configured with types
-    rss_action_conf.key = rss_conf.rss_key;
-    rss_action_conf.key_len = rss_conf.rss_key_len;
+    rss_action_conf.key_len = 0;
+    rss_action_conf.key = NULL;
+
+    if (nb_rx_queues < 1) {
+        FatalError(SC_ERR_DPDK_CONF, "The number of queues for RSS configuration must be "
+                                     "configured with a positive number");
+    }
+
     rss_action_conf.queue_num = nb_rx_queues;
     rss_action_conf.queue = queues;
 
