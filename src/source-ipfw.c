@@ -334,7 +334,11 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     IPFWMutexInit(nq);
     /* We need a divert socket to play with */
+#ifdef PF_DIVERT
+    if ((nq->fd = socket(PF_DIVERT, SOCK_RAW, 0)) == -1) {
+#else
     if ((nq->fd = socket(PF_INET, SOCK_RAW, IPPROTO_DIVERT)) == -1) {
+#endif
         SCLogError(SC_ERR_IPFW_SOCK,"Can't create divert socket: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
