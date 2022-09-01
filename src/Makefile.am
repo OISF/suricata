@@ -524,7 +524,6 @@ noinst_HEADERS = \
 	util-datalink.h \
 	util-debug-filters.h \
 	util-debug.h \
-	util-decode-mime.h \
 	util-detect.h \
 	util-device.h \
 	util-dpdk.h \
@@ -1118,7 +1117,6 @@ libsuricata_c_a_SOURCES = \
 	util-datalink.c \
 	util-debug.c \
 	util-debug-filters.c \
-	util-decode-mime.c \
 	util-detect.c \
 	util-device.c \
 	util-dpdk.c \
