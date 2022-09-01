@@ -59,7 +59,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     f->protoctx = &ssn;
     f->protomap = FlowGetProtoMapping(f->proto);
 
-    alproto = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, size-HEADER_LEN, f->proto, data[0], &reverse);
+    uint8_t flags = STREAM_TOCLIENT;
+    if (data[0] & STREAM_TOSERVER) {
+        flags = STREAM_TOSERVER;
+    }
+    alproto = AppLayerProtoDetectGetProto(
+            alpd_tctx, f, data + HEADER_LEN, size - HEADER_LEN, f->proto, flags, &reverse);
     if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
         /* If we find a valid protocol :
          * check that with smaller input
@@ -70,7 +75,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             // reset detection at each try cf probing_parser_toserver_alproto_masks
             AppLayerProtoDetectReset(f);
             alproto2 = AppLayerProtoDetectGetProto(
-                    alpd_tctx, f, data + HEADER_LEN, i, f->proto, data[0], &reverse);
+                    alpd_tctx, f, data + HEADER_LEN, i, f->proto, flags, &reverse);
             if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
                 printf("Failed with input length %" PRIuMAX " versus %" PRIuMAX
                        ", found %s instead of %s\n",
