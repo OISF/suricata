@@ -68,24 +68,23 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
     if(smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Transaction ending or not found");
     }
-    /* pointer to tail of msg list of MimeDecEntities in current transaction. */
-    MimeDecEntity *mime = smtp_tx->msg_tail;
+    /* pointer to tail of msg list of MimeStateSMTP in current transaction. */
+    MimeStateSMTP *mime = smtp_tx->mime_state;
     /* check if msg_tail was hit */
     if(mime == NULL){
         return LuaCallbackError(luastate, "Internal error: no fields in transaction");
     }
     /* extract MIME field based on specific field name. */
-    MimeDecField *field = MimeDecFindField(mime, name);
+    const uint8_t *field_value;
+    uint32_t field_len;
     /* check MIME field */
-    if(field == NULL) {
+    if (!SCMimeSmtpGetHeader(mime, name, &field_value, &field_len)) {
         return LuaCallbackError(luastate, "Error: mimefield not found");
     }
-    /* return extracted field. */
-    if(field->value == NULL || field->value_len == 0){
+    if (field_len == 0) {
         return LuaCallbackError(luastate, "Error, pointer error");
     }
-
-    return LuaPushStringBuffer(luastate, field->value, field->value_len);
+    return LuaPushStringBuffer(luastate, field_value, field_len);
 }
 
 /**
@@ -139,29 +138,23 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
     if(smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Error: no SMTP transaction found");
     }
-    /* Create a pointer to the tail of MimeDecEntity list */
-    MimeDecEntity *mime = smtp_tx->msg_tail;
+    /* Create a pointer to the tail of MimeStateSMTP list */
+    MimeStateSMTP *mime = smtp_tx->mime_state;
     if(mime == NULL) {
         return LuaCallbackError(luastate, "Error: no mime entity found");
     }
-    MimeDecField *field = mime->field_list;
-    if(field == NULL) {
-        return LuaCallbackError(luastate, "Error: no field_list found");
-    }
-    if(field->name == NULL || field->name_len == 0) {
-        return LuaCallbackError(luastate, "Error: field has no name");
-    }
+    const uint8_t *field_name;
+    uint32_t field_len;
     /* Counter of MIME fields found */
     int num = 1;
     /* loop trough the list of mimeFields, printing each name found */
     lua_newtable(luastate);
-    while (field != NULL) {
-        if(field->name != NULL && field->name_len != 0) {
+    while (SCMimeSmtpGetHeaderName(mime, &field_name, &field_len, (uint32_t)num)) {
+        if (field_len != 0) {
             lua_pushinteger(luastate,num++);
-            LuaPushStringBuffer(luastate, field->name, field->name_len);
+            LuaPushStringBuffer(luastate, field_name, field_len);
             lua_settable(luastate,-3);
         }
-        field = field->next;
     }
     return 1;
 }
