@@ -373,7 +373,7 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
         AppLayerDecoderEventsFreeEvents(&htud->tx_data.events);
         if (htud->mime_state)
-            rs_mime_state_free(htud->mime_state);
+            SCMimeStateFree(htud->mime_state);
         if (htud->tx_data.de_state != NULL) {
             DetectEngineStateFree(htud->tx_data.de_state);
         }
@@ -1136,7 +1136,7 @@ static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
     htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
-        htud->mime_state = rs_mime_state_init(bstr_ptr(h->value), bstr_len(h->value));
+        htud->mime_state = SCMimeStateInit(bstr_ptr(h->value), bstr_len(h->value));
         if (htud->mime_state) {
             htud->tsflags |= HTP_BOUNDARY_SET;
             SCReturnInt(1);
@@ -1211,7 +1211,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     // keep parsing mime and use callbacks when needed
     while (cur_buf_len > 0) {
         MimeParserResult r =
-                rs_mime_parse(htud->mime_state, cur_buf, cur_buf_len, &consumed, &warnings);
+                SCMimeParse(htud->mime_state, cur_buf, cur_buf_len, &consumed, &warnings);
         DEBUG_VALIDATE_BUG_ON(consumed > cur_buf_len);
         htud->request_body.body_parsed += consumed;
         if (warnings) {
@@ -1230,7 +1230,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 goto end;
             case MimeFileOpen:
                 // get filename owned by mime state
-                rs_mime_state_get_filename(htud->mime_state, &filename, &filename_len);
+                SCMimeStateGetFilename(htud->mime_state, &filename, &filename_len);
                 if (filename_len > 0) {
                     htud->tsflags |= HTP_FILENAME_SET;
                     htud->tsflags &= ~HTP_DONTSTORE;
@@ -1268,7 +1268,6 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 }
                 htud->tsflags &= ~HTP_FILENAME_SET;
                 break;
-                // TODO event on parsing error ?
         }
         cur_buf += consumed;
         cur_buf_len -= consumed;
@@ -5618,7 +5617,7 @@ static int HTPBodyReassemblyTest01(void)
     printf("REASSCHUNK END: \n");
 #endif
 
-    htud.mime_state = rs_mime_state_init((const uint8_t *)"multipart/form-data; boundary=toto",
+    htud.mime_state = SCMimeStateInit((const uint8_t *)"multipart/form-data; boundary=toto",
             strlen("multipart/form-data; boundary=toto"));
     FAIL_IF_NULL(htud.mime_state);
     htud.tsflags |= HTP_BOUNDARY_SET;
