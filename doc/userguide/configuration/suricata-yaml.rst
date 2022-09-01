@@ -1572,19 +1572,6 @@ the limits are exceeded, and an event will be raised.
 `max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
 but then for WRITEs.
 
-Configure HTTP2
-~~~~~~~~~~~~~~~
-
-HTTP2 has 2 parameters that can be customized.
-The point of these 2 parameters is to find a balance between the completeness
-of analysis and the resource consumption.
-
-`http2.max-table-size` refers to `SETTINGS_HEADER_TABLE_SIZE` from rfc 7540 section 6.5.2.
-Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
-
-`http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
-Its default value is unlimited.
-
 SSL/TLS
 ~~~~~~~
 
