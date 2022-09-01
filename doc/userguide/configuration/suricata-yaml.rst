@@ -1727,6 +1727,11 @@ An app-layer event `protocol.too_many_transactions` is triggered when this value
 The point of this parameter is to find a balance between the completeness of analysis
 and the resource consumption.
 
+For HTTP2, this parameter is named `max-streams` as an HTTP2 stream will get translated
+into one Suricata transaction. This configuration parameter is used whatever the
+value of `SETTINGS_MAX_CONCURRENT_STREAMS` negotiated between a client and a server
+in a specific flow is.
+
 Engine Logging
 --------------
 
