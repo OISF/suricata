@@ -1245,7 +1245,6 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 }
                 htud->tsflags &= ~HTP_FILENAME_SET;
                 break;
-                // TODO event on parsing error ?
         }
         cur_buf += consumed;
         cur_buf_len -= consumed;
