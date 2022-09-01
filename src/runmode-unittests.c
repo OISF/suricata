@@ -79,6 +79,7 @@
 #include "util-memcmp.h"
 #include "util-misc.h"
 #include "util-signal.h"
+#include "util-base64.h"
 
 #include "reputation.h"
 #include "util-atomic.h"
@@ -206,7 +207,6 @@ static void RegisterUnittests(void)
     SCAtomicRegisterTests();
     MemrchrRegisterTests();
     AppLayerUnittestsRegister();
-    MimeDecRegisterTests();
     StreamingBufferRegisterTests();
     MacSetRegisterTests();
 #ifdef OS_WIN32
