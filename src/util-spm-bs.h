@@ -29,6 +29,7 @@
 
 uint8_t *BasicSearch(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 uint8_t *BasicSearchNocase(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
+uint32_t BasicSearchNocaseIndex(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 void BasicSearchInit (void);
 
 #endif /* __UTIL_SPM_BS__ */
