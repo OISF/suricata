@@ -7,22 +7,11 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "util-decode-mime.h"
+#include "rust.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static int initialized = 0;
-static int dummy = 0;
-
-static int MimeParserDataFromFileCB(const uint8_t *chunk, uint32_t len,
-                                    MimeDecParseState *state)
-{
-    if (len > 0 && chunk[len-1] == 0) {
-        // do not get optimizd away
-        dummy++;
-    }
-    return MIME_DEC_OK;
-}
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -36,19 +25,18 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         initialized = 1;
     }
 
-    uint32_t line_count = 0;
-
-    MimeDecParseState *state = MimeDecInitParser(&line_count, MimeParserDataFromFileCB);
-    MimeDecEntity *msg_head = state->msg;
+    uint32_t events;
+    FileContainer *files = FileContainerAlloc();
+    MimeStateSMTP *state = rs_mime_smtp_state_init(files);
     const uint8_t * buffer = data;
     while (1) {
         uint8_t * next = memchr(buffer, '\n', size);
         if (next == NULL) {
-            if (state->state_flag >= BODY_STARTED)
-                (void)MimeDecParseLine(buffer, size, 0, state);
+            if (rs_mime_smtp_get_state(state) >= MimeSmtpBody)
+                (void)rs_smtp_mime_parse_line(buffer, size, 0, &events, state);
             break;
         } else {
-            (void) MimeDecParseLine(buffer, next - buffer, 1, state);
+            (void)rs_smtp_mime_parse_line(buffer, next - buffer, 1, &events, state);
             if (buffer + size < next + 1) {
                 break;
             }
@@ -57,10 +45,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
     }
     /* Completed */
-    (void)MimeDecParseComplete(state);
+    (void)rs_smtp_mime_complete(state, &events);
     /* De Init parser */
-    MimeDecDeInitParser(state);
-    MimeDecFreeEntity(msg_head);
+    rs_mime_smtp_state_free(state);
+    FileContainerFree(files);
 
     return 0;
 }
