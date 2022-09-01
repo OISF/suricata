@@ -182,6 +182,7 @@ void DpdkIpcDumpStats(void)
                     if (ret != 0) {
                         SCLogDebug("Error (%s): Unable to enqueue message object", rte_strerror(-ret));
                         if (msg != NULL) {
+                            msg->use_cnt--;
                             rte_mempool_generic_put(d->msg_mp, (void **)&msg, 1, NULL);
                         }
                     }
@@ -264,38 +265,56 @@ void DpdkIpcDetach(void)
 
 void PFMessageAddBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_ADD;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 void PFMessageHardDeleteBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_HARD_DELETE;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 void PFMessageDeleteBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_SOFT_DELETE;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 void PFMessageEvictBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_EVICT;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 void PFMessageForceEvictBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_FORCE_EVICT;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 void PFMessageErrorFlowNotFoundBypassInit(struct PFMessage *msg)
 {
+    if (msg->use_cnt != 0)
+        FatalError(SC_ERR_DPDK_BYPASS, "usecnt on init %d", msg->use_cnt);
     msg->msg_type = PF_MESSAGE_BYPASS_FLOW_NOT_FOUND;
     msg->next_msg = NULL;
+    msg->use_cnt = 1;
 }
 
 static inline int FlowHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t *b)
@@ -857,11 +876,15 @@ int DPDKCheckBypassMessages(
             FlowBypassEvict(f);
             new_stats = true;
         } else {
-            SCLogInfo("Assistant has an unknown message type");
+            SCLogInfo("Assistant has an unknown message type (%d)", msg->msg_type);
             continue;
         }
     }
 
+    for (uint16_t i = 0; i < msg_cnt; i++) {
+        msg = msg_arr[i];
+        msg->use_cnt--;
+    }
     rte_mempool_generic_put(dpdk_v->msg_mp, (void **)msg_arr, msg_cnt, NULL);
 
     return new_stats;

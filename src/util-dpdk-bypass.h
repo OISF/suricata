@@ -56,6 +56,7 @@ struct IPCResponseAttach {
 
 struct PFMessage {
     enum PFMessageType msg_type;
+    int use_cnt;
     FlowKey fk;
     struct PFMessage *next_msg;
     union {
