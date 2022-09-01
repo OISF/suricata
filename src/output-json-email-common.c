@@ -83,84 +83,29 @@ struct {
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
 
-static inline char *SkipWhiteSpaceTill(char *p, char *savep)
-{
-    char *sp = p;
-    if (unlikely(p == NULL)) {
-        return NULL;
-    }
-    while (((*sp == '\t') || (*sp == ' ')) && (sp < savep)) {
-        sp++;
-    }
-    return sp;
-}
-
-static bool EveEmailJsonArrayFromCommaList(JsonBuilder *js, const uint8_t *val, size_t len)
-{
-    char *savep = NULL;
-    char *p;
-    char *sp;
-    char *to_line = BytesToString((uint8_t *)val, len);
-    if (likely(to_line != NULL)) {
-        p = strtok_r(to_line, ",", &savep);
-        if (p == NULL) {
-            SCFree(to_line);
-            return false;
-        }
-        sp = SkipWhiteSpaceTill(p, savep);
-        jb_append_string(js, sp);
-        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-            sp = SkipWhiteSpaceTill(p, savep);
-            jb_append_string(js, sp);
-        }
-    } else {
-        return false;
-    }
-    SCFree(to_line);
-    return true;
-}
-
 static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
-        MimeDecEntity *entity = tx->msg_tail;
+        MimeStateSMTP *entity = tx->mime_state;
         if (entity == NULL) {
             return;
         }
-        MimeDecField *field = MimeDecFindField(entity, "subject");
-        if (field != NULL) {
-            char smd5[SC_MD5_HEX_LEN + 1];
-            SCMd5HashBufferToHex((uint8_t *)field->value, field->value_len, smd5, sizeof(smd5));
-            jb_set_string(js, "subject_md5", smd5);
-        }
+        rs_mime_smtp_log_subject_md5(js, entity);
     }
 
     if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
-        MimeDecParseState *mime_state = tx->mime_state;
-        if (mime_state && mime_state->has_md5 && (mime_state->state_flag == PARSE_DONE)) {
-            jb_set_hex(js, "body_md5", mime_state->md5, (uint32_t)sizeof(mime_state->md5));
+        MimeStateSMTP *entity = tx->mime_state;
+        if (entity == NULL) {
+            return;
         }
+        rs_mime_smtp_log_body_md5(js, entity);
     }
-}
-
-static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
-{
-    JsonBuilder *ajs = data;
-
-    if (ajs == NULL)
-        return 0;
-    char *value = BytesToString((uint8_t *)val, len);
-    jb_append_string(ajs, value);
-    SCFree(value);
-    return 1;
 }
 
 static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     int f = 0;
-    JsonBuilderMark mark = { 0, 0, 0 };
-    MimeDecField *field;
-    MimeDecEntity *entity = tx->msg_tail;
+    MimeStateSMTP *entity = tx->mime_state;
     if (entity == NULL) {
         return;
     }
@@ -171,35 +116,14 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
               ((email_ctx->flags & LOG_EMAIL_EXTENDED) && (email_fields[f].flags & LOG_EMAIL_EXTENDED))
            ) {
             if (email_fields[f].flags & LOG_EMAIL_ARRAY) {
-                jb_get_mark(js, &mark);
-                jb_open_array(js, email_fields[f].config_field);
-                int found = MimeDecFindFieldsForEach(entity, email_fields[f].email_field, JsonEmailAddToJsonArray, js);
-                if (found > 0) {
-                    jb_close(js);
-                } else {
-                    jb_restore_mark(js, &mark);
-                }
+                rs_mime_smtp_log_field_array(
+                        js, entity, email_fields[f].email_field, email_fields[f].config_field);
             } else if (email_fields[f].flags & LOG_EMAIL_COMMA) {
-                field = MimeDecFindField(entity, email_fields[f].email_field);
-                if (field) {
-                    jb_get_mark(js, &mark);
-                    jb_open_array(js, email_fields[f].config_field);
-                    if (EveEmailJsonArrayFromCommaList(js, field->value, field->value_len)) {
-                        jb_close(js);
-                    } else {
-                        jb_restore_mark(js, &mark);
-                    }
-                }
+                rs_mime_smtp_log_field_comma(
+                        js, entity, email_fields[f].email_field, email_fields[f].config_field);
             } else {
-                field = MimeDecFindField(entity, email_fields[f].email_field);
-                if (field != NULL) {
-                    char *s = BytesToString((uint8_t *)field->value,
-                            (size_t)field->value_len);
-                    if (likely(s != NULL)) {
-                        jb_set_string(js, email_fields[f].config_field, s);
-                        SCFree(s);
-                    }
-                }
+                rs_mime_smtp_log_field_string(
+                        js, entity, email_fields[f].email_field, email_fields[f].config_field);
             }
 
         }
@@ -211,9 +135,7 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
 static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id, JsonBuilder *sjs)
 {
     SMTPState *smtp_state;
-    MimeDecParseState *mime_state;
-    MimeDecEntity *entity;
-    JsonBuilderMark mark = { 0, 0, 0 };
+    MimeStateSMTP *mime_state;
 
     /* check if we have SMTP state or not */
     AppProto proto = FlowGetAppProtocol(f);
@@ -227,124 +149,16 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             }
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;
-            entity = tx->msg_tail;
-            SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity, mime_state ? mime_state->state_flag : 0);
+            SCLogDebug("lets go mime_state %p, state_flag %u", mime_state,
+                    mime_state ? mime_state->state_flag : 0);
             break;
         default:
             /* don't know how we got here */
             SCReturnBool(false);
     }
     if ((mime_state != NULL)) {
-        if (entity == NULL) {
-            SCReturnBool(false);
-        }
 
-        jb_set_string(sjs, "status", MimeDecParseStateGetStatus(mime_state));
-
-        MimeDecField *field;
-
-        /* From: */
-        field = MimeDecFindField(entity, "from");
-        if (field != NULL) {
-            char *s = BytesToString((uint8_t *)field->value,
-                                    (size_t)field->value_len);
-            if (likely(s != NULL)) {
-                //printf("From: \"%s\"\n", s);
-                char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
-                jb_set_string(sjs, "from", sp);
-                SCFree(s);
-            }
-        }
-
-        /* To: */
-        field = MimeDecFindField(entity, "to");
-        if (field != NULL) {
-            jb_get_mark(sjs, &mark);
-            jb_open_array(sjs, "to");
-            if (EveEmailJsonArrayFromCommaList(sjs, field->value, field->value_len)) {
-                jb_close(sjs);
-            } else {
-                jb_restore_mark(sjs, &mark);
-            }
-        }
-
-        /* Cc: */
-        field = MimeDecFindField(entity, "cc");
-        if (field != NULL) {
-            jb_get_mark(sjs, &mark);
-            jb_open_array(sjs, "cc");
-            if (EveEmailJsonArrayFromCommaList(sjs, field->value, field->value_len)) {
-                jb_close(sjs);
-            } else {
-                jb_restore_mark(sjs, &mark);
-            }
-        }
-
-        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL) {
-            SCReturnBool(false);
-        }
-
-        entity = (MimeDecEntity *)mime_state->stack->top->data;
-        int attch_cnt = 0;
-        int url_cnt = 0;
-        JsonBuilder *js_attch = jb_new_array();
-        JsonBuilder *js_url = jb_new_array();
-        if (entity->url_list != NULL) {
-            MimeDecUrl *url;
-            bool has_ipv6_url = false;
-            bool has_ipv4_url = false;
-            bool has_exe_url = false;
-            for (url = entity->url_list; url != NULL; url = url->next) {
-                char *s = BytesToString((uint8_t *)url->url,
-                                        (size_t)url->url_len);
-                if (s != NULL) {
-                    jb_append_string(js_url, s);
-                    if (url->url_flags & URL_IS_EXE)
-                        has_exe_url = true;
-                    if (url->url_flags & URL_IS_IP6)
-                        has_ipv6_url = true;
-                    if (url->url_flags & URL_IS_IP4)
-                        has_ipv6_url = true;
-                    SCFree(s);
-                    url_cnt += 1;
-                }
-            }
-            jb_set_bool(sjs, "has_ipv6_url", has_ipv6_url);
-            jb_set_bool(sjs, "has_ipv4_url", has_ipv4_url);
-            jb_set_bool(sjs, "has_exe_url", has_exe_url);
-        }
-        for (entity = entity->child; entity != NULL; entity = entity->next) {
-            if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
-
-                char *s = BytesToString((uint8_t *)entity->filename,
-                                        (size_t)entity->filename_len);
-                jb_append_string(js_attch, s);
-                SCFree(s);
-                attch_cnt += 1;
-            }
-            if (entity->url_list != NULL) {
-                MimeDecUrl *url;
-                for (url = entity->url_list; url != NULL; url = url->next) {
-                    char *s = BytesToString((uint8_t *)url->url,
-                                            (size_t)url->url_len);
-                    if (s != NULL) {
-                        jb_append_string(js_url, s);
-                        SCFree(s);
-                        url_cnt += 1;
-                    }
-                }
-            }
-        }
-        if (attch_cnt > 0) {
-            jb_close(js_attch);
-            jb_set_object(sjs, "attachment", js_attch);
-        }
-        jb_free(js_attch);
-        if (url_cnt > 0) {
-            jb_close(js_url);
-            jb_set_object(sjs, "url", js_url);
-        }
-        jb_free(js_url);
+        rs_mime_smtp_log_data(sjs, mime_state);
         SCReturnBool(true);
     }
 

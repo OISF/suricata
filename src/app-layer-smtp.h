@@ -24,7 +24,6 @@
 #ifndef __APP_LAYER_SMTP_H__
 #define __APP_LAYER_SMTP_H__
 
-#include "util-decode-mime.h"
 #include "util-streaming-buffer.h"
 #include "rust.h"
 
@@ -73,12 +72,8 @@ typedef struct SMTPTransaction_ {
     AppLayerTxData tx_data;
 
     int done;
-    /** the first message contained in the session */
-    MimeDecEntity *msg_head;
-    /** the last message contained in the session */
-    MimeDecEntity *msg_tail;
     /** the mime decoding parser state */
-    MimeDecParseState *mime_state;
+    MimeStateSMTP *mime_state;
 
     /* MAIL FROM parameters */
     uint8_t *mail_from;
@@ -91,10 +86,14 @@ typedef struct SMTPTransaction_ {
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
 
+/**
+ * \brief Structure for containing configuration options
+ *
+ */
+
 typedef struct SMTPConfig {
 
     bool decode_mime;
-    MimeDecConfig mime_config;
     uint32_t content_limit;
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
@@ -148,7 +147,6 @@ typedef struct SMTPState_ {
 /* Create SMTP config structure */
 extern SMTPConfig smtp_config;
 
-int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state);
 void *SMTPStateAlloc(void *orig_state, AppProto proto_orig);
 void RegisterSMTPParsers(void);
 void SMTPParserCleanup(void);
