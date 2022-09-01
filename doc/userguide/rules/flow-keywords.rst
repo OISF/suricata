@@ -21,9 +21,10 @@ Flowbits have different actions. These are:
 
 flowbits: set, name
   Will set the condition/'name', if present, in the flow.
-flowbits: isset, name
+flowbits: isset, name[, data]
   Can be used in the rule to make sure it generates an alert when the
-  rule matches and the condition is set in the flow.
+  rule matches and the condition is set in the flow. The data option
+  can be used to trigger inspection when data is available.
 flowbits: toggle, name
   Reverses the present setting. So for example if a condition is set,
   it will be unset and vice-versa.
