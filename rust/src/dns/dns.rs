@@ -253,6 +253,7 @@ impl Transaction for DNSTransaction {
 
 impl DNSTransaction {
 
+    /*
     pub fn new() -> Self {
         return Self {
             id: 0,
@@ -262,7 +263,27 @@ impl DNSTransaction {
             tx_data: AppLayerTxData::new(),
         }
     }
+    */
 
+    pub fn new_request(request: DNSRequest) -> Self {
+        Self {
+            id: 0,
+            is_tcp: false,
+            request: Some(request),
+            response: None,
+            tx_data: AppLayerTxData::new(),
+        }
+    }
+
+    pub fn new_response(response: DNSResponse) -> Self {
+        Self {
+            id: 0,
+            is_tcp: false,
+            request: None,
+            response: Some(response),
+            tx_data: AppLayerTxData::new(),
+        }
+    }
     /// Get the DNS transactions ID (not the internal tracking ID).
     pub fn tx_id(&self) -> u16 {
         if let &Some(ref request) = &self.request {
@@ -350,13 +371,19 @@ impl DNSState {
             Default::default()
     }
 
-    pub fn new_tx(&mut self) -> DNSTransaction {
-        let mut tx = DNSTransaction::new();
+    pub fn new_request_tx(&mut self, request: DNSRequest) -> DNSTransaction {
+        let mut tx = DNSTransaction::new_request(request);
         self.tx_id += 1;
         tx.id = self.tx_id;
         return tx;
     }
 
+    pub fn new_response_tx(&mut self, response: DNSResponse) -> DNSTransaction {
+        let mut tx = DNSTransaction::new_response(response);
+        self.tx_id += 1;
+        tx.id = self.tx_id;
+        return tx;
+    }
     pub fn free_tx(&mut self, tx_id: u64) {
         let len = self.transactions.len();
         let mut found = false;
@@ -408,8 +435,7 @@ impl DNSState {
 
                 let z_flag = request.header.flags & 0x0040 != 0;
 
-                let mut tx = self.new_tx();
-                tx.request = Some(request);
+                let mut tx = self.new_request_tx(request);
                 tx.is_tcp = is_tcp;
                 self.transactions.push_back(tx);
 
@@ -460,13 +486,13 @@ impl DNSState {
 
                 let z_flag = response.header.flags & 0x0040 != 0;
 
-                let mut tx = self.new_tx();
+                let tx_id = response.header.tx_id;
+                let mut tx = self.new_response_tx(response);
                 if let Some(ref mut config) = &mut self.config {
-                    if let Some(config) = config.remove(&response.header.tx_id) {
+                    if let Some(config) = config.remove(&tx_id) {
                         tx.tx_data.config = config;
                     }
                 }
-                tx.response = Some(response);
                 self.transactions.push_back(tx);
 
                 if z_flag {
@@ -749,6 +775,9 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(flow: *const core::Flow,
                                            _data: *const std::os::raw::c_void,
                                            )
                                            -> AppLayerResult {
+    if stream_slice.flags() & core::STREAM_TOSERVER == 0 {
+        panic!("DNS REQUEST BUT STREAM IS NOT TO SERVER");
+    }
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.request_gap(stream_slice.gap_size());
@@ -766,6 +795,9 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
                                             _data: *const std::os::raw::c_void,
                                             )
                                             -> AppLayerResult {
+    if stream_slice.flags() & core::STREAM_TOCLIENT == 0 {
+        panic!("DNS RESPONSE BUT STREAM IS NOT TO CLIENT");
+    }
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.response_gap(stream_slice.gap_size());
