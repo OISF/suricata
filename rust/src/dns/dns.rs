@@ -784,6 +784,16 @@ pub unsafe extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::
     // means its complete. However this is only true for UDP and not TCP
     let tx = cast_pointer!(_tx, DNSTransaction);
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
+    if tx.is_tcp {
+        if _direction & core::STREAM_TOSERVER != 0 && tx.request.is_some() {
+            return 1;
+        }
+        if _direction & core::STREAM_TOCLIENT != 0 && tx.response.is_some() {
+            return 1;
+        }
+        return 0;
+    }
+    return 1;
     if tx.is_tcp && _direction & core::STREAM_TOCLIENT != 0 && !tx.response.is_some() {
         return 0;
     }
