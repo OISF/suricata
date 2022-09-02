@@ -1721,7 +1721,7 @@ incompatible with ``decode-mime``. If both are enabled,
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 
-MQTT, FTP, and NFS have each a `max-tx` parameter that can be customized.
+MQTT, FTP, PostgreSQL and NFS have each a `max-tx` parameter that can be customized.
 `max-tx` refers to the maximum number of live transactions for each flow.
 An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
 The point of this parameter is to find a balance between the completeness of analysis
