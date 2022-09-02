@@ -1254,6 +1254,57 @@ static inline void SetEOFFlags(AppLayerParserState *pstate, const uint8_t flags)
     }
 }
 
+/** \internal
+ *  \brief create/close stream frames
+ *  On first invocation of TCP parser in a direction, create a <alproto>.stream frame.
+ *  On STREAM_EOF, set the final length. */
+static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t *input,
+        const uint32_t input_len, const uint8_t flags)
+{
+    const uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    AppLayerParserState *pstate = f->alparser;
+
+    /* setup the generic stream frame */
+    if (((direction == 0 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TS) == 0) ||
+                (direction == 1 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TC) == 0)) &&
+            input != NULL && f->proto == IPPROTO_TCP) {
+        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        if (frame == NULL) {
+            int64_t frame_len = -1;
+            if (flags & STREAM_EOF)
+                frame_len = input_len;
+
+            frame = AppLayerFrameNewByAbsoluteOffset(
+                    f, &stream_slice, stream_slice.offset, frame_len, direction, FRAME_STREAM_TYPE);
+            if (frame) {
+                SCLogDebug("opened: frame %p id %" PRIi64, frame, frame->id);
+                frame->flags = FRAME_FLAG_ENDS_AT_EOF; // TODO logic is not yet implemented
+                DEBUG_VALIDATE_BUG_ON(
+                        frame->id != 1); // should always be the first frame that is created
+            }
+            if (direction == 0) {
+                pstate->flags |= APP_LAYER_PARSER_SFRAME_TS;
+            } else {
+                pstate->flags |= APP_LAYER_PARSER_SFRAME_TC;
+            }
+        }
+    } else if (flags & STREAM_EOF) {
+        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        SCLogDebug("EOF closing: frame %p", frame);
+        if (frame) {
+            /* calculate final frame length */
+            const TcpSession *ssn = f->protoctx;
+            const TcpStream *stream = (direction == 0) ? &ssn->client : &ssn->server;
+            int64_t slice_o =
+                    (int64_t)stream_slice.offset - (int64_t)stream->sb.region.stream_offset;
+            int64_t frame_len = slice_o + ((int64_t)-1 * frame->rel_offset) + (int64_t)input_len;
+            SCLogDebug("%s: EOF frame->rel_offset %" PRIi64 " -> %" PRIi64 ": o %" PRIi64,
+                    AppProtoToString(f->alproto), frame->rel_offset, frame_len, slice_o);
+            frame->len = frame_len;
+        }
+    }
+}
+
 static void Setup(Flow *f, const uint8_t direction, const uint8_t *input, uint32_t input_len,
         const uint8_t flags, StreamSlice *as)
 {
@@ -1349,6 +1400,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (input_len > 0 || (flags & STREAM_EOF)) {
         Setup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), input, input_len, flags,
                 &stream_slice);
+        HandleStreamFrames(f, stream_slice, input, input_len, flags);
+
 #ifdef DEBUG
         if (((stream_slice.flags & STREAM_TOSERVER) &&
                     stream_slice.offset >= g_eps_applayer_error_offset_ts)) {
