@@ -794,10 +794,6 @@ pub unsafe extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::
         return 0;
     }
     return 1;
-    if tx.is_tcp && _direction & core::STREAM_TOCLIENT != 0 && !tx.response.is_some() {
-        return 0;
-    }
-    return 1;
 }
 
 #[no_mangle]
