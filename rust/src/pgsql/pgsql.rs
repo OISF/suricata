@@ -32,12 +32,15 @@ pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
+static mut PGSQL_MAX_TX: usize = 1024;
+
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum PgsqlTransactionState {
     Init = 0,
     RequestReceived,
     ResponseDone,
+    FlushedOut,
 }
 
 #[derive(Debug)]
@@ -123,6 +126,7 @@ pub struct PgsqlState {
     backend_secret_key: u32,
     backend_pid: u32,
     state_progress: PgsqlStateProgress,
+    tx_index_completed: usize,
 }
 
 impl State<PgsqlTransaction> for PgsqlState {
@@ -145,6 +149,7 @@ impl PgsqlState {
             backend_secret_key: 0,
             backend_pid: 0,
             state_progress: PgsqlStateProgress::IdleState,
+            tx_index_completed: 0,
         }
     }
 
@@ -162,6 +167,7 @@ impl PgsqlState {
             }
         }
         if found {
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -180,6 +186,21 @@ impl PgsqlState {
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         SCLogDebug!("Creating new transaction. tx_id: {}", tx.tx_id);
+        if self.transactions.len() > unsafe { PGSQL_MAX_TX } + self.tx_index_completed {
+            // If there are too many open transactions,
+            // mark the earliest ones as completed, and take care
+            // to avoid quadratic complexity
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
+                index = index + 1;
+                if tx_old.tx_state < PgsqlTransactionState::ResponseDone {
+                    tx_old.tx_state = PgsqlTransactionState::FlushedOut;
+                    //TODO set event
+                    break;
+                }
+            }
+            self.tx_index_completed = index;
+        }
         return tx;
     }
 
@@ -737,6 +758,13 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
                 }
             }
             AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_PGSQL, stream_depth)
+        }
+        if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                PGSQL_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for pgsql.max-tx");
+            }
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for PGSQL.");
