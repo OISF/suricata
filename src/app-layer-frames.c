@@ -33,9 +33,12 @@
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {
 #ifdef DEBUG
-    const char *type_name =
-            frames ? AppLayerParserGetFrameNameById(frames->ipproto, frames->alproto, frame->type)
-                   : "<unknown>";
+    const char *type_name = "unknown";
+    if (frame->type == FRAME_STREAM_TYPE) {
+        type_name = "stream";
+    } else if (frames != NULL) {
+        type_name = AppLayerParserGetFrameNameById(frames->ipproto, frames->alproto, frame->type);
+    }
     SCLogDebug("[%s] %p: frame: %p type %u/%s id %" PRIi64 " flags %02x rel_offset:%" PRIi64
                ", len:%" PRIi64 ", events:%u %u/%u/%u/%u",
             prefix, frames, frame, frame->type, type_name, frame->id, frame->flags,
@@ -46,14 +49,17 @@ static void FrameDebug(const char *prefix, const Frames *frames, const Frame *fr
 
 Frame *FrameGetById(Frames *frames, const int64_t id)
 {
+    SCLogDebug("frames %p cnt %u, looking for %" PRIi64, frames, frames->cnt, id);
     for (uint16_t i = 0; i < frames->cnt; i++) {
         if (i < FRAMES_STATIC_CNT) {
             Frame *frame = &frames->sframes[i];
+            FrameDebug("get_by_id(static)", frames, frame);
             if (frame->id == id)
                 return frame;
         } else {
             const uint16_t o = i - FRAMES_STATIC_CNT;
             Frame *frame = &frames->dframes[o];
+            FrameDebug("get_by_id(dynamic)", frames, frame);
             if (frame->id == id)
                 return frame;
         }
@@ -570,10 +576,10 @@ Frame *AppLayerFrameNewByAbsoluteOffset(Flow *f, const StreamSlice *stream_slice
 
     const uint64_t frame_start_rel = frame_start - STREAM_BASE_OFFSET(stream);
 #ifdef DEBUG
-    SCLogDebug("flow %p direction %s frame offset %" PRIu64 " (abs %" PRIu64
+    SCLogDebug("flow %p direction %s frame type %u offset %" PRIu64 " (abs %" PRIu64
                ") starting at %" PRIu64 " len %" PRIi64 " (offset %" PRIu64 ")",
-            f, dir == 0 ? "toserver" : "toclient", frame_start_rel, frame_start, frame_start, len,
-            stream_slice->offset);
+            f, dir == 0 ? "toserver" : "toclient", frame_type, frame_start_rel, frame_start,
+            frame_start, len, stream_slice->offset);
 #endif
     Frame *r = FrameNew(frames, (uint32_t)frame_start_rel, len);
     if (r != NULL) {
@@ -639,6 +645,8 @@ void AppLayerFrameSetTxIdById(Flow *f, const int dir, const FrameId id, uint64_t
 Frame *AppLayerFrameGetById(Flow *f, const int dir, const FrameId frame_id)
 {
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    SCLogDebug("get frame_id %" PRIi64 " direction %u/%s frames_container %p", frame_id, dir,
+            dir == 0 ? "toserver" : "toclient", frames_container);
     if (frames_container == NULL)
         return NULL;
 
@@ -648,6 +656,7 @@ Frame *AppLayerFrameGetById(Flow *f, const int dir, const FrameId frame_id)
     } else {
         frames = &frames_container->toclient;
     }
+    SCLogDebug("frames %p", frames);
     return FrameGetById(frames, frame_id);
 }
 
