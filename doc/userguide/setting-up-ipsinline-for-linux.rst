@@ -17,7 +17,7 @@ To check if you have NFQ enabled in your Suricata build, enter the following com
 
   suricata --build-info
 
-and make sure that NFS is listed in the output.
+and make sure that NFQ is listed in the output.
 
 To run Suricata with the NFQ mode, you have to make use of the ``-q`` option. This
 option tells Suricata which queue numbers it should use.
