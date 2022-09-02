@@ -24,6 +24,7 @@
 #include "decode.h"
 #include "detect.h"
 
+#include "app-layer-frames.h"
 #include "app-layer-parser.h"
 
 #include "detect-parse.h"
@@ -106,15 +107,21 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
 
     const char *frame_str = is_short ? str : val;
     int raw_frame_type = -1;
-    if (is_tcp)
-        raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, keyword_alproto, frame_str);
+    if (is_tcp) {
+        if (strcmp(frame_str, "stream") == 0) {
+            raw_frame_type = FRAME_STREAM_TYPE;
+        } else {
+            raw_frame_type =
+                    AppLayerParserGetFrameIdByName(IPPROTO_TCP, keyword_alproto, frame_str);
+        }
+    }
     if (is_udp && raw_frame_type < 0)
         raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, keyword_alproto, frame_str);
     if (raw_frame_type < 0) {
         SCLogError("unknown frame '%s' for protocol '%s'", frame_str, proto);
         return -1;
     }
-    BUG_ON(raw_frame_type >= UINT8_MAX);
+    BUG_ON(raw_frame_type > UINT8_MAX);
 
     if (is_short) {
         snprintf(buffer_name, sizeof(buffer_name), "%s.%s", AppProtoToString(s->alproto), str);

@@ -40,6 +40,8 @@
 #define APP_LAYER_PARSER_EOF_TC                BIT_U16(6)
 #define APP_LAYER_PARSER_TRUNC_TS              BIT_U16(7)
 #define APP_LAYER_PARSER_TRUNC_TC              BIT_U16(8)
+#define APP_LAYER_PARSER_SFRAME_TS             BIT_U16(9)
+#define APP_LAYER_PARSER_SFRAME_TC             BIT_U16(10)
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
