@@ -202,6 +202,8 @@ struct FrameStreamData {
     uint32_t idx;
     uint64_t frame_data_offset_abs;
     uint64_t frame_start_offset_abs;
+    /** buffer is set if callback was successful */
+    InspectionBuffer *buffer;
 };
 
 static int FrameStreamDataFunc(
@@ -271,6 +273,7 @@ static int FrameStreamDataFunc(
     InspectionBufferSetupMulti(buffer, fsd->transforms, data, data_len);
     buffer->inspect_offset = frame->rel_offset < 0 ? -1 * frame->rel_offset : 0; // TODO review/test
     buffer->flags = ci_flags;
+    fsd->buffer = buffer;
     return 1; // for now only the first chunk
 }
 
@@ -343,13 +346,10 @@ InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
         return NULL;
 
     struct FrameStreamData fsd = { det_ctx, transforms, frame, list_id, idx, offset,
-        (uint64_t)frame_start_abs_offset };
+        (uint64_t)frame_start_abs_offset, NULL };
     StreamReassembleForFrame(ssn, stream, FrameStreamDataFunc, &fsd, offset, eof);
     SCLogDebug("offset %" PRIu64, offset);
-
-    InspectionBuffer *ret = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    SCLogDebug("ret %p", ret);
-    return ret;
+    return fsd.buffer;
 }
 
 /**
