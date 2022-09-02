@@ -777,17 +777,24 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                 _direction: u8)
+                                                 direction: u8)
                                                  -> std::os::raw::c_int
 {
     // This is a stateless parser, just the existence of a transaction
     // means its complete. However this is only true for UDP and not TCP
     let tx = cast_pointer!(_tx, DNSTransaction);
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
-    if tx.is_tcp && _direction & core::STREAM_TOCLIENT != 0 && !tx.response.is_some() {
-        return 0;
+    if tx.is_tcp {
+        if direction & core::STREAM_TOSERVER != 0 && tx.request.is_some() {
+            return 1;
+        } else if direction & core::STREAM_TOCLIENT != 0 && tx.response.is_some() {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else {
+        return 1;
     }
-    return 1;
 }
 
 #[no_mangle]
