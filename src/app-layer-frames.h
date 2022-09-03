@@ -47,8 +47,7 @@ typedef struct Frame {
     uint8_t event_cnt;
     // TODO one event per frame enough?
     uint8_t events[4];  /**< per frame store for events */
-    int64_t rel_offset; /**< relative offset in the stream on top of Stream::stream_offset (if
-                           negative the start if before the stream data) */
+    uint64_t offset;    /**< offset from the start of the stream */
     int64_t len;
     int64_t id;
     uint64_t tx_id; /**< tx_id to match this frame. UINT64T_MAX if not used. */
