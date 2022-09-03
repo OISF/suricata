@@ -1293,13 +1293,10 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
         SCLogDebug("EOF closing: frame %p", frame);
         if (frame) {
             /* calculate final frame length */
-            const TcpSession *ssn = f->protoctx;
-            const TcpStream *stream = (direction == 0) ? &ssn->client : &ssn->server;
-            int64_t slice_o =
-                    (int64_t)stream_slice.offset - (int64_t)stream->sb.region.stream_offset;
-            int64_t frame_len = slice_o + ((int64_t)-1 * frame->rel_offset) + (int64_t)input_len;
-            SCLogDebug("%s: EOF frame->rel_offset %" PRIi64 " -> %" PRIi64 ": o %" PRIi64,
-                    AppProtoToString(f->alproto), frame->rel_offset, frame_len, slice_o);
+            int64_t slice_o = (int64_t)stream_slice.offset - (int64_t)frame->offset;
+            int64_t frame_len = slice_o + (int64_t)input_len;
+            SCLogDebug("%s: EOF frame->offset %" PRIu64 " -> %" PRIi64 ": o %" PRIi64,
+                    AppProtoToString(f->alproto), frame->offset, frame_len, slice_o);
             frame->len = frame_len;
         }
     }
