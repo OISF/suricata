@@ -72,6 +72,9 @@ jobs:
       - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       - run: git fetch
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Checking Cherry-pick lines
+        run: |
+          ./qa/validate-cp.sh "${GITHUB_BASE_REF}"
       - name: Building all commits
         run: |
           echo "Building commits from ${GITHUB_BASE_REF}."
