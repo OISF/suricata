@@ -106,10 +106,10 @@ static void DetectRun(ThreadVars *th_v,
         Packet *p)
 {
     SCEnter();
-    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s flow %p", p->pcap_cnt,
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
-            p->flow);
+            PktSrcToString(p->pkt_src));
 
     /* bail early if packet should not be inspected */
     if (p->flags & PKT_NOPACKET_INSPECTION) {
