@@ -31,6 +31,10 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
         switch (policy) {
             case EXCEPTION_POLICY_IGNORE:
                 break;
+            case EXCEPTION_POLICY_REJECT:
+                SCLogDebug("EXCEPTION_POLICY_REJECT");
+                PacketDrop(p, ACTION_REJECT, drop_reason);
+                /* fall through */
             case EXCEPTION_POLICY_DROP_FLOW:
                 SCLogDebug("EXCEPTION_POLICY_DROP_FLOW");
                 if (p->flow) {
@@ -86,6 +90,9 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
             SCLogConfig("%s: %s", option, value_str);
         } else if (strcmp(value_str, "pass-packet") == 0) {
             policy = EXCEPTION_POLICY_PASS_PACKET;
+            SCLogConfig("%s: %s", option, value_str);
+        } else if (strcmp(value_str, "reject") == 0) {
+            policy = EXCEPTION_POLICY_REJECT;
             SCLogConfig("%s: %s", option, value_str);
         } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
             policy = EXCEPTION_POLICY_IGNORE;
