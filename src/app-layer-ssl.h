@@ -170,6 +170,39 @@ enum {
     TLS_VERSION_13_DRAFT26_FB = 0xfb1a,
 };
 
+static inline bool TLSVersionValid(const uint16_t version)
+{
+    switch (version) {
+        case TLS_VERSION_13:
+        case TLS_VERSION_12:
+        case TLS_VERSION_11:
+        case TLS_VERSION_10:
+        case SSL_VERSION_3:
+
+        case TLS_VERSION_13_DRAFT28:
+        case TLS_VERSION_13_DRAFT27:
+        case TLS_VERSION_13_DRAFT26:
+        case TLS_VERSION_13_DRAFT25:
+        case TLS_VERSION_13_DRAFT24:
+        case TLS_VERSION_13_DRAFT23:
+        case TLS_VERSION_13_DRAFT22:
+        case TLS_VERSION_13_DRAFT21:
+        case TLS_VERSION_13_DRAFT20:
+        case TLS_VERSION_13_DRAFT19:
+        case TLS_VERSION_13_DRAFT18:
+        case TLS_VERSION_13_DRAFT17:
+        case TLS_VERSION_13_DRAFT16:
+        case TLS_VERSION_13_PRE_DRAFT16:
+        case TLS_VERSION_13_DRAFT20_FB:
+        case TLS_VERSION_13_DRAFT21_FB:
+        case TLS_VERSION_13_DRAFT22_FB:
+        case TLS_VERSION_13_DRAFT23_FB:
+        case TLS_VERSION_13_DRAFT26_FB:
+            return true;
+    }
+    return false;
+}
+
 typedef struct SSLCertsChain_ {
     uint8_t *cert_data;
     uint32_t cert_len;
