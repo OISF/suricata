@@ -997,7 +997,8 @@ thread ensures that wherever possible and within the memcap. there
 will be 10000 flows prepared.
 
 In IPS mode, a memcap-policy exception policy can be set, telling Suricata
-what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
+what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject',
+'ignore'.
 
 ::
 
@@ -1098,7 +1099,8 @@ be recognized by Suricata.
 The stream-engine has two memcaps that can be set. One for the
 stream-tracking-engine and one for the reassembly-engine. For both cases,
 in IPS mode, an exception policy (memcap-policy) can be set, telling Suricata
-what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
+what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject',
+'ignore'.
 
 The stream-tracking-engine keeps information of the flow in
 memory. Information about the state, TCP-sequence-numbers and the TCP
@@ -1189,7 +1191,7 @@ The reassembly-engine has to keep data segments in memory in order to
 be able to reconstruct a stream. To avoid resource starvation a memcap
 is used to limit the memory used. In IPS mode, an exception policy
 (memcap-policy) can be set, telling Suricata what to do in case memcap
-is hit: 'drop-flow', 'pass-flow', 'bypass', 'ignore'.
+is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject', 'ignore'.
 
 Reassembling a stream is an expensive operation. With the option depth
 you can control how far into a stream reassembly is done. By default
@@ -1252,8 +1254,8 @@ The ``app-layer`` section holds application layer specific configurations.
 A in IPS mode, a global exception policy accessed via the ``error-policy``
 setting can be defined to indicate what the engine should do in case if
 encounters an app-layer error. Possible values are "drop-flow", "pass-flow",
-"bypass", "drop-packet", "pass-packet" or "ignore" (which will mean keeping
-the default behavior).
+"bypass", "drop-packet", "pass-packet", "reject" or "ignore" (which will mean
+keeping the default behavior).
 
 Each supported protocol will have a dedicated subsection under ``protocols``.
 
