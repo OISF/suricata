@@ -23,6 +23,7 @@ use super::{
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::frames::Frame as SuriFrame;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
 
@@ -359,12 +360,19 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
 
+    let _pdu = SuriFrame::new(
+        flow,
+        &stream_slice,
+        buf,
+        buf.len() as i64,
+        QuicFrameType::Pdu as u8,
+    );
     if state.parse(buf, false) {
         return AppLayerResult::ok();
     } else {
@@ -374,12 +382,19 @@ pub unsafe extern "C" fn rs_quic_parse_tc(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
 
+    let _pdu = SuriFrame::new(
+        flow,
+        &stream_slice,
+        buf,
+        buf.len() as i64,
+        QuicFrameType::Pdu as u8,
+    );
     if state.parse(buf, true) {
         return AppLayerResult::ok();
     } else {
@@ -440,6 +455,11 @@ pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
     }
 }
 
+#[derive(AppLayerFrameType)]
+pub enum QuicFrameType {
+    Pdu,
+}
+
 export_tx_data_get!(rs_quic_get_tx_data, QuicTransaction);
 
 // Parser name as a C style string.
@@ -476,8 +496,8 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(QuicFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(QuicFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
