@@ -15,21 +15,21 @@
  * 02110-1301, USA.
  */
 
-use crate::smb::smb::*;
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
+use crate::smb::smb::*;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{cond, map_parser, rest};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::count;
-use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
+use nom7::number::streaming::{le_u16, le_u32, le_u64, le_u8};
 use nom7::{Err, IResult, Needed};
 
 const SMB2_FLAGS_SERVER_TO_REDIR: u32 = 0x0000_0001;
 const SMB2_FLAGS_ASYNC_COMMAND: u32 = 0x0000_0002;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
@@ -37,8 +37,8 @@ pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
     Ok((i, Smb2SecBlobRecord { data }))
 }
 
-#[derive(Debug,PartialEq)]
-pub struct Smb2RecordDir<> {
+#[derive(Debug, PartialEq)]
+pub struct Smb2RecordDir {
     pub request: bool,
 }
 
@@ -52,9 +52,9 @@ pub fn parse_smb2_record_direction(i: &[u8]) -> IResult<&[u8], Smb2RecordDir> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2Record<'a> {
-    pub direction: u8,    // 0 req, 1 res
+    pub direction: u8, // 0 req, 1 res
     pub header_len: u16,
     pub nt_status: u32,
     pub command: u16,
@@ -62,7 +62,7 @@ pub struct Smb2Record<'a> {
     pub tree_id: u32,
     pub async_id: u64,
     pub session_id: u64,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> Smb2Record<'a> {
@@ -87,12 +87,23 @@ struct SmbFlags {
 
 fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
     let (i, val) = le_u32(i)?;
-    let direction = if val & SMB2_FLAGS_SERVER_TO_REDIR != 0 { 1 } else { 0 };
-    let async_command = if val & SMB2_FLAGS_ASYNC_COMMAND != 0 { 1 } else { 0 };
-    Ok((i, SmbFlags {
-        direction,
-        async_command,
-    }))
+    let direction = if val & SMB2_FLAGS_SERVER_TO_REDIR != 0 {
+        1
+    } else {
+        0
+    };
+    let async_command = if val & SMB2_FLAGS_ASYNC_COMMAND != 0 {
+        1
+    } else {
+        0
+    };
+    Ok((
+        i,
+        SmbFlags {
+            direction,
+            async_command,
+        },
+    ))
 }
 
 pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
@@ -129,13 +140,15 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2NegotiateProtocolRequestRecord<'a> {
     pub dialects_vec: Vec<u16>,
-    pub client_guid: &'a[u8],
+    pub client_guid: &'a [u8],
 }
 
-pub fn parse_smb2_request_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord> {
+pub fn parse_smb2_request_negotiate_protocol(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, dialects_count) = le_u16(i)?;
     let (i, _sec_mode) = le_u16(i)?;
@@ -153,16 +166,18 @@ pub fn parse_smb2_request_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Neg
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2NegotiateProtocolResponseRecord<'a> {
     pub dialect: u16,
-    pub server_guid: &'a[u8],
+    pub server_guid: &'a [u8],
     pub max_trans_size: u32,
     pub max_read_size: u32,
     pub max_write_size: u32,
 }
 
-pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+pub fn parse_smb2_response_negotiate_protocol(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let (i, dialect) = le_u16(i)?;
@@ -177,12 +192,14 @@ pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Ne
         server_guid,
         max_trans_size,
         max_read_size,
-        max_write_size
+        max_write_size,
     };
     Ok((i, record))
 }
 
-pub fn parse_smb2_response_negotiate_protocol_error(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+pub fn parse_smb2_response_negotiate_protocol_error(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
@@ -190,15 +207,14 @@ pub fn parse_smb2_response_negotiate_protocol_error(i: &[u8]) -> IResult<&[u8], 
         server_guid: &[],
         max_trans_size: 0,
         max_read_size: 0,
-        max_write_size: 0
+        max_write_size: 0,
     };
     Ok((i, record))
 }
 
-
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2SessionSetupRequestRecord<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord> {
@@ -215,23 +231,21 @@ pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionS
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2TreeConnectRequestRecord<'a> {
-    pub share_name: &'a[u8],
+    pub share_name: &'a [u8],
 }
 
 pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _offset_length) = take(4_usize)(i)?;
     let (i, data) = rest(i)?;
-    let record = Smb2TreeConnectRequestRecord {
-        share_name:data,
-    };
+    let record = Smb2TreeConnectRequestRecord { share_name: data };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
-pub struct Smb2TreeConnectResponseRecord<> {
+#[derive(Debug, PartialEq)]
+pub struct Smb2TreeConnectResponseRecord {
     pub share_type: u8,
 }
 
@@ -245,11 +259,11 @@ pub fn parse_smb2_response_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConn
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2CreateRequestRecord<'a> {
     pub disposition: u32,
     pub create_options: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRecord> {
@@ -264,22 +278,22 @@ pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRe
     let record = Smb2CreateRequestRecord {
         disposition,
         create_options,
-        data
+        data,
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2IOCtlRequestRecord<'a> {
     pub is_pipe: bool,
     pub function: u32,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestRecord> {
-    let (i, _skip) = take(2_usize)  (i)?;// structure size
-    let (i, _) = take(2_usize)        (i)?;// reserved
+    let (i, _skip) = take(2_usize)(i)?; // structure size
+    let (i, _) = take(2_usize)(i)?; // reserved
     let (i, func) = le_u32(i)?;
     let (i, guid) = take(16_usize)(i)?;
     let (i, _indata_offset) = le_u32(i)?;
@@ -298,11 +312,11 @@ pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestReco
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2IOCtlResponseRecord<'a> {
     pub is_pipe: bool,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
     pub indata_len: u32,
     pub outdata_len: u32,
     pub indata_offset: u32,
@@ -333,9 +347,9 @@ pub fn parse_smb2_response_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlResponseRe
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2CloseRequestRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
 }
 
 pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestRecord> {
@@ -347,7 +361,7 @@ pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestReco
 
 #[derive(Debug)]
 pub struct Smb2SetInfoRequestRenameRecord<'a> {
-    pub name: &'a[u8],
+    pub name: &'a [u8],
 }
 
 pub fn parse_smb2_request_setinfo_rename(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
@@ -380,9 +394,7 @@ pub struct Smb2SetInfoRequestEof {
 
 pub fn parse_smb2_request_setinfo_eof(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
     let (i, eof) = le_u64(i)?;
-    let record = Smb2SetInfoRequestData::EOF(Smb2SetInfoRequestEof {
-        eof: eof,
-    });
+    let record = Smb2SetInfoRequestData::EOF(Smb2SetInfoRequestEof { eof: eof });
     Ok((i, record))
 }
 
@@ -396,7 +408,7 @@ pub enum Smb2SetInfoRequestData<'a> {
 
 #[derive(Debug)]
 pub struct Smb2SetInfoRequestRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
     pub class: u8,
     pub infolvl: u8,
     pub data: Smb2SetInfoRequestData<'a>,
@@ -432,10 +444,9 @@ pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequest
     let (i, _reserved) = take(2_usize)(i)?;
     let (i, _additional_info) = le_u32(i)?;
     let (i, guid) = take(16_usize)(i)?;
-    let (i, data) = map_parser(
-        take(setinfo_size),
-        |b| parse_smb2_request_setinfo_data(b, class, infolvl)
-    )(i)?;
+    let (i, data) = map_parser(take(setinfo_size), |b| {
+        parse_smb2_request_setinfo_data(b, class, infolvl)
+    })(i)?;
     let record = Smb2SetInfoRequestRecord {
         guid,
         class,
@@ -445,12 +456,12 @@ pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequest
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2WriteRequestRecord<'a> {
     pub wr_len: u32,
     pub wr_offset: u64,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 // can be called on incomplete records
@@ -473,11 +484,11 @@ pub fn parse_smb2_request_write(i: &[u8]) -> IResult<&[u8], Smb2WriteRequestReco
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2ReadRequestRecord<'a> {
     pub rd_len: u32,
     pub rd_offset: u64,
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
 }
 
 pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord> {
@@ -497,18 +508,16 @@ pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2ReadResponseRecord<'a> {
     pub len: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 // parse read/write data. If all is available, 'take' it.
 // otherwise just return what we have. So this may return
 // partial data.
-fn parse_smb2_data<'a>(i: &'a[u8], len: u32)
-    -> IResult<&'a[u8], &'a[u8]>
-{
+fn parse_smb2_data<'a>(i: &'a [u8], len: u32) -> IResult<&'a [u8], &'a [u8]> {
     if len as usize > i.len() {
         rest(i)
     } else {
@@ -524,16 +533,13 @@ pub fn parse_smb2_response_read(i: &[u8]) -> IResult<&[u8], Smb2ReadResponseReco
     let (i, _rd_rem) = le_u32(i)?;
     let (i, _padding) = take(4_usize)(i)?;
     let (i, data) = parse_smb2_data(i, rd_len)?;
-    let record = Smb2ReadResponseRecord {
-        len: rd_len,
-        data,
-    };
+    let record = Smb2ReadResponseRecord { len: rd_len, data };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb2CreateResponseRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
     pub create_ts: SMBFiletime,
     pub last_access_ts: SMBFiletime,
     pub last_write_ts: SMBFiletime,
@@ -567,8 +573,8 @@ pub fn parse_smb2_response_create(i: &[u8]) -> IResult<&[u8], Smb2CreateResponse
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
-pub struct Smb2WriteResponseRecord<> {
+#[derive(Debug, PartialEq)]
+pub struct Smb2WriteResponseRecord {
     pub wr_cnt: u32,
 }
 
@@ -637,7 +643,7 @@ pub fn search_smb_record<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
         }
         if d[index - 1] == 0xfe || d[index - 1] == 0xff || d[index - 1] == 0xfd {
             // if we have enough data, check nbss
-            if index < 5 || d[index-5] == NBSS_MSGTYPE_SESSION_MESSAGE {
+            if index < 5 || d[index - 5] == NBSS_MSGTYPE_SESSION_MESSAGE {
                 return Ok((&d[index + 3..], &d[index - 1..]));
             }
         }
