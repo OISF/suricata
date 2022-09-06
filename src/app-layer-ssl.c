@@ -197,7 +197,8 @@ SslConfig ssl_config;
 
 #define SSLV3_RECORD_HDR_LEN            5
 #define SSLV3_MESSAGE_HDR_LEN           4
-#define SSLV3_RECORD_MAX_LEN            1 << 14
+/** max length according to RFC 5246 6.2.2 is 2^14 + 1024 */
+#define SSLV3_RECORD_MAX_LEN ((1 << 14) + 1024)
 
 #define SSLV3_CLIENT_HELLO_VERSION_LEN  2
 #define SSLV3_CLIENT_HELLO_RANDOM_LEN  32
@@ -2228,10 +2229,15 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
         SCLogDebug("record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",
                 record_len, input_len, parsed, ssl_state->curr_connp->record_length);
 
-        /* records are not supposed to exceed 16384, but the length field is 16 bits. */
+        if (!TLSVersionValid(ssl_state->curr_connp->version)) {
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_VERSION);
+            return SSL_DECODER_ERROR(-1);
+        }
+
         if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN &&
                 ssl_state->curr_connp->record_length > SSLV3_RECORD_MAX_LEN) {
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_LENGTH);
+            return SSL_DECODER_ERROR(-1);
         }
     } else {
         ValidateRecordState(ssl_state->curr_connp);
