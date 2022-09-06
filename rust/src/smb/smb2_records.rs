@@ -374,8 +374,22 @@ pub fn parse_smb2_request_setinfo_disposition(i: &[u8]) -> IResult<&[u8], Smb2Se
 }
 
 #[derive(Debug)]
+pub struct Smb2SetInfoRequestEof {
+    pub eof: u64,
+}
+
+pub fn parse_smb2_request_setinfo_eof(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
+    let (i, eof) = le_u64(i)?;
+    let record = Smb2SetInfoRequestData::EOF(Smb2SetInfoRequestEof {
+        eof: eof,
+    });
+    Ok((i, record))
+}
+
+#[derive(Debug)]
 pub enum Smb2SetInfoRequestData<'a> {
     DISPOSITION(Smb2SetInfoRequestDispoRecord),
+    EOF(Smb2SetInfoRequestEof),
     RENAME(Smb2SetInfoRequestRenameRecord<'a>),
     UNHANDLED,
 }
@@ -399,6 +413,9 @@ fn parse_smb2_request_setinfo_data(
             }
             0xd => {
                 return parse_smb2_request_setinfo_disposition(i);
+            }
+            0x14 => {
+                return parse_smb2_request_setinfo_eof(i);
             }
             _ => {}
         }
