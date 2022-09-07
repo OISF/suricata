@@ -18,8 +18,14 @@
 /*! Parses BitTorrent DHT specification BEP_0005
  *  <https://www.bittorrent.org/beps/bep_0005.html> !*/
 
+// TODO: Custom error type, as we have bencode and nom errors, and may have an our application
+// specific errors as we finish off this parser.
+
 use crate::bittorrent_dht::bittorrent_dht::BitTorrentDHTTransaction;
 use bendy::decoding::{Decoder, Error, FromBencode, Object, ResultExt};
+use nom7::IResult;
+use nom7::bytes::complete::take;
+use nom7::number::complete::be_u16;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct BitTorrentDHTRequest {
@@ -44,7 +50,7 @@ pub struct BitTorrentDHTResponse {
     pub id: Vec<u8>,
     /// q = find_node/get_peers - compact node info for target node or
     ///                           K(8) closest good nodes in routing table
-    pub nodes: Option<Vec<u8>>,
+    pub nodes: Option<Vec<Node>>,
     /// q = get_peers - list of compact peer infos
     pub values: Option<Vec<String>>,
     /// q = get_peers - token key required for sender's future
@@ -58,6 +64,28 @@ pub struct BitTorrentDHTError {
     pub num: u16,
     /// string containing the error message
     pub msg: String,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct Node {
+    pub id: Vec<u8>,
+    pub ip: Vec<u8>,
+    pub port: u16,
+}
+
+/// Parse IPv4 node structures.
+pub fn parse_node(i: &[u8]) -> IResult<&[u8], Node> {
+    let (i, id) = take(20usize)(i)?;
+    let (i, ip) = take(4usize)(i)?;
+    let (i, port) = be_u16(i)?;
+    Ok((
+        i,
+        Node {
+            id: id.to_vec(),
+            ip: ip.to_vec(),
+            port,
+        },
+    ))
 }
 
 impl FromBencode for BitTorrentDHTRequest {
@@ -172,10 +200,12 @@ impl FromBencode for BitTorrentDHTResponse {
                     id = value.try_into_bytes().context("id").map(Some)?;
                 }
                 (b"nodes", value) => {
-                    nodes = value
-                        .try_into_bytes()
-                        .context("nodes")
-                        .map(|v| Some(v.to_vec()))?;
+                    let (_, decoded_nodes) =
+                        nom7::multi::many0(parse_node)(value.try_into_bytes().context("nodes")?)
+                            .map_err(|_| Error::malformed_content("nodes.node"))?;
+                    if !decoded_nodes.is_empty() {
+                        nodes = Some(decoded_nodes);
+                    }
                 }
                 (b"values", value) => {
                     values = Vec::decode_bencode_object(value)
@@ -427,11 +457,11 @@ mod tests {
         "test response from bencode 4")]
     #[test_case(
         b"d2:id20:0123456789abcdefghij5:nodes9:def456...e",
-        BitTorrentDHTResponse { id: b"0123456789abcdefghij".to_vec(), token: None, values: None, nodes: Some(b"def456...".to_vec()) } ;
+        BitTorrentDHTResponse { id: b"0123456789abcdefghij".to_vec(), token: None, values: None, nodes: None } ;
         "test response from bencode 5")]
     #[test_case(
         b"d2:id20:abcdefghij01234567895:nodes9:def456...5:token8:aoeusnthe",
-        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: None, nodes: Some(b"def456...".to_vec()) } ;
+        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: None, nodes: None } ;
         "test response from bencode 6")]
     fn test_response_from_bencode(encoded: &[u8], expected: BitTorrentDHTResponse) {
         let decoded = BitTorrentDHTResponse::from_bencode(encoded).unwrap();
@@ -598,5 +628,23 @@ mod tests {
         let mut tx = BitTorrentDHTTransaction::new();
         let err = parse_bittorrent_dht_packet(encoded, &mut tx).unwrap_err();
         assert_eq!(expected_error, err.to_string());
+    }
+
+    #[test]
+    fn test_parse_node() {
+        let bytes = b"aaaaaaaaaaaaaaaaaaaa\x00\x00\x00\x00\x00\x01";
+        let (_rem, node) = parse_node(bytes).unwrap();
+        assert_eq!(node.id, b"aaaaaaaaaaaaaaaaaaaa");
+        assert_eq!(node.ip, b"\x00\x00\x00\x00");
+        assert_eq!(node.port, 1);
+
+        // Short one byte.
+        let bytes = b"aaaaaaaaaaaaaaaaaaa\x00\x00\x00\x00\x00\x01";
+        assert!(parse_node(bytes).is_err());
+
+        // Has remaining bytes.
+        let bytes = b"aaaaaaaaaaaaaaaaaaaa\x00\x00\x00\x00\x00\x01bb";
+        let (rem, _node) = parse_node(bytes).unwrap();
+        assert_eq!(rem, b"bb");
     }
 }
