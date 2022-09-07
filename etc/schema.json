@@ -2703,9 +2703,6 @@
                         "startup_parameters": {
                             "type": "object",
                             "properties": {
-                                "database": {
-                                    "type": "string"
-                                },
                                 "optional_parameters": {
                                     "type": "array",
                                     "items": {
@@ -2717,11 +2714,23 @@
                                             "client_encoding": {
                                                 "type": "string"
                                             },
+                                            "database": {
+                                                "type": "string"
+                                            },
+                                            "datestyle": {
+                                                "type": "string"
+                                            },
+                                            "extra_float_digits": {
+                                                "type": "string"
+                                            },
+                                            "options": {
+                                                "type": "string"
+                                            },
                                             "replication": {
                                                 "type": "string"
                                             }
                                         },
-                                        "additionalProperties": false
+                                        "additionalProperties": true
                                     }
                                 },
                                 "user": {
@@ -2805,7 +2814,7 @@
                                         "type": "string"
                                     }
                                 },
-                                "additionalProperties": false
+                                "additionalProperties": true
                             }
                         },
                         "process_id": {
