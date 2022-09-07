@@ -2280,6 +2280,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             uint32_t needed = ssl_state->curr_connp->record_length;
             SCLogDebug("record len %u input_len %u parsed %u: need %u bytes more data",
                     ssl_state->curr_connp->record_length, input_len, parsed, needed);
+            DEBUG_VALIDATE_BUG_ON(needed > SSLV3_RECORD_MAX_LEN);
             return SSL_DECODER_INCOMPLETE(parsed, needed);
         }
     }
