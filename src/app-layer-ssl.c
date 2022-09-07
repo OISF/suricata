@@ -2133,122 +2133,24 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
             break;
 
         case SSLV2_MT_CLIENT_HELLO:
+            if (input_len < 6) {
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+                return SSL_DECODER_ERROR(-1);
+            }
+
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
             ssl_state->current_flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
 
-            if (ssl_state->curr_connp->record_lengths_length == 3) {
-                switch (ssl_state->curr_connp->bytes_processed) {
-                    case 4:
-                        if (input_len >= 6) {
-                            uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
-                            input += 6;
-                            input_len -= 6;
-                            ssl_state->curr_connp->bytes_processed += 6;
-                            if (session_id_length == 0) {
-                                ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
-                            }
-
-                            break;
-                        } else {
-                            input++;
-                            ssl_state->curr_connp->bytes_processed++;
-                            if (--input_len == 0)
-                                break;
-                        }
-
-                        /* fall through */
-                    case 5:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 6:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 7:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 8:
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 9:
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                }
-
-            } else {
-                switch (ssl_state->curr_connp->bytes_processed) {
-                    case 3:
-                        if (input_len >= 6) {
-                            uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
-                            input += 6;
-                            input_len -= 6;
-                            ssl_state->curr_connp->bytes_processed += 6;
-                            if (session_id_length == 0) {
-                                ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
-                            }
-
-                            break;
-                        } else {
-                            input++;
-                            ssl_state->curr_connp->bytes_processed++;
-                            if (--input_len == 0)
-                                break;
-                        }
-
-                        /* fall through */
-                    case 4:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 5:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 6:
-                        input++;
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 7:
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                    case 8:
-                        ssl_state->curr_connp->bytes_processed++;
-                        if (--input_len == 0)
-                            break;
-
-                        /* fall through */
-                }
+            const uint16_t version = input[0] << 8 | input[1];
+            SCLogDebug("SSLv2: version %04x", version);
+            ssl_state->curr_connp->version = version;
+            uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
+            input += 6;
+            input_len -= 6;
+            ssl_state->curr_connp->bytes_processed += 6;
+            if (session_id_length == 0) {
+                ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
             }
-
             break;
 
         case SSLV2_MT_CLIENT_MASTER_KEY:
