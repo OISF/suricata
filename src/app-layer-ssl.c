@@ -1016,8 +1016,17 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         if (!(HAS_SPACE(supported_ver_len)))
             goto invalid_length;
 
-        /* Use the first (and prefered) version as client version */
-        ssl_state->curr_connp->version = (uint16_t)(*input << 8) | *(input + 1);
+        /* Use the first (and prefered) valid version as client version,
+         * skip over GREASE and other possible noise. */
+        uint16_t i = 0;
+        while (i < (uint16_t)supported_ver_len) {
+            uint16_t ver = (uint16_t)(input[i] << 8) | input[i + 1];
+            if (TLSVersionValid(ver)) {
+                ssl_state->curr_connp->version = ver;
+                break;
+            }
+            i += 2;
+        }
 
         /* Set a flag to indicate that we have seen this extension */
         ssl_state->flags |= SSL_AL_FLAG_CH_VERSION_EXTENSION;
