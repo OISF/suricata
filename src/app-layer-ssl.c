@@ -2336,10 +2336,16 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             ssl_state->curr_connp->record_length, ssl_state->curr_connp->bytes_processed, record_len);
 
     if (ssl_state->curr_connp->record_length > input_len - parsed) {
-        uint32_t needed = ssl_state->curr_connp->record_length;
-        SCLogDebug("record len %u input_len %u parsed %u: need %u bytes more data",
-                ssl_state->curr_connp->record_length, input_len, parsed, needed);
-        return SSL_DECODER_INCOMPLETE(parsed, needed);
+        /* no need to use incomplete api buffering for application
+         * records that we'll not use anyway. */
+        if (ssl_state->curr_connp->content_type == SSLV3_APPLICATION_PROTOCOL) {
+            SCLogDebug("application record");
+        } else {
+            uint32_t needed = ssl_state->curr_connp->record_length;
+            SCLogDebug("record len %u input_len %u parsed %u: need %u bytes more data",
+                    ssl_state->curr_connp->record_length, input_len, parsed, needed);
+            return SSL_DECODER_INCOMPLETE(parsed, needed);
+        }
     }
 
     if (record_len == 0) {
