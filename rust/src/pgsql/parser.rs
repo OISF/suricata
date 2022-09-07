@@ -122,7 +122,6 @@ pub struct PgsqlParameter {
 #[derive(Debug, PartialEq)]
 pub struct PgsqlStartupParameters {
     pub user: PgsqlParameter,
-    pub database: Option<PgsqlParameter>,
     pub optional_params: Option<Vec<PgsqlParameter>>,
 }
 
@@ -554,26 +553,25 @@ fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
 }
 
 pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupParameters> {
-    let (i, optional) = opt(terminated(many1(pgsql_parse_generic_parameter), tag("\x00")))(i)?;
-    if let Some(ref params) = optional {
+    let (i, mut optional) = opt(terminated(many1(pgsql_parse_generic_parameter), tag("\x00")))(i)?;
+    if let Some(ref mut params) = optional {
         let mut user = PgsqlParameter{name: PgsqlParameters::User, value: Vec::new() };
-        let mut database = None;
+        let mut index: usize = 0;
         for j in 0..params.len() {
             if params[j].name == PgsqlParameters::User {
                 user.value.extend_from_slice(&params[j].value);
-            } else if params[j].name == PgsqlParameters::Database {
-                let mut d1 = PgsqlParameter{name: PgsqlParameters::Database, value: Vec::new() };
-                d1.value.extend_from_slice(&params[j].value);
-                database = Some(d1);
+                index = j;
             }
         }
+        params.remove(index);
         if user.value.len() == 0 {
             return Err(Err::Error(make_error(i, ErrorKind::Tag)));
         }
         return Ok((i, PgsqlStartupParameters{
             user,
-            database,
-            optional_params: optional,
+            optional_params: if !params.is_empty() {
+                optional
+            } else { None },
         }));
     }
     return Err(Err::Error(make_error(i, ErrorKind::Tag)));
@@ -1159,10 +1157,11 @@ mod tests {
             name: PgsqlParameters::Database,
             value: br#"mailstore"#.to_vec(),
         };
+        let mut database_param: Vec<PgsqlParameter> = Vec::new();
+        database_param.push(database);
         let params = PgsqlStartupParameters {
             user,
-            database: Some(database),
-            optional_params: None,
+            optional_params: Some(database_param),
         };
         let expected_result = PgsqlFEMessage::StartupMessage(StartupPacket {
             length: 38,
@@ -1199,7 +1198,6 @@ mod tests {
         };
         let params = PgsqlStartupParameters {
             user,
-            database: None,
             optional_params: None,
         };
         let expected_result = PgsqlFEMessage::StartupMessage(StartupPacket {
