@@ -18,6 +18,33 @@
 use super::bittorrent_dht::BitTorrentDHTTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
+/// Format bytes as an IP address string.
+fn print_ip_addr(addr: &[u8]) -> std::string::String {
+    if addr.len() == 4 {
+        return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
+    } else if addr.len() == 16 {
+        return format!("{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}",
+                       addr[0],
+                       addr[1],
+                       addr[2],
+                       addr[3],
+                       addr[4],
+                       addr[5],
+                       addr[6],
+                       addr[7],
+                       addr[8],
+                       addr[9],
+                       addr[10],
+                       addr[11],
+                       addr[12],
+                       addr[13],
+                       addr[14],
+                       addr[15]);
+    } else {
+        return "".to_string();
+    }
+}
+
 fn log_bittorrent_dht(
     tx: &BitTorrentDHTTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
@@ -58,7 +85,17 @@ fn log_bittorrent_dht(
         js.open_object("response")?;
         js.set_hex("id", &response.id)?;
         if let Some(nodes) = &response.nodes {
-            js.set_hex("nodes", nodes)?;
+            if !nodes.is_empty() {
+                js.open_array("nodes")?;
+                for node in nodes {
+                    js.start_object()?;
+                    js.set_hex("id", &node.id)?;
+                    js.set_string("ip", &print_ip_addr(&node.ip))?;
+                    js.set_uint("port", node.port.into())?;
+                    js.close()?;
+                }
+                js.close()?;
+            }
         }
         if let Some(values) = &response.values {
             js.open_array("values")?;
