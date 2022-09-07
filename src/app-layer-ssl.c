@@ -2220,6 +2220,8 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
     uint32_t record_len; /* slice of input_len for the current record */
 
     if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
+        const uint16_t prev_version = ssl_state->curr_connp->version;
+
         int retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
         if (retval < 0 || retval > (int)input_len) {
             DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
@@ -2227,6 +2229,20 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return SSL_DECODER_ERROR(-1);
         }
+
+        bool unknown_record = false;
+        switch (ssl_state->curr_connp->content_type) {
+            case SSLV3_CHANGE_CIPHER_SPEC:
+            case SSLV3_ALERT_PROTOCOL:
+            case SSLV3_HANDSHAKE_PROTOCOL:
+            case SSLV3_APPLICATION_PROTOCOL:
+            case SSLV3_HEARTBEAT_PROTOCOL:
+                break;
+            default:
+                unknown_record = true;
+                break;
+        }
+
         SCLogDebug("%s input %p record_length %u", (direction == 0) ? "toserver" : "toclient",
                 input, ssl_state->curr_connp->record_length);
         AppLayerFrameNewByPointer(ssl_state->f, &stream_slice, input,
@@ -2238,7 +2254,37 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
         SCLogDebug("record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",
                 record_len, input_len, parsed, ssl_state->curr_connp->record_length);
 
+        /* unknown record type. For TLS 1.0, 1.1 and 1.2 this is ok. For the rest it is fatal. Based
+         * on Wireshark logic. */
+        if (prev_version == TLS_VERSION_10 || prev_version == TLS_VERSION_11) {
+            if (unknown_record) {
+                SCLogDebug("unknown record, ignore it");
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
+
+                ssl_state->curr_connp->bytes_processed = 0; // TODO review this reset logic
+                ssl_state->curr_connp->content_type = 0;
+                ssl_state->curr_connp->record_length = 0;
+                // restore last good version
+                ssl_state->curr_connp->version = prev_version;
+                return SSL_DECODER_OK(input_len); // consume everything
+            }
+        } else {
+            if (unknown_record) {
+                SCLogDebug("unknown record, fatal");
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
+                return SSL_DECODER_ERROR(-1);
+            }
+        }
+
+        /* record_length should never be zero */
+        if (ssl_state->curr_connp->record_length == 0) {
+            SCLogDebug("SSLv3 Record length is 0");
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_LENGTH);
+            return SSL_DECODER_ERROR(-1);
+        }
+
         if (!TLSVersionValid(ssl_state->curr_connp->version)) {
+            SCLogDebug("ssl_state->curr_connp->version %04x", ssl_state->curr_connp->version);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_VERSION);
             return SSL_DECODER_ERROR(-1);
         }
@@ -2275,12 +2321,6 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
         return SSL_DECODER_OK(parsed);
     }
 
-    /* record_length should never be zero */
-    if (ssl_state->curr_connp->record_length == 0) {
-        SCLogDebug("SSLv3 Record length is 0");
-        SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
-        return SSL_DECODER_ERROR(-1);
-    }
     AppLayerFrameNewByPointer(ssl_state->f, &stream_slice, input + parsed,
             ssl_state->curr_connp->record_length, direction, TLS_FRAME_DATA);
 
@@ -2379,7 +2419,8 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             break;
         }
         default:
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
+            // should be unreachable now that we check after header parsing
+            DEBUG_VALIDATE_BUG_ON(1);
             SCLogDebug("unsupported record type");
             return SSL_DECODER_ERROR(-1);
     }
