@@ -551,6 +551,8 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 #define FatalErrorOnInit(x, ...) FatalError(x, __VA_ARGS__)
 #endif
 
+#define BOOL2STR(b) (b) ? "true" : "false"
+
 SCLogInitData *SCLogAllocLogInitData(void);
 
 SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *, const char *, int,
