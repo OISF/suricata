@@ -93,7 +93,21 @@ impl BitTorrentDHTState {
         return tx;
     }
 
+    fn is_dht(input: &[u8]) -> bool {
+        if input.len() > 5 {
+            match &input[0..5] {
+                b"d1:ad" | b"d1:rd" | b"d2:ip" | b"d1:el" => true,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
     pub fn parse(&mut self, input: &[u8]) -> bool {
+        if !Self::is_dht(input) {
+            return true;
+        }
         let mut tx = self.new_tx();
         let mut status = true;
 
