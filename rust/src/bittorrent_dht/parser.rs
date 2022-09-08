@@ -23,9 +23,9 @@
 
 use crate::bittorrent_dht::bittorrent_dht::BitTorrentDHTTransaction;
 use bendy::decoding::{Decoder, Error, FromBencode, Object, ResultExt};
-use nom7::IResult;
 use nom7::bytes::complete::take;
 use nom7::number::complete::be_u16;
+use nom7::IResult;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct BitTorrentDHTRequest {
@@ -51,6 +51,7 @@ pub struct BitTorrentDHTResponse {
     /// q = find_node/get_peers - compact node info for target node or
     ///                           K(8) closest good nodes in routing table
     pub nodes: Option<Vec<Node>>,
+    pub nodes6: Option<Vec<Node>>,
     /// q = get_peers - list of compact peer infos
     pub values: Option<Vec<Peer>>,
     /// q = get_peers - token key required for sender's future
@@ -83,6 +84,21 @@ pub struct Peer {
 pub fn parse_node(i: &[u8]) -> IResult<&[u8], Node> {
     let (i, id) = take(20usize)(i)?;
     let (i, ip) = take(4usize)(i)?;
+    let (i, port) = be_u16(i)?;
+    Ok((
+        i,
+        Node {
+            id: id.to_vec(),
+            ip: ip.to_vec(),
+            port,
+        },
+    ))
+}
+
+/// Parse IPv6 node structures.
+pub fn parse_node6(i: &[u8]) -> IResult<&[u8], Node> {
+    let (i, id) = take(20usize)(i)?;
+    let (i, ip) = take(16usize)(i)?;
     let (i, port) = be_u16(i)?;
     Ok((
         i,
@@ -213,6 +229,7 @@ impl FromBencode for BitTorrentDHTResponse {
     {
         let mut id = None;
         let mut nodes = None;
+        let mut nodes6 = None;
         let mut values = vec![];
         let mut token = None;
 
@@ -229,6 +246,14 @@ impl FromBencode for BitTorrentDHTResponse {
                             .map_err(|_| Error::malformed_content("nodes.node"))?;
                     if !decoded_nodes.is_empty() {
                         nodes = Some(decoded_nodes);
+                    }
+                }
+                (b"nodes6", value) => {
+                    let (_, decoded_nodes) =
+                        nom7::multi::many0(parse_node6)(value.try_into_bytes().context("nodes6")?)
+                            .map_err(|_| Error::malformed_content("nodes6.nodes6"))?;
+                    if !decoded_nodes.is_empty() {
+                        nodes6 = Some(decoded_nodes);
                     }
                 }
                 (b"values", value) => {
@@ -256,6 +281,7 @@ impl FromBencode for BitTorrentDHTResponse {
         Ok(BitTorrentDHTResponse {
             id: id.to_vec(),
             nodes,
+            nodes6,
             values: if values.is_empty() {
                 None
             } else {
