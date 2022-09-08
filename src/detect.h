@@ -1096,6 +1096,8 @@ typedef struct DetectEngineThreadCtx_ {
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     int64_t frame_id;
+    uint64_t frame_inspect_progress; /**< used to set Frame::inspect_progress after all inspection
+                                        on a frame is complete. */
     Packet *p;
 
     uint16_t alert_queue_size;

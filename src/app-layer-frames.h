@@ -51,8 +51,8 @@ typedef struct Frame {
     int64_t len;
     int64_t id;
     uint64_t tx_id; /**< tx_id to match this frame. UINT64T_MAX if not used. */
+    uint64_t inspect_progress; /**< inspection tracker relative to the start of the frame */
 } Frame;
-// size 40
 
 #define FRAMES_STATIC_CNT 3
 
@@ -68,13 +68,11 @@ typedef struct Frames {
     AppProto alproto;
 #endif
 } Frames;
-// size 136
 
 typedef struct FramesContainer {
     Frames toserver;
     Frames toclient;
 } FramesContainer;
-// size 272
 
 void FramesFree(Frames *frames);
 void FramesPrune(Flow *f, Packet *p);
