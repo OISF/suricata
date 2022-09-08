@@ -32,11 +32,11 @@ pub struct BitTorrentDHTRequest {
     /// q = * - 20 byte string, sender's node ID in network byte order
     pub id: Vec<u8>,
     /// q = find_node - target node ID
-    pub target: Option<String>,
+    pub target: Option<Vec<u8>>,
     /// q = get_peers/announce_peer - 20-byte info hash of target torrent
     pub info_hash: Option<Vec<u8>>,
     /// q = announce_peer - token key received from previous get_peers query
-    pub token: Option<String>,
+    pub token: Option<Vec<u8>>,
     /// q = announce_peer - 0 or 1, if 1 ignore provided port and
     ///                     use source port of UDP packet
     pub implied_port: Option<u8>,
@@ -125,9 +125,10 @@ impl FromBencode for BitTorrentDHTRequest {
                     id = value.try_into_bytes().context("id").map(Some)?;
                 }
                 (b"target", value) => {
-                    target = String::decode_bencode_object(value)
+                    target = value
+                        .try_into_bytes()
                         .context("target")
-                        .map(Some)?;
+                        .map(|v| Some(v.to_vec()))?;
                 }
                 (b"info_hash", value) => {
                     info_hash = value
@@ -136,9 +137,10 @@ impl FromBencode for BitTorrentDHTRequest {
                         .map(|v| Some(v.to_vec()))?;
                 }
                 (b"token", value) => {
-                    token = String::decode_bencode_object(value)
+                    token = value
+                        .try_into_bytes()
                         .context("token")
-                        .map(Some)?;
+                        .map(|v| Some(v.to_vec()))?;
                 }
                 (b"implied_port", value) => {
                     implied_port = u8::decode_bencode_object(value)
