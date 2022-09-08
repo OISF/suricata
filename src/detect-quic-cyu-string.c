@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,7 @@
 #include "detect-quic-cyu-string.h"
 #include "detect-engine-build.h"
 #include "rust.h"
+#include "util-profiling.h"
 
 #ifdef UNITTESTS
 static void DetectQuicCyuStringRegisterTests(void);
@@ -147,6 +148,7 @@ static void PrefilterTxQuicString(DetectEngineThreadCtx *det_ctx, const void *pe
         if (buffer->inspect_len >= mpm_ctx->minlen) {
             (void)mpm_table[mpm_ctx->mpm_type].Search(
                     mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
+            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
         }
 
         local_id++;

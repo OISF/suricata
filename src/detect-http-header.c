@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,6 +47,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-memcmp.h"
+#include "util-profiling.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -271,6 +272,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+        PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
     }
 }
 
