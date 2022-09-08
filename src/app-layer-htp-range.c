@@ -237,7 +237,7 @@ uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
 /**
  * \returns locked data
  */
-static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
+HttpRangeContainerFile *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
 {
     const struct timeval *ts = &f->lastts;
     HttpRangeContainerFile lookup;
@@ -587,7 +587,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     // wait until we merged all the buffers to update known size
     c->container->lastsize = f->size;
 
-    if (f->size >= c->container->totalsize) {
+    if (f->size >= c->container->totalsize && c->container->totalsize > 0) {
         // we finished the whole file
         HttpRangeFileClose(c->container, flags);
     } else {

@@ -107,4 +107,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, ui
 
 void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
 
+HttpRangeContainerFile *HttpRangeContainerUrlGet(
+        const uint8_t *key, uint32_t keylen, const Flow *f);
+
 #endif /* __APP_LAYER_HTP_RANGE_H__ */
