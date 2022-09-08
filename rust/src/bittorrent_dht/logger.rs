@@ -100,7 +100,10 @@ fn log_bittorrent_dht(
         if let Some(values) = &response.values {
             js.open_array("values")?;
             for value in values {
-                js.append_string(value)?;
+                js.start_object()?;
+                js.set_string("ip", &print_ip_addr(&value.ip))?;
+                js.set_uint("port", value.port.into())?;
+                js.close()?;
             }
             js.close()?;
         }
