@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,6 +52,7 @@
 #include "util-unittest.h"
 #include "util-spm.h"
 #include "util-print.h"
+#include "util-profiling.h"
 
 static int DetectMQTTUnsubscribeTopicSetup(DetectEngineCtx *, Signature *, const char *);
 
@@ -161,6 +162,7 @@ static void PrefilterTxMQTTUnsubscribeTopic(DetectEngineThreadCtx *det_ctx,
             (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtcu, &det_ctx->pmq,
                     buffer->inspect, buffer->inspect_len);
+            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
         }
         local_id++;
     }

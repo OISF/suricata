@@ -49,7 +49,7 @@ void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead 
         BUG_ON(engine->alproto == ALPROTO_UNKNOWN);
         if (engine->alproto == alproto && engine->ctx.frame_type == frame->type) {
             SCLogDebug("frame %p engine %p", frame, engine);
-            PREFILTER_PROFILING_START;
+            PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterFrame(det_ctx, engine->pectx, p, frames, frame, idx);
             PREFILTER_PROFILING_END(det_ctx, engine->gid);
         }
@@ -102,6 +102,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
         (void)mpm_table[mpm_ctx->mpm_type].Search(
                 mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
         SCLogDebug("det_ctx->pmq.rule_id_array_cnt %u", det_ctx->pmq.rule_id_array_cnt);
+        PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
     }
 }
 
