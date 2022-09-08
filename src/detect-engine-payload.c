@@ -47,7 +47,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
-
+#include "util-profiling.h"
 #include "util-mpm-ac.h"
 
 struct StreamMpmData {
@@ -67,6 +67,7 @@ static int StreamMpmFunc(
         (void)mpm_table[smd->mpm_ctx->mpm_type].Search(smd->mpm_ctx,
                 &smd->det_ctx->mtcs, &smd->det_ctx->pmq,
                 data, data_len);
+        PREFILTER_PROFILING_ADD_BYTES(smd->det_ctx, data_len);
     }
     return 0;
 }
@@ -101,6 +102,7 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
             (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtc, &det_ctx->pmq,
                     p->payload, p->payload_len);
+            PREFILTER_PROFILING_ADD_BYTES(det_ctx, p->payload_len);
         }
     }
 }
@@ -124,6 +126,8 @@ static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
     (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
             &det_ctx->mtc, &det_ctx->pmq,
             p->payload, p->payload_len);
+
+    PREFILTER_PROFILING_ADD_BYTES(det_ctx, p->payload_len);
 }
 
 int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,

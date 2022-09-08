@@ -58,6 +58,7 @@
 #include "app-layer-htp.h"
 #include "detect-http-client-body.h"
 #include "stream-tcp.h"
+#include "util-profiling.h"
 
 static int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
@@ -366,6 +367,7 @@ static void PrefilterTxHttpRequestBody(DetectEngineThreadCtx *det_ctx, const voi
     if (buffer->inspect_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(
                 mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
+        PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
     }
 }
 
