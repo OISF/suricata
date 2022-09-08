@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,6 +45,11 @@ typedef struct SCProfilePrefilterData_ {
     uint64_t called;
     uint64_t total;
     uint64_t max;
+    uint64_t total_bytes;
+    uint64_t max_bytes;
+    uint64_t bytes_called; /**< number of times total_bytes was updated. Differs from `called` as a
+                              prefilter engine may skip mpm if the smallest pattern is bigger than
+                              the buffer to inspect. */
     const char *name;
 } SCProfilePrefilterData;
 
@@ -100,13 +105,20 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
     fprintf(fp, "  ----------------------------------------------"
             "------------------------------------------------------"
             "----------------------------\n");
-    fprintf(fp, "  %-32s %-15s %-15s %-15s %-15s\n", "Prefilter", "Ticks", "Called", "Max Ticks", "Avg");
+    fprintf(fp, "  %-32s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Prefilter",
+            "Ticks", "Called", "Max Ticks", "Avg", "Bytes", "Called", "Max Bytes", "Avg Bytes",
+            "Ticks/Byte");
     fprintf(fp, "  -------------------------------- "
                 "--------------- "
                 "--------------- "
                 "--------------- "
                 "--------------- "
-        "\n");
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "\n");
     for (i = 0; i < (int)rules_ctx->size; i++) {
         SCProfilePrefilterData *d = &rules_ctx->data[i];
         if (d == NULL || d->called== 0)
@@ -117,14 +129,20 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
         if (ticks && d->called) {
             avgticks = (double)(ticks / d->called);
         }
+        double avgbytes = 0;
+        if (d->total_bytes && d->called) {
+            avgbytes = (double)(d->total_bytes / d->bytes_called);
+        }
+        double ticks_per_byte = 0;
+        if (ticks && d->total_bytes) {
+            ticks_per_byte = (double)(ticks / d->total_bytes);
+        }
 
         fprintf(fp,
-            "  %-32s %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f\n",
-            d->name,
-            ticks,
-            d->called,
-            d->max,
-            avgticks);
+                "  %-32s %-15" PRIu64 " %-15" PRIu64 " %-15" PRIu64 " %-15.2f %-15" PRIu64
+                " %-15" PRIu64 " %-15" PRIu64 " %-15.2f %-15.2f\n",
+                d->name, ticks, d->called, d->max, avgticks, d->total_bytes, d->bytes_called,
+                d->max_bytes, avgbytes, ticks_per_byte);
     }
 }
 
@@ -180,8 +198,8 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
  * \param ticks Number of CPU ticks for this rule.
  * \param match Did the rule match?
  */
-void
-SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks)
+void SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks,
+        uint64_t bytes, uint64_t bytes_called)
 {
     if (det_ctx != NULL && det_ctx->prefilter_perf_data != NULL &&
             id < (int)det_ctx->de_ctx->prefilter_id)
@@ -192,6 +210,11 @@ SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64
         if (ticks > p->max)
             p->max = ticks;
         p->total += ticks;
+
+        p->bytes_called += bytes_called;
+        if (bytes > p->max_bytes)
+            p->max_bytes = bytes;
+        p->total_bytes += bytes;
     }
 }
 
@@ -255,6 +278,14 @@ static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngin
         de_ctx->profile_prefilter_ctx->data[i].total += det_ctx->prefilter_perf_data[i].total;
         if (det_ctx->prefilter_perf_data[i].max > de_ctx->profile_prefilter_ctx->data[i].max)
             de_ctx->profile_prefilter_ctx->data[i].max = det_ctx->prefilter_perf_data[i].max;
+        de_ctx->profile_prefilter_ctx->data[i].total_bytes +=
+                det_ctx->prefilter_perf_data[i].total_bytes;
+        if (det_ctx->prefilter_perf_data[i].max_bytes >
+                de_ctx->profile_prefilter_ctx->data[i].max_bytes)
+            de_ctx->profile_prefilter_ctx->data[i].max_bytes =
+                    det_ctx->prefilter_perf_data[i].max_bytes;
+        de_ctx->profile_prefilter_ctx->data[i].bytes_called +=
+                det_ctx->prefilter_perf_data[i].bytes_called;
     }
 }
 
