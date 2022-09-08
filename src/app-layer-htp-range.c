@@ -360,7 +360,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uin
 }
 
 HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *crparsed, const StreamingBufferConfig *sbcfg,
+        const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
         uint32_t data_len)
 {

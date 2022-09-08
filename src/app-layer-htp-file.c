@@ -162,7 +162,7 @@ end:
  *
  * @return HTP_OK on success, HTP_ERROR on failure.
  */
-int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
+int HTPParseContentRange(bstr *rawvalue, FileContentRange *range)
 {
     uint32_t len = bstr_len(rawvalue);
     return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
@@ -177,7 +177,7 @@ int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
  * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
  */
 static int HTPParseAndCheckContentRange(
-        bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
+        bstr *rawvalue, FileContentRange *range, HtpState *s, HtpTxUserData *htud)
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
@@ -225,7 +225,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     DEBUG_VALIDATE_BUG_ON(s == NULL);
 
     // This function is only called STREAM_TOCLIENT from HtpResponseBodyHandle
-    HTTPContentRange crparsed;
+    FileContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
         return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);

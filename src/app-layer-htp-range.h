@@ -101,7 +101,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 
 // HttpRangeContainerBlock but trouble with headers inclusion order
 HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
+        const Flow *f, const FileContentRange *cr, const StreamingBufferConfig *sbcfg,
         const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
         uint32_t data_len);
 
