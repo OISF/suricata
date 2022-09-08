@@ -423,17 +423,9 @@ mod tests {
     use test_case::test_case;
 
     #[test_case(
-        b"d2:id20:abcdefghij012345678912:implied_porti1e9:info_hash20:mnopqrstuvwxyz1234564:porti6881e5:token8:aoeusnthe",
-        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: Some(1u8), info_hash: Some(b"mnopqrstuvwxyz123456".to_vec()), port: Some(6881u16), token: Some("aoeusnth".to_string()), target: None } ;
-        "test request from bencode 1")]
-    #[test_case(
         b"d2:id20:abcdefghij0123456789e",
         BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: None, port: None, token: None, target: None } ;
         "test request from bencode 2")]
-    #[test_case(
-        b"d2:id20:abcdefghij01234567896:target20:mnopqrstuvwxyz123456e",
-        BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: None, port: None, token: None, target: Some("mnopqrstuvwxyz123456".to_string()) } ;
-        "test request from bencode 3")]
     #[test_case(
         b"d2:id20:abcdefghij01234567899:info_hash20:mnopqrstuvwxyz123456e",
         BitTorrentDHTRequest { id: b"abcdefghij0123456789".to_vec(), implied_port: None, info_hash: Some(b"mnopqrstuvwxyz123456".to_vec()), port: None, token: None, target: None } ;
@@ -470,35 +462,6 @@ mod tests {
     fn test_request_from_bencode_err(encoded: &[u8], expected_error: &str) {
         let err = BitTorrentDHTRequest::from_bencode(encoded).unwrap_err();
         assert_eq!(expected_error, err.to_string());
-    }
-
-    #[test_case(
-        b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valueslee",
-        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec![]), nodes: None } ;
-        "test response from bencode 1")]
-    #[test_case(
-        b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.uee",
-        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string()]), nodes: None } ;
-        "test response from bencode 2")]
-    #[test_case(
-        b"d2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.u6:idhtnmee",
-        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None } ;
-        "test response from bencode 3")]
-    #[test_case(
-        b"d2:id20:mnopqrstuvwxyz123456e",
-        BitTorrentDHTResponse { id: b"mnopqrstuvwxyz123456".to_vec(), token: None, values: None, nodes: None } ;
-        "test response from bencode 4")]
-    #[test_case(
-        b"d2:id20:0123456789abcdefghij5:nodes9:def456...e",
-        BitTorrentDHTResponse { id: b"0123456789abcdefghij".to_vec(), token: None, values: None, nodes: None } ;
-        "test response from bencode 5")]
-    #[test_case(
-        b"d2:id20:abcdefghij01234567895:nodes9:def456...5:token8:aoeusnthe",
-        BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: None, nodes: None } ;
-        "test response from bencode 6")]
-    fn test_response_from_bencode(encoded: &[u8], expected: BitTorrentDHTResponse) {
-        let decoded = BitTorrentDHTResponse::from_bencode(encoded).unwrap();
-        assert_eq!(expected, decoded);
     }
 
     #[test_case(
@@ -569,16 +532,6 @@ mod tests {
         b"aa".to_vec(),
         Some(b"UT01".to_vec()) ;
         "test parse bittorrent dht packet 1"
-    )]
-    #[test_case(
-        b"d1:rd2:id20:abcdefghij01234567895:token8:aoeusnth6:valuesl6:axje.u6:idhtnmee1:t2:aa1:y1:re",
-        None,
-        None,
-        Some(BitTorrentDHTResponse { id: b"abcdefghij0123456789".to_vec(), token: Some(b"aoeusnth".to_vec()), values: Some(vec!["axje.u".to_string(), "idhtnm".to_string()]), nodes: None}),
-        None,
-        b"aa".to_vec(),
-        None ;
-        "test parse bittorrent dht packet 2"
     )]
     #[test_case(
         b"d1:eli201e23:A Generic Error Ocurrede1:t2:aa1:v4:UT011:y1:ee",
