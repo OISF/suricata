@@ -354,8 +354,51 @@
                             "optional": false
                         },
                         "nodes": {
-                            "type": "string",
-                            "optional": true
+                            "type": "array",
+                            "optional": true,
+                            "items": {
+                                "type": "object",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "optional": false
+                                        },
+                                        "ip": {
+                                            "type": "string",
+                                            "optional": false
+                                        },
+                                        "port": {
+                                            "type": "number",
+                                            "optional": false
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "nodes6": {
+                            "type": "array",
+                            "optional": true,
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "optional": false
+                                    },
+                                    "ip": {
+                                        "type": "string",
+                                        "optional": false
+                                    },
+                                    "port": {
+                                        "type": "number",
+                                        "optional": false
+                                    }
+                                }
+                            }
                         },
                         "token": {
                             "type": "string",
@@ -365,7 +408,7 @@
                             "type": "array",
                             "optional": true,
                             "items": {
-                                "type": "string"
+                                "type": "object"
                             }
                         }
                     }
