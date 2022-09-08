@@ -97,6 +97,19 @@ fn log_bittorrent_dht(
                 js.close()?;
             }
         }
+        if let Some(nodes) = &response.nodes6 {
+            if !nodes.is_empty() {
+                js.open_array("nodes6")?;
+                for node in nodes {
+                    js.start_object()?;
+                    js.set_hex("id", &node.id)?;
+                    js.set_string("ip", &print_ip_addr(&node.ip))?;
+                    js.set_uint("port", node.port.into())?;
+                    js.close()?;
+                }
+                js.close()?;
+            }
+        }
         if let Some(values) = &response.values {
             js.open_array("values")?;
             for value in values {
