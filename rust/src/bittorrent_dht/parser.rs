@@ -52,7 +52,7 @@ pub struct BitTorrentDHTResponse {
     ///                           K(8) closest good nodes in routing table
     pub nodes: Option<Vec<Node>>,
     /// q = get_peers - list of compact peer infos
-    pub values: Option<Vec<String>>,
+    pub values: Option<Vec<Peer>>,
     /// q = get_peers - token key required for sender's future
     ///                 announce_peer query
     pub token: Option<Vec<u8>>,
@@ -73,6 +73,12 @@ pub struct Node {
     pub port: u16,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct Peer {
+    pub ip: Vec<u8>,
+    pub port: u16,
+}
+
 /// Parse IPv4 node structures.
 pub fn parse_node(i: &[u8]) -> IResult<&[u8], Node> {
     let (i, id) = take(20usize)(i)?;
@@ -82,6 +88,22 @@ pub fn parse_node(i: &[u8]) -> IResult<&[u8], Node> {
         i,
         Node {
             id: id.to_vec(),
+            ip: ip.to_vec(),
+            port,
+        },
+    ))
+}
+
+fn parse_peer(i: &[u8]) -> IResult<&[u8], Peer> {
+    let (i, ip) = if i.len() < 18 {
+        take(4usize)(i)
+    } else {
+        take(16usize)(i)
+    }?;
+    let (i, port) = be_u16(i)?;
+    Ok((
+        i,
+        Peer {
             ip: ip.to_vec(),
             port,
         },
@@ -191,7 +213,7 @@ impl FromBencode for BitTorrentDHTResponse {
     {
         let mut id = None;
         let mut nodes = None;
-        let mut values = None;
+        let mut values = vec![];
         let mut token = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
@@ -210,9 +232,14 @@ impl FromBencode for BitTorrentDHTResponse {
                     }
                 }
                 (b"values", value) => {
-                    values = Vec::decode_bencode_object(value)
-                        .context("values")
-                        .map(Some)?;
+                    if let Object::List(mut list) = value {
+                        while let Some(entry) = list.next_object()? {
+                            let (_, peer) =
+                                parse_peer(entry.try_into_bytes().context("values.entry")?)
+                                    .map_err(|_| Error::malformed_content("values.entry.peer"))?;
+                            values.push(peer);
+                        }
+                    }
                 }
                 (b"token", value) => {
                     token = value
@@ -229,7 +256,11 @@ impl FromBencode for BitTorrentDHTResponse {
         Ok(BitTorrentDHTResponse {
             id: id.to_vec(),
             nodes,
-            values,
+            values: if values.is_empty() {
+                None
+            } else {
+                Some(values)
+            },
             token,
         })
     }
