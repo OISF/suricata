@@ -65,7 +65,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     SIPTransaction *siptx = tx;
     OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *js = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "sip", NULL, thread->ctx);
+    JsonBuilder *js = CreateEveHeader((Packet *)p, LOG_DIR_FLOW, "sip", NULL, thread->ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
@@ -88,6 +88,7 @@ static OutputInitResult OutputSIPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 

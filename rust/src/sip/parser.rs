@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-// written by Giuseppe Longo <giuseppe@glono.it>
+// written by Giuseppe Longo <giuseppe@glongo.it>
 
 use nom7::bytes::streaming::{take, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
@@ -65,7 +65,7 @@ pub enum Method {
 
 #[inline]
 fn is_token_char(b: u8) -> bool {
-    is_alphanumeric(b) || b"!%'*+-._`".contains(&b)
+    is_alphanumeric(b) || b"!%'*+-._`;=@".contains(&b)
 }
 
 #[inline]
