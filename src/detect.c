@@ -1565,11 +1565,12 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 
     for (uint32_t idx = 0; idx < frames->cnt; idx++) {
         SCLogDebug("frame %u", idx);
-        const Frame *frame = FrameGetByIndex(frames, idx);
+        Frame *frame = FrameGetByIndex(frames, idx);
         if (frame == NULL) {
             continue;
         }
 
+        det_ctx->frame_inspect_progress = 0;
         uint32_t array_idx = 0;
         uint32_t total_rules = det_ctx->match_array_cnt;
 
@@ -1649,6 +1650,18 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
         }
+
+        /* update Frame::inspect_progress here instead of in the code above. The reason is that a
+         * frame might be used more than once in buffers with transforms. */
+        if (frame->inspect_progress < det_ctx->frame_inspect_progress) {
+            frame->inspect_progress = det_ctx->frame_inspect_progress;
+            SCLogDebug("frame->inspect_progress: %" PRIu64 " -> updated", frame->inspect_progress);
+        } else {
+            SCLogDebug(
+                    "frame->inspect_progress: %" PRIu64 " -> not updated", frame->inspect_progress);
+        }
+
+        SCLogDebug("%p/%" PRIi64 " rules inspected, running cleanup", frame, frame->id);
         InspectionBufferClean(det_ctx);
     }
 }
