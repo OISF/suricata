@@ -40,10 +40,10 @@ static void FrameDebug(const char *prefix, const Frames *frames, const Frame *fr
         type_name = AppLayerParserGetFrameNameById(frames->ipproto, frames->alproto, frame->type);
     }
     SCLogDebug("[%s] %p: frame:%p type:%u/%s id:%" PRIi64 " flags:%02x offset:%" PRIu64
-               ", len:%" PRIi64 ", events:%u %u/%u/%u/%u",
+               ", len:%" PRIi64 ", inspect_progress:%" PRIu64 ", events:%u %u/%u/%u/%u",
             prefix, frames, frame, frame->type, type_name, frame->id, frame->flags, frame->offset,
-            frame->len, frame->event_cnt, frame->events[0], frame->events[1], frame->events[2],
-            frame->events[3]);
+            frame->len, frame->inspect_progress, frame->event_cnt, frame->events[0],
+            frame->events[1], frame->events[2], frame->events[3]);
 #endif
 }
 
