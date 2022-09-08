@@ -773,6 +773,22 @@ static IPPair *IPPairGetUsedIPPair(void)
     return NULL;
 }
 
+int GetFlowAddresses(const Flow *f, Address *ip_src, Address *ip_dst)
+{
+    memset(ip_src, 0, sizeof(*ip_src));
+    memset(ip_dst, 0, sizeof(*ip_dst));
+    if (FLOW_IS_IPV4(f)) {
+        FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, ip_src);
+        FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, ip_dst);
+    } else if (FLOW_IS_IPV6(f)) {
+        FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src, ip_src);
+        FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->dst, ip_dst);
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
 void IPPairRegisterUnittests(void)
 {
     RegisterIPPairStorageTests();

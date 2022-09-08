@@ -28,6 +28,9 @@
 #include "app-layer-smb.h"
 #include "util-misc.h"
 
+#include "ippair-storage.h"
+#include "app-layer-htp-file.h"
+#include "app-layer-htp-range.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
@@ -36,10 +39,144 @@ static SuricataFileContext sfc = { &sbcfg };
 static void SMBParserRegisterTests(void);
 #endif
 
+static IPPairStorageId g_ippair_smb_multi_id = { .id = -1 };
+
+#define GUID_LEN 16
+
+typedef struct SmbMultiIppairKey {
+    uint8_t guid[GUID_LEN];
+    uint64_t filesize;
+    uint8_t *filename;
+    uint16_t filename_len;
+} SmbMultiIppairKey;
+
+void SmbMultiSetFileSize(const Flow *f, const uint8_t *guid, uint64_t eof, const uint8_t *filename,
+        uint16_t name_len)
+{
+    IPPair *ipp;
+    Address ip_src, ip_dst;
+
+    if (GetFlowAddresses(f, &ip_src, &ip_dst) == -1)
+        return;
+    ipp = IPPairGetIPPairFromHash(&ip_src, &ip_dst);
+    if (ipp == NULL)
+        return;
+
+    SmbMultiIppairKey *key = IPPairGetStorageById(ipp, g_ippair_smb_multi_id);
+
+    if (key) {
+        // already a key
+        if (memcmp(guid, key->guid, GUID_LEN) == 0) {
+            // same guid, update only eof
+            if (eof > key->filesize) {
+                key->filesize = eof;
+            }
+            if (name_len > 0 && key->filename == NULL) {
+                key->filename = SCMalloc(name_len);
+                if (key->filename == NULL) {
+                    SCFree(key);
+                    goto end;
+                }
+                key->filename_len = name_len;
+                memcpy(key->filename, filename, name_len);
+            }
+            goto end;
+        } else {
+            // different guid : keep old one TODOsmbmulti6 : handle multimulti ?
+            goto end;
+        }
+    }
+    // else
+    key = SCCalloc(1, sizeof(SmbMultiIppairKey));
+    if (key == NULL) {
+        goto end;
+    }
+
+    memcpy(key->guid, guid, GUID_LEN);
+    key->filesize = eof;
+    if (name_len > 0) {
+        key->filename = SCMalloc(name_len);
+        if (key->filename == NULL) {
+            SCFree(key);
+            goto end;
+        }
+        key->filename_len = name_len;
+        memcpy(key->filename, filename, name_len);
+    }
+    IPPairSetStorageById(ipp, g_ippair_smb_multi_id, key);
+end:
+    IPPairUnlock(ipp);
+}
+
+#define SMB_URL_PREFIX_LEN 6
+
+HttpRangeContainerBlock *SmbMultiStartFileChunk(const Flow *f, const uint8_t *guid, uint16_t flags,
+        FileContainer *fc, const StreamingBufferConfig *files_sbcfg, bool *added, uint64_t offset,
+        uint32_t rlen, const uint8_t *data, uint32_t data_len)
+{
+    IPPair *ipp;
+    Address ip_src, ip_dst;
+    HttpRangeContainerBlock *r = NULL;
+
+    if (GetFlowAddresses(f, &ip_src, &ip_dst) == -1)
+        return NULL;
+    ipp = IPPairLookupIPPairFromHash(&ip_src, &ip_dst);
+    if (ipp == NULL)
+        return NULL;
+
+    SmbMultiIppairKey *key = IPPairGetStorageById(ipp, g_ippair_smb_multi_id);
+    if (key == NULL) {
+        key = SCCalloc(1, sizeof(SmbMultiIppairKey));
+        if (key == NULL) {
+            goto end;
+        }
+        memcpy(key->guid, guid, GUID_LEN);
+        key->filesize = offset + rlen;
+        IPPairSetStorageById(ipp, g_ippair_smb_multi_id, key);
+    } else if (memcmp(guid, key->guid, GUID_LEN) != 0) {
+        goto end;
+    }
+    FileContentRange fcr;
+    if (offset > INT64_MAX || offset >= key->filesize || key->filesize > INT64_MAX) {
+        goto end;
+    }
+    fcr.start = offset;
+    fcr.size = key->filesize;
+    if (offset + rlen > key->filesize) {
+        fcr.end = key->filesize;
+    } else {
+        fcr.end = offset + rlen;
+    }
+    // TODOsmbmulmti4 should we only rely on ippair and have nothing global ?
+    uint8_t hkey[GUID_LEN + SMB_URL_PREFIX_LEN];
+    memcpy(hkey, "smb://", SMB_URL_PREFIX_LEN);
+    memcpy(hkey + SMB_URL_PREFIX_LEN, guid, GUID_LEN);
+    r = HttpRangeContainerOpenFile(hkey, GUID_LEN + SMB_URL_PREFIX_LEN, f, &fcr, files_sbcfg,
+            key->filename, key->filename_len, flags, data, data_len);
+    if (r) {
+        if (data_len >= rlen) {
+            *added = HTPFileCloseHandleRange(fc, flags, r, NULL, 0);
+            HttpRangeFreeBlock(r);
+            r = NULL;
+        }
+    }
+end:
+    IPPairUnlock(ipp);
+    return r;
+}
+
+static void SmbMultiIppairFree(void *el)
+{
+    SCFree(el);
+}
+
 void RegisterSMBParsers(void)
 {
     rs_smb_init(&sfc);
     rs_smb_register_parser();
+
+    g_ippair_smb_multi_id =
+            IPPairStorageRegister("smb.multi", sizeof(void *), NULL, SmbMultiIppairFree);
 
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMB, SMBParserRegisterTests);

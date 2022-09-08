@@ -155,4 +155,6 @@ int IPPairSetMemcap(uint64_t size);
 uint64_t IPPairGetMemcap(void);
 uint64_t IPPairGetMemuse(void);
 
+int GetFlowAddresses(const Flow *f, Address *ip_src, Address *ip_dst);
+
 #endif /* __IPPAIR_H__ */
