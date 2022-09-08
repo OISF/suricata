@@ -158,8 +158,13 @@ static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const F
     SCLogDebug("frame data_offset %" PRIu64 ", data_len %u frame len %" PRIi64, data_offset,
             sb_data_len, frame->len);
 
-    // TODO update to work with large frames
-    jb_set_bool(js, "complete", ((int64_t)sb_data_len >= frame->len));
+    bool complete = false;
+    if (frame->len > 0) {
+        const uint64_t frame_re = frame->offset + (uint64_t)frame->len;
+        const uint64_t data_re = data_offset + sb_data_len;
+        complete = frame_re <= data_re;
+    }
+    jb_set_bool(js, "complete", complete);
 
     uint32_t data_len = MIN(sb_data_len, 256);
     jb_set_base64(js, "payload", data, data_len);
