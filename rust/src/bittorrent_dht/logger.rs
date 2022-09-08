@@ -65,13 +65,13 @@ fn log_bittorrent_dht(
         js.open_object("request")?;
         js.set_hex("id", &request.id)?;
         if let Some(target) = &request.target {
-            js.set_string("target", target)?;
+            js.set_hex("target", target)?;
         }
         if let Some(info_hash) = &request.info_hash {
             js.set_hex("info_hash", info_hash)?;
         }
         if let Some(token) = &request.token {
-            js.set_string("token", token)?;
+            js.set_hex("token", token)?;
         }
         if let Some(implied_port) = request.implied_port {
             js.set_uint("implied_port", u64::from(implied_port))?;
