@@ -285,3 +285,22 @@ Format
 Example of the stream-size keyword in a rule::
 
     alert tcp any any -> any any (stream_size:both, >, 5000; sid:1;)
+
+flow.age
+--------
+
+Flow age in seconds (integer)
+
+Syntax::
+
+ flow.age: [op]<number>
+
+The time can be matched exactly, or compared using the _op_ setting::
+
+ flow.age:3    # exactly 3
+ flow.age:<3   # smaller than 3 seconds
+ flow.age:>=2  # greater or equal than 2 seconds
+
+Signature example::
+
+ alert tcp any any -> any any (msg:"Flow longer than one hour"; flow.age:>3600; sid:1; rev:1;)
