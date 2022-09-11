@@ -55,7 +55,6 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-uri.h"
-#include "detect-uricontent.h"
 #include "stream-tcp.h"
 
 #ifdef UNITTESTS
