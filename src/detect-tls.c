@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 ANSSI
+ * Copyright (C) 2011-2022 ANSSI
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,7 @@
 
 #include "app-layer-ssl.h"
 #include "detect-tls.h"
+#include "detect-tls-cert-fingerprint.h"
 
 #include "stream-tcp.h"
 
@@ -84,9 +85,6 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *,
 static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerDNFree(DetectEngineCtx *, void *);
 
-static int DetectTlsFingerprintMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
-        const Signature *, const SigMatchCtx *);
 static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsFingerprintFree(DetectEngineCtx *, void *);
 
@@ -95,7 +93,7 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
         Packet *, const Signature *s, const SigMatchCtx *unused);
 
 static int g_tls_cert_list_id = 0;
-
+static int g_tls_cert_fingerprint_list_id = 0;
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -123,7 +121,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = "/rules/tls-keywords.html#tls-fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerTxMatch = DetectTlsFingerprintMatch;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
@@ -142,6 +139,7 @@ void DetectTlsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX_FINGERPRINT, &fingerprint_parse_regex);
 
     g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
+    g_tls_cert_fingerprint_list_id = DetectBufferTypeRegister("tls.cert_fingerprint");
 
     DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
@@ -538,130 +536,6 @@ static void DetectTlsIssuerDNFree(DetectEngineCtx *de_ctx, void *ptr)
  * \retval pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsFingerprintParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
-{
-    DetectTlsData *tls = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2_len;
-    const char *str_ptr;
-    char *orig;
-    char *tmp_str;
-    uint32_t flag = 0;
-
-    ret = DetectParsePcreExec(&fingerprint_parse_regex, str, 0, 0);
-    if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
-        goto error;
-    }
-
-    if (negate)
-        flag = DETECT_CONTENT_NEGATED;
-
-    res = pcre2_substring_get_bynumber(
-            fingerprint_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-        goto error;
-    }
-
-    /* We have a correct id option */
-    tls = SCMalloc(sizeof(DetectTlsData));
-    if (unlikely(tls == NULL))
-        goto error;
-    tls->fingerprint = NULL;
-    tls->flags = flag;
-
-    orig = SCStrdup((char*)str_ptr);
-    if (unlikely(orig == NULL)) {
-        goto error;
-    }
-    pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
-
-    tmp_str=orig;
-
-    /* Let's see if we need to escape "'s */
-    if (tmp_str[0] == '"')
-    {
-        tmp_str[strlen(tmp_str) - 1] = '\0';
-        tmp_str += 1;
-    }
-
-    tls->fingerprint = SCStrdup(tmp_str);
-    if (tls->fingerprint == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate fingerprint");
-    }
-
-    SCFree(orig);
-
-    SCLogDebug("will look for TLS fingerprint %s", tls->fingerprint);
-
-    return tls;
-
-error:
-    if (tls != NULL)
-        DetectTlsFingerprintFree(de_ctx, tls);
-    return NULL;
-
-}
-/**
- * \brief match the specified fingerprint on a tls session
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectTlsData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-static int DetectTlsFingerprintMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
-{
-    SCEnter();
-    const DetectTlsData *tls_data = (const DetectTlsData *)m;
-    SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state == NULL) {
-        SCLogDebug("no tls state, no match");
-        SCReturnInt(0);
-    }
-
-    int ret = 0;
-
-    SSLStateConnp *connp = NULL;
-    if (flags & STREAM_TOSERVER) {
-        connp = &ssl_state->client_connp;
-    } else {
-        connp = &ssl_state->server_connp;
-    }
-
-    if (connp->cert0_fingerprint != NULL) {
-        SCLogDebug("TLS: Fingerprint is [%s], looking for [%s]\n",
-                   connp->cert0_fingerprint,
-                   tls_data->fingerprint);
-
-        if (tls_data->fingerprint &&
-            (strstr(connp->cert0_fingerprint,
-                    tls_data->fingerprint) != NULL)) {
-            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
-                ret = 0;
-            } else {
-                ret = 1;
-
-            }
-        } else {
-            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
-                ret = 1;
-            } else {
-                ret = 0;
-            }
-        }
-    } else {
-        ret = 0;
-    }
-
-    SCReturnInt(ret);
-}
 
 /**
  * \brief this function is used to add the parsed "fingerprint" option
@@ -676,35 +550,16 @@ static int DetectTlsFingerprintMatch (DetectEngineThreadCtx *det_ctx,
  */
 static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectTlsData *tls = NULL;
-    SigMatch *sm = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (DetectContentSetup(de_ctx, s, str) < 0) {
+        return -1;
+    }
+
+    if ( DetectEngineContentModifierBufferSetup(
+            de_ctx, s, NULL, DETECT_AL_TLS_CERT_FINGERPRINT, g_tls_cert_fingerprint_list_id, ALPROTO_TLS) < 0)
         return -1;
 
-    tls = DetectTlsFingerprintParse(de_ctx, str, s->init_data->negated);
-    if (tls == NULL)
-        goto error;
-
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_TLS_FINGERPRINT;
-    sm->ctx = (void *)tls;
-
-    SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
     return 0;
-
-error:
-    if (tls != NULL)
-        DetectTlsFingerprintFree(de_ctx, tls);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
-
 }
 
 /**
