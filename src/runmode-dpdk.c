@@ -111,6 +111,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              1024
 #define DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS              1024
+#define DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS          ETH_RSS_IP
 #define DPDK_CONFIG_DEFAULT_MTU                         1500
 #define DPDK_CONFIG_DEFAULT_PROMISCUOUS_MODE            1
 #define DPDK_CONFIG_DEFAULT_MULTICAST_MODE              1
@@ -126,6 +127,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .checksum_checks = "checksum-checks",
     .checksum_checks_offload = "checksum-checks-offload",
     .mtu = "mtu",
+    .rss_hf = "rss-hash-functions",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -482,6 +484,25 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
     SCReturnInt(0);
 }
 
+static int ConfigSetRSSHashFunctions(DPDKIfaceConfig *iconf, const char *entry_str)
+{
+    SCEnter();
+    if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
+        iconf->rss_hf = DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS;
+        SCReturnInt(0);
+    }
+
+    if (StringParseUint64(&iconf->rss_hf, 0, 0, entry_str) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                "RSS hash functions entry for interface %s contain non-numerical "
+                "characters - \"%s\"",
+                iconf->iface, entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    SCReturnInt(0);
+}
+
 static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
@@ -686,6 +707,12 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
+    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.rss_hf, &entry_str) != 1
+                     ? ConfigSetRSSHashFunctions(iconf, NULL)
+                     : ConfigSetRSSHashFunctions(iconf, entry_str);
+    if (retval < 0)
+        SCReturnInt(retval);
+
     retval = ConfGetChildValueBoolWithDefault(
                      if_root, if_default, dpdk_yaml.promisc, &entry_bool) != 1
                      ? ConfigSetPromiscuousMode(iconf, DPDK_CONFIG_DEFAULT_PROMISCUOUS_MODE)
@@ -758,6 +785,16 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
         ixgbeDeviceSetRSSHashFunction(&rss_conf->rss_hf);
 }
 
+// Returns -1 if no bit is set
+static int GetFirstSetBitPosition(uint64_t bits)
+{
+    for (int i = 0; i < 64; i++) {
+        if (bits & (1 << i))
+            return i;
+    }
+    return -1;
+}
+
 static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
 {
     SCLogConfig("REQUESTED (groups):");
@@ -770,41 +807,74 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
             "ETH_RSS_TUNNEL %sset", ((requested & ETH_RSS_TUNNEL) == ETH_RSS_TUNNEL) ? "" : "NOT ");
 
     SCLogConfig("REQUESTED (individual):");
-    SCLogConfig("ETH_RSS_IPV4 %sset", (requested & ETH_RSS_IPV4) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV4 %sset", (requested & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV4_TCP %sset", (requested & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV4_UDP %sset", (requested & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_SCTP %sset",
+    SCLogConfig("ETH_RSS_IPV4 (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV4),
+            (requested & ETH_RSS_IPV4) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_FRAG_IPV4 (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_FRAG_IPV4),
+            (requested & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV4_TCP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_TCP),
+            (requested & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV4_UDP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_UDP),
+            (requested & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV4_SCTP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_SCTP),
             (requested & ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_OTHER %sset",
+    SCLogConfig("ETH_RSS_NONFRAG_IPV4_OTHER (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_OTHER),
             (requested & ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6 %sset", (requested & ETH_RSS_IPV6) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV6 %sset", (requested & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV6_TCP %sset", (requested & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV6_UDP %sset", (requested & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_SCTP %sset",
+    SCLogConfig("ETH_RSS_IPV6 (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV6),
+            (requested & ETH_RSS_IPV6) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_FRAG_IPV6 (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_FRAG_IPV6),
+            (requested & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV6_TCP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_TCP),
+            (requested & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV6_UDP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_UDP),
+            (requested & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NONFRAG_IPV6_SCTP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_SCTP),
             (requested & ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_OTHER %sset",
+    SCLogConfig("ETH_RSS_NONFRAG_IPV6_OTHER (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_OTHER),
             (requested & ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L2_PAYLOAD %sset", (requested & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_EX %sset", (requested & ETH_RSS_IPV6_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_TCP_EX %sset", (requested & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_UDP_EX %sset", (requested & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_L2_PAYLOAD (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_L2_PAYLOAD),
+            (requested & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_IPV6_EX (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV6_EX),
+            (requested & ETH_RSS_IPV6_EX) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_IPV6_TCP_EX (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_IPV6_TCP_EX),
+            (requested & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_IPV6_UDP_EX (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_IPV6_UDP_EX),
+            (requested & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_PORT %sset", (requested & ETH_RSS_PORT) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_VXLAN %sset", (requested & ETH_RSS_VXLAN) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NVGRE %sset", (requested & ETH_RSS_NVGRE) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_GTPU %sset", (requested & ETH_RSS_GTPU) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_PORT (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_PORT),
+            (requested & ETH_RSS_PORT) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_VXLAN (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_VXLAN),
+            (requested & ETH_RSS_VXLAN) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_NVGRE (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_NVGRE),
+            (requested & ETH_RSS_NVGRE) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_GTPU (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_GTPU),
+            (requested & ETH_RSS_GTPU) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L3_SRC_ONLY %sset", (requested & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L3_DST_ONLY %sset", (requested & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_SRC_ONLY %sset", (requested & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_DST_ONLY %sset", (requested & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_L3_SRC_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_L3_SRC_ONLY),
+            (requested & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_L3_DST_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_L3_DST_ONLY),
+            (requested & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_L4_SRC_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_L4_SRC_ONLY),
+            (requested & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_L4_DST_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(ETH_RSS_L4_DST_ONLY),
+            (requested & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
 
     SCLogConfig("ACTUAL (group):");
     SCLogConfig("ETH_RSS_IP %sset", ((actual & ETH_RSS_IP) == ETH_RSS_IP) ? "" : "NOT ");
@@ -908,7 +978,7 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             port_conf->rx_adv_conf.rss_conf = (struct rte_eth_rss_conf){
                 .rss_key = rss_hkey,
                 .rss_key_len = RSS_HKEY_LEN,
-                .rss_hf = ETH_RSS_IP,
+                .rss_hf = iconf->rss_hf,
             };
 
             DeviceSetPMDSpecificRSS(&port_conf->rx_adv_conf.rss_conf, dev_info->driver_name);
