@@ -78,6 +78,9 @@ enum PktSrcEnum {
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
 #endif
+#ifdef HAVE_AF_XDP
+#include "source-af-xdp.h"
+#endif
 
 #include "decode-ethernet.h"
 #include "decode-gre.h"
@@ -497,6 +500,9 @@ typedef struct Packet_
 #endif
 #ifdef HAVE_NAPATECH
         NapatechPacketVars ntpv;
+#endif
+#ifdef HAVE_AF_XDP
+        AFXDPPacketVars afxdp_v;
 #endif
         /* A chunk of memory that a plugin can use for its packet vars. */
         uint8_t plugin_v[PLUGIN_VAR_SIZE];
