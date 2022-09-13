@@ -37,6 +37,7 @@
 #include "queue.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
+#include "runmode-af-xdp.h"
 #include "runmode-dpdk.h"
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
@@ -157,6 +158,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "UNITTEST";
         case RUNMODE_AFP_DEV:
             return "AF_PACKET_DEV";
+        case RUNMODE_AFXDP_DEV:
+            return "AF_XDP_DEV";
         case RUNMODE_NETMAP:
 #ifdef HAVE_NETMAP
             return "NETMAP";
@@ -245,6 +248,7 @@ void RunModeRegisterRunModes(void)
     RunModeErfDagRegister();
     RunModeNapatechRegister();
     RunModeIdsAFPRegister();
+    RunModeIdsAFXDPRegister();
     RunModeIdsNetmapRegister();
     RunModeIdsNflogRegister();
     RunModeUnixSocketRegister();
@@ -357,6 +361,9 @@ void RunModeDispatch(int runmode, const char *custom_mode,
                 break;
             case RUNMODE_AFP_DEV:
                 custom_mode = RunModeAFPGetDefaultMode();
+                break;
+            case RUNMODE_AFXDP_DEV:
+                custom_mode = RunModeAFXDPGetDefaultMode();
                 break;
             case RUNMODE_NETMAP:
                 custom_mode = RunModeNetmapGetDefaultMode();

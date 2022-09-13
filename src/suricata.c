@@ -76,6 +76,7 @@
 #include "respond-reject.h"
 
 #include "runmode-af-packet.h"
+#include "runmode-af-xdp.h"
 #include "runmode-netmap.h"
 #include "runmode-unittests.h"
 
@@ -91,6 +92,7 @@
 #include "source-erf-dag.h"
 #include "source-napatech.h"
 #include "source-af-packet.h"
+#include "source-af-xdp.h"
 #include "source-netmap.h"
 #include "source-dpdk.h"
 #include "source-windivert.h"
@@ -617,6 +619,10 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
+#ifdef HAVE_AF_XDP
+    printf("\t--af-xdp[=<dev>]                     : run in af-xdp mode, no value select "
+           "interfaces from suricata.yaml\n");
+#endif
 #ifdef HAVE_NETMAP
     printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select interfaces from suricata.yaml\n");
 #endif
@@ -874,6 +880,9 @@ void RegisterAllModules(void)
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
+    /* af-xdp */
+    TmModuleReceiveAFXDPRegister();
+    TmModuleDecodeAFXDPRegister();
     /* netmap */
     TmModuleReceiveNetmapRegister();
     TmModuleDecodeNetmapRegister();
@@ -976,6 +985,22 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
             int ret = LiveBuildDeviceList("af-packet");
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+#endif
+#ifdef HAVE_AF_XDP
+    } else if (runmode == RUNMODE_AFXDP_DEV) {
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSetFinal("af-xdp.live-interface", pcap_dev) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set af-xdp.live-interface");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("af-xdp");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-xdp");
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
@@ -1142,6 +1167,37 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
 #endif
 }
 
+static int ParseCommandLineAfxdp(SCInstance *suri, const char *in_arg)
+{
+#ifdef HAVE_AF_XDP
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_AFXDP_DEV;
+        if (in_arg) {
+            LiveRegisterDeviceName(in_arg);
+            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
+        }
+    } else if (suri->run_mode == RUNMODE_AFXDP_DEV) {
+        if (in_arg) {
+            LiveRegisterDeviceName(in_arg);
+        } else {
+            SCLogInfo("Multiple af-xdp options without interface on each is useless");
+        }
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                             "has been specified");
+        PrintUsage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+#else
+    SCLogError(SC_ERR_NO_AF_XDP, "AF_XDP not enabled. On Linux "
+                                 "host, make sure to pass --enable-af-xdp to "
+                                 "configure when building.");
+    return TM_ECODE_FAILED;
+#endif
+}
+
 static int ParseCommandLineDpdk(SCInstance *suri, const char *in_arg)
 {
 #ifdef HAVE_DPDK
@@ -1250,6 +1306,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"dpdk", 0, 0, 0},
 #endif
         {"af-packet", optional_argument, 0, 0},
+        {"af-xdp", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"pcap-file-continuous", 0, 0, 0},
@@ -1376,6 +1433,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
                 if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+            } else if (strcmp((long_opts[option_index]).name, "af-xdp") == 0) {
+                if (ParseCommandLineAfxdp(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
@@ -2346,6 +2407,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 /* fall through */
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
+            case RUNMODE_AFXDP_DEV:
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceNameCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
@@ -2460,6 +2522,14 @@ static int PostDeviceFinalizedSetup(SCInstance *suri)
     if (suri->run_mode == RUNMODE_AFP_DEV) {
         if (AFPRunModeIsIPS()) {
             SCLogInfo("AF_PACKET: Setting IPS mode");
+            EngineModeSetIPS();
+        }
+    }
+#endif
+#ifdef HAVE_AF_XDP
+    if (suri->run_mode == RUNMODE_AFXDP_DEV) {
+        if (AFXDPRunModeIsIPS()) {
+            SCLogInfo("AF_XDP: Setting IPS mode");
             EngineModeSetIPS();
         }
     }
@@ -2750,7 +2820,8 @@ static void SuricataMainLoop(SCInstance *suri)
  * This can be used by fuzz targets.
  */
 
-int InitGlobal(void) {
+int InitGlobal(void)
+{
     rs_init(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);
