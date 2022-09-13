@@ -685,6 +685,9 @@ dpdk:
       checksum-checks: true # if Suricata should validate checksums
       checksum-checks-offload: true # if possible offload checksum validation to the NIC (saves Suricata resources)
       mtu: 1500 # Set MTU of the device in bytes
+      # rss-hash-functions: 0x0 # advanced configuration option, use only if you use untested NIC card and experience RSS warnings,
+      # For `rss-hash-functions` use hexadecimal 0x01ab format to specify RSS hash function flags - DumpRssFlags can help (you can see output if you use -vvv option during Suri startup)
+      # setting auto to rss_hf sets the default RSS hash functions (based on IP addresses)
 
       # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
       # Make sure you have enough allocated hugepages.
@@ -717,6 +720,7 @@ dpdk:
       checksum-checks: true
       checksum-checks-offload: true
       mtu: 1500
+      rss-hash-functions: auto
       mempool-size: 65535
       mempool-cache-size: 257
       rx-descriptors: 1024
