@@ -35,6 +35,7 @@ enum RunModes {
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
     RUNMODE_AFP_DEV,
+    RUNMODE_AFXDP_DEV,
     RUNMODE_NETMAP,
     RUNMODE_DPDK,
     RUNMODE_UNITTEST,
@@ -97,7 +98,6 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check);
 
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
-
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
