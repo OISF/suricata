@@ -440,6 +440,7 @@ noinst_HEADERS = \
 	respond-reject.h \
 	respond-reject-libnet11.h \
 	runmode-af-packet.h \
+	runmode-af-xdp.h \
 	runmode-dpdk.h \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
@@ -458,6 +459,7 @@ noinst_HEADERS = \
 	rust-context.h \
 	rust.h \
 	source-af-packet.h \
+	source-af-xdp.h \
 	source-dpdk.h \
 	source-erf-dag.h \
 	source-erf-file.h \
@@ -1041,6 +1043,7 @@ libsuricata_c_a_SOURCES = \
 	respond-reject.c \
 	respond-reject-libnet11.c \
 	runmode-af-packet.c \
+	runmode-af-xdp.c \
 	runmode-dpdk.c \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
@@ -1058,6 +1061,7 @@ libsuricata_c_a_SOURCES = \
 	runmode-windivert.c \
 	rust-context.c \
 	source-af-packet.c \
+	source-af-xdp.c \
 	source-dpdk.c \
 	source-erf-dag.c \
 	source-erf-file.c \

@@ -1303,6 +1303,77 @@
             [[#include <linux/net_tstamp.h>]])
     ])
 
+  # AF_XDP support
+    AC_ARG_ENABLE(af-xdp,
+           AS_HELP_STRING([--enable-af-xdp], [Enable AF_XDP support [default=no]]),
+                        [enable_af_xdp=$enableval],[enable_af_xdp=no])
+
+    AS_IF([test "x$enable_af_xdp" = "xyes"], [
+        AC_DEFINE([HAVE_AF_XDP],[1],[AF_XDP support is available])
+
+	AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
+        if test "$LIBELF" = "no"; then
+            echo
+            echo "   libelf library and development headers not found but"
+            echo "   needed to use AF_XDP code"
+            echo
+            exit 1
+        fi;
+
+	AC_ARG_WITH(libxdp_includes,
+            [  --with-libxdp-includes=DIR  libxdp include directory],
+            [with_libxdp_includes="$withval"],[with_libxdp_includes=no])
+        AC_ARG_WITH(libxdp_libraries,
+            [  --with-libxdp-libraries=DIR  libxdp library directory],
+            [with_libxdp_libraries="$withval"],[with_libxdp_libraries="no"])
+
+        if test "$with_libxdp_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libxdp_includes}"
+        fi
+
+        if test "$with_libxdp_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libxdp_libraries}"
+        fi
+
+        AC_CHECK_LIB(xdp, xsk_umem__create,, [xdp_found="no"])
+        if test "$xdp_found" = "no"; then
+            echo
+            echo "  ERROR! libxdp not found by pkg-config, go get it"
+            echo "      from https://github.com/xdp-project/xdp-tools/tree/master/lib/libxdp or your distribution:"
+            echo "          Fedora: dnf install libxdp-devel"
+            echo "          CentOS/RHEL: yum install libxdp-devel"
+            echo
+            exit 1
+        fi;
+
+	AC_ARG_WITH(libbpf_includes,
+            [  --with-libbpf-includes=DIR  libbpf include directory],
+            [with_libbpf_includes="$withval"],[with_libbpf_includes=no])
+        AC_ARG_WITH(libbpf_libraries,
+            [  --with-libbpf-libraries=DIR    libbpf library directory],
+            [with_libbpf_libraries="$withval"],[with_libbpf_libraries="no"])
+
+        if test "$with_libbpf_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libbpf_includes}"
+        fi
+
+        if test "$with_libbpf_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libbpf_libraries}"
+        fi
+
+	AC_CHECK_LIB(bpf, bpf_object__load,, [bpf_found="no"])
+        if test "$bpf_found" = "no"; then
+            echo
+            echo "  ERROR! libbpf not found by pkg-config, go get it"
+            echo "      from https://github.com/libbpf/libbpf or your distribution:"
+            echo "          Ubuntu: apt-get install libbpf-dev"
+            echo "          Fedora: dnf install libbpf-devel"
+            echo "          CentOS/RHEL: yum install libbpf-devel"
+            echo
+            exit 1
+        fi;
+    ])
+
   # DPDK support
     AC_ARG_ENABLE(dpdk,
             AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
@@ -2500,6 +2571,7 @@ AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
+  AF_XDP support:                          ${enable_af_xdp}
   DPDK support:                            ${enable_dpdk}
   eBPF support:                            ${enable_ebpf}
   XDP support:                             ${have_xdp}

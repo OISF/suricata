@@ -668,6 +668,53 @@ af-packet:
     #use-mmap: no
     #tpacket-v3: yes
 
+# Linux high speed af-xdp capture support
+af-xdp:
+  - interface: default
+    # Number of receive threads. "auto" uses least between the number
+    # of cores and RX queues
+    #threads: auto
+    #disable-promisc: false
+    # XDP_DRV mode can be chosen when the driver supports XDP
+    # XDP_SKB mode can be chosen when the driver does not support XDP
+    # Possible values are:
+    #  - drv: enable XDP_DRV mode
+    #  - skb: enable XDP_SKB mode
+    #  - none: disable (kernel in charge of applying mode)
+    #force-xdp-mode: none
+    # During socket binding the kernel will attempt zero-copy, if this
+    # fails it will fallback to copy. If this fails, the bind fails.
+    # The bind can be explicitly configured using the option below.
+    # If configured, the bind will fail if not successful (no fallback).
+    # Possible values are:
+    #  - zero: enable zero-copy mode
+    #  - copy: enable copy mode
+    #  - none: disable (kernel in charge of applying mode)
+    #force-copy-mode: none
+    # Memory alignment mode can vary between two modes, aligned and
+    # unaligned chunk modes. By default, aligned chunk mode is selected.
+    # select 'yes' to enable unaligned chunk mode.
+    # Note: unaligned chunk mode uses hugepages, so the required number
+    # of pages must be available.
+    #mem-unaligned: no
+    # The following options configure the prefer-busy-polling socket
+    # options. The polling time and budget can be edited here.
+    # Possible values are:
+    #  - yes: enable
+    #  - no: disable (default)
+    #enable-busy-poll: no
+    # busy-poll-time sets the approximate time in microseconds to busy
+    # poll on a blocking receive when there is no data.
+    #busy-poll-time: 20
+    # busy-poll-budget is the budget allowed for packet batches
+    #busy-poll-budget: 64
+    # These two tunables are used to configure the Linux OS's NAPI
+    # context. Successfully setting these combined with busy-polling
+    # should improve performance.
+    # Defaults are:
+    #gro-flush-timeout: 2000000
+    #napi-defer-hard-irq: 2
+
 dpdk:
   eal-params:
     proc-type: primary
