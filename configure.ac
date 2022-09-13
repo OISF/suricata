@@ -1346,6 +1346,31 @@
             [[#include <linux/net_tstamp.h>]])
     ])
 
+  # AF_XDP support
+    AC_ARG_ENABLE(af-xdp,
+           AS_HELP_STRING([--disable-af-xdp], [Disable AF_XDP support [default=enabled]]),
+                        [enable_af_xdp=$enableval],[enable_af_xdp=yes])
+
+    AS_IF([test "x$enable_af_xdp" = "xyes"], [
+        # Check for the availability of elf
+        AC_CHECK_LIB(elf,elf_begin,,[enable_af_xdp=no])
+
+        # Conditionally check headers, only when found will it 'continue'
+        AS_IF([test "x$enable_af_xdp" = "xyes"],
+            # Check for the availability of libxdp
+            AC_CHECK_HEADERS([xdp/xsk.h],,[enable_af_xdp=no])
+            AC_CHECK_LIB([xdp],[xsk_umem__create],,[enable_af_xdp=no]))
+
+        AS_IF([test "x$enable_af_xdp" = "xyes"],
+            # Check for the availability of libbpf
+            AC_CHECK_HEADERS([bpf/libbpf.h],,[enable_af_xdp=no])
+            AC_CHECK_LIB([bpf],[bpf_object__open],,[enable_af_xdp=no]))
+
+        # Are all required libs installed, yes=HAVE_AF_XDP
+        AS_IF([test "x$enable_af_xdp" = "xyes"],
+            AC_DEFINE([HAVE_AF_XDP],[1],[AF_XDP support is available]))
+    ])
+
   # DPDK support
     AC_ARG_ENABLE(dpdk,
             AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
@@ -2537,6 +2562,7 @@ AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
+  AF_XDP support:                          ${enable_af_xdp}
   DPDK support:                            ${enable_dpdk}
   eBPF support:                            ${enable_ebpf}
   XDP support:                             ${have_xdp}
