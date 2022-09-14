@@ -384,6 +384,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     uint64_t max_id = tx_id;
     int logged = 0;
     int gap = 0;
+    const bool file_logging_active = (op_thread_data->file || op_thread_data->filedata);
+    const bool support_files = AppLayerParserSupportsFiles(p->proto, alproto);
 
     SCLogDebug("tx_id %" PRIu64 " total_txs %" PRIu64, tx_id, total_txs);
 
@@ -391,6 +393,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));
 
+    const int complete_ts =
+            AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
+    const int complete_tc =
+            AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
         if (ires.tx_ptr == NULL)
@@ -403,22 +409,17 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 AppLayerParserGetStateProgress(p->proto, alproto, tx, ts_disrupt_flags);
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(p->proto, alproto, tx, tc_disrupt_flags);
-        const bool tx_complete = (tx_progress_ts == AppLayerParserGetStateProgressCompletionStatus(
-                                                            alproto, STREAM_TOSERVER) &&
-                                  tx_progress_tc == AppLayerParserGetStateProgressCompletionStatus(
-                                                            alproto, STREAM_TOCLIENT));
-        const bool ts_ready = tx_progress_ts == AppLayerParserGetStateProgressCompletionStatus(
-                                                        alproto, STREAM_TOSERVER);
-        const bool tc_ready = tx_progress_tc == AppLayerParserGetStateProgressCompletionStatus(
-                                                        alproto, STREAM_TOCLIENT);
-        SCLogDebug("ts_ready %d tc_ready %d", ts_ready, tc_ready);
+        const bool tx_complete = (tx_progress_ts == complete_ts && tx_progress_tc == complete_tc);
 
         SCLogDebug("file_thread_data %p filedata_thread_data %p", op_thread_data->file,
                 op_thread_data->filedata);
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (txd && (op_thread_data->file || op_thread_data->filedata) &&
-                AppLayerParserSupportsFiles(p->proto, alproto)) {
+        if (txd && file_logging_active && support_files) {
+            const bool ts_ready = (tx_progress_ts == complete_ts);
+            const bool tc_ready = (tx_progress_tc == complete_tc);
+            SCLogDebug("ts_ready %d tc_ready %d", ts_ready, tc_ready);
+
             OutputTxLogFiles(tv, op_thread_data->file, op_thread_data->filedata, p, f, tx, tx_id,
                     txd, tx_complete, ts_ready, tc_ready, ts_eof, tc_eof, eof);
         }

@@ -979,6 +979,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     bool skipped = false;
     const bool is_unidir =
             AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
+    const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -990,8 +991,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
-
-        AppLayerParserFileTxHousekeeping(f, tx, pkt_dir);
+        if (support_files)
+            AppLayerParserFileTxHousekeeping(f, tx, pkt_dir);
 
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
