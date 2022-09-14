@@ -439,6 +439,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
 
     TAILQ_INIT(&tx->rcpt_to_list);
     tx->mime_state = NULL;
+    tx->tx_data.file_tx = STREAM_TOSERVER; // can xfer files
     return tx;
 }
 

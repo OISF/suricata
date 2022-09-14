@@ -701,6 +701,7 @@ impl NFSState {
             d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
+        tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
         SCLogDebug!("new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
