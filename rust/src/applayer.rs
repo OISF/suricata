@@ -111,6 +111,13 @@ pub struct AppLayerTxData {
 
     pub file_flags: u16,
 
+    /// Indicated if a file tracking tx, and if so in which direction:
+    ///  0: not a file tx
+    /// STREAM_TOSERVER: file tx, files only in toserver dir
+    /// STREAM_TOCLIENT: file tx , files only in toclient dir
+    /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
+    pub file_tx: u8,
+
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
@@ -145,6 +152,7 @@ impl AppLayerTxData {
             files_logged: 0,
             files_stored: 0,
             file_flags: 0,
+            file_tx: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),

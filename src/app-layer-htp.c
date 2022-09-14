@@ -2122,6 +2122,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         if (unlikely(tx_ud == NULL)) {
             SCReturnInt(HTP_OK);
         }
+        tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // each http tx may xfer files
         htp_tx_set_user_data(tx, tx_ud);
     }
     SCReturnInt(HTP_OK);
@@ -2160,6 +2161,8 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         if (unlikely(tx_ud == NULL)) {
             SCReturnInt(HTP_OK);
         }
+        tx_ud->tx_data.file_tx =
+                STREAM_TOCLIENT; // each http tx may xfer files. Toserver already missed.
         htp_tx_set_user_data(tx, tx_ud);
     }
     SCReturnInt(HTP_OK);
