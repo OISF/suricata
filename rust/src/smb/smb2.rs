@@ -278,7 +278,7 @@ extern "C" {
         f: *const Flow, guid: *const c_uchar, flags: u16, fc: *mut FileContainer,
         sbcfg: *const StreamingBufferConfig, added: &mut bool, offset: u64, rlen: u32,
         data: *const c_uchar, data_len: u32,
-    ) -> *mut HttpRangeContainerBlock;
+    ) -> *mut FileRangeContainerBlock;
 }
 
 pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2Record<'b>)

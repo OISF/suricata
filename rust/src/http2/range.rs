@@ -17,7 +17,7 @@
 
 use super::detect;
 use crate::core::{
-    Direction, Flow, HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
+    Direction, Flow, FileRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
 };
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
@@ -151,7 +151,7 @@ pub fn http2_range_open(
     }
 }
 
-pub fn http2_range_append(fr: *mut HttpRangeContainerBlock, data: &[u8]) {
+pub fn http2_range_append(fr: *mut FileRangeContainerBlock, data: &[u8]) {
     unsafe {
         HttpRangeAppendData(fr, data.as_ptr(), data.len() as u32);
     }
@@ -185,9 +185,9 @@ extern "C" {
         key: *const c_uchar, keylen: u32, f: *const Flow, cr: &FileContentRange,
         sbcfg: *const StreamingBufferConfig, name: *const c_uchar, name_len: u16, flags: u16,
         data: *const c_uchar, data_len: u32,
-    ) -> *mut HttpRangeContainerBlock;
+    ) -> *mut FileRangeContainerBlock;
     pub fn HttpRangeAppendData(
-        c: *mut HttpRangeContainerBlock, data: *const c_uchar, data_len: u32,
+        c: *mut FileRangeContainerBlock, data: *const c_uchar, data_len: u32,
     ) -> std::os::raw::c_int;
 }
 

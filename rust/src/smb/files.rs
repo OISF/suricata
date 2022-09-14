@@ -35,7 +35,7 @@ pub struct SMBTransactionFile {
     /// after a gap, this will be set to a time in the future. If the file
     /// receives no updates before that, it will be considered complete.
     pub post_gap_ts: u64,
-    pub file_range: *mut HttpRangeContainerBlock,
+    pub file_range: *mut FileRangeContainerBlock,
     pub multi: bool,
 }
 
@@ -77,7 +77,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 // Defined in app-layer-htp-range.h
 extern "C" {
     pub fn HttpRangeAppendData(
-        c: *mut HttpRangeContainerBlock, data: *const c_uchar, data_len: u32,
+        c: *mut FileRangeContainerBlock, data: *const c_uchar, data_len: u32,
     ) -> std::os::raw::c_int;
 }
 

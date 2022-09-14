@@ -78,11 +78,11 @@ void SmbMultiSetFileSize(const Flow *f, const uint8_t *guid, uint64_t eof, const
     THashDataUnlock(file_range_container->hdata);
 }
 
-HttpRangeContainerBlock *SmbMultiStartFileChunk(const Flow *f, const uint8_t *guid, uint16_t flags,
+FileRangeContainerBlock *SmbMultiStartFileChunk(const Flow *f, const uint8_t *guid, uint16_t flags,
         FileContainer *fc, const StreamingBufferConfig *files_sbcfg, bool *added, uint64_t offset,
         uint32_t rlen, const uint8_t *data, uint32_t data_len)
 {
-    HttpRangeContainerBlock *r = NULL;
+    FileRangeContainerBlock *r = NULL;
 
     FileContentRange fcr;
     if (offset > INT64_MAX || offset + rlen > INT64_MAX) {

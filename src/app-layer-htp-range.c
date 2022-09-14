@@ -38,7 +38,7 @@ typedef struct ContainerTHashTable {
 // globals
 ContainerTHashTable ContainerUrlRangeList;
 
-static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b);
+static void HttpRangeBlockDerefContainer(FileRangeContainerBlock *b);
 
 #define CONTAINER_URLRANGE_HASH_SIZE 256
 
@@ -257,7 +257,7 @@ HttpRangeContainerFile *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t ke
     return NULL;
 }
 
-static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, uint64_t start,
+static FileRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, uint64_t start,
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags)
 {
@@ -271,7 +271,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
             return NULL;
         }
     }
-    HttpRangeContainerBlock *curf = SCCalloc(1, sizeof(HttpRangeContainerBlock));
+    FileRangeContainerBlock *curf = SCCalloc(1, sizeof(FileRangeContainerBlock));
     if (curf == NULL) {
         c->error = true;
         return NULL;
@@ -285,7 +285,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     }
     const uint64_t buflen = end - start + 1;
 
-    /* The big part of this function is now to decide which kind of HttpRangeContainerBlock
+    /* The big part of this function is now to decide which kind of FileRangeContainerBlock
      * we will return :
      * - skipping already processed data
      * - storing out of order data for later use
@@ -347,11 +347,11 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     return curf;
 }
 
-static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
+static FileRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags, const uint8_t *data, uint32_t len)
 {
-    HttpRangeContainerBlock *r =
+    FileRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
     if (HttpRangeAppendData(r, data, len) < 0) {
         SCLogDebug("Failed to append data while openeing");
@@ -359,7 +359,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uin
     return r;
 }
 
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+FileRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
         const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
         uint32_t data_len)
@@ -369,7 +369,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t
         // probably reached memcap
         return NULL;
     }
-    HttpRangeContainerBlock *r = HttpRangeOpenFile(file_range_container, crparsed->start,
+    FileRangeContainerBlock *r = HttpRangeOpenFile(file_range_container, crparsed->start,
             crparsed->end, crparsed->size, sbcfg, name, name_len, flags, data, data_len);
     SCLogDebug("s->file_range == %p", r);
     if (r == NULL) {
@@ -393,7 +393,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t
     return r;
 }
 
-int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len)
+int HttpRangeAppendData(FileRangeContainerBlock *c, const uint8_t *data, uint32_t len)
 {
     if (len == 0) {
         return 0;
@@ -464,7 +464,7 @@ static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
 /**
  *  \note if `f` is non-NULL, the ownership of the file is transfered to the caller.
  */
-File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
+File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags)
 {
     SCLogDebug("c %p c->container %p c->current %p", c, c->container, c->current);
 
@@ -599,7 +599,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     return f;
 }
 
-static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
+static void HttpRangeBlockDerefContainer(FileRangeContainerBlock *b)
 {
     if (b && b->container) {
         DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(b->container->hdata->use_cnt) == 0);
@@ -608,7 +608,7 @@ static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
     }
 }
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
+void HttpRangeFreeBlock(FileRangeContainerBlock *b)
 {
     if (b) {
         HttpRangeBlockDerefContainer(b);

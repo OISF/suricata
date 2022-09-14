@@ -349,7 +349,7 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
+bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, FileRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
     bool added = false;

@@ -50,11 +50,11 @@ RB_PROTOTYPE(HTTP_RANGES, HttpRangeContainerBuffer, rb, HttpRangeContainerBuffer
 
 /** Item in hash table for a file in multiple ranges
  * Thread-safety is ensured with the thread-safe hash table cf THashData
- * The number of use is increased for each flow opening a new HttpRangeContainerBlock
- * until it closes this HttpRangeContainerBlock
+ * The number of use is increased for each flow opening a new FileRangeContainerBlock
+ * until it closes this FileRangeContainerBlock
  * The design goal is to have concurrency only on opening and closing a range request
  * and have a lock-free data structure belonging to one Flow
- * (see HttpRangeContainerBlock below)
+ * (see FileRangeContainerBlock below)
  * for every append in between (we suppose we have many appends per range request)
  */
 typedef struct HttpRangeContainerFile {
@@ -85,7 +85,7 @@ typedef struct HttpRangeContainerFile {
  * As this belongs to a flow, appending data to it is ensured to be thread-safe
  * Only one block per file has the pointer to the container
  */
-typedef struct HttpRangeContainerBlock {
+typedef struct FileRangeContainerBlock {
     /** state where we skip content */
     uint64_t toskip;
     /** current out of order range to write into */
@@ -94,18 +94,18 @@ typedef struct HttpRangeContainerBlock {
     HttpRangeContainerFile *container;
     /** file container we are owning for now */
     FileContainer *files;
-} HttpRangeContainerBlock;
+} FileRangeContainerBlock;
 
-int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
-File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
+int HttpRangeAppendData(FileRangeContainerBlock *c, const uint8_t *data, uint32_t len);
+File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags);
 
-// HttpRangeContainerBlock but trouble with headers inclusion order
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+// FileRangeContainerBlock but trouble with headers inclusion order
+FileRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
         const Flow *f, const FileContentRange *cr, const StreamingBufferConfig *sbcfg,
         const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
         uint32_t data_len);
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
+void HttpRangeFreeBlock(FileRangeContainerBlock *b);
 
 HttpRangeContainerFile *HttpRangeContainerUrlGet(
         const uint8_t *key, uint32_t keylen, const Flow *f);
