@@ -1102,6 +1102,9 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                              : AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
 
     ftpdata_state->tx_data.file_flags |= ftpdata_state->state_data.file_flags;
+    if (ftpdata_state->tx_data.file_tx == 0)
+        ftpdata_state->tx_data.file_tx = direction & (STREAM_TOSERVER | STREAM_TOCLIENT);
+
     /* we depend on detection engine for file pruning */
     const uint16_t flags =
             FileFlowFlagsToFlags(ftpdata_state->tx_data.file_flags, direction) | FILE_USE_DETECT;

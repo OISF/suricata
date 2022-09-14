@@ -27,6 +27,7 @@
 #include "tm-modules.h"
 #include "output.h"
 #include "output-tx.h"
+#include "stream.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-profiling.h"
@@ -384,13 +385,21 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     uint64_t max_id = tx_id;
     int logged = 0;
     int gap = 0;
+    const bool file_logging_active = (op_thread_data->file || op_thread_data->filedata);
+    const bool support_files = AppLayerParserSupportsFiles(p->proto, alproto);
+    const uint8_t pkt_dir = STREAM_FLAGS_FOR_PACKET(p);
 
-    SCLogDebug("tx_id %" PRIu64 " total_txs %" PRIu64, tx_id, total_txs);
+    SCLogDebug("pcap_cnt %" PRIu64 ": tx_id %" PRIu64 " total_txs %" PRIu64, p->pcap_cnt, tx_id,
+            total_txs);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));
 
+    const int complete_ts =
+            AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
+    const int complete_tc =
+            AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
         if (ires.tx_ptr == NULL)
@@ -403,34 +412,56 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 AppLayerParserGetStateProgress(p->proto, alproto, tx, ts_disrupt_flags);
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(p->proto, alproto, tx, tc_disrupt_flags);
-        const bool tx_complete = (tx_progress_ts == AppLayerParserGetStateProgressCompletionStatus(
-                                                            alproto, STREAM_TOSERVER) &&
-                                  tx_progress_tc == AppLayerParserGetStateProgressCompletionStatus(
-                                                            alproto, STREAM_TOCLIENT));
-        const bool ts_ready = tx_progress_ts == AppLayerParserGetStateProgressCompletionStatus(
-                                                        alproto, STREAM_TOSERVER);
-        const bool tc_ready = tx_progress_tc == AppLayerParserGetStateProgressCompletionStatus(
-                                                        alproto, STREAM_TOCLIENT);
-        SCLogDebug("ts_ready %d tc_ready %d", ts_ready, tc_ready);
+        const bool tx_complete = (tx_progress_ts == complete_ts && tx_progress_tc == complete_tc);
 
         SCLogDebug("file_thread_data %p filedata_thread_data %p", op_thread_data->file,
                 op_thread_data->filedata);
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (txd && (op_thread_data->file || op_thread_data->filedata) &&
-                AppLayerParserSupportsFiles(p->proto, alproto)) {
-            OutputTxLogFiles(tv, op_thread_data->file, op_thread_data->filedata, p, f, tx, tx_id,
-                    txd, tx_complete, ts_ready, tc_ready, ts_eof, tc_eof, eof);
-        }
-        if (txd)
-            SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged.flags);
-
-        if (txd == NULL) {
+        if (unlikely(txd == NULL)) {
+            SCLogDebug("NO TXD");
             /* make sure this tx, which can't be properly logged is skipped */
             logged = 1;
             max_id = tx_id;
             goto next_tx;
         }
+
+        if (file_logging_active) {
+            if (AppLayerParserIsFileTx(txd)) { // need to process each tx that might be a file tx,
+                                               // even if there are not files (yet)
+                const bool ts_ready = (tx_progress_ts == complete_ts);
+                const bool tc_ready = (tx_progress_tc == complete_tc);
+                SCLogDebug("ts_ready %d tc_ready %d", ts_ready, tc_ready);
+
+                const bool eval_files = ts_ready | tc_ready | tx_complete | ts_eof | tc_eof | eof;
+
+                SCLogDebug("eval_files: %u, ts_ready %u, tc_ready %u, tx_complete %u, ts_eof %u, "
+                           "tc_eof %u, eof %u",
+                        eval_files, ts_ready, tc_ready, tx_complete, ts_eof, tc_eof, eof);
+                SCLogDebug("txd->file_tx & pkt_dir: %02x & %02x -> %02x", txd->file_tx, pkt_dir,
+                        (txd->file_tx & pkt_dir));
+
+                /* call only for the correct direction, except when it looks anything like a end of
+                 * transaction or end of stream. Since OutputTxLogFiles has complicated logic around
+                 * that, we just leave it to that function to sort things out for now. */
+                if (eval_files || AppLayerParserIsFileTxInDir(
+                                          txd, pkt_dir)) { // need to process each tx that might
+                                                           // be a file tx, even if there
+                    OutputTxLogFiles(tv, op_thread_data->file, op_thread_data->filedata, p, f, tx,
+                            tx_id, txd, tx_complete, ts_ready, tc_ready, ts_eof, tc_eof, eof);
+                }
+            } else if (support_files) {
+                if (op_thread_data->file) {
+                    txd->logged.flags |= BIT_U32(LOGGER_FILE);
+                    SCLogDebug("not a file_tx: setting LOGGER_FILE => %08x", txd->logged.flags);
+                }
+                if (op_thread_data->filedata) {
+                    txd->logged.flags |= BIT_U32(LOGGER_FILEDATA);
+                    SCLogDebug("not a file_tx: setting LOGGER_FILEDATA => %08x", txd->logged.flags);
+                }
+            }
+        }
+        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged.flags);
 
         if (list[ALPROTO_UNKNOWN] != 0) {
             OutputTxLogList0(tv, op_thread_data, p, f, tx, tx_id);
