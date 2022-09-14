@@ -263,6 +263,28 @@ AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto,
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig);
 
+static inline bool AppLayerParserIsFileTx(const AppLayerTxData *txd)
+{
+    if (txd->file_tx != 0) {
+        return true;
+    }
+    return false;
+}
+
+static inline bool AppLayerParserIsFileTxInDir(const AppLayerTxData *txd, const uint8_t direction)
+{
+    if ((txd->file_tx & direction) != 0) {
+        return true;
+    }
+    return false;
+}
+
+/** \brief check if tx (possibly) has files in this tx for the direction */
+static inline bool AppLayerParserHasFilesInDir(const AppLayerTxData *txd, const uint8_t direction)
+{
+    return (txd->files_opened && AppLayerParserIsFileTxInDir(txd, direction));
+}
+
 /***** General *****/
 
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
