@@ -920,16 +920,14 @@ FileContainer *AppLayerParserGetTxFiles(const Flow *f, void *tx, const uint8_t d
     SCReturnPtr(ptr, "FileContainer *");
 }
 
-static void AppLayerParserFileTxHousekeeping(const Flow *f, void *tx, const uint8_t pkt_dir)
+static void AppLayerParserFileTxHousekeeping(
+        const Flow *f, void *tx, const uint8_t pkt_dir, const bool trunc)
 {
     FileContainer *fc = AppLayerParserGetTxFiles(f, tx, pkt_dir);
     if (fc) {
-        if (AppLayerParserStateIssetFlag(f->alparser, (pkt_dir == STREAM_TOSERVER)
-                                                              ? APP_LAYER_PARSER_TRUNC_TS
-                                                              : APP_LAYER_PARSER_TRUNC_TC) != 0) {
+        if (trunc) {
             FileTruncateAllOpenFiles(fc);
         }
-
         FilePrune(fc);
     }
 }
@@ -969,6 +967,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
     const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
 
+    int pkt_dir_trunc = -1;
+
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));
@@ -978,6 +978,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     bool skipped = false;
     const bool is_unidir =
             AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
+    // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -989,8 +990,16 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
+        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        if (txd != NULL && AppLayerParserHasFilesInDir(txd, pkt_dir)) {
+            if (pkt_dir_trunc == -1)
+                pkt_dir_trunc =
+                        AppLayerParserStateIssetFlag(f->alparser,
+                                (pkt_dir == STREAM_TOSERVER) ? APP_LAYER_PARSER_TRUNC_TS
+                                                             : APP_LAYER_PARSER_TRUNC_TC) != 0;
 
-        AppLayerParserFileTxHousekeeping(f, tx, pkt_dir);
+            AppLayerParserFileTxHousekeeping(f, tx, pkt_dir, (bool)pkt_dir_trunc);
+        }
 
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
@@ -1007,7 +1016,6 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         bool inspected = false;
         if (txd && has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
