@@ -23,8 +23,8 @@
 #include "util-thash.h"
 #include "rust.h"
 
-void HttpRangeContainersInit(void);
-void HttpRangeContainersDestroy(void);
+void FileRangeContainersInit(void);
+void FileRangeContainersDestroy(void);
 uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts);
 
 // linked list of ranges : buffer with offset
@@ -50,14 +50,14 @@ RB_PROTOTYPE(HTTP_RANGES, HttpRangeContainerBuffer, rb, HttpRangeContainerBuffer
 
 /** Item in hash table for a file in multiple ranges
  * Thread-safety is ensured with the thread-safe hash table cf THashData
- * The number of use is increased for each flow opening a new HttpRangeContainerBlock
- * until it closes this HttpRangeContainerBlock
+ * The number of use is increased for each flow opening a new FileRangeContainerBlock
+ * until it closes this FileRangeContainerBlock
  * The design goal is to have concurrency only on opening and closing a range request
  * and have a lock-free data structure belonging to one Flow
- * (see HttpRangeContainerBlock below)
+ * (see FileRangeContainerBlock below)
  * for every append in between (we suppose we have many appends per range request)
  */
-typedef struct HttpRangeContainerFile {
+typedef struct FileRangeContainerFile {
     /** key for hashtable */
     uint8_t *key;
     /** key length */
@@ -78,33 +78,33 @@ typedef struct HttpRangeContainerFile {
     uint16_t flags;
     /** error condition for this range. Its up to timeout handling to cleanup */
     bool error;
-} HttpRangeContainerFile;
+} FileRangeContainerFile;
 
 /** A structure representing a single range request :
  * either skipping, buffering, or appending
  * As this belongs to a flow, appending data to it is ensured to be thread-safe
  * Only one block per file has the pointer to the container
  */
-typedef struct HttpRangeContainerBlock {
+typedef struct FileRangeContainerBlock {
     /** state where we skip content */
     uint64_t toskip;
     /** current out of order range to write into */
     HttpRangeContainerBuffer *current;
     /** pointer to the main file container, where to directly append data */
-    HttpRangeContainerFile *container;
+    FileRangeContainerFile *container;
     /** file container we are owning for now */
     FileContainer *files;
-} HttpRangeContainerBlock;
+} FileRangeContainerBlock;
 
-int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
-File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
+int FileRangeAppendData(FileRangeContainerBlock *c, const uint8_t *data, uint32_t len);
+File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags);
 
-// HttpRangeContainerBlock but trouble with headers inclusion order
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
+// FileRangeContainerBlock but trouble with headers inclusion order
+FileRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+        const Flow *f, const FileContentRange *cr, const StreamingBufferConfig *sbcfg,
         const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
         uint32_t data_len);
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
+void FileRangeFreeBlock(FileRangeContainerBlock *b);
 
 #endif /* __APP_LAYER_HTP_RANGE_H__ */

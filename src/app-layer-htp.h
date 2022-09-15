@@ -258,7 +258,7 @@ typedef struct HtpState_ {
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
-    HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
+    FileRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
     StreamSlice *slice;

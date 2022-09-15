@@ -133,7 +133,7 @@ pub struct HTTP2Transaction {
     pub frames_ts: Vec<HTTP2Frame>,
 
     decoder: decompression::HTTP2Decoder,
-    pub file_range: *mut HttpRangeContainerBlock,
+    pub file_range: *mut FileRangeContainerBlock,
 
     pub tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
@@ -181,7 +181,7 @@ impl HTTP2Transaction {
                         std::ptr::null_mut(),
                         0,
                     );
-                    (c.HttpRangeFreeBlock)(self.file_range);
+                    (c.FileRangeFreeBlock)(self.file_range);
                     self.file_range = std::ptr::null_mut();
                 }
             }
@@ -445,7 +445,7 @@ impl HTTP2State {
                             std::ptr::null_mut(),
                             0,
                         );
-                        (c.HttpRangeFreeBlock)(tx.file_range);
+                        (c.FileRangeFreeBlock)(tx.file_range);
                         tx.file_range = std::ptr::null_mut();
                     }
                 }
@@ -486,7 +486,7 @@ impl HTTP2State {
                                 std::ptr::null_mut(),
                                 0,
                             );
-                            (c.HttpRangeFreeBlock)(tx.file_range);
+                            (c.FileRangeFreeBlock)(tx.file_range);
                             tx.file_range = std::ptr::null_mut();
                         }
                     }

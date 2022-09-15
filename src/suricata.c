@@ -403,7 +403,7 @@ static void GlobalsDestroy(SCInstance *suri)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
-    HttpRangeContainersDestroy();
+    FileRangeContainersDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -2151,7 +2151,7 @@ static int InitSignalHandler(SCInstance *suri)
  * Will be run once per pcap in unix-socket mode */
 void PreRunInit(const int runmode)
 {
-    HttpRangeContainersInit();
+    FileRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 

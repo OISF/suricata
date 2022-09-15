@@ -405,7 +405,7 @@ void HTPStateFree(void *state)
 
     if (s->file_range) {
         HTPFileCloseHandleRange(s->files_tc, 0, s->file_range, NULL, 0);
-        HttpRangeFreeBlock(s->file_range);
+        FileRangeFreeBlock(s->file_range);
     }
 
     FileContainerFree(s->files_ts);
