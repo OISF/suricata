@@ -177,6 +177,8 @@ running but this also means that the blocking feature will not be present.
 Settings up IPS at Layer 2
 --------------------------
 
+.. _afp-ips-l2-mode:
+
 AF_PACKET IPS mode
 ~~~~~~~~~~~~~~~~~~
 
@@ -276,3 +278,71 @@ and eBPF load balancing looks like the following: ::
 
 The eBPF file ``/usr/libexec/suricata/ebpf/lb.bpf`` may not be present on disk.
 See :ref:`ebpf-xdp` for more information.
+
+DPDK IPS mode
+~~~~~~~~~~~~~~~~~~
+
+In the same way as you would configure AF_PACKET IPS mode, you can configure the DPDK capture module.
+Prior to starting with IPS (inline) setup, it is recommended to go over :ref:`dpdk-capture-module` manual page
+to understand the setup essentials.
+
+DPDK IPS mode, similarly to AF-Packet, uses two interfaces. Packets received on the first network interface
+(``0000:3b:00.1``) are transmitted by the second network interface (``0000:3b:00.0``) and similarly,
+packets received on the second interface (``0000:3b:00.0``) are transmitted
+by the first interface (``0000:3b:00.1``). Packets are not altered in any way in this mode.
+
+The following configuration snippet configures Suricata DPDK IPS mode between two NICs: ::
+
+    dpdk:
+      eal-params:
+        proc-type: primary
+
+      interfaces:
+      - interface: 0000:3b:00.1
+        threads: 4
+        promisc: true
+        multicast: true
+        checksum-checks: true
+        checksum-checks-offload: true
+        mempool-size: 262143
+        mempool-cache-size: 511
+        rx-descriptors: 4096
+        tx-descriptors: 4096
+        copy-mode: ips
+        copy-iface: 0000:3b:00.0
+        mtu: 3000
+
+      - interface: 0000:3b:00.0
+        threads: 4
+        promisc: true
+        multicast: true
+        checksum-checks: true
+        checksum-checks-offload: true
+        mempool-size: 262143
+        mempool-cache-size: 511
+        rx-descriptors: 4096
+        tx-descriptors: 4096
+        copy-mode: ips
+        copy-iface: 0000:3b:00.1
+        mtu: 3000
+
+The previous DPDK configuration snippet outlines several things to consider:
+
+- ``copy-mode`` - see Section :ref:`afp-ips-l2-mode` for more details.
+- ``copy-iface`` - see Section :ref:`afp-ips-l2-mode` for more details.
+- ``threads`` - all interface entries must have their thread count configured and paired/connected interfaces must be configured with the same amount of threads.
+- ``mtu`` - MTU must be a common on both paired interfaces.
+
+DPDK capture module also requires having CPU affinity set in the configuration file. For the best performance,
+every Suricata worker should be pinned to a separate CPU core that is not shared with any other Suricata thread
+(e.g. management threads).
+The following snippet is from the :ref:`suricata-yaml-threading` configuration section  ::
+
+    threading:
+      set-cpu-affinity: yes
+      cpu-affinity:
+        - management-cpu-set:
+            cpu: [ 0 ]
+        - worker-cpu-set:
+            cpu: [ 2,4,6,8,10,12,14,16 ]
+
