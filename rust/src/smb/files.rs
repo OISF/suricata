@@ -22,8 +22,10 @@ use crate::filecontainer::*;
 
 use crate::smb::smb::*;
 
+use std::os::raw::c_uchar;
+
 /// File tracking transaction. Single direction only.
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct SMBTransactionFile {
     pub direction: Direction,
     pub fuid: Vec<u8>,
@@ -33,14 +35,29 @@ pub struct SMBTransactionFile {
     /// after a gap, this will be set to a time in the future. If the file
     /// receives no updates before that, it will be considered complete.
     pub post_gap_ts: u64,
+    pub file_range: *mut FileRangeContainerBlock,
+    pub multi: bool,
 }
 
 impl SMBTransactionFile {
     pub fn new() -> Self {
         return Self {
             file_tracker: FileTransferTracker::new(),
-            ..Default::default()
+            file_range: std::ptr::null_mut(),
+            multi: false,
+            post_gap_ts: 0,
+            direction: Direction::default(),
+            fuid: Vec::new(),
+            file_name: Vec::new(),
+            share_name: Vec::new(),
         }
+    }
+}
+
+impl Drop for SMBTransactionFile {
+    fn drop(&mut self) {
+        // should have been already closed
+        debug_validate_bug_on!(!self.file_range.is_null());
     }
 }
 
@@ -55,6 +72,13 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
                     chunk_size, 0, is_last, xid); }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
+}
+
+// Defined in app-layer-htp-range.h
+extern "C" {
+    pub fn FileRangeAppendData(
+        c: *mut FileRangeContainerBlock, data: *const c_uchar, data_len: u32,
+    ) -> std::os::raw::c_int;
 }
 
 impl SMBState {
@@ -122,7 +146,7 @@ impl SMBState {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    pub fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+    pub fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32, eof: bool) -> u32 {
         let mut chunk_left = if direction == Direction::ToServer {
             self.file_ts_left
         } else {
@@ -175,6 +199,32 @@ impl SMBState {
                     }
 
                     let file_data = &data[0..data_to_handle_len];
+                    if !tdf.file_range.is_null() {
+                        unsafe {
+                            FileRangeAppendData(tdf.file_range, file_data.as_ptr(), data_to_handle_len as u32);
+                        }
+                        if chunk_left == 0 || eof {
+                            let added = if let Some(c) = unsafe { SC } {
+                                let added = (c.HTPFileCloseHandleRange)(
+                                    files,
+                                    flags,
+                                    tdf.file_range,
+                                    std::ptr::null_mut(),
+                                    0,
+                                );
+                                (c.FileRangeFreeBlock)(tdf.file_range);
+                                added
+                            } else {
+                                false
+                            };
+                            tdf.file_range = std::ptr::null_mut();
+                            if added {
+                                tx.tx_data.incr_files_opened();
+                            }
+                        }
+                    }
+
+                    //TODOsmbmulti5 use eof ?
                     let cs = tdf.file_tracker.update(files, flags, file_data, gap_size);
                     cs
                 } else {
