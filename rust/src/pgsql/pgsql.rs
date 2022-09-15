@@ -23,6 +23,7 @@ use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMess
 use crate::applayer::*;
 use crate::conf::*;
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use nom7::error::{Error, ErrorKind};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
@@ -33,6 +34,13 @@ pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
+
+#[derive(Debug, PartialEq, Eq, AppLayerEvent)]
+pub enum PgsqlEvent {
+    InvalidLength,   // Can't identify the length field
+    TruncatedData,   // Failed to parse due to missing data
+    MalformedData,   // Enough data, but unexpected message format/fields
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -134,6 +142,7 @@ pub struct PgsqlState {
     backend_pid: u32,
     state_progress: PgsqlStateProgress,
     tx_index_completed: usize,
+    events: u16,
 }
 
 impl State<PgsqlTransaction> for PgsqlState {
@@ -151,7 +160,7 @@ impl Default for PgsqlState {
         Self::new()
     }
 }
-    
+
 impl PgsqlState {
     pub fn new() -> Self {
         Self {
@@ -164,6 +173,17 @@ impl PgsqlState {
             backend_pid: 0,
             state_progress: PgsqlStateProgress::IdleState,
             tx_index_completed: 0,
+            events: 0,
+        }
+    }
+
+    /// Set an event on the most recent transaction
+    fn set_event(&mut self, event: PgsqlEvent) {
+        if let Some(tx) = self.transactions.back_mut() {
+            tx.tx_data.set_event(event as u8);
+            self.events += 1;
+        } else {
+            SCLogDebug!("PGSQL: trying to set event {} on non-existing transaction", event as u8);
         }
     }
 
@@ -356,9 +376,22 @@ impl PgsqlState {
                         _needed,
                         needed_estimation
                     );
+                    SCLogDebug!("PgsqlEvent::TruncatedData");
+                    self.set_event(PgsqlEvent::TruncatedData);
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(Error{code:ErrorKind::Verify, ..})) => {
+                    SCLogDebug!("PgsqlEvent::InvalidLength");
+                    self.set_event(PgsqlEvent::InvalidLength);
+                    AppLayerResult::err();
+                }
+                Err(Err::Error(Error{code:ErrorKind::Switch, ..})) => {
+                    self.set_event(PgsqlEvent::MalformedData);
+                    SCLogDebug!("PgsqlEvent::MalformedData");
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
+                    SCLogDebug!("Error while parsing PGSQL request");
                     return AppLayerResult::err();
                 }
             }
@@ -505,10 +538,22 @@ impl PgsqlState {
                         needed_estimation,
                         &start
                     );
+                    self.set_event(PgsqlEvent::TruncatedData);
+                    SCLogDebug!("PgsqlEvent::TruncatedData");
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(Error{code:ErrorKind::Verify, ..})) => {
+                    SCLogDebug!("PgsqlEvent::InvalidLength");
+                    self.set_event(PgsqlEvent::InvalidLength);
+                    AppLayerResult::err();
+                }
+                Err(Err::Error(Error{code:ErrorKind::Switch, ..})) => {
+                    self.set_event(PgsqlEvent::MalformedData);
+                    SCLogDebug!("PgsqlEvent::MalformedData");
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
-                    SCLogDebug!("Error while parsing PostgreSQL response");
+                    SCLogDebug!("Error while parsing PGSQL response");
                     return AppLayerResult::err();
                 }
             }
@@ -727,8 +772,8 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         tx_comp_st_ts: PgsqlTransactionState::RequestReceived as i32,
         tx_comp_st_tc: PgsqlTransactionState::ResponseDone as i32,
         tx_get_progress: rs_pgsql_tx_get_alstate_progress,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_eventinfo: Some(PgsqlEvent::get_event_info),
+        get_eventinfo_byid: Some(PgsqlEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
