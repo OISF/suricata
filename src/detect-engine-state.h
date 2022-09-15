@@ -94,19 +94,6 @@ typedef struct DetectEngineState_ {
     DetectEngineStateDirection dir_state[2];
 } DetectEngineState;
 
-// TODO
-typedef struct DetectTransaction_ {
-    void *tx_ptr;
-    const uint64_t tx_id;
-    struct AppLayerTxData *tx_data_ptr;
-    DetectEngineStateDirection *de_state;
-    const uint64_t detect_flags;            /* detect flags get/set from/to applayer */
-    uint64_t prefilter_flags;               /* prefilter flags for direction, to be updated by prefilter code */
-    const uint64_t prefilter_flags_orig;    /* prefilter flags for direction, before prefilter has run */
-    const int tx_progress;
-    const int tx_end_state;
-} DetectTransaction;
-
 /**
  * \brief Alloc a DetectEngineState object.
  *
