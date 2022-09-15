@@ -38,7 +38,7 @@ typedef struct ContainerTHashTable {
 // globals
 ContainerTHashTable ContainerUrlRangeList;
 
-static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b);
+static void HttpRangeBlockDerefContainer(FileRangeContainerBlock *b);
 
 #define CONTAINER_URLRANGE_HASH_SIZE 256
 
@@ -64,8 +64,8 @@ RB_GENERATE(HTTP_RANGES, HttpRangeContainerBuffer, rb, HttpRangeContainerBufferC
 
 static int ContainerUrlRangeSet(void *dst, void *src)
 {
-    HttpRangeContainerFile *src_s = src;
-    HttpRangeContainerFile *dst_s = dst;
+    FileRangeContainerFile *src_s = src;
+    FileRangeContainerFile *dst_s = dst;
     dst_s->len = src_s->len;
     dst_s->key = SCMalloc(dst_s->len);
     if (dst_s->key == NULL)
@@ -87,8 +87,8 @@ static int ContainerUrlRangeSet(void *dst, void *src)
 
 static bool ContainerUrlRangeCompare(void *a, void *b)
 {
-    const HttpRangeContainerFile *as = a;
-    const HttpRangeContainerFile *bs = b;
+    const FileRangeContainerFile *as = a;
+    const FileRangeContainerFile *bs = b;
 
     /* ranges in the error state should not be found so they can
      * be evicted */
@@ -104,7 +104,7 @@ static bool ContainerUrlRangeCompare(void *a, void *b)
 
 static uint32_t ContainerUrlRangeHash(void *s)
 {
-    HttpRangeContainerFile *cur = s;
+    FileRangeContainerFile *cur = s;
     uint32_t h = StringHashDjb2(cur->key, cur->len);
     return h;
 }
@@ -114,7 +114,7 @@ static void ContainerUrlRangeFree(void *s)
 {
     HttpRangeContainerBuffer *range = NULL, *tmp = NULL;
 
-    HttpRangeContainerFile *cu = s;
+    FileRangeContainerFile *cu = s;
     SCFree(cu->key);
     cu->key = NULL;
     FileContainerFree(cu->files);
@@ -127,7 +127,7 @@ static void ContainerUrlRangeFree(void *s)
     }
 }
 
-static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, struct timeval *ts)
+static inline bool ContainerValueRangeTimeout(FileRangeContainerFile *cu, struct timeval *ts)
 {
     // we only timeout if we have no flow referencing us
     if ((uint32_t)ts->tv_sec > cu->expire || cu->error) {
@@ -139,20 +139,20 @@ static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, struct
     return false;
 }
 
-static void ContainerUrlRangeUpdate(HttpRangeContainerFile *cu, uint32_t expire)
+static void ContainerUrlRangeUpdate(FileRangeContainerFile *cu, uint32_t expire)
 {
     cu->expire = expire;
 }
 
-#define HTTP_RANGE_DEFAULT_TIMEOUT 60
-#define HTTP_RANGE_DEFAULT_MEMCAP  100 * 1024 * 1024
+#define FILE_RANGE_DEFAULT_TIMEOUT 60
+#define FILE_RANGE_DEFAULT_MEMCAP  100 * 1024 * 1024
 
-void HttpRangeContainersInit(void)
+void FileRangeContainersInit(void)
 {
     SCLogDebug("containers start");
     const char *str = NULL;
-    uint64_t memcap = HTTP_RANGE_DEFAULT_MEMCAP;
-    uint32_t timeout = HTTP_RANGE_DEFAULT_TIMEOUT;
+    uint64_t memcap = FILE_RANGE_DEFAULT_MEMCAP;
+    uint32_t timeout = FILE_RANGE_DEFAULT_TIMEOUT;
     if (ConfGet("app-layer.protocols.http.byterange.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
@@ -174,7 +174,7 @@ void HttpRangeContainersInit(void)
     }
 
     ContainerUrlRangeList.ht =
-            THashInit("app-layer.protocols.http.byterange", sizeof(HttpRangeContainerFile),
+            THashInit("app-layer.protocols.http.byterange", sizeof(FileRangeContainerFile),
                     ContainerUrlRangeSet, ContainerUrlRangeFree, ContainerUrlRangeHash,
                     ContainerUrlRangeCompare, false, memcap, CONTAINER_URLRANGE_HASH_SIZE);
     ContainerUrlRangeList.timeout = timeout;
@@ -182,7 +182,7 @@ void HttpRangeContainersInit(void)
     SCLogDebug("containers started");
 }
 
-void HttpRangeContainersDestroy(void)
+void FileRangeContainersDestroy(void)
 {
     THashShutdown(ContainerUrlRangeList.ht);
 }
@@ -240,7 +240,7 @@ uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
 static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
 {
     const struct timeval *ts = &f->lastts;
-    HttpRangeContainerFile lookup;
+    FileRangeContainerFile lookup;
     memset(&lookup, 0, sizeof(lookup));
     // cast so as not to have const in the structure
     lookup.key = (uint8_t *)key;
@@ -249,7 +249,7 @@ static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const
     if (res.data) {
         // nothing more to do if (res.is_new)
         ContainerUrlRangeUpdate(res.data->data, ts->tv_sec + ContainerUrlRangeList.timeout);
-        HttpRangeContainerFile *c = res.data->data;
+        FileRangeContainerFile *c = res.data->data;
         c->hdata = res.data;
         SCLogDebug("c %p", c);
         return res.data->data;
@@ -257,7 +257,7 @@ static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const
     return NULL;
 }
 
-static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, uint64_t start,
+static FileRangeContainerBlock *HttpRangeOpenFileAux(FileRangeContainerFile *c, uint64_t start,
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags)
 {
@@ -271,7 +271,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
             return NULL;
         }
     }
-    HttpRangeContainerBlock *curf = SCCalloc(1, sizeof(HttpRangeContainerBlock));
+    FileRangeContainerBlock *curf = SCCalloc(1, sizeof(FileRangeContainerBlock));
     if (curf == NULL) {
         c->error = true;
         return NULL;
@@ -285,7 +285,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     }
     const uint64_t buflen = end - start + 1;
 
-    /* The big part of this function is now to decide which kind of HttpRangeContainerBlock
+    /* The big part of this function is now to decide which kind of FileRangeContainerBlock
      * we will return :
      * - skipping already processed data
      * - storing out of order data for later use
@@ -347,29 +347,29 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     return curf;
 }
 
-static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
+static FileRangeContainerBlock *HttpRangeOpenFile(FileRangeContainerFile *c, uint64_t start,
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags, const uint8_t *data, uint32_t len)
 {
-    HttpRangeContainerBlock *r =
+    FileRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
-    if (HttpRangeAppendData(r, data, len) < 0) {
+    if (FileRangeAppendData(r, data, len) < 0) {
         SCLogDebug("Failed to append data while openeing");
     }
     return r;
 }
 
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *crparsed, const StreamingBufferConfig *sbcfg,
+FileRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+        const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
         uint32_t data_len)
 {
-    HttpRangeContainerFile *file_range_container = HttpRangeContainerUrlGet(key, keylen, f);
+    FileRangeContainerFile *file_range_container = HttpRangeContainerUrlGet(key, keylen, f);
     if (file_range_container == NULL) {
         // probably reached memcap
         return NULL;
     }
-    HttpRangeContainerBlock *r = HttpRangeOpenFile(file_range_container, crparsed->start,
+    FileRangeContainerBlock *r = HttpRangeOpenFile(file_range_container, crparsed->start,
             crparsed->end, crparsed->size, sbcfg, name, name_len, flags, data, data_len);
     SCLogDebug("s->file_range == %p", r);
     if (r == NULL) {
@@ -393,7 +393,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t
     return r;
 }
 
-int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len)
+int FileRangeAppendData(FileRangeContainerBlock *c, const uint8_t *data, uint32_t len)
 {
     if (len == 0) {
         return 0;
@@ -451,7 +451,7 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
     return 0;
 }
 
-static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
+static void HttpRangeFileClose(FileRangeContainerFile *c, uint16_t flags)
 {
     SCLogDebug("closing range %p flags %04x", c, flags);
     DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->hdata->use_cnt) == 0);
@@ -464,7 +464,7 @@ static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
 /**
  *  \note if `f` is non-NULL, the ownership of the file is transfered to the caller.
  */
-File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
+File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags)
 {
     SCLogDebug("c %p c->container %p c->current %p", c, c->container, c->current);
 
@@ -522,7 +522,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     } else {
         // we just finished an in-order block
         DEBUG_VALIDATE_BUG_ON(c->files == NULL);
-        // move back the ownership of the file container to HttpRangeContainerFile
+        // move back the ownership of the file container to FileRangeContainerFile
         c->container->files = c->files;
         c->files = NULL;
         DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
@@ -599,7 +599,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     return f;
 }
 
-static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
+static void HttpRangeBlockDerefContainer(FileRangeContainerBlock *b)
 {
     if (b && b->container) {
         DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(b->container->hdata->use_cnt) == 0);
@@ -608,7 +608,7 @@ static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
     }
 }
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
+void FileRangeFreeBlock(FileRangeContainerBlock *b)
 {
     if (b) {
         HttpRangeBlockDerefContainer(b);
@@ -618,7 +618,7 @@ void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
             SCFree(b->current->buffer);
             SCFree(b->current);
         }
-        // we did not move ownership of the file container back to HttpRangeContainerFile
+        // we did not move ownership of the file container back to FileRangeContainerFile
         DEBUG_VALIDATE_BUG_ON(b->files != NULL);
         if (b->files != NULL) {
             FileContainerFree(b->files);

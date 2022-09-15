@@ -29,11 +29,11 @@
 
 int HTPFileOpen(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *, uint32_t,
         uint64_t, uint8_t);
-int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range);
+int HTPParseContentRange(bstr *rawvalue, FileContentRange *range);
 int HTPFileOpenWithRange(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *,
         uint32_t, uint64_t, bstr *rawvalue, HtpTxUserData *htud);
 bool HTPFileCloseHandleRange(
-        FileContainer *, const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
+        FileContainer *, const uint16_t, FileRangeContainerBlock *, const uint8_t *, uint32_t);
 int HTPFileStoreChunk(HtpState *, const uint8_t *, uint32_t, uint8_t);
 int HTPFileClose(HtpState *, HtpTxUserData *, const uint8_t *, uint32_t, uint8_t, uint8_t);
 
