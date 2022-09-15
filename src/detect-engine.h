@@ -189,4 +189,15 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
 
+void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t tx_id,
+        const Signature *s, uint32_t inspect_flags, uint8_t flow_flags,
+        const uint16_t file_no_match);
+
+void DetectRunStoreStateTxFileOnly(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t tx_id,
+        const uint8_t flow_flags, const uint16_t file_no_match);
+
+void DetectEngineStateResetTxs(Flow *f);
+
+void DeStateRegisterTests(void);
+
 #endif /* __DETECT_ENGINE_H__ */
