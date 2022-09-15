@@ -427,9 +427,12 @@ typedef struct PrefilterMpmFilename {
  *  \param pectx inspection context
  */
 static void PrefilterTxFilename(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *txd, const uint8_t flags)
 {
     SCEnter();
+
+    if (!AppLayerParserHasFilesInDir(txd, flags))
+        return;
 
     const PrefilterMpmFilename *ctx = (const PrefilterMpmFilename *)pectx;
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
