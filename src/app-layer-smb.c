@@ -28,6 +28,10 @@
 #include "app-layer-smb.h"
 #include "util-misc.h"
 
+// for HTPFileCloseHandleRange
+#include "app-layer-htp-file.h"
+#include "app-layer-htp-range.h"
+#include "util-print.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
@@ -35,6 +39,79 @@ static SuricataFileContext sfc = { &sbcfg };
 #ifdef UNITTESTS
 static void SMBParserRegisterTests(void);
 #endif
+
+#define SMB_URL_PREFIX_LEN 6
+#define MAX_ADDR_LEN       46
+#define GUID_LEN           16
+
+static size_t SmbSetKey(const Flow *f, const uint8_t *guid, uint8_t *hkey)
+{
+    memcpy(hkey, "smb://", SMB_URL_PREFIX_LEN);
+    int printIp = FLOW_IS_IPV4(f) ? AF_INET : AF_INET6;
+    PrintInet(printIp, (const void *)&(f->src.address), (char *)(hkey + SMB_URL_PREFIX_LEN),
+            2 * GUID_LEN + MAX_ADDR_LEN + 1);
+    size_t key_len = strlen((const char *)hkey);
+    hkey[key_len] = '/';
+    key_len++;
+    rs_to_hex(hkey + key_len, sizeof(hkey) - key_len, guid, GUID_LEN);
+    key_len += 2 * GUID_LEN;
+    return key_len;
+}
+
+void SmbMultiSetFileSize(const Flow *f, const uint8_t *guid, uint64_t eof, const uint8_t *filename,
+        uint16_t name_len, const StreamingBufferConfig *files_sbcfg)
+{
+    uint8_t hkey[2 * GUID_LEN + MAX_ADDR_LEN + 1 + SMB_URL_PREFIX_LEN] = { 0 };
+    size_t keylen = SmbSetKey(f, guid, hkey);
+    uint16_t flags = FileFlowToFlags(f, STREAM_TOSERVER);
+
+    FileRangeContainerFile *file_range_container = SmbRangeContainerUrlGet(hkey, keylen, f);
+    if (file_range_container == NULL) {
+        // memcap reached
+        return;
+    }
+    file_range_container->totalsize = eof;
+    if (file_range_container->files != NULL && file_range_container->files->tail == NULL) {
+        if (FileOpenFileWithId(file_range_container->files, files_sbcfg, 0, filename, name_len,
+                    NULL, 0, flags) != 0) {
+            SCLogDebug("open file for range failed");
+        }
+    } else {
+        FileSetName(file_range_container->files->tail, filename, name_len);
+    }
+    THashDecrUsecnt(file_range_container->hdata);
+    THashDataUnlock(file_range_container->hdata);
+}
+
+FileRangeContainerBlock *SmbMultiStartFileChunk(const Flow *f, const uint8_t *guid, uint16_t flags,
+        FileContainer *fc, const StreamingBufferConfig *files_sbcfg, bool *added, uint64_t offset,
+        uint32_t rlen, const uint8_t *data, uint32_t data_len)
+{
+    FileRangeContainerBlock *r = NULL;
+
+    FileContentRange fcr;
+    if (offset > INT64_MAX || offset + rlen > INT64_MAX) {
+        return NULL;
+    }
+    fcr.start = offset;
+    // total size is set by SmbMultiSetFileSize
+    fcr.size = 0;
+    fcr.end = offset + rlen;
+
+    uint8_t hkey[2 * GUID_LEN + MAX_ADDR_LEN + 1 + SMB_URL_PREFIX_LEN] = { 0 };
+    size_t key_len = SmbSetKey(f, guid, hkey);
+
+    r = SmbRangeContainerOpenFile(
+            hkey, key_len, f, &fcr, files_sbcfg, NULL, 0, flags, data, data_len);
+    if (r) {
+        if (data_len >= rlen) {
+            *added = HTPFileCloseHandleRange(fc, flags, r, NULL, 0);
+            FileRangeFreeBlock(r);
+            r = NULL;
+        }
+    }
+    return r;
+}
 
 void RegisterSMBParsers(void)
 {

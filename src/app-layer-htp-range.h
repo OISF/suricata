@@ -41,6 +41,8 @@ typedef struct HttpRangeContainerBuffer {
     uint64_t offset;
     /** number of gaped bytes */
     uint64_t gap;
+    /** pointer to hashtable, for memuse */
+    THashTableContext *ht;
 } HttpRangeContainerBuffer;
 
 int HttpRangeContainerBufferCompare(HttpRangeContainerBuffer *a, HttpRangeContainerBuffer *b);
@@ -66,6 +68,8 @@ typedef struct FileRangeContainerFile {
     uint32_t expire;
     /** pointer to hashtable data, for locking and use count */
     THashData *hdata;
+    /** pointer to hashtable, for memuse */
+    THashTableContext *ht;
     /** total expected size of the file in ranges */
     uint64_t totalsize;
     /** size of the file after last sync */
@@ -105,6 +109,13 @@ FileRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, ui
         const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
         uint32_t data_len);
 
+FileRangeContainerBlock *SmbRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+        const Flow *f, const FileContentRange *cr, const StreamingBufferConfig *sbcfg,
+        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
+        uint32_t data_len);
+
 void FileRangeFreeBlock(FileRangeContainerBlock *b);
+
+FileRangeContainerFile *SmbRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f);
 
 #endif /* __APP_LAYER_HTP_RANGE_H__ */
