@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2024 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -397,7 +397,26 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(err)) => {
+                    match err {
+                        PgsqlParseError::InvalidLength => {
+                            // TODO set event invalid length event
+                            // If we don't get a valid length, we can't know how to proceed
+                            return AppLayerResult::err();
+                        }
+                        PgsqlParseError::NomError(_i, error_kind) => {
+                            if error_kind == nom7::error::ErrorKind::Switch {
+                                // TODO set event switch / PgsqlEvent::MalformedData // or something like that
+                            }
+                            SCLogDebug!("Parsing error: {:?}", error_kind);
+                        }
+                    }
+                    // If we have parsed the message length, let's assume we can
+                    // move onto the next PDU even if we can't parse the current message
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
+                    SCLogDebug!("Error while parsing PGSQL request");
                     return AppLayerResult::err();
                 }
             }
@@ -571,8 +590,26 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(err)) => {
+                    match err {
+                        PgsqlParseError::InvalidLength => {
+                            // TODO set event invalid length event
+                            // If we don't get a valid length, we can't know how to proceed
+                            return AppLayerResult::err();
+                        }
+                        PgsqlParseError::NomError(_i, error_kind) => {
+                            if error_kind == nom7::error::ErrorKind::Switch {
+                                // TODO set event switch / PgsqlEvent::MalformedData // or something like that
+                            }
+                            SCLogDebug!("Parsing error: {:?}", error_kind);
+                        }
+                    }
+                    // If we have parsed the message length, let's assume we can
+                    // move onto the next PDU even if we can't parse the current message
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
-                    SCLogDebug!("Error while parsing PostgreSQL response");
+                    SCLogDebug!("Error while parsing PGSQL response");
                     return AppLayerResult::err();
                 }
             }
