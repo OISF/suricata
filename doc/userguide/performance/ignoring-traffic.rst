@@ -78,6 +78,8 @@ after the initial handshake. By setting the `app-layer.protocols.tls.encryption-
 option to `bypass` the rest of this flow is ignored. If flow bypass is enabled,
 the bypass is done in the kernel or in hardware.
 
+.. _bypass:
+
 bypassing traffic
 -----------------
 
