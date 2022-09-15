@@ -29,7 +29,7 @@ const SuricataContext suricata_context = {
     AppLayerDecoderEventsFreeEvents,
     AppLayerParserTriggerRawStreamReassembly,
 
-    HttpRangeFreeBlock,
+    FileRangeFreeBlock,
     HTPFileCloseHandleRange,
 
     FileOpenFileWithId,

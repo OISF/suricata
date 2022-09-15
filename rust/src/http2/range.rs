@@ -17,7 +17,7 @@
 
 use super::detect;
 use crate::core::{
-    Direction, Flow, HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
+    Direction, Flow, FileRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
 };
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
@@ -33,19 +33,19 @@ use std::str::FromStr;
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct HTTPContentRange {
+pub struct FileContentRange {
     pub start: i64,
     pub end: i64,
     pub size: i64,
 }
 
-pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], FileContentRange> {
     let (i2, _) = char('*')(input)?;
     let (i2, _) = char('/')(i2)?;
     let (i2, size) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
     return Ok((
         i2,
-        HTTPContentRange {
+        FileContentRange {
             start: -1,
             end: -1,
             size,
@@ -53,7 +53,7 @@ pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], 
     ));
 }
 
-pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], FileContentRange> {
     let (i2, start) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(input)?;
     let (i2, _) = char('-')(i2)?;
     let (i2, end) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
@@ -62,10 +62,10 @@ pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], H
         value(-1, char('*')),
         map_res(map_res(digit1, std::str::from_utf8), i64::from_str),
     ))(i2)?;
-    return Ok((i2, HTTPContentRange { start, end, size }));
+    return Ok((i2, FileContentRange { start, end, size }));
 }
 
-fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], FileContentRange> {
     let (i2, _) = take_while(|c| c == b' ')(input)?;
     let (i2, _) = take_till(|c| c == b' ')(i2)?;
     let (i2, _) = take_while(|c| c == b' ')(i2)?;
@@ -75,7 +75,7 @@ fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPConte
     ))(i2);
 }
 
-pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], FileContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
     if v.start > v.end || (v.end > 0 && v.size > 0 && v.end > v.size - 1) {
         return Err(Err::Error(make_error(rem, ErrorKind::Verify)));
@@ -85,7 +85,7 @@ pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8],
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http_parse_content_range(
-    cr: &mut HTTPContentRange, buffer: *const u8, buffer_len: u32,
+    cr: &mut FileContentRange, buffer: *const u8, buffer_len: u32,
 ) -> std::os::raw::c_int {
     let slice = build_slice!(buffer, buffer_len as usize);
     match http2_parse_content_range(slice) {
@@ -129,7 +129,7 @@ fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()
 }
 
 pub fn http2_range_open(
-    tx: &mut HTTP2Transaction, v: &HTTPContentRange, flow: *const Flow,
+    tx: &mut HTTP2Transaction, v: &FileContentRange, flow: *const Flow,
     cfg: &'static SuricataFileContext, flags: u16, data: &[u8],
 ) {
     if v.end <= 0 || v.size <= 0 {
@@ -158,9 +158,9 @@ pub fn http2_range_open(
     }
 }
 
-pub fn http2_range_append(fr: *mut HttpRangeContainerBlock, data: &[u8]) {
+pub fn http2_range_append(fr: *mut FileRangeContainerBlock, data: &[u8]) {
     unsafe {
-        HttpRangeAppendData(fr, data.as_ptr(), data.len() as u32);
+        FileRangeAppendData(fr, data.as_ptr(), data.len() as u32);
     }
 }
 
@@ -175,7 +175,7 @@ pub fn http2_range_close(
             data.as_ptr(),
             data.len() as u32,
         );
-        (c.HttpRangeFreeBlock)(tx.file_range);
+        (c.FileRangeFreeBlock)(tx.file_range);
         added
     } else {
         false
@@ -189,12 +189,12 @@ pub fn http2_range_close(
 // Defined in app-layer-htp-range.h
 extern "C" {
     pub fn HttpRangeContainerOpenFile(
-        key: *const c_uchar, keylen: u32, f: *const Flow, cr: &HTTPContentRange,
+        key: *const c_uchar, keylen: u32, f: *const Flow, cr: &FileContentRange,
         sbcfg: *const StreamingBufferConfig, name: *const c_uchar, name_len: u16, flags: u16,
         data: *const c_uchar, data_len: u32,
-    ) -> *mut HttpRangeContainerBlock;
-    pub fn HttpRangeAppendData(
-        c: *mut HttpRangeContainerBlock, data: *const c_uchar, data_len: u32,
+    ) -> *mut FileRangeContainerBlock;
+    pub fn FileRangeAppendData(
+        c: *mut FileRangeContainerBlock, data: *const c_uchar, data_len: u32,
     ) -> std::os::raw::c_int;
 }
 
