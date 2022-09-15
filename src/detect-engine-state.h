@@ -108,15 +108,6 @@ DetectEngineState *DetectEngineStateAlloc(void);
  */
 void DetectEngineStateFree(DetectEngineState *state);
 
-/**
- *  \brief Update the inspect id.
- *
- *  \param f unlocked flow
- *  \param flags direction and disruption flags
- */
-void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags,
-        const bool tag_txs_as_inspected);
-
 void DetectEngineStateResetTxs(Flow *f);
 
 void DeStateRegisterTests(void);
