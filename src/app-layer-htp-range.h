@@ -25,7 +25,7 @@
 
 void FileRangeContainersInit(void);
 void FileRangeContainersDestroy(void);
-uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts);
+void HttpRangeContainersTimeoutHash(struct timeval *ts);
 
 // linked list of ranges : buffer with offset
 typedef struct HttpRangeContainerBuffer {

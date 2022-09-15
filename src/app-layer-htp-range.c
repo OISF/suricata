@@ -187,10 +187,9 @@ void FileRangeContainersDestroy(void)
     THashShutdown(ContainerUrlRangeList.ht);
 }
 
-uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
+void HttpRangeContainersTimeoutHash(struct timeval *ts)
 {
     SCLogDebug("timeout: starting");
-    uint32_t cnt = 0;
 
     for (uint32_t i = 0; i < ContainerUrlRangeList.ht->config.hash_size; i++) {
         THashHashRow *hb = &ContainerUrlRangeList.ht->array[i];
@@ -231,7 +230,6 @@ uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
     }
 
     SCLogDebug("timeout: ending");
-    return cnt;
 }
 
 /**
