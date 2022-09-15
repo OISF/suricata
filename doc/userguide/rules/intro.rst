@@ -38,6 +38,8 @@ signature taken from the database of Emerging Threats, an open database
 featuring lots of rules that you can freely download and use in your
 Suricata instance.
 
+.. _actions:
+
 Action
 ------
 .. container:: example-rule
