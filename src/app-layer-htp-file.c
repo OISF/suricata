@@ -161,7 +161,7 @@ end:
  *
  * @return HTP_OK on success, HTP_ERROR on failure.
  */
-int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
+int HTPParseContentRange(bstr *rawvalue, FileContentRange *range)
 {
     uint32_t len = bstr_len(rawvalue);
     return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
@@ -176,7 +176,7 @@ int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
  * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
  */
 static int HTPParseAndCheckContentRange(
-        bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
+        bstr *rawvalue, FileContentRange *range, HtpState *s, HtpTxUserData *htud)
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
@@ -224,7 +224,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     DEBUG_VALIDATE_BUG_ON(s == NULL);
 
     // This function is only called STREAM_TOCLIENT from HtpResponseBodyHandle
-    HTTPContentRange crparsed;
+    FileContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
         return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);
@@ -327,7 +327,7 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     if (s->file_range != NULL) {
-        if (HttpRangeAppendData(s->file_range, data, data_len) < 0) {
+        if (FileRangeAppendData(s->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
@@ -348,11 +348,11 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
+bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, FileRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
     bool added = false;
-    if (HttpRangeAppendData(c, data, data_len) < 0) {
+    if (FileRangeAppendData(c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
     if (c->container) {
@@ -426,7 +426,7 @@ int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t
         if (added) {
             htud->tx_data.files_opened++;
         }
-        HttpRangeFreeBlock(s->file_range);
+        FileRangeFreeBlock(s->file_range);
         s->file_range = NULL;
     }
 

@@ -91,7 +91,7 @@ exclude = [
     "DetectEngineState",
     "Flow",
     "StreamingBufferConfig",
-    "HttpRangeContainerBlock",
+    "FileRangeContainerBlock",
     "FileContainer",
     "JsonT",
     "IKEState",
