@@ -820,6 +820,20 @@ int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
     SCReturnInt(0);
 }
 
+void FileSetName(File *f, const uint8_t *name, uint16_t name_len)
+{
+    if (f->name != NULL) {
+        SCFree(f->name);
+    }
+    f->name = SCMalloc(name_len);
+    if (f->name == NULL) {
+        return;
+    }
+
+    f->name_len = name_len;
+    memcpy(f->name, name, name_len);
+}
+
 /**
  *  \brief Open a new File
  *

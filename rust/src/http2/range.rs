@@ -21,6 +21,7 @@ use crate::core::{
 };
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
+use crate::range::FileContentRange;
 
 use nom7::branch::alt;
 use nom7::bytes::streaming::{take_till, take_while};
@@ -30,14 +31,6 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
 use std::os::raw::c_uchar;
 use std::str::FromStr;
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct FileContentRange {
-    pub start: i64,
-    pub end: i64,
-    pub size: i64,
-}
 
 pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], FileContentRange> {
     let (i2, _) = char('*')(input)?;

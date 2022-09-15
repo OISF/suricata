@@ -37,6 +37,7 @@ typedef struct ContainerTHashTable {
 
 // globals
 ContainerTHashTable ContainerUrlRangeList;
+ContainerTHashTable ContainerSmbHt;
 
 static void HttpRangeBlockDerefContainer(FileRangeContainerBlock *b);
 
@@ -122,7 +123,7 @@ static void ContainerUrlRangeFree(void *s)
     RB_FOREACH_SAFE (range, HTTP_RANGES, &cu->fragment_tree, tmp) {
         RB_REMOVE(HTTP_RANGES, &cu->fragment_tree, range);
         SCFree(range->buffer);
-        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
+        (void)SC_ATOMIC_SUB(cu->ht->memuse, range->buflen);
         SCFree(range);
     }
 }
@@ -147,13 +148,16 @@ static void ContainerUrlRangeUpdate(FileRangeContainerFile *cu, uint32_t expire)
 #define FILE_RANGE_DEFAULT_TIMEOUT 60
 #define FILE_RANGE_DEFAULT_MEMCAP  100 * 1024 * 1024
 
-void FileRangeContainersInit(void)
+static void FileRangeContainersInitAux(ContainerTHashTable *cht, const char *alproto)
 {
-    SCLogDebug("containers start");
     const char *str = NULL;
     uint64_t memcap = FILE_RANGE_DEFAULT_MEMCAP;
     uint32_t timeout = FILE_RANGE_DEFAULT_TIMEOUT;
-    if (ConfGet("app-layer.protocols.http.byterange.memcap", &str) == 1) {
+
+    char cnf_name[128];
+    snprintf(cnf_name, sizeof(cnf_name), "app-layer.protocols.%s.byterange.memcap", alproto);
+
+    if (ConfGet(cnf_name, &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "memcap value cannot be deduced: %s,"
@@ -162,7 +166,8 @@ void FileRangeContainersInit(void)
             memcap = 0;
         }
     }
-    if (ConfGet("app-layer.protocols.http.byterange.timeout", &str) == 1) {
+    snprintf(cnf_name, sizeof(cnf_name), "app-layer.protocols.%s.byterange.timeout", alproto);
+    if (ConfGet(cnf_name, &str) == 1) {
         size_t slen = strlen(str);
         if (slen > UINT16_MAX || StringParseUint32(&timeout, 10, (uint16_t)slen, str) <= 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
@@ -173,26 +178,31 @@ void FileRangeContainersInit(void)
         }
     }
 
-    ContainerUrlRangeList.ht =
-            THashInit("app-layer.protocols.http.byterange", sizeof(FileRangeContainerFile),
-                    ContainerUrlRangeSet, ContainerUrlRangeFree, ContainerUrlRangeHash,
-                    ContainerUrlRangeCompare, false, memcap, CONTAINER_URLRANGE_HASH_SIZE);
-    ContainerUrlRangeList.timeout = timeout;
+    snprintf(cnf_name, sizeof(cnf_name), "app-layer.protocols.%s.byterange", alproto);
+    cht->ht = THashInit(cnf_name, sizeof(FileRangeContainerFile), ContainerUrlRangeSet,
+            ContainerUrlRangeFree, ContainerUrlRangeHash, ContainerUrlRangeCompare, false, memcap,
+            CONTAINER_URLRANGE_HASH_SIZE);
+    cht->timeout = timeout;
+}
 
+void FileRangeContainersInit(void)
+{
+    SCLogDebug("containers start");
+    FileRangeContainersInitAux(&ContainerUrlRangeList, "http");
+    FileRangeContainersInitAux(&ContainerSmbHt, "smb");
     SCLogDebug("containers started");
 }
 
 void FileRangeContainersDestroy(void)
 {
     THashShutdown(ContainerUrlRangeList.ht);
+    THashShutdown(ContainerSmbHt.ht);
 }
 
-void HttpRangeContainersTimeoutHash(struct timeval *ts)
+static void HttpRangeContainersTimeoutHashAux(struct timeval *ts, THashTableContext *ht)
 {
-    SCLogDebug("timeout: starting");
-
-    for (uint32_t i = 0; i < ContainerUrlRangeList.ht->config.hash_size; i++) {
-        THashHashRow *hb = &ContainerUrlRangeList.ht->array[i];
+    for (uint32_t i = 0; i < ht->config.hash_size; i++) {
+        THashHashRow *hb = &ht->array[i];
 
         if (HRLOCK_TRYLOCK(hb) != 0)
             continue;
@@ -217,10 +227,10 @@ void HttpRangeContainersTimeoutHash(struct timeval *ts)
                 // we should log the timed out file somehow...
                 // but it does not belong to any flow...
                 SCLogDebug("timeout: removing range %p", h);
-                ContainerUrlRangeFree(h->data); // TODO do we need a "RECYCLE" func?
+                ht->config.DataFree(h->data); // TODO do we need a "RECYCLE" func?
                 DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) > (uint32_t)INT_MAX);
                 THashDataUnlock(h);
-                THashDataMoveToSpare(ContainerUrlRangeList.ht, h);
+                THashDataMoveToSpare(ht, h);
             } else {
                 THashDataUnlock(h);
             }
@@ -232,10 +242,18 @@ void HttpRangeContainersTimeoutHash(struct timeval *ts)
     SCLogDebug("timeout: ending");
 }
 
+void HttpRangeContainersTimeoutHash(struct timeval *ts)
+{
+    SCLogDebug("timeout: starting");
+    HttpRangeContainersTimeoutHashAux(ts, ContainerUrlRangeList.ht);
+    HttpRangeContainersTimeoutHashAux(ts, ContainerSmbHt.ht);
+}
+
 /**
  * \returns locked data
  */
-static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
+static FileRangeContainerFile *HttpRangeContainerUrlGet(
+        const uint8_t *key, uint32_t keylen, const Flow *f, ContainerTHashTable *cht)
 {
     const struct timeval *ts = &f->lastts;
     FileRangeContainerFile lookup;
@@ -243,18 +261,23 @@ static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const
     // cast so as not to have const in the structure
     lookup.key = (uint8_t *)key;
     lookup.len = keylen;
-    struct THashDataGetResult res = THashGetFromHash(ContainerUrlRangeList.ht, &lookup);
+    struct THashDataGetResult res = THashGetFromHash(cht->ht, &lookup);
     if (res.data) {
         // nothing more to do if (res.is_new)
-        ContainerUrlRangeUpdate(res.data->data, ts->tv_sec + ContainerUrlRangeList.timeout);
+        ContainerUrlRangeUpdate(res.data->data, ts->tv_sec + cht->timeout);
         FileRangeContainerFile *c = res.data->data;
         c->hdata = res.data;
+        c->ht = cht->ht;
         SCLogDebug("c %p", c);
         return res.data->data;
     }
     return NULL;
 }
 
+FileRangeContainerFile *SmbRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
+{
+    return HttpRangeContainerUrlGet(key, keylen, f, &ContainerSmbHt);
+}
 static FileRangeContainerBlock *HttpRangeOpenFileAux(FileRangeContainerFile *c, uint64_t start,
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags)
@@ -314,7 +337,7 @@ static FileRangeContainerBlock *HttpRangeOpenFileAux(FileRangeContainerFile *c, 
     // Because we are not in the previous cases, we will store the data for later use
 
     // block/range to be inserted in ordered linked list
-    if (!(THASH_CHECK_MEMCAP(ContainerUrlRangeList.ht, buflen))) {
+    if (!(THASH_CHECK_MEMCAP(c->ht, buflen))) {
         // skips this range
         curf->toskip = buflen;
         return curf;
@@ -328,19 +351,20 @@ static FileRangeContainerBlock *HttpRangeOpenFileAux(FileRangeContainerFile *c, 
         return NULL;
     }
 
-    (void)SC_ATOMIC_ADD(ContainerUrlRangeList.ht->memuse, buflen);
+    (void)SC_ATOMIC_ADD(c->ht->memuse, buflen);
     range->buffer = SCMalloc(buflen);
     if (range->buffer == NULL) {
         c->error = true;
         SCFree(curf);
         SCFree(range);
-        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, buflen);
+        (void)SC_ATOMIC_SUB(c->ht->memuse, buflen);
         return NULL;
     }
     range->buflen = buflen;
     range->start = start;
     range->offset = 0;
     range->gap = 0;
+    range->ht = c->ht;
     curf->current = range;
     return curf;
 }
@@ -357,12 +381,12 @@ static FileRangeContainerBlock *HttpRangeOpenFile(FileRangeContainerFile *c, uin
     return r;
 }
 
-FileRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+static FileRangeContainerBlock *FileRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
         const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
-        uint32_t data_len)
+        uint32_t data_len, ContainerTHashTable *cht)
 {
-    FileRangeContainerFile *file_range_container = HttpRangeContainerUrlGet(key, keylen, f);
+    FileRangeContainerFile *file_range_container = HttpRangeContainerUrlGet(key, keylen, f, cht);
     if (file_range_container == NULL) {
         // probably reached memcap
         return NULL;
@@ -389,6 +413,24 @@ FileRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t
     /* we're done, so unlock. But since we have a reference in s->file_range keep use_cnt. */
     THashDataUnlock(file_range_container->hdata);
     return r;
+}
+
+FileRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+        const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
+        const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
+        uint32_t data_len)
+{
+    return FileRangeContainerOpenFile(key, keylen, f, crparsed, sbcfg, name, name_len, flags, data,
+            data_len, &ContainerUrlRangeList);
+}
+
+FileRangeContainerBlock *SmbRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+        const Flow *f, const FileContentRange *crparsed, const StreamingBufferConfig *sbcfg,
+        const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
+        uint32_t data_len)
+{
+    return FileRangeContainerOpenFile(key, keylen, f, crparsed, sbcfg, name, name_len, flags, data,
+            data_len, &ContainerSmbHt);
 }
 
 int FileRangeAppendData(FileRangeContainerBlock *c, const uint8_t *data, uint32_t len)
@@ -475,7 +517,7 @@ File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags)
         if (c->container->lastsize >= c->current->start + c->current->offset) {
             // if the range has become obsolete because we received the data already
             // we just free it
-            (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
+            (void)SC_ATOMIC_SUB(c->current->ht->memuse, c->current->buflen);
             SCFree(c->current->buffer);
             SCFree(c->current);
             c->current = NULL;
@@ -488,7 +530,7 @@ File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags)
                     HTTP_RANGES_RB_INSERT(&c->container->fragment_tree, c->current);
             if (res) {
                 SCLogDebug("duplicate range fragment");
-                (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
+                (void)SC_ATOMIC_SUB(c->current->ht->memuse, c->current->buflen);
                 SCFree(c->current->buffer);
                 SCFree(c->current);
                 c->current = NULL;
@@ -578,14 +620,15 @@ File *HttpRangeClose(FileRangeContainerBlock *c, uint16_t flags)
         }
         /* Remove this range from the tree */
         HTTP_RANGES_RB_REMOVE(&c->container->fragment_tree, range);
-        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
+        (void)SC_ATOMIC_SUB(range->ht->memuse, range->buflen);
         SCFree(range->buffer);
         SCFree(range);
     }
     // wait until we merged all the buffers to update known size
     c->container->lastsize = f->size;
 
-    if (f->size >= c->container->totalsize) {
+    // totalsize may be 0 for SMB when we do not know yet the total size
+    if (f->size >= c->container->totalsize && c->container->totalsize > 0) {
         // we finished the whole file
         HttpRangeFileClose(c->container, flags);
     } else {
@@ -612,7 +655,7 @@ void FileRangeFreeBlock(FileRangeContainerBlock *b)
         HttpRangeBlockDerefContainer(b);
 
         if (b->current) {
-            (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, b->current->buflen);
+            (void)SC_ATOMIC_SUB(b->current->ht->memuse, b->current->buflen);
             SCFree(b->current->buffer);
             SCFree(b->current);
         }
