@@ -1623,11 +1623,18 @@
             AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
-        AC_CHECK_LIB(bpf, bpf_set_link_xdp_fd,have_xdp="yes")
+        # Check for XDP specific function.
+        AC_CHECK_LIB(bpf,bpf_xdp_attach,have_xdp="yes")
         if test "$have_xdp" = "yes"; then
             AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
+        else
+            # Check for legacy XDP function.
+            AC_CHECK_LIB(bpf,bpf_set_link_xdp_fd,have_xdp="yes")
+            if test "$have_xdp" = "yes"; then
+                AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
+            fi
         fi
-        AC_CHECK_FUNCS(bpf_program__section_name)
+        AC_CHECK_FUNCS([bpf_program__section_name bpf_xdp_attach bpf_program__set_type])
     fi;
 
   # Check for DAG support.
