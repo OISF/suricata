@@ -108,24 +108,6 @@ DetectEngineState *DetectEngineStateAlloc(void);
  */
 void DetectEngineStateFree(DetectEngineState *state);
 
-void DetectEngineStateResetTxs(Flow *f);
-
-void DeStateRegisterTests(void);
-
-
-void DetectRunStoreStateTx(
-        const SigGroupHead *sgh,
-        Flow *f, void *tx, uint64_t tx_id,
-        const Signature *s,
-        uint32_t inspect_flags, uint8_t flow_flags,
-        const uint16_t file_no_match);
-
-void DetectRunStoreStateTxFileOnly(
-        const SigGroupHead *sgh,
-        Flow *f, void *tx, uint64_t tx_id,
-        const uint8_t flow_flags,
-        const uint16_t file_no_match);
-
 #endif /* __DETECT_ENGINE_STATE_H__ */
 
 /**
