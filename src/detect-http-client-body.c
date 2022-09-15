@@ -351,7 +351,7 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
  *  \param flags STREAM_* flags including direction
  */
 static void PrefilterTxHttpRequestBody(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 

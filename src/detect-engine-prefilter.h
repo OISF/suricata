@@ -44,10 +44,8 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
-                void *tx, const uint64_t idx, const uint8_t flags),
-        const AppProto alproto, const int tx_min_progress, void *pectx,
-        void (*FreeFunc)(void *pectx), const char *name);
+        PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const int tx_min_progress,
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterFrameFn PrefilterFrameFunc, AppProto alproto, uint8_t frame_type, void *pectx,
         void (*FreeFunc)(void *pectx), const char *name);

@@ -118,8 +118,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         PREFILTER_PROFILING_START(det_ctx);
-        engine->cb.PrefilterTx(det_ctx, engine->pectx,
-                p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
+        engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx->tx_ptr, tx->tx_id,
+                tx->tx_data_ptr, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
@@ -268,12 +268,8 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterTxFunc)(DetectEngineThreadCtx *det_ctx, const void *pectx,
-            Packet *p, Flow *f, void *tx,
-            const uint64_t idx, const uint8_t flags),
-        AppProto alproto, int tx_min_progress,
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name)
+        PrefilterTxFn PrefilterTxFunc, AppProto alproto, int tx_min_progress, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
         return -1;
@@ -718,10 +714,8 @@ typedef struct PrefilterMpmCtx {
  *  \param txv tx to inspect
  *  \param pectx inspection context
  */
-static void PrefilterMpm(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterMpm(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+        void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 

@@ -1306,6 +1306,10 @@ typedef struct MpmStore_ {
 typedef void (*PrefilterFrameFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
         const struct Frames *frames, const struct Frame *frame, const uint32_t idx);
 
+typedef struct AppLayerTxData AppLayerTxData;
+typedef void (*PrefilterTxFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+        void *tx, const uint64_t tx_id, const AppLayerTxData *tx_data, const uint8_t flags);
+
 typedef struct PrefilterEngineList_ {
     uint16_t id;
 
@@ -1322,9 +1326,7 @@ typedef struct PrefilterEngineList_ {
     void *pectx;
 
     void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
-    void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
-            Packet *p, Flow *f, void *tx,
-            const uint64_t idx, const uint8_t flags);
+    PrefilterTxFn PrefilterTx;
     PrefilterFrameFn PrefilterFrame;
 
     struct PrefilterEngineList_ *next;
@@ -1356,9 +1358,7 @@ typedef struct PrefilterEngine_ {
 
     union {
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
-        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
-                Packet *p, Flow *f, void *tx,
-                const uint64_t idx, const uint8_t flags);
+        PrefilterTxFn PrefilterTx;
         PrefilterFrameFn PrefilterFrame;
     } cb;
 
