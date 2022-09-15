@@ -753,6 +753,8 @@ After 'mpm-algo', you can enter one of the following algorithms: ac, hs and ac-k
 
 On `x86_64` hs (Hyperscan) should be used for best performance.
 
+.. _suricata-yaml-threading:
+
 Threading
 ---------
 
@@ -1904,6 +1906,8 @@ computers etc.)
 
 Packet Acquisition
 ------------------
+
+.. _dpdk-capture-module:
 
 Data Plane Development Kit (DPDK)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
