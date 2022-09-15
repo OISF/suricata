@@ -177,6 +177,8 @@ running but this also means that the blocking feature will not be present.
 Settings up IPS at Layer 2
 --------------------------
 
+.. _afp-ips-l2-mode:
+
 AF_PACKET IPS mode
 ~~~~~~~~~~~~~~~~~~
 
@@ -276,3 +278,69 @@ and eBPF load balancing looks like the following: ::
 
 The eBPF file ``/usr/libexec/suricata/ebpf/lb.bpf`` may not be present on disk.
 See :ref:`ebpf-xdp` for more information.
+
+DPDK IPS mode
+~~~~~~~~~~~~~~~~~~
+
+In the same way, as you would configure AF_PACKET IPS mode you can configure the DPDK capture module.
+Prior to starting with IPS (inline) setup, it is recommended to go over :ref:`dpdk-capture-module` manual page
+to understand the setup essentials.
+
+DPDK IPS mode, similarly to AF-Packet, uses two interfaces. Packets received on the first network interface
+(``0000:3b:00.1``) are transmitted over the second network interface (``0000:3b:00.0``) and similarly,
+packets received on the second interface (``0000:3b:00.0``) are transmitted
+on the first interface (``0000:3b:00.1``). Packets are not altered in any way in this mode.
+
+The following configuration snippet configures Suricata DPDK IPS mode between two NICs: ::
+
+    dpdk:
+      eal-params:
+        proc-type: primary
+
+      interfaces:
+      - interface: 0000:3b:00.1
+        threads: 4
+        promisc: true
+        multicast: true
+        checksum-checks: true
+        checksum-checks-offload: true
+        mempool-size: 262143
+        mempool-cache-size: 511
+        rx-descriptors: 1024
+        tx-descriptors: 1024
+        copy-mode: ips
+        copy-iface: 0000:3b:00.0
+        mtu: 3000
+
+      - interface: 0000:3b:00.0
+        threads: 4
+        promisc: true
+        multicast: true
+        checksum-checks: true
+        checksum-checks-offload: true
+        mempool-size: 262143
+        mempool-cache-size: 511
+        rx-descriptors: 1024
+        tx-descriptors: 1024
+        copy-mode: ips
+        copy-iface: 0000:3b:00.1
+        mtu: 3000
+
+DPDK capture module can be configured in two inline modes:
+
+- TAP mode - creates a bridge between two NIC ports but does not drop packets
+- IPS mode - the same as TAP but packets can be dropped based on rules
+
+When using multiple interfaces, it is crucial to specify the number of threads in each interface.
+Additionally, it is required that the paired interfaces have the same amount of threads configured.
+DPDK capture module also requires having CPU affinity set in the configuration file.
+The following snippet is from the ``threading`` configuration section  ::
+
+    threading:
+      set-cpu-affinity: yes
+      cpu-affinity:
+        - management-cpu-set:
+            cpu: [ 0 ]
+        - worker-cpu-set:
+            cpu: [ 2,4,6,8,10,12,14,16 ]
+
