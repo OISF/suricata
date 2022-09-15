@@ -27,6 +27,10 @@ use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
 
+use std::os::raw::c_uchar;
+
+use crate::filecontainer::FileContainer;
+
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL:      u16 = 0;
 pub const SMB2_COMMAND_SESSION_SETUP:           u16 = 1;
 pub const SMB2_COMMAND_SESSION_LOGOFF:          u16 = 2;
@@ -264,7 +268,20 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+// Defined in app-layer-smb.h
+extern "C" {
+    pub fn SmbMultiSetFileSize(
+        f: *const Flow, guid: *const c_uchar, eof: u64, fname: *const c_uchar, namelen: u16,
+        sbcfg: *const StreamingBufferConfig,
+    );
+    pub fn SmbMultiStartFileChunk(
+        f: *const Flow, guid: *const c_uchar, flags: u16, fc: *mut FileContainer,
+        sbcfg: *const StreamingBufferConfig, added: &mut bool, offset: u64, rlen: u32,
+        data: *const c_uchar, data_len: u32,
+    ) -> *mut FileRangeContainerBlock;
+}
+
+pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2Record<'b>)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
@@ -298,6 +315,17 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToServer) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                        if tdf.multi {
+                            if let Some(sfcm) = unsafe {SURICATA_SMB_FILE_CONFIG} {
+                                let mut added = false;
+                                unsafe {
+                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, wr.wr_len, wr.data.as_ptr(), wr.data.len() as u32);
+                                }
+                                if added {
+                                    tx.tx_data.incr_files_opened();
+                                }
+                            }
+                        }
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
@@ -360,11 +388,35 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
                     state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
                 } else {
+                    let mut multistart = wr.wr_offset > 0;
+                    if wr.wr_offset == 0 {
+                        if let Some(eof) = state.guid2eof_map.get(&file_guid) {
+                            if let Some(sfcm) = unsafe {SURICATA_SMB_FILE_CONFIG} {
+                                unsafe {
+                                    SmbMultiSetFileSize(flow, file_guid.as_ptr(), *eof, file_name.as_ptr(), file_name.len() as u16, sfcm.files_sbcfg);
+                                }
+                            multistart = true;
+                            }
+                        }
+                    }
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
                     tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                             r.session_id, r.tree_id, 0); // TODO move into new_file_tx
+
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                        if multistart {
+                            if let Some(sfcm) = unsafe {SURICATA_SMB_FILE_CONFIG} {
+                                let mut added = false;
+                                unsafe {
+                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, wr.wr_len, wr.data.as_ptr(), wr.data.len() as u32);
+                                }
+                                tdf.multi = true;
+                                if added {
+                                    tx.tx_data.incr_files_opened();
+                                }
+                            }
+                        }
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
@@ -396,7 +448,9 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+const SMB_GUID_MAP_MAX_LEN : usize = 256;
+
+pub fn smb2_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2Record<'b>)
 {
     SCLogDebug!("SMBv2 request record, command {} tree {} session {}",
             &smb2_command_string(r.command), r.tree_id, r.session_id);
@@ -448,6 +502,16 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
                             true
+                        }
+                        Smb2SetInfoRequestData::EOF(ref eof) => {
+                            if let Some(_fname) = state.guid2name_map.get(rd.guid) {
+                                // gets removed on file close
+                                //TODOsmbmulti5 by the way guid2name_map never removed and not limited !
+                                if state.guid2eof_map.len() < SMB_GUID_MAP_MAX_LEN {
+                                    state.guid2eof_map.insert(rd.guid.to_vec(), eof.eof);
+                                }
+                            }
+                            false
                         }
                         _ => false,
                     }
@@ -580,12 +644,13 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, r);
+            smb2_write_request_record(flow, state, r);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
                 Ok((_, cd)) => {
+                    state.guid2eof_map.remove(&cd.guid.to_vec());
                     let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToServer) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {

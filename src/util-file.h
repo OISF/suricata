@@ -193,6 +193,15 @@ void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
 int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
 
 /**
+ *  \brief Sets the name for a file.
+ *
+ *  \param ffc the file
+ *  \param filename the name
+ *  \param name_len the name's length
+ */
+void FileSetName(File *, const uint8_t *filename, uint16_t name_len);
+
+/**
  *  \brief Tag a file for storing
  *
  *  \param ff The file to store
