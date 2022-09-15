@@ -1906,6 +1906,8 @@ computers etc.)
 Packet Acquisition
 ------------------
 
+.. _dpdk-capture-module:
+
 Data Plane Development Kit (DPDK)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
