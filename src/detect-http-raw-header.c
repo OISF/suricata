@@ -240,10 +240,8 @@ typedef struct PrefilterMpmHttpHeaderRawCtx {
  *  \param txv tx to inspect
  *  \param pectx inspection context
  */
-static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
@@ -270,10 +268,8 @@ static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static void PrefilterMpmHttpTrailerRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterMpmHttpTrailerRaw(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
@@ -285,7 +281,7 @@ static void PrefilterMpmHttpTrailerRaw(DetectEngineThreadCtx *det_ctx,
             ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers))) {
         SCReturn;
     }
-    PrefilterMpmHttpHeaderRaw(det_ctx, pectx, p, f, txv, idx, flags);
+    PrefilterMpmHttpHeaderRaw(det_ctx, pectx, p, f, txv, idx, _txd, flags);
     SCReturn;
 }
 

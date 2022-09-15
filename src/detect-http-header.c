@@ -238,10 +238,8 @@ typedef struct PrefilterMpmHttpHeaderCtx {
  *  \param txv tx to inspect
  *  \param pectx inspection context
  */
-static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
@@ -274,10 +272,8 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
@@ -289,7 +285,7 @@ static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx,
             ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers))) {
         SCReturn;
     }
-    PrefilterMpmHttpHeader(det_ctx, pectx, p, f, txv, idx, flags);
+    PrefilterMpmHttpHeader(det_ctx, pectx, p, f, txv, idx, _txd, flags);
     SCReturn;
 }
 
