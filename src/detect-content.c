@@ -151,7 +151,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                     else if (str[i] != ',') {
                         SCLogError("Invalid hex code in "
                                    "content - %s, hex %c. Invalidating signature.",
-                                str, str[i]);
+                                contentstr, str[i]);
                         goto error;
                     }
                 } else if (escape) {
