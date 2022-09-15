@@ -373,9 +373,19 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 #endif
         if (!strcmp(title, section)) {
             if (config->flags & EBPF_SOCKET_FILTER) {
+#ifdef HAVE_BPF_PROGRAM__SET_TYPE
+                bpf_program__set_type(bpfprog, BPF_PROG_TYPE_SOCKET_FILTER);
+#else
+                /* Fall back to legacy API */
                 bpf_program__set_socket_filter(bpfprog);
+#endif
             } else {
+#ifdef HAVE_BPF_PROGRAM__SET_TYPE
+                bpf_program__set_type(bpfprog, BPF_PROG_TYPE_XDP);
+#else
+                /* Fall back to legacy API */
                 bpf_program__set_xdp(bpfprog);
+#endif
             }
             found = true;
             break;
@@ -489,7 +499,12 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
                 "Unknown interface '%s'", iface);
         return -1;
     }
+#ifdef HAVE_BPF_XDP_ATTACH
+    int err = bpf_xdp_attach(ifindex, fd, flags, NULL);
+#else
+    /* Fall back to legacy API */
     int err = bpf_set_link_xdp_fd(ifindex, fd, flags);
+#endif
     if (err != 0) {
         char buf[129];
         libbpf_strerror(err, buf, sizeof(buf));
