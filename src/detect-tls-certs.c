@@ -198,9 +198,8 @@ static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngine
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-static void PrefilterTxTlsCerts(DetectEngineThreadCtx *det_ctx,
-        const void *pectx, Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterTxTlsCerts(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
