@@ -246,25 +246,6 @@ void DetectRunStoreStateTx(
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
-/** \brief update flow's inspection id's
- *
- *  \param f unlocked flow
- *  \param flags direction and disruption flags
- *  \param tag_txs_as_inspected if true all 'complete' txs will be marked
- *                              'inspected'
- *
- *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags,
-        const bool tag_txs_as_inspected)
-{
-    if (f->alparser && f->alstate) {
-        AppLayerParserSetTransactionInspectId(f, f->alparser,
-                                              f->alstate, flags,
-                                              tag_txs_as_inspected);
-    }
-    return;
-}
-
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
