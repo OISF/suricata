@@ -593,6 +593,14 @@ impl SMBTransaction {
     }
 
     pub fn free(&mut self) {
+        if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
+            if tdf.multi {
+                // there can be a multi file + a regular one logged
+                debug_validate_bug_on!(self.tx_data.files_opened > 2);
+                debug_validate_bug_on!(self.tx_data.files_logged > 2);
+                return;
+            }
+        }
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
     }
@@ -756,6 +764,8 @@ pub struct SMBState<> {
     pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
     /// map guid to filename
     pub guid2name_map: HashMap<Vec<u8>, Vec<u8>>,
+    /// map guid to file size
+    pub guid2eof_map: HashMap<Vec<u8>, u64>,
     /// map ssn key to read offset
     pub ssn2vecoffset_map: HashMap<SMBCommonHdr, SMBFileGUIDOffset>,
 
@@ -828,6 +838,7 @@ impl SMBState {
         Self {
             ssn2vec_map:HashMap::new(),
             guid2name_map:HashMap::new(),
+            guid2eof_map:HashMap::new(),
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
@@ -1388,7 +1399,7 @@ impl SMBState {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
                                         if smb_record.command == SMB2_COMMAND_WRITE {
-                                            smb2_write_request_record(self, smb_record);
+                                            smb2_write_request_record(flow, self, smb_record);
 
                                             self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                             self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
@@ -1428,7 +1439,7 @@ impl SMBState {
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(Direction::ToServer, cur_i, 0);
+        let consumed = self.filetracker_update(Direction::ToServer, cur_i, 0, stream_slice.flags() & STREAM_EOF != 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1520,7 +1531,7 @@ impl SMBState {
                                                 self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
                                                 if smb_record.is_request() {
-                                                    smb2_request_record(self, smb_record);
+                                                    smb2_request_record(flow, self, smb_record);
                                                 } else {
                                                     // If we recevied a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.
@@ -1760,7 +1771,7 @@ impl SMBState {
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(Direction::ToClient, cur_i, 0);
+        let consumed = self.filetracker_update(Direction::ToClient, cur_i, 0, stream_slice.flags() & STREAM_EOF != 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1943,7 +1954,7 @@ impl SMBState {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
-            let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
+            let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size, false);
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
@@ -1964,7 +1975,7 @@ impl SMBState {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
-            let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
+            let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size, false);
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
