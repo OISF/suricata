@@ -134,7 +134,7 @@ typedef struct PrefilterMpmQuicHash {
  *  \param pectx inspection context
  */
 static void PrefilterTxQuicHash(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 

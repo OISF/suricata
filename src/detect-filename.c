@@ -426,10 +426,8 @@ typedef struct PrefilterMpmFilename {
  *  \param txv tx to inspect
  *  \param pectx inspection context
  */
-static void PrefilterTxFilename(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static void PrefilterTxFilename(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
 {
     SCEnter();
 
