@@ -39,6 +39,8 @@ are the options.
 We will be using the above signature as an example throughout
 this section, highlighting the different parts of the signature.
 
+.. _actions:
+
 Action
 ------
 .. container:: example-rule
