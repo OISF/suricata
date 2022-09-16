@@ -413,6 +413,10 @@ typedef unsigned char u_char;
         (b) = t;                        \
     } while (0)
 
+#include <ctype.h>
+#define u8_tolower(c) ((uint8_t)tolower((uint8_t)(c)))
+#define u8_toupper(c) ((uint8_t)toupper((uint8_t)(c)))
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_SETUP,
     PROF_DETECT_GETSGH,
