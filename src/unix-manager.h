@@ -24,6 +24,8 @@
 #ifndef UNIX_MANAGER_H
 #define UNIX_MANAGER_H
 
+#include "threads.h"
+
 #define UNIX_CMD_TAKE_ARGS 1
 
 extern SCCtrlCondT unix_manager_ctrl_cond;

@@ -21,10 +21,9 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-
 #include "suricata-common.h"
-#include "suricata.h"
 #include "util-bpf.h"
+#include "threads.h"
 
 #if !defined __OpenBSD__
 

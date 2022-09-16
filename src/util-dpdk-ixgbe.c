@@ -31,6 +31,7 @@
  */
 
 #include "util-dpdk-ixgbe.h"
+#include "util-dpdk.h"
 
 #ifdef HAVE_DPDK
 

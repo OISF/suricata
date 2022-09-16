@@ -385,6 +385,8 @@ static bool PrefilterFragBitsIsPrefilterable(const Signature *s)
  */
 
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
+
 /**
  * \test FragBitsTestParse01 is a test for a  valid fragbits value
  *

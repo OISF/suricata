@@ -32,19 +32,11 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
-#include "decode.h"
 #include "decode-ipv4.h"
-#include "decode-events.h"
+#include "decode.h"
 #include "defrag.h"
-#include "pkt-var.h"
-#include "host.h"
-
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-optimize.h"
+#include "flow.h"
 #include "util-print.h"
-#include "util-profiling.h"
 
 /* Generic validation
  *
@@ -613,6 +605,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "packet.h"
 
 /** \test IPV4 with no options. */
 static int DecodeIPV4OptionsNONETest01(void)

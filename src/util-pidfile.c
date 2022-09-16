@@ -28,6 +28,7 @@
 
 #include "suricata-common.h"
 #include "util-pidfile.h"
+#include "util-debug.h"
 
 /**
  * \brief Write a pid file (used at the startup)

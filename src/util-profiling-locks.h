@@ -26,15 +26,6 @@
 
 #ifdef PROFILING
 
-#define PROFILING_MAX_LOCKS 64
-
-enum {
-    LOCK_MUTEX,
-    LOCK_SPIN,
-    LOCK_RWW,   /**< rwlock, writer */
-    LOCK_RWR,   /**< rwlock, reader */
-};
-
 void SCProfilingAddPacketLocks(void *);
 
 int LockRecordInitHash(void);

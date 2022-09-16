@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "util-pages.h"
+#include "util-debug.h"
 
 #ifndef HAVE_PAGESUPPORTSRWX_AS_MACRO
 

@@ -25,12 +25,11 @@
 #include "suricata-common.h"
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
+#include "conf.h"
+#include "runmodes.h"
 #include "util-cpu.h"
 #include "util-byte.h"
-#include "conf.h"
-#include "threads.h"
-#include "queue.h"
-#include "runmodes.h"
+#include "util-debug.h"
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {

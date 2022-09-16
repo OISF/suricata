@@ -27,6 +27,7 @@
 #include "util-log-redis.h"
 #include "util-logopenfile.h"
 #include "util-byte.h"
+#include "util-debug.h"
 
 #ifdef HAVE_LIBHIREDIS
 

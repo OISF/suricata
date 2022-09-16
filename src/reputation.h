@@ -27,6 +27,7 @@
 #define __REPUTATION_H__
 
 #include "host.h"
+#include "util-radix-tree.h"
 
 #define SREP_MAX_CATS 60
 #define SREP_MAX_VAL 127
@@ -40,6 +41,8 @@ typedef struct SReputation_ {
     uint32_t version;
     uint8_t rep[SREP_MAX_CATS];
 } SReputation;
+
+#include "detect.h"
 
 void SRepFreeHostData(Host *h);
 uint8_t SRepCatGetByShortname(char *shortname);

@@ -23,8 +23,9 @@
  */
 
 #include "suricata-common.h"
+#include "util-ioctl.h"
 #include "conf.h"
-#include "util-device.h"
+#include "decode.h"
 #include "decode-sll.h"
 
 #ifdef HAVE_SYS_IOCTL_H
@@ -48,8 +49,6 @@
 #ifdef OS_WIN32
 #include "win32-syscall.h"
 #endif
-
-#include "util-ioctl.h"
 
 /**
  * \brief output a majorant of hardware header length

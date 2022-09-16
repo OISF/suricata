@@ -23,6 +23,7 @@
 #include "util-dpdk.h"
 
 #include "device-storage.h"
+#include "util-debug.h"
 
 #define MAX_DEVNAME 10
 

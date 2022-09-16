@@ -39,8 +39,8 @@
 #include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-hash-lookup3.h"
-#include "queue.h"
 #include "util-rohash.h"
+#include "util-debug.h"
 
 /** item_size data beyond this header */
 typedef struct ROHashTableItem_ {

@@ -26,6 +26,7 @@
 #include "debug.h"
 #include "util-print.h"
 
+#include "flow.h"
 #include "stream-tcp.h"
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"

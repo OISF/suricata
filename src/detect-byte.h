@@ -23,6 +23,8 @@
 
 #ifndef __DETECT_BYTE_H__
 #define __DETECT_BYTE_H__
+#include "detect.h"
+
 typedef uint8_t DetectByteIndexType;
 
 bool DetectByteRetrieveSMVar(const char *, const Signature *, DetectByteIndexType *);

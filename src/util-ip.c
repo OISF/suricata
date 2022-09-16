@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "util-ip.h"
 #include "util-byte.h"
+#include "util-debug.h"
 
 /** \brief determine if a string is a valid ipv4 address
  *  \retval bool is addr valid?
