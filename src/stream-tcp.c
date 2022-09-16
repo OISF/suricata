@@ -681,7 +681,7 @@ void StreamTcpFreeConfig(bool quiet)
 }
 
 /** \internal
- *  \brief The function is used to to fetch a TCP session from the
+ *  \brief The function is used to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
  *
  *  \param p packet starting the new TCP session.
