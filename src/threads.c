@@ -26,8 +26,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "debug.h"
 #include "util-unittest.h"
 #endif
 #include "threads.h"

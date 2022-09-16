@@ -34,12 +34,8 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "conf.h"
 #include "util-time.h"
-#include "util-debug.h"
-#include "runmodes.h"
 #endif
 #include "util-unittest.h"
 

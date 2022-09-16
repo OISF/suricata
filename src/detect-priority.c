@@ -27,11 +27,7 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect.h"
 #endif
 #include "detect-parse.h"
 #include "detect-priority.h"

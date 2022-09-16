@@ -24,6 +24,9 @@
  */
 
 #include "suricata-common.h"
+#ifdef PROFILING
+#include "util-cpu.h"
+#endif
 
 #include "util-memcmp.h"
 #include "util-unittest.h"
@@ -178,8 +181,6 @@ static int MemcmpTest13 (void)
 
     return 1;
 }
-
-#include "util-cpu.h"
 
 #define TEST_RUNS 1000000
 

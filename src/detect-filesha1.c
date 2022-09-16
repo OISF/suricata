@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
 #endif
 

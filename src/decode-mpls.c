@@ -26,7 +26,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "decode.h"
 #endif
 
 #include "util-validate.h"

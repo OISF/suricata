@@ -29,22 +29,10 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-profiling.h"
-#include "host.h"
 #include "pkt-var.h"
-#include "util-debug.h"
-#include "flow-var.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
 #include "app-layer.h"
-#include "detect-byte-extract.h"
-#include "detect-uricontent.h"
-#include "detect-content.h"
-#include "detect.h"
-#include "decode.h"
-#include "runmodes.h"
 #endif
 
 extern int run_mode;

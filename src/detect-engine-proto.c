@@ -27,18 +27,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "util-cidr.h"
-#include "detect-engine-state.h"
-#include "detect-engine-siggroup.h"
-#include "flow-var.h"
-#include "flow-util.h"
-#include "app-layer-parser.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 /**
@@ -145,7 +134,6 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
 #ifdef UNITTESTS
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-engine-mpm.h"
 /**
  * \brief this function is used to initialize the detection engine context and
  *        setup the signature with passed values.

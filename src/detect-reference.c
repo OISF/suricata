@@ -26,17 +26,8 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "stream-tcp.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "decode.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "suricata.h"
 #endif
 #include "detect-parse.h"
 

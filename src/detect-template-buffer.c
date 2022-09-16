@@ -32,8 +32,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "detect.h"
-#include "conf.h"
 #endif
 #include "detect-parse.h"
 #include "detect-engine.h"

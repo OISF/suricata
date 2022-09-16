@@ -24,7 +24,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "suricata.h"
 #endif
 #include "util-atomic.h"
 

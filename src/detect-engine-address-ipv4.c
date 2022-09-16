@@ -25,15 +25,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-error.h"
-#include "detect-engine-port.h"
-#include "detect-engine-siggroup.h"
 #include "util-unittest.h"
-#include "util-cidr.h"
-#include "flow-var.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 #include "detect-engine-address.h"

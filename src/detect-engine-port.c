@@ -28,22 +28,11 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-var.h"
 #include "util-profiling.h"
-#include "host.h"
 #include "pkt-var.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "conf.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-cidr.h"
-#include "flow-var.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 #include "util-rule-vars.h"

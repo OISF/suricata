@@ -27,11 +27,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "conf-yaml-loader.h"
-#include "conf.h"
-#include "stream-tcp-private.h"
-#include "util-radix-tree.h"
-#include "util-debug.h"
-#include "util-error.h"
 #endif
 #include "util-host-os-info.h"
 #include "util-ip.h"

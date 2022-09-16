@@ -31,11 +31,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-var.h"
-#include "detect.h"
-#include "ippair.h"
-#include "threads.h"
 #endif
 #include "ippair-bit.h"
 #include "ippair-storage.h"

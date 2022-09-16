@@ -44,13 +44,14 @@
  */
 
 #include "suricata-common.h"
+#ifdef ENABLE_SEARCH_STATS
+#include "util-spm-bs.h"
+#include "conf.h"
+#endif
 #include "suricata.h"
 #include "util-unittest.h"
 
-#include "conf.h"
-
 #include "util-spm.h"
-#include "util-spm-bs.h"
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
 #include "util-spm-hs.h"

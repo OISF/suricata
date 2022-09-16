@@ -20,7 +20,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "util-exception-policy.h"
 #include "stream-tcp-reassemble.h"
 
@@ -127,6 +126,7 @@ int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
 }
 
 #else
+#include "util-misc.h"
 
 /* exception policy simulation (eps) handling */
 

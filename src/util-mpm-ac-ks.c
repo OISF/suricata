@@ -66,19 +66,21 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-
+#ifdef SC_AC_TILE_COUNTERS
+#include "util-memcpy.h"
+#include "util-debug.h"
+#include "conf.h"
 #include "detect.h"
+#include "suricata.h"
+#endif
+
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
 
-#include "conf.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
-#include "util-memcpy.h"
 #include "util-validate.h"
 #include "util-mpm-ac-ks.h"
 

@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "rust.h"
 #include "util-unittest.h"
 #endif
 

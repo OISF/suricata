@@ -27,18 +27,8 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "app-layer.h"
 #include "stream-tcp.h"
-#include "flow-var.h"
 #include "flow-util.h"
-#include "flow.h"
-#include "detect-content.h"
-#include "detect-engine-mpm.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
-#include "threads.h"
 #endif
 
 #include "detect-engine.h"

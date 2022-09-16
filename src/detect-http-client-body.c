@@ -32,21 +32,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "app-layer.h"
-#include "util-spm.h"
-#include "util-unittest-helper.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-content.h"
-#include "detect-engine-state.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 
 #include "detect-engine.h"

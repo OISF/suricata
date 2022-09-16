@@ -32,13 +32,9 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "host.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "decode-events.h"
-#include "decode.h"
 #endif
 #include "decode-raw.h"
 
@@ -79,8 +75,6 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "flow.h"
-#include "flow-util.h"
 
 /** DecodeRawtest01
  *  \brief Valid Raw packet

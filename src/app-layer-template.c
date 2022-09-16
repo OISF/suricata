@@ -35,9 +35,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 #include "suricata.h"
 #include "app-layer.h"

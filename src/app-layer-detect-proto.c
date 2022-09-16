@@ -23,49 +23,50 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
+#ifdef DEBUG
+#include "runmodes.h"
+#include "util-debug.h"
+#include "util-spm.h"
+#include "conf.h"
+#include "app-layer-protos.h"
+#include "app-layer.h"
+#include "stream.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp-private.h"
+#include "flow.h"
+#include "util-pool.h"
+#include "util-print.h"
+#include "detect-engine-state.h"
 #include "detect.h"
+#include "tm-threads.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "decode.h"
+#include "debug.h"
+#endif
+
 #include "detect-engine-port.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-content.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 
-#include "util-print.h"
-#include "util-pool.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
-#include "flow.h"
 #include "flow-util.h"
 #include "flow-private.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
-#include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-expectation.h"
 
-#include "conf.h"
 #include "util-memcmp.h"
-#include "util-spm.h"
-#include "util-debug.h"
 #include "util-validate.h"
-
-#include "runmodes.h"
 
 typedef struct AppLayerProtoDetectProbingParserElement_ {
     AppProto alproto;

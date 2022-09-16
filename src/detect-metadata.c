@@ -30,7 +30,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "detect-parse.h"
-#include "detect.h"
 #endif
 #include "detect-engine.h"
 #include "detect-metadata.h"

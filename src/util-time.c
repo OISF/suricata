@@ -51,6 +51,9 @@
  */
 
 #ifdef OS_WIN32
+#include "util-debug.h"
+#include "threads.h"
+#include "detect.h"
 /* for MinGW we need to set _POSIX_C_SOURCE before including
  * sys/time.h. */
 #ifndef _POSIX_C_SOURCE
@@ -59,11 +62,11 @@
 #endif
 
 #include "suricata-common.h"
-#include "suricata.h"
+#ifdef OS_WIN32
 #include "detect.h"
-#include "threads.h"
+#endif
+#include "suricata.h"
 #include "tm-threads.h"
-#include "util-debug.h"
 #include "util-time.h"
 
 #ifdef UNITTESTS

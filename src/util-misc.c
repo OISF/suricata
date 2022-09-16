@@ -24,9 +24,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-byte.h"
-#include "suricata.h"
 #endif
 #include "util-misc.h"
 

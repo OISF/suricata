@@ -29,7 +29,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "flow-util.h"
-#include "flow-hash.h"
 #endif
 #include "flow-storage.h"
 

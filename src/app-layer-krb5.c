@@ -26,14 +26,9 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 
 #include "app-layer-krb5.h"
-#include "rust.h"
 
 void RegisterKRB5Parsers(void)
 {

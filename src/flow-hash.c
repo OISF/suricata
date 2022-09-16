@@ -25,31 +25,31 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-
-#include "decode.h"
-#include "detect-engine-state.h"
-
+#ifdef DEBUG
+#include "util-exception-policy.h"
+#include "output.h"
+#include "conf.h"
+#include "util-debug.h"
+#include "util-time.h"
+#include "app-layer-parser.h"
+#include "flow-timeout.h"
 #include "flow.h"
+#include "detect-engine-state.h"
+#include "decode.h"
+#include "threads.h"
+#endif
+
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
 #include "flow-manager.h"
 #include "flow-storage.h"
-#include "flow-timeout.h"
 #include "flow-spare-pool.h"
-#include "app-layer-parser.h"
-
-#include "util-time.h"
-#include "util-debug.h"
 
 #include "util-hash-lookup3.h"
 
-#include "conf.h"
-#include "output.h"
 #include "output-flow.h"
 #include "stream-tcp.h"
-#include "util-exception-policy.h"
 
 extern TcpStreamCnf stream_config;
 

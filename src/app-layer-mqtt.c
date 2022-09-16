@@ -23,11 +23,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "rust.h"
-#include "app-layer-detect-proto.h"
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 
 #include "util-misc.h"

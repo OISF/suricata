@@ -32,11 +32,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "flow.h"
-#include "decode-events.h"
-#include "decode.h"
 #endif
 #include "decode-ppp.h"
 

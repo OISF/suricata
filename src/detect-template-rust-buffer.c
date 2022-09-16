@@ -32,10 +32,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "rust.h"
 #include "detect-engine-build.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #include "detect-parse.h"
 #include "detect-engine.h"

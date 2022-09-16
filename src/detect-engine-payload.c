@@ -24,31 +24,30 @@
  */
 
 #include "suricata-common.h"
+#ifdef DEBUG
+#include "util-mpm-ac.h"
+#include "util-validate.h"
+#include "util-print.h"
+#include "util-debug.h"
+#include "stream.h"
+#include "detect-engine-state.h"
+#include "detect.h"
+#include "decode.h"
 #include "suricata.h"
+#endif
 #include "rust.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-state.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-build.h"
 
-#include "stream.h"
 #include "stream-tcp.h"
-
-#include "util-debug.h"
-#include "util-print.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-validate.h"
-
-#include "util-mpm-ac.h"
 
 struct StreamMpmData {
     DetectEngineThreadCtx *det_ctx;

@@ -24,12 +24,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-validate.h"
-#include "detect-fast-pattern.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
-#include "detect-parse.h"
-#include "detect.h"
 #endif
 
 #include "detect-engine.h"

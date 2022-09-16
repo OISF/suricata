@@ -25,9 +25,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-memrchr.h"
-#include "util-misc.h"
-#include "conf.h"
 #endif
 
 #include "app-layer-parser.h"

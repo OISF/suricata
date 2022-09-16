@@ -31,9 +31,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-pool.h"
 #endif
 #include "util-pool-thread.h"
 

@@ -26,11 +26,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-byte.h"
-#include "util-debug.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect.h"
-#include "stream-tcp.h"
 #endif
 
 #include "detect-parse.h"

@@ -25,11 +25,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-misc.h"
-#include "detect-content.h"
-#include "detect.h"
-#include "util-unittest-helper.h"
-#include "util-unittest.h"
 #endif
 
 #include "detect-parse.h"

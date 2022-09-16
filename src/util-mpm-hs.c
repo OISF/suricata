@@ -26,17 +26,11 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-hash.h"
-#include "util-memcpy.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "conf.h"
 #include "detect-engine-build.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect.h"
-#include "suricata.h"
 #endif
 
 #include "util-memcmp.h"

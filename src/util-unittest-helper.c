@@ -26,22 +26,15 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-spm-bs.h"
 #include "util-unittest.h"
-#include "util-error.h"
 #include "util-time.h"
-#include "util-debug.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp.h"
 #include "detect-engine-build.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect.h"
 #include "flow-spare-pool.h"
 #include "flow-util.h"
-#include "flow-private.h"
-#include "decode.h"
 #endif
 
 #include "util-unittest-helper.h"

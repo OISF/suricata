@@ -29,7 +29,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "flow.h"
 #endif
 #include "decode-esp.h"
 

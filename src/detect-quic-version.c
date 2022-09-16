@@ -23,11 +23,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "detect-engine-uint.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #include "detect-parse.h"
 #include "detect-engine.h"

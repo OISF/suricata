@@ -26,16 +26,10 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 
 #include "app-layer-nfs-udp.h"
 #include "util-enum.h"
-
-#include "rust.h"
 
 /* Enum of app-layer events for an echo protocol. Normally you might
  * have events for errors in parsing data, like unexpected data being

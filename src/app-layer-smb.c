@@ -17,15 +17,10 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-misc.h"
 #include "util-unittest.h"
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
-#include "app-layer-protos.h"
-#include "suricata.h"
 #endif
 
-#include "rust.h"
 #include "app-layer-smb.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;

@@ -26,9 +26,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-path.h"
-#include "conf.h"
 #endif
 #include "conf-yaml-loader.h"
 #include <yaml.h>

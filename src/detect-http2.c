@@ -24,8 +24,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "rust.h"
-#include "detect.h"
 #endif
 
 #include "detect-parse.h"

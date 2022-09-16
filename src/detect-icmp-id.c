@@ -25,13 +25,9 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 
 #include "detect-parse.h"
@@ -327,7 +323,6 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value

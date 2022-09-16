@@ -23,15 +23,8 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "detect-engine-sigorder.h"
-#include "detect-engine.h"
-#include "detect.h"
 #include "conf-yaml-loader.h"
-#include "conf.h"
-#include "action-globals.h"
 #endif
 
 #include "util-action.h"

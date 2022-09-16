@@ -27,17 +27,8 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
-#include "detect-bytejump.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-var.h"
-#include "detect-byte-extract.h"
-#include "detect-uricontent.h"
-#include "app-layer.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 #include "detect-content.h"

@@ -26,22 +26,11 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "threads.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "app-layer-parser.h"
-#include "app-layer.h"
 #include "detect-engine-build.h"
-#include "detect-content.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -262,8 +251,6 @@ static int DetectFtpbounceTestSetup01(void)
     SigFree(de_ctx, s);
     PASS;
 }
-
-#include "stream-tcp-reassemble.h"
 
 /**
  * \test Check the ftpbounce match, send a get request in three chunks

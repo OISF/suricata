@@ -25,21 +25,9 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "flow-bit.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "app-layer-parser.h"
-#include "detect-engine-sigorder.h"
-#include "util-spm.h"
-#include "flow-util.h"
-#include "flow.h"
-#include "threads.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 #include "detect-hostbits.h"
 

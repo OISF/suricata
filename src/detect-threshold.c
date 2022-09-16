@@ -34,19 +34,10 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
 #include "detect-engine-threshold.h"
-#include "stream-tcp.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "detect.h"
-#include "host-storage.h"
-#include "host.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 
 #include "detect-parse.h"
@@ -339,9 +330,7 @@ error:
  */
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options

@@ -23,26 +23,17 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "detect-dce-iface.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "flow-util.h"
-#include "app-layer.h"
 #include "stream-tcp.h"
 #include "app-layer-parser.h"
 #include "detect-engine-build.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-content.h"
-#include "detect-byte-extract.h"
 #include "detect-bytejump.h"
 #include "detect-bytetest.h"
 #include "detect-isdataat.h"
 #include "detect-pcre.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 
 #include "detect-engine.h"

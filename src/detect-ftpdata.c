@@ -25,8 +25,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "app-layer-ftp.h"
-#include "detect-engine-state.h"
 #include "util-unittest.h"
 #endif
 

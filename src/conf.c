@@ -38,8 +38,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-path.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #endif
 #include "conf.h"

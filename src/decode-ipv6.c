@@ -31,19 +31,21 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
-#include "decode.h"
-#include "decode-ipv6.h"
-#include "decode-icmpv6.h"
+#ifdef DEBUG
+#include "host.h"
+#include "util-print.h"
+#include "util-debug.h"
 #include "decode-events.h"
+#include "decode-icmpv6.h"
+#include "decode.h"
+#include "packet-queue.h"
+#endif
+#include "decode-ipv6.h"
 #include "defrag.h"
 #include "pkt-var.h"
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-unittest.h"
 #include "util-profiling.h"
 #include "util-validate.h"
-#include "host.h"
 
 /**
  * \brief Function to decode IPv4 in IPv6 packets

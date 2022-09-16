@@ -23,14 +23,8 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-byte.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "flow.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 #include "rust.h"
 

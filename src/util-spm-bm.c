@@ -31,7 +31,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "util-spm-bm.h"
 #include "util-memcpy.h"

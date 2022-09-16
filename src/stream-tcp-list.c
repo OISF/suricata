@@ -22,14 +22,16 @@
  */
 
 #include "suricata-common.h"
-#include "rust.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp.h"
+#ifdef DEBUG
+#include "util-print.h"
+#include "util-streaming-buffer.h"
 #include "stream-tcp-reassemble.h"
+#include "stream-tcp-private.h"
+#include "rust.h"
+#endif
+#include "stream-tcp.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-list.h"
-#include "util-streaming-buffer.h"
-#include "util-print.h"
 #include "util-validate.h"
 #include "app-layer-frames.h"
 

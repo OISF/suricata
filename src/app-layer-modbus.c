@@ -37,7 +37,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "detect-engine-build.h"
-#include "util-debug.h"
 #endif
 
 #include "app-layer-parser.h"
@@ -60,7 +59,6 @@ void RegisterModbusParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 
@@ -70,9 +68,6 @@ void RegisterModbusParsers(void)
 #include "util-unittest-helper.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-
-#include "rust.h"
 
 /* Modbus default stream reassembly depth */
 #define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0

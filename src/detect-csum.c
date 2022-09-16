@@ -27,13 +27,8 @@
 #ifdef UNITTESTS
 #include "detect-engine-build.h"
 #include "util-profiling.h"
-#include "host.h"
 #include "pkt-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 
 #include "detect-parse.h"

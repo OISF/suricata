@@ -33,23 +33,9 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "app-layer-ssh.h"
-#include "app-layer-parser.h"
-#include "app-layer.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
-#include "threads.h"
 #endif
 
 #include "detect-parse.h"
@@ -310,8 +296,6 @@ static int DetectSshSoftwareVersionTestParse03 (void)
     return 1;
 }
 
-
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp-util.h"
 
 /** \test Send a get request in three chunks + more data. */

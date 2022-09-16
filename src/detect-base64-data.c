@@ -19,7 +19,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect.h"
 #endif
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"

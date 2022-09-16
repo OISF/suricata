@@ -32,16 +32,8 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "app-layer-parser.h"
-#include "app-layer.h"
-#include "util-debug.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-content.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 
 #include "detect-parse.h"

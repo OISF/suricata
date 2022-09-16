@@ -25,8 +25,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "detect-engine.h"
-#include "util-unittest.h"
 #endif
 #include "util-byte.h"
 

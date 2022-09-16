@@ -26,16 +26,9 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-profiling.h"
-#include "host.h"
 #include "pkt-var.h"
-#include "util-byte.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "flow-var.h"
 #include "detect-engine-build.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 #include "detect-parse.h"

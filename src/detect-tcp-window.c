@@ -27,12 +27,6 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 
 #include "detect-parse.h"

@@ -23,11 +23,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "rust.h"
-#include "app-layer-parser.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #include "detect-parse.h"
 #include "detect-engine.h"

@@ -27,20 +27,7 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-cidr.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-hashlist.h"
-#include "util-hash.h"
-#include "detect-uricontent.h"
-#include "detect-content.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-address.h"
 #include "detect-parse.h"
-#include "detect.h"
-#include "app-layer-protos.h"
-#include "flow-var.h"
-#include "decode.h"
 #endif
 
 #include "detect-engine.h"

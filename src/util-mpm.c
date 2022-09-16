@@ -25,13 +25,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-unittest.h"
-#include "queue.h"
-#include "conf-yaml-loader.h"
-#include "conf.h"
-#include "util-misc.h"
-#include "util-hashlist.h"
-#include "util-debug.h"
 #endif
 #include "util-mpm.h"
 
@@ -41,7 +34,6 @@
 #include "util-mpm-ac-ks.h"
 #include "util-mpm-hs.h"
 
-#include "detect-engine.h"
 #include "util-memcpy.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"

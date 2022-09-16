@@ -24,32 +24,32 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
-
+#ifdef DEBUG
+#include "stream-tcp.h"
+#include "app-layer.h"
+#include "util-print.h"
+#include "util-spm-bm.h"
+#include "util-unittest-helper.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-state.h"
+#include "detect-engine-mpm.h"
 #include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#include "threads.h"
+#endif
+
 #include "detect-parse.h"
 #include "detect-content.h"
 
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
 #include "util-memcmp.h"
 
-#include "app-layer.h"
-
-#include "stream-tcp.h"
 #include "detect-fileext.h"
 
 typedef struct DetectFileextData_ {

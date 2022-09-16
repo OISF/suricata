@@ -27,14 +27,7 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-var.h"
-#include "app-layer.h"
-#include "detect-uricontent.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 
 #include "detect-content.h"

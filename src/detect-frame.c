@@ -21,23 +21,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-print.h"
-#include "util-spm.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "conf-yaml-loader.h"
-#include "conf.h"
-#include "flow-var.h"
-#include "flow-util.h"
-#include "flow.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-content.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-mpm.h"
-#include "detect.h"
-#include "decode.h"
-#include "debug.h"
-#include "threads.h"
 #endif
 
 #include "app-layer-parser.h"

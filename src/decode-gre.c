@@ -32,11 +32,7 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "decode-events.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 #include "decode-gre.h"
 

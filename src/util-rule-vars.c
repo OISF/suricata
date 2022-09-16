@@ -26,14 +26,9 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-content.h"
-#include "detect.h"
 #include "conf-yaml-loader.h"
-#include "conf.h"
 #endif
 
 #include "util-rule-vars.h"

@@ -30,7 +30,6 @@
 #include "suricata-common.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "conf.h"
 #endif
 
 #include "util-magic.h"

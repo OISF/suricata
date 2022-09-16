@@ -24,9 +24,6 @@
 
 #include "suricata-common.h"
 #ifdef UNITTESTS
-#include "detect-engine-prefilter-common.h"
-#include "detect.h"
-#include "util-byte.h"
 #endif
 
 #include "detect-parse.h"

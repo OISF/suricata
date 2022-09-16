@@ -30,11 +30,6 @@
 #include "suricata.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "conf.h"
-#include "threadvars.h"
-#include "threads.h"
-#include "decode.h"
-#include "packet-queue.h"
 #endif
 #include "tmqh-flow.h"
 

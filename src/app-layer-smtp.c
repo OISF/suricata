@@ -23,28 +23,13 @@
 
 #include "suricata.h"
 #ifdef UNITTESTS
-#include "util-mem.h"
-#include "conf.h"
-#include "decode-events.h"
 #include "detect-parse.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
 #include "detect-engine.h"
 #include "flow-util.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "util-print.h"
-#include "util-debug.h"
-#include "util-mpm.h"
-#include "app-layer-protos.h"
-#include "stream.h"
 #include "stream-tcp.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-private.h"
-#include "threads.h"
-#include "decode.h"
-#include "debug.h"
 #endif
 #include "suricata-common.h"
 

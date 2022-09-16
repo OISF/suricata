@@ -26,28 +26,28 @@
  */
 
 #include "suricata-common.h"
+#ifdef DEBUG
+#include "threads.h"
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-time.h"
+#include "stream-tcp-private.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "decode.h"
+#include "debug.h"
+#include "app-layer-parser.h"
+#include "detect-engine-state.h"
+#include "detect-engine.h"
 #include "detect.h"
+#endif
 #include "detect-parse.h"
 #include "detect-tag.h"
 #include "detect-engine-tag.h"
-#include "detect-engine.h"
-#include "detect-engine-state.h"
-#include "app-layer-parser.h"
 
-#include "debug.h"
-#include "decode.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-#include "stream-tcp-private.h"
-
-#include "util-time.h"
 #include "util-byte.h"
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "threads.h"
 
 SC_ATOMIC_EXTERN(unsigned int, num_tags);
 
