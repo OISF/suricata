@@ -23,12 +23,17 @@
  * Coredump configuration
  */
 
+#include "suricata-common.h"
 #define _FILE_OFFSET_BITS 64
 #include "util-coredump-config.h"
 #include "conf.h"
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
+#ifdef HAVE_SYS_PRCTL_H
+#include <sys/prctl.h>
+#endif
+#include "util-debug.h"
 
 #ifdef OS_WIN32
 

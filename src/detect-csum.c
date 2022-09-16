@@ -898,7 +898,7 @@ static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 /* ---------------------------------- Unit Tests --------------------------- */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "util-unittest-helper.h"
 
 #define mystr(s) #s
 #define TEST1(kwstr) {\
@@ -1055,7 +1055,7 @@ static int DetectCsumICMPV6Test01(void)
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;

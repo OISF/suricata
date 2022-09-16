@@ -2186,7 +2186,7 @@ static int PortTestMatchReal(uint8_t *raw_eth_pkt, uint16_t pktsize, const char 
     FlowInitConfig(FLOW_QUIET);
     Packet *p = UTHBuildPacketFromEth(raw_eth_pkt, pktsize);
     result = UTHPacketMatchSig(p, sig);
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     return result;
 }

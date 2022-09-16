@@ -2266,6 +2266,7 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 #ifdef UNITTESTS
 
 #include "app-layer-htp.h"
+#include "detect-engine-alert.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 

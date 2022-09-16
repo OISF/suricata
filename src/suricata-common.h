@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -499,20 +499,30 @@ typedef enum {
     LOGGER_SIZE,
 } LoggerId;
 
-#include "util-optimize.h"
-#ifndef SURICATA_PLUGIN
-#include <htp/htp.h>
+#ifndef HAVE_LUA
+
+/* If we don't have Lua, create a typedef for lua_State so the
+ * exported Lua functions don't fail the build. */
+typedef void lua_State;
+
+#else
+
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
 #endif
-#include "threads.h"
+
 #include "tm-threads-common.h"
-#include "util-debug.h"
-#include "util-error.h"
+#include "util-optimize.h"
 #include "util-mem.h"
-#ifndef SURICATA_PLUGIN
-#include "detect-engine-alert.h"
-#endif
-#include "util-path.h"
-#include "util-conf.h"
+#include "util-memcmp.h"
+#include "util-atomic.h"
+#include "util-unittest.h"
+
+// pseudo system headers
+#include "queue.h"
+#include "tree.h"
 
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
@@ -542,4 +552,3 @@ extern int g_ut_covered;
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #endif /* __SURICATA_COMMON_H__ */
-

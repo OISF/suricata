@@ -24,15 +24,17 @@
  */
 
 #include "suricata-common.h"
-#include "tm-modules.h"
 #include "output.h"
 #include "output-file.h"
+#if 0
 #include "app-layer.h"
-#include "app-layer-parser.h"
+#endif
+#include "app-layer-parser.h" // FileApplyTxFlags
 #include "detect-filemagic.h"
+#include "util-file.h"
+#include "util-magic.h"
 #include "util-profiling.h"
 #include "util-validate.h"
-#include "util-magic.h"
 
 bool g_file_logger_enabled = false;
 

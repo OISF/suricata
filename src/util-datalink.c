@@ -16,8 +16,8 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "util-datalink.h"
+#include "decode.h"
 
 int g_datalink_value = LINKTYPE_NULL;
 int g_datalink_is_multiple = 0;

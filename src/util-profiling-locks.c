@@ -26,10 +26,12 @@
 
 #include "suricata-common.h"
 #include "util-profiling-locks.h"
-#include "util-hashlist.h"
 
 #ifdef PROFILING
 #ifdef PROFILE_LOCKING
+#include "threads.h"
+#include "util-hashlist.h"
+#include "util-debug.h"
 
 thread_local ProfilingLock locks[PROFILING_MAX_LOCKS];
 thread_local int locks_idx = 0;

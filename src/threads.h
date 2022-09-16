@@ -44,13 +44,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef PROFILING
-#include "util-cpu.h"
-#ifdef PROFILE_LOCKING
-#include "util-profiling-locks.h"
-#endif /* PROFILE_LOCKING */
-#endif /* PROFILING */
-
 #if defined OS_FREEBSD || __OpenBSD__
 
 #if ! defined __OpenBSD__

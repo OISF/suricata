@@ -24,6 +24,9 @@
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
+#include "decode.h"
+#include "tm-modules.h"
+
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
 

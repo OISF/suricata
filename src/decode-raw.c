@@ -31,18 +31,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-raw.h"
+#include "decode.h"
 #include "decode-events.h"
 
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
-
 
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
@@ -79,8 +74,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "flow.h"
-#include "flow-util.h"
+#include "util-unittest-helper.h"
 
 /** DecodeRawtest01
  *  \brief Valid Raw packet
@@ -125,7 +119,7 @@ static int DecodeRawTest01 (void)
         return 0;
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return 1;
@@ -166,13 +160,13 @@ static int DecodeRawTest02 (void)
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
     if (p->ip4h == NULL) {
         printf("expected a valid ipv4 header but it was NULL: ");
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
         FlowShutdown();
         SCFree(p);
         return 0;
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return 1;
@@ -218,7 +212,7 @@ static int DecodeRawTest03 (void)
         SCFree(p);
         return 0;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return 1;

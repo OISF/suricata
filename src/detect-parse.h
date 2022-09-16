@@ -24,6 +24,8 @@
 #ifndef __DETECT_PARSE_H__
 #define __DETECT_PARSE_H__
 
+#include "detect.h"
+
 /** Flags to indicate if the Signature parsing must be done
 *   switching the source and dest (for ip addresses and ports)
 *   or otherwise as normal */

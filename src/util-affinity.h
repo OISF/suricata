@@ -25,6 +25,7 @@
 #define __UTIL_AFFINITY_H__
 #include "suricata-common.h"
 #include "conf.h"
+#include "threads.h"
 
 #if defined OS_FREEBSD
 #include <sched.h>

@@ -24,6 +24,8 @@
 #ifndef __SOURCE_DPDK_H__
 #define __SOURCE_DPDK_H__
 
+#include "suricata-common.h"
+
 #ifdef HAVE_DPDK
 #include <rte_ethdev.h>
 #endif

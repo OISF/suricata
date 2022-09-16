@@ -30,13 +30,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
+#include "app-layer-htp-mem.h"
 
 #include "conf.h"
-#include "util-mem.h"
 #include "util-misc.h"
-
-#include "app-layer-htp-mem.h"
+#include "util-debug.h"
 
 SC_ATOMIC_DECLARE(uint64_t, htp_config_memcap);
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);

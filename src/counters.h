@@ -25,6 +25,8 @@
 #ifndef __COUNTERS_H__
 #define __COUNTERS_H__
 
+#include "threads.h"
+
 /* forward declaration of the ThreadVars structure */
 struct ThreadVars_;
 
