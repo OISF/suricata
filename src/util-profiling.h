@@ -27,6 +27,9 @@
 
 #ifdef PROFILING
 
+#include "detect.h"
+#include "util-cpu.h"
+#include "util-profiling-locks.h"
 
 extern int profiling_rules_enabled;
 extern int profiling_packets_enabled;
@@ -297,6 +300,7 @@ extern thread_local int profiling_prefilter_entered;
         profiling_prefilter_entered--; \
     }
 
+struct SCProfileDetectCtx_;
 void SCProfilingRulesGlobalInit(void);
 void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
 void SCProfilingRuleInitCounters(DetectEngineCtx *);

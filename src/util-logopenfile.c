@@ -30,6 +30,8 @@
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-byte.h"
+#include "util-conf.h"
+#include "util-path.h"
 #include "util-time.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)

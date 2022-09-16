@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "tm-modules.h"
 #include "output.h"
 #include "output-streaming.h"
 #include "app-layer.h"

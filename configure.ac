@@ -1321,12 +1321,6 @@
         fi
 
         AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
-        PKG_CHECK_EXISTS(libdpdk >= 20.11, [pkgconfig_libdpdk_above20=yes], )
-        if test "$pkgconfig_libdpdk_above20" = "yes"; then
-            AC_DEFINE([HAVE_STRLCAT],[1],[STRLCAT is predefined by DPDK 20.11+])
-            AC_DEFINE([HAVE_STRLCPY],[1],[STRLCPY is predefined by DPDK 20.11+])
-        fi
-
         PKG_CHECK_EXISTS(libdpdk >= 19.11, , [with_pkgconfig_libdpdk=no])
         if test "$with_pkgconfig_libdpdk" = "no"; then
             echo

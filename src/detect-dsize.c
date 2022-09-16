@@ -332,7 +332,7 @@ void SigParseApplyDsizeToContent(Signature *s)
  */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "util-unittest-helper.h"
 
 /**
  * \test this is a test for a valid dsize value 1

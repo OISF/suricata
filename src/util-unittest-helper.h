@@ -25,6 +25,16 @@
 #define __UTIL_UNITTEST_HELPER__
 
 #if defined(UNITTESTS) || defined(FUZZ)
+#include "packet.h"
+#include "flow.h"
+#include "stream-tcp.h"
+#include "detect.h"
+#include "detect-engine.h"
+#include "detect-engine-alert.h"
+#include "detect-engine-build.h"
+#endif
+
+#if defined(UNITTESTS) || defined(FUZZ)
 Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp);
 int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
 #endif

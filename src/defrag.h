@@ -24,6 +24,7 @@
 #ifndef __DEFRAG_H__
 #define __DEFRAG_H__
 
+#include "threads.h"
 #include "util-pool.h"
 
 /**

@@ -23,19 +23,12 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "pkt-var.h"
-#include "conf.h"
+#include "output-lua.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
+#ifdef HAVE_LUA
 #include "util-print.h"
 #include "util-unittest.h"
-
 #include "util-debug.h"
-
 #include "output.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
@@ -47,15 +40,6 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-
-#include "output-lua.h"
-
-#ifdef HAVE_LUA
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"

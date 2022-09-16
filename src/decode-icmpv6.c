@@ -33,20 +33,9 @@
 #include "suricata-common.h"
 #include "decode-icmpv6.h"
 #include "decode.h"
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
-#include "decode-events.h"
-#include "util-unittest.h"
 #include "flow.h"
-#include "util-debug.h"
 #include "util-print.h"
 #include "util-validate.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
-
 
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
@@ -531,6 +520,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
 
 static int ICMPV6CalculateValidChecksumtest01(void)
 {

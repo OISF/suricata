@@ -22,11 +22,12 @@
  */
 
 #include "suricata.h"
+#include "feature.h"
 #include "util-conf.h"
 #include "util-file.h"
 #include "util-landlock.h"
 #include "util-mem.h"
-#include "feature.h"
+#include "util-path.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H
 

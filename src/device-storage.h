@@ -27,6 +27,7 @@
 #define __DEVICE_STORAGE_H__
 
 #include "util-device.h"
+#include "util-storage.h"
 
 typedef struct LiveDevStorageId_ {
     int id;

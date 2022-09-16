@@ -30,19 +30,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-vntag.h"
+#include "decode.h"
 #include "decode-events.h"
-
-#include "flow.h"
 
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
 
 /**
  * \internal
@@ -89,6 +83,7 @@ int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t 
 }
 
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
 
 /**
  * \test DecodeVNTagTest01 test if vntag header is too small.

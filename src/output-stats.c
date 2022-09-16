@@ -24,14 +24,9 @@
  */
 
 #include "suricata-common.h"
-#include "tm-modules.h"
+#include "output.h"
 #include "output-stats.h"
 #include "util-validate.h"
-
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
