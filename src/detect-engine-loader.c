@@ -43,6 +43,7 @@
 
 #include "util-detect.h"
 #include "util-threshold-config.h"
+#include "util-path.h"
 
 #ifdef HAVE_GLOB_H
 #include <glob.h>

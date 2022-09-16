@@ -40,10 +40,6 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
-
 #define HDR_SIZE 4
 
 #define AF_INET6_BSD     24

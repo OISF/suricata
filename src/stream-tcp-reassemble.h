@@ -25,12 +25,9 @@
 #ifndef __STREAM_TCP_REASSEMBLE_H__
 #define __STREAM_TCP_REASSEMBLE_H__
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-private.h"
-
-#ifdef UNITTESTS
 #include "suricata.h"
-#endif
+#include "flow.h"
+#include "stream-tcp-private.h"
 
 /** Supported OS list and default OS policy is BSD */
 enum

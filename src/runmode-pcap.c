@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,20 +16,16 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
-#include "runmodes.h"
 #include "runmode-pcap.h"
+#include "runmodes.h"
 #include "output.h"
-#include "log-httplog.h"
 
+#include "util-conf.h"
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
-#include "util-affinity.h"
 #include "util-device.h"
 #include "util-runmodes.h"
-#include "util-atomic.h"
 #include "util-misc.h"
 #include "util-byte.h"
 

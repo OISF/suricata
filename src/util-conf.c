@@ -27,6 +27,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "util-conf.h"
+#include "util-debug.h"
 
 TmEcode ConfigSetLogDirectory(const char *name)
 {

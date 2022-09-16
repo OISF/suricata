@@ -22,6 +22,8 @@
 #ifndef __UTIL_EXCEPTION_POLICY_H__
 #define __UTIL_EXCEPTION_POLICY_H__
 
+#include "decode.h"
+
 enum ExceptionPolicy {
     EXCEPTION_POLICY_IGNORE = 0,
     EXCEPTION_POLICY_PASS_PACKET,

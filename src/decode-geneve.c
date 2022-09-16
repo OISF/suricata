@@ -31,6 +31,7 @@
 #include "decode-geneve.h"
 #include "decode-events.h"
 
+#include "detect.h"
 #include "detect-engine-port.h"
 
 #include "flow.h"

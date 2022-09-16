@@ -25,14 +25,9 @@
  */
 
 #include "suricata-common.h"
-#include "util-buffer.h"
-#include "util-fmemopen.h"
-#include "util-datalink.h"
-#include "stream-tcp-util.h"
-#include "stream.h"
-
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
+#include "util-fmemopen.h"
 #endif /* HAVE_LIBLZ4 */
 
 #if defined(HAVE_DIRENT_H) && defined(HAVE_FNMATCH_H)
@@ -41,32 +36,25 @@
 #include <fnmatch.h>
 #endif
 
-#include "debug.h"
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
+#include "log-pcap.h"
 
 #include "threads.h"
 #include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "log-pcap.h"
-#include "decode-ipv4.h"
-
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-byte.h"
-#include "util-misc.h"
-#include "util-cpu.h"
-#include "util-atomic.h"
-
-#include "source-pcap.h"
+#include "decode.h"
+#include "stream.h"
+#include "stream-tcp-reassemble.h"
 
 #include "output.h"
 
-#include "queue.h"
+#include "util-buffer.h"
+#include "util-byte.h"
+#include "util-conf.h"
+#include "util-cpu.h"
+#include "util-datalink.h"
+#include "util-misc.h"
+#include "util-path.h"
+#include "util-profiling.h"
+#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"

@@ -25,7 +25,7 @@
  */
 
 #include "suricata-common.h"
-
+#include "suricata.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"

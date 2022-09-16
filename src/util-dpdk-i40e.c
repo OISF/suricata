@@ -31,6 +31,8 @@
  */
 
 #include "util-dpdk-i40e.h"
+#include "util-dpdk.h"
+#include "util-debug.h"
 
 #ifdef HAVE_DPDK
 

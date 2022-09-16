@@ -40,6 +40,8 @@
 #include "util-validate.h"
 #include "util-debug.h"
 #include "conf.h"
+
+#include "detect.h"
 #include "detect-engine-port.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH   8

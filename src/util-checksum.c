@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-
 #include "util-checksum.h"
 
 int ReCalculateChecksum(Packet *p)

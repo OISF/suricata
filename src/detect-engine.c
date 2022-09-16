@@ -82,6 +82,7 @@
 #include "util-validate.h"
 #include "util-hash-string.h"
 #include "util-enum.h"
+#include "util-conf.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"

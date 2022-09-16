@@ -26,9 +26,7 @@
 #ifndef __OUTPUT_FILE_H__
 #define __OUTPUT_FILE_H__
 
-#include "decode.h"
 #include "rust.h"
-#include "util-file.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */

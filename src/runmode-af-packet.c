@@ -44,6 +44,7 @@
 
 #include "flow-bypass.h"
 
+#include "util-conf.h"
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"

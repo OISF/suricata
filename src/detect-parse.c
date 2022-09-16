@@ -3604,7 +3604,7 @@ static int SigTestBidirec03 (void)
 
 end:
     if (p != NULL) {
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
         SCFree(p);
     }
     FlowShutdown();
@@ -3742,7 +3742,7 @@ static int SigTestBidirec04 (void)
     }
 
     if (p != NULL) {
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
     }
     FlowShutdown();
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);

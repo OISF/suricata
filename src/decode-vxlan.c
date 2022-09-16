@@ -31,6 +31,7 @@
 #include "decode-vxlan.h"
 #include "decode-events.h"
 
+#include "detect.h"
 #include "detect-engine-port.h"
 
 #include "flow.h"
@@ -38,10 +39,6 @@
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
 
 #define VXLAN_HEADER_LEN sizeof(VXLANHeader)
 
