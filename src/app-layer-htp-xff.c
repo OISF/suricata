@@ -29,8 +29,11 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 
-#include "util-misc.h"
+#ifndef HAVE_MEMRCHR
 #include "util-memrchr.h"
+#endif
+
+#include "util-misc.h"
 #include "util-unittest.h"
 
 /** XFF header value minimal length */

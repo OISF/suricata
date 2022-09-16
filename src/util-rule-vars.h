@@ -24,6 +24,8 @@
 #ifndef __UTIL_RULE_VARS_H__
 #define __UTIL_RULE_VARS_H__
 
+#include "detect.h"
+
 /** Enum indicating the various vars type in the yaml conf file */
 typedef enum {
     SC_RULE_VARS_ADDRESS_GROUPS,

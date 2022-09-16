@@ -112,4 +112,6 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
  */
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
+const char *PcapFileGetFilename(void);
+
 #endif /* __SOURCE_PCAP_FILE_HELPER_H__ */
