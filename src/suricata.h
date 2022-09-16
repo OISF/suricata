@@ -173,10 +173,6 @@ extern uint16_t g_vlan_mask;
 /* Flag to disable hashing (almost) globally. */
 extern bool g_disable_hashing;
 
-#include <ctype.h>
-#define u8_tolower(c) ((uint8_t)tolower((uint8_t)(c)))
-#define u8_toupper(c) ((uint8_t)toupper((uint8_t)(c)))
-
 void EngineStop(void);
 void EngineDone(void);
 
