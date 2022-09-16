@@ -28,8 +28,10 @@
  */
 
 #include "suricata-common.h"
-#include "decode-esp.h"
+#ifdef UNITTESTS
 #include "flow.h"
+#endif
+#include "decode-esp.h"
 
 #include "util-validate.h"
 

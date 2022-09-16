@@ -16,13 +16,15 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
+#include "util-print.h"
 #include "detect.h"
+#endif
 #include "detect-parse.h"
 #include "detect-base64-decode.h"
 #include "util-base64.h"
 #include "util-byte.h"
-#include "util-print.h"
-#include "detect-engine-build.h"
 
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535

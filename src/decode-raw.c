@@ -31,18 +31,18 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-raw.h"
+#ifdef UNITTESTS
+#include "host.h"
+#include "util-profiling.h"
+#include "pkt-var.h"
+#include "util-debug.h"
+#include "util-unittest.h"
 #include "decode-events.h"
+#include "decode.h"
+#endif
+#include "decode-raw.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
-
 
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)

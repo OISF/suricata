@@ -31,17 +31,19 @@
  */
 
 #include "suricata-common.h"
+#ifdef HAVE_DPDK
+#include "util-time.h"
+#include "util-dpdk-ixgbe.h"
+#include "util-dpdk-ice.h"
+#include "util-dpdk-i40e.h"
+#include "util-dpdk.h"
+#include "util-cpu.h"
+#include "util-byte.h"
+#include "util-runmodes.h"
+#include "source-dpdk.h"
+#endif
 #include "runmodes.h"
 #include "runmode-dpdk.h"
-#include "source-dpdk.h"
-#include "util-runmodes.h"
-#include "util-byte.h"
-#include "util-cpu.h"
-#include "util-dpdk.h"
-#include "util-dpdk-i40e.h"
-#include "util-dpdk-ice.h"
-#include "util-dpdk-ixgbe.h"
-#include "util-time.h"
 
 #ifdef HAVE_DPDK
 

@@ -24,13 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-prefilter.h"
-#include "util-debug.h"
 
 static int DetectPrefilterSetup (DetectEngineCtx *, Signature *, const char *);
 

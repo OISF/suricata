@@ -25,9 +25,11 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
-#include "debug.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
+#include "debug.h"
+#include "util-unittest.h"
+#endif
 #include "threads.h"
 
 thread_local char t_thread_name[THREAD_NAME_LEN + 1];

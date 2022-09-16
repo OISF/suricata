@@ -23,8 +23,10 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
+#ifdef DEBUG
 #include "util-print.h"
+#include "debug.h"
+#endif
 
 #include "stream-tcp.h"
 #include "app-layer-frames.h"

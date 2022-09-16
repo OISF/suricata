@@ -16,18 +16,20 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "stream.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-hashlist.h"
-
-#include "util-print.h"
+#ifdef UNITTESTS
+#include "app-layer-protos.h"
 #include "util-spm-bs.h"
+#include "util-print.h"
+#include "util-hashlist.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "stream.h"
+#endif
+#include "suricata.h"
+
 #include "util-enum.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 

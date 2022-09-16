@@ -16,14 +16,15 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "detect-engine-build.h"
 #include "detect.h"
+#endif
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-parse.h"
 #include "detect-base64-data.h"
-#include "detect-engine-build.h"
-
-#include "util-unittest.h"
 
 static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

@@ -24,14 +24,15 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-print.h"
 #include "stream-tcp-private.h"
+#endif
 #include "stream-tcp-inline.h"
 
 #include "util-memcmp.h"
-#include "util-print.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 /**
  *  \brief Compare the shared data portion of two segments

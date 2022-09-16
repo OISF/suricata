@@ -26,20 +26,12 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-byte.h"
-#include "detect-byte-extract.h"
 #include "detect-offset.h"
 
-#include "flow-var.h"
-
 #include "util-byte.h"
-#include "util-debug.h"
 
 static int DetectOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 

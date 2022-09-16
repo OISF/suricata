@@ -25,8 +25,6 @@
 
 #include "suricata-common.h"
 #include "util-print.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-validate.h"
 #include "rust.h"
 

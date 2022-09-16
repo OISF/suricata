@@ -23,8 +23,10 @@
  */
 
 #include "suricata-common.h"
-
+#ifdef UNITTESTS
 #include "detect.h"
+#endif
+
 #include "detect-parse.h"
 
 #include "detect-icmpv6-mtu.h"

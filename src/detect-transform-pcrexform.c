@@ -24,10 +24,12 @@
  */
 
 #include "suricata-common.h"
-
-#include "detect.h"
-#include "detect-engine.h"
+#ifdef UNITTESTS
 #include "detect-parse.h"
+#include "detect.h"
+#endif
+
+#include "detect-engine.h"
 #include "detect-transform-pcrexform.h"
 #include "detect-pcre.h"
 

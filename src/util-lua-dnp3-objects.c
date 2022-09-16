@@ -23,9 +23,11 @@
  */
 
 #include "suricata-common.h"
+#ifdef HAVE_LUA
+#include "app-layer-dnp3-objects.h"
+#endif
 
 #include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
 
 #ifdef HAVE_LUA
 

@@ -24,21 +24,21 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
+#include "util-profiling.h"
+#include "host.h"
+#include "pkt-var.h"
+#include "util-debug.h"
+#include "util-unittest.h"
 #include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#endif
+
 #include "detect-parse.h"
 
 #include "detect-csum.h"
-
-#include "util-unittest.h"
-#include "util-debug.h"
-
-#include "pkt-var.h"
-#include "host.h"
-#include "util-profiling.h"
-#include "detect-engine-build.h"
 
 #define DETECT_CSUM_VALID   "valid"
 #define DETECT_CSUM_INVALID "invalid"

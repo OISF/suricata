@@ -31,35 +31,34 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "app-layer-parser.h"
+#include "app-layer.h"
+#include "util-print.h"
+#include "util-spm.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-content.h"
 #include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#include "threads.h"
+#endif
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
-#include "util-print.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
 #include "detect-http-cookie.h"
-#include "stream-tcp.h"
 
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectHttpCookieSetupSticky (DetectEngineCtx *, Signature *, const char *);

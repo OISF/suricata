@@ -27,10 +27,6 @@
 #include "util-affinity.h"
 #include "util-cpu.h"
 #include "util-byte.h"
-#include "conf.h"
-#include "threads.h"
-#include "queue.h"
-#include "runmodes.h"
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {

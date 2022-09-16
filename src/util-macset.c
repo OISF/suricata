@@ -26,13 +26,15 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
 #include "suricata.h"
+#endif
 #include "flow-util.h"
 #include "flow-private.h"
 #include "flow-storage.h"
 #include "util-macset.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 typedef uint8_t MacAddr[6];
 typedef enum {

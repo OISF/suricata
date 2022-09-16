@@ -31,13 +31,15 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-chdlc.h"
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
 #include "decode-events.h"
+#include "decode.h"
+#endif
+#include "decode-chdlc.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)

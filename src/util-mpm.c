@@ -24,22 +24,24 @@
  */
 
 #include "suricata-common.h"
-#include "util-mpm.h"
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "queue.h"
+#include "conf-yaml-loader.h"
+#include "conf.h"
+#include "util-misc.h"
+#include "util-hashlist.h"
 #include "util-debug.h"
+#endif
+#include "util-mpm.h"
 
 /* include pattern matchers */
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-ks.h"
 #include "util-mpm-hs.h"
-#include "util-hashlist.h"
 
 #include "detect-engine.h"
-#include "util-misc.h"
-#include "conf.h"
-#include "conf-yaml-loader.h"
-#include "queue.h"
-#include "util-unittest.h"
 #include "util-memcpy.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"

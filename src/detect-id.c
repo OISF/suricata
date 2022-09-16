@@ -24,23 +24,25 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
 #include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#endif
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-prefilter-common.h"
 
 #include "detect-id.h"
-#include "flow.h"
-#include "flow-var.h"
 
-#include "util-debug.h"
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 /**
  * \brief Regex for parsing "id" option, matching number or "number"

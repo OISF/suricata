@@ -16,7 +16,9 @@
  */
 
 #include "suricata-common.h"
+#ifdef DEBUG
 #include "conf.h"
+#endif
 #include "defrag-hash.h"
 #include "defrag-queue.h"
 #include "defrag-config.h"

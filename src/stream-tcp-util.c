@@ -24,18 +24,18 @@
  */
 
 #include "suricata-common.h"
-
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-inline.h"
-#include "stream-tcp.h"
-#include "stream-tcp-util.h"
-
-#include "util-memcmp.h"
-#include "util-print.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#ifdef UNITTESTS
 #include "ippair.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-print.h"
+#include "util-memcmp.h"
+#include "stream-tcp.h"
+#include "stream-tcp-inline.h"
+#include "stream-tcp-reassemble.h"
+#endif
+
+#include "stream-tcp-util.h"
 
 #ifdef UNITTESTS
 

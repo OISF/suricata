@@ -43,16 +43,11 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 
 #include "detect-modbus.h"
 
-#include "util-debug.h"
-#include "util-byte.h"
-
-#include "stream-tcp.h"
 #include "rust.h"
 
 static int g_modbus_buffer_id = 0;

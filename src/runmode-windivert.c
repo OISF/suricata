@@ -24,18 +24,19 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
+#ifdef WINDIVERT
+#include "util-time.h"
+#include "util-runmodes.h"
+#include "util-device.h"
+#include "util-debug.h"
+#include "util-cpu.h"
+#include "util-affinity.h"
+#include "output.h"
 #include "conf.h"
+#include "tm-threads.h"
+#endif
 #include "runmodes.h"
 #include "runmode-windivert.h"
-#include "output.h"
-
-#include "util-affinity.h"
-#include "util-cpu.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-time.h"
 
 const char *RunModeIpsWinDivertGetDefaultMode(void)
 {

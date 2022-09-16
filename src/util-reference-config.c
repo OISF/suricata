@@ -22,16 +22,18 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "detect-engine.h"
+#ifdef UNITTESTS
+#include "util-fmemopen.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "util-unittest.h"
+#include "conf.h"
 #include "util-hash.h"
+#include "detect.h"
+#endif
+#include "detect-engine.h"
 
 #include "util-reference-config.h"
-#include "conf.h"
-#include "util-unittest.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-fmemopen.h"
 
 /* Regex to parse each line from reference.config file.  The first substring
  * is for the system name and the second for the url */

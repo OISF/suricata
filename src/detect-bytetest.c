@@ -25,24 +25,26 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "app-layer.h"
+#include "detect-byte-extract.h"
+#include "detect-bytejump.h"
+#include "detect-uricontent.h"
 #include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#endif
+#include "detect-engine.h"
 
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-byte.h"
 #include "detect-bytetest.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
-#include "app-layer.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 #include "detect-pcre.h"
 
 

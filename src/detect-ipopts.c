@@ -24,19 +24,19 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "decode-events.h"
+#include "flow-var.h"
 #include "detect.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
+
 #include "detect-parse.h"
 
-#include "flow-var.h"
-#include "decode-events.h"
-
-#include "util-debug.h"
-
 #include "detect-ipopts.h"
-#include "util-unittest.h"
 
 #define PARSE_REGEX "\\S[A-z]"
 

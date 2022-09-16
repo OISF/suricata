@@ -24,22 +24,24 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine.h"
 #include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#endif
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
 
 #include "detect-tcp-seq.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectSeqMatch(DetectEngineThreadCtx *,

@@ -27,19 +27,20 @@
 
 
 #include "suricata-common.h"
-#include "tm-threads.h"
+#ifdef IPFW
+#include "util-device.h"
+#include "source-ipfw.h"
+#include "util-runmodes.h"
+#include "util-affinity.h"
+#include "util-cpu.h"
+#include "util-time.h"
+#include "util-debug.h"
+#include "output.h"
 #include "conf.h"
+#include "tm-threads.h"
+#endif
 #include "runmodes.h"
 #include "runmode-ipfw.h"
-#include "output.h"
-
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-runmodes.h"
-#include "source-ipfw.h"
-#include "util-device.h"
 
 const char *RunModeIpsIPFWGetDefaultMode(void)
 {

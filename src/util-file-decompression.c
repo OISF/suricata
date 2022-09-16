@@ -25,15 +25,12 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "detect-engine.h"
 #include "app-layer-htp.h"
 
 #include "util-file-decompression.h"
 #include "util-file-swf-decompression.h"
-#include "util-misc.h"
-#include "util-print.h"
 
 #define SWF_ZLIB_MIN_VERSION    0x06
 #define SWF_LZMA_MIN_VERSION    0x0D

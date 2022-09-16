@@ -16,16 +16,17 @@
  */
 
 #include "suricata-common.h"
-
-#include "stream.h"
-
+#ifdef UNITTESTS
+#include "detect-engine-content-inspection.h"
 #include "detect.h"
+#include "stream.h"
+#endif
+
 #include "detect-parse.h"
 #include "detect-dnp3.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 
 #include "app-layer-dnp3.h"
 #include "util-byte.h"

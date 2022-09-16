@@ -24,25 +24,24 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
-
+#ifdef UNITTESTS
+#include "util-profiling.h"
+#include "host.h"
+#include "pkt-var.h"
+#include "util-byte.h"
+#include "util-debug.h"
+#include "util-unittest.h"
 #include "flow-var.h"
+#include "detect-engine-build.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect.h"
+#include "decode.h"
+#endif
+
+#include "detect-parse.h"
 
 #include "detect-content.h"
 #include "detect-dsize.h"
-
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-byte.h"
-
-#include "pkt-var.h"
-#include "host.h"
-#include "util-profiling.h"
 
 static int DetectDsizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

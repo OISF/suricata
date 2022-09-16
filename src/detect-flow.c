@@ -24,23 +24,23 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
-
-#include "flow.h"
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
 #include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-build.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#endif
+
+#include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-flow.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
 
 /**
  * \brief Regex for parsing our flow options

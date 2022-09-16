@@ -52,16 +52,11 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#include "queue.h"
 #include "suricata-common.h"
-#include "debug.h"
 
 #include "ippair-storage.h"
-#include "flow-storage.h"
 
 #include "app-layer-expectation.h"
-
-#include "util-print.h"
 
 static IPPairStorageId g_ippair_expectation_id = { .id = -1 };
 static FlowStorageId g_flow_expectation_id = { .id = -1 };

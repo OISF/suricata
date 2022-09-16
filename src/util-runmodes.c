@@ -26,27 +26,14 @@
 
 #include "suricata-common.h"
 #include "tm-threads.h"
-#include "conf.h"
-#include "runmodes.h"
-#include "runmode-af-packet.h"
 #include "output.h"
-#include "log-httplog.h"
 
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
-#include "alert-fastlog.h"
-#include "alert-debuglog.h"
-
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-device.h"
 
 #include "util-runmodes.h"
-
-#include "flow-hash.h"
 
 /** \brief create a queue string for autofp to pass to
  *         the flow queue handler.

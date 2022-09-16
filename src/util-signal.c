@@ -22,8 +22,10 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
+#ifdef OS_WIN32
 #include "util-debug.h"
+#include "suricata.h"
+#endif
 #include "util-signal.h"
 
 int UtilSignalBlock(int signum)

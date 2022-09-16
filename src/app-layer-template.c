@@ -34,15 +34,17 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "stream.h"
+#ifdef UNITTESTS
+#include "util-unittest.h"
 #include "conf.h"
+#include "stream.h"
+#endif
+#include "suricata.h"
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-template.h"
 
-#include "util-unittest.h"
 #include "util-validate.h"
 #include "util-enum.h"
 

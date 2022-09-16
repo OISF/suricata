@@ -24,22 +24,23 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-threshold.h"
 #include "host.h"
+#include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#include "suricata.h"
+#endif
 
 #include "detect-detection-filter.h"
-#include "detect-threshold.h"
 #include "detect-parse.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "detect-engine-build.h"
 
 #define TRACK_DST      1
 #define TRACK_SRC      2

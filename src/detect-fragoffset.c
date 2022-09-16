@@ -24,21 +24,23 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "decode.h"
-#include "decode-ipv4.h"
-#include "decode-ipv6.h"
-
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
 #include "detect.h"
+#include "decode-ipv6.h"
+#include "decode-ipv4.h"
+#include "decode.h"
+#include "debug.h"
+#endif
+
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
 
 #include "detect-fragoffset.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 #define PARSE_REGEX "^\\s*(?:(<|>))?\\s*([0-9]+)"
 

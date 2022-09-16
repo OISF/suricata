@@ -23,12 +23,14 @@
  */
 
 #include "suricata-common.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect-engine-uint.h"
+#ifdef UNITTESTS
 #include "util-byte.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect.h"
+#endif
+
+#include "detect-parse.h"
+#include "detect-engine-uint.h"
 
 #include "detect-tcpmss.h"
 

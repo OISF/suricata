@@ -27,7 +27,6 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 #include "output-json-dnp3-objects.h"
-#include "output-json.h"
 
 // clang-format off
 void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,

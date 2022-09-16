@@ -24,11 +24,13 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#endif
 
 #include "detect-engine.h"
 #include "detect-file-hash-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 #include "detect-filesha1.h"
 

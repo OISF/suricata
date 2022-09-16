@@ -31,15 +31,17 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-sctp.h"
+#ifdef DEBUG
+#include "flow.h"
+#include "util-optimize.h"
+#include "util-debug.h"
+#include "util-unittest.h"
 #include "decode-events.h"
+#include "decode.h"
+#endif
+#include "decode-sctp.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-optimize.h"
-#include "flow.h"
 
 static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {

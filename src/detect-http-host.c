@@ -31,31 +31,30 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-
-#include "detect.h"
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "app-layer-parser.h"
+#include "app-layer.h"
+#include "util-spm.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
 #include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
-
 #include "app-layer-htp.h"
-#include "stream-tcp.h"
 #include "detect-http-host.h"
 
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);

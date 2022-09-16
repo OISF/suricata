@@ -28,10 +28,11 @@
  */
 
 #include "suricata-common.h"
-
-#include "conf.h"
-
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#include "conf.h"
+#endif
+
 #include "util-magic.h"
 
 #ifdef HAVE_MAGIC

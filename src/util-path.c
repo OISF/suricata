@@ -23,9 +23,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "debug.h"
+#ifdef OS_WIN32
 #include "util-debug.h"
+#include "debug.h"
+#include "suricata.h"
+#endif
 #include "util-path.h"
 
 #ifdef OS_WIN32

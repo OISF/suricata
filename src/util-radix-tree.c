@@ -24,11 +24,13 @@
  */
 
 #include "suricata-common.h"
-#include "util-radix-tree.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-ip.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#include "util-error.h"
+#include "util-debug.h"
+#endif
+#include "util-radix-tree.h"
+#include "util-ip.h"
 #include "util-memcmp.h"
 #include "util-byte.h"
 #include "util-cidr.h"

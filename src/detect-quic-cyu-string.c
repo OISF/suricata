@@ -21,14 +21,16 @@
  */
 
 #include "suricata-common.h"
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
 #include "detect.h"
+#endif
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-quic-cyu-string.h"
-#include "detect-engine-build.h"
 #include "rust.h"
 
 #ifdef UNITTESTS

@@ -32,10 +32,13 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-
-#include "decode.h"
+#ifdef CAPTURE_OFFLOAD
+#include "flow-manager.h"
 #include "detect.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
+
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"
@@ -49,7 +52,6 @@
 #include "tmqh-packetpool.h"
 
 #include "flow-util.h"
-#include "flow-manager.h"
 #include "flow-timeout.h"
 #include "flow-spare-pool.h"
 #include "flow-worker.h"

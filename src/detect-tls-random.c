@@ -16,19 +16,11 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "detect.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-content.h"
 
-#include "flow.h"
-#include "stream-tcp.h"
-
-#include "app-layer.h"
 #include "app-layer-ssl.h"
 #include "detect-engine-prefilter.h"
 #include "detect-tls-random.h"

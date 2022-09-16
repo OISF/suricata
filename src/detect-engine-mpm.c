@@ -24,42 +24,40 @@
  * Multi pattern matcher
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
-
-#include "app-layer-protos.h"
-
-#include "decode.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
-#include "detect-parse.h"
-#include "detect-engine-prefilter.h"
-#include "util-mpm.h"
-#include "util-memcmp.h"
-#include "util-memcpy.h"
-#include "conf.h"
-#include "detect-fast-pattern.h"
-
-#include "detect-tcphdr.h"
-#include "detect-udphdr.h"
-
-#include "flow.h"
-#include "flow-var.h"
+#ifdef DEBUG
+#include "util-print.h"
+#include "util-debug.h"
+#include "util-enum.h"
+#include "stream.h"
 #include "detect-flow.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-udphdr.h"
+#include "detect-tcphdr.h"
+#include "conf.h"
+#include "util-memcpy.h"
+#include "util-mpm.h"
+#include "detect-parse.h"
+#include "detect-engine-iponly.h"
+#include "detect-engine-siggroup.h"
+#include "detect.h"
+#include "decode.h"
+#include "app-layer-protos.h"
+#include "suricata.h"
+#endif
+
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
+#include "util-memcmp.h"
+#include "detect-fast-pattern.h"
 
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
 
-#include "stream.h"
-
 #include "util-misc.h"
-#include "util-enum.h"
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-validate.h"
 #include "util-hash-string.h"
 

@@ -25,14 +25,14 @@
  */
 
 #include "suricata-common.h"
-
+#ifdef UNITTESTS
+#include "rust.h"
 #include "util-unittest.h"
+#endif
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-rfb.h"
-
-#include "rust-bindings.h"
 
 static int RFBRegisterPatternsForProtocolDetection(void)
 {

@@ -22,17 +22,18 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
+#ifdef UNITTESTS
+#include "rust.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "detect-engine-content-inspection.h"
 #include "detect.h"
+#include "conf.h"
+#endif
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
 #include "detect-mqtt-protocol-version.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-
-#include "rust.h"
 
 static int mqtt_protocol_version_id = 0;
 

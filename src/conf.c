@@ -37,10 +37,12 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#ifdef UNITTESTS
 #include "util-path.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+#endif
+#include "conf.h"
 
 /** Maximum size of a complete domain name. */
 #define NODE_NAME_MAX 1024

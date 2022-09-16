@@ -22,19 +22,19 @@
  */
 
 #include "suricata-common.h"
-
-#include "action-globals.h"
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-sigorder.h"
-
-#include "util-unittest.h"
-#include "util-action.h"
-#include "util-unittest-helper.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-engine-sigorder.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "conf-yaml-loader.h"
+#include "conf.h"
+#include "action-globals.h"
+#endif
+
+#include "util-action.h"
 
 /* Default order: */
 uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT};

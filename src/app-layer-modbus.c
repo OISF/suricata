@@ -35,12 +35,13 @@
  */
 
 #include "suricata-common.h"
-
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
 #include "util-debug.h"
+#endif
 
 #include "app-layer-parser.h"
 #include "app-layer-modbus.h"
-#include "detect-engine-build.h"
 
 void ModbusParserRegisterTests(void);
 

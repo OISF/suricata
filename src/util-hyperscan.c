@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #ifdef BUILD_HYPERSCAN
 #include "util-hyperscan.h"

@@ -23,9 +23,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "conf.h"
+#ifdef OS_WIN32
 #include "runmodes.h"
+#include "conf.h"
+#endif
+#include "suricata.h"
 #include "util-conf.h"
 
 TmEcode ConfigSetLogDirectory(const char *name)

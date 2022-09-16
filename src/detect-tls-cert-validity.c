@@ -24,30 +24,30 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "debug.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "app-layer.h"
+#include "stream-tcp.h"
+#include "flow-var.h"
+#include "flow-util.h"
+#include "flow.h"
 #include "detect-content.h"
+#include "detect-engine-mpm.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "debug.h"
+#include "threads.h"
+#endif
+
+#include "detect-engine.h"
 #include "detect-pcre.h"
 #include "detect-tls-cert-validity.h"
 
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "stream-tcp.h"
-
-#include "app-layer.h"
 #include "app-layer-ssl.h"
 
 #include "util-time.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 /**
  *   [tls_notbefore|tls_notafter]:[<|>]<date string>[<><date string>];

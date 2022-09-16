@@ -27,21 +27,21 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-geneve.h"
+#ifdef UNITTESTS
+#include "host.h"
+#include "util-profiling.h"
+#include "pkt-var.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "flow.h"
 #include "decode-events.h"
+#include "decode.h"
+#endif
+#include "decode-geneve.h"
 
 #include "detect-engine-port.h"
 
-#include "flow.h"
-
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-
-#include "pkt-var.h"
-#include "util-profiling.h"
-#include "host.h"
 
 #define VALID_GENEVE_VERSIONS                                                                      \
     {                                                                                              \

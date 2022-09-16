@@ -31,24 +31,26 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-
-#include "detect.h"
+#ifdef UNITTESTS
+#include "app-layer.h"
+#include "util-print.h"
+#include "util-debug.h"
+#include "detect-content.h"
+#include "detect-engine-state.h"
 #include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-memcmp.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"

@@ -24,26 +24,27 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "flow-util.h"
+#include "util-byte.h"
+#include "util-debug.h"
+#include "detect-engine-build.h"
+#include "detect-engine-state.h"
 #include "detect.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "app-layer-htp.h"
+#include "app-layer-protos.h"
+#include "app-layer.h"
+#endif
+
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
-#include "detect-engine-build.h"
 #include "detect-content.h"
 #include "detect-engine-uint.h"
 
 #include "detect-urilen.h"
-#include "util-debug.h"
-#include "util-byte.h"
-#include "flow-util.h"
-#include "stream-tcp.h"
-
 
 /*prototypes*/
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);

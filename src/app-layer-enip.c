@@ -25,34 +25,33 @@
  */
 
 #include "suricata-common.h"
-
+#ifdef UNITTESTS
+#include "util-profiling.h"
+#include "pkt-var.h"
+#include "decode.h"
+#include "conf.h"
+#include "app-layer-protos.h"
+#include "stream.h"
+#include "util-misc.h"
+#include "util-mem.h"
 #include "util-debug.h"
+#endif
+
 #include "util-byte.h"
 #include "util-enum.h"
-#include "util-mem.h"
-#include "util-misc.h"
-
-#include "stream.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-enip.h"
 #include "app-layer-enip-common.h"
 
 #include "app-layer-detect-proto.h"
 
-#include "conf.h"
-#include "decode.h"
-
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "pkt-var.h"
-#include "util-profiling.h"
-
 
 SCEnumCharMap enip_decoder_event_table[ ] = {
     { NULL,                         -1 },

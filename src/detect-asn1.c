@@ -22,20 +22,21 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-byte.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "flow.h"
+#include "detect.h"
 #include "decode.h"
+#include "debug.h"
+#endif
 #include "rust.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "flow.h"
 #include "detect-asn1.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-debug.h"
 
 static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);

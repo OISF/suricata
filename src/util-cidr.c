@@ -24,8 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "util-cidr.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#endif
+#include "util-cidr.h"
 
 /** \brief turn 32 bit mask into CIDR
  *  \retval cidr cidr value or -1 if the netmask can't be expressed as cidr

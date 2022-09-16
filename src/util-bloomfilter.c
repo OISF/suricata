@@ -24,8 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "util-bloomfilter.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#endif
+#include "util-bloomfilter.h"
 
 BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter,
                              uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t)) {

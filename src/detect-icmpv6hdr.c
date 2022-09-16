@@ -23,16 +23,18 @@
  */
 
 #include "suricata-common.h"
-
-#include "detect.h"
+#ifdef UNITTESTS
+#include "util-validate.h"
+#include "detect-fast-pattern.h"
+#include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 #include "detect-parse.h"
+#include "detect.h"
+#endif
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-fast-pattern.h"
 #include "detect-icmpv6hdr.h"
-#include "util-validate.h"
 
 /* prototypes */
 static int DetectICMPv6hdrSetup (DetectEngineCtx *, Signature *, const char *);

@@ -21,17 +21,17 @@
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  */
 #include "suricata-common.h"
-#include "tm-threads.h"
+#ifdef HAVE_NFLOG
+#include "source-nflog.h"
+#include "util-misc.h"
+#include "util-runmodes.h"
+#include "util-device.h"
+#include "util-debug.h"
 #include "conf.h"
+#include "tm-threads.h"
+#endif
 #include "runmodes.h"
 #include "runmode-nflog.h"
-
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-misc.h"
-
-#include "source-nflog.h"
 
 #ifdef HAVE_NFLOG
 #include "util-time.h"

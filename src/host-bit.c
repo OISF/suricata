@@ -29,13 +29,15 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "host-bit.h"
-#include "host.h"
-#include "detect.h"
-#include "util-var.h"
-#include "util-debug.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#include "util-debug.h"
+#include "util-var.h"
+#include "detect.h"
+#include "host.h"
+#include "threads.h"
+#endif
+#include "host-bit.h"
 #include "host-storage.h"
 
 static HostStorageId host_bit_id = { .id = -1 }; /**< Host storage id for bits */

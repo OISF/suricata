@@ -24,18 +24,20 @@
  */
 
 #include "suricata-common.h"
+#ifdef PROFILING
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp-inline.h"
+#include "conf.h"
+#include "util-print.h"
+#include "app-layer.h"
 #include "tm-modules.h"
+#endif
 #include "output.h"
 #include "output-streaming.h"
-#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "util-print.h"
-#include "conf.h"
 #include "util-profiling.h"
 #include "stream-tcp.h"
-#include "stream-tcp-inline.h"
-#include "stream-tcp-reassemble.h"
 #include "util-validate.h"
 
 /** per thread data for this module, contains a list of per thread

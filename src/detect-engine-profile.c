@@ -23,13 +23,15 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-content.h"
-#include "output-json.h"
-#include "util-buffer.h"
+#ifdef PROFILING
 #include "util-print.h"
+#include "util-buffer.h"
+#include "output-json.h"
+#include "detect-content.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "suricata.h"
+#endif
 #include "detect-engine-profile.h"
 
 #ifdef PROFILING

@@ -34,13 +34,13 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
-
-#include "util-unittest.h"
-
-#include "app-layer-detect-proto.h"
+#ifdef UNITTESTS
 #include "app-layer-parser.h"
+#include "app-layer-detect-proto.h"
+#include "util-unittest.h"
+#include "conf.h"
+#include "stream.h"
+#endif
 
 #include "app-layer-template-rust.h"
 #include "rust.h"

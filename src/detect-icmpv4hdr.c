@@ -23,8 +23,10 @@
  */
 
 #include "suricata-common.h"
-
+#ifdef UNITTESTS
 #include "detect.h"
+#endif
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-icmpv4hdr.h"

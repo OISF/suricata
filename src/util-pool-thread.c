@@ -30,10 +30,12 @@
  */
 
 #include "suricata-common.h"
-#include "util-pool.h"
-#include "util-pool-thread.h"
-#include "util-unittest.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
+#include "util-unittest.h"
+#include "util-pool.h"
+#endif
+#include "util-pool-thread.h"
 
 /**
  *  \brief per thread Pool, initialization function

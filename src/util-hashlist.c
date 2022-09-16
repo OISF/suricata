@@ -27,9 +27,11 @@
  */
 
 #include "suricata-common.h"
-#include "util-hashlist.h"
-#include "util-unittest.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
+#include "util-unittest.h"
+#endif
+#include "util-hashlist.h"
 #include "util-memcmp.h"
 
 HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {

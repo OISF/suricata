@@ -30,7 +30,6 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "util-debug.h"
 #include "util-spm-bs.h"
 
 
