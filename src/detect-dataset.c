@@ -38,6 +38,8 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-misc.h"
+#include "util-path.h"
+#include "util-conf.h"
 
 int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

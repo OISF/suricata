@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "util-unittest.h"
 #include "util-storage.h"
+#include "util-debug.h"
 
 typedef struct StorageMapping_ {
     const char *name;

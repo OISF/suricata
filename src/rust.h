@@ -18,7 +18,9 @@
 #ifndef __RUST_H__
 #define __RUST_H__
 
-#include "util-lua.h"
+#include "app-layer-events.h"
+#include "util-file.h"
+
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 #include "rust-context.h"

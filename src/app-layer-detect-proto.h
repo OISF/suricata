@@ -25,6 +25,9 @@
 #ifndef __APP_LAYER_DETECT_PROTO__H__
 #define __APP_LAYER_DETECT_PROTO__H__
 
+#include "flow.h"
+#include "app-layer-protos.h"
+
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
 typedef AppProto (*ProbingParserFPtr)(

@@ -25,6 +25,8 @@
 #ifndef DEFRAG_CONFIG_H_
 #define DEFRAG_CONFIG_H_
 
+#include "decode.h"
+
 void DefragSetDefaultTimeout(intmax_t timeout);
 void DefragPolicyLoadFromConfig(void);
 int DefragPolicyGetHostTimeout(Packet *p);

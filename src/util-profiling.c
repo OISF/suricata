@@ -27,20 +27,15 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "detect-engine-prefilter.h"
-#include "conf.h"
-#include "flow-worker.h"
-
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-byte.h"
 #include "util-profiling.h"
-#include "util-profiling-locks.h"
 
 #ifdef PROFILING
+#include "tm-threads.h"
+#include "conf.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "util-profiling-locks.h"
+#include "util-conf.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

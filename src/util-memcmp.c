@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-
 #include "util-memcmp.h"
 #include "util-unittest.h"
 
@@ -32,6 +31,7 @@
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "util-debug.h"
 
 static int MemcmpTest01 (void)
 {
@@ -372,7 +372,6 @@ static int MemcmpTest18 (void)
 
         if (SCMemcmpLowercase(t->a, t->b, strlen(t->a)-1) != t->result)
             return 0;
-        SCLogInfo("ok");
         t++;
     }
 

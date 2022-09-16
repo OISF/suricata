@@ -24,6 +24,7 @@
 #ifndef __UTIL_LOGOPENFILE_H__
 #define __UTIL_LOGOPENFILE_H__
 
+#include "threads.h"
 #include "conf.h"            /* ConfNode   */
 #include "util-buffer.h"
 

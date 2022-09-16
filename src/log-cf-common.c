@@ -29,6 +29,7 @@
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-time.h"
+#include "util-debug.h"
 
 /**
  *  \brief Creates a custom format node

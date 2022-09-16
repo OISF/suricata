@@ -24,34 +24,28 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
-#include "decode.h"
-#include "threads.h"
+#include "app-layer-parser.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-
-#include "flow-util.h"
+#include "flow.h"
 #include "flow-private.h"
+#include "flow-util.h"
 
-#include "detect-engine-state.h"
-#include "detect-engine-port.h"
+#include "app-layer-frames.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream.h"
-#include "stream-tcp-reassemble.h"
+
+#include "util-validate.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
+
+#include "app-layer-ftp.h"
+#include "app-layer-smtp.h"
+
 #include "app-layer-smb.h"
 #include "app-layer-htp.h"
-#include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
-#include "app-layer-smtp.h"
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
@@ -61,27 +55,15 @@
 #include "app-layer-tftp.h"
 #include "app-layer-ike.h"
 #include "app-layer-krb5.h"
-#include "app-layer-snmp.h"
 #include "app-layer-sip.h"
 #include "app-layer-rfb.h"
 #include "app-layer-mqtt.h"
+#include "app-layer-snmp.h"
 #include "app-layer-quic.h"
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
 #include "app-layer-rdp.h"
 #include "app-layer-http2.h"
-
-#include "conf.h"
-#include "util-spm.h"
-
-#include "util-debug.h"
-#include "decode-events.h"
-#include "util-unittest-helper.h"
-#include "util-validate.h"
-
-#include "runmodes.h"
-
-#include "rust.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
@@ -1840,6 +1822,7 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
 
 static AppLayerParserCtx alp_ctx_backup_unittest;
 

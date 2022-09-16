@@ -24,6 +24,7 @@
 #ifndef __FLOW_UTIL_H__
 #define __FLOW_UTIL_H__
 
+#include "flow.h"
 #include "stream-tcp-private.h"
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)

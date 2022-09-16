@@ -26,6 +26,7 @@
 #ifndef __THASH_H__
 #define __THASH_H__
 
+#include "threads.h"
 
 /** Spinlocks or Mutex for the buckets. */
 //#define HRLOCK_SPIN

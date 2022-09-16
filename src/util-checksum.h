@@ -24,6 +24,8 @@
 #ifndef __UTIL_CHECKSUM_H__
 #define __UTIL_CHECKSUM_H__
 
+#include "decode.h"
+
 int ReCalculateChecksum(Packet *p);
 int ChecksumAutoModeCheck(uint64_t thread_count,
         uint64_t iface_count, uint64_t iface_fail);
