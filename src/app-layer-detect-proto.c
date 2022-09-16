@@ -517,7 +517,7 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f, const uint8_t *buf, uint3
     const AppLayerProtoDetectProbingParserElement *pe1 = NULL;
     const AppLayerProtoDetectProbingParserElement *pe2 = NULL;
     AppProto alproto = ALPROTO_UNKNOWN;
-    uint32_t *alproto_masks;
+    uint32_t *alproto_masks = NULL;
     uint32_t mask = 0;
     uint8_t idir = (flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
     uint8_t dir = idir;
