@@ -27,6 +27,7 @@
 
 #include "conf.h"
 #include "util-streaming-buffer.h"
+#include "flow.h"
 
 /* Hack: Pulling rust.h to get the SCSha256 causes all sorts of problems with
  *   header include orders, which is something we'll have to resolve as we provide

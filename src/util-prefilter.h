@@ -24,6 +24,8 @@
 #ifndef __UTIL_PREFILTER_H__
 #define __UTIL_PREFILTER_H__
 
+#include "util-debug.h"
+
 /** \brief structure for storing potential rule matches
  *
  *  Helper structure for the prefilter engine. The Pattern Matchers
@@ -79,4 +81,10 @@ PrefilterAddSids(PrefilterRuleStore *pmq, SigIntId *sids, uint32_t sids_size)
     } while (ptr != end);
     pmq->rule_id_array_cnt += sids_size;
 }
+
+int PmqSetup(PrefilterRuleStore *);
+void PmqReset(PrefilterRuleStore *);
+void PmqCleanup(PrefilterRuleStore *);
+void PmqFree(PrefilterRuleStore *);
+
 #endif /* __UTIL_PREFILTER_H__ */

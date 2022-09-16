@@ -47,6 +47,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-conf.h"
 
 #ifdef HAVE_LUA
 

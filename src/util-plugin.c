@@ -21,6 +21,7 @@
 #include "runmodes.h"
 #include "output-eve-syslog.h"
 #include "util-plugin.h"
+#include "util-debug.h"
 
 #ifdef HAVE_PLUGINS
 

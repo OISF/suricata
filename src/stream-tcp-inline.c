@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "decode.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
 

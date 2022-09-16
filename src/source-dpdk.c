@@ -32,6 +32,7 @@
 
 #include "suricata-common.h"
 #include "runmodes.h"
+#include "decode.h"
 #include "source-dpdk.h"
 #include "suricata.h"
 #include "threads.h"

@@ -25,6 +25,8 @@
 #ifndef __UTIL_MPM_AC__H__
 #define __UTIL_MPM_AC__H__
 
+#include "util-mpm.h"
+
 #define SC_AC_STATE_TYPE_U16 uint16_t
 #define SC_AC_STATE_TYPE_U32 uint32_t
 

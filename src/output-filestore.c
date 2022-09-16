@@ -16,21 +16,19 @@
  */
 
 #include "suricata-common.h"
+#include "output-filestore.h"
 
 #include "stream-tcp.h"
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
-#include "app-layer-smtp.h"
 
 #include "feature.h"
 
 #include "output.h"
-#include "output-filestore.h"
 #include "output-json-file.h"
 
-#include "util-print.h"
+#include "util-conf.h"
 #include "util-misc.h"
+#include "util-path.h"
+#include "util-print.h"
 
 #define MODULE_NAME "OutputFilestore"
 

@@ -39,6 +39,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-misc.h"
+#include "util-path.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static DetectParseRegex parse_regex;

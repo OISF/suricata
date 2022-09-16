@@ -24,6 +24,8 @@
 #ifndef __FLOW_HASH_H__
 #define __FLOW_HASH_H__
 
+#include "flow.h"
+
 /** Spinlocks or Mutex for the flow buckets. */
 //#define FBLOCK_SPIN
 #define FBLOCK_MUTEX

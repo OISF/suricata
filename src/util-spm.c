@@ -44,7 +44,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "util-unittest.h"
 
 #include "conf.h"
@@ -58,6 +57,7 @@
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"
 #endif
+#include "util-debug.h"
 
 SpmTableElmt spm_table[SPM_TABLE_SIZE];
 

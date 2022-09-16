@@ -27,6 +27,7 @@
 #define __FLOW_STORAGE_H__
 
 #include "flow.h"
+#include "util-storage.h"
 
 typedef struct FlowStorageId {
     int id;

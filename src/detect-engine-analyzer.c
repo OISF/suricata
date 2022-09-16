@@ -40,6 +40,7 @@
 #include "util-print.h"
 #include "util-time.h"
 #include "util-validate.h"
+#include "util-conf.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;

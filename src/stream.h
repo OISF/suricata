@@ -24,6 +24,7 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
+#include "decode.h"
 #include "stream-tcp-private.h"
 
 #define STREAM_FLAGS_FOR_PACKET(p) PKT_IS_TOSERVER((p)) ? STREAM_TOSERVER : STREAM_TOCLIENT

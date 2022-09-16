@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-prefilter.h"
 
 /**
  *  \brief Setup a pmq

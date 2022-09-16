@@ -26,6 +26,7 @@
 #include "flow-util.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
+#include "util-conf.h"
 
 #include <fuzz_pcap.h>
 
@@ -138,7 +139,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
         }
         r = FPC_next(&pkts, &header, &pkt);
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
         p->ts.tv_sec = header.ts.tv_sec;
         p->ts.tv_usec = header.ts.tv_usec % 1000000;
         p->datalink = pkts.datalink;

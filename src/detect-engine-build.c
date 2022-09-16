@@ -41,6 +41,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-var-name.h"
+#include "util-conf.h"
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {

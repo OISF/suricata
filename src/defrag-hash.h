@@ -26,6 +26,7 @@
 
 #include "decode.h"
 #include "defrag.h"
+#include "util-exception-policy.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
 //#define DRLOCK_SPIN

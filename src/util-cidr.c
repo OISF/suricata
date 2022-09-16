@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "util-cidr.h"
+#include "util-debug.h"
 #include "util-unittest.h"
 
 /** \brief turn 32 bit mask into CIDR

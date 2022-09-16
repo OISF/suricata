@@ -31,19 +31,11 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
-#include "decode.h"
 #include "decode-ipv6.h"
-#include "decode-icmpv6.h"
-#include "decode-events.h"
+#include "decode.h"
 #include "defrag.h"
-#include "pkt-var.h"
-#include "util-debug.h"
 #include "util-print.h"
-#include "util-unittest.h"
-#include "util-profiling.h"
 #include "util-validate.h"
-#include "host.h"
 
 /**
  * \brief Function to decode IPv4 in IPv6 packets
@@ -657,6 +649,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 }
 
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
 
 /**
  * \test fragment decoding
@@ -809,13 +802,13 @@ static int DecodeIPV6FragTest01 (void)
 
     result = 1;
 end:
-    PACKET_RECYCLE(p1);
-    PACKET_RECYCLE(p2);
+    PacketRecycle(p1);
+    PacketRecycle(p2);
     SCFree(p1);
     SCFree(p2);
     pkt = PacketDequeueNoLock(&tv.decode_pq);
     while (pkt != NULL) {
-        PACKET_RECYCLE(pkt);
+        PacketRecycle(pkt);
         SCFree(pkt);
         pkt = PacketDequeueNoLock(&tv.decode_pq);
     }
@@ -857,7 +850,7 @@ static int DecodeIPV6RouteTest01 (void)
 
     FAIL_IF (!(IPV6_EXTHDR_ISSET_RH(p1)));
     FAIL_IF (p1->ip6eh.rh_type != 0);
-    PACKET_RECYCLE(p1);
+    PacketRecycle(p1);
     SCFree(p1);
     FlowShutdown();
     PASS;
@@ -892,7 +885,7 @@ static int DecodeIPV6HopTest01 (void)
 
     FAIL_IF (!(ENGINE_ISSET_EVENT(p1, IPV6_HOPOPTS_UNKNOWN_OPT)));
 
-    PACKET_RECYCLE(p1);
+    PacketRecycle(p1);
     SCFree(p1);
     FlowShutdown();
     PASS;

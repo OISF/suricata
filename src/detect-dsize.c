@@ -332,7 +332,7 @@ void SigParseApplyDsizeToContent(Signature *s)
  */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "util-unittest-helper.h"
 
 /**
  * \test this is a test for a valid dsize value 1
@@ -597,7 +597,7 @@ static int DetectDsizeIcmpv6Test01(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
 

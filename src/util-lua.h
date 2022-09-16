@@ -31,11 +31,8 @@
 typedef void lua_State;
 
 #else
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
+#include "threadvars.h"
+#include "detect.h"
 
 typedef struct LuaStreamingBuffer_ {
     const uint8_t *data;
