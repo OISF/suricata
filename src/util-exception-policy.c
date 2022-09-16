@@ -120,14 +120,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
     return policy;
 }
 
-#ifndef DEBUG
-
-int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
-{
-    return 0;
-}
-
-#else
+#ifdef DEBUG
 
 /* exception policy simulation (eps) handling */
 
@@ -200,4 +193,12 @@ int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
     }
     return 1;
 }
+
+#else
+
+int ExceptionSimulationCommandlineParser(const char *name, const char *arg)
+{
+    return 0;
+}
+
 #endif

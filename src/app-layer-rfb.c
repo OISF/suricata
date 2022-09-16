@@ -32,7 +32,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-rfb.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int RFBRegisterPatternsForProtocolDetection(void)
 {
