@@ -248,13 +248,13 @@ static int DecodeVLANtest03 (void)
         goto error;
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return 1;
 
 error:
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return 0;

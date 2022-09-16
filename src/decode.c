@@ -132,7 +132,7 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
  */
 void PacketFree(Packet *p)
 {
-    PACKET_DESTRUCTOR(p);
+    PacketDestructor(p);
     SCFree(p);
 }
 
@@ -177,7 +177,7 @@ Packet *PacketGetFromAlloc(void)
     }
 
     memset(p, 0, SIZE_OF_PACKET);
-    PACKET_INITIALIZE(p);
+    PacketInit(p);
     p->ReleasePacket = PacketFree;
     p->flags |= PKT_ALLOC;
 

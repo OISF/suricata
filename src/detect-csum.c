@@ -1056,7 +1056,7 @@ static int DetectCsumICMPV6Test01(void)
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;

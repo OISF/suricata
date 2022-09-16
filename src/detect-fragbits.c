@@ -592,7 +592,7 @@ static int FragBitsTestParse04 (void)
     FAIL_IF(ret);
     SCFree(de);
     SCFree(sm);
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;

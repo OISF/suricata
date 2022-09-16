@@ -1262,7 +1262,7 @@ static int DecodeIPV4DefragTest01(void)
         result = 0;
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1272,7 +1272,7 @@ static int DecodeIPV4DefragTest01(void)
         result = 0;
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1313,12 +1313,12 @@ static int DecodeIPV4DefragTest01(void)
             goto end;
     }
 
-    PACKET_RECYCLE(tp);
+    PacketRecycle(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return result;
@@ -1396,7 +1396,7 @@ static int DecodeIPV4DefragTest02(void)
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1405,7 +1405,7 @@ static int DecodeIPV4DefragTest02(void)
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     p->recursion_level = 3;
     PacketCopyData(p, pkt3, sizeof(pkt3));
@@ -1443,12 +1443,12 @@ static int DecodeIPV4DefragTest02(void)
     }
 
     result = 1;
-    PACKET_RECYCLE(tp);
+    PacketRecycle(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return result;
@@ -1527,7 +1527,7 @@ static int DecodeIPV4DefragTest03(void)
         result = 0;
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1537,7 +1537,7 @@ static int DecodeIPV4DefragTest03(void)
         result = 0;
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1547,7 +1547,7 @@ static int DecodeIPV4DefragTest03(void)
         result = 0;
         goto end;
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
@@ -1598,12 +1598,12 @@ static int DecodeIPV4DefragTest03(void)
             goto end;
     }
 
-    PACKET_RECYCLE(tp);
+    PacketRecycle(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return result;
