@@ -61,6 +61,7 @@ static long int RandomGetPosix(void)
 #endif /* !(defined(HAVE_WINCRYPT_H) &&  defined(OS_WIN32)) */
 
 #if defined(HAVE_WINCRYPT_H) && defined(OS_WIN32)
+#include "util-debug.h"
 #include <wincrypt.h>
 
 long int RandomGet(void)

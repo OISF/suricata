@@ -68,7 +68,7 @@
 #include "flow-bit.h"
 #include "flow-storage.h"
 
-#include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 
 #include "suricata-plugin.h"
 

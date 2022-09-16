@@ -31,7 +31,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 /**
  *   [ike.chosen_sa_attribute]:<sa_attribute>=<type>;
