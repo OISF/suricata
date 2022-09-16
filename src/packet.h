@@ -20,10 +20,10 @@
 
 #include "decode.h"
 
-void PACKET_INITIALIZE(Packet *p);
-void PACKET_RELEASE_REFS(Packet *p);
-void PACKET_REINIT(Packet *p);
-void PACKET_RECYCLE(Packet *p);
-void PACKET_DESTRUCTOR(Packet *p);
+void PacketInit(Packet *p);
+void PacketReleaseRefs(Packet *p);
+void PacketReinit(Packet *p);
+void PacketRecycle(Packet *p);
+void PacketDestructor(Packet *p);
 
 #endif

@@ -161,7 +161,7 @@ static int DecodeVNTagtest03(void)
 
     FAIL_IF(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     PacketFree(p);
     PASS;

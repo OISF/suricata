@@ -630,7 +630,7 @@ static int ICMPV6ParamProbTest01(void)
             p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -688,7 +688,7 @@ static int ICMPV6PktTooBigTest01(void)
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -746,7 +746,7 @@ static int ICMPV6TimeExceedTest01(void)
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -802,7 +802,7 @@ static int ICMPV6DestUnreachTest01(void)
             p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -846,7 +846,7 @@ static int ICMPV6EchoReqTest01(void)
         FAIL;
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -892,7 +892,7 @@ static int ICMPV6EchoRepTest01(void)
         FAIL;
     }
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -935,7 +935,7 @@ static int ICMPV6ParamProbTest02(void)
     FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0);
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -976,7 +976,7 @@ static int ICMPV6PktTooBigTest02(void)
     FAIL_IF_NULL(p->icmpv6h);
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1013,7 +1013,7 @@ static int ICMPV6TimeExceedTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_PKT_TOO_SMALL));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1053,7 +1053,7 @@ static int ICMPV6DestUnreachTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1089,7 +1089,7 @@ static int ICMPV6EchoReqTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1125,7 +1125,7 @@ static int ICMPV6EchoRepTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1165,7 +1165,7 @@ static int ICMPV6PayloadTest01(void)
     FAIL_IF_NULL(p->payload);
     FAIL_IF(p->payload_len != 37);
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1197,7 +1197,7 @@ static int ICMPV6RouterSolicitTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1229,7 +1229,7 @@ static int ICMPV6RouterSolicitTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1261,7 +1261,7 @@ static int ICMPV6RouterAdvertTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1293,7 +1293,7 @@ static int ICMPV6RouterAdvertTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1325,7 +1325,7 @@ static int ICMPV6NeighbourSolicitTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1357,7 +1357,7 @@ static int ICMPV6NeighbourSolicitTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1389,7 +1389,7 @@ static int ICMPV6NeighbourAdvertTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1421,7 +1421,7 @@ static int ICMPV6NeighbourAdvertTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1453,7 +1453,7 @@ static int ICMPV6RedirectTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1485,7 +1485,7 @@ static int ICMPV6RedirectTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;
@@ -1539,7 +1539,7 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
     FAIL_IF(ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
             (uint16_t *)p->icmpv6h, icmpv6_len) != csum);
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     PASS;

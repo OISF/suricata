@@ -3396,7 +3396,7 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
 
     SCFree(p);
@@ -3418,7 +3418,7 @@ end:
              DetectEngineCtxFree(de_ctx);
 
     if (p != NULL)
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
 
     FlowShutdown();
 
@@ -3521,7 +3521,7 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
 
     SCFree(p);
@@ -3541,7 +3541,7 @@ end:
         DetectEngineCtxFree(de_ctx);
 
     if (p != NULL)
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
 
     FlowShutdown();
 
@@ -4289,19 +4289,19 @@ end:
         DetectEngineCtxFree(de_ctx);
 
     if (p1 != NULL) {
-        PACKET_RECYCLE(p1);
+        PacketRecycle(p1);
         SCFree(p1);
     }
     if (p2 != NULL) {
-        PACKET_RECYCLE(p2);
+        PacketRecycle(p2);
         SCFree(p2);
     }
     if (p3 != NULL) {
-        PACKET_RECYCLE(p3);
+        PacketRecycle(p3);
         SCFree(p3);
     }
     if (p4 != NULL) {
-        PACKET_RECYCLE(p4);
+        PacketRecycle(p4);
         SCFree(p4);
     }
     FlowShutdown();

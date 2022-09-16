@@ -1101,7 +1101,7 @@ static Packet *BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
     if (unlikely(p == NULL))
         return NULL;
 
-    PACKET_INITIALIZE(p);
+    PacketInit(p);
 
     gettimeofday(&p->ts, NULL);
     //p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
@@ -1171,7 +1171,7 @@ static Packet *IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off,
     if (unlikely(p == NULL))
         return NULL;
 
-    PACKET_INITIALIZE(p);
+    PacketInit(p);
 
     gettimeofday(&p->ts, NULL);
 

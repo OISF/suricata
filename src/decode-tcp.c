@@ -403,7 +403,7 @@ static int TCPGetWscaleTest01(void)
 
     retval = 1;
 end:
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return retval;
@@ -449,7 +449,7 @@ static int TCPGetWscaleTest02(void)
 
     retval = 1;
 end:
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return retval;
@@ -494,7 +494,7 @@ static int TCPGetWscaleTest03(void)
 
     retval = 1;
 end:
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return retval;
@@ -559,7 +559,7 @@ static int TCPGetSackTest01(void)
 
     retval = 1;
 end:
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
     return retval;

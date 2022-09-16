@@ -24,7 +24,7 @@
 /**
  *  \brief Initialize a packet structure for use.
  */
-void PACKET_INITIALIZE(Packet *p)
+void PacketInit(Packet *p)
 {
     SCMutexInit(&p->tunnel_mutex, NULL);
     p->alerts.alerts = PacketAlertCreate();
@@ -32,7 +32,7 @@ void PACKET_INITIALIZE(Packet *p)
     p->livedev = NULL;
 }
 
-void PACKET_RELEASE_REFS(Packet *p)
+void PacketReleaseRefs(Packet *p)
 {
     FlowDeReference(&p->flow);
     HostDeReference(&p->host_src);
@@ -42,7 +42,7 @@ void PACKET_RELEASE_REFS(Packet *p)
 /**
  *  \brief Recycle a packet structure for reuse.
  */
-void PACKET_REINIT(Packet *p)
+void PacketReinit(Packet *p)
 {
     CLEAR_ADDR(&p->src);
     CLEAR_ADDR(&p->dst);
@@ -118,18 +118,18 @@ void PACKET_REINIT(Packet *p)
     p->nb_decoded_layers = 0;
 }
 
-void PACKET_RECYCLE(Packet *p)
+void PacketRecycle(Packet *p)
 {
-    PACKET_RELEASE_REFS(p);
-    PACKET_REINIT(p);
+    PacketReleaseRefs(p);
+    PacketReinit(p);
 }
 
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
-void PACKET_DESTRUCTOR(Packet *p)
+void PacketDestructor(Packet *p)
 {
-    PACKET_RELEASE_REFS(p);
+    PacketReleaseRefs(p);
     if (p->pktvar != NULL) {
         PktVarFree(p->pktvar);
     }

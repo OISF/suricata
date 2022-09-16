@@ -178,7 +178,7 @@ Packet *PacketPoolGetPacket(void)
         Packet *p = pool->head;
         pool->head = p->next;
         p->pool = pool;
-        PACKET_REINIT(p);
+        PacketReinit(p);
         return p;
     }
 
@@ -194,7 +194,7 @@ Packet *PacketPoolGetPacket(void)
         Packet *p = pool->head;
         pool->head = p->next;
         p->pool = pool;
-        PACKET_REINIT(p);
+        PacketReinit(p);
         return p;
     }
 
@@ -215,7 +215,7 @@ void PacketPoolReturnPacket(Packet *p)
         return;
     }
 
-    PACKET_RELEASE_REFS(p);
+    PacketReleaseRefs(p);
 
 #ifdef DEBUG_VALIDATION
     BUG_ON(pool->initialized == 0);
@@ -446,14 +446,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     if (proot == true) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
 
-        PACKET_RELEASE_REFS(p->root);
+        PacketReleaseRefs(p->root);
         p->root->ReleasePacket(p->root);
         p->root = NULL;
     }
 
     PACKET_PROFILING_END(p);
 
-    PACKET_RELEASE_REFS(p);
+    PacketReleaseRefs(p);
     p->ReleasePacket(p);
 
     SCReturn;

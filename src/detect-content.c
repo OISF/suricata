@@ -1125,7 +1125,7 @@ end:
             DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
-    PACKET_RECYCLE(p);
+    PacketRecycle(p);
     FlowShutdown();
 
     SCFree(p);
