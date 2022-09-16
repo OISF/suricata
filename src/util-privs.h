@@ -24,6 +24,8 @@
 #ifndef _UTIL_PRIVS_H
 #define	_UTIL_PRIVS_H
 
+#include "threadvars.h"
+
 #define SC_CAP_NONE             0x01
 #define SC_CAP_SYS_ADMIN        0x02
 #define SC_CAP_SYS_RAW_IO       0x04

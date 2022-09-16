@@ -16,9 +16,8 @@
  * 02110-1301, USA.
  */
 
-#include "../detect-engine.h"
 #include "../util-unittest.h"
-#include "../detect-engine-build.h"
+#include "../util-unittest-helper.h"
 
 /**
  * \test DetectTtlParseTest01 is a test for setting up an valid ttl value.

@@ -12,6 +12,7 @@
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 #include "conf-yaml-loader.h"
+#include "util-conf.h"
 
 #define HEADER_LEN 6
 

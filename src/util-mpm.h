@@ -180,11 +180,6 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, 
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
 int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
-int PmqSetup(PrefilterRuleStore *);
-void PmqReset(PrefilterRuleStore *);
-void PmqCleanup(PrefilterRuleStore *);
-void PmqFree(PrefilterRuleStore *);
-
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 

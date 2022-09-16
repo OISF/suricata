@@ -39,8 +39,8 @@
  * Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
+#include <htp/htp.h>
 #include "app-layer-htp-libhtp.h"
 
 /**

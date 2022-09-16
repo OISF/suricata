@@ -24,10 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "feature.h"
+#include "threads.h"
 
-#include "util-hash.h"
+#include "util-debug.h"
+#include "util-hashlist.h"
 
 typedef struct FeatureEntryType {
 	const char *feature;

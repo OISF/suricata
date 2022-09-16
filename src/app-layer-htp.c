@@ -3233,6 +3233,8 @@ void RegisterHTPParsers(void)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
+
 static HTPCfgRec cfglist_backup;
 
 void HtpConfigCreateBackup(void)

@@ -17,7 +17,7 @@ memset(p@p1, 0, ...);
 (
 p->pkt
 |
-PACKET_INITIALIZE(p)
+PacketInit(p)
 )
 
 @script:python depends on !isset@

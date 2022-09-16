@@ -21,11 +21,11 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "runmode-unittests.h"
+#include "util-unittest.h"
 
+#include "util-debug.h"
 #ifdef UNITTESTS
-
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-address.h"

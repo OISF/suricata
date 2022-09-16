@@ -18,6 +18,8 @@
 #ifndef __UTIL_HASH_STRING_H__
 #define __UTIL_HASH_STRING_H__
 
+#include "util-hash.h"
+
 uint32_t StringHashDjb2(const uint8_t *data, uint32_t datalen);
 uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char StringHashCompareFunc(void *data1, uint16_t datalen1,

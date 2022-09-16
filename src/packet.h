@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,22 +15,15 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- */
+#ifndef __PACKET_H__
+#define __PACKET_H__
 
-#ifndef __UTIL_PROFILE_LOCKS_H__
-#define __UTIL_PROFILE_LOCKS_H__
+#include "decode.h"
 
-#ifdef PROFILING
+void PacketInit(Packet *p);
+void PacketReleaseRefs(Packet *p);
+void PacketReinit(Packet *p);
+void PacketRecycle(Packet *p);
+void PacketDestructor(Packet *p);
 
-void SCProfilingAddPacketLocks(void *);
-
-int LockRecordInitHash(void);
-void LockRecordFreeHash(void);
-
-#endif /* PROFILING */
-#endif /* __UTIL_PROFILE_LOCKS_H__ */
-
+#endif

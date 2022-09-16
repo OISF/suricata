@@ -26,11 +26,9 @@
 #ifndef MIME_DECODE_H_
 #define MIME_DECODE_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
+#include "conf.h"
 #include "util-base64.h"
+#include "util-file.h"
 
 /* Content Flags */
 #define CTNT_IS_MSG           1

@@ -49,6 +49,7 @@
 #include "util-profiling.h"
 
 #include "app-layer.h"
+#include "app-layer-htp.h"
 
 #include "stream-tcp.h"
 

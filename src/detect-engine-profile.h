@@ -24,6 +24,8 @@
 #ifndef _DETECT_ENGINE_PROFILE_H
 #define	_DETECT_ENGINE_PROFILE_H
 
+#include "detect.h"
+
 void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         const Packet *p, const uint64_t tx_id, const uint32_t rule_cnt,
         const uint32_t pkt_prefilter_cnt);

@@ -22,29 +22,14 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
-
-#include "output.h"
 #include "log-tcp-data.h"
-#include "app-layer-htp.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
 
+#include "threadvars.h"
+
+#include "util-conf.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
+#include "util-path.h"
+#include "util-print.h"
 
 #define DEFAULT_LOG_FILENAME "tcp-data.log"
 

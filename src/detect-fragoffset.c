@@ -327,8 +327,7 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "util-unittest-helper.h"
 
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value

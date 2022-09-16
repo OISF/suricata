@@ -25,6 +25,8 @@
 
 #include "suricata-common.h"
 #include "util-debug-filters.h"
+#include "threads.h"
+#include "util-debug.h"
 
 /* both of these are defined in util-debug.c */
 extern int sc_log_module_initialized;

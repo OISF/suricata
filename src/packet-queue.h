@@ -24,6 +24,8 @@
 #ifndef __PACKET_QUEUE_H__
 #define __PACKET_QUEUE_H__
 
+#include "threads.h"
+
 /** \brief simple fifo queue for packets
  *
  *  \note PacketQueueNoLock and PacketQueue need to keep identical

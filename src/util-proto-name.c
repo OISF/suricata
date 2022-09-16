@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "util-hash-string.h"
 #include "util-proto-name.h"
+#include "util-debug.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
