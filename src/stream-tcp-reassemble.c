@@ -734,6 +734,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_DEPTH_REACHED);
         /* increment stream depth counter */
         StatsIncr(tv, ra_ctx->counter_tcp_stream_depth);
+        p->flags |= PKT_APPLAYER_UPDATE;
     }
     if (size == 0) {
         SCLogDebug("ssn %p: depth reached, not reassembling", ssn);
