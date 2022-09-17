@@ -574,9 +574,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             FramesPrune(p->flow, p);
         }
 
-        /* run tx cleanup last */
-        AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
-
+        if ((PKT_IS_PSEUDOPKT(p)) || ((p->flags & PKT_APPLAYER_UPDATE) != 0)) {
+            SCLogDebug("pseudo or app update: run cleanup");
+            /* run tx cleanup last */
+            AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
+        } else {
+            SCLogDebug("not pseudo, no app update: skip");
+        }
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);
