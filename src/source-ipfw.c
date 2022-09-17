@@ -129,7 +129,6 @@ static SCMutex ipfw_init_lock;
 /* IPFW Prototypes */
 static void *IPFWGetQueue(int number);
 static TmEcode ReceiveIPFWThreadInit(ThreadVars *, const void *, void **);
-static TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *);
 static TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
 static void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
