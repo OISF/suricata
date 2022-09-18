@@ -344,7 +344,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     SCLogDebug("pcap_cnt %u tx logging %u/%s", (uint32_t)p->pcap_cnt, alproto,
             AppProtoToString(alproto));
 
-    if (op_thread_data->file == NULL && op_thread_data->filedata == NULL) {
+    const bool file_logging_active = (op_thread_data->file || op_thread_data->filedata);
+    if (!file_logging_active) {
         if (list[alproto] == NULL && list[ALPROTO_UNKNOWN] == NULL) {
             SCLogDebug("bail");
             /* No child loggers registered. */
@@ -353,18 +354,17 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
             goto end;
     }
+    void *alstate = f->alstate;
+    if (alstate == NULL) {
+        SCLogDebug("no alstate");
+        goto end;
+    }
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(p->proto, alproto);
     if (logger_expectation == 0) {
         SCLogDebug("bail: logger_expectation %u. LOGGER_FILE %u LOGGER_FILEDATA %u",
                 logger_expectation, LOGGER_FILE, LOGGER_FILEDATA);
         goto end;
     }
-    void *alstate = f->alstate;
-    if (alstate == NULL) {
-        SCLogDebug("no alstate");
-        goto end;
-    }
-
     SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
 
     const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
@@ -384,7 +384,6 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     uint64_t max_id = tx_id;
     int logged = 0;
     int gap = 0;
-    const bool file_logging_active = (op_thread_data->file || op_thread_data->filedata);
     const bool support_files = AppLayerParserSupportsFiles(p->proto, alproto);
     const uint8_t pkt_dir = STREAM_FLAGS_FOR_PACKET(p);
 
