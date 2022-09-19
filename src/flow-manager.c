@@ -787,6 +787,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     while (!TimeModeIsReady()) {
         if (suricata_ctl_flags != 0)
             return TM_ECODE_OK;
+        usleep(10);
     }
 
     uint32_t mp = MemcapsGetPressure() * 100;
