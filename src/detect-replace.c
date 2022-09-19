@@ -112,7 +112,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
             return 0;
     }
 
-    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len, NULL);
     if (ret == -1)
         return -1;
 

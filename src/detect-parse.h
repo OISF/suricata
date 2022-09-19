@@ -76,6 +76,7 @@ const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);
 
 void SigTableApplyStrictCommandlineOption(const char *str);
+void SigTableClearStrictOption(const char *key);
 
 SigMatch *DetectGetLastSM(const Signature *);
 SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s);

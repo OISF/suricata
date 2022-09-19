@@ -273,7 +273,7 @@ static DetectFilemagicData *DetectFilemagicParse (DetectEngineCtx *de_ctx, const
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
 
-    if (DetectContentDataParse ("filemagic", str, &filemagic->name, &filemagic->len) == -1) {
+    if (DetectContentDataParse("filemagic", str, &filemagic->name, &filemagic->len, NULL) == -1) {
         goto error;
     }
 

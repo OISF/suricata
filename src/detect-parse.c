@@ -339,6 +339,14 @@ void SigTableApplyStrictCommandlineOption(const char *str)
     SCFree(copy);
 }
 
+void SigTableClearStrictOption(const char *key)
+{
+    SigTableElmt *st = SigTableGet((char *)key);
+    if (st != NULL) {
+        st->flags &= ~SIGMATCH_STRICT_PARSING;
+    }
+}
+
 /**
  * \brief Append a SigMatch to the list type.
  *

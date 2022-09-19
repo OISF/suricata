@@ -244,7 +244,7 @@ static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const c
 
     memset(filename, 0x00, sizeof(DetectFilenameData));
 
-    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len) == -1) {
+    if (DetectContentDataParse("filename", str, &filename->name, &filename->len, NULL) == -1) {
         goto error;
     }
 

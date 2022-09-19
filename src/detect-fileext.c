@@ -149,7 +149,7 @@ static DetectFileextData *DetectFileextParse (DetectEngineCtx *de_ctx, const cha
 
     memset(fileext, 0x00, sizeof(DetectFileextData));
 
-    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len) == -1) {
+    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len, NULL) == -1) {
         goto error;
     }
     uint16_t u;

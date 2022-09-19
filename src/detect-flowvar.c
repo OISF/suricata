@@ -150,7 +150,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     }
     SCLogDebug("varcontent %s", &varcontent[varcontent_index]);
 
-    res = DetectContentDataParse("flowvar", &varcontent[varcontent_index], &content, &contentlen);
+    res = DetectContentDataParse(
+            "flowvar", &varcontent[varcontent_index], &content, &contentlen, NULL);
     if (res == -1)
         goto error;
 
