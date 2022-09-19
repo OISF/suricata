@@ -24,6 +24,8 @@
 #ifndef __UTIL_REFERENCE_CONFIG_H__
 #define __UTIL_REFERENCE_CONFIG_H__
 
+#include "detect.h"
+
 #define REFERENCE_SYSTEM_NAME_MAX   64
 #define REFERENCE_CONTENT_NAME_MAX  1024
 
