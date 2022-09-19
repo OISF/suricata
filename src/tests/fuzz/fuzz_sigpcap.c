@@ -27,6 +27,7 @@
 #include "flow-worker.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
+#include "util-file.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -180,7 +181,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
         }
         r = pcap_next_ex(pkts, &header, &pkt);
-        PACKET_RECYCLE(p);
+        PacketRecycle(p);
         p->ts.tv_sec = header->ts.tv_sec;
         p->ts.tv_usec = header->ts.tv_usec % 1000000;
         p->datalink = pcap_datalink(pkts);
