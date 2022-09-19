@@ -67,7 +67,7 @@ jobs:
           # no need to install full clang
           apt-get install -y clang-format-9
       - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
+        run: cargo install --force --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       # Checking out the branch is not as simple as "checking out".
       #
