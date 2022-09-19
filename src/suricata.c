@@ -112,6 +112,7 @@
 #include "util-daemon.h"
 #include "util-device.h"
 #include "util-dpdk.h"
+#include "util-ebpf.h"
 #include "util-host-os-info.h"
 #include "util-ioctl.h"
 #include "util-landlock.h"
