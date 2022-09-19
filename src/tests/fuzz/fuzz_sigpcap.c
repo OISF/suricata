@@ -28,6 +28,7 @@
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
 #include "util-file.h"
+#include "util-conf.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
