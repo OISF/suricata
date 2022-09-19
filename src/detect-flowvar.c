@@ -122,6 +122,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     uint8_t *content = NULL;
     uint16_t contentlen = 0;
     uint32_t contentflags = s->init_data->negated ? DETECT_CONTENT_NEGATED : 0;
+    bool warning = false;
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
@@ -150,7 +151,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     }
     SCLogDebug("varcontent %s", &varcontent[varcontent_index]);
 
-    res = DetectContentDataParse("flowvar", &varcontent[varcontent_index], &content, &contentlen);
+    res = DetectContentDataParse(
+            "flowvar", &varcontent[varcontent_index], &content, &contentlen, &warning);
     if (res == -1)
         goto error;
 
@@ -193,7 +195,7 @@ error:
         SCFree(sm);
     if (content != NULL)
         SCFree(content);
-    return -1;
+    return warning ? -4 : -1;
 }
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */

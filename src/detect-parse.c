@@ -1911,13 +1911,11 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     if (ret == -4) {
         de_ctx->sigerror_ok = true;
         goto error;
-    }
-    else if (ret == -3) {
+    } else if (ret == -3) {
         de_ctx->sigerror_silent = true;
         de_ctx->sigerror_ok = true;
         goto error;
-    }
-    else if (ret == -2) {
+    } else if (ret == -2) {
         de_ctx->sigerror_silent = true;
         goto error;
     } else if (ret < 0) {

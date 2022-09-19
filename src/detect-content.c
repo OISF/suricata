@@ -23,6 +23,7 @@
  * Simple content match part of the detection engine.
  */
 
+#include "detect-engine-register.h"
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
@@ -79,8 +80,8 @@ void DetectContentRegister (void)
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectContentDataParse(const char *keyword, const char *contentstr,
-        uint8_t **pstr, uint16_t *plen)
+int DetectContentDataParse(
+        const char *keyword, const char *contentstr, uint8_t **pstr, uint16_t *plen, bool *warning)
 {
     char *str = NULL;
     size_t slen = 0;
@@ -112,9 +113,24 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                 bin_count++;
                 if (bin) {
                     if (binpos > 0) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                                "Incomplete hex code in content - %s. Invalidating signature.",
-                                contentstr);
+                        if (SigMatchStrictEnabled(DETECT_CONTENT)) {
+                            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                                    "Incomplete hex code in content - %s. Invalidating signature.",
+                                    contentstr);
+                        } else {
+                            SCLogWarning(SC_ERR_INVALID_SIGNATURE,
+                                    "Incomplete hex code in content - %s. Invalidating signature. "
+                                    "This will become an error in Suricata 7.0.",
+                                    contentstr);
+                            /* Prior to 6.0.6, incomplete hex was silently
+                               ignored. With 6.0.6 this turned into an
+                               error with -T. For 6.0.7, make the error
+                               non-fatal unless strict content parsing is
+                               enabled. */
+                            if (warning != NULL) {
+                                *warning = true;
+                            }
+                        }
                         goto error;
                     }
                     bin = 0;
@@ -202,20 +218,21 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
 error:
     return -1;
 }
+
 /**
  * \brief DetectContentParse
  * \initonly
  */
-DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                      const char *contentstr)
+DetectContentData *DetectContentParse(
+        SpmGlobalThreadCtx *spm_global_thread_ctx, const char *contentstr, bool *warning)
 {
     DetectContentData *cd = NULL;
     uint8_t *content = NULL;
     uint16_t len = 0;
     int ret;
 
-    ret = DetectContentDataParse("content", contentstr, &content, &len);
-    if (ret == -1) {
+    ret = DetectContentDataParse("content", contentstr, &content, &len, warning);
+    if (ret < 0) {
         return NULL;
     }
 
@@ -253,7 +270,7 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
 DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
                                                    const char *contentstr)
 {
-    return DetectContentParse(spm_global_thread_ctx, contentstr);
+    return DetectContentParse(spm_global_thread_ctx, contentstr, NULL);
 }
 
 /**
@@ -329,8 +346,9 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 {
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
+    bool warning = false;
 
-    cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr);
+    cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr, &warning);
     if (cd == NULL)
         goto error;
     if (s->init_data->negated == true) {
@@ -369,7 +387,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 
 error:
     DetectContentFree(de_ctx, cd);
-    return -1;
+    return warning ? -4 : -1;
 }
 
 /**
@@ -796,7 +814,7 @@ static int DetectContentParseTest01 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
             SCLogDebug("expected %s got ", teststringparsed);
@@ -827,7 +845,7 @@ static int DetectContentParseTest02 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
             SCLogDebug("expected %s got ", teststringparsed);
@@ -858,7 +876,7 @@ static int DetectContentParseTest03 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
             SCLogDebug("expected %s got ", teststringparsed);
@@ -889,7 +907,7 @@ static int DetectContentParseTest04 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         uint16_t len = (cd->content_len > strlen(teststringparsed));
         if (memcmp(cd->content, teststringparsed, len) != 0) {
@@ -920,7 +938,7 @@ static int DetectContentParseTest05 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         SCLogDebug("expected NULL got ");
         PrintRawUriFp(stdout,cd->content,cd->content_len);
@@ -946,7 +964,7 @@ static int DetectContentParseTest06 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         uint16_t len = (cd->content_len > strlen(teststringparsed));
         if (memcmp(cd->content, teststringparsed, len) != 0) {
@@ -977,7 +995,7 @@ static int DetectContentParseTest07 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         SCLogDebug("expected NULL got %p: ", cd);
         result = 0;
@@ -1000,7 +1018,7 @@ static int DetectContentParseTest08 (void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd != NULL) {
         SCLogDebug("expected NULL got %p: ", cd);
         result = 0;
@@ -1288,7 +1306,7 @@ static int DetectContentParseTest09(void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     FAIL_IF_NULL(cd);
     DetectContentFree(NULL, cd);
     SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
@@ -2373,7 +2391,7 @@ static int DetectContentParseTest41(void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd == NULL) {
         SCLogDebug("expected not NULL");
         result = 0;
@@ -2406,7 +2424,7 @@ static int DetectContentParseTest42(void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd == NULL) {
         SCLogDebug("expected not NULL");
         result = 0;
@@ -2440,7 +2458,7 @@ static int DetectContentParseTest43(void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd == NULL) {
         SCLogDebug("expected not NULL");
         result = 0;
@@ -2477,7 +2495,7 @@ static int DetectContentParseTest44(void)
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
+    cd = DetectContentParse(spm_global_thread_ctx, teststring, NULL);
     if (cd == NULL) {
         SCLogDebug("expected not NULL");
         result = 0;

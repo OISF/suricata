@@ -93,6 +93,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
 {
     uint8_t *content = NULL;
     uint16_t len = 0;
+    bool warning = false;
 
     if (s->init_data->negated) {
         SCLogError(SC_ERR_INVALID_VALUE, "Can't negate replacement string: %s",
@@ -112,9 +113,9 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
             return 0;
     }
 
-    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len, &warning);
     if (ret == -1)
-        return -1;
+        return warning ? -4 : -1;
 
     /* add to the latest "content" keyword from pmatch */
     const SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,

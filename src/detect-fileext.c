@@ -138,7 +138,8 @@ static int DetectFileextMatch (DetectEngineThreadCtx *det_ctx,
  * \retval pointer to DetectFileextData on success
  * \retval NULL on failure
  */
-static DetectFileextData *DetectFileextParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
+static DetectFileextData *DetectFileextParse(
+        DetectEngineCtx *de_ctx, const char *str, bool negate, bool *warning)
 {
     DetectFileextData *fileext = NULL;
 
@@ -149,7 +150,7 @@ static DetectFileextData *DetectFileextParse (DetectEngineCtx *de_ctx, const cha
 
     memset(fileext, 0x00, sizeof(DetectFileextData));
 
-    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len) == -1) {
+    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len, warning) == -1) {
         goto error;
     }
     uint16_t u;
@@ -201,8 +202,9 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 {
     DetectFileextData *fileext= NULL;
     SigMatch *sm = NULL;
+    bool warning = false;
 
-    fileext = DetectFileextParse(de_ctx, str, s->init_data->negated);
+    fileext = DetectFileextParse(de_ctx, str, s->init_data->negated, &warning);
     if (fileext == NULL)
         goto error;
 
@@ -225,8 +227,7 @@ error:
         DetectFileextFree(de_ctx, fileext);
     if (sm != NULL)
         SCFree(sm);
-    return -1;
-
+    return warning ? -4 : -1;
 }
 
 /**
@@ -251,7 +252,7 @@ static void DetectFileextFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectFileextTestParse01 (void)
 {
-    DetectFileextData *dfd = DetectFileextParse(NULL, "doc", false);
+    DetectFileextData *dfd = DetectFileextParse(NULL, "doc", false, NULL);
     if (dfd != NULL) {
         DetectFileextFree(NULL, dfd);
         return 1;
@@ -266,7 +267,7 @@ static int DetectFileextTestParse02 (void)
 {
     int result = 0;
 
-    DetectFileextData *dfd = DetectFileextParse(NULL, "tar.gz", false);
+    DetectFileextData *dfd = DetectFileextParse(NULL, "tar.gz", false, NULL);
     if (dfd != NULL) {
         if (dfd->len == 6 && memcmp(dfd->ext, "tar.gz", 6) == 0) {
             result = 1;
@@ -285,7 +286,7 @@ static int DetectFileextTestParse03 (void)
 {
     int result = 0;
 
-    DetectFileextData *dfd = DetectFileextParse(NULL, "pdf", false);
+    DetectFileextData *dfd = DetectFileextParse(NULL, "pdf", false, NULL);
     if (dfd != NULL) {
         if (dfd->len == 3 && memcmp(dfd->ext, "pdf", 3) == 0) {
             result = 1;

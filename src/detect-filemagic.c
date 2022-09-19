@@ -262,7 +262,8 @@ static int DetectFilemagicMatch (DetectEngineThreadCtx *det_ctx,
  * \retval filemagic pointer to DetectFilemagicData on success
  * \retval NULL on failure
  */
-static DetectFilemagicData *DetectFilemagicParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
+static DetectFilemagicData *DetectFilemagicParse(
+        DetectEngineCtx *de_ctx, const char *str, bool negate, bool *warning)
 {
     DetectFilemagicData *filemagic = NULL;
 
@@ -273,7 +274,8 @@ static DetectFilemagicData *DetectFilemagicParse (DetectEngineCtx *de_ctx, const
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
 
-    if (DetectContentDataParse ("filemagic", str, &filemagic->name, &filemagic->len) == -1) {
+    if (DetectContentDataParse("filemagic", str, &filemagic->name, &filemagic->len, warning) ==
+            -1) {
         goto error;
     }
 
@@ -356,10 +358,12 @@ static void DetectFilemagicThreadFree(void *ctx)
 static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SigMatch *sm = NULL;
+    bool warning = false;
 
-    DetectFilemagicData *filemagic = DetectFilemagicParse(de_ctx, str, s->init_data->negated);
+    DetectFilemagicData *filemagic =
+            DetectFilemagicParse(de_ctx, str, s->init_data->negated, &warning);
     if (filemagic == NULL)
-        return -1;
+        return warning ? -4 : -1;
 
     g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
             DetectFilemagicThreadInit, (void *)filemagic, DetectFilemagicThreadFree, 1);
@@ -585,7 +589,7 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
  */
 static int DetectFilemagicTestParse01 (void)
 {
-    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "secret.pdf", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "secret.pdf", false, NULL);
     if (dnd != NULL) {
         DetectFilemagicFree(NULL, dnd);
         return 1;
@@ -600,7 +604,7 @@ static int DetectFilemagicTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "backup.tar.gz", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "backup.tar.gz", false, NULL);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
@@ -619,7 +623,7 @@ static int DetectFilemagicTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "cmd.exe", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "cmd.exe", false, NULL);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;

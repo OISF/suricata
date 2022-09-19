@@ -127,7 +127,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         parse_content = varcontent;
     }
 
-    ret = DetectContentDataParse("pktvar", parse_content, &content, &len);
+    ret = DetectContentDataParse("pktvar", parse_content, &content, &len, NULL);
     if (ret == -1 || content == NULL) {
         pcre_free(varname);
         pcre_free(varcontent);

@@ -233,7 +233,8 @@ static int DetectFilenameMatch (DetectEngineThreadCtx *det_ctx,
  * \retval filename pointer to DetectFilenameData on success
  * \retval NULL on failure
  */
-static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
+static DetectFilenameData *DetectFilenameParse(
+        DetectEngineCtx *de_ctx, const char *str, bool negate, bool *warning)
 {
     DetectFilenameData *filename = NULL;
 
@@ -244,7 +245,7 @@ static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const c
 
     memset(filename, 0x00, sizeof(DetectFilenameData));
 
-    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len) == -1) {
+    if (DetectContentDataParse("filename", str, &filename->name, &filename->len, warning) == -1) {
         goto error;
     }
 
@@ -297,8 +298,9 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 {
     DetectFilenameData *filename = NULL;
     SigMatch *sm = NULL;
+    bool warning = false;
 
-    filename = DetectFilenameParse(de_ctx, str, s->init_data->negated);
+    filename = DetectFilenameParse(de_ctx, str, s->init_data->negated, &warning);
     if (filename == NULL)
         goto error;
 
@@ -321,7 +323,7 @@ error:
         DetectFilenameFree(de_ctx, filename);
     if (sm != NULL)
         SCFree(sm);
-    return -1;
+    return warning ? -4 : -1;
 }
 
 /**
@@ -520,7 +522,7 @@ static int DetectFilenameSignatureParseTest01(void)
  */
 static int DetectFilenameTestParse01 (void)
 {
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "secret.pdf", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "secret.pdf", false, NULL);
     if (dnd != NULL) {
         DetectFilenameFree(NULL, dnd);
         return 1;
@@ -535,7 +537,7 @@ static int DetectFilenameTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "backup.tar.gz", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "backup.tar.gz", false, NULL);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
@@ -554,7 +556,7 @@ static int DetectFilenameTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "cmd.exe", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "cmd.exe", false, NULL);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;
