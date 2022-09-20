@@ -92,10 +92,16 @@
    With the -s option you can set a file with signatures, which will
    be loaded together with the rules set in the yaml.
 
+   It is possible to use globbing when specifying rules files.
+   For example, -s /path/to/rules/*.rules
+
 .. option:: -S <filename.rules>
 
    With the -S option you can set a file with signatures, which will
    be loaded exclusively, regardless of the rules set in the yaml.
+
+   It is possible to use globbing when specifying rules files.
+   For example, -S /path/to/rules/*.rules
 
 .. option:: -l <directory>
 
