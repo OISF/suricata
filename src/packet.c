@@ -98,7 +98,7 @@ void PacketReinit(Packet *p)
     p->payload = NULL;
     p->payload_len = 0;
     p->BypassPacketsFlow = NULL;
-    p->pktlen = 0;
+    RESET_PKT_LEN(p);
     p->alerts.cnt = 0;
     p->alerts.discarded = 0;
     p->alerts.suppressed = 0;

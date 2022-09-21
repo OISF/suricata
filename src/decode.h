@@ -223,6 +223,7 @@ typedef struct Address_ {
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
+#define RESET_PKT_LEN(p)((p)->pktlen = 0
 #define GET_PKT_LEN(p) ((p)->pktlen)
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (uint8_t *)((p) + 1) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p) (uint8_t *)((p) + 1)
