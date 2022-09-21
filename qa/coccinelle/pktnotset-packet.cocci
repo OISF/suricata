@@ -24,6 +24,6 @@ PacketInit(p)
 p1 << zeroed.p1;
 @@
 
-print "Packet zeroed at %s:%s but pkt field is not set afterward." % (p1[0].file, p1[0].line)
+print("Packet zeroed at %s:%s but pkt field is not set afterward." % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)

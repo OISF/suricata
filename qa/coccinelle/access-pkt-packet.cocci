@@ -30,7 +30,7 @@ p->pkt@p1
 p1 << pktfield.p1;
 @@
 
-print "Invalid Packet->pkt usage, GET_PKT_DATA macro must be used at %s:%s" % (p1[0].file, p1[0].line)
+print("Invalid Packet->pkt usage, GET_PKT_DATA macro must be used at %s:%s" % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
 
@@ -50,6 +50,6 @@ p->pktlen@p1
 p1 << pktlenfield.p1;
 @@
 
-print "Invalid Packet->pktlen usage, GET_PKT_LEN macro must be used at %s:%s" % (p1[0].file, p1[0].line)
+print("Invalid Packet->pktlen usage, GET_PKT_LEN macro must be used at %s:%s" % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)

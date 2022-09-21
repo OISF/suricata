@@ -24,7 +24,7 @@ sizeof(e@p1)
 p1 << preuse.p1;
 @@
 
-print "Size of pointed value not pointer used at %s:%s" % (p1[0].file, p1[0].line)
+print("Size of pointed value not pointer used at %s:%s" % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
 
@@ -43,6 +43,6 @@ sizeof(e@p1)
 p1 << postuse.p1;
 @@
 
-print "Size of pointed value not pointer used at %s:%s" % (p1[0].file, p1[0].line)
+print("Size of pointed value not pointer used at %s:%s" % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
