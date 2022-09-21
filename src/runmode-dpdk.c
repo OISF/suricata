@@ -1160,7 +1160,7 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     DeviceInitPortConf(iconf, &dev_info, &port_conf);
     if (port_conf.rxmode.offloads & DEV_RX_OFFLOAD_CHECKSUM) {
         // Suricata does not need recalc checksums now
-        iconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
+        iconf->checksum_mode = CHECKSUM_VALIDATION_OFFLOAD;
     }
 
     retval = rte_eth_dev_configure(
