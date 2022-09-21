@@ -92,7 +92,7 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     } else if (PKT_IS_IPV6(p)) {
         pttl = IPV6_GET_HLIM(p);
     } else {
-        SCLogDebug("Packet is of not IPv4 or IPv6");
+        SCLogDebug("Packet is not IPv4 or IPv6");
         return 0;
     }
 
@@ -155,7 +155,7 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     } else if (PKT_IS_IPV6(p)) {
         pttl = IPV6_GET_HLIM(p);
     } else {
-        SCLogDebug("Packet is of not IPv4 or IPv6");
+        SCLogDebug("Packet is not IPv4 or IPv6");
         return;
     }
 
