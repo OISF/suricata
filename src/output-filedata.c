@@ -133,10 +133,9 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
     SCLogDebug("ffc %p", ffc);
 
     OutputLoggerThreadStore *store = td->store;
-    File *ff;
-    for (ff = ffc->head; ff != NULL; ff = ff->next) {
-
+    for (File *ff = ffc->head; ff != NULL; ff = ff->next) {
         FileApplyTxFlags(txd, dir, ff);
+        FilePrintFlags(ff);
 
         uint8_t file_flags = call_flags;
 #ifdef HAVE_MAGIC
@@ -152,26 +151,23 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
             continue;
         }
 
+        /* if file_store_id == 0, this is the first store of this file */
+        if (ff->file_store_id == 0) {
+            /* new file */
+            ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
+            file_flags |= OUTPUT_FILEDATA_FLAG_OPEN;
+        }
+
         /* if we have no data chunks left to log, we should still
          * close the logger(s) */
         if (FileDataSize(ff) == ff->content_stored && (file_trunc || file_close)) {
             if (ff->state < FILE_STATE_CLOSED) {
                 FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
             }
-            CallLoggers(tv, store, p, ff, txv, tx_id, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE, dir);
+            file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
+            CallLoggers(tv, store, p, ff, txv, tx_id, NULL, 0, file_flags, dir);
             CloseFile(p, p->flow, ff, txv);
             continue;
-        }
-
-        /* store */
-
-        /* if file_store_id == 0, this is the first store of this file */
-        if (ff->file_store_id == 0) {
-            /* new file */
-            ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
-            file_flags |= OUTPUT_FILEDATA_FLAG_OPEN;
-        } else {
-            /* existing file */
         }
 
         /* if file needs to be closed or truncated, inform
