@@ -39,6 +39,6 @@ funcn(E1, E2,..., (uint64_t) p, ...)@p1;
 p1 << sizet.p1;
 @@
 
-print "Invalid printf with size_t (not casted to uintmax_t) at %s:%s" % (p1[0].file, p1[0].line)
+print("Invalid printf with size_t (not casted to uintmax_t) at %s:%s" % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)

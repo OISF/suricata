@@ -64,6 +64,6 @@ FAIL_IF_NULL(x)
 @script:python depends on !realloc && !istested && !inlinetested@
 p1 << malloced.p1;
 @@
-print "Structure malloced at %s:%s but error is not checked." % (p1[0].file, p1[0].line)
+print("Structure malloced at %s:%s but error is not checked." % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
