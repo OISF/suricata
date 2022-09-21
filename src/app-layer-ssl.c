@@ -2202,6 +2202,24 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return SSL_DECODER_ERROR(-1);
         }
+        parsed = retval;
+
+        SCLogDebug("%s input %p record_length %u", (direction == 0) ? "toserver" : "toclient",
+                input, ssl_state->curr_connp->record_length);
+
+        /* parser is streaming for the initial header, then switches to incomplete
+         * API: so if we don't have the hdr yet, return consumed bytes and wait
+         * until we are called again with new data. */
+        if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
+            SCLogDebug(
+                    "incomplete header, return %u bytes consumed and wait for more data", parsed);
+            return SSL_DECODER_OK(parsed);
+        }
+
+        record_len = MIN(input_len - parsed, ssl_state->curr_connp->record_length);
+        SCLogDebug(
+                "record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",
+                record_len, input_len, parsed, ssl_state->curr_connp->record_length);
 
         bool unknown_record = false;
         switch (ssl_state->curr_connp->content_type) {
@@ -2215,11 +2233,6 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                 unknown_record = true;
                 break;
         }
-
-        parsed = retval;
-        record_len = MIN(input_len - parsed, ssl_state->curr_connp->record_length);
-        SCLogDebug("record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",
-                record_len, input_len, parsed, ssl_state->curr_connp->record_length);
 
         /* unknown record type. For TLS 1.0, 1.1 and 1.2 this is ok. For the rest it is fatal. Based
          * on Wireshark logic. */
@@ -2261,6 +2274,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_LENGTH);
             return SSL_DECODER_ERROR(-1);
         }
+        DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->bytes_processed > SSLV3_RECORD_HDR_LEN);
     } else {
         ValidateRecordState(ssl_state->curr_connp);
 
