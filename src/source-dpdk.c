@@ -369,16 +369,34 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             }
             PKT_SET_SRC(p, PKT_SRC_WIRE);
             p->datalink = LINKTYPE_ETHERNET;
-            if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            }
-
             DPDKSetTimevalReal(&ptv->machine_start_time, &p->ts);
             p->dpdk_v.mbuf = ptv->received_mbufs[i];
             p->ReleasePacket = DPDKReleasePacket;
             p->dpdk_v.copy_mode = ptv->copy_mode;
             p->dpdk_v.out_port_id = ptv->out_port_id;
             p->dpdk_v.out_queue_id = ptv->queue_id;
+            p->livedev = ptv->livedev;
+
+            if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_OFFLOAD) {
+                uint64_t ol_flags = ptv->received_mbufs[i]->ol_flags;
+                if ((ol_flags & RTE_MBUF_F_RX_IP_CKSUM_MASK) == RTE_MBUF_F_RX_IP_CKSUM_GOOD &&
+                        (ol_flags & RTE_MBUF_F_RX_L4_CKSUM_MASK) == RTE_MBUF_F_RX_L4_CKSUM_GOOD) {
+                    SCLogDebug("HW detected GOOD IP and L4 chsum, ignoring validation");
+                    p->flags |= PKT_IGNORE_CHECKSUM;
+                } else {
+                    if ((ol_flags & RTE_MBUF_F_RX_IP_CKSUM_MASK) == RTE_MBUF_F_RX_IP_CKSUM_BAD) {
+                        SCLogDebug("HW detected BAD IP checksum");
+                        // chsum recalc will not be triggered but rule keyword check will be
+                        p->level3_comp_csum = 0;
+                    }
+                    if ((ol_flags & RTE_MBUF_F_RX_L4_CKSUM_MASK) == RTE_MBUF_F_RX_L4_CKSUM_BAD) {
+                        SCLogDebug("HW detected BAD L4 chsum");
+                        p->level4_comp_csum = 0;
+                    }
+                }
+            }
 
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                     rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
