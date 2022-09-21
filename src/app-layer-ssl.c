@@ -2289,11 +2289,19 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             return SSL_DECODER_ERROR(-1);
         }
 
-        if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN &&
-                ssl_state->curr_connp->record_length > SSLV3_RECORD_MAX_LEN) {
+        /* parser is streaming for the initial header, then switches to incomplete
+         * API: so if we don't have the hdr yet, return consumed bytes and wait
+         * until we are called again with new data. */
+        if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
+            SCLogDebug(
+                    "incomplete header, return %u bytes consumed and wait for more data", parsed);
+            return SSL_DECODER_OK(parsed);
+        } else if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN &&
+                   ssl_state->curr_connp->record_length > SSLV3_RECORD_MAX_LEN) {
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_LENGTH);
             return SSL_DECODER_ERROR(-1);
         }
+        DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->bytes_processed > SSLV3_RECORD_HDR_LEN);
     } else {
         ValidateRecordState(ssl_state->curr_connp);
 
