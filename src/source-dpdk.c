@@ -509,6 +509,50 @@ fail:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
+static void PrintDPDKPortXstats(uint32_t port_id, const char *port_name)
+{
+    int len, ret, i;
+    struct rte_eth_xstat *xstats;
+    struct rte_eth_xstat_name *xstats_names;
+    static const char *stats_border = "_______";
+
+    len = rte_eth_xstats_get(port_id, NULL, 0);
+    if (len < 0)
+        FatalError(SC_ERR_DPDK_CONF, "Error (%s) getting count of rte_eth_xstats failed on port %s",
+                rte_strerror(-len), port_name);
+
+    xstats = SCCalloc(len, sizeof(*xstats));
+    if (xstats == NULL)
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for the rte_eth_xstat structure");
+
+    ret = rte_eth_xstats_get(port_id, xstats, len);
+    if (ret < 0 || ret > len) {
+        SCFree(xstats);
+        FatalError(SC_ERR_DPDK_CONF, "Error (%s) getting rte_eth_xstats failed on port %s",
+                rte_strerror(-ret), port_name);
+    }
+    xstats_names = SCCalloc(len, sizeof(*xstats_names));
+    if (xstats_names == NULL) {
+        SCFree(xstats);
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for the rte_eth_xstat_name array");
+    }
+    ret = rte_eth_xstats_get_names(port_id, xstats_names, len);
+    if (ret < 0 || ret > len) {
+        SCFree(xstats);
+        SCFree(xstats_names);
+        FatalError(SC_ERR_DPDK_CONF, "Error (%s) getting names of rte_eth_xstats failed on port %s",
+                rte_strerror(-ret), port_name);
+    }
+    for (i = 0; i < len; i++) {
+        if (xstats[i].value > 0)
+            SCLogPerf("Port %u (%s) - %s: %" PRIu64, port_id, port_name, xstats_names[i].name,
+                    xstats[i].value);
+    }
+
+    SCFree(xstats);
+    SCFree(xstats_names);
+}
+
 /**
  * \brief This function prints stats to the screen at exit.
  * \param tv pointer to ThreadVars
@@ -530,6 +574,9 @@ static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
                     ptv->port_id, strerror(-retval));
             SCReturn;
         }
+
+        PrintDPDKPortXstats(ptv->port_id, port_name);
+
         retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
         if (unlikely(retval != 0)) {
             SCLogError(SC_ERR_STAT, "Failed to get stats for interface %s: %s", port_name,
