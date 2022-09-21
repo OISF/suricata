@@ -184,15 +184,6 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     char filename[PATH_MAX] = "";
     int file_fd = -1;
 
-    /* no flow, no files */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
-        return 0;
-    }
-
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
     char base_filename[PATH_MAX] = "";
