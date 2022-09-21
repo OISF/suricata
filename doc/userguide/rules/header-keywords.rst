@@ -1,4 +1,3 @@
-
 .. role:: example-rule-emphasis
 
 IP Keywords
@@ -10,7 +9,7 @@ ttl
 The ttl keyword is used to check for a specific IP time-to-live value
 in the header of a packet. The format is::
 
-  ttl:<number>
+  ttl:<number>;
 
 For example::
 
@@ -20,7 +19,7 @@ At the end of the ttl keyword you can enter the value on which you
 want to match. The Time-to-live value determines the maximal amount
 of time a packet can be in the Internet-system. If this field is set
 to 0, then the packet has to be destroyed. The time-to-live is based
-on hop count. Each hop/router the packet passes subtracts one of the
+on hop count. Each hop/router the packet passes subtracts one from the
 packet TTL counter. The purpose of this mechanism is to limit the
 existence of packets so that packets can not end up in infinite
 routing loops.
@@ -29,7 +28,8 @@ Example of the ttl keyword in a rule:
 
 .. container:: example-rule
 
-    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC 0 ttl"; :example-rule-emphasis:`ttl:0;` reference:url,support.microsoft.com/default.aspx?scid=kb#-#-EN-US#-#-q138268; reference:url,www.isi.edu/in-notes/rfc1122.txt; classtype:misc-activity; sid:2101321; rev:9;)
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"IP Packet With TTL 0";
+    :example-rule-emphasis:`ttl:0;` classtype:misc-activity; sid:1; rev:1;)
 
 ipopts
 ^^^^^^
