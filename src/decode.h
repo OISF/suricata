@@ -41,13 +41,13 @@
 #include "util-napatech.h"
 #endif /* HAVE_NAPATECH */
 
-
 typedef enum {
     CHECKSUM_VALIDATION_DISABLE,
     CHECKSUM_VALIDATION_ENABLE,
     CHECKSUM_VALIDATION_AUTO,
     CHECKSUM_VALIDATION_RXONLY,
     CHECKSUM_VALIDATION_KERNEL,
+    CHECKSUM_VALIDATION_OFFLOAD,
 } ChecksumValidationMode;
 
 enum PktSrcEnum {
