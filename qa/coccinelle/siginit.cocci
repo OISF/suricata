@@ -21,6 +21,6 @@ goto error;
 @script:python@
 p1 << siginit.p1;
 @@
-print "SigMatch added at %s:%s but error handling can cause it to be freed later." % (p1[0].file, p1[0].line)
+print("SigMatch added at %s:%s but error handling can cause it to be freed later." % (p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
