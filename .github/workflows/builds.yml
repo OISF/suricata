@@ -440,6 +440,96 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
+  fedora-36-sv-codecov:
+    name: Fedora 36 (Suricata Verify codecov)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                ccache \
+                clang \
+                curl \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                llvm-devel \
+                lz4-devel \
+                make \
+                nss-softokn-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      # packaged Rust version has no profiler support built in, so get from rustup
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: ./autogen.sh
+      - run: ./configure --disable-shared
+        env:
+          CC: "clang"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - run: make -j2
+        env:
+          CC: "clang"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
+      - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
+        with:
+          fail_ci_if_error: false
+          flags: suricata-verify
+
   fedora-36:
     name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
@@ -690,10 +780,10 @@ jobs:
             exit 0
           fi
 
-  ubuntu-20-04-cov-sv:
-    name: Ubuntu 20.04 (suricata verify coverage)
+  ubuntu-22-04-cov-ut:
+    name: Ubuntu 22.04 (unittests coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Install dependencies
@@ -704,88 +794,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
-                gcc-9 \
-                git \
-                jq \
-                libtool \
-                libpcap-dev \
-                libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
-                libcap-ng-dev \
-                libcap-ng0 \
-                libmagic-dev \
-                libnet1-dev \
-                libnetfilter-queue-dev \
-                libnetfilter-queue1 \
-                libnfnetlink-dev \
-                libnfnetlink0 \
-                libnuma-dev \
-                libhiredis-dev \
-                liblua5.1-dev \
-                libjansson-dev \
-                libevent-dev \
-                libevent-pthreads-2.1-7 \
-                libjansson-dev \
-                libpython2.7 \
-                make \
-                parallel \
-                python3-yaml \
-                rustc \
-                software-properties-common \
-                zlib1g \
-                zlib1g-dev \
-                exuberant-ctags \
+                clang-14 \
                 curl \
-                dpdk-dev
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
-        with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage -O0 -ggdb" ./configure
-      - run: make -j2
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
-      - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
-      - name: Gcov
-        run: |
-          cd src
-          gcov-9 -p *.[ch]
-          cd ../libhtp/htp
-          gcov-9 -p *.[ch]
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
-        with:
-          fail_ci_if_error: false
-          flags: suricata-verify
-
-  ubuntu-20-04-cov-ut:
-    name: Ubuntu 20.04 (unittests coverage)
-    runs-on: ubuntu-latest
-    container: ubuntu:20.04
-    needs: [prepare-deps, prepare-cbindgen]
-    steps:
-      - name: Install dependencies
-        run: |
-          apt update
-          apt -y install \
-                libpcre2-dev \
-                build-essential \
-                autoconf \
-                automake \
-                cargo \
-                gcc-9 \
                 git \
                 jq \
                 libtool \
@@ -808,16 +818,19 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
+                llvm-14-dev \
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
                 curl \
                 dpdk-dev
+      # packaged Rust version is too old for coverage, so get from rustup
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
@@ -831,25 +844,57 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage -O0 -ggdb" ./configure --enable-unittests
+      - run: ./configure --disable-shared --enable-unittests
+        env:
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: make -j2
+        env:
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: ./src/suricata -u -l /tmp/
-      - name: Gcov
-        run: |
-          cd src
-          gcov-9 -p *.[ch]
-          cd ../libhtp/htp
-          gcov-9 -p *.[ch]
+        env:
+          LLVM_PROFILE_FILE: "/tmp/ut.profraw"
+      - run: llvm-profdata-14 merge -o ut.profdata /tmp/ut.profraw
+      - run: llvm-cov-14 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: |
+          cd rust
+          cargo test --no-run
+          cd ..
+        env:
+          RUSTFLAGS: "-C instrument-coverage"
+          CARGO_INCREMENTAL: 0
+      - run: |
+          $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$')
+        env:
+          LLVM_PROFILE_FILE: "/tmp/ct.profraw"
+          CARGO_INCREMENTAL: 0
+      - run: llvm-profdata-14 merge -o ct.profdata /tmp/ct.profraw
+      - run: llvm-cov-14 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
+      - run: |
+          cd libhtp
+          make test
+          cd ..
+        env:
+          LLVM_PROFILE_FILE: "/tmp/htp-test.profraw"
+      - run: llvm-profdata-14 merge -o htp-test.profdata /tmp/htp-test.profraw
+      - run: llvm-cov-14 show libhtp/test/test_all -instr-profile=htp-test.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
         with:
           fail_ci_if_error: false
           flags: unittests
 
-  ubuntu-20-04-cov-fuzz:
-    name: Ubuntu 20.04 (fuzz corpus coverage)
+  ubuntu-22-04-cov-fuzz:
+    name: Ubuntu 22.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Install dependencies
@@ -860,9 +905,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-10 \
-                cargo \
-                clang-10 \
+                llvm-14-dev \
+                clang-14 \
                 git \
                 jq \
                 libc++-dev \
@@ -890,7 +934,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
@@ -900,6 +943,9 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
+      # packaged Rust version is too old for coverage, so get from rustup
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
@@ -913,13 +959,24 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: LIB_FUZZING_ENGINE="fail_to_onefile_driver" CC=clang-10 CXX=clang++-10 CFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" CXXFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion" ac_cv_func_malloc_0_nonnull=yes ac_cv_func_realloc_0_nonnull=yes ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
+      - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
+        env:
+          LIB_FUZZING_ENGINE: "fail_to_onefile_driver"
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
+          ac_cv_func_malloc_0_nonnull: "yes"
+          ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j2
+        env:
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
       - run: ./qa/run-ossfuzz-corpus.sh
-      - name: Gcov
-        run: |
-          cd src
-          llvm-cov-10 gcov -p *.c
+      - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
         with:
