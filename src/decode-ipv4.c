@@ -66,6 +66,7 @@ static int IPV4OptValidateGeneric(Packet *p, const IPV4Opt *o)
             break;
         /* See: RFC 1108 */
         case IPV4_OPT_SEC:
+        case IPV4_OPT_ESEC:
             if (o->len != IPV4_OPT_SEC_LEN) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
@@ -290,6 +291,7 @@ typedef struct IPV4Options_ {
     IPV4Opt o_ts;
     IPV4Opt o_sec;
     IPV4Opt o_lsrr;
+    IPV4Opt o_esec;
     IPV4Opt o_cipso;
     IPV4Opt o_sid;
     IPV4Opt o_ssrr;
@@ -413,6 +415,15 @@ static int DecodeIPV4Options(Packet *p, const uint8_t *pkt, uint16_t len, IPV4Op
                     } else if (IPV4OptValidateRoute(p, &opt) == 0) {
                         opts->o_lsrr = opt;
                         p->ip4vars.opts_set |= IPV4_OPT_FLAG_LSRR;
+                    }
+                    break;
+                case IPV4_OPT_ESEC:
+                    if (opts->o_esec.type != 0) {
+                        ENGINE_SET_EVENT(p, IPV4_OPT_DUPLICATE);
+                        /* Warn - we can keep going */
+                    } else if (IPV4OptValidateGeneric(p, &opt) == 0) {
+                        opts->o_esec = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_ESEC;
                     }
                     break;
                 case IPV4_OPT_CIPSO:
@@ -908,6 +919,40 @@ static int DecodeIPV4OptionsSECTest02(void)
     DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
     FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_sec.type != 0);
+    SCFree(p);
+    PASS;
+}
+
+/** \test IPV4 with ESEC option. */
+static int DecodeIPV4OptionsESECTest01(void)
+{
+    uint8_t raw_opts[] = { IPV4_OPT_ESEC, 0x0b, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
+    FAIL_IF(opts.o_esec.type != IPV4_OPT_ESEC);
+    SCFree(p);
+    PASS;
+}
+
+/** \test IPV4 with ESEC option (invalid length). */
+static int DecodeIPV4OptionsESECTest02(void)
+{
+    uint8_t raw_opts[] = { IPV4_OPT_ESEC, 0x02, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
+    FAIL_IF(opts.o_esec.type != 0);
     SCFree(p);
     PASS;
 }
@@ -1665,6 +1710,8 @@ void DecodeIPV4RegisterTests(void)
     UtRegisterTest("DecodeIPV4OptionsTSTest04", DecodeIPV4OptionsTSTest04);
     UtRegisterTest("DecodeIPV4OptionsSECTest01", DecodeIPV4OptionsSECTest01);
     UtRegisterTest("DecodeIPV4OptionsSECTest02", DecodeIPV4OptionsSECTest02);
+    UtRegisterTest("DecodeIPV4OptionsESECTest01", DecodeIPV4OptionsESECTest01);
+    UtRegisterTest("DecodeIPV4OptionsESECTest02", DecodeIPV4OptionsESECTest02);
     UtRegisterTest("DecodeIPV4OptionsLSRRTest01", DecodeIPV4OptionsLSRRTest01);
     UtRegisterTest("DecodeIPV4OptionsLSRRTest02", DecodeIPV4OptionsLSRRTest02);
     UtRegisterTest("DecodeIPV4OptionsLSRRTest03", DecodeIPV4OptionsLSRRTest03);
