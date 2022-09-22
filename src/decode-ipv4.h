@@ -44,11 +44,11 @@
 #define IPV4_OPT_RTRALT           0x94  /**< Option: Router Alert */
 
 /** IP Option Lengths (fixed) */
-#define IPV4_OPT_SEC_LEN          11    /**< SEC Option Fixed Length */
 #define IPV4_OPT_SID_LEN          4     /**< SID Option Fixed Length */
 #define IPV4_OPT_RTRALT_LEN       4     /**< RTRALT Option Fixed Length */
 
 /** IP Option Lengths (variable) */
+#define IPV4_OPT_SEC_MIN          3     /**< SEC, ESEC Option Min Length */
 #define IPV4_OPT_ROUTE_MIN        3     /**< RR, SRR, LTRR Option Min Length */
 #define IPV4_OPT_QS_MIN           8     /**< QS Option Min Length */
 #define IPV4_OPT_TS_MIN           5     /**< TS Option Min Length */

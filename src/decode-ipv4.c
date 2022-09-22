@@ -67,7 +67,7 @@ static int IPV4OptValidateGeneric(Packet *p, const IPV4Opt *o)
         /* See: RFC 1108 */
         case IPV4_OPT_SEC:
         case IPV4_OPT_ESEC:
-            if (o->len != IPV4_OPT_SEC_LEN) {
+            if (unlikely(o->len < IPV4_OPT_SEC_MIN)) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
@@ -907,10 +907,8 @@ static int DecodeIPV4OptionsSECTest01(void)
 /** \test IPV4 with SEC option (invalid length). */
 static int DecodeIPV4OptionsSECTest02(void)
 {
-    uint8_t raw_opts[] = {
-        IPV4_OPT_SEC, 0x0a, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    };
+    uint8_t raw_opts[] = { IPV4_OPT_SEC, 0x02, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
