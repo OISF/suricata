@@ -37,6 +37,7 @@
 #define IPV4_OPT_TS               0x44  /**< Option: Timestamp */
 #define IPV4_OPT_SEC              0x82  /**< Option: Security */
 #define IPV4_OPT_LSRR             0x83  /**< Option: Loose Source Route */
+#define IPV4_OPT_ESEC             0x85  /**< Option: Extended Security */
 #define IPV4_OPT_CIPSO            0x86  /**< Option: Commercial IP Security */
 #define IPV4_OPT_SID              0x88  /**< Option: Stream Identifier */
 #define IPV4_OPT_SSRR             0x89  /**< Option: Strict Source Route */
@@ -165,6 +166,7 @@ enum IPV4OptionFlags {
     IPV4_OPT_FLAG_SEC,
     IPV4_OPT_FLAG_CIPSO,
     IPV4_OPT_FLAG_RTRALT,
+    IPV4_OPT_FLAG_ESEC,
 };
 
 /* helper structure with parsed ipv4 info */
