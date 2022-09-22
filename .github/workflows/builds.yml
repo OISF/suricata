@@ -440,8 +440,8 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  fedora-36-codecov:
-    name: Fedora 36 (codecov)
+  fedora-36-sv-codecov:
+    name: Fedora 36 (Suricata Verify codecov)
     runs-on: ubuntu-latest
     container: fedora:36
     needs: [prepare-deps, prepare-cbindgen]
@@ -491,6 +491,7 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
@@ -859,10 +860,10 @@ jobs:
       #    fail_ci_if_error: false
       #    flags: suricata-verify
 
-  ubuntu-20-04-cov-ut:
-    name: Ubuntu 20.04 (unittests coverage)
+  ubuntu-22-04-cov-ut:
+    name: Ubuntu 22.04 (unittests coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Install dependencies
@@ -873,8 +874,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
-                gcc-9 \
+                clang-14 \
+                curl \
                 git \
                 jq \
                 libtool \
@@ -897,16 +898,19 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
+                llvm-14-dev \
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
                 curl \
                 dpdk-dev
+      # packaged Rust version is too old for coverage, so get from rustup
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
@@ -920,15 +924,21 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage -O0 -ggdb" ./configure --enable-unittests
+      - run: ./configure --disable-shared --enable-unittests
+        env:
+          CC: "clang-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: make -j2
+        env:
+          CC: "clang-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: ./src/suricata -u -l /tmp/
-      - name: Gcov
-        run: |
-          cd src
-          gcov-9 -p *.[ch]
-          cd ../libhtp/htp
-          gcov-9 -p *.[ch]
+        env:
+          LLVM_PROFILE_FILE: "/tmp/ut.profraw"
+      - run: llvm-profdata-14 merge -o default.profdata /tmp/ut.profraw
+      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
         with:
