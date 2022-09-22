@@ -440,6 +440,95 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
+  fedora-36-codecov:
+    name: Fedora 36 (codecov)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                ccache \
+                clang \
+                curl \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                llvm-devel \
+                lz4-devel \
+                make \
+                nss-softokn-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: ./autogen.sh
+      - run: ./configure --disable-shared
+        env:
+          CC: "clang"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - run: make -j2
+        env:
+          CC: "clang"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
+      - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
+        with:
+          fail_ci_if_error: false
+          flags: suricata-verify
+
   fedora-36:
     name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
@@ -764,11 +853,11 @@ jobs:
           gcov-9 -p *.[ch]
           cd ../libhtp/htp
           gcov-9 -p *.[ch]
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
-        with:
-          fail_ci_if_error: false
-          flags: suricata-verify
+      #- name: Upload coverage to Codecov
+      #  uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
+      #  with:
+      #    fail_ci_if_error: false
+      #    flags: suricata-verify
 
   ubuntu-20-04-cov-ut:
     name: Ubuntu 20.04 (unittests coverage)
