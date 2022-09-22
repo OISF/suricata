@@ -945,10 +945,10 @@ jobs:
           fail_ci_if_error: false
           flags: unittests
 
-  ubuntu-20-04-cov-fuzz:
-    name: Ubuntu 20.04 (fuzz corpus coverage)
+  ubuntu-22-04-cov-fuzz:
+    name: Ubuntu 22.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Install dependencies
