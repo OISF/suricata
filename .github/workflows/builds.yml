@@ -862,12 +862,12 @@ jobs:
       - run: |
           cd rust
           cargo test --no-run
+          cd ..
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
       - run: |
-          $(find target/debug/deps/ -type f -regex 'target/debug/deps/suricata\-[a-z0-9]+$')
-          cd ..
+          $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$')
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
