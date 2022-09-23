@@ -37,6 +37,8 @@ const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
+const MQTT_MAX_TX: usize = 4096;
+
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug)]
@@ -52,6 +54,7 @@ pub enum MQTTEvent {
     MissingMsgId,
     UnassignedMsgtype,
     MalformedTraffic,
+    FloodedFlushed,
 }
 
 #[derive(Debug)]
@@ -115,6 +118,7 @@ pub struct MQTTState {
     skip_request: usize,
     skip_response: usize,
     max_msg_len: usize,
+    tx_index_completed: usize,
 }
 
 impl MQTTState {
@@ -127,6 +131,7 @@ impl MQTTState {
             skip_request: 0,
             skip_response: 0,
             max_msg_len: unsafe { MAX_MSG_LEN as usize },
+            tx_index_completed: 0,
         }
     }
 
@@ -143,6 +148,7 @@ impl MQTTState {
             }
         }
         if found {
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -177,6 +183,21 @@ impl MQTTState {
             tx.toclient = true;
         } else {
             tx.toserver = true;
+        }
+        if self.transactions.len() > MQTT_MAX_TX + self.tx_index_completed {
+            // If there are too many open transactions,
+            // mark the earliest one as completed, and take care
+            // to avoid quadratic complexity
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions[self.tx_index_completed..] {
+                index = index + 1;
+                if !tx_old.complete {
+                    tx_old.complete = true;
+                    MQTTState::set_event(&mut tx, MQTTEvent::FloodedFlushed);
+                    break;
+                }
+            }
+            self.tx_index_completed = index;
         }
         return tx;
     }
@@ -739,6 +760,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_i
             MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
             MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
             MQTTEvent::MalformedTraffic    => { "malformed_traffic\0" },
+            MQTTEvent::FloodedFlushed      => { "flooded_flushed\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -771,6 +793,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::
                 "missing_msg_id"       => MQTTEvent::MissingMsgId as i32,
                 "unassigned_msg_type"  => MQTTEvent::UnassignedMsgtype as i32,
                 "malformed_traffic"    => MQTTEvent::MalformedTraffic as i32,
+                "flooded_flushed"      => MQTTEvent::FloodedFlushed as i32,
                 _                      => -1, // unknown event
             }
         },
