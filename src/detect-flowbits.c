@@ -284,8 +284,15 @@ static int DetectFlowbitParse(
             strlcpy(name, token, sizeof(name));
             name_set = true;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid flowbits keyword: %s", token);
-            return -1;
+            if (!SigMatchStrictEnabled(DETECT_FLOWBITS)) {
+                SCLogWarning(SC_ERR_INVALID_SIGNATURE,
+                        "Invalid flowbits keyword: %s. This will become an error in Suricata 7.0.",
+                        token);
+                return -4;
+            } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid flowbits keyword: %s", token);
+                return -1;
+            }
         }
         token = strtok_r(NULL, ",", &context);
     }
@@ -327,7 +334,7 @@ int DetectFlowbitSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr
 
     int result = DetectFlowbitParse(de_ctx, rawstr, &cd);
     if (result < 0) {
-        return -1;
+        return result;
     } else if (result == 0 && cd == NULL) {
         s->flags |= SIG_FLAG_NOALERT;
         return 0;
