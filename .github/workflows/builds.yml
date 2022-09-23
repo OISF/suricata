@@ -225,11 +225,11 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace
-      #- name: Setup cppclean
-      #  run: |
-      #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
-      #    cd cppclean
-      #    python3 setup.py install
+      - name: Setup cppclean
+        run: |
+          git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
+          cd cppclean
+          python3 setup.py install
       - name: Configuring
         run: |
           ./autogen.sh
@@ -342,11 +342,11 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace
-      #- name: Setup cppclean
-      #  run: |
-      #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
-      #    cd cppclean
-      #    python3 setup.py install
+      - name: Setup cppclean
+        run: |
+          git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
+          cd cppclean
+          python3 setup.py install
       - name: Configuring
         run: |
           ./autogen.sh
