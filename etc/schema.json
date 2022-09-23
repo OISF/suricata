@@ -106,6 +106,7 @@
         },
         "files": {
             "type": "array",
+            "minItems": 1,
             "items": {
                 "type": "object",
                 "optional": true,
@@ -148,6 +149,7 @@
                     },
                     "sid": {
                         "type": "array",
+                        "minItems": 1,
                         "items": {
                             "type": "integer"
                         }
@@ -158,6 +160,7 @@
         },
         "vlan": {
             "type": "array",
+            "minItems": 1,
             "items": {
                 "type": "number"
             }
@@ -198,60 +201,70 @@
                     "properties": {
                         "affected_product": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "attack_target": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "created_at": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "deployment": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "former_category": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "malware_family": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "policy": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "signature_severity": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "tag": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "updated_at": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -323,6 +336,7 @@
                 },
                 "interfaces": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -419,18 +433,21 @@
                 },
                 "dns_servers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "params": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "routers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -462,6 +479,7 @@
                         },
                         "objects": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -491,6 +509,7 @@
                                     },
                                     "points": {
                                         "type": "array",
+                                        "minItems": 1,
                                         "items": {
                                             "type": "object",
                                             "additionalProperties": true
@@ -550,6 +569,7 @@
                     "properties": {
                         "indicators": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -580,6 +600,7 @@
                                 },
                                 "objects": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -609,6 +630,7 @@
                                             },
                                             "points": {
                                                 "type": "array",
+                                                "minItems": 1,
                                                 "items": {
                                                     "type": "object",
                                                     "additionalProperties": true
@@ -689,6 +711,7 @@
                                 },
                                 "objects": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -718,6 +741,7 @@
                                             },
                                             "points": {
                                                 "type": "array",
+                                                "minItems": 1,
                                                 "items": {
                                                     "type": "object",
                                                     "additionalProperties": true
@@ -777,6 +801,7 @@
                             "properties": {
                                 "indicators": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "string"
                                     }
@@ -832,6 +857,7 @@
                 },
                 "answers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "optional": true,
@@ -873,6 +899,7 @@
                 },
                 "authorities": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "optional": true,
@@ -923,6 +950,7 @@
                 },
                 "query": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "optional": true,
@@ -991,42 +1019,49 @@
                     "properties": {
                         "A": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "AAAA": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "CNAME": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "MX": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "NULL": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "PTR": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
                         },
                         "SRV": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "optional": true,
@@ -1049,6 +1084,7 @@
                         },
                         "TXT": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -1162,18 +1198,21 @@
                 },
                 "url": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "attachment": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "to": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -1218,12 +1257,14 @@
                 },
                 "dest_macs": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "src_macs": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -1276,6 +1317,7 @@
                 },
                 "sid": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "integer"
                     }
@@ -1405,12 +1447,14 @@
                 },
                 "completion_code": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "reply": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -1491,6 +1535,7 @@
                 },
                 "request_headers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1509,6 +1554,7 @@
                 },
                 "response_headers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1560,6 +1606,7 @@
                                 },
                                 "settings": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -1584,6 +1631,7 @@
                                 },
                                 "settings": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -1630,6 +1678,7 @@
                 },
                 "request_headers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1648,6 +1697,7 @@
                 },
                 "response_headers": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1766,6 +1816,7 @@
                 },
                 "payload": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -1781,6 +1832,7 @@
                         },
                         "vendor_ids": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -1802,6 +1854,7 @@
                                 },
                                 "proposals": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -1933,12 +1986,14 @@
             "properties": {
                 "flowbits": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "flowvars": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1957,6 +2012,7 @@
                 },
                 "pktvars": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -2442,6 +2498,7 @@
                         },
                         "qos_granted": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "integer"
                             }
@@ -2466,6 +2523,7 @@
                         },
                         "topics": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -2499,6 +2557,7 @@
                         },
                         "reason_codes": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "integer"
                             }
@@ -2523,6 +2582,7 @@
                         },
                         "topics": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -2692,6 +2752,7 @@
                                 },
                                 "optional_parameters": {
                                     "type": "array",
+                                    "minItems": 1,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -2752,6 +2813,7 @@
                         },
                         "parameter_status": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -2825,6 +2887,7 @@
             "properties": {
                 "cyu": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -2840,6 +2903,7 @@
                 },
                 "extensions": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -2851,6 +2915,7 @@
                             },
                             "values": {
                                 "type": "array",
+                                "minItems": 1,
                                 "items": {
                                     "type": "string"
                                 }
@@ -2912,6 +2977,7 @@
                 },
                 "channels": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -2954,6 +3020,7 @@
                         },
                         "capabilities": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -3252,6 +3319,7 @@
                 },
                 "client_dialects": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -3311,6 +3379,7 @@
                         },
                         "interfaces": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "optional": true,
@@ -3369,6 +3438,7 @@
                         },
                         "snames": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "string"
                             }
@@ -3446,6 +3516,7 @@
                 },
                 "rcpt_to": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -3471,6 +3542,7 @@
                 },
                 "vars": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -4583,6 +4655,7 @@
                         },
                         "engines": {
                             "type": "array",
+                            "minItems": 1,
                             "items": [
                                 {
                                     "type": "object",
@@ -5141,12 +5214,14 @@
             "properties": {
                 "id": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "label": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
