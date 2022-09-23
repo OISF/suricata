@@ -5,18 +5,6 @@ on:
   - pull_request
 
 env:
-  DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
-  DEFAULT_LIBHTP_BRANCH: 0.5.x
-  DEFAULT_LIBHTP_PR:
-
-  DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
-  DEFAULT_SU_BRANCH: master-1.2.x
-  DEFAULT_SU_PR:
-
-  DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
-  DEFAULT_SV_BRANCH: master
-  DEFAULT_SV_PR:
-
   DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
   # Apt sometimes likes to ask for user input, this will prevent that.
@@ -28,20 +16,18 @@ env:
   RUST_VERSION_KNOWN: "1.49.0"
 
   # The minimum version of Rust supported.
-  RUST_VERSION_MIN: 1.41.1
+  RUST_VERSION_MIN: "1.41.1"
+
 jobs:
 
-  prepare-deps:
-    name: Prepare dependencies
+  bundle:
+    name: Create Test Bundle
     runs-on: ubuntu-latest
+    env:
+      DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
+      DEFAULT_SV_BRANCH: master
     steps:
-      - name: Cache ~/.cargo
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo
-          key: cargo
-      - run: sudo apt update && sudo apt -y install jq curl
-      - name: Parse repo and branch information
+      - name: Parse pull request body
         env:
           # We fetch the actual pull request to get the latest body as
           # github.event.pull_request.body has the body from the
@@ -51,72 +37,61 @@ jobs:
           if test "${PR_HREF}"; then
               body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
 
-              libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
-              libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
-              libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
+              LIBHTP_REPO=$(echo "${body}" | awk -F = '/^LIBHTP_REPO=/ { print $2 }')
+              LIBHTP_BRANCH=$(echo "${body}" | awk -F = '/^LIBHTP_BRANCH=/ { print $2 }')
+              LIBHTP_PR=$(echo "${body}" | awk -F = '/^LIBHTP_PR=/ { print $2 }')
 
-              su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
-              su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
-              su_pr=$(echo "${body}" | awk '/^suricata-update-pr/ { print $2 }')
+              SU_REPO=$(echo "${body}" | awk -F = '/^SU_REPO=/ { print $2 }')
+              SU_BRANCH=$(echo "${body}" | awk -F = '/^SU_BRANCH=/ { print $2 }')
+              SU_PR=$(echo "${body}" | awk -F = '/^SU_PR=/ { print $2 }')
 
-              sv_repo=$(echo "${body}" | awk '/^suricata-verify-repo/ { print $2 }')
-              sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
-              sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
+              SV_REPO=$(echo "${body}" | awk -F = '/^SV_REPO=/ { print $2 }')
+              SV_BRANCH=$(echo "${body}" | awk -F = '/^SV_BRANCH=/ { print $2 }')
+              SV_PR=$(echo "${body}" | awk -F = '/^SV_PR=/ { print $2 }')
+          else
+              echo "No pull request body, will use defaults."
           fi
-          echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
-          echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
-          echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
 
-          echo "su_repo=${su_repo:-${DEFAULT_SU_REPO}}" >> $GITHUB_ENV
-          echo "su_branch=${su_branch:-${DEFAULT_SU_BRANCH}}" >> $GITHUB_ENV
-          echo "su_pr=${su_pr:-${DEFAULT_SU_PR}}" >> $GITHUB_ENV
+          echo LIBHTP_REPO=${LIBHTP_REPO} >> ${GITHUB_ENV}
+          echo LIBHTP_BRANCH=${LIBHTP_BRANCH} >> ${GITHUB_ENV}
+          echo LIBHTP_PR=${LIBHTP_PR} >> ${GITHUB_ENV}
 
-          echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
-          echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
-          echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
-      - name: Fetching libhtp
+          echo SU_REPO=${SU_REPO} >> ${GITHUB_ENV}
+          echo SU_BRANCH=${SU_BRANCH} >> ${GITHUB_ENV}
+          echo SU_PR=${SU_PR} >> ${GITHUB_ENV}
+
+          echo SV_REPO=${SV_REPO:-${DEFAULT_SV_REPO}} >> ${GITHUB_ENV}
+          echo SV_BRANCH=${SV_BRANCH:-${DEFAULT_SV_BRANCH}} >> ${GITHUB_ENV}
+          echo SV_PR=${SV_PR} >> ${GITHUB_ENV}
+      - run: env
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+        with:
+          path: suricata
+      - name: Bundle libhtp, suricata-update
+        run: ./scripts/bundle.sh
+        working-directory: suricata
+      - name: Bundle suricata-verify
+        working-directory: suricata
         run: |
-          git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
-          if [[ "${libhtp_pr}" != "" ]]; then
-              cd libhtp
-              git fetch origin pull/${libhtp_pr}/head:prep
-              git checkout prep
-              cd ..
-          fi
-          tar zcf libhtp.tar.gz libhtp
-      - name: Fetching suricata-update
-        run: |
-          git clone --depth 1 ${su_repo} -b ${su_branch} suricata-update
-          if [[ "${su_pr}" != "" ]]; then
-              cd suricata-update
-              git fetch origin pull/${su_pr}/head:prep
-              git checkout prep
-              cd ..
-          fi
-          tar zcf suricata-update.tar.gz suricata-update
-      - name: Fetching suricata-verify
-        run: |
-          git clone ${sv_repo} -b ${sv_branch} suricata-verify
-          if [[ "${sv_pr}" != "" ]]; then
+          git clone ${SV_REPO} -b ${SV_BRANCH} suricata-verify
+          if [[ "${SV_PR}" != "" ]]; then
               cd suricata-verify
-              git fetch origin pull/${sv_pr}/head:prep
+              git fetch origin pull/${SV_PR}/head:prep
               git checkout prep
               git config --global user.email you@example.com
               git config --global user.name You
               git rebase ${DEFAULT_SV_BRANCH}
               cd ..
           fi
-          tar zcf suricata-verify.tar.gz suricata-verify
-      - name: Cleaning up
-        run: rm -rf libhtp suricata-update suricata-verify
-      - name: Uploading prep archive
-        uses: actions/upload-artifact@v2
+      - run: tar zcf suricata.tar.gz suricata
+      - name: Upload bundle
+        uses: actions/upload-artifact@v3
         with:
-          name: prep
-          path: .
+          name: suricata
+          path: suricata.tar.gz
 
-  prepare-cbindgen:
-    name: Prepare cbindgen
+  cbindgen:
+    name: Build cbindgen
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
@@ -133,17 +108,17 @@ jobs:
         run: |
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
-      - name: Uploading prep archive
-        uses: actions/upload-artifact@v2
+      - name: Uploading cbindgen
+        uses: actions/upload-artifact@v3
         with:
-          name: prep
-          path: .
+          name: cbindgen
+          path: cbindgen
 
   almalinux-9:
     name: AlmaLinux 9
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -151,24 +126,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core
@@ -222,6 +179,21 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: cbindgen
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - name: Configuring
         run: |
           ./autogen.sh
@@ -243,7 +215,7 @@ jobs:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
     container: almalinux:8.4
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -252,7 +224,10 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
 
       # Prebuild check for duplicat SIDs
       - name: Check for duplicate SIDs
@@ -263,21 +238,18 @@ jobs:
             exit 1
           fi
 
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+
       - name: Install system packages
         run: |
           yum -y install dnf-plugins-core
@@ -357,7 +329,7 @@ jobs:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: [prepare-deps, alma-8]
+    needs: [alma-8]
     steps:
       - name: Install system dependencies
         run: |
@@ -396,9 +368,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: dist
-      - run: tar zxvf suricata-*.tar.gz --strip-components=1
+      - run: tar zxf suricata-*.tar.gz --strip-components=1
       # This isn't really needed as we are building from a prepared
-      # package, but some package managers like RPM and Debian like to
+      # package, but some package managers like RPM and Debianlike to
       # run this command even on prepared packages, so make sure it
       # works.
       - name: Test autoreconf
@@ -417,7 +389,7 @@ jobs:
     name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:36
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -465,19 +437,21 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
         env:
@@ -485,8 +459,6 @@ jobs:
           ac_cv_func_malloc_0_nonnull: "yes"
       - run: make -j2
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -497,7 +469,7 @@ jobs:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:35
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -545,19 +517,21 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
         env:
@@ -565,8 +539,6 @@ jobs:
           ac_cv_func_malloc_0_nonnull: "yes"
       - run: make -j2
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -577,7 +549,7 @@ jobs:
     name: Ubuntu 20.04 (no nss, no nspr)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
       - name: Install dependencies
         run: |
@@ -617,24 +589,25 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --disable-nss --disable-nspr
       - run: make -j2
       - run: make dist
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
@@ -642,7 +615,7 @@ jobs:
     name: Ubuntu 20.04 (-DNDEBUG)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       - name: Install dependencies
@@ -683,26 +656,26 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests --enable-http2-decompression
       - run: make -j2
       - run: make check
       - run: make dist
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -765,7 +738,7 @@ jobs:
     name: Ubuntu 22.04 (Debug Validation)
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -813,24 +786,25 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
       - run: make -j2
       - run: make check
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
@@ -838,7 +812,7 @@ jobs:
     name: Ubuntu 22.04 (Cocci)
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -901,18 +875,21 @@ jobs:
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
@@ -926,8 +903,6 @@ jobs:
           test -e doc/devguide/devguide.pdf
           test -e doc/userguide/userguide.pdf
           test -e doc/userguide/suricata.1
-      - name: Extracting suricata-verify
-        run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
@@ -936,7 +911,7 @@ jobs:
     name: Ubuntu 22.04 (Fuzz)
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -980,19 +955,21 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH      - run: tar xf prep/libhtp.tar.gz
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ ./configure --enable-fuzztargets --disable-shared
       - run: AFL_HARDEN=1 make -j2
@@ -1056,7 +1033,7 @@ jobs:
     name: Debian 10
     runs-on: ubuntu-latest
     container: debian:10
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1103,23 +1080,25 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
       - run: make check
-      - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -1130,7 +1109,7 @@ jobs:
     name: Debian 9
     runs-on: ubuntu-latest
     container: debian:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [bundle, cbindgen]
     steps:
       - run: |
           apt update
@@ -1170,23 +1149,25 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: cbindgen
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -1197,7 +1178,7 @@ jobs:
     name: MacOS Latest
     # use 10.15 for now. Build fails on macos-11 (aka macos-latest)
     runs-on: macos-10.15
-    needs: [prepare-deps]
+    needs: [bundle]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1229,19 +1210,14 @@ jobs:
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - name: Downloading prep archive
-        uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
       - run: make install
@@ -1251,7 +1227,7 @@ jobs:
   windows-msys2-mingw64:
     name: Windows MSYS2 MINGW64
     runs-on: windows-latest
-    needs: [prepare-deps]
+    needs: [bundle]
     defaults:
       run:
         shell: msys2 {0}
@@ -1266,13 +1242,10 @@ jobs:
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
-      - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+          name: suricata
+      - run: tar zxvf suricata.tar.gz --strip-components=1
       - name: Npcap DLL
         run: |
           curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
@@ -1284,7 +1257,6 @@ jobs:
           curl -sL -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
           unzip npcap-sdk-1.06.zip -d /npcap
           cp /npcap/Lib/x64/* /usr/lib/
-      - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
         run: |
           ./autogen.sh
