@@ -859,11 +859,15 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/ut.profraw"
       - run: llvm-profdata-14 merge -o ut.profdata /tmp/ut.profraw
       - run: llvm-cov-14 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
-      - run: cd rust && cargo test --no-run
+      - run: |
+          cd rust
+          cargo test --no-run
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
-      - run: "$(find target/debug/deps/ -type f -regex 'target/debug/deps/suricata\-[a-z0-9]+$')" && cd ..
+      - run: |
+          $(find target/debug/deps/ -type f -regex 'target/debug/deps/suricata\-[a-z0-9]+$')
+          cd ..
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
