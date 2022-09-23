@@ -516,9 +516,13 @@ static inline int PcapWrite(
 #ifdef HAVE_LIBLZ4
     else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         pcap_dump_flush(pl->pcap_dumper);
-        uint64_t in_size = (uint64_t)ftell(comp->pcap_buf_wrapper);
-        uint64_t out_size = LZ4F_compressUpdate(
-                comp->lz4f_context, comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
+        long in_size = ftell(comp->pcap_buf_wrapper);
+        if (in_size < 0) {
+            SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "ftell failed with: %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        uint64_t out_size = LZ4F_compressUpdate(comp->lz4f_context, comp->buffer, comp->buffer_size,
+                comp->pcap_buf, (uint64_t)in_size, NULL);
         if (LZ4F_isError(len)) {
             SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s", LZ4F_getErrorName(len));
             return TM_ECODE_FAILED;
