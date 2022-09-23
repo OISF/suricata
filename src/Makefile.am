@@ -477,6 +477,7 @@ noinst_HEADERS = \
 	source-windivert-prototypes.h \
 	stream.h \
 	stream-tcp.h \
+	stream-tcp-cache.h \
 	stream-tcp-inline.h \
 	stream-tcp-list.h \
 	stream-tcp-private.h \
@@ -1076,6 +1077,7 @@ libsuricata_c_a_SOURCES = \
 	source-windivert.c \
 	stream.c \
 	stream-tcp.c \
+	stream-tcp-cache.c \
 	stream-tcp-inline.c \
 	stream-tcp-list.c \
 	stream-tcp-reassemble.c \

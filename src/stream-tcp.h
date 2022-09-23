@@ -84,6 +84,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
     uint16_t counter_tcp_ssn_memcap;
+    uint16_t counter_tcp_ssn_from_cache;
+    uint16_t counter_tcp_ssn_from_pool;
     /** pseudo packets processed */
     uint16_t counter_tcp_pseudo;
     /** pseudo packets failed to setup */
@@ -210,6 +212,9 @@ void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
 
 uint64_t StreamTcpGetAcked(const TcpStream *stream);
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof);
+
+void StreamTcpThreadCacheEnable(void);
+void StreamTcpThreadCacheCleanup(void);
 
 #endif /* __STREAM_TCP_H__ */
 

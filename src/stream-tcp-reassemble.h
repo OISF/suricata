@@ -63,6 +63,10 @@ typedef struct TcpReassemblyThreadCtx_ {
 
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
+
+    uint16_t counter_tcp_segment_from_cache;
+    uint16_t counter_tcp_segment_from_pool;
+
     /** number of streams that stop reassembly because their depth is reached */
     uint16_t counter_tcp_stream_depth;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
