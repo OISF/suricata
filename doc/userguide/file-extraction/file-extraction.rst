@@ -175,3 +175,18 @@ Updating Filestore Configuration
 .. toctree::
 
    config-update
+
+File extraction over multiple flows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Protocols such as HTTP and SMB allow to transfer a file using multiple flows.
+For example in HTTP, this is done with the `Range` header in requests.
+
+Suricata can manage to recombine the parts of files seen in the multiple flows
+to run the logic on the reassembled file.
+
+This is done using a hash table which has a timeout and a memory maximum capacity.
+These can be configured in suricata.yaml in `app-layer.protocols.protocol.byterange` sections
+where protocol can be http or smb.
+
+The default memcap is 100 Mbytes and the default timeout is 60 seconds.
