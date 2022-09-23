@@ -4808,6 +4808,9 @@
                                 "flows_injected": {
                                     "type": "integer"
                                 },
+                                "flows_injected_max": {
+                                    "type": "integer"
+                                },
                                 "spare_sync": {
                                     "type": "integer"
                                 },
@@ -4979,7 +4982,19 @@
                         "segment_memcap_drop": {
                             "type": "integer"
                         },
+                        "segment_from_cache": {
+                            "type": "integer"
+                        },
+                        "segment_from_pool": {
+                            "type": "integer"
+                        },
                         "sessions": {
+                            "type": "integer"
+                        },
+                        "ssn_from_cache": {
+                            "type": "integer"
+                        },
+                        "ssn_from_pool": {
                             "type": "integer"
                         },
                         "ssn_memcap_drop": {
