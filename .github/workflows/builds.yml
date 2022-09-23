@@ -857,11 +857,13 @@ jobs:
       - run: ./src/suricata -u -l /tmp/
         env:
           LLVM_PROFILE_FILE: "/tmp/ut.profraw"
+      - run: llvm-profdata-14 merge -o ut.profdata /tmp/ut.profraw
+      - run: llvm-cov-14 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - run: cd rust && cargo test
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
-      - run: llvm-profdata-14 merge -o default.profdata /tmp/ut.profraw /tmp/ct.profraw
-      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-14 merge -o ct.profdata /tmp/ct.profraw
+      - run: llvm-cov-14 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
         with:
