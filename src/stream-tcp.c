@@ -51,9 +51,10 @@
 #include "util-device.h"
 
 #include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
+#include "stream-tcp-cache.h"
 #include "stream-tcp-inline.h"
+#include "stream-tcp-reassemble.h"
 #include "stream-tcp-sack.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
@@ -104,7 +105,7 @@ static int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
 extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
 
-static PoolThread *ssn_pool = NULL;
+PoolThread *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
 #ifdef DEBUG
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
@@ -250,11 +251,11 @@ void StreamTcpSessionClear(void *ssnptr)
     StreamTcpSessionCleanup(ssn);
 
     /* HACK: don't loose track of thread id */
-    PoolThreadReserved a = ssn->res;
+    PoolThreadId pool_id = ssn->pool_id;
     memset(ssn, 0, sizeof(TcpSession));
-    ssn->res = a;
+    ssn->pool_id = pool_id;
 
-    PoolThreadReturn(ssn_pool, ssn);
+    StreamTcpThreadCacheReturnSession(ssn);
 #ifdef DEBUG
     SCMutexLock(&ssn_pool_mutex);
     ssn_pool_cnt--;
@@ -688,13 +689,26 @@ void StreamTcpFreeConfig(bool quiet)
  *
  *  \retval ssn new TCP session.
  */
-static TcpSession *StreamTcpNewSession (Packet *p, int id)
+static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Packet *p, int id)
 {
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
         DEBUG_VALIDATE_BUG_ON(id < 0 || id > UINT16_MAX);
-        p->flow->protoctx = PoolThreadGetById(ssn_pool, (uint16_t)id);
+        p->flow->protoctx = StreamTcpThreadCacheGetSession();
+        if (p->flow->protoctx != NULL) {
+#ifdef UNITTESTS
+            if (tv)
+#endif
+                StatsIncr(tv, stt->counter_tcp_ssn_from_cache);
+        } else {
+            p->flow->protoctx = PoolThreadGetById(ssn_pool, (uint16_t)id);
+            if (p->flow->protoctx != NULL)
+#ifdef UNITTESTS
+                if (tv)
+#endif
+                    StatsIncr(tv, stt->counter_tcp_ssn_from_pool);
+        }
 #ifdef DEBUG
         SCMutexLock(&ssn_pool_mutex);
         if (p->flow->protoctx != NULL)
@@ -940,7 +954,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         SCLogDebug("midstream picked up");
 
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+            ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
@@ -1033,7 +1047,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
     } else if (p->tcph->th_flags & TH_SYN) {
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+            ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
@@ -1113,7 +1127,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         SCLogDebug("midstream picked up");
 
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+            ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
@@ -5394,12 +5408,15 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     memset(stt, 0, sizeof(StreamTcpThread));
     stt->ssn_pool_id = -1;
+    StreamTcpThreadCacheEnable();
 
     *data = (void *)stt;
 
     stt->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
     stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", tv);
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
+    stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
+    stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
@@ -5416,6 +5433,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+    stt->ra_ctx->counter_tcp_segment_from_cache =
+            StatsRegisterCounter("tcp.segment_from_cache", tv);
+    stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);
     stt->ra_ctx->counter_tcp_stream_depth = StatsRegisterCounter("tcp.stream_depth_reached", tv);
     stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", tv);
     stt->ra_ctx->counter_tcp_reass_overlap = StatsRegisterCounter("tcp.overlap", tv);

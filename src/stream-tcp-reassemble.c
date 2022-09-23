@@ -48,6 +48,7 @@
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
+#include "stream-tcp-cache.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-list.h"
@@ -76,7 +77,7 @@ static uint64_t segment_pool_memcnt = 0;
 
 thread_local uint64_t t_pcapcnt = UINT64_MAX;
 
-static PoolThread *segment_thread_pool = NULL;
+PoolThread *segment_thread_pool = NULL;
 /* init only, protect initializing and growing pool */
 static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 
@@ -374,7 +375,7 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
         seg->pcap_hdr_storage->pktlen = 0;
     }
 
-    PoolThreadReturn(segment_thread_pool, seg);
+    StreamTcpThreadCacheReturnSegment(seg);
 }
 
 /**
@@ -565,6 +566,8 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
+    StreamTcpThreadCacheCleanup();
+
     if (ra_ctx) {
         AppLayerDestroyCtxThread(ra_ctx->app_tctx);
         SCFree(ra_ctx);
@@ -2036,7 +2039,14 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
  */
 TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
 {
-    TcpSegment *seg = (TcpSegment *)PoolThreadGetById(
+    TcpSegment *seg = StreamTcpThreadCacheGetSegment();
+    if (seg) {
+        StatsIncr(tv, ra_ctx->counter_tcp_segment_from_cache);
+        memset(&seg->sbseg, 0, sizeof(seg->sbseg));
+        return seg;
+    }
+
+    seg = (TcpSegment *)PoolThreadGetById(
             segment_thread_pool, (uint16_t)ra_ctx->segment_thread_pool_id);
     SCLogDebug("seg we return is %p", seg);
     if (seg == NULL) {
@@ -2045,6 +2055,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
         StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
     } else {
         memset(&seg->sbseg, 0, sizeof(seg->sbseg));
+        StatsIncr(tv, ra_ctx->counter_tcp_segment_from_pool);
     }
 
     return seg;

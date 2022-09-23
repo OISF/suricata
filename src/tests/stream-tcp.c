@@ -47,7 +47,7 @@ static int StreamTcpTest01(void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
     StreamTcpUTInit(&stt.ra_ctx);
-    TcpSession *ssn = StreamTcpNewSession(p, 0);
+    TcpSession *ssn = StreamTcpNewSession(NULL, &stt, p, 0);
     FAIL_IF_NULL(ssn);
     f.protoctx = ssn;
     FAIL_IF_NOT_NULL(f.alparser);
