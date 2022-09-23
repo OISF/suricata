@@ -715,6 +715,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
 
 static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
 {
+    StreamTcpThreadCacheCleanup();
     PacketPoolDestroy();
     SCFree(data);
     return TM_ECODE_OK;
@@ -1022,6 +1023,8 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
 
 static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
 {
+    StreamTcpThreadCacheCleanup();
+
     FlowRecyclerThreadData *ftd = (FlowRecyclerThreadData *)data;
     if (ftd->output_thread_data != NULL)
         OutputFlowLogThreadDeinit(t, ftd->output_thread_data);

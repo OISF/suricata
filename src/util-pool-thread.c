@@ -177,7 +177,7 @@ void *PoolThreadGetById(PoolThread *pt, uint16_t id)
     data = PoolGet(e->pool);
     SCMutexUnlock(&e->lock);
     if (data) {
-        PoolThreadReserved *did = data;
+        PoolThreadId *did = data;
         *did = id;
     }
 
@@ -186,7 +186,7 @@ void *PoolThreadGetById(PoolThread *pt, uint16_t id)
 
 void PoolThreadReturn(PoolThread *pt, void *data)
 {
-    PoolThreadReserved *id = data;
+    PoolThreadId *id = data;
 
     if (pt == NULL || *id >= pt->size)
         return;
@@ -199,9 +199,30 @@ void PoolThreadReturn(PoolThread *pt, void *data)
     SCMutexUnlock(&e->lock);
 }
 
+void PoolThreadLock(PoolThread *pt, PoolThreadId id)
+{
+    BUG_ON(pt == NULL || id >= pt->size);
+    PoolThreadElement *e = &pt->array[id];
+    SCMutexLock(&e->lock);
+}
+
+void PoolThreadReturnRaw(PoolThread *pt, PoolThreadId id, void *data)
+{
+    BUG_ON(pt == NULL || id >= pt->size);
+    PoolThreadElement *e = &pt->array[id];
+    PoolReturn(e->pool, data);
+}
+
+void PoolThreadUnlock(PoolThread *pt, PoolThreadId id)
+{
+    BUG_ON(pt == NULL || id >= pt->size);
+    PoolThreadElement *e = &pt->array[id];
+    SCMutexUnlock(&e->lock);
+}
+
 #ifdef UNITTESTS
 struct PoolThreadTestData {
-    PoolThreadReserved res;
+    PoolThreadId res;
     int abc;
 };
 
