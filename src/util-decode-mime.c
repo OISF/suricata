@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "util-decode-mime.h"
 #include "util-ip.h"
