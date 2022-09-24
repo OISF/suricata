@@ -46,34 +46,17 @@ static int StreamTcpTest01(void)
     memset(&f, 0, sizeof(Flow));
     FLOW_INITIALIZE(&f);
     p->flow = &f;
-    int ret = 0;
-
     StreamTcpUTInit(&stt.ra_ctx);
-
     TcpSession *ssn = StreamTcpNewSession(p, 0);
-    if (ssn == NULL) {
-        printf("Session can not be allocated: ");
-        goto end;
-    }
+    FAIL_IF_NULL(ssn);
     f.protoctx = ssn;
-
-    if (f.alparser != NULL) {
-        printf("AppLayer field not set to NULL: ");
-        goto end;
-    }
-    if (ssn->state != 0) {
-        printf("TCP state field not set to 0: ");
-        goto end;
-    }
-
+    FAIL_IF_NOT_NULL(f.alparser);
+    FAIL_IF_NOT(ssn->state == 0);
     StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
-end:
     SCFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
-    return ret;
+    PASS;
 }
 
 /**
