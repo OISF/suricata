@@ -84,6 +84,7 @@ typedef struct FlowWorkerThreadData_ {
 
     struct {
         uint16_t flows_injected;
+        uint16_t flows_injected_max;
         uint16_t flows_removed;
         uint16_t flows_aside_needs_work;
         uint16_t flows_aside_pkt_inject;
@@ -264,6 +265,7 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
     fw->cnt.flows_aside_pkt_inject = StatsRegisterCounter("flow.wrk.flows_evicted_pkt_inject", tv);
     fw->cnt.flows_removed = StatsRegisterCounter("flow.wrk.flows_evicted", tv);
     fw->cnt.flows_injected = StatsRegisterCounter("flow.wrk.flows_injected", tv);
+    fw->cnt.flows_injected_max = StatsRegisterMaxCounter("flow.wrk.flows_injected_max", tv);
 
     fw->fls.dtv = fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {
@@ -454,6 +456,8 @@ static inline void FlowWorkerProcessInjectedFlows(ThreadVars *tv,
         injected = FlowQueueExtractPrivate(tv->flow_queue);
     if (injected.len > 0) {
         StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);
+        if (p->pkt_src == PKT_SRC_WIRE)
+            StatsSetUI64(tv, fw->cnt.flows_injected_max, (uint64_t)injected.len);
 
         FlowTimeoutCounters counters = { 0, 0, };
         CheckWorkQueue(tv, fw, detect_thread, &counters, &injected);
