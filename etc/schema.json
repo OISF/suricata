@@ -100,6 +100,10 @@
             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+[+\\-]\\d+$",
             "optional": false
         },
+        "direction": {
+            "type": "string",
+            "optional": true
+        },
         "tx_id": {
             "type": "integer",
             "optional": true
@@ -1324,6 +1328,12 @@
                 "bytes_toserver": {
                     "type": "integer"
                 },
+                "dest_ip": {
+                    "type": "string"
+                },
+                "dest_port": {
+                    "type": "integer"
+                },
                 "end": {
                     "type": "string"
                 },
@@ -1335,6 +1345,12 @@
                 },
                 "reason": {
                     "type": "string"
+                },
+                "src_ip": {
+                    "type": "string"
+                },
+                "src_port": {
+                    "type": "integer"
                 },
                 "start": {
                     "type": "string"
@@ -5043,6 +5059,9 @@
                 "syn": {
                     "type": "boolean"
                 },
+                "tc_gap": {
+                    "type": "boolean"
+                },
                 "tcp_flags": {
                     "type": "string"
                 },
@@ -5051,6 +5070,9 @@
                 },
                 "tcp_flags_ts": {
                     "type": "string"
+                },
+                "ts_gap": {
+                    "type": "boolean"
                 },
                 "urg": {
                     "type": "boolean"
