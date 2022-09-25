@@ -99,7 +99,13 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
     match tx.vercmd.get_ntstatus() {
         (true, ntstatus) => {
             let status = smb_ntstatus_string(ntstatus);
-            jsb.set_string("status", &status)?;
+            match status {
+                Some(x) => jsb.set_string("status", &x)?,
+                None => {
+                    let status_str = format!("{}", ntstatus);
+                    jsb.set_string("status", &status_str)?
+                },
+            };
             let status_hex = format!("0x{:x}", ntstatus);
             jsb.set_string("status_code", &status_hex)?;
         },
