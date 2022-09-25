@@ -649,7 +649,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     SCLogDebug!("SMBv2 response record, command {} status {} tree {} session {} message {}",
-            &smb2_command_string(r.command), &smb_ntstatus_string(r.nt_status),
+            &smb2_command_string(r.command), r.nt_status,
             r.tree_id, r.session_id, r.message_id);
 
     let mut events : Vec<SMBEvent> = Vec::new();
@@ -725,7 +725,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 }
                 false
             } else {
-                SCLogDebug!("SMBv2 READ: status {}", &smb_ntstatus_string(r.nt_status));
+                SCLogDebug!("SMBv2 READ: status {}", r.nt_status);
                 false
             }
         },
