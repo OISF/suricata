@@ -29,6 +29,7 @@
 #include "app-layer-htp-xff.h"
 
 #ifndef HAVE_MEMRCHR
+#include "util-memrchr.h"
 #endif
 
 #ifdef UNITTESTS
