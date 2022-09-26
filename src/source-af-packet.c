@@ -71,7 +71,6 @@
 #endif
 
 #ifdef HAVE_PACKET_EBPF
-#include "util-ebpf.h"
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #endif

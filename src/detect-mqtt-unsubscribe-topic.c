@@ -49,7 +49,6 @@
 #include "flow-var.h"
 
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-spm.h"
 #include "util-print.h"
 #include "util-profiling.h"
