@@ -163,7 +163,6 @@ static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
 

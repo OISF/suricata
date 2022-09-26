@@ -603,7 +603,6 @@ void DetectDNP3Register(void)
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer-parser.h"
-#include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 

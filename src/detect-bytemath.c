@@ -423,8 +423,6 @@ SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
 /*************************************Unittests********************************/
 #ifdef UNITTESTS
 
-#include "app-layer-parser.h"
-
 static int DetectByteMathParseTest01(void)
 {
 

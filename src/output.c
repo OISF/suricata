@@ -64,7 +64,6 @@
 #include "output-json-stats.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
-#include "output-json.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
 #include "output-json-tftp.h"
