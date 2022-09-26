@@ -77,8 +77,6 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 
 #ifdef UNITTESTS
 
-#include "detect-engine.h"
-
 static int g_file_data_buffer_id = 0;
 
 static int DetectBase64DataSetupTest01(void)
