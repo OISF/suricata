@@ -24,26 +24,27 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-misc.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
 #include "detect-engine-uint.h"
-#include "detect-engine-build.h"
 
 #include "detect-filesize.h"
-#include "util-debug.h"
-#include "util-byte.h"
-#include "flow-util.h"
+
+#ifdef UNITTESTS
 #include "stream-tcp.h"
-
-
+#include "flow-util.h"
+#include "util-byte.h"
+#include "util-debug.h"
+#include "detect-engine-build.h"
+#include "detect-engine-state.h"
+#include "detect.h"
+#include "util-misc.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "app-layer-htp.h"
+#include "app-layer-protos.h"
+#endif
 /*prototypes*/
 static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);

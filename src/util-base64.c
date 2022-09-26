@@ -23,7 +23,9 @@
  */
 
 #include "util-base64.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#endif
 /* Constants */
 #define BASE64_TABLE_MAX  122
 

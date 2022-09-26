@@ -26,14 +26,15 @@
 
 #include "suricata-common.h"
 
-#include "util-unittest.h"
-
 #include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
 #include "app-layer-rfb.h"
 
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "app-layer-parser.h"
+#include "util-unittest.h"
+#endif
 static int RFBRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_RFB,

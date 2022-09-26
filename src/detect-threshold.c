@@ -33,33 +33,34 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
 
-#include "host.h"
-#include "host-storage.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "flow-var.h"
-#include "decode-events.h"
-#include "stream-tcp.h"
-
 #include "detect-threshold.h"
-#include "detect-engine-threshold.h"
 #include "detect-engine-address.h"
-#include "detect-engine-build.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-byte.h"
-#include "util-debug.h"
 
 #ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect-engine-threshold.h"
+#include "stream-tcp.h"
+#include "decode-events.h"
+#include "flow-var.h"
+#include "detect.h"
+#include "host-storage.h"
+#include "host.h"
+#include "decode.h"
+#include "suricata.h"
 #include "util-cpu.h"
 #endif
 
+#ifdef UNITTESTS
+#include "suricata.h"
+#endif
 #define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*"
 
 static DetectParseRegex parse_regex;

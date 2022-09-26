@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "util-hyperscan.h"
 #include "util-spm-hs.h"

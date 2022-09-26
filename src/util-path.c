@@ -23,10 +23,12 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "util-debug.h"
 #include "util-path.h"
 
+#ifdef OS_WIN32
+#include "util-debug.h"
+#include "suricata.h"
+#endif
 #ifdef OS_WIN32
 #define DIRECTORY_SEPARATOR '\\'
 #else

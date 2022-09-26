@@ -24,11 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
@@ -36,25 +32,7 @@
 #include "detect-pcre.h"
 #include "detect-tls-ja3s-hash.h"
 
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
-#include "util-debug.h"
-#include "util-spm.h"
-#include "util-print.h"
-#include "util-ja3.h"
-
-#include "stream-tcp.h"
-
-#include "app-layer.h"
 #include "app-layer-ssl.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 static int DetectTlsJa3SHashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

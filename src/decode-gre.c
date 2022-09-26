@@ -31,19 +31,21 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "decode-events.h"
 #include "decode-gre.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 /**
  * \brief Function to decode GRE packets
  */
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "decode-events.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
 int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);

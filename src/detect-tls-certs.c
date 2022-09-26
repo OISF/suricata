@@ -24,37 +24,36 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-tls-certs.h"
 #include "detect-engine-uint.h"
 
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "util-debug.h"
-#include "util-spm.h"
-#include "util-print.h"
-
-#include "stream-tcp.h"
-
-#include "app-layer.h"
 #include "app-layer-ssl.h"
 
 #include "util-profiling.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "app-layer.h"
+#include "stream-tcp.h"
+#include "util-print.h"
+#include "util-spm.h"
+#include "util-debug.h"
+#include "flow-var.h"
+#include "flow-util.h"
+#include "flow.h"
+#include "detect-content.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 static int DetectTlsCertsSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTlsCertsRegisterTests(void);

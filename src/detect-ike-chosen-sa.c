@@ -21,15 +21,10 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-ike-chosen-sa.h"
-#include "app-layer-parser.h"
 #include "util-byte.h"
-#include "util-unittest.h"
 
 #include "rust.h"
 
@@ -38,6 +33,13 @@
  */
 
 // support the basic attributes, which are parsed as integer and life_duration, if variable length
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "app-layer-parser.h"
+#include "detect-engine-content-inspection.h"
+#include "detect.h"
+#include "conf.h"
+#endif
 // is 4 it is stored as integer too
 #define PARSE_REGEX                                                                                \
     "^\\s*(alg_enc|alg_hash|alg_auth|alg_dh|\

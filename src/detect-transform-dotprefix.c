@@ -25,18 +25,19 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-prefilter.h"
 #include "detect-parse.h"
 #include "detect-transform-dotprefix.h"
-#include "detect-engine-build.h"
 
-#include "util-unittest.h"
-#include "util-print.h"
-#include "util-memrchr.h"
+#ifdef UNITTESTS
 #include "util-memcpy.h"
-
+#include "util-memrchr.h"
+#include "util-print.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect-engine-prefilter.h"
+#include "detect.h"
+#endif
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformDotPrefixRegisterTests(void);

@@ -24,12 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
-#include "util-debug.h"
 #include "host.h"
-#include "host-storage.h"
-#include "host-bit.h"
 
 #include "util-random.h"
 #include "util-misc.h"
@@ -38,12 +34,18 @@
 
 #include "host-queue.h"
 
-#include "detect-tag.h"
-#include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
 
+#ifdef HOSTBITS_STATS
+#include "detect-engine-tag.h"
+#include "detect-tag.h"
+#include "host-bit.h"
+#include "host-storage.h"
+#include "util-debug.h"
+#include "conf.h"
+#endif
 static Host *HostGetUsedHost(void);
 
 /** host hash table */

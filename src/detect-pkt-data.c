@@ -23,25 +23,25 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
-#include "detect-parse.h"
 #include "detect-pkt-data.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-unittest.h"
+#ifdef UNITTESTS
 #include "util-unittest-helper.h"
-
+#include "util-unittest.h"
+#include "util-spm-bm.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-state.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 static int DetectPktDataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectPktDataTestRegister(void);

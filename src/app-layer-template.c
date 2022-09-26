@@ -35,17 +35,19 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "conf.h"
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-template.h"
 
-#include "util-unittest.h"
 #include "util-validate.h"
 #include "util-enum.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "conf.h"
+#include "stream.h"
+#endif
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */
 #define TEMPLATE_DEFAULT_PORT "7"

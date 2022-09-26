@@ -30,11 +30,13 @@
  */
 
 #include "suricata-common.h"
-#include "util-pool.h"
 #include "util-pool-thread.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "util-pool.h"
+#endif
 /**
  *  \brief per thread Pool, initialization function
  *  \param thread number of threads this is for. Can start with 1 and be expanded.

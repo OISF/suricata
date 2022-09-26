@@ -24,20 +24,22 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
 
 #include "detect-icmp-id.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
 
 static DetectParseRegex parse_regex;

@@ -25,44 +25,14 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "tm-threads.h"
-#include "threadvars.h"
-#include "util-debug.h"
-
-#include "util-logopenfile.h"
-#include "util-misc.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-reference.h"
-#include "detect-metadata.h"
 #include "app-layer-parser.h"
-#include "app-layer-frames.h"
-#include "app-layer-dnp3.h"
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
-#include "app-layer-ftp.h"
-#include "util-classification-config.h"
 #include "stream-tcp.h"
 
-#include "output.h"
 #include "output-json.h"
 #include "output-json-frame.h"
 
-#include "util-byte.h"
-#include "util-privs.h"
 #include "util-print.h"
-#include "util-proto-name.h"
-#include "util-optimize.h"
-#include "util-buffer.h"
 #include "util-validate.h"
 
 #define MODULE_NAME "JsonFrameLog"

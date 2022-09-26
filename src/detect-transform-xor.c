@@ -24,11 +24,13 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-transform-xor.h"
 
+#ifdef UNITTESTS
+#include "detect.h"
+#endif
 typedef struct DetectTransformXorData {
     uint8_t *key;
     // limit the key length

@@ -23,46 +23,17 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "conf.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "runmodes.h"
 
-#include "util-random.h"
 #include "util-time.h"
 
-#include "flow.h"
-#include "flow-queue.h"
-#include "flow-hash.h"
 #include "flow-util.h"
-#include "flow-var.h"
 #include "flow-private.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
-#include "flow-storage.h"
 #include "flow-spare-pool.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-device.h"
-
-#include "util-debug.h"
-#include "util-privs.h"
-#include "util-signal.h"
-
-#include "threads.h"
-#include "detect.h"
-#include "detect-engine-state.h"
-#include "stream.h"
-
-#include "app-layer-parser.h"
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"
@@ -74,6 +45,33 @@
 
 #include "runmode-unix-socket.h"
 
+#ifdef CAPTURE_OFFLOAD
+#include "app-layer-parser.h"
+#include "stream.h"
+#include "detect-engine-state.h"
+#include "detect.h"
+#include "threads.h"
+#include "util-signal.h"
+#include "util-privs.h"
+#include "util-debug.h"
+#include "util-device.h"
+#include "util-byte.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp-private.h"
+#include "flow-storage.h"
+#include "flow-var.h"
+#include "flow-hash.h"
+#include "flow-queue.h"
+#include "flow.h"
+#include "util-random.h"
+#include "runmodes.h"
+#include "threadvars.h"
+#include "conf.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
 /* Run mode selected at suricata.c */
 extern int run_mode;
 

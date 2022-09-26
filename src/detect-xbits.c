@@ -24,33 +24,33 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "threads.h"
-#include "flow.h"
-#include "flow-util.h"
 #include "detect-xbits.h"
 #include "detect-hostbits.h"
-#include "util-spm.h"
 #include "util-byte.h"
 
-#include "detect-engine-sigorder.h"
-
-#include "app-layer-parser.h"
-
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-build.h"
 
-#include "flow-bit.h"
-#include "host-bit.h"
 #include "ippair-bit.h"
 #include "util-var-name.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "host-bit.h"
+#include "flow-bit.h"
+#include "detect-engine-build.h"
+#include "detect-engine-state.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "app-layer-parser.h"
+#include "detect-engine-sigorder.h"
+#include "util-spm.h"
+#include "flow-util.h"
+#include "flow.h"
+#include "threads.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /*
     xbits:set,bitname,track ip_pair,expire 60
  */

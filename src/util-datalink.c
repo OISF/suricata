@@ -16,7 +16,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "util-datalink.h"
 
 int g_datalink_value = LINKTYPE_NULL;

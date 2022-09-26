@@ -24,9 +24,7 @@
  */
 
 #include "suricata.h"
-#include "threads.h"
 #include "tm-queues.h"
-#include "util-debug.h"
 
 static TAILQ_HEAD(TmqList_, Tmq_) tmq_list = TAILQ_HEAD_INITIALIZER(tmq_list);
 

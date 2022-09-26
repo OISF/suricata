@@ -25,10 +25,12 @@
 
 #include "suricata-common.h"
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 #include "util-validate.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#endif
 /** \brief Turn byte array into string.
  *
  *  All non-printables are copied over, except for '\0', which is

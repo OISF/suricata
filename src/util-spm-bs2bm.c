@@ -27,7 +27,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "util-spm-bs2bm.h"
 

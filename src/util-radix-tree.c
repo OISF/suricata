@@ -25,15 +25,17 @@
 
 #include "suricata-common.h"
 #include "util-radix-tree.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-ip.h"
-#include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-byte.h"
 #include "util-cidr.h"
 #include "util-print.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-error.h"
+#include "util-debug.h"
+#endif
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
  *

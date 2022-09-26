@@ -24,22 +24,24 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-rpc.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-build.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
 #include "util-byte.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect-engine-address.h"
+#include "detect-engine-siggroup.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /**
  * \brief Regex for parsing our rpc options
  */

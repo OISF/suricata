@@ -23,9 +23,11 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-memrchr.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#endif
 #ifndef HAVE_MEMRCHR
 void *memrchr (const void *s, int c, size_t n)
 {

@@ -25,18 +25,19 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
-#include "flow-var.h"
-#include "decode-events.h"
 
 #include "detect-mark.h"
 #include "detect-parse.h"
 
-#include "util-unittest.h"
+#ifdef NFQ
 #include "util-debug.h"
-
+#include "util-unittest.h"
+#include "decode-events.h"
+#include "flow-var.h"
+#include "detect.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
 #define PARSE_REGEX "([0x]*[0-9a-f]+)/([0x]*[0-9a-f]+)"
 
 static DetectParseRegex parse_regex;

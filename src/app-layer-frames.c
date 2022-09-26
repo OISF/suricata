@@ -23,12 +23,14 @@
  */
 
 #include "suricata-common.h"
-#include "util-print.h"
 
 #include "stream-tcp.h"
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"
 
+#ifdef DEBUG
+#include "util-print.h"
+#endif
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {
 #ifdef DEBUG

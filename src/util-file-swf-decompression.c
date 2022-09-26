@@ -21,16 +21,9 @@
  *
  */
 
-
-#include "suricata.h"
 #include "suricata-common.h"
 
-#include "app-layer-htp.h"
-
-#include "util-file-decompression.h"
 #include "util-file-swf-decompression.h"
-#include "util-misc.h"
-#include "util-print.h"
 
 #include <zlib.h>
 

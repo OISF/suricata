@@ -24,11 +24,13 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-icmpv4hdr.h"
 
+#ifdef UNITTESTS
+#include "detect.h"
+#endif
 /* prototypes */
 static int DetectIcmpv4HdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

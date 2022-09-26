@@ -25,20 +25,20 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-prefilter.h"
-#include "conf.h"
 
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-byte.h"
-#include "util-profiling.h"
-#include "util-profiling-locks.h"
+#ifdef PROFILING
 #include "util-time.h"
-
+#include "util-profiling-locks.h"
+#include "util-profiling.h"
+#include "util-byte.h"
+#include "util-unittest.h"
+#include "tm-threads.h"
+#include "conf.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 #ifdef PROFILING
 
 typedef struct SCProfilePrefilterData_ {

@@ -24,22 +24,22 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect-engine-build.h"
 
 #include "detect-itype.h"
 #include "detect-engine-uint.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
-
-
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "detect-engine-build.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 static int DetectITypeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);

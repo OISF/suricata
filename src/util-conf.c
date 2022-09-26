@@ -24,10 +24,12 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "conf.h"
-#include "runmodes.h"
 #include "util-conf.h"
 
+#ifdef OS_WIN32
+#include "runmodes.h"
+#include "conf.h"
+#endif
 TmEcode ConfigSetLogDirectory(const char *name)
 {
     return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;

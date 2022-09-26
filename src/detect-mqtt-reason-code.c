@@ -22,17 +22,19 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-mqtt-reason-code.h"
 #include "util-byte.h"
-#include "util-unittest.h"
 
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "detect-engine-content-inspection.h"
+#include "detect.h"
+#include "conf.h"
+#endif
 #define PARSE_REGEX "^\\s*\\d+\\s*$"
 static DetectParseRegex parse_regex;
 

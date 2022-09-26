@@ -27,20 +27,22 @@
 #ifndef OS_WIN32
 
 #include "suricata-common.h"
-#include "util-debug.h"
-#include "suricata.h"
 
 #include "util-privs.h"
 #include "util-byte.h"
 
+#ifdef __OpenBSD__
+#include "util-cpu.h"
+#include "threadvars.h"
+#include "suricata.h"
+#include "util-debug.h"
+#endif
 #ifdef HAVE_LIBCAP_NG
 
 #include <cap-ng.h>
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
-#include "threadvars.h"
-#include "util-cpu.h"
 #include "runmodes.h"
 
 /** flag indicating if we'll be using caps */

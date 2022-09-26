@@ -27,13 +27,9 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "tm-threads.h"
 
 #include "util-privs.h"
-#include "util-datalink.h"
-#include "util-device.h"
-#include "tmqh-packetpool.h"
 #include "source-erf-dag.h"
 
 #ifndef HAVE_DAG

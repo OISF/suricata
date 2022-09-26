@@ -31,6 +31,21 @@
 #include "stream-tcp-util.h"
 #include "stream.h"
 
+#ifdef INIT_RING_BUFFER
+#include "queue.h"
+#include "source-pcap.h"
+#include "util-atomic.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "decode-ipv4.h"
+#include "util-unittest.h"
+#include "tm-threads.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "conf.h"
+#include "flow.h"
+#include "detect.h"
+#endif
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
 #endif /* HAVE_LIBLZ4 */
@@ -41,31 +56,14 @@
 #include <fnmatch.h>
 #endif
 
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
 #include "log-pcap.h"
-#include "decode-ipv4.h"
 
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-time.h"
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-cpu.h"
-#include "util-atomic.h"
-
-#include "source-pcap.h"
 
 #include "output.h"
-
-#include "queue.h"
 
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"
