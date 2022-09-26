@@ -156,7 +156,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             if (FlowChangeProto(f)) {
                 // exits if a protocol change is requested
                 alsize = 0;
-                break;
+                goto exit;
             }
             flags &= ~(STREAM_START);
             if (f->alparser &&
@@ -196,8 +196,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(isolatedBuffer, albuffer, alsize);
         (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alsize);
         free(isolatedBuffer);
+        if (FlowChangeProto(f)) {
+            goto exit;
+        }
     }
 
+    (void)AppLayerParserParse(NULL, alp_tctx, f, f->alproto, STREAM_TOCLIENT | STREAM_EOF, NULL, 0);
+    if (FlowChangeProto(f)) {
+        goto exit;
+    }
+    (void)AppLayerParserParse(NULL, alp_tctx, f, f->alproto, STREAM_TOSERVER | STREAM_EOF, NULL, 0);
+exit:
     FLOWLOCK_UNLOCK(f);
     FlowFree(f);
 
