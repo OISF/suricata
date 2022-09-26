@@ -198,6 +198,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         free(isolatedBuffer);
     }
 
+    (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, STREAM_TOCLIENT | STREAM_EOF, NULL, 0);
+    (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, STREAM_TOSERVER | STREAM_EOF, NULL, 0);
     FLOWLOCK_UNLOCK(f);
     FlowFree(f);
 
