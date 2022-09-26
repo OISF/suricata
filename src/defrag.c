@@ -63,8 +63,6 @@
 #include "util-unittest.h"
 #endif
 
-#include "util-validate.h"
-
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
 #define DEFAULT_DEFRAG_POOL_SIZE 0xffff
 
