@@ -62,7 +62,6 @@
 #include "util-memcmp.h"
 #include "util-spm.h"
 #include "util-debug.h"
-#include "util-validate.h"
 
 #include "runmodes.h"
 

@@ -997,7 +997,6 @@ static int DetectCsumValidArgsTestParse03(void)
 #undef TEST3
 #undef mystr
 
-#include "detect-engine.h"
 #include "stream-tcp.h"
 
 static int DetectCsumICMPV6Test01(void)

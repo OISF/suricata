@@ -52,8 +52,6 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#include "util-print.h"
-
 #include "detect-http-header-common.h"
 
 void *HttpHeaderThreadDataInit(void *data)
