@@ -40,7 +40,6 @@
 #include "util-var-name.h"
 #include "util-debug.h"
 #include "util-print.h"
-#include "util-spm.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static DetectParseRegex parse_regex;

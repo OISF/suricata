@@ -62,8 +62,6 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#include "util-print.h"
-
 #define KEYWORD_NAME "http.start"
 #define KEYWORD_NAME_LEGACY "http_start"
 #define KEYWORD_DOC "http-keywords.html#http-start"
