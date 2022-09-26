@@ -25,13 +25,7 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
 #include "util-byte.h"
-#include "pkt-var.h"
-#include "util-profiling.h"
 
 #include "app-layer-enip-common.h"
 

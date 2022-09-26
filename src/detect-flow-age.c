@@ -16,10 +16,7 @@
  */
 
 #include "suricata-common.h"
-#include "rust.h"
 #include "detect-flow-age.h"
-#include "detect-engine.h"
-#include "detect-engine-prefilter.h"
 #include "detect-engine-uint.h"
 #include "detect-parse.h"
 

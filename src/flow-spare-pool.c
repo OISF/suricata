@@ -24,16 +24,18 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "flow-private.h"
-#include "flow-queue.h"
 #include "flow-util.h"
 #include "flow-spare-pool.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-validate.h"
 
+#ifdef FSP_VALIDATE
+#include "util-print.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "flow-queue.h"
+#include "threads.h"
+#endif
 typedef struct FlowSparePool {
     FlowQueuePrivate queue;
     struct FlowSparePool *next;

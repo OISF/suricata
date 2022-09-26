@@ -33,16 +33,18 @@
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "runmode-dpdk.h"
-#include "source-dpdk.h"
-#include "util-runmodes.h"
-#include "util-byte.h"
-#include "util-cpu.h"
-#include "util-dpdk.h"
-#include "util-dpdk-i40e.h"
-#include "util-dpdk-ice.h"
-#include "util-dpdk-ixgbe.h"
-#include "util-time.h"
 
+#ifdef HAVE_DPDK
+#include "util-time.h"
+#include "util-dpdk-ixgbe.h"
+#include "util-dpdk-ice.h"
+#include "util-dpdk-i40e.h"
+#include "util-dpdk.h"
+#include "util-cpu.h"
+#include "util-byte.h"
+#include "util-runmodes.h"
+#include "source-dpdk.h"
+#endif
 #ifdef HAVE_DPDK
 
 #define RSS_HKEY_LEN 40

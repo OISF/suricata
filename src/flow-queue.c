@@ -24,14 +24,16 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "flow-private.h"
 #include "flow-queue.h"
-#include "flow-util.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-print.h"
 
+#ifdef DEBUG
+#include "util-print.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "flow-util.h"
+#include "flow-private.h"
+#include "threads.h"
+#endif
 FlowQueue *FlowQueueNew()
 {
     FlowQueue *q = (FlowQueue *)SCMalloc(sizeof(FlowQueue));

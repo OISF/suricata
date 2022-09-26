@@ -32,36 +32,35 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
-#include "util-print.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
-
-#include "app-layer-htp.h"
 #include "detect-http-stat-msg.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp.h"
 
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
+#include "app-layer-htp.h"
+#include "app-layer-parser.h"
+#include "app-layer.h"
+#include "util-print.h"
+#include "util-spm.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-content.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 static int DetectHttpStatMsgSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectHttpStatMsgRegisterTests(void);

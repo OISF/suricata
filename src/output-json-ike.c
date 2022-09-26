@@ -25,29 +25,12 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-debug.h"
-#include "util-byte.h"
-
-#include "output.h"
 #include "output-json.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ike.h"
 #include "output-json-ike.h"
-
-#include "rust.h"
 
 #define LOG_IKE_DEFAULT  0
 #define LOG_IKE_EXTENDED (1 << 0)

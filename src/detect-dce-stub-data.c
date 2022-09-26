@@ -26,37 +26,34 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-engine.h"
-#include "detect-engine-build.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "queue.h"
-#include "stream-tcp-reassemble.h"
-
 #include "detect-dce-stub-data.h"
-#include "detect-dce-iface.h"
-
-#include "util-debug.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "stream-tcp.h"
 
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "detect-dce-iface.h"
+#include "stream-tcp-reassemble.h"
+#include "queue.h"
+#include "app-layer-parser.h"
+#include "app-layer.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-state.h"
+#include "detect-engine-build.h"
+#include "detect.h"
+#endif
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"
 

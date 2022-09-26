@@ -24,18 +24,20 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "util-hash.h"
 
-#include "conf.h"
 #include "util-classification-config.h"
-#include "util-unittest.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-fmemopen.h"
 #include "util-byte.h"
 
+#ifdef UNITTESTS
+#include "util-fmemopen.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "util-unittest.h"
+#include "conf.h"
+#include "util-hash.h"
+#include "detect-engine.h"
+#include "detect.h"
+#endif
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
  * classtype description, and the third argument holds the priority */

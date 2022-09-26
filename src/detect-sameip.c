@@ -24,19 +24,20 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-build.h"
 
 #include "detect-sameip.h"
 
-#include "util-unittest.h"
+#ifdef UNITTESTS
 #include "util-unittest-helper.h"
-
+#include "util-unittest.h"
+#include "detect-engine-build.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 static int DetectSameipMatch(DetectEngineThreadCtx *, Packet *,
                              const Signature *, const SigMatchCtx *);
 static int DetectSameipSetup(DetectEngineCtx *, Signature *, const char *);

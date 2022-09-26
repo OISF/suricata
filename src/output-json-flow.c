@@ -24,33 +24,33 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
 
 #include "util-print.h"
-#include "util-unittest.h"
 
-#include "util-debug.h"
-
-#include "output.h"
-#include "util-privs.h"
-#include "util-buffer.h"
 #include "util-device.h"
 #include "util-proto-name.h"
-#include "util-logopenfile.h"
 #include "util-time.h"
 #include "output-json.h"
 #include "output-json-flow.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
 #include "flow-storage.h"
 
+#ifdef CAPTURE_OFFLOAD
+#include "stream-tcp-private.h"
+#include "util-logopenfile.h"
+#include "util-buffer.h"
+#include "util-privs.h"
+#include "output.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "tm-threads.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "conf.h"
+#include "pkt-var.h"
+#include "detect.h"
+#endif
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];

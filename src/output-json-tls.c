@@ -24,28 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
 #include "util-time.h"
-#include "util-unittest.h"
 
-#include "util-debug.h"
 #include "app-layer-parser.h"
-#include "output.h"
-#include "app-layer-ssl.h"
 #include "app-layer.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-
-#include "util-logopenfile.h"
-#include "util-ja3.h"
 
 #include "output-json.h"
 #include "output-json-tls.h"

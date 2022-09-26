@@ -30,32 +30,31 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-urilen.h"
 
-#include "flow.h"
-#include "flow-var.h"
-
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-spm.h"
-#include "util-print.h"
-
-#include "app-layer.h"
-
 #include "app-layer-htp.h"
 #include "detect-http-uri.h"
-#include "stream-tcp.h"
 
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "app-layer.h"
+#include "util-print.h"
+#include "util-spm.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-content.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 #ifdef UNITTESTS
 static void DetectHttpUriRegisterTests(void);
 #endif

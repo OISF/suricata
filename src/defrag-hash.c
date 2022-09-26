@@ -16,7 +16,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "defrag-hash.h"
 #include "defrag-queue.h"
 #include "defrag-config.h"
@@ -25,6 +24,9 @@
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
 
+#ifdef DEBUG
+#include "conf.h"
+#endif
 /** defrag tracker hash table */
 DefragTrackerHashRow *defragtracker_hash;
 DefragConfig defrag_config;

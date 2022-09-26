@@ -25,17 +25,19 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-snmp-community.h"
-#include "app-layer-parser.h"
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "app-layer-parser.h"
+#include "detect-engine-content-inspection.h"
+#include "detect.h"
+#include "conf.h"
+#endif
 static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,
     const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

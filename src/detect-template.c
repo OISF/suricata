@@ -24,14 +24,16 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-byte.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
 
 #include "detect-template.h"
 
+#ifdef UNITTESTS
+#include "detect-engine.h"
+#include "util-unittest.h"
+#endif
 /**
  * \brief Regex for parsing our keyword options
  */

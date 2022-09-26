@@ -29,24 +29,26 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "conf.h"
-#include "decode.h"
-#include "packet-queue.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "source-pfring.h"
-#include "util-debug.h"
-#include "util-checksum.h"
 #include "util-privs.h"
-#include "util-datalink.h"
-#include "util-device.h"
-#include "util-host-info.h"
-#include "runmodes.h"
-#include "util-profiling.h"
 
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+#include "util-profiling.h"
+#include "runmodes.h"
+#include "util-host-info.h"
+#include "util-device.h"
+#include "util-datalink.h"
+#include "util-checksum.h"
+#include "util-debug.h"
+#include "tm-queuehandlers.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "packet-queue.h"
+#include "decode.h"
+#include "conf.h"
+#include "suricata.h"
+#endif
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
 TmEcode ReceivePfringThreadInit(ThreadVars *, const void *, void **);

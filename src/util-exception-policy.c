@@ -22,9 +22,11 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-exception-policy.h"
-#include "util-misc.h"
 #include "stream-tcp-reassemble.h"
 
+#ifdef DEBUG
+#include "util-misc.h"
+#endif
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {
     SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", p->pcap_cnt, policy);

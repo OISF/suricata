@@ -24,20 +24,21 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
-#include "detect.h"
-#include "detect-content.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 #include "util-rule-vars.h"
 #include "util-enum.h"
-#include "util-debug.h"
-#include "util-unittest.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect-content.h"
+#include "detect.h"
+#include "conf-yaml-loader.h"
+#include "conf.h"
+#endif
 /** An enum-string map, that maps the different vars type in the yaml conf
  *  type with the mapping path in the yaml conf file */
 SCEnumCharMap sc_rule_vars_type_map[ ] = {

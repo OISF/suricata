@@ -22,11 +22,7 @@
  */
 
 #include "suricata.h"
-#include "util-conf.h"
-#include "util-file.h"
 #include "util-landlock.h"
-#include "util-mem.h"
-#include "feature.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H
 

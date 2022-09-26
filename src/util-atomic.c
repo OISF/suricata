@@ -22,10 +22,12 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "util-atomic.h"
-#include "util-unittest.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "suricata.h"
+#endif
 #ifdef UNITTESTS
 
 static int SCAtomicTest01(void)

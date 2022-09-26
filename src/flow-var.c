@@ -26,11 +26,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "flow-var.h"
-#include "flow.h"
-#include "detect.h"
-#include "util-debug.h"
 
 /* puts a new value into a flowvar */
 static void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size)

@@ -23,46 +23,39 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-build.h"
-
-#include "detect-byte.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
-#include "util-byte.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
-
-#include "stream-tcp.h"
 
 #include "detect-lua.h"
-#include "detect-lua-extensions.h"
 
-#include "queue.h"
-#include "util-cpu.h"
+#ifdef UNITTESTS
+#include "util-lua.h"
 #include "util-var-name.h"
-
+#include "util-cpu.h"
+#include "queue.h"
+#include "detect-lua-extensions.h"
+#include "stream-tcp.h"
+#include "app-layer-htp.h"
+#include "app-layer-parser.h"
+#include "app-layer.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "util-print.h"
+#include "util-spm-bm.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-byte.h"
+#include "detect-engine-build.h"
+#include "detect-engine-state.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#include "conf.h"
+#endif
 #ifndef HAVE_LUA
 
 static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
@@ -89,8 +82,6 @@ void DetectLuaRegister(void)
 }
 
 #else /* HAVE_LUA */
-
-#include "util-lua.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);

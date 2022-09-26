@@ -25,22 +25,24 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "packet-queue.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "source-ipfw.h"
-#include "util-debug.h"
-#include "conf.h"
-#include "util-byte.h"
-#include "util-privs.h"
-#include "util-datalink.h"
-#include "util-device.h"
-#include "runmodes.h"
 
+#ifdef PF_DIVERT
+#include "runmodes.h"
+#include "util-device.h"
+#include "util-datalink.h"
+#include "util-privs.h"
+#include "util-byte.h"
+#include "conf.h"
+#include "util-debug.h"
+#include "tm-queuehandlers.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "packet-queue.h"
+#include "decode.h"
+#include "suricata.h"
+#endif
 #define IPFW_ACCEPT 0
 #define IPFW_DROP 1
 

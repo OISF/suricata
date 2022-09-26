@@ -22,27 +22,27 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-tos.h"
 
-#include "app-layer-protos.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
 #include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "app-layer-protos.h"
+#include "detect-engine-state.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 #define PARSE_REGEX  "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"
 
 static DetectParseRegex parse_regex;

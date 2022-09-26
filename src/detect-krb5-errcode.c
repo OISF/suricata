@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-byte.h"
 
 #include "detect-parse.h"
@@ -30,9 +29,12 @@
 
 #include "detect-krb5-errcode.h"
 
-#include "app-layer-krb5.h"
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "app-layer-krb5.h"
+#include "util-unittest.h"
+#endif
 /**
  * \brief Regex for parsing our keyword options
  */

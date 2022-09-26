@@ -24,14 +24,16 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
 #include "detect-sid.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-unittest.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect.h"
+#endif
 static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectSidRegisterTests(void);

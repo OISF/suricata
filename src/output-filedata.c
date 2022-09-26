@@ -24,13 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "tm-modules.h"
 #include "output.h"
 #include "output-filedata.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "detect-filemagic.h"
-#include "conf.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-magic.h"

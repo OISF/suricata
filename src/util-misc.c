@@ -22,12 +22,14 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
 #include "util-misc.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "util-byte.h"
+#include "suricata.h"
+#endif
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
 static pcre2_code *parse_regex = NULL;
 static pcre2_match_data *parse_regex_match = NULL;

@@ -24,15 +24,16 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
-#include "util-byte.h"
 
 #include "detect-tcpmss.h"
 
-
+#ifdef UNITTESTS
+#include "util-byte.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect.h"
+#endif
 /* prototypes */
 static int DetectTcpmssMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

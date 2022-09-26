@@ -17,19 +17,20 @@
 
 #include "suricata-common.h"
 
-#include "stream.h"
-
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-dnp3.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 
 #include "app-layer-dnp3.h"
 #include "util-byte.h"
 
+#ifdef UNITTESTS
+#include "detect-engine-content-inspection.h"
+#include "detect.h"
+#include "stream.h"
+#endif
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
 

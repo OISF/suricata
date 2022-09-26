@@ -23,16 +23,17 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 
-#include "util-misc.h"
-#include "util-memrchr.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
-
+#include "util-memrchr.h"
+#include "util-misc.h"
+#include "conf.h"
+#endif
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7
 /** XFF header value maximum length */

@@ -24,19 +24,20 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
 #include "runmodes.h"
 #include "runmode-windivert.h"
-#include "output.h"
 
-#include "util-affinity.h"
-#include "util-cpu.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-runmodes.h"
+#ifdef WINDIVERT
 #include "util-time.h"
-
+#include "util-runmodes.h"
+#include "util-device.h"
+#include "util-debug.h"
+#include "util-cpu.h"
+#include "util-affinity.h"
+#include "output.h"
+#include "conf.h"
+#include "tm-threads.h"
+#endif
 const char *RunModeIpsWinDivertGetDefaultMode(void)
 {
     return "autofp";

@@ -31,8 +31,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -40,6 +38,10 @@
 #include "app-layer-template.h"
 #include "detect-template-buffer.h"
 
+#ifdef UNITTESTS
+#include "detect.h"
+#include "conf.h"
+#endif
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
