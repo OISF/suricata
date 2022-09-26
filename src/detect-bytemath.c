@@ -424,8 +424,6 @@ SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
 
-#include "app-layer-parser.h"
-
 static int DetectByteMathParseTest01(void)
 {
 
