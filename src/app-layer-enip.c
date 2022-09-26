@@ -599,13 +599,8 @@ void RegisterENIPTCPParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "app-layer-parser.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
                                  /* Length */     0x00, 0x00,

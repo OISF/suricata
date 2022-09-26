@@ -1172,7 +1172,6 @@ void AppLayerDeSetupCounters()
 
 #ifdef UNITTESTS
 #include "pkt-var.h"
-#include "stream-tcp.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 #include "util-unittest.h"
