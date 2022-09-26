@@ -281,7 +281,7 @@ extern "C" {
     ) -> *mut FileRangeContainerBlock;
 }
 
-pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2Record<'b>, more_nbss: usize)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
@@ -294,10 +294,16 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
     }
     match parse_smb2_request_write(r.data) {
         Ok((_, wr)) => {
-            if (state.max_write_size != 0 && wr.wr_len > state.max_write_size) ||
-               (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < wr.wr_len }) {
+            let max_wr_len = if wr.wr_len as usize - wr.data.len() > more_nbss {
+                // write record expects more bytes than can be contained in NBSS record
+                (wr.data.len() + more_nbss) as u32
+            } else {
+                wr.wr_len
+            };
+            if (state.max_write_size != 0 && max_wr_len > state.max_write_size) ||
+               (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < max_wr_len }) {
                 state.set_event(SMBEvent::WriteRequestTooLarge);
-                state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                 return;
             }
 
@@ -318,8 +324,9 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
                         if tdf.multi {
                             if let Some(sfcm) = unsafe {SURICATA_SMB_FILE_CONFIG} {
                                 let mut added = false;
+                                debug_validate_bug_on!(!tdf.file_range.is_null());
                                 unsafe {
-                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, wr.wr_len, wr.data.as_ptr(), wr.data.len() as u32);
+                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, max_wr_len, wr.data.as_ptr(), wr.data.len() as u32);
                                 }
                                 if added {
                                     tx.tx_data.incr_files_opened();
@@ -330,16 +337,16 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + max_wr_len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::WriteQueueSizeExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, wr.data, wr.wr_offset,
-                                    wr.wr_len, false, &file_id);
+                                    max_wr_len, false, &file_id);
                         }
                     }
                     true
@@ -386,7 +393,7 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
                     smb_write_dcerpc_record(state, vercmd, hdr, wr.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
-                    state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                    state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                 } else {
                     let mut multistart = wr.wr_offset > 0;
                     if wr.wr_offset == 0 {
@@ -408,8 +415,9 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
                         if multistart {
                             if let Some(sfcm) = unsafe {SURICATA_SMB_FILE_CONFIG} {
                                 let mut added = false;
+                                debug_validate_bug_on!(!tdf.file_range.is_null());
                                 unsafe {
-                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, wr.wr_len, wr.data.as_ptr(), wr.data.len() as u32);
+                                    tdf.file_range = SmbMultiStartFileChunk(flow, file_guid.as_ptr(), flags, files, sfcm.files_sbcfg, &mut added, wr.wr_offset, max_wr_len, wr.data.as_ptr(), wr.data.len() as u32);
                                 }
                                 tdf.multi = true;
                                 if added {
@@ -422,16 +430,16 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
                             set_event_fileoverlap = true;
                         }
 
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + max_wr_len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::WriteQueueSizeExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, max_wr_len, wr.data.len() as u32);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, wr.data, wr.wr_offset,
-                                    wr.wr_len, false, &file_id);
+                                    max_wr_len, false, &file_id);
                         }
                     }
                 }
@@ -440,7 +448,7 @@ pub fn smb2_write_request_record<'b>(flow: *const Flow, state: &mut SMBState, r:
             if set_event_fileoverlap {
                 state.set_event(SMBEvent::FileOverlap);
             }
-            state.set_file_left(Direction::ToServer, wr.wr_len, wr.data.len() as u32, file_guid.to_vec());
+            state.set_file_left(Direction::ToServer, max_wr_len, wr.data.len() as u32, file_guid.to_vec());
         },
         _ => {
             state.set_event(SMBEvent::MalformedData);
@@ -644,7 +652,7 @@ pub fn smb2_request_record<'b>(flow: *const Flow, state: &mut SMBState, r: &Smb2
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(flow, state, r);
+            smb2_write_request_record(flow, state, r, 0);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
