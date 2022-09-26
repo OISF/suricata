@@ -33,18 +33,9 @@
 
 #ifdef UNITTESTS
 #include "util-profiling.h"
-#include "host.h"
 #include "pkt-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "app-layer-detect-proto.h"
 #include "app-layer.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "detect-engine-prefilter.h"
-#include "detect.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 /**
  *  Regex

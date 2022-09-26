@@ -31,9 +31,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #define PARSE_REGEX "^\\s*\\d+\\s*$"
 static DetectParseRegex parse_regex;

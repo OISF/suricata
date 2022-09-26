@@ -51,10 +51,6 @@
 #include "flow-worker.h"
 
 #ifdef CAPTURE_OFFLOAD
-#include "flow-manager.h"
-#include "detect.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 

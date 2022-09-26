@@ -25,28 +25,29 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-#include "threads.h"
-#include "flow.h"
 #include "flow-var.h"
 #include "detect-flowint.h"
-#include "util-spm.h"
 #include "util-var-name.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-build.h"
 
-#include "pkt-var.h"
-#include "host.h"
+#ifdef DEBUG
 #include "util-profiling.h"
-
+#include "host.h"
+#include "pkt-var.h"
+#include "detect-engine-mpm.h"
+#include "util-debug.h"
+#include "util-spm.h"
+#include "flow.h"
+#include "threads.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /*                         name             modifiers          value      */
 #define PARSE_REGEX "^\\s*([a-zA-Z][\\w\\d_./]+)\\s*,\\s*([+=-]{1}|==|!=|<|<=|>|>=|isset|notset)\\s*,?\\s*([a-zA-Z][\\w\\d]+|[\\d]{1,10})?\\s*$"
 /* Varnames must begin with a letter */

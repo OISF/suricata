@@ -32,25 +32,11 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "host.h"
-#include "reputation.h"
 #include "util-fmemopen.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "util-debug.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "app-layer-parser.h"
-#include "util-spm.h"
-#include "flow-util.h"
-#include "flow-bit.h"
-#include "flow.h"
-#include "threads.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

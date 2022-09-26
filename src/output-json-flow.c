@@ -37,19 +37,6 @@
 #include "flow-storage.h"
 
 #ifdef CAPTURE_OFFLOAD
-#include "stream-tcp-private.h"
-#include "util-logopenfile.h"
-#include "util-buffer.h"
-#include "util-privs.h"
-#include "output.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "tm-threads.h"
-#include "threadvars.h"
-#include "threads.h"
-#include "conf.h"
-#include "pkt-var.h"
-#include "detect.h"
 #endif
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {

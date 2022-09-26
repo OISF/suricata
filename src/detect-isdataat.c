@@ -34,17 +34,9 @@
 #include "detect-byte.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-engine-build.h"
-#include "detect-uricontent.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "app-layer.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /**
  * \brief Regex for parsing our isdataat options

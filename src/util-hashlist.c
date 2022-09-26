@@ -31,7 +31,6 @@
 #include "util-memcmp.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
 #endif
 HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {

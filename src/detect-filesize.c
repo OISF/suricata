@@ -32,18 +32,8 @@
 #include "detect-filesize.h"
 
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "flow-util.h"
-#include "util-byte.h"
-#include "util-debug.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect.h"
-#include "util-misc.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
 #endif
 /*prototypes*/
 static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
@@ -161,11 +151,6 @@ static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
-#include "stream.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "detect-engine-mpm.h"
-#include "app-layer-parser.h"
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest01(void)

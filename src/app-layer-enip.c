@@ -40,19 +40,7 @@
 #include "util-byte.h"
 
 #ifdef UNITTESTS
-#include "util-profiling.h"
-#include "pkt-var.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "decode.h"
-#include "conf.h"
-#include "app-layer-protos.h"
-#include "stream.h"
-#include "util-misc.h"
-#include "util-mem.h"
-#include "util-debug.h"
 #endif
 SCEnumCharMap enip_decoder_event_table[ ] = {
     { NULL,                         -1 },

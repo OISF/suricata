@@ -27,9 +27,6 @@
 #include "conf-yaml-loader.h"
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-path.h"
-#include "conf.h"
 #endif
 #include <yaml.h>
 

@@ -36,13 +36,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-var.h"
-#include "detect.h"
-#include "flow-private.h"
-#include "flow-util.h"
-#include "flow.h"
-#include "threads.h"
 #endif
 /* get the flowbit with idx from the flow */
 static FlowBit *FlowBitGet(Flow *f, uint32_t idx)

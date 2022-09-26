@@ -21,7 +21,6 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#include "suricata.h"
 #include "util-landlock.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H

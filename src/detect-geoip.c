@@ -30,14 +30,6 @@
 #include "detect-geoip.h"
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
-#include "util-unittest.h"
-#include "util-mem.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 #ifndef HAVE_GEOIP
 

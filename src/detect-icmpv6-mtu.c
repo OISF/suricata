@@ -30,7 +30,6 @@
 #include "detect-engine-uint.h"
 
 #ifdef UNITTESTS
-#include "detect.h"
 #endif
 /* prototypes */
 static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *, Packet *,

@@ -28,13 +28,15 @@
 
 #include "util-decode-mime.h"
 #include "util-ip.h"
-#include "util-spm-bs.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
-#include "util-print.h"
 #include "util-validate.h"
 #include "rust.h"
 
+#ifdef DEBUG
+#include "util-print.h"
+#include "util-spm-bs.h"
+#endif
 /* Character constants */
 #ifndef CR
 #define CR  13

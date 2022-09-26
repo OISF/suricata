@@ -42,24 +42,14 @@
 #include "util-byte.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
 #include "detect-engine-threshold.h"
-#include "stream-tcp.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "detect.h"
-#include "host-storage.h"
-#include "host.h"
-#include "decode.h"
-#include "suricata.h"
 #include "util-cpu.h"
 #endif
 
 #ifdef UNITTESTS
-#include "suricata.h"
 #endif
 #define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*"
 
@@ -340,9 +330,7 @@ error:
  */
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options

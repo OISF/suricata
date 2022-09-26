@@ -38,8 +38,6 @@
 #include "util-profiling.h"
 
 #ifdef UNITTESTS
-#include "rust.h"
-#include "detect.h"
 #endif
 #ifdef UNITTESTS
 void DetectHTTP2frameTypeRegisterTests (void);

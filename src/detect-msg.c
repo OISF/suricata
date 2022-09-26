@@ -28,13 +28,10 @@
 #include "detect-msg.h"
 
 #ifdef UNITTESTS
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "util-classification-config.h"
-#include "detect.h"
 #endif
 static int DetectMsgSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

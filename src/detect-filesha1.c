@@ -31,7 +31,6 @@
 #include "detect-filesha1.h"
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
 #endif
 static int DetectFileSha1Setup (DetectEngineCtx *, Signature *, const char *);

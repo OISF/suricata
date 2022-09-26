@@ -23,10 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 
@@ -35,28 +32,30 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-magic.h"
-#include "util-print.h"
 
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-profiling.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
-
-#include "stream-tcp.h"
 
 #include "detect-filemagic.h"
 
+#ifdef DEBUG
 #include "conf.h"
-
+#include "stream-tcp.h"
+#include "app-layer.h"
+#include "util-unittest-helper.h"
+#include "util-print.h"
+#include "util-debug.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 #ifndef HAVE_MAGIC
 
 static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, const char *str)

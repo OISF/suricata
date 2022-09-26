@@ -31,29 +31,8 @@
 #include "detect-engine.h"
 
 #ifdef UNITTESTS
-#include "conf.h"
-#include "util-spm.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-mpm.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
-#include "app-layer.h"
-#include "stream.h"
-#include "stream-tcp.h"
-#include "threads.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "detect-flow.h"
-#include "flow.h"
-#include "detect-engine-state.h"
 #include "detect-parse.h"
-#include "detect-engine-mpm.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, const char *);
@@ -155,7 +134,6 @@ error:
 #ifdef UNITTESTS
 
 #include "detect-isdataat.h"
-#include "stream-tcp-reassemble.h"
 
 /**
  * \test Checks if a uricontent is registered in a Signature

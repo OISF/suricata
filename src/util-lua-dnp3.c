@@ -17,10 +17,12 @@
 
 #include "suricata-common.h"
 
-#include "app-layer-dnp3.h"
-
 #ifdef HAVE_LUA
+#include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
+#endif
+#ifdef HAVE_LUA
+#include "app-layer-dnp3.h"
 #endif
 #ifdef HAVE_LUA
 

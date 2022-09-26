@@ -48,7 +48,6 @@
 #include "util-unittest-helper.h"
 
 #ifdef UNITTESTS
-#include "util-spm-bs.h"
 #endif
 #if defined(UNITTESTS) || defined(FUZZ)
 Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp)

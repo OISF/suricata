@@ -31,17 +31,6 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "app-layer-protos.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 #define PARSE_REGEX  "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"
 

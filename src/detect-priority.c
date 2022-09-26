@@ -30,11 +30,7 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect.h"
 #endif
 #define PARSE_REGEX "^\\s*(\\d+|\"\\d+\")\\s*$"
 

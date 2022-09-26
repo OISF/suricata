@@ -27,22 +27,24 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "counters.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "conf.h"
 #include "util-time.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "util-byte.h"
 #include "util-privs.h"
-#include "util-signal.h"
-#include "unix-manager.h"
-#include "runmodes.h"
 
-#include "output.h"
-#include "output-stats.h"
 #include "output-json-stats.h"
 
+#ifdef DEBUG
+#include "output-stats.h"
+#include "output.h"
+#include "runmodes.h"
+#include "unix-manager.h"
+#include "util-signal.h"
+#include "util-debug.h"
+#include "conf.h"
+#include "threadvars.h"
+#endif
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3
 

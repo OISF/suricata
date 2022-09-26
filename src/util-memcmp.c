@@ -30,6 +30,9 @@
 
 /* code is implemented in util-memcmp.h as it's all inlined */
 
+#ifdef PROFILING
+#include "util-cpu.h"
+#endif
 /* UNITTESTS */
 #ifdef UNITTESTS
 
@@ -178,8 +181,6 @@ static int MemcmpTest13 (void)
 
     return 1;
 }
-
-#include "util-cpu.h"
 
 #define TEST_RUNS 1000000
 

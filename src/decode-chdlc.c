@@ -36,10 +36,7 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "decode-events.h"
-#include "decode.h"
 #endif
 int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)

@@ -29,15 +29,7 @@
 #include "detect-engine-address-ipv4.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-error.h"
-#include "detect-engine-port.h"
-#include "detect-engine-siggroup.h"
 #include "util-unittest.h"
-#include "util-cidr.h"
-#include "flow-var.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /**
  * \brief Compares 2 addresses(address ranges) and returns the relationship

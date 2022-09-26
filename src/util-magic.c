@@ -33,7 +33,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "conf.h"
 #endif
 #ifdef HAVE_MAGIC
 

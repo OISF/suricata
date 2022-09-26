@@ -36,7 +36,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "detect-parse.h"
-#include "detect.h"
 #endif
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

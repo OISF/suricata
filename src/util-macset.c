@@ -32,9 +32,7 @@
 #include "util-macset.h"
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "suricata.h"
 #endif
 typedef uint8_t MacAddr[6];
 typedef enum {

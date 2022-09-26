@@ -29,7 +29,6 @@
 #include "detect-icmpv4hdr.h"
 
 #ifdef UNITTESTS
-#include "detect.h"
 #endif
 /* prototypes */
 static int DetectIcmpv4HdrSetup(DetectEngineCtx *, Signature *, const char *);

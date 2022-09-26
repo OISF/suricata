@@ -29,12 +29,6 @@
 #include "detect-icmpv6hdr.h"
 
 #ifdef UNITTESTS
-#include "util-validate.h"
-#include "detect-fast-pattern.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
-#include "detect-parse.h"
-#include "detect.h"
 #endif
 /* prototypes */
 static int DetectICMPv6hdrSetup (DetectEngineCtx *, Signature *, const char *);

@@ -28,10 +28,6 @@
 #include "rust.h"
 
 #ifdef UNITTESTS
-#include "app-layer-parser.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 /**
  *   [snmp.pdu_type]:<type>;

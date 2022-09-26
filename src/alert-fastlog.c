@@ -37,22 +37,11 @@
 #include "util-time.h"
 
 #ifdef UNITTESTS
-#include "util-optimize.h"
-#include "util-privs.h"
 #include "util-classification-config.h"
-#include "detect-reference.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-#include "threads.h"
-#include "conf.h"
-#include "flow.h"
-#include "detect.h"
 #endif
 #define DEFAULT_LOG_FILENAME "fast.log"
 
