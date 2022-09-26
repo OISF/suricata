@@ -1399,7 +1399,7 @@ impl SMBState {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
                                         if smb_record.command == SMB2_COMMAND_WRITE {
-                                            smb2_write_request_record(flow, self, smb_record);
+                                            smb2_write_request_record(flow, self, smb_record, nbss_part_hdr.length as usize - nbss_part_hdr.data.len());
 
                                             self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                             self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
