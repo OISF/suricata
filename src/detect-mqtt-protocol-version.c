@@ -28,12 +28,7 @@
 #include "detect-mqtt-protocol-version.h"
 
 #ifdef UNITTESTS
-#include "rust.h"
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 static int mqtt_protocol_version_id = 0;
 

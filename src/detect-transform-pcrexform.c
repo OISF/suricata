@@ -30,8 +30,6 @@
 #include "detect-pcre.h"
 
 #ifdef UNITTESTS
-#include "detect-parse.h"
-#include "detect.h"
 #endif
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;

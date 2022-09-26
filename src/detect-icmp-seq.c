@@ -33,12 +33,9 @@
 #include "util-byte.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
 
@@ -330,7 +327,6 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectIcmpSeqParseTest01 is a test for setting a valid icmp_seq value

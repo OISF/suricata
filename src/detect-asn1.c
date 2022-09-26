@@ -29,13 +29,8 @@
 #include "detect-asn1.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-byte.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "flow.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);

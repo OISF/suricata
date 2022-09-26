@@ -30,9 +30,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #define PARSE_REGEX "\\S[A-z]"
 static DetectParseRegex parse_regex;

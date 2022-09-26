@@ -34,12 +34,7 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "detect-engine-build.h"
-#include "detect-engine-mpm.h"
-#include "flow.h"
-#include "detect.h"
 #endif
 #define PARSE_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"
 

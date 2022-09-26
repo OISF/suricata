@@ -26,9 +26,6 @@
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
 #include "runmodes.h"
-#include "util-ebpf.h"
-#include "flow-private.h"
-#include "flow.h"
 #include "tm-threads.h"
 #endif
 #ifdef CAPTURE_OFFLOAD_MANAGER

@@ -28,11 +28,6 @@
 #include "detect-engine-uint.h"
 
 #ifdef UNITTESTS
-#include "rust.h"
-#include "app-layer-parser.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 static int DetectSNMPVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPVersionFree(DetectEngineCtx *, void *);

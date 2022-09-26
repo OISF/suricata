@@ -30,13 +30,9 @@
 #include "detect-transform-dotprefix.h"
 
 #ifdef UNITTESTS
-#include "util-memcpy.h"
-#include "util-memrchr.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect-engine-prefilter.h"
-#include "detect.h"
 #endif
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

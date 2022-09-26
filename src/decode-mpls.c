@@ -29,7 +29,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "decode.h"
 #endif
 #define MPLS_HEADER_LEN         4
 #define MPLS_PW_LEN             4

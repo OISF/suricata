@@ -26,7 +26,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "suricata.h"
 #endif
 #ifdef UNITTESTS
 

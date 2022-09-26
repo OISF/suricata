@@ -33,13 +33,8 @@
 #include "util-byte.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect.h"
-#include "decode-ipv6.h"
-#include "decode-ipv4.h"
-#include "decode.h"
 #endif
 #define PARSE_REGEX "^\\s*(?:(<|>))?\\s*([0-9]+)"
 
@@ -330,7 +325,6 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value

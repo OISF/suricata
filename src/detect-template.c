@@ -31,8 +31,6 @@
 #include "detect-template.h"
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
-#include "util-unittest.h"
 #endif
 /**
  * \brief Regex for parsing our keyword options

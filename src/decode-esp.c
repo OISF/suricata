@@ -33,7 +33,6 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "flow.h"
 #endif
 static int DecodeESPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {

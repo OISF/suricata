@@ -34,22 +34,8 @@
 #include "rust.h"
 
 #ifdef UNITTESTS
-#include "util-memcmp.h"
-#include "util-byte.h"
-#include "flow-private.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-spm.h"
-#include "conf.h"
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "stream.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-private.h"
-#include "util-pool.h"
-#include "util-print.h"
-#include "threads.h"
-#include "decode.h"
 #endif
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH false

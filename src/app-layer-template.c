@@ -44,9 +44,6 @@
 #include "util-enum.h"
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */

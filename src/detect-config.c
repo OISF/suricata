@@ -32,24 +32,8 @@
 #include "detect-config.h"
 
 #ifdef UNITTESTS
-#include "output.h"
-#include "stream-tcp.h"
-#include "app-layer-htp.h"
-#include "app-layer.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-spm-bm.h"
-#include "util-debug.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "feature.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 /**
  * \brief Regex for parsing our flow options

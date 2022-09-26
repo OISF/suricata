@@ -48,15 +48,7 @@
 #include "detect-http-header-common.h"
 
 #ifdef UNITTESTS
-#include "app-layer.h"
-#include "util-print.h"
-#include "util-debug.h"
 #include "detect-content.h"
-#include "detect-engine-state.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

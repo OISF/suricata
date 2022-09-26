@@ -35,10 +35,6 @@
 // support the basic attributes, which are parsed as integer and life_duration, if variable length
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "app-layer-parser.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 // is 4 it is stored as integer too
 #define PARSE_REGEX                                                                                \

@@ -37,29 +37,12 @@
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp.h"
-#include "stream.h"
 #include "app-layer-htp.h"
-#include "app-layer.h"
-#include "conf.h"
-#include "util-pool.h"
-#include "util-print.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-sigorder.h"
-#include "detect-parse.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "pkt-var.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /* pcre named substring capture supports only 32byte names, A-z0-9 plus _
  * and needs to start with non-numeric. */

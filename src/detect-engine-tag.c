@@ -27,22 +27,24 @@
 
 #include "suricata-common.h"
 #include "detect-engine.h"
-#include "util-hash.h"
-#include "util-atomic.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-build.h"
-#include "detect-tag.h"
-#include "host.h"
 #include "host-storage.h"
 #include "flow-storage.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
-#include "stream-tcp-private.h"
 
+#ifdef DEBUG
+#include "stream-tcp-private.h"
+#include "host.h"
+#include "detect-tag.h"
+#include "util-hashlist.h"
+#include "util-atomic.h"
+#include "util-hash.h"
+#endif
 SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */

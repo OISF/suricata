@@ -33,9 +33,7 @@
 #include "util-pool-thread.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-pool.h"
 #endif
 /**
  *  \brief per thread Pool, initialization function

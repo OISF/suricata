@@ -32,11 +32,7 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 #define PARSE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"
 

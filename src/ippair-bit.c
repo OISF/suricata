@@ -34,11 +34,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-var.h"
-#include "detect.h"
-#include "ippair.h"
-#include "threads.h"
 #endif
 static IPPairStorageId g_ippair_bit_storage_id = { .id = -1 }; /**< IPPair storage id for bits */
 

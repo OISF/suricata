@@ -25,8 +25,7 @@
  */
 
 #include "suricata-common.h"
-
-#include "stream-tcp.h"
+#include "suricata.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -38,6 +37,7 @@
 #include "util-validate.h"
 
 #ifdef DEBUG_VALIDATION
+#include "stream-tcp.h"
 #include "flow-private.h"
 #include "flow-util.h"
 #include "util-ja3.h"
@@ -55,6 +55,9 @@
 #include "stream-tcp-private.h"
 #include "threads.h"
 #include "decode.h"
+#endif
+#ifdef DEBUG_VALIDATION
+#include "stream-tcp.h"
 #endif
 SCEnumCharMap tls_frame_table[] = {
     {

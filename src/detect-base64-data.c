@@ -24,7 +24,6 @@
 #include "util-unittest.h"
 #include "detect-engine-build.h"
 #include "detect-engine.h"
-#include "detect.h"
 #endif
 static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

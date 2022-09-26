@@ -33,8 +33,6 @@
 #include "util-print.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect-engine-prefilter.h"
-#include "detect.h"
 #endif
 static int DetectTransformUrlDecodeSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

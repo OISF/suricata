@@ -33,8 +33,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-error.h"
-#include "util-debug.h"
 #endif
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.

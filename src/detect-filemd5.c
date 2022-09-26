@@ -30,7 +30,6 @@
 #include "detect-filemd5.h"
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
 #endif
 static int g_file_match_list_id = 0;

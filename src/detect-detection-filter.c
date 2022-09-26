@@ -45,14 +45,8 @@ static int DetectDetectionFilterMatch(DetectEngineThreadCtx *,
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 #include "detect-engine-build.h"
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "detect-threshold.h"
-#include "host.h"
-#include "detect.h"
-#include "decode.h"
-#include "suricata.h"
 static void DetectDetectionFilterRegisterTests(void);
 #endif
 static void DetectDetectionFilterFree(DetectEngineCtx *, void *);
@@ -270,10 +264,7 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
  */
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-threshold.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options

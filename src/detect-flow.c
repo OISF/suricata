@@ -31,15 +31,10 @@
 #include "detect-flow.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-engine-build.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /**
  * \brief Regex for parsing our flow options

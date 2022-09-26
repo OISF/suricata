@@ -24,24 +24,24 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 
-#include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "app-layer.h"
 
-#include "util-var.h"
-#include "util-debug.h"
 #include "util-macset.h"
 #include "flow-storage.h"
 
-#include "detect.h"
-#include "detect-engine-state.h"
-
+#ifdef DEBUG
 #include "decode-icmpv4.h"
-
+#include "detect-engine-state.h"
+#include "detect.h"
+#include "util-debug.h"
+#include "util-var.h"
+#include "app-layer.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "threads.h"
+#endif
 /** \brief allocate a flow
  *
  *  We check against the memuse counter. If it passes that check we increment

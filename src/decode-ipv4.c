@@ -32,20 +32,22 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
-#include "decode.h"
 #include "decode-ipv4.h"
-#include "decode-events.h"
 #include "defrag.h"
 #include "pkt-var.h"
-#include "host.h"
 
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-optimize.h"
-#include "util-print.h"
 #include "util-profiling.h"
 
+#ifdef DEBUG
+#include "util-print.h"
+#include "util-optimize.h"
+#include "util-debug.h"
+#include "host.h"
+#include "decode-events.h"
+#include "decode.h"
+#include "packet-queue.h"
+#endif
 /* Generic validation
  *
  * [--type--][--len---]

@@ -34,11 +34,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "conf.h"
-#include "threadvars.h"
-#include "threads.h"
-#include "decode.h"
-#include "packet-queue.h"
 #endif
 Packet *TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);

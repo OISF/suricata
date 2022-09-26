@@ -40,8 +40,6 @@
 #include "conf.h"
 
 #ifdef UNITTESTS
-#include "util-path.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 #endif
 /** Maximum size of a complete domain name. */

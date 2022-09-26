@@ -29,11 +29,6 @@
 #include "detect-udphdr.h"
 
 #ifdef UNITTESTS
-#include "detect-fast-pattern.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
-#include "detect-parse.h"
-#include "detect.h"
 #endif
 /* prototypes */
 static int DetectUdphdrSetup (DetectEngineCtx *, Signature *, const char *);
