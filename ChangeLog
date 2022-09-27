@@ -1,3 +1,29 @@
+6.0.7 -- 2022-09-27
+
+Security #5430: mqtt: DOS by quadratic with too many transactions in one parse (6.0.x backport)
+Bug #5559: BUG_ON triggered from TmThreadsInjectFlowById (6.0.x backport)
+Bug #5549: Failed assert DeStateSearchState (6.0.x)
+Bug #5548: tcp: assertion failed in DoInsertSegment (BUG_ON) (6.0.x)
+Bug #5547: rules: less strict parsing of unexpected flowbit options
+Bug #5546: rules: don't error on bad hex in content
+Bug #5540: detect: transform strip whitespace creates a 0-sized variable-length array: backport6
+Bug #5505: http2: slow http2_frames_get_header_value_vec because of allocation [backport6]
+Bug #5471: Reject action is no longer working (6.0.x backport)
+Bug #5467: rules: more graceful handling of anomalies for stable versions
+Bug #5459: Counters are not initialized in all places. (6.0.x backport)
+Bug #5448: nfs: add maximum number of operations per compound (6.0.x backport)
+Bug #5436: Infinite loop if the sniffing interface temporarily goes down (6.0.x backports)
+Bug #5335: flow: vlan.use-for-tracking is not used for ICMPv4 (6.0.x backport)
+Bug #4421: flow manager: using too much CPU during idle (6.0.x backport)
+Feature #5535: ips: add "reject" action to exception policies (6.0.x backport)
+Feature #5500: ips: midstream: add "exception policy" for midstream (6.0.x backport)
+Task #5552: libhtp 0.5.41
+Task #5551: doc: add exception policy documentation (6.0.x)
+Task #5533: detect/parse: add tests for parsing signatures with reject and drop action (6.0.x backport)
+Task #5525: exceptions: error out when invalid configuration value is passed (6.0.x backport)
+Task #5381: add `alert-queue-expand-fails` command-line option (6.0.x backport)
+Task #5328: python: distutils deprecation warning (6.0.x backport)
+
 6.0.6 -- 2022-07-12
 
 Security #5431: filestore: Segfault with filestore enabled and forced (6.0.x backport)

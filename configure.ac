@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[6.0.7-dev])
+    AC_INIT([suricata],[6.0.7])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -1644,12 +1644,12 @@
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.40],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.41],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.40, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.41, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
