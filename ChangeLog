@@ -1,3 +1,7 @@
+6.0.8 -- 2022-09-27
+
+Task #5552: libhtp 0.5.41
+
 6.0.7 -- 2022-09-27
 
 Security #5430: mqtt: DOS by quadratic with too many transactions in one parse (6.0.x backport)
@@ -17,7 +21,6 @@ Bug #5335: flow: vlan.use-for-tracking is not used for ICMPv4 (6.0.x backport)
 Bug #4421: flow manager: using too much CPU during idle (6.0.x backport)
 Feature #5535: ips: add "reject" action to exception policies (6.0.x backport)
 Feature #5500: ips: midstream: add "exception policy" for midstream (6.0.x backport)
-Task #5552: libhtp 0.5.41
 Task #5551: doc: add exception policy documentation (6.0.x)
 Task #5533: detect/parse: add tests for parsing signatures with reject and drop action (6.0.x backport)
 Task #5525: exceptions: error out when invalid configuration value is passed (6.0.x backport)

@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[6.0.7])
+    AC_INIT([suricata],[6.0.8])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
