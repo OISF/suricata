@@ -385,8 +385,87 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  fedora-36:
-    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
+  fedora-36-gcc:
+    name: Fedora 36 (gcc, debug, asan, wshadow, rust-strict)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [bundle, cbindgen]
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo \
+                ccache \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nspr-devel \
+                nss-devel \
+                nss-softokn-devel \
+                pcre-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - name: Download cbindgen
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: cbindgen
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          mv cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cbindgen --version
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: suricata
+      - run: tar zxf suricata.tar.gz --strip-components=1
+      - run: ./autogen.sh
+      - run: CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
+        env:
+          ac_cv_func_realloc_0_nonnull: "yes"
+          ac_cv_func_malloc_0_nonnull: "yes"
+      - run: make -j2
+      - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
+
+  fedora-36-clang:
+    name: Fedora 36 (clang, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:36
     needs: [bundle, cbindgen]
