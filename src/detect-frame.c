@@ -20,32 +20,31 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
 #include "app-layer-parser.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-content.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-frame.h"
 
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-spm.h"
+#ifdef UNITTESTS
 #include "util-print.h"
-
+#include "util-spm.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "conf-yaml-loader.h"
+#include "conf.h"
+#include "flow-var.h"
+#include "flow-util.h"
+#include "flow.h"
+#include "detect-engine-content-inspection.h"
+#include "detect-content.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-mpm.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 static int DetectFrameSetup(DetectEngineCtx *, Signature *, const char *);
 
 /**

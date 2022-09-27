@@ -23,10 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "queue.h"
-#include "suricata.h"
-#include "conf.h"
-#include "util-debug.h"
 #include "util-misc.h"
 #include "defrag-config.h"
 

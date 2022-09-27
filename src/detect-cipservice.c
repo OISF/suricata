@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "util-byte.h"
@@ -37,6 +36,9 @@
  * CIP SERVICE CODE
  */
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#endif
 /**
  * \brief CIP Service Detect Prototypes
  */

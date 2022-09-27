@@ -25,13 +25,15 @@
 
 #include "suricata-common.h"
 #include "source-pcap-file.h"
-#include "source-pcap-file-helper.h"
 #include "source-pcap-file-directory-helper.h"
-#include "flow-manager.h"
 #include "util-checksum.h"
 #include "runmode-unix-socket.h"
 #include "suricata.h"
 
+#ifdef DEBUG
+#include "flow-manager.h"
+#include "source-pcap-file-helper.h"
+#endif
 extern int max_pending_packets;
 PcapFileGlobalVars pcap_g;
 

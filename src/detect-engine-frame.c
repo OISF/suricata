@@ -23,23 +23,24 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-
-#include "app-layer-parser.h"
-#include "app-layer-frames.h"
 
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-frame.h"
 
 #include "stream-tcp.h"
 
 #include "util-profiling.h"
 #include "util-validate.h"
-#include "util-print.h"
 
+#ifdef DEBUG
+#include "util-print.h"
+#include "detect-engine-mpm.h"
+#include "app-layer-frames.h"
+#include "app-layer-parser.h"
+#include "suricata.h"
+#endif
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
         const Frames *frames, const Frame *frame, const AppProto alproto, const uint32_t idx)
 {

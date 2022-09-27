@@ -16,7 +16,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "util-device.h"
 #include "util-ioctl.h"
 #include "util-misc.h"

@@ -31,15 +31,19 @@
  */
 
 #include "suricata-common.h"
-#include "runmodes.h"
 #include "source-dpdk.h"
-#include "suricata.h"
-#include "threads.h"
-#include "threadvars.h"
 #include "tm-threads.h"
-#include "tmqh-packetpool.h"
-#include "util-privs.h"
 
+#ifdef HAVE_DPDK
+#include "util-dpdk-i40e.h"
+#include "util-dpdk.h"
+#include "util-privs.h"
+#include "tmqh-packetpool.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "suricata.h"
+#include "runmodes.h"
+#endif
 #ifndef HAVE_DPDK
 
 TmEcode NoDPDKSupportExit(ThreadVars *, const void *, void **);
@@ -83,8 +87,6 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* We have DPDK support */
 
-#include "util-dpdk.h"
-#include "util-dpdk-i40e.h"
 #include <numa.h>
 
 #define BURST_SIZE 32

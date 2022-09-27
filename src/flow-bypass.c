@@ -22,13 +22,15 @@
  */
 
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "flow.h"
 #include "flow-bypass.h"
-#include "flow-private.h"
-#include "util-ebpf.h"
-#include "runmodes.h"
 
+#ifdef CAPTURE_OFFLOAD_MANAGER
+#include "runmodes.h"
+#include "util-ebpf.h"
+#include "flow-private.h"
+#include "flow.h"
+#include "tm-threads.h"
+#endif
 #ifdef CAPTURE_OFFLOAD_MANAGER
 
 #define FLOW_BYPASS_DELAY       10

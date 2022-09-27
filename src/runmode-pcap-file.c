@@ -17,15 +17,11 @@
 
 #include "suricata-common.h"
 #include "tm-threads.h"
-#include "conf.h"
-#include "runmodes.h"
 #include "runmode-pcap-file.h"
-#include "output.h"
 
 #include "detect-engine.h"
 #include "source-pcap-file.h"
 
-#include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"

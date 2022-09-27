@@ -25,17 +25,18 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-prefilter.h"
 #include "detect-parse.h"
 #include "detect-transform-sha256.h"
 
-#include "util-unittest.h"
-#include "util-print.h"
-
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "util-print.h"
+#include "util-unittest.h"
+#include "detect-engine-prefilter.h"
+#include "detect.h"
+#endif
 static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformToSha256RegisterTests(void);

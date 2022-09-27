@@ -26,11 +26,13 @@
 
 #include "detect-engine.h"
 #include "detect-file-hash-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 #include "detect-filemd5.h"
 
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#endif
 static int g_file_match_list_id = 0;
 
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, const char *);

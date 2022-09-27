@@ -21,19 +21,21 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-uint.h"
 #include "detect-quic-version.h"
-#include "util-byte.h"
-#include "util-unittest.h"
 #include "rust.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "detect-engine-uint.h"
+#include "detect-engine-content-inspection.h"
+#include "detect.h"
+#include "conf.h"
+#endif
 #ifdef UNITTESTS
 static void DetectQuicVersionRegisterTests(void);
 #endif

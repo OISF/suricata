@@ -25,23 +25,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect-engine-build.h"
 
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-byte.h"
 #include "detect-bytetest.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
-#include "app-layer.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 #include "detect-pcre.h"
 
 
@@ -50,6 +40,18 @@
  */
 /** \todo We probably just need a simple tokenizer here */
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "app-layer.h"
+#include "detect-byte-extract.h"
+#include "detect-bytejump.h"
+#include "detect-uricontent.h"
+#include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /* PCRE supports 9 substrings so the 2nd and 3rd (negation, operator) and
  * 4th and 5th (test value, offset) are combined
  */

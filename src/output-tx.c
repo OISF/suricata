@@ -24,10 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "tm-modules.h"
 #include "output.h"
 #include "output-tx.h"
-#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-profiling.h"
 #include "util-validate.h"

@@ -24,19 +24,20 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-content.h"
 #include "detect-engine-uint.h"
 
 #include "detect-bsize.h"
 
+#ifdef UNITTESTS
 #include "util-misc.h"
-
+#include "detect-content.h"
+#include "detect.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#endif
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);

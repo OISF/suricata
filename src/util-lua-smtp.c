@@ -27,15 +27,14 @@
 
 #include "suricata-common.h"
 
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-#include "output.h"
-
+#ifdef HAVE_LUA
 #include "app-layer-smtp.h"
-
+#include "output.h"
+#include "tm-threads.h"
+#include "threadvars.h"
+#include "threads.h"
+#include "conf.h"
+#endif
 #ifdef HAVE_LUA
 
 #include <lua.h>

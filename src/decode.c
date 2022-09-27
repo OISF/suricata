@@ -48,30 +48,32 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "conf.h"
 #include "decode.h"
 #include "decode-teredo.h"
 #include "decode-erspan.h"
 #include "decode-geneve.h"
 #include "decode-vxlan.h"
-#include "util-debug.h"
-#include "util-mem.h"
-#include "app-layer-detect-proto.h"
 #include "app-layer.h"
-#include "tm-threads.h"
-#include "util-error.h"
 #include "util-print.h"
 #include "tmqh-packetpool.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
-#include "util-mpm-ac.h"
 #include "util-hash-string.h"
-#include "output.h"
 #include "output-flow.h"
-#include "flow-storage.h"
 #include "util-validate.h"
 
+#ifdef CAPTURE_OFFLOAD
+#include "flow-storage.h"
+#include "output.h"
+#include "util-mpm-ac.h"
+#include "util-error.h"
+#include "tm-threads.h"
+#include "app-layer-detect-proto.h"
+#include "util-mem.h"
+#include "util-debug.h"
+#include "conf.h"
+#include "suricata.h"
+#endif
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;

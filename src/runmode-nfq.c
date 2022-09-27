@@ -24,21 +24,21 @@
  * Handling of NFQ runmodes.
  */
 
-
 #include "suricata-common.h"
-#include "tm-threads.h"
-#include "conf.h"
 #include "runmodes.h"
 #include "runmode-nfq.h"
-#include "output.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-runmodes.h"
+#ifdef NFQ
 #include "util-device.h"
-
+#include "util-runmodes.h"
+#include "util-affinity.h"
+#include "util-cpu.h"
+#include "util-time.h"
+#include "util-debug.h"
+#include "output.h"
+#include "conf.h"
+#include "tm-threads.h"
+#endif
 const char *RunModeIpsNFQGetDefaultMode(void)
 {
     return "autofp";

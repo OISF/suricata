@@ -24,28 +24,28 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
-#include "app-layer.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 #include "detect-isdataat.h"
 #include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-engine-build.h"
 
-#include "flow.h"
-#include "flow-var.h"
-
-#include "util-debug.h"
 #include "util-byte.h"
 #include "detect-pcre.h"
 #include "detect-byte.h"
 
+#ifdef UNITTESTS
+#include "util-debug.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-build.h"
+#include "detect-uricontent.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "app-layer.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /**
  * \brief Regex for parsing our isdataat options
  */

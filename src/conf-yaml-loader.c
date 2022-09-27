@@ -24,12 +24,14 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "conf-yaml-loader.h"
-#include <yaml.h>
-#include "util-path.h"
-#include "util-debug.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#include "util-debug.h"
+#include "util-path.h"
+#include "conf.h"
+#endif
+#include <yaml.h>
 
 #define YAML_VERSION_MAJOR 1
 #define YAML_VERSION_MINOR 1

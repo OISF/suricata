@@ -22,31 +22,29 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-nfs-procedure.h"
 #include "detect-engine-uint.h"
 
-#include "app-layer-parser.h"
-
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-
-#include "app-layer-nfs-tcp.h"
+#ifdef UNITTESTS
 #include "rust.h"
-
+#include "app-layer-nfs-tcp.h"
+#include "util-byte.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "flow-var.h"
+#include "flow-util.h"
+#include "flow.h"
+#include "app-layer-parser.h"
+#include "detect-content.h"
+#include "detect-engine-mpm.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS

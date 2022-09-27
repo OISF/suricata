@@ -21,7 +21,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 
@@ -30,10 +29,13 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-quic-cyu-hash.h"
-#include "detect-engine-build.h"
 #include "rust.h"
 #include "util-profiling.h"
 
+#ifdef UNITTESTS
+#include "detect-engine-build.h"
+#include "detect.h"
+#endif
 #ifdef UNITTESTS
 static void DetectQuicCyuHashRegisterTests(void);
 #endif

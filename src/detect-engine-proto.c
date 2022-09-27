@@ -27,23 +27,20 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-#include "detect.h"
-
-#include "app-layer-parser.h"
-
-#include "flow-util.h"
-#include "flow-var.h"
-
-#include "detect-engine-siggroup.h"
-#include "detect-engine-state.h"
-
-#include "util-cidr.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#ifdef UNITTESTS
 #include "util-debug.h"
-
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-byte.h"
+#include "util-cidr.h"
+#include "detect-engine-state.h"
+#include "detect-engine-siggroup.h"
+#include "flow-var.h"
+#include "flow-util.h"
+#include "app-layer-parser.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /**
  * \brief Parses a protocol sent as a string.
  *

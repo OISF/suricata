@@ -25,20 +25,21 @@
 
 #include "suricata-common.h"
 #include "util-host-os-info.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-ip.h"
-#include "util-radix-tree.h"
 #include "util-byte.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
 #include "util-enum.h"
-#include "util-unittest.h"
 
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#include "conf-yaml-loader.h"
+#include "conf.h"
+#include "stream-tcp-private.h"
+#include "util-radix-tree.h"
+#include "util-debug.h"
+#include "util-error.h"
+#endif
 /** Enum map for the various OS flavours */
 SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
     { "none",        OS_POLICY_NONE },

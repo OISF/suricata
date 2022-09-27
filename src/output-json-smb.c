@@ -24,27 +24,12 @@
  */
 
 #include "suricata-common.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-debug.h"
-#include "util-byte.h"
-
-#include "output.h"
 #include "output-json.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
 
 #include "output-json-smb.h"
-
-#include "rust.h"
 
 bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
 {

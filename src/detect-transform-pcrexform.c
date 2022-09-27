@@ -25,12 +25,14 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
 #include "detect-transform-pcrexform.h"
 #include "detect-pcre.h"
 
+#ifdef UNITTESTS
+#include "detect-parse.h"
+#include "detect.h"
+#endif
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;
     pcre2_match_context *context;

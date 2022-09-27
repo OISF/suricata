@@ -22,33 +22,34 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-smtp.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
-#include "detect-engine-build.h"
 #include "detect-app-layer-event.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "decode-events.h"
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-enum.h"
 #include "util-profiling.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "stream-tcp-util.h"
 
+#ifdef UNITTESTS
+#include "stream-tcp-util.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "util-enum.h"
+#include "util-debug.h"
+#include "util-byte.h"
+#include "decode-events.h"
+#include "flow-util.h"
+#include "flow-var.h"
+#include "flow.h"
+#include "detect-engine-build.h"
+#include "detect-engine-state.h"
+#include "detect.h"
+#include "app-layer-smtp.h"
+#include "app-layer-protos.h"
+#include "decode.h"
+#include "threads.h"
+#endif
 #define MAX_ALPROTO_NAME 50
 
 typedef struct DetectAppLayerEventData_ {

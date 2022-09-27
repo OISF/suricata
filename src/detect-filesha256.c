@@ -27,11 +27,13 @@
 
 #include "detect-engine.h"
 #include "detect-file-hash-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 #include "detect-filesha256.h"
 
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#endif
 static int DetectFileSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha256RegisterTests(void);

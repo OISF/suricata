@@ -27,15 +27,17 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "tm-threads.h"
 
 #include "util-privs.h"
-#include "util-datalink.h"
-#include "util-device.h"
-#include "tmqh-packetpool.h"
 #include "source-erf-dag.h"
 
+#ifdef HAVE_DAG
+#include "tmqh-packetpool.h"
+#include "util-device.h"
+#include "util-datalink.h"
+#include "suricata.h"
+#endif
 #ifndef HAVE_DAG
 
 TmEcode NoErfDagSupportExit(ThreadVars *, const void *, void **);

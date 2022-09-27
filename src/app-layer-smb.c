@@ -16,19 +16,18 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-
-#include "app-layer-protos.h"
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-
-#include "util-unittest.h"
 
 #include "rust.h"
 #include "app-layer-smb.h"
+
+#ifdef UNITTESTS
 #include "util-misc.h"
-
-
+#include "util-unittest.h"
+#include "app-layer-parser.h"
+#include "app-layer-detect-proto.h"
+#include "app-layer-protos.h"
+#include "suricata.h"
+#endif
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 

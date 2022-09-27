@@ -22,14 +22,16 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "threads.h"
 #include "stream.h"
-#include "util-pool.h"
-#include "util-debug.h"
 #include "stream-tcp.h"
-#include "flow-util.h"
 
+#ifdef DEBUG
+#include "flow-util.h"
+#include "util-debug.h"
+#include "util-pool.h"
+#include "threads.h"
+#include "decode.h"
+#endif
 /** \brief Run callback for all segments in a single direction.
  *
  * Must be called under flow lock.

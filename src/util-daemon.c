@@ -23,12 +23,9 @@
  * Daemonization process
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "util-daemon.h"
-#include "util-debug.h"
-#include "conf.h"
 
 #ifndef OS_WIN32
 

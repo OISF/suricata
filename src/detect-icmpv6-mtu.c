@@ -24,12 +24,14 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-icmpv6-mtu.h"
 #include "detect-engine-uint.h"
 
+#ifdef UNITTESTS
+#include "detect.h"
+#endif
 /* prototypes */
 static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

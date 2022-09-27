@@ -25,20 +25,19 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-#include "detect.h"
-#include "flow-var.h"
-
-#include "util-cidr.h"
-#include "util-unittest.h"
-
 #include "detect-engine-address.h"
 #include "detect-engine-address-ipv6.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-port.h"
 
+#ifdef UNITTESTS
 #include "util-debug.h"
-
+#include "detect-engine-port.h"
+#include "detect-engine-siggroup.h"
+#include "util-unittest.h"
+#include "util-cidr.h"
+#include "flow-var.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /**
  * \brief Compares 2 ipv6 addresses and returns if the first address(a) is less
  *        than the second address(b) or not.

@@ -22,12 +22,14 @@
  */
 
 #include "suricata.h"
-#include "util-conf.h"
-#include "util-file.h"
 #include "util-landlock.h"
-#include "util-mem.h"
-#include "feature.h"
 
+#ifdef HAVE_LINUX_LANDLOCK_H
+#include "feature.h"
+#include "util-mem.h"
+#include "util-file.h"
+#include "util-conf.h"
+#endif
 #ifndef HAVE_LINUX_LANDLOCK_H
 
 void LandlockSandboxing(SCInstance *suri)

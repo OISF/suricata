@@ -24,9 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
-#include "util-debug.h"
 #include "ippair.h"
 #include "ippair-storage.h"
 
@@ -37,12 +35,15 @@
 
 #include "ippair-queue.h"
 
-#include "detect-tag.h"
-#include "detect-engine-tag.h"
-#include "detect-engine-threshold.h"
-
 #include "util-hash-lookup3.h"
 
+#ifdef IPPAIRBITS_STATS
+#include "detect-engine-threshold.h"
+#include "detect-engine-tag.h"
+#include "detect-tag.h"
+#include "util-debug.h"
+#include "conf.h"
+#endif
 static IPPair *IPPairGetUsedIPPair(void);
 
 /** ippair hash table */

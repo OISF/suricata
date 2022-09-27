@@ -24,21 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "host.h"
 
 #include "detect-detection-filter.h"
-#include "detect-threshold.h"
 #include "detect-parse.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "detect-engine-build.h"
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
@@ -54,6 +44,15 @@ static int DetectDetectionFilterMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
+#include "detect-engine-build.h"
+#include "util-debug.h"
+#include "util-unittest-helper.h"
+#include "util-unittest.h"
+#include "detect-threshold.h"
+#include "host.h"
+#include "detect.h"
+#include "decode.h"
+#include "suricata.h"
 static void DetectDetectionFilterRegisterTests(void);
 #endif
 static void DetectDetectionFilterFree(DetectEngineCtx *, void *);

@@ -30,20 +30,20 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-vntag.h"
-#include "decode-events.h"
-
-#include "flow.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
-#include "pkt-var.h"
-#include "util-profiling.h"
+#ifdef UNITTESTS
 #include "host.h"
-
+#include "util-profiling.h"
+#include "pkt-var.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "flow.h"
+#include "decode-events.h"
+#include "decode.h"
+#endif
 /**
  * \internal
  * \brief this function is used to decode 802.1Qbh packets

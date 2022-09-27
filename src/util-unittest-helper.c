@@ -47,6 +47,9 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
+#include "util-spm-bs.h"
+#endif
 #if defined(UNITTESTS) || defined(FUZZ)
 Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp)
 {
@@ -1000,7 +1003,6 @@ void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t 
     return memmem(big, big_len, little, little_len);
 }
 #else
-#include "util-spm-bs.h"
 void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len) {
     return BasicSearch(big, big_len, little, little_len);
 }

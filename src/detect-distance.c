@@ -26,28 +26,27 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "detect.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "app-layer.h"
-
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-byte.h"
-#include "detect-byte-extract.h"
 #include "detect-distance.h"
 
-#include "flow-var.h"
-
 #include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "detect-bytejump.h"
-#include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "detect-bytejump.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+#include "flow-var.h"
+#include "detect-byte-extract.h"
+#include "detect-uricontent.h"
+#include "app-layer.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectDistanceRegisterTests(void);
