@@ -30,12 +30,7 @@
  * is for the system name and the second for the url */
 #ifdef UNITTESTS
 #include "util-fmemopen.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-unittest.h"
-#include "conf.h"
-#include "util-hash.h"
-#include "detect.h"
 #endif
 /*-----------------------------------------------------------system-------------------url----*/
 #define SC_RCONF_REGEX "^\\s*config\\s+reference\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s+(.+)\\s*$"

@@ -40,10 +40,6 @@
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 void RegisterTemplateRustParsers(void)
 {

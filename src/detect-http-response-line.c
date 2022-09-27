@@ -40,24 +40,7 @@
 #include "detect-http-response-line.h"
 
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "app-layer-htp.h"
-#include "app-layer-parser.h"
-#include "app-layer.h"
-#include "util-spm.h"
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "detect-content.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-state.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
@@ -143,8 +126,6 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
-
-#include "stream-tcp-reassemble.h"
 
 /**
  * \test Test that a signature containting a http_response_line is correctly parsed

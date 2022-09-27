@@ -24,12 +24,14 @@
  */
 
 #include "suricata-common.h"
-#include "packet-queue.h"
 #include "tm-threads.h"
-#include "util-debug.h"
-#include "threads.h"
-#include "util-logopenfile.h"
 
+#ifdef PROFILING
+#include "util-logopenfile.h"
+#include "threads.h"
+#include "util-debug.h"
+#include "packet-queue.h"
+#endif
 TmModule tmm_modules[TMM_SIZE];
 
 void TmModuleDebugList(void)

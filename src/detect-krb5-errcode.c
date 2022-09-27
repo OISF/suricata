@@ -32,7 +32,6 @@
 #include "rust.h"
 
 #ifdef UNITTESTS
-#include "app-layer-krb5.h"
 #include "util-unittest.h"
 #endif
 /**

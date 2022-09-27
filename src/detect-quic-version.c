@@ -30,11 +30,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-byte.h"
-#include "detect-engine-uint.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 #ifdef UNITTESTS
 static void DetectQuicVersionRegisterTests(void);

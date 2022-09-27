@@ -30,9 +30,6 @@
 #include "detect-template2.h"
 
 #ifdef UNITTESTS
-#include "detect-engine-prefilter-common.h"
-#include "detect.h"
-#include "util-byte.h"
 #endif
 /* prototypes */
 static int DetectTemplate2Match (DetectEngineThreadCtx *, Packet *,

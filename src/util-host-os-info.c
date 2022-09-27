@@ -34,11 +34,6 @@
 #ifdef UNITTESTS
 #include "util-unittest.h"
 #include "conf-yaml-loader.h"
-#include "conf.h"
-#include "stream-tcp-private.h"
-#include "util-radix-tree.h"
-#include "util-debug.h"
-#include "util-error.h"
 #endif
 /** Enum map for the various OS flavours */
 SCEnumCharMap sc_hinfo_os_policy_map[ ] = {

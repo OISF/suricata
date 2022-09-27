@@ -30,9 +30,6 @@
 #include "detect-tcpmss.h"
 
 #ifdef UNITTESTS
-#include "util-byte.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect.h"
 #endif
 /* prototypes */
 static int DetectTcpmssMatch (DetectEngineThreadCtx *, Packet *,

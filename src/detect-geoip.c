@@ -26,19 +26,19 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
-
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 #include "detect-geoip.h"
 
-#include "util-mem.h"
-#include "util-unittest.h"
+#ifdef HAVE_GEOIP
 #include "util-unittest-helper.h"
-
+#include "util-unittest.h"
+#include "util-mem.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 #ifndef HAVE_GEOIP
 
 static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)

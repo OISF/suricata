@@ -34,7 +34,6 @@
 
 #ifdef UNITTESTS
 #include "detect-engine-build.h"
-#include "detect.h"
 #endif
 #ifdef UNITTESTS
 static void DetectQuicCyuHashRegisterTests(void);

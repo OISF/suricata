@@ -32,22 +32,23 @@
 
 #include "suricata-common.h"
 #include "decode-icmpv6.h"
-#include "decode.h"
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
-#include "decode-events.h"
 #include "util-unittest.h"
-#include "flow.h"
-#include "util-debug.h"
-#include "util-print.h"
 #include "util-validate.h"
 
 #include "pkt-var.h"
 #include "util-profiling.h"
+
+#ifdef DEBUG
 #include "host.h"
-
-
+#include "util-print.h"
+#include "util-debug.h"
+#include "flow.h"
+#include "decode-events.h"
+#include "decode-udp.h"
+#include "decode-sctp.h"
+#include "decode-tcp.h"
+#include "decode.h"
+#endif
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
  *

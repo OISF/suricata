@@ -31,14 +31,7 @@
 #include "detect-tcp-flags.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "detect-engine-prefilter.h"
-#include "detect.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 /**
  *  Regex (by Brian Rectanus)

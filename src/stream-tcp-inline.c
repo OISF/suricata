@@ -30,9 +30,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
-#include "util-unittest.h"
-#include "util-print.h"
-#include "stream-tcp-private.h"
 #endif
 /**
  *  \brief Compare the shared data portion of two segments

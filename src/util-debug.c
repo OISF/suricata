@@ -24,31 +24,30 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "util-debug.h"
-#include "util-error.h"
-#include "util-enum.h"
-#include "util-debug-filters.h"
 #include "suricata.h"
 
-#include "decode.h"
-#include "detect.h"
-#include "packet-queue.h"
-#include "threadvars.h"
 #include "output.h"
-
-#include "tm-queuehandlers.h"
-#include "tm-queues.h"
-#include "tm-threads.h"
 
 #include "util-unittest.h"
 #include "util-syslog.h"
 #include "util-time.h"
 #include "rust.h"
 
-
+#ifdef DEBUG
 #include "conf.h"
-
+#include "tm-threads.h"
+#include "tm-queues.h"
+#include "tm-queuehandlers.h"
+#include "threadvars.h"
+#include "packet-queue.h"
+#include "detect.h"
+#include "decode.h"
+#include "util-debug-filters.h"
+#include "util-enum.h"
+#include "util-error.h"
+#include "threads.h"
+#endif
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
 SCEnumCharMap sc_log_level_map[ ] = {
     { "Not set",        SC_LOG_NOTSET},

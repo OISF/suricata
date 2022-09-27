@@ -39,8 +39,6 @@
 #include "detect-template-buffer.h"
 
 #ifdef UNITTESTS
-#include "detect.h"
-#include "conf.h"
 #endif
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

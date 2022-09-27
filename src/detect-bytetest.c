@@ -41,16 +41,8 @@
 /** \todo We probably just need a simple tokenizer here */
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "app-layer.h"
-#include "detect-byte-extract.h"
-#include "detect-bytejump.h"
-#include "detect-uricontent.h"
 #include "detect-engine-build.h"
-#include "detect-parse.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /* PCRE supports 9 substrings so the 2nd and 3rd (negation, operator) and
  * 4th and 5th (test value, offset) are combined
@@ -675,9 +667,6 @@ static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
-#include "app-layer-parser.h"
-#include "flow-util.h"
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 

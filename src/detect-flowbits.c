@@ -35,18 +35,10 @@
 #include "util-var-name.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "util-spm.h"
 #include "flow-util.h"
-#include "flow.h"
-#include "threads.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static DetectParseRegex parse_regex;

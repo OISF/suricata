@@ -28,11 +28,7 @@
 #include "app-layer.h"
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "app-layer-parser.h"
-#include "detect-engine-prefilter.h"
 #include "detect-engine-build.h"
 #include "detect-engine.h"
 #endif

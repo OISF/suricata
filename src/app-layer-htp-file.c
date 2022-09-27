@@ -31,31 +31,10 @@
 #include "app-layer-htp-range.h"
 
 #ifdef UNITTESTS
-#include "util-memcmp.h"
-#include "conf.h"
-#include "detect-parse.h"
-#include "detect-engine-state.h"
-#include "detect-engine.h"
-#include "flow-util.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-time.h"
-#include "util-debug.h"
-#include "util-spm.h"
-#include "app-layer-htp.h"
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer.h"
-#include "stream.h"
 #include "stream-tcp.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-private.h"
-#include "util-radix-tree.h"
-#include "util-pool.h"
-#include "util-print.h"
-#include "threads.h"
-#include "decode.h"
-#include "suricata.h"
 #endif
 /**
  *  \brief Open the file with "filename" and pass the first chunk

@@ -28,7 +28,6 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
 #include "util-unittest.h"
 #endif
 /** \brief Turn byte array into string.

@@ -34,11 +34,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-var.h"
-#include "detect.h"
-#include "host.h"
-#include "threads.h"
 #endif
 static HostStorageId host_bit_id = { .id = -1 }; /**< Host storage id for bits */
 

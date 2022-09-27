@@ -41,18 +41,11 @@
 
 #ifdef UNITTESTS
 #include "util-fmemopen.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-time.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "conf.h"
 #include "detect-engine-build.h"
-#include "detect-threshold.h"
-#include "detect-engine-threshold.h"
-#include "detect.h"
 #include "ippair.h"
-#include "host.h"
 #endif
 typedef enum ThresholdRuleType {
     THRESHOLD_TYPE_EVENT_FILTER,

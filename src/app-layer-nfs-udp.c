@@ -32,10 +32,6 @@
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
-#include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 /* Enum of app-layer events for an echo protocol. Normally you might
  * have events for errors in parsing data, like unexpected data being

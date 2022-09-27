@@ -38,32 +38,32 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
-#include "detect-engine-dcepayload.h"
 #include "detect-engine-build.h"
 
-#include "detect-flowvar.h"
-
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
 #include "app-layer-htp.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-profiling.h"
 
 #include "flow-util.h"
 
+#ifdef DEBUG_VALIDATION
+#include "util-profiling.h"
+#include "app-layer-protos.h"
+#include "app-layer.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp-private.h"
+#include "detect-flowvar.h"
+#include "detect-engine-dcepayload.h"
+#include "detect.h"
+#include "decode.h"
+#endif
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 

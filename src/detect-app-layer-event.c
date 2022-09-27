@@ -36,19 +36,8 @@
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "util-enum.h"
-#include "util-debug.h"
-#include "util-byte.h"
-#include "decode-events.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect.h"
-#include "app-layer-smtp.h"
-#include "app-layer-protos.h"
-#include "decode.h"
-#include "threads.h"
 #endif
 #define MAX_ALPROTO_NAME 50
 
@@ -429,9 +418,6 @@ int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s)
 /**********************************Unittests***********************************/
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
 
 #define APP_LAYER_EVENT_TEST_MAP_EVENT1 0
 #define APP_LAYER_EVENT_TEST_MAP_EVENT2 1

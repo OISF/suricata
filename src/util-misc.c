@@ -26,9 +26,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "util-byte.h"
-#include "suricata.h"
 #endif
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
 static pcre2_code *parse_regex = NULL;

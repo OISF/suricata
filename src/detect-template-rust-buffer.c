@@ -40,8 +40,6 @@
 #ifdef UNITTESTS
 #include "detect-engine-build.h"
 #include "app-layer-parser.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
     const char *);

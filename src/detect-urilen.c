@@ -35,16 +35,10 @@
 #ifdef UNITTESTS
 #include "stream-tcp.h"
 #include "flow-util.h"
-#include "util-byte.h"
-#include "util-debug.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect.h"
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
 #include "app-layer-htp.h"
-#include "app-layer-protos.h"
-#include "app-layer.h"
 #endif
 /*prototypes*/
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
@@ -233,10 +227,6 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 
 #ifdef UNITTESTS
 
-#include "stream.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
 
 /** \test   Test the Urilen keyword setup */

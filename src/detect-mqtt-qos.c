@@ -31,9 +31,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "detect-engine-content-inspection.h"
-#include "detect.h"
-#include "conf.h"
 #endif
 static int mqtt_qos_id = 0;
 

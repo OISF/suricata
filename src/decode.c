@@ -64,15 +64,6 @@
 
 #ifdef CAPTURE_OFFLOAD
 #include "flow-storage.h"
-#include "output.h"
-#include "util-mpm-ac.h"
-#include "util-error.h"
-#include "tm-threads.h"
-#include "app-layer-detect-proto.h"
-#include "util-mem.h"
-#include "util-debug.h"
-#include "conf.h"
-#include "suricata.h"
 #endif
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;

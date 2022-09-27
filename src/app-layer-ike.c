@@ -32,10 +32,7 @@
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "app-layer-detect-proto.h"
 #include "util-unittest.h"
-#include "conf.h"
-#include "stream.h"
 #endif
 void RegisterIKEParsers(void)
 {
@@ -47,7 +44,6 @@ void RegisterIKEParsers(void)
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util-unittest-helper.h"
 #include "flow-util.h"
 
 static int IkeParserTest(void)

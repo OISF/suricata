@@ -34,17 +34,6 @@
 #include "util-time.h"
 
 #ifdef UNITTESTS
-#include "tmqh-packetpool.h"
-#include "util-optimize.h"
-#include "util-device.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "conf.h"
-#include "tm-queuehandlers.h"
-#include "threadvars.h"
-#include "threads.h"
-#include "packet-queue.h"
-#include "decode.h"
 #endif
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1

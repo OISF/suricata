@@ -31,17 +31,8 @@
 #include "detect-reference.h"
 
 #ifdef UNITTESTS
-#include "util-debug.h"
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "stream-tcp.h"
-#include "decode-events.h"
-#include "flow-var.h"
-#include "decode.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect.h"
-#include "suricata.h"
 #endif
 #define PARSE_REGEX "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 

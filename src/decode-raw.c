@@ -36,13 +36,9 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "host.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "decode-events.h"
-#include "decode.h"
 #endif
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
@@ -79,8 +75,6 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "flow.h"
-#include "flow-util.h"
 
 /** DecodeRawtest01
  *  \brief Valid Raw packet

@@ -42,8 +42,10 @@
 #include "util-pool.h"
 #include "util-pool-thread.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 
+#ifdef DEBUG
+#include "util-debug.h"
+#endif
 static int PoolMemset(void *pitem, void *initdata)
 {
     Pool *p = (Pool *) initdata;

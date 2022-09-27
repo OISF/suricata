@@ -34,8 +34,6 @@
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
-#include "util-misc.h"
-#include "conf.h"
 #endif
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7

@@ -35,13 +35,6 @@
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "util-unittest.h"
-#include "util-debug.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine.h"
-#include "detect.h"
-#include "decode.h"
 #endif
 /**
  * \brief Regex for parsing "id" option, matching number or "number"

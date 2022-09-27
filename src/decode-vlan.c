@@ -36,14 +36,9 @@
 #include "util-validate.h"
 
 #ifdef UNITTESTS
-#include "host.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "flow.h"
-#include "decode-events.h"
-#include "decode.h"
 #endif
 /**
  * \internal

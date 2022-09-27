@@ -34,21 +34,6 @@
 #include "rust.h"
 
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "util-unittest-helper.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "detect-dce-iface.h"
-#include "stream-tcp-reassemble.h"
-#include "queue.h"
-#include "app-layer.h"
-#include "flow-util.h"
-#include "flow-var.h"
-#include "flow.h"
-#include "detect-engine-build.h"
-#include "detect-engine-state.h"
-#include "detect-engine-mpm.h"
-#include "detect.h"
 #endif
 #define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 

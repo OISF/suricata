@@ -32,11 +32,6 @@
 #include "detect-bsize.h"
 
 #ifdef UNITTESTS
-#include "util-misc.h"
-#include "detect-content.h"
-#include "detect.h"
-#include "util-unittest-helper.h"
-#include "util-unittest.h"
 #endif
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
