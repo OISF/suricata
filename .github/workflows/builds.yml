@@ -570,6 +570,8 @@ jobs:
                 libevent-devel \
                 libmaxminddb-devel \
                 libpcap-devel \
+                libxdp-devel \
+                libbpf-devel \
                 libtool \
                 lz4-devel \
                 make \
