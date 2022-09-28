@@ -24,7 +24,6 @@
 #include "suricata-common.h"
 
 #include "util-enum.h"
-#include "util-debug.h"
 
 /**
  * \brief Maps a string name to an enum value from the supplied table.  Please

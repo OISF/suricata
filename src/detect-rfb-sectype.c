@@ -21,18 +21,10 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-rfb-sectype.h"
 #include "detect-engine-uint.h"
-#include "app-layer-parser.h"
-#include "util-byte.h"
-
-#include "rust-bindings.h"
-
 
 static int DetectRfbSectypeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectRfbSectypeFree(DetectEngineCtx *, void *);

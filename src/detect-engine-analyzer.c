@@ -25,14 +25,11 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "rust.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-mpm.h"
-#include "conf.h"
 #include "detect-content.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"

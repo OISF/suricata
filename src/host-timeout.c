@@ -22,15 +22,12 @@
  */
 
 #include "suricata-common.h"
-#include "host.h"
 
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
 #include "host-bit.h"
 #include "host-timeout.h"
-
-#include "reputation.h"
 
 uint32_t HostGetSpareCount(void)
 {

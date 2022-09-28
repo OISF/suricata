@@ -24,16 +24,10 @@
 
 #include "suricata-common.h"
 
-#include "app-layer.h"
 #include "app-layer-enip-common.h"
 
-#include "detect.h"
 #include "detect-cipservice.h"
 #include "detect-engine-enip.h"
-
-#include "flow.h"
-
-#include "util-debug.h"
 
 #if 0
 /**
