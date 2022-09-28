@@ -55,17 +55,17 @@ any        any IP options are set
 
 Format of the ipopts keyword::
 
-  ipopts: <name>
+  ipopts: <name>;
 
 For example::
 
-  ipopts: lsrr;
+  ipopts: ts;
 
 Example of ipopts in a rule:
 
 .. container:: example-rule
 
-    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC source route ssrr"; :example-rule-emphasis:`ipopts:ssrr;` reference:arachnids,422; classtype:bad-unknown; sid:2100502; rev:3;)
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"IP Packet with timestamp option"; :example-rule-emphasis:`ipopts:ts;` classtype:misc-activity; sid:2; rev:1;)
 
 sameip
 ^^^^^^
