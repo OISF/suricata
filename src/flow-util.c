@@ -24,23 +24,12 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 
-#include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
-#include "flow-var.h"
-#include "app-layer.h"
 
-#include "util-var.h"
-#include "util-debug.h"
 #include "util-macset.h"
 #include "flow-storage.h"
-
-#include "detect.h"
-#include "detect-engine-state.h"
-
-#include "decode-icmpv4.h"
 
 /** \brief allocate a flow
  *

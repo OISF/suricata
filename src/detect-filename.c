@@ -24,33 +24,20 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-file.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
-
-#include "app-layer.h"
-
-#include "stream-tcp.h"
 
 #include "detect-filename.h"
 #include "app-layer-parser.h"

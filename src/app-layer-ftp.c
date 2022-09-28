@@ -26,41 +26,19 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-
-#include "flow-util.h"
-#include "flow-storage.h"
-
-#include "detect-engine-state.h"
-
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ftp.h"
 #include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
 
-#include "util-spm.h"
-#include "util-mpm.h"
 #include "util-unittest.h"
-#include "util-debug.h"
 #include "util-memcmp.h"
-#include "util-memrchr.h"
-#include "util-mem.h"
 #include "util-misc.h"
 #include "util-validate.h"
-
-#include "output-json.h"
-#include "rust.h"
 
 typedef struct FTPThreadCtx_ {
     MpmThreadCtx *ftp_mpm_thread_ctx;

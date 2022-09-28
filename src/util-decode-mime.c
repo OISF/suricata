@@ -28,7 +28,6 @@
 
 #include "util-decode-mime.h"
 #include "util-ip.h"
-#include "util-spm-bs.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-print.h"
