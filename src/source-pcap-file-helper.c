@@ -28,8 +28,6 @@
 #include "util-datalink.h"
 #include "util-checksum.h"
 #include "util-profiling.h"
-#include "source-pcap-file.h"
-#include "util-exception-policy.h"
 
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
