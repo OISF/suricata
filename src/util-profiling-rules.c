@@ -340,7 +340,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary,
 
     if (unlikely(js_s == NULL))
         return;
-    fprintf(fp, "%s", js_s);
+    fprintf(fp, "%s\n", js_s);
     free(js_s);
     json_decref(js);
 }
