@@ -32,25 +32,17 @@
 
 #include "suricata-common.h"
 
-#include "host.h"
-#include "ippair.h"
-
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-address.h"
 #include "detect-engine-threshold.h"
-#include "detect-threshold.h"
 #include "detect-parse.h"
 #include "detect-engine-build.h"
 
-#include "conf.h"
 #include "util-threshold-config.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 #include "util-time.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-fmemopen.h"
 
 typedef enum ThresholdRuleType {

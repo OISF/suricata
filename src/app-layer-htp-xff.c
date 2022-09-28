@@ -23,7 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -33,7 +32,6 @@
 #include "util-memrchr.h"
 #endif
 
-#include "util-misc.h"
 #include "util-unittest.h"
 
 /** XFF header value minimal length */

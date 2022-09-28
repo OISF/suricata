@@ -28,15 +28,10 @@
  */
 
 #include "suricata.h"
-#include "packet-queue.h"
-#include "decode.h"
-#include "threads.h"
-#include "threadvars.h"
 #include "tmqh-flow.h"
 
 #include "tm-queuehandlers.h"
 
-#include "conf.h"
 #include "util-unittest.h"
 
 Packet *TmqhInputFlow(ThreadVars *t);

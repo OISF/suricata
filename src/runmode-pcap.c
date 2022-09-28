@@ -18,7 +18,6 @@
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "runmode-pcap.h"
-#include "output.h"
 
 #include "util-time.h"
 #include "util-runmodes.h"

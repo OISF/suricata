@@ -24,18 +24,13 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "detect.h"
-#include "detect-content.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 #include "util-rule-vars.h"
 #include "util-enum.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 
 /** An enum-string map, that maps the different vars type in the yaml conf

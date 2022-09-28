@@ -32,14 +32,7 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "flow-bit.h"
-#include "flow.h"
-#include "flow-util.h"
-#include "flow-private.h"
-#include "detect.h"
-#include "util-var.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */

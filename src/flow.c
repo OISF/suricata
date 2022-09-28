@@ -1235,7 +1235,6 @@ uint32_t FlowGetFlags(Flow *flow)
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
-#include "threads.h"
 
 /**
  *  \test   Test the setting of the per protocol timeouts.

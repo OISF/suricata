@@ -260,8 +260,6 @@ static int DetectFtpbounceTestSetup01(void)
     PASS;
 }
 
-#include "stream-tcp-reassemble.h"
-
 /**
  * \test Check the ftpbounce match, send a get request in three chunks
  * + more data.

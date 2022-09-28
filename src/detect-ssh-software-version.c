@@ -310,8 +310,6 @@ static int DetectSshSoftwareVersionTestParse03 (void)
     return 1;
 }
 
-
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp-util.h"
 
 /** \test Send a get request in three chunks + more data. */

@@ -673,9 +673,6 @@ static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
-#include "app-layer-parser.h"
-#include "flow-util.h"
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 

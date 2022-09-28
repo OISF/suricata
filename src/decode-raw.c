@@ -79,8 +79,6 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "flow.h"
-#include "flow-util.h"
 
 /** DecodeRawtest01
  *  \brief Valid Raw packet

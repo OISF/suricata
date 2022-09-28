@@ -25,15 +25,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-classtype.h"
 #include "util-classification-config.h"
-#include "util-error.h"
-#include "util-debug.h"
 #include "util-unittest.h"
 
 #define PARSE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"

@@ -25,8 +25,6 @@
 
 #include "suricata-common.h"
 #include "util-radix-tree.h"
-#include "util-debug.h"
-#include "util-error.h"
 #include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"

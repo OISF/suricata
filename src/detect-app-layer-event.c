@@ -428,9 +428,6 @@ int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s)
 /**********************************Unittests***********************************/
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
 
 #define APP_LAYER_EVENT_TEST_MAP_EVENT1 0
 #define APP_LAYER_EVENT_TEST_MAP_EVENT2 1

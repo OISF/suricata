@@ -24,15 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-parse.h"
-
-#include "flow-var.h"
-#include "decode-events.h"
-
-#include "util-debug.h"
 
 #include "stream-tcp.h"
 

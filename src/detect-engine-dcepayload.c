@@ -22,34 +22,23 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "decode.h"
-
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
-#include "detect-byte-extract.h"
 #include "detect-content.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-build.h"
 #include "app-layer-parser.h"
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
 #include "flow-util.h"
-#include "util-debug.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-
-#include "detect-dce-iface.h"
 
 static int g_dce_stub_data_buffer_id = 0;
 

@@ -197,7 +197,6 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectICodeParseTest01 is a test for setting a valid icode value

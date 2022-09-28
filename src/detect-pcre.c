@@ -24,39 +24,22 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
 
-#include "pkt-var.h"
-#include "flow-var.h"
 #include "flow-util.h"
 
 #include "detect-pcre.h"
 #include "detect-flowvar.h"
 
-#include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-engine.h"
-#include "detect-engine-sigorder.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-build.h"
 
 #include "util-var-name.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 #include "util-unittest.h"
-#include "util-print.h"
-#include "util-pool.h"
 
-#include "conf.h"
-#include "app-layer.h"
 #include "app-layer-htp.h"
-#include "stream.h"
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "util-pages.h"
 
