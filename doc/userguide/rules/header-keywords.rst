@@ -82,7 +82,7 @@ Example of sameip in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"GPL SCAN same SRC/DST"; :example-rule-emphasis:`sameip;` reference:bugtraq,2666; reference:cve,1999-0016; reference:url,www.cert.org/advisories/CA-1997-28.html; classtype:bad-unknown; sid:2100527; rev:9;)
+    alert ip any any -> any any (msg:"IP Packet with the same source and destination IP"; :example-rule-emphasis:`sameip;` classtype:bad-unknown; sid:3; rev:1;)
 
 ip_proto
 ^^^^^^^^
