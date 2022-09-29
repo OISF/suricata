@@ -994,15 +994,6 @@ enum {
 #define ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE (ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO + 1)
 };
 
-typedef struct HttpReassembledBody_ {
-    const uint8_t *buffer;
-    uint8_t *decompressed_buffer;
-    uint32_t buffer_size;   /**< size of the buffer itself */
-    uint32_t buffer_len;    /**< data len in the buffer */
-    uint32_t decompressed_buffer_len;
-    uint64_t offset;        /**< data offset */
-} HttpReassembledBody;
-
 #define DETECT_FILESTORE_MAX 15
 
 typedef struct SignatureNonPrefilterStore_ {
