@@ -7,17 +7,8 @@ on:
 permissions: read-all
 
 env:
-  DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
-  DEFAULT_LIBHTP_BRANCH: 0.5.x
-  DEFAULT_LIBHTP_PR:
-
-  DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
-  DEFAULT_SU_BRANCH: master
-  DEFAULT_SU_PR:
-
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
   DEFAULT_SV_BRANCH: master
-  DEFAULT_SV_PR:
 
   DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
@@ -54,69 +45,63 @@ jobs:
           if test "${PR_HREF}"; then
               body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
 
-              libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
-              libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
-              libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
+              LIBHTP_REPO=$(echo "${body}" | awk -F = '/^LIBHTP_REPO=/ { print $2 }')
+              LIBHTP_BRANCH=$(echo "${body}" | awk -F = '/^LIBHTP_BRANCH=/ { print $2 }')
 
-              su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
-              su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
-              su_pr=$(echo "${body}" | awk '/^suricata-update-pr/ { print $2 }')
+              SU_REPO=$(echo "${body}" | awk -F = '/^SU_REPO=/ { print $2 }')
+              SU_BRANCH=$(echo "${body}" | awk -F = '/^SU_BRANCH=/ { print $2 }')
 
-              sv_repo=$(echo "${body}" | awk '/^suricata-verify-repo/ { print $2 }')
-              sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
-              sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
+              SV_REPO=$(echo "${body}" | awk -F = '/^SV_REPO=/ { print $2 }')
+              SV_BRANCH=$(echo "${body}" | awk -F = '/^SV_BRANCH=/ { print $2 }')
+          else
+              echo "No pull request body, will use defaults."
           fi
-          echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
-          echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
-          echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
 
-          echo "su_repo=${su_repo:-${DEFAULT_SU_REPO}}" >> $GITHUB_ENV
-          echo "su_branch=${su_branch:-${DEFAULT_SU_BRANCH}}" >> $GITHUB_ENV
-          echo "su_pr=${su_pr:-${DEFAULT_SU_PR}}" >> $GITHUB_ENV
+          echo LIBHTP_REPO=${LIBHTP_REPO} | tee -a ${GITHUB_ENV}
+          echo LIBHTP_BRANCH=${LIBHTP_BRANCH} | tee -a ${GITHUB_ENV}
 
-          echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
-          echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
-          echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
+          echo SU_REPO=${SU_REPO} | tee -a ${GITHUB_ENV}
+          echo SU_BRANCH=${SU_BRANCH} | tee -a ${GITHUB_ENV}
+
+          echo SV_REPO=${SV_REPO:-${DEFAULT_SV_REPO}} | tee -a ${GITHUB_ENV}
+          echo SV_BRANCH=${SV_BRANCH:-${DEFAULT_SV_BRANCH}} | tee -a ${GITHUB_ENV}
+
+      # Now checkout Suricata for the bundle script.
+      - name: Checking out Suricata
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
       - name: Fetching libhtp
         run: |
-          git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
-          if [[ "${libhtp_pr}" != "" ]]; then
-              cd libhtp
-              git fetch origin pull/${libhtp_pr}/head:prep
-              git checkout prep
-              cd ..
-          fi
-          tar zcf libhtp.tar.gz libhtp
+          DESTDIR=./bundle ./scripts/bundle.sh libhtp
+          tar zcf libhtp.tar.gz -C bundle libhtp
       - name: Fetching suricata-update
         run: |
-          git clone --depth 1 ${su_repo} -b ${su_branch} suricata-update
-          if [[ "${su_pr}" != "" ]]; then
-              cd suricata-update
-              git fetch origin pull/${su_pr}/head:prep
-              git checkout prep
-              cd ..
-          fi
-          tar zcf suricata-update.tar.gz suricata-update
+          DESTDIR=./bundle ./scripts/bundle.sh suricata-update
+          tar zcf suricata-update.tar.gz -C bundle suricata-update
+
       - name: Fetching suricata-verify
         run: |
-          git clone ${sv_repo} -b ${sv_branch} suricata-verify
-          if [[ "${sv_pr}" != "" ]]; then
-              cd suricata-verify
-              git fetch origin pull/${sv_pr}/head:prep
-              git checkout prep
-              git config --global user.email you@example.com
-              git config --global user.name You
-              git rebase ${DEFAULT_SV_BRANCH}
-              cd ..
+          pr=$(echo "${SV_BRANCH}" | sed -n 's/^pr\/\([[:digit:]]\+\)$/\1/p')
+          if [ "${pr}" ]; then
+              SV_BRANCH="refs/pull/${pr}/head"
+              echo "Using suricata-verify pull-request ${SV_BRANCH}"
+          else
+              echo "Using suricata-verify branch ${SV_BRANCH}"
           fi
+          git clone --depth 1 ${SV_REPO} suricata-verify
+          cd suricata-verify
+          git fetch --depth 1 origin ${SV_BRANCH}
+          git -c advice.detachedHead=false checkout FETCH_HEAD
+          cd ..
           tar zcf suricata-verify.tar.gz suricata-verify
-      - name: Cleaning up
-        run: rm -rf libhtp suricata-update suricata-verify
       - name: Uploading prep archive
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
         with:
           name: prep
-          path: .
+          path: |
+            libhtp.tar.gz
+            suricata-update.tar.gz
+            suricata-verify.tar.gz
 
   prepare-cbindgen:
     name: Prepare cbindgen
