@@ -515,8 +515,8 @@ jobs:
           fail_ci_if_error: false
           flags: suricata-verify
 
-  fedora-36:
-    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
+  fedora-36-clang:
+    name: Fedora 36 (clang, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:36
     needs: [prepare-deps, prepare-cbindgen]
@@ -581,6 +581,97 @@ jobs:
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
+          LDFLAGS: "-fsanitize=address"
+          ac_cv_func_realloc_0_nonnull: "yes"
+          ac_cv_func_malloc_0_nonnull: "yes"
+      - run: make -j2
+      - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      # Now install and make sure headers and libraries aren't install
+      # until requested.
+      - run: make install
+      - run: test ! -e /usr/local/lib/libsuricata_c.a
+      - run: test ! -e /usr/local/include/suricata
+      - run: make install-headers
+      - run: test -e /usr/local/include/suricata/suricata.h
+      - run: make install-library
+      - run: test -e /usr/local/lib/libsuricata_c.a
+      - run: test -e /usr/local/lib/libsuricata_rust.a
+      - run: test -e /usr/local/bin/libsuricata-config
+      - run: test ! -e /usr/local/lib/libsuricata.so
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
+
+  fedora-36-gcc:
+    name: Fedora 36 (gcc, debug, asan, wshadow, rust-strict)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo \
+                ccache \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-softokn-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: ./autogen.sh
+      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+        env:
+          CFLAGS: "$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
