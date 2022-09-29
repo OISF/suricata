@@ -8,3 +8,4 @@ Using Capture Hardware
    myricom
    ebpf-xdp
    netmap
+   af-xdp
