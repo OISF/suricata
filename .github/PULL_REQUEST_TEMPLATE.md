@@ -11,12 +11,15 @@ Describe changes:
 -
 -
 
-#suricata-verify-pr:
-#suricata-verify-repo:
-#suricata-verify-branch:
-#suricata-update-pr:
-#suricata-update-repo:
-#suricata-update-branch:
-#libhtp-pr:
-#libhtp-repo:
-#libhtp-branch:
+### Provide values to any of the below to override the defaults.
+
+To use a pull request use a branch name like `pr/N` where `N` is the pull request number.
+
+```
+SV_REPO=
+SV_BRANCH=
+SU_REPO=
+SU_BRANCH=
+LIBHTP_REPO=
+LIBHTP_BRANCH=
+```
