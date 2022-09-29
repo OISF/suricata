@@ -80,6 +80,12 @@
    supplied, the list of devices from the af-packet section in the
    yaml is used.
 
+.. option:: --af-xdp[=<device>]
+
+   Enable capture of packet using AF_XDP on Linux. If no device is
+   supplied, the list of devices from the af-xdp section in the
+   yaml is used.
+
 .. option:: -q <queue id>
 
    Run inline of the NFQUEUE queue ID provided. May be provided
