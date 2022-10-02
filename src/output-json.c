@@ -563,19 +563,7 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
             return;
     }
 
-
     strlcpy(addr->src_ip, srcip, JSON_ADDR_LEN);
-
-    switch(p->proto) {
-        case IPPROTO_ICMP:
-            break;
-        case IPPROTO_UDP:
-        case IPPROTO_TCP:
-        case IPPROTO_SCTP:
-            addr->sp = sp;
-            break;
-    }
-
     strlcpy(addr->dst_ip, dstip, JSON_ADDR_LEN);
 
     switch(p->proto) {
@@ -584,6 +572,7 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
+            addr->sp = sp;
             addr->dp = dp;
             break;
     }
