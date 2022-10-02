@@ -717,6 +717,21 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 jb_open_object(jb, "flow");
                 EveAddFlow(p->flow, jb);
+                if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                    jb_set_string(jb, "src_ip", addr.dst_ip);
+                    jb_set_string(jb, "dest_ip", addr.src_ip);
+                    if (addr.sp > 0) {
+                        jb_set_uint(jb, "src_port", addr.dp);
+                        jb_set_uint(jb, "dest_port", addr.sp);
+                    }
+                } else {
+                    jb_set_string(jb, "src_ip", addr.src_ip);
+                    jb_set_string(jb, "dest_ip", addr.dst_ip);
+                    if (addr.sp > 0) {
+                        jb_set_uint(jb, "src_port", addr.sp);
+                        jb_set_uint(jb, "dest_port", addr.dp);
+                    }
+                }
                 jb_close(jb);
             }
         }
