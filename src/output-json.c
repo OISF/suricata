@@ -566,14 +566,14 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
     strlcpy(addr->src_ip, srcip, JSON_ADDR_LEN);
     strlcpy(addr->dst_ip, dstip, JSON_ADDR_LEN);
 
-    switch(p->proto) {
-        case IPPROTO_ICMP:
-            break;
+    switch (p->proto) {
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
             addr->sp = sp;
             addr->dp = dp;
+            break;
+        default:
             break;
     }
 
