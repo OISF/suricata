@@ -1,0 +1,77 @@
+name: Check Rust
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  check-rust:
+    name: Check Rust
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    steps:
+      - name: Cache rust
+        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        with:
+          path: ~/.cargo
+          key: check-rust
+
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+
+      - name: Installing Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install cbindgen
+        run: cargo install --debug cbindgen
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - run: ./scripts/bundle.sh
+      - run: ./autogen.sh
+      - run: ./configure
+      - run: cargo clippy --fix
+        working-directory: rust
+      - run: |
+          diff=$(git diff)
+          if [ "${diff}" ]; then
+              echo "::warning ::Clippy --fix made changes, please fix"
+          fi
+      - run: cargo clippy
+        working-directory: rust
