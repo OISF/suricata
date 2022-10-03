@@ -134,10 +134,10 @@ impl Default for AppLayerTxData {
 
 impl Drop for AppLayerTxData {
     fn drop(&mut self) {
-        if self.de_state != std::ptr::null_mut() {
+        if !self.de_state.is_null() {
             core::sc_detect_engine_state_free(self.de_state);
         }
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
