@@ -469,7 +469,7 @@ mod tests {
             nbytes: nbytes,
             offset: offset,
             oper: oper,
-            rvalue_str: if rvalue_str != "" {
+            rvalue_str: if !rvalue_str.is_empty() {
                 CString::new(rvalue_str).unwrap().into_raw()
             } else {
                 std::ptr::null_mut()
