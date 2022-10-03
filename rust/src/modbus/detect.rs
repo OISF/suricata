@@ -46,7 +46,7 @@ lazy_static! {
     .unwrap();
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct DetectModbusRust {
     category: Option<Flags<CodeCategory>>,
     function: Option<FunctionCode>,
@@ -55,20 +55,6 @@ pub struct DetectModbusRust {
     unit_id: Option<Range<u16>>,
     address: Option<Range<u16>>,
     value: Option<Range<u16>>,
-}
-
-impl Default for DetectModbusRust {
-    fn default() -> Self {
-        DetectModbusRust {
-            category: None,
-            function: None,
-            subfunction: None,
-            access_type: None,
-            unit_id: None,
-            address: None,
-            value: None,
-        }
-    }
 }
 
 /// Compares a range from the alert signature to the transaction's unit_id/address/value
