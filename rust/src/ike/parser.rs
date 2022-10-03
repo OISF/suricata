@@ -471,7 +471,7 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
             },
             hex_value: match format.0 {
                 0 => variable_attribute_value
-                    .map(|_variable_attribute_value| to_hex(_variable_attribute_value)),
+                    .map(to_hex),
                 _ => None,
             },
         };
