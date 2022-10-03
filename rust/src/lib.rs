@@ -31,6 +31,11 @@
 #![allow(clippy::let_and_return)]
 #![allow(clippy::needless_bool)]
 #![allow(clippy::char_lit_as_u8)]
+#![allow(clippy::len_without_is_empty)]
+
+// Would be good to fix, but needs more investigation with respect to
+// using as a library.
+#![allow(clippy::crate_in_macro_def)]
 
 // To be fixed, but remove the noise for now.
 #![allow(clippy::collapsible_if)]
@@ -63,6 +68,11 @@
 #![allow(clippy::while_let_loop)]
 #![allow(clippy::redundant_pattern_matching)]
 #![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::bool_assert_comparison)]
+#![allow(clippy::derive_partial_eq_without_eq)]
+#![allow(clippy::manual_find)]
+#![allow(clippy::map_flatten)]
+#![allow(clippy::result_unit_err)]
 
 #[macro_use]
 extern crate bitflags;
