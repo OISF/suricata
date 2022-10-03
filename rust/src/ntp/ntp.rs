@@ -136,7 +136,7 @@ impl NTPState {
 
     fn free_tx(&mut self, tx_id: u64) {
         let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
-        debug_assert!(tx != None);
+        debug_assert!(tx.is_some());
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
         }
