@@ -163,7 +163,7 @@ impl IKEState {
             .transactions
             .iter()
             .position(|tx| tx.tx_id == tx_id + 1);
-        debug_assert!(tx != None);
+        debug_assert!(tx.is_some());
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
         }

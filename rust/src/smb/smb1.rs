@@ -646,7 +646,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
                                 },
                                 _ => { None },
                             };
-                            if d == None {
+                            if d.is_none() {
                                 tx.set_event(SMBEvent::NegotiateMalformedDialects);
                             }
                             (true, d)
@@ -865,7 +865,7 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 
             /* if we have a fid, store it so the response can pick it up */
             let mut pipe_dcerpc = false;
-            if rd.pipe != None {
+            if rd.pipe.is_some() {
                 let pipe = rd.pipe.unwrap();
                 state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID),
                         pipe.fid.to_vec());
