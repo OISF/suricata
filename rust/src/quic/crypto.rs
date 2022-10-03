@@ -99,7 +99,7 @@ impl PacketKey {
         let (buffer, tag) = payload.split_at_mut(tag_pos);
         let taga = GenericArray::from_slice(tag);
         self.key
-            .decrypt_in_place_detached(GenericArray::from_slice(&nonce), header, buffer, &taga)
+            .decrypt_in_place_detached(GenericArray::from_slice(&nonce), header, buffer, taga)
             .map_err(|_| ())?;
         Ok(&payload[..tag_pos])
     }

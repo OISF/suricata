@@ -42,7 +42,7 @@ fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
                 negated = true;
             }
             _ => {
-                let code: u8 = (&opcode[i..]).parse().map_err(|_| ())?;
+                let code: u8 = opcode[i..].parse().map_err(|_| ())?;
                 return Ok(DetectDnsOpcode {
                     negate: negated,
                     opcode: code,
