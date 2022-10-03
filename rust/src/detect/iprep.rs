@@ -76,7 +76,7 @@ extern "C" {
 
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, cmd) = map_res(alpha0, |s: &str| DetectIPRepDataCmd::from_str(s))(i)?;
+    let (i, cmd) = map_res(alpha0, DetectIPRepDataCmd::from_str)(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = char(',')(i)?;
     let (i, _) = opt(is_a(" "))(i)?;

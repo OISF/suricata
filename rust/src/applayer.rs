@@ -678,6 +678,6 @@ pub trait AppLayerFrameType {
 
     /// Converts a variant ID to an FFI safe name.
     extern "C" fn ffi_name_from_id(id: u8) -> *const std::os::raw::c_char where Self: Sized {
-        Self::from_u8(id).map(|s| s.to_cstring()).unwrap_or_else(|| std::ptr::null())
+        Self::from_u8(id).map(|s| s.to_cstring()).unwrap_or_else(std::ptr::null)
     }
 }

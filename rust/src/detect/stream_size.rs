@@ -59,7 +59,7 @@ pub struct DetectStreamSizeData {
 
 pub fn detect_parse_stream_size(i: &str) -> IResult<&str, DetectStreamSizeData> {
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, flags) = map_res(alpha0, |s: &str| DetectStreamSizeDataFlags::from_str(s))(i)?;
+    let (i, flags) = map_res(alpha0, DetectStreamSizeDataFlags::from_str)(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = char(',')(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
