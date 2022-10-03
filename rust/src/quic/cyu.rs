@@ -62,7 +62,7 @@ impl Cyu {
                         let cyu_string = format!("{},{}", version, tags);
 
                         let mut hasher = Md5::new();
-                        hasher.update(&cyu_string.as_bytes());
+                        hasher.update(cyu_string.as_bytes());
                         let hash = hasher.finalize();
 
                         let cyu_hash = format!("{:x}", hash);

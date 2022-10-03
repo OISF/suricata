@@ -231,7 +231,7 @@ impl TelnetState {
                                 self.state = TelnetProtocolState::PasswdRecv;
                             }
                             TelnetProtocolState::AuthOk => {
-                                let _message = std::str::from_utf8(&d);
+                                let _message = std::str::from_utf8(d);
                                 if let Ok(_message) = _message {
                                     SCLogDebug!("=> {}", _message);
                                 }
@@ -322,7 +322,7 @@ impl TelnetState {
                                 self.state = TelnetProtocolState::PasswdSent;
                             },
                             TelnetProtocolState::PasswdRecv => {
-                                if let Ok(message) = std::str::from_utf8(&d) {
+                                if let Ok(message) = std::str::from_utf8(d) {
                                     match message {
                                         "Login incorrect" => {
                                             SCLogDebug!("LOGIN FAILED");
@@ -339,7 +339,7 @@ impl TelnetState {
                                 }
                             },
                             TelnetProtocolState::AuthOk => {
-                                let _message = std::str::from_utf8(&d);
+                                let _message = std::str::from_utf8(d);
                                 if let Ok(_message) = _message {
                                     SCLogDebug!("<= {}", _message);
                                 }

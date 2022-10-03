@@ -86,7 +86,7 @@ fn match_backuuid(
             }
 
             if let Some(x) = &if_data.du16 {
-                if !detect_match_uint(&x, uuidentry.version) {
+                if !detect_match_uint(x, uuidentry.version) {
                     SCLogDebug!("Interface version did not match");
                     ret &= 0;
                 }

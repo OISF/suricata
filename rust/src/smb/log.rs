@@ -100,7 +100,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         (true, ntstatus) => {
             let status = smb_ntstatus_string(ntstatus);
             match status {
-                Some(x) => jsb.set_string("status", &x)?,
+                Some(x) => jsb.set_string("status", x)?,
                 None => {
                     let status_str = format!("{}", ntstatus);
                     jsb.set_string("status", &status_str)?
@@ -446,14 +446,14 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_request(mut jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
+pub extern "C" fn rs_smb_log_json_request(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
 {
-    smb_common_header(&mut jsb, state, tx).is_ok()
+    smb_common_header(jsb, state, tx).is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_response(mut jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
+pub extern "C" fn rs_smb_log_json_response(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
 {
-    smb_common_header(&mut jsb, state, tx).is_ok()
+    smb_common_header(jsb, state, tx).is_ok()
 }
 
