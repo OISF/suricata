@@ -309,9 +309,9 @@ impl MQTTState {
             }
             MQTTOperation::CONNACK(ref _connack) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(MQTT_CONNECT_PKT_ID) {
-                    (*tx).msg.push(msg);
-                    (*tx).complete = true;
-                    (*tx).pkt_id = None;
+                    tx.msg.push(msg);
+                    tx.complete = true;
+                    tx.pkt_id = None;
                     self.connected = true;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
@@ -327,7 +327,7 @@ impl MQTTState {
                     return;
                 }
                 if let Some(tx) = self.get_tx_by_pkt_id(v.message_id as u32) {
-                    (*tx).msg.push(msg);
+                    tx.msg.push(msg);
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
                     MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
@@ -342,9 +342,9 @@ impl MQTTState {
                     return;
                 }
                 if let Some(tx) = self.get_tx_by_pkt_id(v.message_id as u32) {
-                    (*tx).msg.push(msg);
-                    (*tx).complete = true;
-                    (*tx).pkt_id = None;
+                    tx.msg.push(msg);
+                    tx.complete = true;
+                    tx.pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
                     MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
@@ -359,9 +359,9 @@ impl MQTTState {
                     return;
                 }
                 if let Some(tx) = self.get_tx_by_pkt_id(suback.message_id as u32) {
-                    (*tx).msg.push(msg);
-                    (*tx).complete = true;
-                    (*tx).pkt_id = None;
+                    tx.msg.push(msg);
+                    tx.complete = true;
+                    tx.pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
                     MQTTState::set_event(&mut tx, MQTTEvent::MissingSubscribe);
@@ -376,9 +376,9 @@ impl MQTTState {
                     return;
                 }
                 if let Some(tx) = self.get_tx_by_pkt_id(unsuback.message_id as u32) {
-                    (*tx).msg.push(msg);
-                    (*tx).complete = true;
-                    (*tx).pkt_id = None;
+                    tx.msg.push(msg);
+                    tx.complete = true;
+                    tx.pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
                     MQTTState::set_event(&mut tx, MQTTEvent::MissingUnsubscribe);
