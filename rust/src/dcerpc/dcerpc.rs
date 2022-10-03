@@ -1094,9 +1094,9 @@ fn evaluate_stub_params(
     input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16,
     stub_data_buffer: &mut Vec<u8>,stub_data_buffer_reset: &mut bool,
 ) -> u16 {
-    let stub_len: u16;
+    
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
-    stub_len = cmp::min(lenleft, input_len);
+    let stub_len: u16 = cmp::min(lenleft, input_len);
     if stub_len == 0 {
         return 0;
     }
