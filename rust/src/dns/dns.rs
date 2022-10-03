@@ -1474,7 +1474,7 @@ mod tests {
     #[test]
     fn test_dns_event_from_string() {
         let name = "malformed_data";
-        let event = DNSEvent::from_string(&name).unwrap();
+        let event = DNSEvent::from_string(name).unwrap();
         assert_eq!(event, DNSEvent::MalformedData);
         assert_eq!(event.to_cstring(), format!("{}\0", name));
     }

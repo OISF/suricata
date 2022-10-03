@@ -160,7 +160,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
 
         if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
             if let Some(x) = &dce_data.du16 {
-                if detect_match_uint(&x, i.ver) {
+                if detect_match_uint(x, i.ver) {
                     return 1;
                 }
             } else {

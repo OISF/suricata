@@ -659,13 +659,13 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
-                                         flags: u64, mut js: &mut JsonBuilder)
+                                         flags: u64, js: &mut JsonBuilder)
                                          -> bool
 {
     if let &Some(ref response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
-                return dns_log_json_answer(&mut js, response, flags as u64).is_ok();
+                return dns_log_json_answer(js, response, flags as u64).is_ok();
             }
         }
     }
