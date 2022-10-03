@@ -114,7 +114,7 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     let (i, _padding_evasion) = cond(data_offset > ax+4+2*(wct as u16), |b| take(data_offset - (ax+4+2*(wct as u16)))(b))(i)?;
     let (i, file_data) = rest(i)?;
     let record = Smb1WriteRequestRecord {
-        offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
+        offset: if high_offset.is_some() { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
         len: (((data_len_high as u32) << 16) as u32)|(data_len_low as u32),
         fid,
         data: file_data,
@@ -514,7 +514,7 @@ pub fn parse_smb_read_andx_request_record(i: &[u8]) -> IResult<&[u8], SmbRequest
     let record = SmbRequestReadAndXRecord {
         fid,
         size: (((max_count_high as u64) << 16)|max_count_low as u64),
-        offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
+        offset: if high_offset.is_some() { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
     };
     Ok((i, record))
 }

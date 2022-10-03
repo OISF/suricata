@@ -132,7 +132,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
                     }
                 }
 
-                if have_ntlmssp && kticket == None {
+                if have_ntlmssp && kticket.is_none() {
                     SCLogDebug!("parsing expected NTLMSSP");
                     ntlmssp = parse_ntlmssp_blob(os);
                 }
