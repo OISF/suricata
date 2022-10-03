@@ -203,14 +203,14 @@ pub struct QuicTlsExtension {
 }
 
 fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
-    ja3.push_str(",");
+    ja3.push(',');
     let mut dash = false;
     for e in &exts {
         match e {
             TlsExtension::EllipticCurves(x) => {
                 for ec in x {
                     if dash {
-                        ja3.push_str("-");
+                        ja3.push('-');
                     } else {
                         dash = true;
                     }
@@ -220,14 +220,14 @@ fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
             _ => {}
         }
     }
-    ja3.push_str(",");
+    ja3.push(',');
     dash = false;
     for e in &exts {
         match e {
             TlsExtension::EcPointFormats(x) => {
                 for ec in *x {
                     if dash {
-                        ja3.push_str("-");
+                        ja3.push('-');
                     } else {
                         dash = true;
                     }
@@ -250,7 +250,7 @@ fn quic_get_tls_extensions(
             for e in &exts {
                 let etype = TlsExtensionType::from(e);
                 if dash {
-                    ja3.push_str("-");
+                    ja3.push('-');
                 } else {
                     dash = true;
                 }
@@ -289,17 +289,17 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
             ClientHello(ch) => {
                 let mut ja3 = String::with_capacity(256);
                 ja3.push_str(&u16::from(ch.version).to_string());
-                ja3.push_str(",");
+                ja3.push(',');
                 let mut dash = false;
                 for c in &ch.ciphers {
                     if dash {
-                        ja3.push_str("-");
+                        ja3.push('-');
                     } else {
                         dash = true;
                     }
                     ja3.push_str(&u16::from(*c).to_string());
                 }
-                ja3.push_str(",");
+                ja3.push(',');
                 let ciphers = ch.ciphers;
                 let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
                 return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
@@ -307,9 +307,9 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
             ServerHello(sh) => {
                 let mut ja3 = String::with_capacity(256);
                 ja3.push_str(&u16::from(sh.version).to_string());
-                ja3.push_str(",");
+                ja3.push(',');
                 ja3.push_str(&u16::from(sh.cipher).to_string());
-                ja3.push_str(",");
+                ja3.push(',');
                 let ciphers = vec![sh.cipher];
                 let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
                 return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
