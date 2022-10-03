@@ -88,7 +88,7 @@ impl std::str::FromStr for MQTTTypeCode {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let su = s.to_uppercase();
-        let su_slice: &str = &*su;
+        let su_slice: &str = &su;
         match su_slice {
             "CONNECT" => Ok(MQTTTypeCode::CONNECT),
             "CONNACK" => Ok(MQTTTypeCode::CONNACK),

@@ -57,7 +57,7 @@ impl std::str::FromStr for HTTP2FrameType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let su = s.to_uppercase();
-        let su_slice: &str = &*su;
+        let su_slice: &str = &su;
         match su_slice {
             "DATA" => Ok(HTTP2FrameType::DATA),
             "HEADERS" => Ok(HTTP2FrameType::HEADERS),
@@ -132,7 +132,7 @@ impl std::str::FromStr for HTTP2ErrorCode {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let su = s.to_uppercase();
-        let su_slice: &str = &*su;
+        let su_slice: &str = &su;
         match su_slice {
             "NO_ERROR" => Ok(HTTP2ErrorCode::NOERROR),
             "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::PROTOCOLERROR),
@@ -702,7 +702,7 @@ impl std::str::FromStr for HTTP2SettingsId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let su = s.to_uppercase();
-        let su_slice: &str = &*su;
+        let su_slice: &str = &su;
         match su_slice {
             "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::SETTINGSHEADERTABLESIZE),
             "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::SETTINGSENABLEPUSH),
