@@ -662,18 +662,16 @@ pub trait AppLayerFrameType {
     fn to_cstring(&self) -> *const std::os::raw::c_char;
 
     /// Converts a C string formatted name to a frame type ID.
-    extern "C" fn ffi_id_from_name(name: *const std::os::raw::c_char) -> i32 where Self: Sized {
+    unsafe extern "C" fn ffi_id_from_name(name: *const std::os::raw::c_char) -> i32 where Self: Sized {
         if name.is_null() {
             return -1;
         }
-        unsafe {
-            let frame_id = if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
-                Self::from_str(s).map(|t| t.as_u8() as i32).unwrap_or(-1)
-            } else {
-                -1
-            };
-            frame_id
-        }
+        let frame_id = if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
+            Self::from_str(s).map(|t| t.as_u8() as i32).unwrap_or(-1)
+        } else {
+            -1
+        };
+        frame_id
     }
 
     /// Converts a variant ID to an FFI safe name.
