@@ -94,10 +94,10 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.set_string("version", String::from(tx.header.version).as_str())?;
 
         if let Some(sni) = &tx.sni {
-            js.set_string("sni", &String::from_utf8_lossy(&sni))?;
+            js.set_string("sni", &String::from_utf8_lossy(sni))?;
         }
         if let Some(ua) = &tx.ua {
-            js.set_string("ua", &String::from_utf8_lossy(&ua))?;
+            js.set_string("ua", &String::from_utf8_lossy(ua))?;
         }
     }
     if tx.cyu.len() > 0 {
@@ -117,7 +117,7 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         } else {
             js.open_object("ja3s")?;
         }
-        let hash = format!("{:x}", Md5::new().chain(&ja3).finalize());
+        let hash = format!("{:x}", Md5::new().chain(ja3).finalize());
         js.set_string("hash", &hash)?;
         js.set_string("string", ja3)?;
         js.close()?;

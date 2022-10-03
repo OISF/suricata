@@ -256,7 +256,7 @@ fn http2_detect_settings_match(
                     return 1;
                 }
                 Some(x) => {
-                    if detect_match_uint(&x, set[i].value) {
+                    if detect_match_uint(x, set[i].value) {
                         return 1;
                     }
                 }
@@ -309,7 +309,7 @@ fn http2_detect_sizeupdate_match(
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
         if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
-            if detect_match_uint(&ctx, block.sizeupdate) {
+            if detect_match_uint(ctx, block.sizeupdate) {
                 return 1;
             }
         }
