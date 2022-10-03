@@ -732,7 +732,7 @@ pub unsafe extern "C" fn jb_set_string_from_bytes(
 pub unsafe extern "C" fn jb_set_base64(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -746,7 +746,7 @@ pub unsafe extern "C" fn jb_set_base64(
 pub unsafe extern "C" fn jb_set_hex(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -805,7 +805,7 @@ pub unsafe extern "C" fn jb_append_string_from_bytes(
 pub unsafe extern "C" fn jb_append_base64(
     js: &mut JsonBuilder, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     let val = std::slice::from_raw_parts(bytes, len as usize);
