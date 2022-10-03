@@ -121,7 +121,7 @@ trait MyFromStr {
 
 impl MyFromStr for EncryptionType {
     fn from_str(s: &str) -> Result<Self, String> {
-        let su_slice: &str = &*s;
+        let su_slice: &str = s;
         match su_slice {
             "des-cbc-crc" => Ok(EncryptionType::DES_CBC_CRC),
             "des-cbc-md4" => Ok(EncryptionType::DES_CBC_MD4),
