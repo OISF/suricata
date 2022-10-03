@@ -49,6 +49,7 @@ impl std::fmt::Debug for Frame {
 }
 
 impl Frame {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn new(
         flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i64,
         frame_type: u8,
@@ -92,18 +93,21 @@ impl Frame {
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn set_len(&self, flow: *const Flow, len: i64) {
         unsafe {
             AppLayerFrameSetLengthById(flow, self.direction(), self.id, len);
         };
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {
         unsafe {
             AppLayerFrameSetTxIdById(flow, self.direction(), self.id, tx_id);
         };
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn add_event(&self, flow: *const Flow, event: u8) {
         unsafe {
             AppLayerFrameAddEventById(flow, self.direction(), self.id, event);
