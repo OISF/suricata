@@ -786,6 +786,11 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
     fds.events = POLLIN;
 
     SCLogDebug("thread %s polling on %d", tv->name, fds.fd);
+
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     for(;;) {
         if (unlikely(suricata_ctl_flags != 0)) {
             break;

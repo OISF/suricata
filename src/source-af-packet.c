@@ -559,7 +559,6 @@ static void AFPPeersListReachedInc(void)
         return;
 
     if ((SC_ATOMIC_ADD(peerslist.reached, 1) + 1) == peerslist.turn) {
-        SCLogInfo("All AFP capture threads are running.");
         (void)SC_ATOMIC_SET(peerslist.reached, 0);
         /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
          * restarted.
@@ -1337,6 +1336,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 
     fds.fd = ptv->socket;
     fds.events = POLLIN;
+
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
 
     while (1) {
         /* Start by checking the state of our interface */

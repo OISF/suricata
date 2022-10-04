@@ -239,6 +239,11 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
     SCLogInfo("Thread '%s' will run on port %d (item %d)",
               tv->name, nq->port_num, ptv->ipfw_index);
+
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCReturnInt(TM_ECODE_OK);

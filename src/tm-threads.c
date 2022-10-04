@@ -428,7 +428,11 @@ static void *TmThreadsSlotVar(void *td)
 
     StatsSetupPrivate(tv);
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    // Each 'worker' thread uses this func to process/decode the packet read.
+    // Each decode method is different to receive methods in that they do not
+    // enter infinite loops. They use this as the core loop. As a result, at this
+    // point the worker threads can be considered both initialized and running.
+    TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
 
     s = (TmSlot *)tv->tm_slots;
 
@@ -1032,7 +1036,6 @@ ThreadVars *TmThreadCreatePacketHandler(const char *name, const char *inq_name,
         tv->type = TVT_PPT;
         tv->id = TmThreadsRegisterThread(tv, tv->type);
     }
-
 
     return tv;
 }
@@ -1773,55 +1776,15 @@ void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
 void TmThreadContinue(ThreadVars *tv)
 {
     TmThreadsUnsetFlag(tv, THV_PAUSE);
-
     return;
 }
 
 /**
- * \brief Unpauses all threads present in tv_root
- */
-void TmThreadContinueThreads()
-{
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv != NULL) {
-            TmThreadContinue(tv);
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-    return;
-}
-
-/**
- * \brief Used to check the thread for certain conditions of failure.
- */
-void TmThreadCheckThreadState(void)
-{
-    SCMutexLock(&tv_root_lock);
-    for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv) {
-            if (TmThreadsCheckFlag(tv, THV_FAILED)) {
-                FatalError(SC_ERR_FATAL, "thread %s failed", tv->name);
-            }
-            tv = tv->next;
-        }
-    }
-    SCMutexUnlock(&tv_root_lock);
-    return;
-}
-
-/**
- *  \brief Used to check if all threads have finished their initialization.  On
- *         finding an un-initialized thread, it waits till that thread completes
- *         its initialization, before proceeding to the next thread.
+ * \brief Waits for all threads to be in a running state
  *
- *  \retval TM_ECODE_OK all initialized properly
- *  \retval TM_ECODE_FAILED failure
+ * \retval TM_ECODE_OK if all are running or error if a thread failed
  */
-TmEcode TmThreadWaitOnThreadInit(void)
+TmEcode TmThreadWaitOnThreadRunning(void)
 {
     uint16_t RX_num = 0;
     uint16_t W_num = 0;
@@ -1838,43 +1801,34 @@ again:
     for (int i = 0; i < TVT_MAX; i++) {
         ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
-            if (TmThreadsCheckFlag(tv, (THV_CLOSED|THV_DEAD))) {
+            if (TmThreadsCheckFlag(tv, (THV_FAILED | THV_CLOSED | THV_DEAD))) {
                 SCMutexUnlock(&tv_root_lock);
 
-                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                        "initialize: flags %04x", tv->name,
-                        SC_ATOMIC_GET(tv->flags));
+                SCLogError(SC_ERR_THREAD_INIT,
+                        "thread \"%s\" failed to "
+                        "start: flags %04x",
+                        tv->name, SC_ATOMIC_GET(tv->flags));
                 return TM_ECODE_FAILED;
             }
 
-            if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
+            if (!(TmThreadsCheckFlag(tv, THV_RUNNING | THV_RUNNING_DONE))) {
                 SCMutexUnlock(&tv_root_lock);
 
+                /* 60 seconds provided for the thread to transition from
+                 * THV_INIT_DONE to THV_RUNNING */
                 gettimeofday(&cur_ts, NULL);
-                if ((cur_ts.tv_sec - start_ts.tv_sec) > 120) {
-                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                            "initialize in time: flags %04x", tv->name,
-                            SC_ATOMIC_GET(tv->flags));
+                if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+                    SCLogError(SC_ERR_THREAD_INIT,
+                            "thread \"%s\" failed to "
+                            "start in time: flags %04x",
+                            tv->name, SC_ATOMIC_GET(tv->flags));
                     return TM_ECODE_FAILED;
                 }
 
                 /* sleep a little to give the thread some
-                 * time to finish initialization */
+                 * time to start running */
                 SleepUsec(100);
                 goto again;
-            }
-
-            if (TmThreadsCheckFlag(tv, THV_FAILED)) {
-                SCMutexUnlock(&tv_root_lock);
-                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                        "initialize.", tv->name);
-                return TM_ECODE_FAILED;
-            }
-            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                SCMutexUnlock(&tv_root_lock);
-                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" closed on "
-                        "initialization.", tv->name);
-                return TM_ECODE_FAILED;
             }
 
             if (strncmp(thread_name_autofp, tv->name, strlen(thread_name_autofp)) == 0)
@@ -1925,6 +1879,108 @@ again:
     snprintf(append_str, app_len, "  Engine started.");
     strlcat(thread_counts, append_str, buf_len);
     SCLogNotice("%s", thread_counts);
+
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Unpauses all threads present in tv_root
+ */
+void TmThreadContinueThreads()
+{
+    SCMutexLock(&tv_root_lock);
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
+        while (tv != NULL) {
+            TmThreadContinue(tv);
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
+/**
+ * \brief Used to check the thread for certain conditions of failure.
+ */
+void TmThreadCheckThreadState(void)
+{
+    SCMutexLock(&tv_root_lock);
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
+        while (tv) {
+            if (TmThreadsCheckFlag(tv, THV_FAILED)) {
+                FatalError(SC_ERR_FATAL, "thread %s failed", tv->name);
+            }
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
+/**
+ *  \brief Used to check if all threads have finished their initialization.  On
+ *         finding an un-initialized thread, it waits till that thread completes
+ *         its initialization, before proceeding to the next thread.
+ *
+ *  \retval TM_ECODE_OK all initialized properly
+ *  \retval TM_ECODE_FAILED failure
+ */
+TmEcode TmThreadWaitOnThreadInit(void)
+{
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
+
+again:
+    SCMutexLock(&tv_root_lock);
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
+        while (tv != NULL) {
+            if (TmThreadsCheckFlag(tv, (THV_CLOSED|THV_DEAD))) {
+                SCMutexUnlock(&tv_root_lock);
+
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                        "initialize: flags %04x", tv->name,
+                        SC_ATOMIC_GET(tv->flags));
+                return TM_ECODE_FAILED;
+            }
+
+            if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
+                SCMutexUnlock(&tv_root_lock);
+
+                gettimeofday(&cur_ts, NULL);
+                if ((cur_ts.tv_sec - start_ts.tv_sec) > 120) {
+                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                            "initialize in time: flags %04x", tv->name,
+                            SC_ATOMIC_GET(tv->flags));
+                    return TM_ECODE_FAILED;
+                }
+
+                /* sleep a little to give the thread some
+                 * time to finish initialization */
+                SleepUsec(100);
+                goto again;
+            }
+
+            if (TmThreadsCheckFlag(tv, THV_FAILED)) {
+                SCMutexUnlock(&tv_root_lock);
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                        "initialize.", tv->name);
+                return TM_ECODE_FAILED;
+            }
+            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCMutexUnlock(&tv_root_lock);
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" closed on "
+                        "initialization.", tv->name);
+                return TM_ECODE_FAILED;
+            }
+
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
 
     return TM_ECODE_OK;
 }
