@@ -97,7 +97,11 @@ impl DetectKrb5TicketEncryptionList {
     }
 }
 
+
+// Suppress large enum variant lint as the LIST is very large compared
+// to the boolean variant.
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum DetectKrb5TicketEncryptionData {
     WEAK(bool),
     LIST(DetectKrb5TicketEncryptionList),
