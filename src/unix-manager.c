@@ -1130,7 +1130,8 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
 
-    TmThreadsSetFlag(th_v, THV_INIT_DONE);
+    TmThreadsSetFlag(th_v, THV_INIT_DONE | THV_RUNNING);
+
     while (1) {
         ret = UnixMain(&command);
         if (ret == 0) {
