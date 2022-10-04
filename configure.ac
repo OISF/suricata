@@ -2153,7 +2153,7 @@ fi
     AC_PATH_PROG(RUSTC, rustc, "no")
     if test "$RUSTC" = "no"; then
         echo ""
-        echo "    ERROR: Suricata now requires Rust to build."
+        echo "    ERROR: Rust compiler not found."
         echo ""
         echo "    Ubuntu/Debian: apt install rustc cargo"
         echo "    Fedora: dnf install rustc cargo"
