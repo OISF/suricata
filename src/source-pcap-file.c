@@ -171,6 +171,10 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     ptv->shared.slot = s->slot_next;
     ptv->shared.cb_result = TM_ECODE_OK;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     if(ptv->is_directory == 0) {
         SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
         status = PcapFileDispatch(ptv->behavior.file);

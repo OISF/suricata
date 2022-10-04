@@ -31,6 +31,10 @@
 #include <signal.h>
 #endif
 
+#if HAVE_LIBSYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #include "suricata.h"
 
 #include "conf.h"
@@ -391,6 +395,23 @@ static void GlobalsDestroy(SCInstance *suri)
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
     suri->pid_filename = NULL;
+}
+
+/**
+ * \brief Used to send OS specific notification of running threads
+ *
+ * \retval TmEcode TM_ECODE_OK on success; TM_ECODE_FAILED on failure.
+ */
+static void OnNotifyRunning(void)
+{
+#if HAVE_LIBSYSTEMD
+    if (sd_notify(0, "READY=1") < 0) {
+        SCLogWarning(SC_ERR_SYSCALL, "failed to notify systemd");
+        /* Please refer to:
+         * https://www.freedesktop.org/software/systemd/man/sd_notify.html#Return%20Value
+         * for discussion on why failure should not be considered an error */
+    }
+#endif
 }
 
 /** \brief make sure threads can stop the engine by calling this
@@ -2887,6 +2908,14 @@ int SuricataMain(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
+
+    /* Must ensure all threads are fully operational before continuing with init process */
+    if (TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Print notice and send OS specific notification of threads in running state */
+    OnNotifyRunning();
 
     PostRunStartedDetectSetup(&suricata);
 

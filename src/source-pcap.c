@@ -312,6 +312,10 @@ static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
     ptv->slot = s->slot_next;
     ptv->cb_result = TM_ECODE_OK;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (1) {
         if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);
