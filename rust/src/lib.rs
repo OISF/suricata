@@ -45,7 +45,6 @@
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::for_loops_over_fallibles)]
 #![allow(clippy::if_same_then_else)]
-#![allow(clippy::large_enum_variant)]
 #![allow(clippy::manual_find)]
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_like_matches_macro)]
