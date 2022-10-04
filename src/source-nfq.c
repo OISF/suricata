@@ -1009,6 +1009,10 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
 
     ntv->slot = ((TmSlot *) slot)->slot_next;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while(1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             NFQDestroyQueue(nq);
