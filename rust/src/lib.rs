@@ -19,7 +19,6 @@
 
 // Clippy lints we want to suppress due to style, or simply too noisy
 // and not a priority right now.
-#![allow(clippy::assertions_on_constants)]
 #![allow(clippy::assign_op_pattern)]
 #![allow(clippy::char_lit_as_u8)]
 #![allow(clippy::len_without_is_empty)]
@@ -31,16 +30,13 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::redundant_field_names)]
 #![allow(clippy::too_many_arguments)]
-#![allow(clippy::vec_init_then_push)]
 
 // Would be good to fix, but needs more investigation with respect to
 // using as a library.
 #![allow(clippy::crate_in_macro_def)]
 
 // To be fixed, but remove the noise for now.
-#![allow(clippy::bool_assert_comparison)]
 #![allow(clippy::bool_comparison)]
-#![allow(clippy::branches_sharing_code)]
 #![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::derive_partial_eq_without_eq)]
