@@ -156,7 +156,7 @@ bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 void JsonQuicLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_QUIC, "eve-log", "JsonQuicLog", "eve-log.quic",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
             OutputQuicLogInitSub, ALPROTO_QUIC, JsonQuicLogger, JsonQuicLogThreadInit,
             JsonQuicLogThreadDeinit, NULL);
 
