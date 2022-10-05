@@ -131,7 +131,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             let p = &cv.client_id;
-            if p.len() > 0 {
+            if !p.is_empty() {
                 *buffer = p.as_ptr();
                 *buffer_len = p.len() as u32;
                 return 1;
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             if let Some(p) = &cv.username {
-                if p.len() > 0 {
+                if !p.is_empty() {
                     *buffer = p.as_ptr();
                     *buffer_len = p.len() as u32;
                     return 1;
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             if let Some(p) = &cv.password {
-                if p.len() > 0 {
+                if !p.is_empty() {
                     *buffer = p.as_ptr();
                     *buffer_len = p.len() as u32;
                     return 1;
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             if let Some(p) = &cv.will_topic {
-                if p.len() > 0 {
+                if !p.is_empty() {
                     *buffer = p.as_ptr();
                     *buffer_len = p.len() as u32;
                     return 1;
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             if let Some(p) = &cv.will_message {
-                if p.len() > 0 {
+                if !p.is_empty() {
                     *buffer = p.as_ptr();
                     *buffer_len = p.len() as u32;
                     return 1;
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
     for msg in tx.msg.iter() {
         if let MQTTOperation::PUBLISH(ref pubv) = msg.op {
             let p = &pubv.topic;
-            if p.len() > 0 {
+            if !p.is_empty() {
                 *buffer = p.as_ptr();
                 *buffer_len = p.len() as u32;
                 return 1;
@@ -272,7 +272,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
     for msg in tx.msg.iter() {
         if let MQTTOperation::PUBLISH(ref pubv) = msg.op {
             let p = &pubv.message;
-            if p.len() > 0 {
+            if !p.is_empty() {
                 *buffer = p.as_ptr();
                 *buffer_len = p.len() as u32;
                 return 1;
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(
         if let MQTTOperation::SUBSCRIBE(ref subv) = msg.op {
             if (i as usize) < subv.topics.len() + offset {
                 let topic = &subv.topics[(i as usize) - offset];
-                if topic.topic_name.len() > 0 {
+                if !topic.topic_name.is_empty() {
                     *len = topic.topic_name.len() as u32;
                     *buf = topic.topic_name.as_ptr();
                     return 1;
@@ -321,7 +321,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(
         if let MQTTOperation::UNSUBSCRIBE(ref unsubv) = msg.op {
             if (i as usize) < unsubv.topics.len() + offset {
                 let topic = &unsubv.topics[(i as usize) - offset];
-                if topic.len() > 0 {
+                if !topic.is_empty() {
                     *len = topic.len() as u32;
                     *buf = topic.as_ptr();
                     return 1;

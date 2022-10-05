@@ -505,7 +505,7 @@ impl DNSState {
 
         let mut cur_i = input;
         let mut consumed = 0;
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
@@ -554,7 +554,7 @@ impl DNSState {
 
         let mut cur_i = input;
         let mut consumed = 0;
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
@@ -838,7 +838,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if query.name.len() > 0 {
+            if !query.name.is_empty() {
                 *len = query.name.len() as u32;
                 *buf = query.name.as_ptr();
                 return 1;
@@ -876,7 +876,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if query.name.len() > 0 {
+            if !query.name.is_empty() {
                 *rrtype = query.rrtype;
                 return 1;
             }

@@ -127,7 +127,7 @@ impl TemplateState {
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -145,7 +145,7 @@ impl TemplateState {
         }
 
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             match parser::parse_message(start) {
                 Ok((rem, request)) => {
                     start = rem;
@@ -175,7 +175,7 @@ impl TemplateState {
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -191,7 +191,7 @@ impl TemplateState {
             self.response_gap = false;
         }
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             match parser::parse_message(start) {
                 Ok((rem, response)) => {
                     start = rem;
@@ -396,7 +396,7 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
-        if request.len() > 0 {
+        if !request.is_empty() {
             *len = request.len() as u32;
             *buf = request.as_ptr();
             return 1;
@@ -415,7 +415,7 @@ pub unsafe extern "C" fn rs_template_get_response_buffer(
 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
-        if response.len() > 0 {
+        if !response.is_empty() {
             *len = response.len() as u32;
             *buf = response.as_ptr();
             return 1;

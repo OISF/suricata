@@ -293,7 +293,7 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
         61 => ("www-authenticate", ""),
         _ => ("", ""),
     };
-    if name.len() > 0 {
+    if !name.is_empty() {
         return Some(HTTP2FrameHeaderBlock {
             name: name.as_bytes().to_vec(),
             value: value.as_bytes().to_vec(),
@@ -456,7 +456,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 } else {
                     dyn_headers.table.push(headcopy);
                 }
-                while dyn_headers.current_size > dyn_headers.max_size && dyn_headers.table.len() > 0
+                while dyn_headers.current_size > dyn_headers.max_size && !dyn_headers.table.is_empty()
                 {
                     dyn_headers.current_size -=
                         32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
@@ -539,7 +539,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     if (maxsize2 as usize) < dyn_headers.max_size {
         //dyn_headers.max_size is updated later with all headers
         //may evict entries
-        while dyn_headers.current_size > (maxsize2 as usize) && dyn_headers.table.len() > 0 {
+        while dyn_headers.current_size > (maxsize2 as usize) && !dyn_headers.table.is_empty() {
             // we check dyn_headers.table as we may be in best effort
             // because the previous maxsize was too big for us to retain all the headers
             dyn_headers.current_size -=
@@ -593,7 +593,7 @@ fn http2_parse_headers_blocks<'a>(
 ) -> IResult<&'a [u8], Vec<HTTP2FrameHeaderBlock>> {
     let mut blocks = Vec::new();
     let mut i3 = input;
-    while i3.len() > 0 {
+    while !i3.is_empty() {
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
                 blocks.push(b);

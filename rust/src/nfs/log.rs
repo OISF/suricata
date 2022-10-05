@@ -99,7 +99,7 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name)?;
 
-    if tx.file_handle.len() > 0 {
+    if !tx.file_handle.is_empty() {
         //js.set_string("handle", &nfs_handle2hex(&tx.file_handle));
         let c = nfs_handle2crc(&tx.file_handle);
         let s = format!("{:x}", c);

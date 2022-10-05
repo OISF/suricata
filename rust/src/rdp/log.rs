@@ -226,7 +226,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                     &windows::os_to_string(&client.client_build, &unknown),
                 )?;
 
-                if client.client_name.len() > 0 {
+                if !client.client_name.is_empty() {
                     js.set_string("client_name", &client.client_name)?;
                 }
 
@@ -242,7 +242,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                     js.set_uint("function_keys", client.keyboard_function_key as u64)?;
                 }
 
-                if client.ime_file_name.len() > 0 {
+                if !client.ime_file_name.is_empty() {
                     js.set_string("ime", &client.ime_file_name)?;
                 }
 
@@ -315,7 +315,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                 }
 
                 if let Some(ref id) = client.client_dig_product_id {
-                    if id.len() > 0 {
+                    if !id.is_empty() {
                         js.set_string("id", id)?;
                     }
                 }
@@ -361,7 +361,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
             }
 
             McsConnectRequestChild::CsNet(ref net) => {
-                if net.channels.len() > 0 {
+                if !net.channels.is_empty() {
                     js.open_array("channels")?;
                     for channel in &net.channels {
                         js.append_string(channel)?;

@@ -151,7 +151,7 @@ impl SSHState {
             }
         }
         //parse records out of input
-        while input.len() > 0 {
+        while !input.is_empty() {
             match parser::ssh_parse_record(input) {
                 Ok((rem, head)) => {
                     SCLogDebug!("SSH valid record {}", head);
@@ -274,7 +274,7 @@ impl SSHState {
             Ok((rem, line)) => {
                 if let Ok((_, banner)) = parser::ssh_parse_banner(line) {
                     hdr.protover.extend(banner.protover);
-                    if banner.swver.len() > 0 {
+                    if !banner.swver.is_empty() {
                         hdr.swver.extend(banner.swver);
                     }
                     hdr.flags = SSHConnectionState::SshStateBannerDone;
@@ -310,7 +310,7 @@ impl SSHState {
                     );
                     if let Ok((_, banner)) = parser::ssh_parse_banner(input) {
                         hdr.protover.extend(banner.protover);
-                        if banner.swver.len() > 0 {
+                        if !banner.swver.is_empty() {
                             hdr.swver.extend(banner.swver);
                         }
                         hdr.flags = SSHConnectionState::SshStateBannerWaitEol;

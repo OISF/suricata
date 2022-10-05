@@ -229,7 +229,7 @@ impl QuicState {
                 Frame::Crypto(c) => {
                     ja3 = Some(c.ja3.clone());
                     for e in &c.extv {
-                        if e.etype == TlsExtensionType::ServerName && e.values.len() > 0 {
+                        if e.etype == TlsExtensionType::ServerName && !e.values.is_empty() {
                             sni = Some(e.values[0].to_vec());
                         }
                     }
@@ -257,7 +257,7 @@ impl QuicState {
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
-        while buf.len() > 0 {
+        while !buf.is_empty() {
             match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
                 Ok((rest, header)) => {
                     if (to_server && self.hello_ts) || (!to_server && self.hello_tc) {

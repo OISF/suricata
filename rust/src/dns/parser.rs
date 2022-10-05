@@ -57,7 +57,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b
     let mut count = 0;
 
     loop {
-        if pos.len() == 0 {
+        if pos.is_empty() {
             break;
         }
 
@@ -68,7 +68,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b
             break;
         } else if len & 0b1100_0000 == 0 {
             let (rem, label) = length_data(be_u8)(pos)?;
-            if name.len() > 0 {
+            if !name.is_empty() {
                 name.push(b'.');
             }
             name.extend(label);
@@ -477,7 +477,7 @@ mod tests {
 
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
-                assert!(rem.len() > 0);
+                assert!(!rem.is_empty());
 
                 assert_eq!(request.header, DNSHeader {
                     tx_id: 0x8d32,
@@ -602,7 +602,7 @@ mod tests {
 
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
-                assert!(rem.len() > 0);
+                assert!(!rem.is_empty());
 
                 assert_eq!(response.header, DNSHeader{
                     tx_id: 0x8295,

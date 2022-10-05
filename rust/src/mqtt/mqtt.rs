@@ -423,7 +423,7 @@ impl MQTTState {
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         let mut current = input;
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -450,7 +450,7 @@ impl MQTTState {
             }
         }
 
-        while current.len() > 0 {
+        while !current.is_empty() {
             SCLogDebug!("request: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
@@ -498,7 +498,7 @@ impl MQTTState {
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         let mut current = input;
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -524,7 +524,7 @@ impl MQTTState {
             }
         }
 
-        while current.len() > 0 {
+        while !current.is_empty() {
             SCLogDebug!("response: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len as usize) {
                 Ok((rem, msg)) => {

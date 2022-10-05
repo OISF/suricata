@@ -138,7 +138,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
 
         // client data
         jb.open_object("client")?;
-        if state.ikev1_container.client.key_exchange.len() > 0 {
+        if !state.ikev1_container.client.key_exchange.is_empty() {
             jb.set_string(
                 "key_exchange_payload",
                 &state.ikev1_container.client.key_exchange,
@@ -149,7 +149,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
                 jb.set_uint("key_exchange_payload_length", client_key_length / 2)?;
             }
         }
-        if state.ikev1_container.client.nonce.len() > 0 {
+        if !state.ikev1_container.client.nonce.is_empty() {
             jb.set_string("nonce_payload", &state.ikev1_container.client.nonce)?;
             if let Ok(client_nonce_length) = u64::try_from(state.ikev1_container.client.nonce.len())
             {
@@ -157,7 +157,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
             }
         }
 
-        if tx.direction == Direction::ToServer && tx.hdr.ikev1_transforms.len() > 0 {
+        if tx.direction == Direction::ToServer && !tx.hdr.ikev1_transforms.is_empty() {
             jb.open_array("proposals")?;
             for client_transform in &tx.hdr.ikev1_transforms {
                 jb.start_object()?;
@@ -170,7 +170,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
 
         // server data
         jb.open_object("server")?;
-        if state.ikev1_container.server.key_exchange.len() > 0 {
+        if !state.ikev1_container.server.key_exchange.is_empty() {
             jb.set_string(
                 "key_exchange_payload",
                 &state.ikev1_container.server.key_exchange,
@@ -181,7 +181,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
                 jb.set_uint("key_exchange_payload_length", server_key_length / 2)?;
             }
         }
-        if state.ikev1_container.server.nonce.len() > 0 {
+        if !state.ikev1_container.server.nonce.is_empty() {
             jb.set_string("nonce_payload", &state.ikev1_container.server.nonce)?;
             if let Ok(server_nonce_length) = u64::try_from(state.ikev1_container.server.nonce.len())
             {
@@ -190,7 +190,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
         }
         jb.close()?; // server
 
-        if tx.hdr.ikev1_header.vendor_ids.len() > 0 {
+        if !tx.hdr.ikev1_header.vendor_ids.is_empty() {
             jb.open_array("vendor_ids")?;
             for vendor in &tx.hdr.ikev1_header.vendor_ids {
                 jb.append_string(vendor)?;

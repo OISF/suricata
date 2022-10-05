@@ -199,7 +199,7 @@ impl IKEState {
 
     fn handle_input(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 

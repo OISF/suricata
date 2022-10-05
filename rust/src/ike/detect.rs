@@ -149,7 +149,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
 
     if let Ok(sa) = sa_type_s {
         if tx.ike_version == 1 {
-            if tx.hdr.ikev1_transforms.len() >= 1 {
+            if !tx.hdr.ikev1_transforms.is_empty() {
                 // there should be only one chosen server_transform, check event
                 if let Some(server_transform) = tx.hdr.ikev1_transforms.first() {
                     for attr in server_transform {

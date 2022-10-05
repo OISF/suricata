@@ -437,14 +437,14 @@ impl DCERPCState {
     }
 
     pub fn handle_gap_ts(&mut self) -> u8 {
-        if self.buffer_ts.len() > 0 {
+        if !self.buffer_ts.is_empty() {
             self.buffer_ts.clear();
         }
         0
     }
 
     pub fn handle_gap_tc(&mut self) -> u8 {
-        if self.buffer_tc.len() > 0 {
+        if !self.buffer_tc.is_empty() {
             self.buffer_tc.clear();
         }
         0
@@ -976,7 +976,7 @@ impl DCERPCState {
             }
         };
 
-        if self.data_needed_for_dir != direction && buffer.len() != 0 {
+        if self.data_needed_for_dir != direction && !buffer.is_empty() {
             return AppLayerResult::err();
         }
 

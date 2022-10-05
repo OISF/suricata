@@ -44,7 +44,7 @@ impl DHCPLogger {
                 &DHCPOptionWrapper::Generic(ref option) => {
                     match code {
                         DHCP_OPT_TYPE => {
-                            if option.data.len() > 0 {
+                            if !option.data.is_empty() {
                                 return Some(option.data[0]);
                             }
                         }
@@ -137,7 +137,7 @@ impl DHCPLogger {
                             }
                         }
                         DHCP_OPT_HOSTNAME => {
-                            if option.data.len() > 0 {
+                            if !option.data.is_empty() {
                                 js.set_string_from_bytes("hostname",
                                                          &option.data)?;
                             }
@@ -179,7 +179,7 @@ impl DHCPLogger {
     }
 
     fn log_opt_type(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
-        if option.data.len() > 0 {
+        if !option.data.is_empty() {
             let dhcp_type = match option.data[0] {
                 DHCP_TYPE_DISCOVER => "discover",
                 DHCP_TYPE_OFFER => "offer",
@@ -210,7 +210,7 @@ impl DHCPLogger {
                 DHCP_PARAM_TFTP_SERVER_IP => "tftp_server_ip",
                 _ => ""
             };
-            if param.len() > 0 {
+            if !param.is_empty() {
                 js.append_string(param)?;
             }
         }
