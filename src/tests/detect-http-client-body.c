@@ -2231,7 +2231,7 @@ static int DetectHttpClientBodyTest22(void)
     FAIL_IF(memcmp(cd2->content, "four", cd2->content_len) != 0);
     FAIL_IF(hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT);
     FAIL_IF(memcmp(hcbd1->content, "two", hcbd1->content_len) != 0);
-    FAIL_IF(hcbd2->flags != DETECT_CONTENT_DISTANCE);
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM));
     FAIL_IF(memcmp(hcbd2->content, "three", hcbd1->content_len) != 0);
 
     FAIL_IF(!DETECT_CONTENT_IS_SINGLE(cd1));
@@ -2273,7 +2273,7 @@ static int DetectHttpClientBodyTest23(void)
     FAIL_IF(memcmp(cd2->content, "four", cd2->content_len) != 0);
     FAIL_IF(hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT);
     FAIL_IF(memcmp(hcbd1->content, "one", hcbd1->content_len) != 0);
-    FAIL_IF(hcbd2->flags != DETECT_CONTENT_DISTANCE);
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM));
     FAIL_IF(memcmp(hcbd2->content, "three", hcbd1->content_len) != 0);
     FAIL_IF(!DETECT_CONTENT_IS_SINGLE(cd2));
     FAIL_IF(DETECT_CONTENT_IS_SINGLE(hcbd1));
@@ -2285,31 +2285,17 @@ static int DetectHttpClientBodyTest23(void)
 
 static int DetectHttpClientBodyTest24(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
     Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
                                                  "(content:\"one\"; http_client_body; pcre:/two/; "
                                                  "content:\"three\"; distance:10; within:15; "
                                                  "http_client_body; content:\"four\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
-    if (de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id) == NULL) {
-        printf("DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id) == NULL\n");
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NULL(DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id));
 
     DetectPcreData *pd1 =
             (DetectPcreData *)de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]
@@ -2322,56 +2308,35 @@ static int DetectHttpClientBodyTest24(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != 0 ||
-        cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(pd1->flags != 0);
+    FAIL_IF(cd2->flags != 0);
+    FAIL_IF(memcmp(cd2->content, "four", cd2->content_len) != 0);
+    FAIL_IF(hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT);
+    FAIL_IF(memcmp(hcbd1->content, "one", hcbd1->content_len) != 0);
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd2->content, "three", hcbd1->content_len) != 0);
 
-    if (!DETECT_CONTENT_IS_SINGLE(cd2) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
-        goto end;
-    }
+    FAIL_IF(!DETECT_CONTENT_IS_SINGLE(cd2));
+    FAIL_IF(DETECT_CONTENT_IS_SINGLE(hcbd1));
+    FAIL_IF(DETECT_CONTENT_IS_SINGLE(hcbd2));
 
-    result = 1;
-
- end:
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 static int DetectHttpClientBodyTest25(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
     Signature *s =
             DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
                                           "(content:\"one\"; http_client_body; pcre:/two/; "
                                           "content:\"three\"; distance:10; http_client_body; "
                                           "content:\"four\"; distance:10; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id) == NULL) {
-        printf("DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id) == NULL\n");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NULL(DetectBufferGetFirstSigMatch(s, g_http_client_body_buffer_id));
 
     DetectPcreData *pd1 =
             (DetectPcreData *)de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]
@@ -2384,27 +2349,20 @@ static int DetectHttpClientBodyTest25(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(pd1->flags != DETECT_PCRE_RELATIVE_NEXT);
+    FAIL_IF(cd2->flags != DETECT_CONTENT_DISTANCE);
+    FAIL_IF(memcmp(cd2->content, "four", cd2->content_len) != 0);
+    FAIL_IF(hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT);
+    FAIL_IF(memcmp(hcbd1->content, "one", hcbd1->content_len) != 0);
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd2->content, "three", hcbd1->content_len) != 0);
 
-    if (DETECT_CONTENT_IS_SINGLE(cd2) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
-        goto end;
-    }
+    FAIL_IF(DETECT_CONTENT_IS_SINGLE(cd2));
+    FAIL_IF(DETECT_CONTENT_IS_SINGLE(hcbd1));
+    FAIL_IF(DETECT_CONTENT_IS_SINGLE(hcbd2));
 
-    result = 1;
-
- end:
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 static int DetectHttpClientBodyTest26(void)
@@ -2447,13 +2405,13 @@ static int DetectHttpClientBodyTest26(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || cd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(cd2->content, "four", cd2->content_len) != 0 ||
+            hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags !=
+                    (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_MPM) ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
         printf ("failed: http_client_body incorrect flags");
         goto end;
     }
@@ -2533,13 +2491,11 @@ static int DetectHttpClientBodyTest28(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != 0 ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DEPTH ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || cd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(cd2->content, "four", cd2->content_len) != 0 || hcbd1->flags != 0 ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != (DETECT_CONTENT_DEPTH | DETECT_CONTENT_MPM) ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
         goto end;
     }
 
@@ -2589,12 +2545,10 @@ static int DetectHttpClientBodyTest29(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd1->content, "one", hcbd1->content_len) != 0);
+    FAIL_IF(hcbd2->flags != DETECT_CONTENT_DISTANCE);
+    FAIL_IF(memcmp(hcbd2->content, "two", hcbd1->content_len) != 0);
 
     result = 1;
 
@@ -2636,12 +2590,10 @@ static int DetectHttpClientBodyTest30(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_WITHIN ||
-        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd1->content, "one", hcbd1->content_len) != 0);
+    FAIL_IF(hcbd2->flags != DETECT_CONTENT_WITHIN);
+    FAIL_IF(memcmp(hcbd2->content, "two", hcbd1->content_len) != 0);
 
     result = 1;
 
@@ -2754,11 +2706,9 @@ static int DetectHttpClientBodyTest34(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        hcbd2->flags != DETECT_CONTENT_WITHIN ||
-        memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(pd1->flags != (DETECT_PCRE_RELATIVE_NEXT));
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_WITHIN | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd2->content, "two", hcbd2->content_len) != 0);
 
     result = 1;
 
@@ -2808,11 +2758,9 @@ static int DetectHttpClientBodyTest35(void)
                     ->prev->ctx;
     DetectPcreData *pd2 =
             (DetectPcreData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "two", hcbd1->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(pd2->flags != (DETECT_PCRE_RELATIVE));
+    FAIL_IF(hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd1->content, "two", hcbd1->content_len) != 0);
 
     result = 1;
 
@@ -2863,11 +2811,9 @@ static int DetectHttpClientBodyTest36(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(pd1->flags != (DETECT_PCRE_RELATIVE_NEXT));
+    FAIL_IF(hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM));
+    FAIL_IF(memcmp(hcbd2->content, "two", hcbd2->content_len) != 0);
 
     result = 1;
 
