@@ -17,23 +17,15 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 
+// Allow these patterns as its a style we like.
+#![allow(clippy::needless_return)]
+#![allow(clippy::let_and_return)]
+
 // Clippy lints we want to suppress due to style, or simply too noisy
 // and not a priority right now.
-#![allow(clippy::assign_op_pattern)]
-#![allow(clippy::char_lit_as_u8)]
 #![allow(clippy::len_without_is_empty)]
-#![allow(clippy::len_zero)]
-#![allow(clippy::let_and_return)]
-#![allow(clippy::manual_range_contains)]
 #![allow(clippy::missing_safety_doc)]
-#![allow(clippy::needless_bool)]
-#![allow(clippy::needless_return)]
-#![allow(clippy::redundant_field_names)]
 #![allow(clippy::too_many_arguments)]
-
-// Would be good to fix, but needs more investigation with respect to
-// using as a library.
-#![allow(clippy::crate_in_macro_def)]
 
 // To be fixed, but remove the noise for now.
 #![allow(clippy::bool_comparison)]
@@ -46,7 +38,6 @@
 #![allow(clippy::for_loops_over_fallibles)]
 #![allow(clippy::if_same_then_else)]
 #![allow(clippy::manual_find)]
-#![allow(clippy::map_flatten)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::match_ref_pats)]
 #![allow(clippy::mixed_case_hex_literals)]
@@ -58,11 +49,9 @@
 #![allow(clippy::nonminimal_bool)]
 #![allow(clippy::ptr_arg)]
 #![allow(clippy::redundant_pattern_matching)]
-#![allow(clippy::redundant_static_lifetimes)]
 #![allow(clippy::result_unit_err)]
 #![allow(clippy::single_match)]
 #![allow(clippy::type_complexity)]
-#![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::while_let_loop)]
 
