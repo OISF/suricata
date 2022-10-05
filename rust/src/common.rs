@@ -106,13 +106,12 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
 pub fn to_hex(input: &[u8]) -> String {
     return input
         .iter()
-        .map(|b| {
+        .flat_map(|b| {
             vec![
                 char::from(HEX[(b >> 4) as usize]),
                 char::from(HEX[(b & 0xf) as usize]),
             ]
         })
-        .flatten()
         .collect();
 }
 
