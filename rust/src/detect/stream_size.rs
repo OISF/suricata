@@ -70,9 +70,9 @@ pub fn detect_parse_stream_size(i: &str) -> IResult<&str, DetectStreamSizeData> 
     let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
     let du32 = DetectUintData::<u32> {
-        arg1: arg1,
+        arg1,
         arg2: 0,
-        mode: mode,
+        mode,
     };
     Ok((i, DetectStreamSizeData { flags, du32 }))
 }
