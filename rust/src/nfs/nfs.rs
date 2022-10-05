@@ -1935,7 +1935,7 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"nfs\0";
+const PARSER_NAME: &[u8] = b"nfs\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_register_parser() {

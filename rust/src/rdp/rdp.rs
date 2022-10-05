@@ -457,7 +457,7 @@ export_state_data_get!(rs_rdp_get_state_data, RdpState);
 // registration
 //
 
-const PARSER_NAME: &'static [u8] = b"rdp\0";
+const PARSER_NAME: &[u8] = b"rdp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_register_parser() {
