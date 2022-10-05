@@ -180,7 +180,7 @@ impl QuicState {
                 &mut h20,
                 &mut pktnum_buf,
             );
-            if !r1.is_ok() {
+            if r1.is_err() {
                 return Err(());
             }
             // mutate one at a time
