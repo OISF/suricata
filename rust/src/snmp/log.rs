@@ -59,7 +59,7 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
                     },
                     _ => ()
                 }
-                if info.vars.len() > 0 {
+                if !info.vars.is_empty() {
                     jsb.open_array("vars")?;
                     for var in info.vars.iter() {
                         jsb.append_string(&var.to_string())?;
