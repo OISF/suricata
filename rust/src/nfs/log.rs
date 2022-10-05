@@ -82,8 +82,8 @@ fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
 }
 */
 fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
-    let c = crc32::checksum_ieee(bytes);
-    c
+    
+    crc32::checksum_ieee(bytes)
 }
 
 fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)

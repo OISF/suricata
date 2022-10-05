@@ -36,7 +36,8 @@ pub struct NbssRecord<'a> {
 
 impl<'a> NbssRecord<'a> {
     pub fn is_valid(&self) -> bool {
-        let valid = match self.message_type {
+        
+        match self.message_type {
             NBSS_MSGTYPE_SESSION_MESSAGE |
             NBSS_MSGTYPE_SESSION_REQUEST |
             NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE |
@@ -44,8 +45,7 @@ impl<'a> NbssRecord<'a> {
             NBSS_MSGTYPE_RETARG_RESPONSE |
             NBSS_MSGTYPE_KEEP_ALIVE => true,
             _ => false,
-        };
-        valid
+        }
     }
     pub fn needs_more(&self) -> bool {
         self.is_valid() && self.length >= 4 && self.data.len() < 4

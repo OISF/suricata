@@ -433,8 +433,8 @@ pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            ires
+            
+            applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next)
         }
         None => {
             applayer::AppLayerGetTxIterTuple::not_found()

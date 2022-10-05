@@ -480,9 +480,9 @@ impl NFSState {
     }
 
     fn add_rpc_udp_ts_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_udp_ts_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        
         SCLogDebug!("rpc_udp_pdu ts frame {:?}", rpc_udp_ts_pdu);
-        rpc_udp_ts_pdu
+        Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8)
     }
 
     fn add_rpc_udp_ts_creds(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64) {
@@ -491,9 +491,9 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_ts_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_tcp_ts_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        
         SCLogDebug!("rpc_tcp_pdu ts frame {:?}", rpc_tcp_ts_pdu);
-        rpc_tcp_ts_pdu
+        Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8)
     }
 
     fn add_rpc_tcp_ts_creds(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64) {
@@ -518,9 +518,9 @@ impl NFSState {
     }
 
     fn add_rpc_udp_tc_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_udp_tc_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        
         SCLogDebug!("rpc_tc_pdu frame {:?}", rpc_udp_tc_pdu);
-        rpc_udp_tc_pdu
+        Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8)
     }
 
     fn add_rpc_udp_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) {
@@ -533,9 +533,9 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_tc_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64) -> Option<Frame> {
-        let rpc_tcp_tc_pdu = Frame::new(flow, stream_slice, input, rpc_tcp_len, NFSFrameType::RPCPdu as u8);
+        
         SCLogDebug!("rpc_tcp_pdu tc frame {:?}", rpc_tcp_tc_pdu);
-        rpc_tcp_tc_pdu
+        Frame::new(flow, stream_slice, input, rpc_tcp_len, NFSFrameType::RPCPdu as u8)
     }
 
     fn add_rpc_tcp_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64) {

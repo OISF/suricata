@@ -482,8 +482,8 @@ fn http2_parse_headers_block_literal_noindex<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
-    r
+    
+    http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers)
 }
 
 fn http2_parse_headers_block_literal_neverindex<'a>(
@@ -497,8 +497,8 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
-    r
+    
+    http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers)
 }
 
 fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u64> {

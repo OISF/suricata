@@ -170,8 +170,8 @@ impl SMBState {
                     }
 
                     let file_data = &data[0..data_to_handle_len];
-                    let cs = tdf.file_tracker.update(files, flags, file_data, gap_size);
-                    cs
+                    
+                    tdf.file_tracker.update(files, flags, file_data, gap_size)
                 } else {
                     0
                 }

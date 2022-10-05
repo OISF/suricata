@@ -163,8 +163,8 @@ impl RdpState {
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
         self.next_id += 1;
-        let tx = RdpTransaction::new(self.next_id, item);
-        tx
+        
+        RdpTransaction::new(self.next_id, item)
     }
 
     /// parse buffer captures from client to server

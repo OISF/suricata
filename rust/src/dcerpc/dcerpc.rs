@@ -889,12 +889,12 @@ impl DCERPCState {
                         self.transactions.push_back(tx);
                     }
                 }
-                let parsed = self.handle_common_stub(
+                
+                self.handle_common_stub(
                     input,
                     (input.len() - leftover_input.len()) as u16,
                     Direction::ToServer,
-                );
-                parsed
+                )
             }
             Err(Err::Incomplete(_)) => {
                 // Insufficient data.
