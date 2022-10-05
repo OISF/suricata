@@ -561,7 +561,7 @@ fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
 
 // returns a tuple with the value and its size
 fn http2_normalize_host(value: &[u8]) -> (Option<Vec<u8>>, usize) {
-    match value.iter().position(|&x| x == ':' as u8) {
+    match value.iter().position(|&x| x == b':') {
         Some(i) => {
             return (http2_lower(&value[..i]), i);
         }
@@ -666,15 +666,15 @@ fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<
     let mut vec = Vec::with_capacity(normalsize);
     for j in 0..blocks[i as usize].name.len() {
         vec.push(blocks[i as usize].name[j]);
-        if blocks[i as usize].name[j] == ':' as u8 {
-            vec.push(':' as u8);
+        if blocks[i as usize].name[j] == b':' {
+            vec.push(b':');
         }
     }
     vec.extend_from_slice(&[b':', b' ']);
     for j in 0..blocks[i as usize].value.len() {
         vec.push(blocks[i as usize].value[j]);
-        if blocks[i as usize].value[j] == ':' as u8 {
-            vec.push(':' as u8);
+        if blocks[i as usize].value[j] == b':' {
+            vec.push(b':');
         }
     }
     return vec;
