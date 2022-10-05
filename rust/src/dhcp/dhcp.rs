@@ -85,7 +85,7 @@ impl DHCPTransaction {
     pub fn new(id: u64, message: DHCPMessage) -> DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
-            message: message,
+            message,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
