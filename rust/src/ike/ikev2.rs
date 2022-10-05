@@ -278,14 +278,12 @@ fn add_proposals(
             IkeV2Transform::Auth(IkeTransformAuthType::NONE) => false,
             IkeV2Transform::Auth(_) => true,
             _ => false,
-        }) {
-            if !transforms.iter().any(|x| match *x {
+        }) && !transforms.iter().any(|x| match *x {
                 IkeV2Transform::Encryption(ref enc) => enc.is_aead(),
                 _ => false,
             }) {
-                SCLogDebug!("No integrity transform found");
-                tx.set_event(IkeEvent::WeakCryptoNoAuth);
-            }
+            SCLogDebug!("No integrity transform found");
+            tx.set_event(IkeEvent::WeakCryptoNoAuth);
         }
         // Finally
         if direction == Direction::ToClient {

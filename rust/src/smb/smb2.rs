@@ -635,14 +635,12 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
     };
     /* if we don't have a tx, create it here (maybe) */
-    if !have_tx {
-        if smb2_create_new_tx(r.command) {
-            let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(2, r.command, tx_key);
-            SCLogDebug!("TS TX {} command {} created with session_id {} tree_id {} message_id {}",
-                    tx.id, r.command, r.session_id, r.tree_id, r.message_id);
-            tx.set_events(events);
-        }
+    if !have_tx && smb2_create_new_tx(r.command) {
+        let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(2, r.command, tx_key);
+        SCLogDebug!("TS TX {} command {} created with session_id {} tree_id {} message_id {}",
+                tx.id, r.command, r.session_id, r.tree_id, r.message_id);
+        tx.set_events(events);
     }
 }
 
