@@ -132,14 +132,14 @@ impl TelnetState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn _new_tx(&mut self) -> TelnetTransaction {
         let mut tx = TelnetTransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        return tx;
+        tx
     }
 
     fn _find_request(&mut self) -> Option<&mut TelnetTransaction> {
@@ -257,7 +257,7 @@ impl TelnetState {
         }
 
         // Input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn parse_response(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> AppLayerResult {
@@ -363,7 +363,7 @@ impl TelnetState {
         }
 
         // All input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn on_request_gap(&mut self, _size: u32) {
@@ -403,14 +403,14 @@ pub unsafe extern "C" fn rs_telnet_probing_parser(
             return ALPROTO_TELNET;
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 #[no_mangle]
 pub extern "C" fn rs_telnet_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TelnetState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
+    Box::into_raw(boxed) as *mut std::os::raw::c_void
 }
 
 #[no_mangle]
@@ -493,10 +493,10 @@ pub unsafe extern "C" fn rs_telnet_state_get_tx(
     let state = cast_pointer!(state, TelnetState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -506,7 +506,7 @@ pub unsafe extern "C" fn rs_telnet_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, TelnetState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -516,7 +516,7 @@ pub unsafe extern "C" fn rs_telnet_tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     let _tx = cast_pointer!(tx, TelnetTransaction);
     // TODO
-    return 0;
+    0
 }
 
 export_tx_data_get!(rs_telnet_get_tx_data, TelnetTransaction);

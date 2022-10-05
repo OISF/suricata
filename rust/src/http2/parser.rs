@@ -303,19 +303,19 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
     } else {
         //use dynamic table
         if n == 0 {
-            return Some(HTTP2FrameHeaderBlock {
+            Some(HTTP2FrameHeaderBlock {
                 name: Vec::new(),
                 value: Vec::new(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0,
                 sizeupdate: 0,
-            });
+            })
         } else if dyn_headers.table.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
-            return Some(HTTP2FrameHeaderBlock {
+            Some(HTTP2FrameHeaderBlock {
                 name: Vec::new(),
                 value: Vec::new(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
                 sizeupdate: 0,
-            });
+            })
         } else {
             let indyn = dyn_headers.table.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
             let headcopy = HTTP2FrameHeaderBlock {
@@ -324,7 +324,7 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
                 sizeupdate: 0,
             };
-            return Some(headcopy);
+            Some(headcopy)
         }
     }
 }
@@ -379,10 +379,10 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     let (i2, stringlen) = http2_parse_var_uint(i1, huffslen.1 as u64, 0x7F)?;
     let (i3, data) = take(stringlen as usize)(i2)?;
     if huffslen.0 == 0 {
-        return Ok((i3, data.to_vec()));
+        Ok((i3, data.to_vec()))
     } else {
         let (_, val) = bits(many0(huffman::http2_decode_huffman))(data)?;
-        return Ok((i3, val));
+        Ok((i3, val))
     }
 }
 
@@ -409,7 +409,7 @@ fn http2_parse_headers_block_literal_common<'a>(
         }
     }?;
     let (i4, value) = http2_parse_headers_block_string(i3)?;
-    return Ok((
+    Ok((
         i4,
         HTTP2FrameHeaderBlock {
             name,
@@ -417,7 +417,7 @@ fn http2_parse_headers_block_literal_common<'a>(
             error,
             sizeupdate: 0,
         },
-    ));
+    ))
 }
 
 fn http2_parse_headers_block_literal_incindex<'a>(
@@ -463,10 +463,10 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                     dyn_headers.table.remove(0);
                 }
             }
-            return Ok((r, head));
+            Ok((r, head))
         }
         Err(e) => {
-            return Err(e);
+            Err(e)
         }
     }
 }
@@ -483,7 +483,7 @@ fn http2_parse_headers_block_literal_noindex<'a>(
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
-    return r;
+    r
 }
 
 fn http2_parse_headers_block_literal_neverindex<'a>(
@@ -498,7 +498,7 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
-    return r;
+    r
 }
 
 fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u64> {
@@ -517,10 +517,10 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     }
     match varval.checked_add((finalv as u64) << (7 * varia.len())) {
         None => {
-            return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
+            Err(Err::Error(make_error(i3, ErrorKind::LengthValue)))
         }
         Some(x) => {
-            return Ok((i3, x));
+            Ok((i3, x))
         }
     }
 }
@@ -547,7 +547,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
             dyn_headers.table.remove(0);
         }
     }
-    return Ok((
+    Ok((
         i3,
         HTTP2FrameHeaderBlock {
             name: Vec::new(),
@@ -555,7 +555,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
             sizeupdate: maxsize2,
         },
-    ));
+    ))
 }
 
 fn http2_parse_headers_block<'a>(
@@ -563,15 +563,15 @@ fn http2_parse_headers_block<'a>(
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     //caller garantees o have at least one byte
     if input[0] & 0x80 != 0 {
-        return http2_parse_headers_block_indexed(input, dyn_headers);
+        http2_parse_headers_block_indexed(input, dyn_headers)
     } else if input[0] & 0x40 != 0 {
-        return http2_parse_headers_block_literal_incindex(input, dyn_headers);
+        http2_parse_headers_block_literal_incindex(input, dyn_headers)
     } else if input[0] & 0x20 != 0 {
-        return http2_parse_headers_block_dynamic_size(input, dyn_headers);
+        http2_parse_headers_block_dynamic_size(input, dyn_headers)
     } else if input[0] & 0x10 != 0 {
-        return http2_parse_headers_block_literal_neverindex(input, dyn_headers);
+        http2_parse_headers_block_literal_neverindex(input, dyn_headers)
     } else {
-        return http2_parse_headers_block_literal_noindex(input, dyn_headers);
+        http2_parse_headers_block_literal_noindex(input, dyn_headers)
     }
 }
 
@@ -621,7 +621,7 @@ fn http2_parse_headers_blocks<'a>(
             }
         }
     }
-    return Ok((i3, blocks));
+    Ok((i3, blocks))
 }
 
 pub fn http2_parse_frame_headers<'a>(
@@ -633,14 +633,14 @@ pub fn http2_parse_frame_headers<'a>(
         http2_parse_headers_priority,
     )(i2)?;
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
-    return Ok((
+    Ok((
         i3,
         HTTP2FrameHeaders {
             padlength,
             priority,
             blocks,
         },
-    ));
+    ))
 }
 
 #[derive(Clone, Debug)]
@@ -657,7 +657,7 @@ pub fn http2_parse_frame_push_promise<'a>(
     let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
     let (i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
-    return Ok((
+    Ok((
         i3,
         HTTP2FramePushPromise {
             padlength,
@@ -665,7 +665,7 @@ pub fn http2_parse_frame_push_promise<'a>(
             stream_id: stream_id.1,
             blocks,
         },
-    ));
+    ))
 }
 
 #[derive(Clone, Debug)]
@@ -677,7 +677,7 @@ pub fn http2_parse_frame_continuation<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameContinuation> {
     let (i3, blocks) = http2_parse_headers_blocks(input, dyn_headers)?;
-    return Ok((i3, HTTP2FrameContinuation { blocks }));
+    Ok((i3, HTTP2FrameContinuation { blocks }))
 }
 
 #[repr(u16)]

@@ -77,7 +77,7 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]

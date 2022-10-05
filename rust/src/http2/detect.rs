@@ -40,7 +40,7 @@ fn http2_tx_has_frametype(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn rs_http2_tx_has_frametype(
     tx: *mut std::os::raw::c_void, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_frametype(tx, direction.into(), value);
+    http2_tx_has_frametype(tx, direction.into(), value)
 }
 
 #[no_mangle]
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn rs_http2_parse_frametype(
             return x as i32;
         }
     }
-    return -1;
+    -1
 }
 
 fn http2_tx_has_errorcode(
@@ -100,7 +100,7 @@ fn http2_tx_has_errorcode(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn rs_http2_tx_has_errorcode(
     tx: *mut std::os::raw::c_void, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_errorcode(tx, direction.into(), code);
+    http2_tx_has_errorcode(tx, direction.into(), code)
 }
 
 #[no_mangle]
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
             return x as i32;
         }
     }
-    return -1;
+    -1
 }
 
 fn http2_tx_get_next_priority(
@@ -173,7 +173,7 @@ fn http2_tx_get_next_priority(
             }
         }
     }
-    return -1;
+    -1
 }
 
 #[no_mangle]
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_priority(tx, direction.into(), nb);
+    http2_tx_get_next_priority(tx, direction.into(), nb)
 }
 
 fn http2_tx_get_next_window(
@@ -215,7 +215,7 @@ fn http2_tx_get_next_window(
             }
         }
     }
-    return -1;
+    -1
 }
 
 #[no_mangle]
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_window(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_window(tx, direction.into(), nb);
+    http2_tx_get_next_window(tx, direction.into(), nb)
 }
 
 #[no_mangle]
@@ -237,7 +237,7 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -263,7 +263,7 @@ fn http2_detect_settings_match(
             }
         }
     }
-    return 0;
+    0
 }
 
 fn http2_detect_settingsctx_match(
@@ -292,7 +292,7 @@ fn http2_detect_settingsctx_match(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_detect_settingsctx_match(ctx, tx, direction.into());
+    http2_detect_settingsctx_match(ctx, tx, direction.into())
 }
 
 fn http2_detect_sizeupdate_match(
@@ -314,7 +314,7 @@ fn http2_detect_sizeupdate_match(
             }
         }
     }
-    return 0;
+    0
 }
 
 fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
@@ -330,7 +330,7 @@ fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderB
         }
         _ => {}
     }
-    return None;
+    None
 }
 
 fn http2_detect_sizeupdatectx_match(
@@ -353,7 +353,7 @@ fn http2_detect_sizeupdatectx_match(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_detect_sizeupdatectx_match(ctx, tx, direction.into());
+    http2_detect_sizeupdatectx_match(ctx, tx, direction.into())
 }
 
 //TODOask better syntax between rs_http2_tx_get_header_name in argument
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
             }
         }
     }
-    return 0;
+    0
 }
 
 fn http2_frames_get_header_firstvalue<'a>(
@@ -422,7 +422,7 @@ fn http2_frames_get_header_firstvalue<'a>(
             }
         }
     }
-    return Err(());
+    Err(())
 }
 
 // same as http2_frames_get_header_value but returns a new Vec
@@ -457,9 +457,9 @@ pub fn http2_frames_get_header_value_vec(
         }
     }
     if found == 0 {
-        return Err(());
+        Err(())
     } else {
-        return Ok(vec);
+        Ok(vec)
     }
 }
 
@@ -497,14 +497,14 @@ fn http2_frames_get_header_value<'a>(
         }
     }
     if found == 0 {
-        return Err(());
+        Err(())
     } else if found == 1 {
-        return single;
+        single
     } else {
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];
-        return Ok(value);
+        Ok(value)
     }
 }
 
@@ -517,7 +517,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_uri(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -529,7 +529,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_method(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -541,7 +541,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_host(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
@@ -556,17 +556,17 @@ fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
             return Some(vec);
         }
     }
-    return None;
+    None
 }
 
 // returns a tuple with the value and its size
 fn http2_normalize_host(value: &[u8]) -> (Option<Vec<u8>>, usize) {
     match value.iter().position(|&x| x == ':' as u8) {
         Some(i) => {
-            return (http2_lower(&value[..i]), i);
+            (http2_lower(&value[..i]), i)
         }
         None => {
-            return (http2_lower(value), value.len());
+            (http2_lower(value), value.len())
         }
     }
 }
@@ -597,7 +597,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -609,7 +609,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_useragent(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -621,7 +621,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_status(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -641,7 +641,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_cookie(
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -657,7 +657,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_value(
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<u8> {
@@ -677,7 +677,7 @@ fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<
             vec.push(':' as u8);
         }
     }
-    return vec;
+    vec
 }
 
 #[no_mangle]
@@ -708,7 +708,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 fn http2_header_iscookie(direction: Direction, hname: &[u8]) -> bool {
@@ -723,7 +723,7 @@ fn http2_header_iscookie(direction: Direction, hname: &[u8]) -> bool {
             }
         }
     }
-    return false;
+    false
 }
 
 fn http2_header_trimspaces(value: &[u8]) -> &[u8] {
@@ -743,7 +743,7 @@ fn http2_header_trimspaces(value: &[u8]) -> &[u8] {
             break;
         }
     }
-    return &value[start..end];
+    &value[start..end]
 }
 
 #[no_mangle]
@@ -777,7 +777,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -809,7 +809,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
         *buffer_len = value.len() as u32;
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -853,7 +853,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             }
         }
     }
-    return 0;
+    0
 }
 
 fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
@@ -942,7 +942,7 @@ fn http2_caseinsensitive_cmp(s1: &[u8], s2: &str) -> bool {
     if let Ok(s) = std::str::from_utf8(s1) {
         return s.to_lowercase() == s2;
     }
-    return false;
+    false
 }
 
 #[no_mangle]

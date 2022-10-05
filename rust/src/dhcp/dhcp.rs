@@ -139,10 +139,10 @@ impl DHCPState {
                 if truncated_options {
                     self.set_event(DHCPEvent::TruncatedOptions);
                 }
-                return true;
+                true
             }
             _ => {
-                return false;
+                false
             }
         }
     }
@@ -153,7 +153,7 @@ impl DHCPState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn free_tx(&mut self, tx_id: u64) {
@@ -195,10 +195,10 @@ pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
     let slice = build_slice!(input, input_len as usize);
     match parse_header(slice) {
         Ok((_, _)) => {
-            return ALPROTO_DHCP;
+            ALPROTO_DHCP
         }
         _ => {
-            return ALPROTO_UNKNOWN;
+            ALPROTO_UNKNOWN
         }
     }
 }
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
 pub extern "C" fn rs_dhcp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                   _direction: u8) -> std::os::raw::c_int {
     // As this is a stateless parser, simply use 1.
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -216,10 +216,10 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DHCPState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
     if state.parse(stream_slice.as_slice()) {
         return AppLayerResult::ok();
     }
-    return AppLayerResult::err();
+    AppLayerResult::err()
 }
 
 #[no_mangle]
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn rs_dhcp_state_tx_free(
 pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DHCPState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]

@@ -90,7 +90,7 @@ pub unsafe extern "C" fn SCSha256HashBuffer(
     let output = std::slice::from_raw_parts_mut(out, len as usize);
     let hash = Sha256::new().chain(data).finalize();
     output.copy_from_slice(&hash);
-    return true;
+    true
 }
 
 // Start of SHA1 C bindings.
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn SCSha1HashBuffer(
     let output = std::slice::from_raw_parts_mut(out, len as usize);
     let hash = Sha1::new().chain(data).finalize();
     output.copy_from_slice(&hash);
-    return true;
+    true
 }
 
 // Start of MD5 C bindins.

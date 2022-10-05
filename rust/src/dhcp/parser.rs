@@ -231,10 +231,10 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                 malformed_options: malformed_options,
                 truncated_options: truncated_options,
             };
-            return Ok((next, message));
+            Ok((next, message))
         }
         Err(err) => {
-            return Err(err);
+            Err(err)
         }
     }
 }

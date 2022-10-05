@@ -419,9 +419,9 @@ fn get_color_depth(client: &CsClientCoreData) -> Option<u64> {
 
     // if not present, try color_depth
     match client.color_depth {
-        Some(ColorDepth::RnsUdColor4Bpp) => return Some(4),
-        Some(ColorDepth::RnsUdColor8Bpp) => return Some(8),
-        _ => return None,
+        Some(ColorDepth::RnsUdColor4Bpp) => Some(4),
+        Some(ColorDepth::RnsUdColor8Bpp) => Some(8),
+        _ => None,
     }
 }
 

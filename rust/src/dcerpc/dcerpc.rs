@@ -195,7 +195,7 @@ impl Transaction for DCERPCTransaction {
 
 impl DCERPCTransaction {
     pub fn new() -> Self {
-        return Self {
+        Self {
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
             req_cmd: DCERPC_TYPE_REQUEST,
@@ -336,7 +336,7 @@ impl State<DCERPCTransaction> for DCERPCState {
 
 impl DCERPCState {
     pub fn new() -> Self {
-        return Self {
+        Self {
             data_needed_for_dir: Direction::ToServer,
             prev_dir: Direction::ToServer,
             ..Default::default()
@@ -440,14 +440,14 @@ impl DCERPCState {
         if self.buffer_ts.len() > 0 {
             self.buffer_ts.clear();
         }
-        return 0;
+        0
     }
 
     pub fn handle_gap_tc(&mut self) -> u8 {
         if self.buffer_tc.len() > 0 {
             self.buffer_tc.clear();
         }
-        return 0;
+        0
     }
 
     pub fn clean_buffer(&mut self, direction: Direction) {
@@ -1086,7 +1086,7 @@ impl DCERPCState {
         }
         self.post_gap_housekeeping(direction);
         self.prev_dir = direction;
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 }
 
@@ -1178,7 +1178,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -1249,7 +1249,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c
         return 1;
     }
     SCLogDebug!("tx {} direction {} progress 0", tx.call_id, direction);
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -1258,7 +1258,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 #[no_mangle]
@@ -1289,7 +1289,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
                 hdr.rpc_vers_minor == 0x00 &&
                 hdr.packed_drep[0] & 0xee == 0 &&
                 hdr.packed_drep[1] <= 3;
-            return (is_dcerpc, is_request);
+            (is_dcerpc, is_request)
         },
         Err(_) => (false, false),
     }
@@ -1316,7 +1316,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u
         }
         return ALPROTO_DCERPC;
     }
-    return core::ALPROTO_FAILED;
+    core::ALPROTO_FAILED
 }
 
 fn register_pattern_probe() -> i8 {

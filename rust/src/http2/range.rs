@@ -42,14 +42,14 @@ pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], 
     let (i2, _) = char('*')(input)?;
     let (i2, _) = char('/')(i2)?;
     let (i2, size) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
-    return Ok((
+    Ok((
         i2,
         HTTPContentRange {
             start: -1,
             end: -1,
             size,
         },
-    ));
+    ))
 }
 
 pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
@@ -61,17 +61,17 @@ pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], H
         value(-1, char('*')),
         map_res(map_res(digit1, std::str::from_utf8), i64::from_str),
     ))(i2)?;
-    return Ok((i2, HTTPContentRange { start, end, size }));
+    Ok((i2, HTTPContentRange { start, end, size }))
 }
 
 fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
     let (i2, _) = take_while(|c| c == b' ')(input)?;
     let (i2, _) = take_till(|c| c == b' ')(i2)?;
     let (i2, _) = take_while(|c| c == b' ')(i2)?;
-    return alt((
+    alt((
         http2_parse_content_range_star,
         http2_parse_content_range_def,
-    ))(i2);
+    ))(i2)
 }
 
 pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
@@ -79,7 +79,7 @@ pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8],
     if v.start > v.end || (v.end > 0 && v.size > 0 && v.end > v.size - 1) {
         return Err(Err::Error(make_error(rem, ErrorKind::Verify)));
     }
-    return Ok((rem, v));
+    Ok((rem, v))
 }
 
 #[no_mangle]
@@ -90,10 +90,10 @@ pub unsafe extern "C" fn rs_http_parse_content_range(
     match http2_parse_content_range(slice) {
         Ok((_, c)) => {
             *cr = c;
-            return 0;
+            0
         }
         _ => {
-            return -1;
+            -1
         }
     }
 }
@@ -124,7 +124,7 @@ fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()
     let mut r = Vec::with_capacity(hostv.len() + uriv.len());
     r.extend_from_slice(hostv);
     r.extend_from_slice(uriv);
-    return Ok((r, hostv.len()));
+    Ok((r, hostv.len()))
 }
 
 pub fn http2_range_open(

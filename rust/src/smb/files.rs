@@ -38,7 +38,7 @@ pub struct SMBTransactionFile {
 
 impl SMBTransactionFile {
     pub fn new() -> Self {
-        return Self {
+        Self {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
         }
@@ -86,7 +86,7 @@ impl SMBState {
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: Direction)
@@ -111,7 +111,7 @@ impl SMBState {
             }
         }
         SCLogDebug!("SMB: Failed to find SMB TX with FUID {:?}", fuid);
-        return None;
+        None
     }
 
     // update in progress chunks for file transfers
@@ -181,7 +181,7 @@ impl SMBState {
                 0 },
         };
 
-        return consumed;
+        consumed
     }
 }
 

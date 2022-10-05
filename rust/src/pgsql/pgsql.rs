@@ -180,7 +180,7 @@ impl PgsqlState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn new_tx(&mut self) -> PgsqlTransaction {
@@ -203,7 +203,7 @@ impl PgsqlState {
             }
             self.tx_index_completed = index;
         }
-        return tx;
+        tx
     }
 
     /// Find or create a new transaction
@@ -228,7 +228,7 @@ impl PgsqlState {
         }
         // If we don't need a new transaction, just return the current one
         SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
-        return self.transactions.back_mut();
+        self.transactions.back_mut()
     }
 
     /// Process State progress to decide if PgsqlTransaction is finished
@@ -359,7 +359,7 @@ impl PgsqlState {
         }
 
         // Input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
@@ -509,7 +509,7 @@ impl PgsqlState {
         }
 
         // All input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn on_request_gap(&mut self, _size: u32) {
@@ -556,7 +556,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
             return ALPROTO_PGSQL;
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 /// C entry point for a probing parser.
@@ -584,7 +584,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
             }
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 #[no_mangle]
@@ -593,7 +593,7 @@ pub extern "C" fn rs_pgsql_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = PgsqlState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -664,10 +664,10 @@ pub unsafe extern "C" fn rs_pgsql_state_get_tx(
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
     match state_safe.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -678,7 +678,7 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
     }
-    return state_safe.tx_id;
+    state_safe.tx_id
 }
 
 #[no_mangle]
@@ -687,14 +687,14 @@ pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlT
     unsafe {
         tx_safe = cast_pointer!(tx, PgsqlTransaction);
     }
-    return tx_safe.tx_state;
+    tx_safe.tx_state
 }
 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_pgsql_tx_get_state(tx) as i32;
+    rs_pgsql_tx_get_state(tx) as i32
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);

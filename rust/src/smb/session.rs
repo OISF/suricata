@@ -30,7 +30,7 @@ pub struct SMBTransactionSessionSetup {
 
 impl SMBTransactionSessionSetup {
     pub fn new() -> Self {
-        return Default::default()
+        Default::default()
     }
 }
 
@@ -49,7 +49,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX SESSIONSETUP created: ID {}", tx.id);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_sessionsetup_tx(&mut self, hdr: SMBCommonHdr)
@@ -64,6 +64,6 @@ impl SMBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 }

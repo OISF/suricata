@@ -239,7 +239,7 @@ impl SSHState {
                 }
             }
         }
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn parse_banner(
@@ -296,12 +296,12 @@ impl SSHState {
                     //adds bytes consumed by banner to incomplete result
                     r.consumed += (input.len() - rem.len()) as u32;
                 }
-                return r;
+                r
             }
             Err(Err::Incomplete(_)) => {
                 if input.len() < SSH_MAX_BANNER_LEN {
                     //0 consumed, needs at least one more byte
-                    return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
+                    AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32)
                 } else {
                     SCLogDebug!(
                         "SSH banner too long {} vs {} and waiting for eol",
@@ -315,17 +315,17 @@ impl SSHState {
                         }
                         hdr.flags = SSHConnectionState::SshStateBannerWaitEol;
                         self.set_event(SSHEvent::LongBanner);
-                        return AppLayerResult::ok();
+                        AppLayerResult::ok()
                     } else {
                         self.set_event(SSHEvent::InvalidBanner);
-                        return AppLayerResult::err();
+                        AppLayerResult::err()
                     }
                 }
             }
             Err(_e) => {
                 SCLogDebug!("SSH invalid banner {}", _e);
                 self.set_event(SSHEvent::InvalidBanner);
-                return AppLayerResult::err();
+                AppLayerResult::err()
             }
         }
     }
@@ -340,7 +340,7 @@ export_state_data_get!(rs_ssh_get_state_data, SSHState);
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -363,9 +363,9 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, false, pstate);
+        state.parse_banner(buf, false, pstate)
     } else {
-        return state.parse_record(buf, false, pstate);
+        state.parse_record(buf, false, pstate)
     }
 }
 
@@ -379,9 +379,9 @@ pub unsafe extern "C" fn rs_ssh_parse_response(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, true, pstate);
+        state.parse_banner(buf, true, pstate)
     } else {
-        return state.parse_record(buf, true, pstate);
+        state.parse_record(buf, true, pstate)
     }
 }
 
@@ -390,12 +390,12 @@ pub unsafe extern "C" fn rs_ssh_state_get_tx(
     state: *mut std::os::raw::c_void, _tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SSHState);
-    return &state.transaction as *const _ as *mut _;
+    &state.transaction as *const _ as *mut _
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -> u64 {
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -404,9 +404,9 @@ pub unsafe extern "C" fn rs_ssh_tx_get_flags(
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
     if direction == Direction::ToServer.into() {
-        return tx.cli_hdr.flags;
+        tx.cli_hdr.flags
     } else {
-        return tx.srv_hdr.flags;
+        tx.srv_hdr.flags
     }
 }
 
@@ -432,7 +432,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
         }
     }
 
-    return SSHConnectionState::SshStateInProgress as i32;
+    SSHConnectionState::SshStateInProgress as i32
 }
 
 // Parser name as a C style string.
@@ -514,5 +514,5 @@ pub unsafe extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_v
             return true;
         }
     }
-    return false;
+    false
 }

@@ -35,7 +35,7 @@ pub fn detect_parse_urilen_raw(i: &str) -> IResult<&str, bool> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = char(',')(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    return alt((value(true, tag("raw")), value(false, tag("norm"))))(i);
+    alt((value(true, tag("raw")), value(false, tag("norm"))))(i)
 }
 
 pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
@@ -43,16 +43,16 @@ pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
     let (i, raw) = opt(detect_parse_urilen_raw)(i)?;
     match raw {
         Some(raw_buffer) => {
-            return Ok((i, DetectUrilenData { du16, raw_buffer }));
+            Ok((i, DetectUrilenData { du16, raw_buffer }))
         }
         None => {
-            return Ok((
+            Ok((
                 i,
                 DetectUrilenData {
                     du16,
                     raw_buffer: false,
                 },
-            ));
+            ))
         }
     }
 }
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn rs_detect_urilen_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

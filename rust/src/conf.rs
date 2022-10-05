@@ -57,7 +57,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
         CStr::from_ptr(vptr).to_bytes()
     }).unwrap();
 
-    return Some(value);
+    Some(value)
 }
 
 // Return the value of key as a boolean. A value that is not set is
@@ -75,7 +75,7 @@ pub fn conf_get_bool(key: &str) -> bool {
         None => {},
     }
 
-    return false;
+    false
 }
 
 /// Wrap a Suricata ConfNode and expose some of its methods with a
@@ -87,7 +87,7 @@ pub struct ConfNode {
 impl ConfNode {
 
     pub fn wrap(conf: *const c_void) -> Self {
-        return Self { conf }
+        Self { conf }
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
@@ -110,7 +110,7 @@ impl ConfNode {
             CStr::from_ptr(vptr).to_bytes()
         }).unwrap();
 
-        return Some(value);
+        Some(value)
     }
 
     pub fn get_child_bool(&self, key: &str) -> bool {
@@ -128,7 +128,7 @@ impl ConfNode {
         if vptr == 1 {
             return true;
         }
-        return false;
+        false
     }
 
 }

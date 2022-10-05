@@ -196,7 +196,7 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
         },
         _ => {},
     }
-    return ntlmssp_data;
+    ntlmssp_data
 }
 
 // if spnego parsing fails try to fall back to ntlmssp

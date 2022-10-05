@@ -31,7 +31,7 @@ pub struct DHCPLogger {
 impl DHCPLogger {
     
     pub fn new(conf: ConfNode) -> Self {
-        return Self {
+        Self {
             extended: conf.get_child_bool("extended"),
         }
     }
@@ -54,7 +54,7 @@ impl DHCPLogger {
                 _ => {}
             }
         }
-        return None;
+        None
     }
 
     pub fn do_log(&self, tx: &DHCPTransaction) -> bool {
@@ -64,7 +64,7 @@ impl DHCPLogger {
             }
             return false;
         }
-        return true;
+        true
     }
 
     pub fn log(&self, tx: &DHCPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
@@ -175,7 +175,7 @@ impl DHCPLogger {
         
         js.close()?;
 
-        return Ok(());
+        Ok(())
     }
 
     fn log_opt_type(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
@@ -244,14 +244,14 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
     let parts: Vec<String> = input.iter()
         .map(|b| format!("{:02x}", b))
         .collect();
-    return parts.join(":");
+    parts.join(":")
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut std::os::raw::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]

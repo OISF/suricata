@@ -237,10 +237,10 @@ impl AppLayerResult {
     /// parser has hit an unrecoverable error. Returning this to the API
     /// leads to no further calls to the parser.
     pub fn err() -> Self {
-        return Self {
+        Self {
             status: -1,
             ..Default::default()
-        };
+        }
     }
     /// parser needs more data. Through 'consumed' it will indicate how many
     /// of the input bytes it has consumed. Through 'needed' it will indicate
@@ -248,11 +248,11 @@ impl AppLayerResult {
     /// Note: consumed should never be more than the input len
     ///       needed + consumed should be more than the input len
     pub fn incomplete(consumed: u32, needed: u32) -> Self {
-        return Self {
+        Self {
             status: 1,
             consumed: consumed,
             needed: needed,
-        };
+        }
     }
 
     pub fn is_ok(self) -> bool {
@@ -569,7 +569,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
     };
     *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
     *event_id = event as std::os::raw::c_int;
-    return 0;
+    0
 }
 
 /// Generic `get_info_info_by_id` implementation for enums implementing
@@ -585,7 +585,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
-    return -1;
+    -1
 }
 
 /// Transaction trait.
@@ -619,7 +619,7 @@ pub trait State<Tx: Transaction> {
                 len - index > 1,
             );
         }
-        return AppLayerGetTxIterTuple::not_found();
+        AppLayerGetTxIterTuple::not_found()
     }
 }
 

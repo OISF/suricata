@@ -41,10 +41,10 @@ pub struct DCEOpnumRange {
 
 impl DCEOpnumRange {
     pub fn new() -> Self {
-        return Self {
+        Self {
             range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
             range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
-        };
+        }
     }
 }
 
@@ -98,7 +98,7 @@ fn match_backuuid(
         }
     }
 
-    return ret;
+    ret
 }
 
 fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
@@ -217,7 +217,7 @@ pub extern "C" fn rs_dcerpc_iface_match(
         }
     };
 
-    return match_backuuid(tx, state, if_data);
+    match_backuuid(tx, state, if_data)
 }
 
 #[no_mangle]
@@ -299,9 +299,9 @@ mod test {
 
     fn extract_op_version(i: &str) -> Result<(DetectUintMode, u16), ()> {
         match detect_parse_uint(i) {
-            Ok((_, d)) => return Ok((d.mode, d.arg1)),
+            Ok((_, d)) => Ok((d.mode, d.arg1)),
             _ => {
-                return Err(());
+                Err(())
             }
         }
     }

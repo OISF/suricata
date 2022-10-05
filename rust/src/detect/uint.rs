@@ -122,7 +122,7 @@ pub fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
         value(DetectUintMode::DetectUintModeNe, tag("!")),
         value(DetectUintMode::DetectUintModeEqual, tag("=")),
     ))(i)?;
-    return Ok((i, mode));
+    Ok((i, mode))
 }
 
 fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
@@ -205,7 +205,7 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
             }
         }
     }
-    return false;
+    false
 }
 
 pub fn detect_parse_uint_notending<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
@@ -246,7 +246,7 @@ pub unsafe extern "C" fn rs_detect_u64_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn rs_detect_u64_match(
     if detect_match_uint(ctx, arg) {
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -276,7 +276,7 @@ pub unsafe extern "C" fn rs_detect_u32_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn rs_detect_u32_parse_inclusive(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn rs_detect_u32_match(
     if detect_match_uint(ctx, arg) {
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn rs_detect_u8_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn rs_detect_u8_match(
     if detect_match_uint(ctx, arg) {
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -350,7 +350,7 @@ pub unsafe extern "C" fn rs_detect_u16_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -360,7 +360,7 @@ pub unsafe extern "C" fn rs_detect_u16_match(
     if detect_match_uint(ctx, arg) {
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]

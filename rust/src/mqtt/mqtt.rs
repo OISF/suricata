@@ -73,11 +73,11 @@ impl MQTTTransaction {
     pub fn new(msg: MQTTMessage) -> MQTTTransaction {
         let mut m = MQTTTransaction::new_empty();
         m.msg.push(msg);
-        return m;
+        m
     }
 
     pub fn new_empty() -> MQTTTransaction {
-        return MQTTTransaction {
+        MQTTTransaction {
             tx_id: 0,
             pkt_id: None,
             complete: false,
@@ -86,7 +86,7 @@ impl MQTTTransaction {
             toclient: false,
             toserver: false,
             tx_data: applayer::AppLayerTxData::new(),
-        };
+        }
     }
 }
 
@@ -157,7 +157,7 @@ impl MQTTState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     pub fn get_tx_by_pkt_id(&mut self, pkt_id: u32) -> Option<&mut MQTTTransaction> {
@@ -170,7 +170,7 @@ impl MQTTState {
                 }
             }
         }
-        return None;
+        None
     }
 
     fn new_tx(&mut self, msg: MQTTMessage, toclient: bool) -> MQTTTransaction {
@@ -194,7 +194,7 @@ impl MQTTState {
             }
             self.tx_index_completed = index;
         }
-        return tx;
+        tx
     }
 
     // Handle a MQTT message depending on the direction and state.
@@ -493,7 +493,7 @@ impl MQTTState {
             }
         }
 
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
@@ -568,7 +568,7 @@ impl MQTTState {
             }
         }
 
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn set_event(tx: &mut MQTTTransaction, event: MQTTEvent) {
@@ -607,7 +607,7 @@ pub unsafe extern "C" fn rs_mqtt_probing_parser(
             if hdr.qos_level > 2 {
                 return ALPROTO_FAILED;
             }
-            return ALPROTO_MQTT;
+            ALPROTO_MQTT
         }
         Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
         Err(_) => ALPROTO_FAILED,
@@ -620,7 +620,7 @@ pub extern "C" fn rs_mqtt_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = MQTTState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -659,10 +659,10 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx(
     let state = cast_pointer!(state, MQTTState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -670,7 +670,7 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx(
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, MQTTState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -681,7 +681,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(
     if tx.toclient {
         return 1;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -701,7 +701,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -709,7 +709,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, MQTTTransaction);
-    return tx.logged.get();
+    tx.logged.get()
 }
 
 #[no_mangle]

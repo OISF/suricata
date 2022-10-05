@@ -56,7 +56,7 @@ pub extern "C" fn rs_mqtt_tx_has_type(tx: &MQTTTransaction, mtype: u8) -> u8 {
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -69,7 +69,7 @@ pub unsafe extern "C" fn rs_mqtt_cstr_message_code(
             return x as i32;
         }
     }
-    return -1;
+    -1
 }
 
 #[no_mangle]
@@ -85,7 +85,7 @@ pub extern "C" fn rs_mqtt_tx_has_flags(
         }
     }
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -95,12 +95,12 @@ pub extern "C" fn rs_mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> u8 {
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_get_protocol_version(state: &MQTTState) -> u8 {
-    return state.protocol_version;
+    state.protocol_version
 }
 
 #[no_mangle]
@@ -121,7 +121,7 @@ pub extern "C" fn rs_mqtt_tx_has_connect_flags(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -163,7 +163,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -283,7 +283,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -309,7 +309,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(
     *buf = ptr::null();
     *len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(
     *buf = ptr::null();
     *len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result
             _ => return 0,
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -384,7 +384,7 @@ pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code
             }
         }
     }
-    return 0;
+    0
 }
 
 #[cfg(test)]

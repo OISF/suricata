@@ -106,14 +106,14 @@ impl TemplateState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn new_tx(&mut self) -> TemplateTransaction {
         let mut tx = TemplateTransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        return tx;
+        tx
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
@@ -170,7 +170,7 @@ impl TemplateState {
         }
 
         // Input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
@@ -218,7 +218,7 @@ impl TemplateState {
         }
 
         // All input was fully consumed.
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn on_request_gap(&mut self, _size: u32) {
@@ -263,14 +263,14 @@ pub unsafe extern "C" fn rs_template_probing_parser(
             return ALPROTO_TEMPLATE;
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 #[no_mangle]
 pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
+    Box::into_raw(boxed) as *mut std::os::raw::c_void
 }
 
 #[no_mangle]
@@ -353,10 +353,10 @@ pub unsafe extern "C" fn rs_template_state_get_tx(
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, TemplateState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
     if tx.response.is_some() {
         return 1;
     }
-    return 0;
+    0
 }
 
 /// Get the request buffer for a transaction from C.
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 /// Get the response buffer for a transaction from C.
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn rs_template_get_response_buffer(
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);

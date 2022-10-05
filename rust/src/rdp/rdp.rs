@@ -78,10 +78,10 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
-    return state.next_id;
+    state.next_id
 }
 
 #[no_mangle]
@@ -98,7 +98,7 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 ) -> std::os::raw::c_int {
     // tx complete when `rs_rdp_tx_get_progress(...) == rs_rdp_tx_get_progress_complete(...)`
     // here, all transactions are immediately complete on insert
-    return 1;
+    1
 }
 
 //
@@ -158,13 +158,13 @@ impl RdpState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
         self.next_id += 1;
         let tx = RdpTransaction::new(self.next_id, item);
-        return tx;
+        tx
     }
 
     /// parse buffer captures from client to server
@@ -380,7 +380,7 @@ impl RdpState {
 pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
             return ALPROTO_RDP;
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 /// probe for TLS
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
-    return state.parse_ts(buf);
+    state.parse_ts(buf)
 }
 
 #[no_mangle]
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn rs_rdp_parse_tc(
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
-    return state.parse_tc(buf);
+    state.parse_tc(buf)
 }
 
 export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);

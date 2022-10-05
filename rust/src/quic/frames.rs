@@ -169,7 +169,7 @@ fn parse_padding_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         }
         offset = offset + 1;
     }
-    return Ok((&input[offset..], Frame::Padding));
+    Ok((&input[offset..], Frame::Padding))
 }
 
 fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
@@ -280,7 +280,7 @@ fn quic_get_tls_extensions(
             }
         }
     }
-    return extv;
+    extv
 }
 
 fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
@@ -317,7 +317,7 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
             _ => {}
         }
     }
-    return None;
+    None
 }
 
 fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
@@ -355,7 +355,7 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         }
         _ => {}
     }
-    return Err(nom7::Err::Error(QuicError::InvalidPacket));
+    Err(nom7::Err::Error(QuicError::InvalidPacket))
 }
 
 fn parse_tag(input: &[u8]) -> IResult<&[u8], StreamTag, QuicError> {

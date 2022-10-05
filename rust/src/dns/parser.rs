@@ -101,7 +101,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b
     if pivot.len() != start.len() {
         return Ok((pivot, name));
     }
-    return Ok((pos, name));
+    Ok((pos, name))
 }
 
 /// Parse answer entries.
@@ -180,7 +180,7 @@ fn dns_parse_answer<'a>(
         }
     }
 
-    return Ok((input, answers));
+    Ok((input, answers))
 }
 
 /// Parse a DNS response.

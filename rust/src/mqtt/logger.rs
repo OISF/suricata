@@ -31,7 +31,7 @@ fn log_mqtt_topic(js: &mut JsonBuilder, t: &MQTTSubscribeTopicData) -> Result<()
     js.set_string("topic", &t.topic_name)?;
     js.set_uint("qos", t.qos as u64)?;
     js.close()?;
-    return Ok(());
+    Ok(())
 }
 
 #[inline]
@@ -39,7 +39,7 @@ fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonEr
     js.set_uint("qos", hdr.qos_level as u64)?;
     js.set_bool("retain", hdr.retain)?;
     js.set_bool("dup", hdr.dup_flag)?;
-    return Ok(());
+    Ok(())
 }
 
 fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
@@ -293,7 +293,7 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
     }
     js.close()?; // mqtt
 
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]

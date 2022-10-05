@@ -153,117 +153,117 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
 pub fn parse_qualified_property(input: &[u8], identifier: u32) -> IResult<&[u8], MQTTProperty> {
     match identifier {
         1 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::PAYLOAD_FORMAT_INDICATOR(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::PAYLOAD_FORMAT_INDICATOR(val))),
+            Err(e) => Err(e),
         },
         2 => match be_u32(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::MESSAGE_EXPIRY_INTERVAL(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::MESSAGE_EXPIRY_INTERVAL(val))),
+            Err(e) => Err(e),
         },
         3 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::CONTENT_TYPE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::CONTENT_TYPE(val))),
+            Err(e) => Err(e),
         },
         8 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::RESPONSE_TOPIC(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::RESPONSE_TOPIC(val))),
+            Err(e) => Err(e),
         },
         9 => match parse_mqtt_binary_data(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::CORRELATION_DATA(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::CORRELATION_DATA(val))),
+            Err(e) => Err(e),
         },
         11 => match parse_mqtt_variable_integer(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::SUBSCRIPTION_IDENTIFIER(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::SUBSCRIPTION_IDENTIFIER(val))),
+            Err(e) => Err(e),
         },
         17 => match be_u32(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::SESSION_EXPIRY_INTERVAL(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::SESSION_EXPIRY_INTERVAL(val))),
+            Err(e) => Err(e),
         },
         18 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::ASSIGNED_CLIENT_IDENTIFIER(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::ASSIGNED_CLIENT_IDENTIFIER(val))),
+            Err(e) => Err(e),
         },
         19 => match be_u16(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::SERVER_KEEP_ALIVE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::SERVER_KEEP_ALIVE(val))),
+            Err(e) => Err(e),
         },
         21 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::AUTHENTICATION_METHOD(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::AUTHENTICATION_METHOD(val))),
+            Err(e) => Err(e),
         },
         22 => match parse_mqtt_binary_data(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::AUTHENTICATION_DATA(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::AUTHENTICATION_DATA(val))),
+            Err(e) => Err(e),
         },
         23 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::REQUEST_PROBLEM_INFORMATION(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::REQUEST_PROBLEM_INFORMATION(val))),
+            Err(e) => Err(e),
         },
         24 => match be_u32(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::WILL_DELAY_INTERVAL(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::WILL_DELAY_INTERVAL(val))),
+            Err(e) => Err(e),
         },
         25 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::REQUEST_RESPONSE_INFORMATION(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::REQUEST_RESPONSE_INFORMATION(val))),
+            Err(e) => Err(e),
         },
         26 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::RESPONSE_INFORMATION(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::RESPONSE_INFORMATION(val))),
+            Err(e) => Err(e),
         },
         28 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::SERVER_REFERENCE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::SERVER_REFERENCE(val))),
+            Err(e) => Err(e),
         },
         31 => match parse_mqtt_string(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::REASON_STRING(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::REASON_STRING(val))),
+            Err(e) => Err(e),
         },
         33 => match be_u16(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::RECEIVE_MAXIMUM(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::RECEIVE_MAXIMUM(val))),
+            Err(e) => Err(e),
         },
         34 => match be_u16(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::TOPIC_ALIAS_MAXIMUM(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::TOPIC_ALIAS_MAXIMUM(val))),
+            Err(e) => Err(e),
         },
         35 => match be_u16(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::TOPIC_ALIAS(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::TOPIC_ALIAS(val))),
+            Err(e) => Err(e),
         },
         36 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::MAXIMUM_QOS(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::MAXIMUM_QOS(val))),
+            Err(e) => Err(e),
         },
         37 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::RETAIN_AVAILABLE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::RETAIN_AVAILABLE(val))),
+            Err(e) => Err(e),
         },
         38 => match parse_mqtt_string_pair(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::USER_PROPERTY(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::USER_PROPERTY(val))),
+            Err(e) => Err(e),
         },
         39 => match be_u32(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::MAXIMUM_PACKET_SIZE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::MAXIMUM_PACKET_SIZE(val))),
+            Err(e) => Err(e),
         },
         40 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::WILDCARD_SUBSCRIPTION_AVAILABLE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::WILDCARD_SUBSCRIPTION_AVAILABLE(val))),
+            Err(e) => Err(e),
         },
         41 => match be_u8(input) {
             Ok((rem, val)) => {
-                return Ok((rem, MQTTProperty::SUBSCRIPTION_IDENTIFIER_AVAILABLE(val)))
+                Ok((rem, MQTTProperty::SUBSCRIPTION_IDENTIFIER_AVAILABLE(val)))
             }
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         },
         42 => match be_u8(input) {
-            Ok((rem, val)) => return Ok((rem, MQTTProperty::SHARED_SUBSCRIPTION_AVAILABLE(val))),
-            Err(e) => return Err(e),
+            Ok((rem, val)) => Ok((rem, MQTTProperty::SHARED_SUBSCRIPTION_AVAILABLE(val))),
+            Err(e) => Err(e),
         },
         _ => {
-            return Ok((input, MQTTProperty::UNKNOWN));
+            Ok((input, MQTTProperty::UNKNOWN))
         }
     }
 }

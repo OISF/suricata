@@ -175,14 +175,14 @@ impl IKEState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     pub fn new_tx(&mut self) -> IKETransaction {
         let mut tx = IKETransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        return tx;
+        tx
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -220,15 +220,15 @@ impl IKEState {
                 } else {
                     return AppLayerResult::err();
                 }
-                return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
+                AppLayerResult::ok() // todo either remove outer loop or check header length-field if we have completely read everything
             }
             Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKE");
-                return AppLayerResult::err();
+                AppLayerResult::err()
             }
             Err(_) => {
                 SCLogDebug!("Error while parsing IKE packet");
-                return AppLayerResult::err();
+                AppLayerResult::err()
             }
         }
     }
@@ -272,9 +272,9 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> bool {
                 return true;
             }
 
-            return false;
+            false
         }
-        Err(_) => return false,
+        Err(_) => false,
     }
 }
 
@@ -296,7 +296,7 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
             return ALPROTO_IKE;
         }
     }
-    return ALPROTO_FAILED;
+    ALPROTO_FAILED
 }
 
 #[no_mangle]
@@ -305,7 +305,7 @@ pub extern "C" fn rs_ike_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -345,10 +345,10 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
     let state = cast_pointer!(state, IKEState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -356,20 +356,20 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
-    return 1;
+    1
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ike_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn rs_ike_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
-    return tx.logged.get();
+    tx.logged.get()
 }
 
 #[no_mangle]

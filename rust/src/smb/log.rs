@@ -442,7 +442,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         },
         _ => {  },
     }
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]

@@ -182,7 +182,7 @@ pub fn rpc_auth_type_known(auth_type: u32) -> i8 {
     if auth_type <= RPCAUTH_GSS {
         return 1;
     }
-    return -1;
+    -1
 }
 
 /* http://www.iana.org/assignments/rpc-authentication-numbers/rpc-authentication-numbers.xhtml */

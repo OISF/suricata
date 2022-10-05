@@ -129,14 +129,14 @@ impl RFBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn new_tx(&mut self) -> RFBTransaction {
         let mut tx = RFBTransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        return tx;
+        tx
     }
 
     fn get_current_tx(&mut self) -> Option<&mut RFBTransaction> {
@@ -145,7 +145,7 @@ impl RFBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -490,7 +490,7 @@ impl RFBState {
 pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -540,10 +540,10 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx(
     let state = cast_pointer!(state, RFBState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -553,7 +553,7 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, RFBState);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -565,7 +565,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
     if tx.complete {
         return 1;
     }
-    return 0;
+    0
 }
 
 // Parser name as a C style string.

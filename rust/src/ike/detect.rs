@@ -40,7 +40,7 @@ pub extern "C" fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type:
         return 1;
     }
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -53,7 +53,7 @@ pub extern "C" fn rs_ike_state_get_spi_initiator(
         *buffer = tx.hdr.spi_initiator.as_ptr();
         *buffer_len = tx.hdr.spi_initiator.len() as u32;
     }
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -66,7 +66,7 @@ pub extern "C" fn rs_ike_state_get_spi_responder(
         *buffer = tx.hdr.spi_responder.as_ptr();
         *buffer_len = tx.hdr.spi_responder.len() as u32;
     }
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -89,7 +89,7 @@ pub extern "C" fn rs_ike_state_get_nonce(
         *buffer_len = 0;
     }
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -112,7 +112,7 @@ pub extern "C" fn rs_ike_state_get_key_exchange(
         *buffer_len = 0;
     }
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -132,7 +132,7 @@ pub extern "C" fn rs_ike_tx_get_vendor(
         *len = 0;
     }
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -203,7 +203,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
     unsafe {
         *value = ret_val;
     }
-    return ret_code;
+    ret_code
 }
 
 #[no_mangle]
@@ -218,7 +218,7 @@ pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
     }
 
     *value = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -233,5 +233,5 @@ pub unsafe extern "C" fn rs_ike_state_get_nonce_payload_length(
     }
 
     *value = 0;
-    return 0;
+    0
 }

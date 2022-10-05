@@ -31,7 +31,7 @@ pub struct SMBTransactionIoctl {
 
 impl SMBTransactionIoctl {
     pub fn new(func: u32) -> Self {
-        return Self {
+        Self {
             func: func,
         }
     }
@@ -52,7 +52,7 @@ impl SMBState {
                 tx.id, func, &fsctl_func_to_string(func));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 }
 

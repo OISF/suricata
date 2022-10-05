@@ -38,7 +38,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_name(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_sectype(
 
     *sectype = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -66,5 +66,5 @@ pub unsafe extern "C" fn rs_rfb_tx_get_secresult(
         return 1;
     }
 
-    return 0;
+    0
 }

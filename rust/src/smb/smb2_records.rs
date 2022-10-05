@@ -403,7 +403,7 @@ fn parse_smb2_request_setinfo_data(
             _ => {}
         }
     }
-    return Ok((i, Smb2SetInfoRequestData::UNHANDLED));
+    Ok((i, Smb2SetInfoRequestData::UNHANDLED))
 }
 
 pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestRecord> {
@@ -608,7 +608,7 @@ fn smb_basic_search(d: &[u8]) -> usize {
         }
         r = r + 1;
     }
-    return 0;
+    0
 }
 
 pub fn search_smb_record<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {

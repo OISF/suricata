@@ -175,10 +175,10 @@ fn smb1_command_is_andx(c: u8) -> bool {
         SMB1_COMMAND_TREE_CONNECT_ANDX |
         SMB1_COMMAND_NT_CREATE_ANDX |
         SMB1_COMMAND_WRITE_ANDX  => {
-            return true;
+            true
         }
         _ => {
-            return false;
+            false
         }
     }
 }

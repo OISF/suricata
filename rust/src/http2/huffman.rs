@@ -490,7 +490,7 @@ fn http2_decode_huffman_len30(input: (&[u8], usize)) -> IResult<(&[u8], usize), 
 
 //hack to end many0 even if some bits are remaining
 fn http2_decode_huffman_end(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
-    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    Err(Err::Error(make_error(input, ErrorKind::Eof)))
 }
 
 //we could profile and optimize performance here

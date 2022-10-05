@@ -75,5 +75,5 @@ pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, S
         realm: req.ticket.realm,
         sname: req.ticket.sname,
     };
-    return Ok((rem, t));
+    Ok((rem, t))
 }

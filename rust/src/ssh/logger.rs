@@ -58,7 +58,7 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         }
         js.close()?;
     }
-    return Ok(true);
+    Ok(true)
 }
 
 #[no_mangle]
@@ -67,5 +67,5 @@ pub unsafe extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void, js: &mut
     if let Ok(x) = log_ssh(tx, js) {
         return x;
     }
-    return false;
+    false
 }

@@ -166,5 +166,5 @@ pub fn handle_ikev1(
     tx.payload_types.ikev1_payload_types = Some(payload_types);
     tx.hdr.ikev1_header.encrypted_payloads = isakmp_header.flags & 0x01 == 0x01;
     state.transactions.push(tx);
-    return AppLayerResult::ok();
+    AppLayerResult::ok()
 }

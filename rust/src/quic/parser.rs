@@ -112,24 +112,24 @@ pub fn quic_pkt_num(input: &[u8]) -> u64 {
     // There must be a more idiomatic way sigh...
     match input.len() {
         1 => {
-            return input[0] as u64;
+            input[0] as u64
         }
         2 => {
-            return ((input[0] as u64) << 8) | (input[1] as u64);
+            ((input[0] as u64) << 8) | (input[1] as u64)
         }
         3 => {
-            return ((input[0] as u64) << 16) | ((input[1] as u64) << 8) | (input[2] as u64);
+            ((input[0] as u64) << 16) | ((input[1] as u64) << 8) | (input[2] as u64)
         }
         4 => {
-            return ((input[0] as u64) << 24)
+            ((input[0] as u64) << 24)
                 | ((input[1] as u64) << 16)
                 | ((input[2] as u64) << 8)
-                | (input[3] as u64);
+                | (input[3] as u64)
         }
         _ => {
             // should not be reachable
             debug_validate_fail!("Unexpected length for quic pkt num");
-            return 0;
+            0
         }
     }
 }
@@ -143,19 +143,19 @@ pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
             // nom does not have be_u56
             let (rest, second) = be_u24(rest)?;
             let (rest, third) = be_u32(rest)?;
-            return Ok((rest, (lsb << 56) | ((second as u64) << 32) | (third as u64)));
+            Ok((rest, (lsb << 56) | ((second as u64) << 32) | (third as u64)))
         }
         2 => {
             let (rest, second) = be_u24(rest)?;
-            return Ok((rest, (lsb << 24) | (second as u64)));
+            Ok((rest, (lsb << 24) | (second as u64)))
         }
         1 => {
             let (rest, second) = be_u8(rest)?;
-            return Ok((rest, (lsb << 8) | (second as u64)));
+            Ok((rest, (lsb << 8) | (second as u64)))
         }
         _ => {
             // only remaining case is msb==0
-            return Ok((rest, lsb));
+            Ok((rest, lsb))
         }
     }
 }
@@ -233,7 +233,7 @@ impl QuicHeader {
                 QuicType::Short
             };
             if let Ok(plength) = u16::try_from(rest.len()) {
-                return Ok((
+                Ok((
                     rest,
                     QuicHeader {
                         flags,
@@ -244,16 +244,16 @@ impl QuicHeader {
                         scid: Vec::new(),
                         length: plength,
                     },
-                ));
+                ))
             } else {
-                return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                Err(nom7::Err::Error(QuicError::InvalidPacket))
             }
         } else if !flags.is_long {
             // Decode short header
             // depends on version let (rest, dcid) = take(_dcid_len)(rest)?;
 
             if let Ok(plength) = u16::try_from(rest.len()) {
-                return Ok((
+                Ok((
                     rest,
                     QuicHeader {
                         flags,
@@ -264,9 +264,9 @@ impl QuicHeader {
                         scid: Vec::new(),
                         length: plength,
                     },
-                ));
+                ))
             } else {
-                return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                Err(nom7::Err::Error(QuicError::InvalidPacket))
             }
         } else {
             // Decode Long header

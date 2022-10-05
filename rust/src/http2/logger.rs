@@ -74,7 +74,7 @@ fn log_http2_headers<'a>(
         }
         js.close()?;
     }
-    return Ok(());
+    Ok(())
 }
 
 fn log_headers<'a>(
@@ -188,7 +188,7 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
             _ => {}
         }
     }
-    return Ok(has_settings || has_error_code || has_priority);
+    Ok(has_settings || has_error_code || has_priority)
 }
 
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
@@ -264,7 +264,7 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     // Close http2.
     js.close()?;
 
-    return Ok(has_request || has_response || has_headers);
+    Ok(has_request || has_response || has_headers)
 }
 
 #[no_mangle]
@@ -275,5 +275,5 @@ pub unsafe extern "C" fn rs_http2_log_json(
     if let Ok(x) = log_http2(tx, js) {
         return x;
     }
-    return false;
+    false
 }

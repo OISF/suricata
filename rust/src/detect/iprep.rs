@@ -67,7 +67,7 @@ pub fn is_alphanumeric_or_slash(chr: char) -> bool {
     if chr == '_' || chr == '-' {
         return true;
     }
-    return false;
+    false
 }
 
 extern "C" {
@@ -103,7 +103,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
         arg2: 0,
         mode: mode,
     };
-    return Ok((i, DetectIPRepData { du8, cat, cmd }));
+    Ok((i, DetectIPRepData { du8, cat, cmd }))
 }
 
 #[no_mangle]
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn rs_detect_iprep_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

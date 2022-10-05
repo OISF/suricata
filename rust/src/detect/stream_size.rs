@@ -88,7 +88,7 @@ pub unsafe extern "C" fn rs_detect_stream_size_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

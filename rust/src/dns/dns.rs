@@ -251,7 +251,7 @@ impl Transaction for DNSTransaction {
 impl DNSTransaction {
 
     pub fn new() -> Self {
-        return Self {
+        Self {
             id: 0,
             request: None,
             response: None,
@@ -269,7 +269,7 @@ impl DNSTransaction {
         }
 
         // Shouldn't happen.
-        return 0;
+        0
     }
 
     /// Get the reply code of the transaction. Note that this will
@@ -278,7 +278,7 @@ impl DNSTransaction {
         if let &Some(ref response) = &self.response {
             return response.header.flags & 0x000f;
         }
-        return 0;
+        0
     }
 
 }
@@ -352,7 +352,7 @@ impl DNSState {
         let mut tx = DNSTransaction::new();
         self.tx_id += 1;
         tx.id = self.tx_id;
-        return tx;
+        tx
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
@@ -381,7 +381,7 @@ impl DNSState {
             }
         }
         SCLogDebug!("Failed to find DNS TX with ID {}", tx_id);
-        return None;
+        None
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -415,19 +415,19 @@ impl DNSState {
                     self.set_event(DNSEvent::ZFlagSet);
                 }
 
-                return true;
+                true
             }
             Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS request");
                 self.set_event(DNSEvent::MalformedData);
-                return false;
+                false
             }
             Err(_) => {
                 // Error, probably malformed data.
                 SCLogDebug!("An error occurred while parsing DNS request");
                 self.set_event(DNSEvent::MalformedData);
-                return false;
+                false
             }
         }
     }
@@ -471,19 +471,19 @@ impl DNSState {
                     self.set_event(DNSEvent::ZFlagSet);
                 }
 
-                return true;
+                true
             }
             Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS response");
                 self.set_event(DNSEvent::MalformedData);
-                return false;
+                false
             }
             Err(_) => {
                 // Error, probably malformed data.
                 SCLogDebug!("An error occurred while parsing DNS response");
                 self.set_event(DNSEvent::MalformedData);
-                return false;
+                false
             }
         }
     }
@@ -621,7 +621,7 @@ fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
         return (false, false, false);
     }
     let is_request = header.flags & 0x8000 == 0;
-    return (true, is_request, false);
+    (true, is_request, false)
 }
 
 /// Probe input to see if it looks like DNS.
@@ -643,12 +643,12 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
 
     match parser::dns_parse_request(input) {
         Ok((_, request)) => {
-            return probe_header_validity(request.header, dlen);
+            probe_header_validity(request.header, dlen)
         },
         Err(Err::Incomplete(_)) => {
             match parser::dns_parse_header(input) {
                 Ok((_, header)) => {
-                    return probe_header_validity(header, dlen);
+                    probe_header_validity(header, dlen)
                 }
                 Err(Err::Incomplete(_)) => (false, false, true),
                 Err(_) => (false, false, false),
@@ -669,7 +669,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
         }
         _ => {}
     }
-    return (false, false, false);
+    (false, false, false)
 }
 
 /// Returns *mut DNSState
@@ -677,7 +677,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Returns *mut DNSState
@@ -685,7 +685,7 @@ pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
     let state = DNSState::new_tcp();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Params:
@@ -780,7 +780,7 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
     // This is a stateless parser, just the existence of a transaction
     // means its complete.
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -789,7 +789,7 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_v
 {
     let state = cast_pointer!(state, DNSState);
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -800,10 +800,10 @@ pub unsafe extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, DNSState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -823,7 +823,7 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DNSTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 export_state_data_get!(rs_dns_get_state_data, DNSState);
@@ -845,7 +845,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
             }
         }
     }
-    return 0;
+    0
 }
 
 /// Get the DNS transaction ID of a transaction.
@@ -854,7 +854,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16
 {
-    return tx.tx_id()
+    tx.tx_id()
 }
 
 /// Get the DNS response flags for a transaction.
@@ -864,7 +864,7 @@ pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16
 pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
                                            -> u16
 {
-    return tx.rcode();
+    tx.rcode()
 }
 
 #[no_mangle]
@@ -882,7 +882,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -907,7 +907,7 @@ pub unsafe extern "C" fn rs_dns_probe(
         *rdir = dir as u8;
         return ALPROTO_DNS;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -935,7 +935,7 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
         }
         return ALPROTO_DNS;
     }
-    return 0;
+    0
 }
 
 #[no_mangle]

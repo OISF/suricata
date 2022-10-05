@@ -153,7 +153,7 @@ impl QuicState {
             return Some((tx, tx.tx_id - 1, (len - index) > 1));
         }
 
-        return None;
+        None
     }
 
     fn decrypt<'a>(
@@ -202,7 +202,7 @@ impl QuicState {
                 return Ok(r2.len());
             }
         }
-        return Err(());
+        Err(())
     }
 
     fn handle_frames(&mut self, data: QuicData, header: QuicHeader, to_server: bool) {
@@ -321,7 +321,7 @@ impl QuicState {
                 }
             }
         }
-        return true;
+        true
     }
 }
 
@@ -331,7 +331,7 @@ pub extern "C" fn rs_quic_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = QuicState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -353,9 +353,9 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
     let slice = build_slice!(input, input_len as usize);
 
     if QuicHeader::from_bytes(slice, DEFAULT_DCID_LEN).is_ok() {
-        return ALPROTO_QUIC;
+        ALPROTO_QUIC
     } else {
-        return ALPROTO_FAILED;
+        ALPROTO_FAILED
     }
 }
 
@@ -368,9 +368,9 @@ pub unsafe extern "C" fn rs_quic_parse_tc(
     let buf = stream_slice.as_slice();
 
     if state.parse(buf, false) {
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     } else {
-        return AppLayerResult::err();
+        AppLayerResult::err()
     }
 }
 
@@ -383,9 +383,9 @@ pub unsafe extern "C" fn rs_quic_parse_ts(
     let buf = stream_slice.as_slice();
 
     if state.parse(buf, true) {
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     } else {
-        return AppLayerResult::err();
+        AppLayerResult::err()
     }
 }
 
@@ -396,10 +396,10 @@ pub unsafe extern "C" fn rs_quic_state_get_tx(
     let state = cast_pointer!(state, QuicState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -407,13 +407,13 @@ pub unsafe extern "C" fn rs_quic_state_get_tx(
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, QuicState);
-    return state.max_tx_id;
+    state.max_tx_id
 }
 
 #[no_mangle]
 pub extern "C" fn rs_quic_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let _tx = cast_pointer!(tx, QuicTransaction);
-    return 1;
+    1
 }
 
 #[no_mangle]
@@ -434,10 +434,10 @@ pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
+            ires
         }
         None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
+            applayer::AppLayerGetTxIterTuple::not_found()
         }
     }
 }

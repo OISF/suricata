@@ -39,7 +39,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_method(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_code(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_request_line(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -178,5 +178,5 @@ pub unsafe extern "C" fn rs_sip_tx_get_response_line(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }

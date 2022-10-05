@@ -45,7 +45,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_protocol(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_software(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -138,5 +138,5 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh_string(
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    0
 }

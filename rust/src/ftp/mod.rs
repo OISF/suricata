@@ -96,7 +96,7 @@ pub unsafe extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
             SCLogDebug!("port error on '{:?}'", buf);
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16
             SCLogDebug!("pasv error on '{:?}'", String::from_utf8_lossy(buf));
         }
     }
-    return 0;
+    0
 }
 
 // 229 Entering Extended Passive Mode (|||48758|).
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         }
     }
-    return 0;
+    0
 }
 #[no_mangle]
 pub unsafe extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         }
     }
-    return 0;
+    0
 }
 
 #[cfg(test)]

@@ -270,7 +270,7 @@ pub fn test_weak_encryption(alg:EncryptionType) -> bool {
 pub extern "C" fn rs_krb5_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = KRB5State::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Params:
@@ -346,13 +346,13 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
                     }
                 }
             }
-            return ALPROTO_FAILED;
+            ALPROTO_FAILED
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            ALPROTO_UNKNOWN
         },
         Err(_) => {
-            return ALPROTO_FAILED;
+            ALPROTO_FAILED
         },
     }
 }
@@ -369,14 +369,14 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
             if record_mark > 16384 { return ALPROTO_FAILED; }
-            return rs_krb5_probing_parser(_flow, direction,
-                    rem.as_ptr(), rem.len() as u32, rdir);
+            rs_krb5_probing_parser(_flow, direction,
+                    rem.as_ptr(), rem.len() as u32, rdir)
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            ALPROTO_UNKNOWN
         },
         Err(_) => {
-            return ALPROTO_FAILED;
+            ALPROTO_FAILED
         },
     }
 }

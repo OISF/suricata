@@ -166,7 +166,7 @@ impl NTPTransaction {
 pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Params:
@@ -254,13 +254,13 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
     match parse_ntp(slice) {
         Ok((_, _)) => {
             // parse_ntp already checks for supported version (3 or 4)
-            return alproto;
+            alproto
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            ALPROTO_UNKNOWN
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            unsafe{ALPROTO_FAILED}
         },
     }
 }

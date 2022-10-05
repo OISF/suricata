@@ -57,7 +57,7 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
         jsb.set_bool("ticket_weak_encryption", test_weak_encryption(x))?;
     }
 
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]

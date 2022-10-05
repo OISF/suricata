@@ -411,8 +411,8 @@ pub unsafe extern "C" fn ScByteMathParse(c_arg: *const c_char) -> *mut DetectByt
         }
     };
     match parse_bytemath(arg) {
-        Ok((_, detect)) => return Box::into_raw(Box::new(detect)) as *mut DetectByteMathData,
-        Err(_) => return std::ptr::null_mut(),
+        Ok((_, detect)) => Box::into_raw(Box::new(detect)) as *mut DetectByteMathData,
+        Err(_) => std::ptr::null_mut(),
     }
 }
 

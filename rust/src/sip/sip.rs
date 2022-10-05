@@ -136,16 +136,16 @@ impl SIPState {
                     tx.request_line = req_line;
                 }
                 self.transactions.push(tx);
-                return true;
+                true
             }
             // app-layer-frame-documentation tag end: parse_request
             Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
-                return false;
+                false
             }
             Err(_) => {
                 self.set_event(SIPEvent::InvalidData);
-                return false;
+                false
             }
         }
     }
@@ -164,15 +164,15 @@ impl SIPState {
                     tx.response_line = resp_line;
                 }
                 self.transactions.push(tx);
-                return true;
+                true
             }
             Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
-                return false;
+                false
             }
             Err(_) => {
                 self.set_event(SIPEvent::InvalidData);
-                return false;
+                false
             }
         }
     }
@@ -243,7 +243,7 @@ fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Respon
 pub extern "C" fn rs_sip_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SIPState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn rs_sip_probing_parser_ts(
     if sip_parse_request(buf).is_ok() {
         return ALPROTO_SIP;
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 #[no_mangle]
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
     if sip_parse_response(buf).is_ok() {
         return ALPROTO_SIP;
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 #[no_mangle]

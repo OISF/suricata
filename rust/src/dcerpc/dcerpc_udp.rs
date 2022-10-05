@@ -178,7 +178,7 @@ impl DCERPCUDPState {
                 }
             }
         }
-        return false; // unreachable
+        false // unreachable
     }
 
     pub fn handle_input_data(&mut self, input: &[u8]) -> AppLayerResult {
@@ -213,7 +213,7 @@ impl DCERPCUDPState {
                 return AppLayerResult::err();
             }
         }
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 }
 
@@ -239,7 +239,7 @@ pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
 pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 #[no_mangle]
@@ -267,10 +267,10 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         },
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     } 
 }
@@ -290,7 +290,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
                 (hdr.flags2 & 0xfc == 0) &&
                 (hdr.drep[0] & 0xee == 0) &&
                 (hdr.drep[1] <= 3);
-            return (is_dcerpc, is_request);
+            (is_dcerpc, is_request)
         },
         Err(_) => (false, false),
     }
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
         };
         return ALPROTO_DCERPC;
     }
-    return core::ALPROTO_FAILED;
+    core::ALPROTO_FAILED
 }
 
 fn register_pattern_probe() -> i8 {

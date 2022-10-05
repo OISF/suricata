@@ -48,7 +48,7 @@ impl HTTP2cursor {
     }
 
     pub fn set_position(&mut self, pos: u64) {
-        return self.cursor.set_position(pos);
+        self.cursor.set_position(pos)
     }
 }
 
@@ -70,7 +70,7 @@ impl Read for HTTP2cursor {
             }
             Ok(_n) => {}
         }
-        return r;
+        r
     }
 }
 
@@ -108,19 +108,19 @@ pub trait GetMutCursor {
 
 impl GetMutCursor for GzDecoder<HTTP2cursor> {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
-        return self.get_mut();
+        self.get_mut()
     }
 }
 
 impl GetMutCursor for DeflateDecoder<HTTP2cursor> {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
-        return self.get_mut();
+        self.get_mut()
     }
 }
 
 impl GetMutCursor for brotli::Decompressor<HTTP2cursor> {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
-        return self.get_mut();
+        self.get_mut()
     }
 }
 
@@ -158,7 +158,7 @@ fn http2_decompress<'a>(
     //brotli does not consume all input if it reaches some end
 
     decoder.get_mut().set_position(0);
-    return Ok(&output[..offset]);
+    Ok(&output[..offset])
 }
 
 impl HTTP2DecoderHalf {
@@ -226,7 +226,7 @@ impl HTTP2DecoderHalf {
             }
             _ => {}
         }
-        return Ok(input);
+        Ok(input)
     }
 }
 
@@ -256,9 +256,9 @@ impl HTTP2Decoder {
         &mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: Direction,
     ) -> io::Result<&'a [u8]> {
         if dir == Direction::ToClient {
-            return self.decoder_tc.decompress(input, output);
+            self.decoder_tc.decompress(input, output)
         } else {
-            return self.decoder_ts.decompress(input, output);
+            self.decoder_ts.decompress(input, output)
         }
     }
 }

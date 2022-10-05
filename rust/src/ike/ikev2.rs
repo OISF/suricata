@@ -178,7 +178,7 @@ pub fn handle_ikev2(
         }
     }
     state.transactions.push(tx);
-    return AppLayerResult::ok();
+    AppLayerResult::ok()
 }
 
 fn add_proposals(

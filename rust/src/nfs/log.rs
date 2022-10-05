@@ -32,7 +32,7 @@ pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
         return 1;
     }
 
-    return 0;
+    0
 }
 
 fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder)

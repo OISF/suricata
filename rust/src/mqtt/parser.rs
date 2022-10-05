@@ -43,7 +43,7 @@ pub struct FixedHeader {
 
 #[inline]
 fn is_continuation_bit_set(b: u8) -> bool {
-    return (b & 128) != 0;
+    (b & 128) != 0
 }
 
 #[inline]
@@ -55,7 +55,7 @@ fn convert_varint(continued: Vec<u8>, last: u8) -> u32 {
         multiplier = multiplier * 128u32;
     }
     value = value + ((last & 127) as u32 * multiplier);
-    return value;
+    value
 }
 
 // DATA TYPES
@@ -123,9 +123,9 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
                     Err(e) => return Err(e),
                 }
             }
-            return Ok((rem, Some(props)));
+            Ok((rem, Some(props)))
         }
-        Err(e) => return Err(e),
+        Err(e) => Err(e),
     }
 }
 
@@ -144,9 +144,9 @@ fn parse_message_type(code: u8) -> MQTTTypeCode {
     match code {
         0..=15 => {
             if let Some(t) = FromPrimitive::from_u8(code) {
-                return t;
+                t
             } else {
-                return MQTTTypeCode::UNASSIGNED;
+                MQTTTypeCode::UNASSIGNED
             }
         }
         _ => {
@@ -301,22 +301,22 @@ fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
                         }
                         match parse_properties(rem, true) {
                             Ok((rem, properties)) => {
-                                return Ok((
+                                Ok((
                                     rem,
                                     MQTTMessageIdOnly {
                                         message_id,
                                         reason_code: Some(reason_code),
                                         properties,
                                     },
-                                ));
+                                ))
                             }
-                            Err(e) => return Err(e),
+                            Err(e) => Err(e),
                         }
                     }
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }
             }
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 }
@@ -452,18 +452,18 @@ fn parse_disconnect(
                 }
                 match parse_properties(rem, true) {
                     Ok((rem, properties)) => {
-                        return Ok((
+                        Ok((
                             rem,
                             MQTTDisconnectData {
                                 reason_code: Some(reason_code),
                                 properties,
                             },
-                        ));
+                        ))
                     }
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }
             }
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 }
@@ -618,7 +618,7 @@ fn parse_remaining_message<'a>(
                     header,
                     op: MQTTOperation::UNASSIGNED,
                 };
-                return Ok((&full[skiplen + len..], msg));
+                Ok((&full[skiplen + len..], msg))
             }
         }
     }
@@ -685,7 +685,7 @@ pub fn parse_message(
             ))(rem);
         }
         Err(err) => {
-            return Err(err);
+            Err(err)
         }
     }
 }

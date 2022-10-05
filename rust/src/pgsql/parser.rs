@@ -309,7 +309,7 @@ impl PgsqlBEMessage {
     pub fn get_backendkey_info(&self) -> (u32, u32) {
         match self {
             PgsqlBEMessage::BackendKeyData(message) => {
-                return (message.backend_pid, message.secret_key);
+                (message.backend_pid, message.secret_key)
             }
             _ => (0, 0),
         }
@@ -786,7 +786,7 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
                                 )))
                 }
                 // TODO add other authentication messages
-                _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+                _ => Err(Err::Error(make_error(i, ErrorKind::Switch))),
             }
         }
     )(i)?;
@@ -937,7 +937,7 @@ fn parse_sasl_mechanism(i: &[u8]) -> IResult<&[u8], SASLAuthenticationMechanism>
     if let Ok((i, _)) = res {
         return Ok((i, SASLAuthenticationMechanism::ScramSha256));
     }
-    return Err(Err::Error(make_error(i, ErrorKind::Alt)));
+    Err(Err::Error(make_error(i, ErrorKind::Alt)))
 }
 
 fn parse_sasl_mechanisms(i: &[u8]) -> IResult<&[u8], Vec<SASLAuthenticationMechanism>> {

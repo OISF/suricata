@@ -81,7 +81,7 @@ impl PacketKey {
             iv: [0u8; AES128_IV_LEN],
         };
         hkdf_expand_label(&hk, b"quic iv", &mut r.iv, AES128_IV_LEN as u16);
-        return r;
+        r
     }
 
     pub fn decrypt_in_place<'a>(
@@ -173,8 +173,8 @@ pub fn quic_keys_initial(version: u32, client_dst_connection_id: &[u8]) -> Optio
     let mut server_secret = [0u8; 32];
     hkdf_expand_label(&hk, b"server in", &mut server_secret, 32);
 
-    return Some(QuicKeys {
+    Some(QuicKeys {
         local: DirectionalKeys::new(&server_secret),
         remote: DirectionalKeys::new(&client_secret),
-    });
+    })
 }

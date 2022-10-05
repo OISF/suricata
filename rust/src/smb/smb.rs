@@ -158,14 +158,14 @@ impl SMBVerCmdStat {
         Default::default()
     }
     pub fn new1(cmd: u8) -> Self {
-        return Self {
+        Self {
             smb_ver: 1,
             smb1_cmd: cmd,
             ..Default::default()
         }
     }
     pub fn new1_with_ntstatus(cmd: u8, status: u32) -> Self {
-        return Self {
+        Self {
             smb_ver: 1,
             smb1_cmd: cmd,
             status_set: true,
@@ -174,7 +174,7 @@ impl SMBVerCmdStat {
         }
     }
     pub fn new2(cmd: u16) -> Self {
-        return Self {
+        Self {
             smb_ver: 2,
             smb2_cmd: cmd,
             ..Default::default()
@@ -182,7 +182,7 @@ impl SMBVerCmdStat {
     }
 
     pub fn new2_with_ntstatus(cmd: u16, status: u32) -> Self {
-        return Self {
+        Self {
             smb_ver: 2,
             smb2_cmd: cmd,
             status_set: true,
@@ -197,7 +197,7 @@ impl SMBVerCmdStat {
         }
         self.smb_ver = 1;
         self.smb1_cmd = cmd;
-        return true;
+        true
     }
 
     pub fn set_smb2_cmd(&mut self, cmd: u16) -> bool {
@@ -206,7 +206,7 @@ impl SMBVerCmdStat {
         }
         self.smb_ver = 2;
         self.smb2_cmd = cmd;
-        return true;
+        true
     }
 
     pub fn get_version(&self) -> u8 {
@@ -217,14 +217,14 @@ impl SMBVerCmdStat {
         if self.smb_ver != 1 {
             return (false, 0);
         }
-        return (true, self.smb1_cmd);
+        (true, self.smb1_cmd)
     }
 
     pub fn get_smb2_cmd(&self) -> (bool, u16) {
         if self.smb_ver != 2 {
             return (false, 0);
         }
-        return (true, self.smb2_cmd);
+        (true, self.smb2_cmd)
     }
 
     pub fn get_ntstatus(&self) -> (bool, u32) {
@@ -311,7 +311,7 @@ impl SMBTransactionSetFilePathInfo {
     pub fn new(filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool)
         -> Self
     {
-        return Self {
+        Self {
             filename: filename, fid: fid,
             subcmd: subcmd,
             loi: loi,
@@ -336,7 +336,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
@@ -355,7 +355,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 }
 
@@ -368,7 +368,7 @@ pub struct SMBTransactionRename {
 
 impl SMBTransactionRename {
     pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> Self {
-        return Self {
+        Self {
             fuid: fuid, oldname: oldname, newname: newname,
         }
     }
@@ -388,7 +388,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 }
 
@@ -410,7 +410,7 @@ pub struct SMBTransactionCreate {
 
 impl SMBTransactionCreate {
     pub fn new(filename: Vec<u8>, disp: u32, del: bool, dir: bool) -> Self {
-        return Self {
+        Self {
             disposition: disp,
             delete_on_close: del,
             directory: dir,
@@ -433,7 +433,7 @@ pub struct SMBTransactionNegotiate {
 
 impl SMBTransactionNegotiate {
     pub fn new(smb_ver: u8) -> Self {
-        return Self {
+        Self {
             smb_ver: smb_ver,
             server_guid: Vec::with_capacity(16),
             ..Default::default()
@@ -455,7 +455,7 @@ pub struct SMBTransactionTreeConnect {
 
 impl SMBTransactionTreeConnect {
     pub fn new(share_name: Vec<u8>) -> Self {
-        return Self {
+        Self {
             share_name:share_name,
             ..Default::default()
         }
@@ -490,7 +490,7 @@ impl Transaction for SMBTransaction {
 
 impl SMBTransaction {
     pub fn new() -> Self {
-        return Self {
+        Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
               hdr: SMBCommonHdr::init(),
@@ -666,7 +666,7 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
     let o2: u8 = ((i >> 16) & 0xff) as u8;
     let o3: u8 = ((i >> 8)  & 0xff) as u8;
     let o4: u8 =  (i        & 0xff) as u8;
-    return [o1, o2, o3, o4]
+    [o1, o2, o3, o4]
 }
 
 #[derive(Default, Debug)]
@@ -785,7 +785,7 @@ impl SMBState {
         self.tx_id += 1;
         tx.id = self.tx_id;
         SCLogDebug!("TX {} created", tx.id);
-        return tx;
+        tx
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
@@ -839,7 +839,7 @@ impl SMBState {
             }
         }
         SCLogDebug!("Failed to find SMB TX with ID {}", tx_id);
-        return None;
+        None
     }
 
     fn update_ts(&mut self, ts: u64) {
@@ -871,7 +871,7 @@ impl SMBState {
                 tx.id, self.transactions.len(), &tx);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_last_tx(&mut self, smb_ver: u8, smb_cmd: u16)
@@ -899,7 +899,7 @@ impl SMBState {
             },
             None => { },
         }
-        return None;
+        None
     }
 
     pub fn get_generic_tx(&mut self, smb_ver: u8, smb_cmd: u16, key: &SMBCommonHdr)
@@ -923,7 +923,7 @@ impl SMBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     pub fn new_negotiate_tx(&mut self, smb_ver: u8)
@@ -944,7 +944,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_negotiate_tx(&mut self, smb_ver: u8)
@@ -965,7 +965,7 @@ impl SMBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     pub fn new_treeconnect_tx(&mut self, hdr: SMBCommonHdr, name: Vec<u8>)
@@ -983,7 +983,7 @@ impl SMBState {
                 tx.id, String::from_utf8_lossy(&name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_treeconnect_tx(&mut self, hdr: SMBCommonHdr)
@@ -998,7 +998,7 @@ impl SMBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     pub fn new_create_tx(&mut self, file_name: &Vec<u8>,
@@ -1017,7 +1017,7 @@ impl SMBState {
 
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_create_tx_by_hdr(&mut self, hdr: &SMBCommonHdr)
@@ -1037,7 +1037,7 @@ impl SMBState {
             }
         }
         SCLogDebug!("SMB: Failed to find SMB create TX with key {:?}", hdr);
-        return None;
+        None
     }
 
     pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
@@ -1191,7 +1191,7 @@ impl SMBState {
         } else {
             self.skip_tc = skip_left;
         }
-        return consumed;
+        consumed
     }
 
     fn add_nbss_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
@@ -1335,7 +1335,7 @@ impl SMBState {
             _ => { },
         }
 
-        return 0;
+        0
     }
 
     /// Parsing function, handling TCP chunks fragmentation
@@ -1667,7 +1667,7 @@ impl SMBState {
                 }
             }
         }
-        return 0;
+        0
     }
 
     /// Parsing function, handling TCP chunks fragmentation
@@ -1877,7 +1877,7 @@ impl SMBState {
         SCLogDebug!("GAP of size {} in toserver direction", gap_size);
         self.ts_ssn_gap = true;
         self.ts_gap = true;
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     /// handle a gap in the TOCLIENT direction
@@ -1898,7 +1898,7 @@ impl SMBState {
         SCLogDebug!("GAP of size {} in toclient direction", gap_size);
         self.tc_ssn_gap = true;
         self.tc_gap = true;
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     pub fn trunc_ts(&mut self) {
@@ -1931,7 +1931,7 @@ pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Params:
@@ -2085,7 +2085,7 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
             SCLogDebug!("no dice");
         },
     }
-    return 0;
+    0
 }
 
 fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppProto
@@ -2127,7 +2127,7 @@ fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppPro
         _ => { },
     }
     SCLogDebug!("no smb");
-    unsafe { return ALPROTO_FAILED; }
+    unsafe { ALPROTO_FAILED }
 }
 
 // probing confirmation parser
@@ -2141,7 +2141,7 @@ pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
         return ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
-    return smb_probe_tcp(flags, slice, rdir, true);
+    smb_probe_tcp(flags, slice, rdir, true)
 }
 
 // probing parser
@@ -2155,7 +2155,7 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
         return ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
-    return smb_probe_tcp(flags, slice, rdir, false);
+    smb_probe_tcp(flags, slice, rdir, false)
 }
 
 #[no_mangle]
@@ -2164,7 +2164,7 @@ pub unsafe extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
 {
     let state = cast_pointer!(state, SMBState);
     SCLogDebug!("rs_smb_state_get_tx_count: returning {}", state.tx_id);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -2175,10 +2175,10 @@ pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
     let state = cast_pointer!(state, SMBState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -2201,13 +2201,13 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 
     if direction == Direction::ToServer as u8 && tx.request_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.id, tx);
-        return 1;
+        1
     } else if direction == Direction::ToClient as u8 && tx.response_done {
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.id, tx);
-        return 1;
+        1
     } else {
         SCLogDebug!("tx {} direction {} progress 0 => {:?}", tx.id, direction, tx);
-        return 0;
+        0
     }
 }
 
@@ -2220,7 +2220,7 @@ pub unsafe extern "C" fn rs_smb_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, SMBTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 
@@ -2278,7 +2278,7 @@ pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u
             }
         }
     }
-    return ALPROTO_SMB;
+    ALPROTO_SMB
 }
 
 fn register_pattern_probe() -> i8 {
@@ -2308,9 +2308,9 @@ fn register_pattern_probe() -> i8 {
     }
 
     if r == 0 {
-        return 0;
+        0
     } else {
-        return -1;
+        -1
     }
 }
 

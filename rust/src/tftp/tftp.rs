@@ -90,7 +90,7 @@ impl TFTPTransaction {
 pub extern "C" fn rs_tftp_state_alloc() -> *mut std::os::raw::c_void {
     let state = TFTPState { state_data: AppLayerStateData::new(), transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 #[no_mangle]
@@ -115,7 +115,7 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
-    return state.tx_id as u64;
+    state.tx_id as u64
 }
 
 fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
@@ -146,10 +146,10 @@ fn parse_tftp_request(input: &[u8]) -> Option<TFTPTransaction> {
             if !tx.is_opcode_ok() {
                 return None;
             }
-            return Some(tx);
+            Some(tx)
         }
         Err(_) => {
-            return None;
+            None
         }
     }
 }
@@ -178,7 +178,7 @@ pub unsafe extern "C" fn rs_tftp_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, TFTPTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 #[no_mangle]
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn rs_tftp_get_state_data(
     -> *mut AppLayerStateData
 {
     let state = cast_pointer!(state, TFTPState);
-    return &mut state.state_data;
+    &mut state.state_data
 }
 
 #[cfg(test)]

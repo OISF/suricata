@@ -640,7 +640,7 @@ fn string_from_bytes(input: &[u8]) -> String {
             out.push_str(&format!("\\x{:02x}", *b));
         }
     }
-    return out;
+    out
 }
 
 #[no_mangle]
@@ -711,7 +711,7 @@ pub unsafe extern "C" fn jb_set_string(
             return js.set_string(key, val).is_ok();
         }
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -725,7 +725,7 @@ pub unsafe extern "C" fn jb_set_string_from_bytes(
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_string_from_bytes(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -739,7 +739,7 @@ pub unsafe extern "C" fn jb_set_base64(
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_base64(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -753,7 +753,7 @@ pub unsafe extern "C" fn jb_set_hex(
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_hex(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -761,7 +761,7 @@ pub unsafe extern "C" fn jb_set_formatted(js: &mut JsonBuilder, formatted: *cons
     if let Ok(formatted) = CStr::from_ptr(formatted).to_str() {
         return js.set_formatted(formatted).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -776,7 +776,7 @@ pub unsafe extern "C" fn jb_set_object(
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_object(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -787,7 +787,7 @@ pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_ch
     if let Ok(val) = CStr::from_ptr(val).to_str() {
         return js.append_string(val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -827,7 +827,7 @@ pub unsafe extern "C" fn jb_set_uint(js: &mut JsonBuilder, key: *const c_char, v
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_uint(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -835,7 +835,7 @@ pub unsafe extern "C" fn jb_set_float(js: &mut JsonBuilder, key: *const c_char, 
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_float(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -843,7 +843,7 @@ pub unsafe extern "C" fn jb_set_bool(js: &mut JsonBuilder, key: *const c_char, v
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_bool(key, val).is_ok();
     }
-    return false;
+    false
 }
 
 #[no_mangle]

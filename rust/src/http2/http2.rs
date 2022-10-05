@@ -278,7 +278,7 @@ impl HTTP2Transaction {
                 &xid,
             );
         };
-        return Ok(());
+        Ok(())
     }
 
     fn handle_frame(
@@ -516,7 +516,7 @@ impl HTTP2State {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 
     fn find_tx_index(&mut self, sid: u32) -> usize {
@@ -527,7 +527,7 @@ impl HTTP2State {
                 return idx + 1;
             }
         }
-        return 0;
+        0
     }
 
     fn find_child_stream_id(&mut self, sid: u32) -> u32 {
@@ -540,7 +540,7 @@ impl HTTP2State {
                 return sid;
             }
         }
-        return sid;
+        sid
     }
 
     fn create_global_tx(&mut self) -> &mut HTTP2Transaction {
@@ -592,7 +592,7 @@ impl HTTP2State {
             let tx = &mut self.transactions[index - 1];
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
-            return tx;
+            tx
         } else {
             let mut tx = HTTP2Transaction::new();
             self.tx_id += 1;
@@ -661,13 +661,13 @@ impl HTTP2State {
                 }
                 match parser::http2_parse_frame_goaway(input) {
                     Ok((_, goaway)) => {
-                        return HTTP2FrameTypeData::GOAWAY(goaway);
+                        HTTP2FrameTypeData::GOAWAY(goaway)
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
-                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
-                        });
+                        })
                     }
                 }
             }
@@ -693,44 +693,44 @@ impl HTTP2State {
                             }
                         }
                         //we could set an event on remaining data
-                        return HTTP2FrameTypeData::SETTINGS(set);
+                        HTTP2FrameTypeData::SETTINGS(set)
                     }
                     Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         } else {
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::TooLong,
-                            });
+                            })
                         }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
-                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
-                        });
+                        })
                     }
                 }
             }
             Some(parser::HTTP2FrameType::RSTSTREAM) => {
                 if input.len() != HTTP2_FRAME_RSTSTREAM_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
-                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                    HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                         reason: HTTP2FrameUnhandledReason::Incomplete,
-                    });
+                    })
                 } else {
                     match parser::http2_parse_frame_rststream(input) {
                         Ok((_, rst)) => {
-                            return HTTP2FrameTypeData::RSTSTREAM(rst);
+                            HTTP2FrameTypeData::RSTSTREAM(rst)
                         }
                         Err(_) => {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         }
                     }
                 }
@@ -738,19 +738,19 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::PRIORITY) => {
                 if input.len() != HTTP2_FRAME_PRIORITY_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
-                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                    HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                         reason: HTTP2FrameUnhandledReason::Incomplete,
-                    });
+                    })
                 } else {
                     match parser::http2_parse_frame_priority(input) {
                         Ok((_, priority)) => {
-                            return HTTP2FrameTypeData::PRIORITY(priority);
+                            HTTP2FrameTypeData::PRIORITY(priority)
                         }
                         Err(_) => {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         }
                     }
                 }
@@ -758,19 +758,19 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::WINDOWUPDATE) => {
                 if input.len() != HTTP2_FRAME_WINDOWUPDATE_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
-                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                    HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                         reason: HTTP2FrameUnhandledReason::Incomplete,
-                    });
+                    })
                 } else {
                     match parser::http2_parse_frame_windowupdate(input) {
                         Ok((_, wu)) => {
-                            return HTTP2FrameTypeData::WINDOWUPDATE(wu);
+                            HTTP2FrameTypeData::WINDOWUPDATE(wu)
                         }
                         Err(_) => {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         }
                     }
                 }
@@ -784,30 +784,30 @@ impl HTTP2State {
                 match parser::http2_parse_frame_push_promise(input, hflags, dyn_headers) {
                     Ok((_, hs)) => {
                         self.process_headers(&hs.blocks, dir);
-                        return HTTP2FrameTypeData::PUSHPROMISE(hs);
+                        HTTP2FrameTypeData::PUSHPROMISE(hs)
                     }
                     Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         } else {
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::TooLong,
-                            });
+                            })
                         }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
-                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
-                        });
+                        })
                     }
                 }
             }
             Some(parser::HTTP2FrameType::DATA) => {
-                return HTTP2FrameTypeData::DATA;
+                HTTP2FrameTypeData::DATA
             }
             Some(parser::HTTP2FrameType::CONTINUATION) => {
                 let dyn_headers = if dir == Direction::ToClient {
@@ -818,25 +818,25 @@ impl HTTP2State {
                 match parser::http2_parse_frame_continuation(input, dyn_headers) {
                     Ok((_, hs)) => {
                         self.process_headers(&hs.blocks, dir);
-                        return HTTP2FrameTypeData::CONTINUATION(hs);
+                        HTTP2FrameTypeData::CONTINUATION(hs)
                     }
                     Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         } else {
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::TooLong,
-                            });
+                            })
                         }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
-                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
-                        });
+                        })
                     }
                 }
             }
@@ -853,35 +853,35 @@ impl HTTP2State {
                             SCLogDebug!("Remaining data for HTTP2 headers");
                             self.set_event(HTTP2Event::ExtraHeaderData);
                         }
-                        return HTTP2FrameTypeData::HEADERS(hs);
+                        HTTP2FrameTypeData::HEADERS(hs)
                     }
                     Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::ParsingError,
-                            });
+                            })
                         } else {
-                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                                 reason: HTTP2FrameUnhandledReason::TooLong,
-                            });
+                            })
                         }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
-                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
-                        });
+                        })
                     }
                 }
             }
             Some(parser::HTTP2FrameType::PING) => {
-                return HTTP2FrameTypeData::PING;
+                HTTP2FrameTypeData::PING
             }
             _ => {
-                return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                     reason: HTTP2FrameUnhandledReason::UnknownType,
-                });
+                })
             }
         }
     }
@@ -993,7 +993,7 @@ impl HTTP2State {
                 }
             }
         }
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     fn parse_ts(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
@@ -1039,9 +1039,9 @@ impl HTTP2State {
         let r = self.parse_frames(input, il, Direction::ToServer, flow);
         if r.status == 1 {
             //adds bytes consumed by banner to incomplete result
-            return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
+            AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed)
         } else {
-            return r;
+            r
         }
     }
 
@@ -1060,7 +1060,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        return self.parse_frames(input, il, Direction::ToClient, flow);
+        self.parse_frames(input, il, Direction::ToClient, flow)
     }
 }
 
@@ -1095,7 +1095,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
             }
         }
     }
-    return ALPROTO_UNKNOWN;
+    ALPROTO_UNKNOWN
 }
 
 // Extern functions operating on HTTP2.
@@ -1121,7 +1121,7 @@ pub extern "C" fn rs_http2_state_new(
             HTTP2MimicHttp1Request(orig_state, r);
         }
     }
-    return r;
+    r
 }
 
 #[no_mangle]
@@ -1143,7 +1143,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
-    return state.parse_ts(buf, flow);
+    state.parse_ts(buf, flow)
 }
 
 #[no_mangle]
@@ -1153,7 +1153,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
-    return state.parse_tc(buf, flow);
+    state.parse_tc(buf, flow)
 }
 
 #[no_mangle]
@@ -1163,10 +1163,10 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
     let state = cast_pointer!(state, HTTP2State);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -1174,7 +1174,7 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -1182,14 +1182,14 @@ pub unsafe extern "C" fn rs_http2_tx_get_state(
     tx: *mut std::os::raw::c_void,
 ) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return tx.state;
+    tx.state
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_http2_tx_get_state(tx) as i32;
+    rs_http2_tx_get_state(tx) as i32
 }
 
 #[no_mangle]

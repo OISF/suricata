@@ -67,7 +67,7 @@ fn is_not_lineend(b: u8) -> bool {
     if b == 10 || b == 13 {
         return false;
     }
-    return true;
+    true
 }
 
 //may leave \r at the end to be removed

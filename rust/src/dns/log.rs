@@ -95,181 +95,181 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
 
     match rtype {
         DNS_RECORD_TYPE_A => {
-            return flags & LOG_A != 0;
+            flags & LOG_A != 0
         }
         DNS_RECORD_TYPE_NS => {
-            return flags & LOG_NS != 0;
+            flags & LOG_NS != 0
         }
         DNS_RECORD_TYPE_MD => {
-            return flags & LOG_MD != 0;
+            flags & LOG_MD != 0
         }
         DNS_RECORD_TYPE_MF => {
-            return flags & LOG_MF != 0;
+            flags & LOG_MF != 0
         }
         DNS_RECORD_TYPE_CNAME => {
-            return flags & LOG_CNAME != 0;
+            flags & LOG_CNAME != 0
         }
         DNS_RECORD_TYPE_SOA => {
-            return flags & LOG_SOA != 0;
+            flags & LOG_SOA != 0
         }
         DNS_RECORD_TYPE_MB => {
-            return flags & LOG_MB != 0;
+            flags & LOG_MB != 0
         }
         DNS_RECORD_TYPE_MG => {
-            return flags & LOG_MG != 0;
+            flags & LOG_MG != 0
         }
         DNS_RECORD_TYPE_MR => {
-            return flags & LOG_MR != 0;
+            flags & LOG_MR != 0
         }
         DNS_RECORD_TYPE_NULL => {
-            return flags & LOG_NULL != 0;
+            flags & LOG_NULL != 0
         }
         DNS_RECORD_TYPE_WKS => {
-            return flags & LOG_WKS != 0;
+            flags & LOG_WKS != 0
         }
         DNS_RECORD_TYPE_PTR => {
-            return flags & LOG_PTR != 0;
+            flags & LOG_PTR != 0
         }
         DNS_RECORD_TYPE_HINFO => {
-            return flags & LOG_HINFO != 0;
+            flags & LOG_HINFO != 0
         }
         DNS_RECORD_TYPE_MINFO => {
-            return flags & LOG_MINFO != 0;
+            flags & LOG_MINFO != 0
         }
         DNS_RECORD_TYPE_MX => {
-            return flags & LOG_MX != 0;
+            flags & LOG_MX != 0
         }
         DNS_RECORD_TYPE_TXT => {
-            return flags & LOG_TXT != 0;
+            flags & LOG_TXT != 0
         }
         DNS_RECORD_TYPE_RP => {
-            return flags & LOG_RP != 0;
+            flags & LOG_RP != 0
         }
         DNS_RECORD_TYPE_AFSDB => {
-            return flags & LOG_AFSDB != 0;
+            flags & LOG_AFSDB != 0
         }
         DNS_RECORD_TYPE_X25 => {
-            return flags & LOG_X25 != 0;
+            flags & LOG_X25 != 0
         }
         DNS_RECORD_TYPE_ISDN => {
-            return flags & LOG_ISDN != 0;
+            flags & LOG_ISDN != 0
         }
         DNS_RECORD_TYPE_RT => {
-            return flags & LOG_RT != 0;
+            flags & LOG_RT != 0
         }
         DNS_RECORD_TYPE_NSAP => {
-            return flags & LOG_NSAP != 0;
+            flags & LOG_NSAP != 0
         }
         DNS_RECORD_TYPE_NSAPPTR => {
-            return flags & LOG_NSAPPTR != 0;
+            flags & LOG_NSAPPTR != 0
         }
         DNS_RECORD_TYPE_SIG => {
-            return flags & LOG_SIG != 0;
+            flags & LOG_SIG != 0
         }
         DNS_RECORD_TYPE_KEY => {
-            return flags & LOG_KEY != 0;
+            flags & LOG_KEY != 0
         }
         DNS_RECORD_TYPE_PX => {
-            return flags & LOG_PX != 0;
+            flags & LOG_PX != 0
         }
         DNS_RECORD_TYPE_GPOS => {
-            return flags & LOG_GPOS != 0;
+            flags & LOG_GPOS != 0
         }
         DNS_RECORD_TYPE_AAAA => {
-            return flags & LOG_AAAA != 0;
+            flags & LOG_AAAA != 0
         }
         DNS_RECORD_TYPE_LOC => {
-            return flags & LOG_LOC != 0;
+            flags & LOG_LOC != 0
         }
         DNS_RECORD_TYPE_NXT => {
-            return flags & LOG_NXT != 0;
+            flags & LOG_NXT != 0
         }
         DNS_RECORD_TYPE_SRV => {
-            return flags & LOG_SRV != 0;
+            flags & LOG_SRV != 0
         }
         DNS_RECORD_TYPE_ATMA => {
-            return flags & LOG_ATMA != 0;
+            flags & LOG_ATMA != 0
         }
         DNS_RECORD_TYPE_NAPTR => {
-            return flags & LOG_NAPTR != 0;
+            flags & LOG_NAPTR != 0
         }
         DNS_RECORD_TYPE_KX => {
-            return flags & LOG_KX != 0;
+            flags & LOG_KX != 0
         }
         DNS_RECORD_TYPE_CERT => {
-            return flags & LOG_CERT != 0;
+            flags & LOG_CERT != 0
         }
         DNS_RECORD_TYPE_A6 => {
-            return flags & LOG_A6 != 0;
+            flags & LOG_A6 != 0
         }
         DNS_RECORD_TYPE_DNAME => {
-            return flags & LOG_DNAME != 0;
+            flags & LOG_DNAME != 0
         }
         DNS_RECORD_TYPE_OPT => {
-            return flags & LOG_OPT != 0;
+            flags & LOG_OPT != 0
         }
         DNS_RECORD_TYPE_APL => {
-            return flags & LOG_APL != 0;
+            flags & LOG_APL != 0
         }
         DNS_RECORD_TYPE_DS => {
-            return flags & LOG_DS != 0;
+            flags & LOG_DS != 0
         }
         DNS_RECORD_TYPE_SSHFP => {
-            return flags & LOG_SSHFP != 0;
+            flags & LOG_SSHFP != 0
         }
         DNS_RECORD_TYPE_IPSECKEY => {
-            return flags & LOG_IPSECKEY != 0;
+            flags & LOG_IPSECKEY != 0
         }
         DNS_RECORD_TYPE_RRSIG => {
-            return flags & LOG_RRSIG != 0;
+            flags & LOG_RRSIG != 0
         }
         DNS_RECORD_TYPE_NSEC => {
-            return flags & LOG_NSEC != 0;
+            flags & LOG_NSEC != 0
         }
         DNS_RECORD_TYPE_DNSKEY => {
-            return flags & LOG_DNSKEY != 0;
+            flags & LOG_DNSKEY != 0
         }
         DNS_RECORD_TYPE_DHCID => {
-            return flags & LOG_DHCID != 0;
+            flags & LOG_DHCID != 0
         }
         DNS_RECORD_TYPE_NSEC3 => {
-            return flags & LOG_NSEC3 != 0
+            flags & LOG_NSEC3 != 0
         }
         DNS_RECORD_TYPE_NSEC3PARAM => {
-            return flags & LOG_NSEC3PARAM != 0;
+            flags & LOG_NSEC3PARAM != 0
         }
         DNS_RECORD_TYPE_TLSA => {
-            return flags & LOG_TLSA != 0;
+            flags & LOG_TLSA != 0
         }
         DNS_RECORD_TYPE_HIP => {
-            return flags & LOG_HIP != 0;
+            flags & LOG_HIP != 0
         }
         DNS_RECORD_TYPE_CDS => {
-            return flags & LOG_CDS != 0;
+            flags & LOG_CDS != 0
         }
         DNS_RECORD_TYPE_CDNSKEY => {
-            return flags & LOG_CDNSKEY != 0;
+            flags & LOG_CDNSKEY != 0
         }
         DNS_RECORD_TYPE_SPF => {
-            return flags & LOG_SPF != 0;
+            flags & LOG_SPF != 0
         }
         DNS_RECORD_TYPE_TKEY => {
-            return flags & LOG_TKEY != 0;
+            flags & LOG_TKEY != 0
         }
         DNS_RECORD_TYPE_TSIG => {
-            return flags & LOG_TSIG != 0;
+            flags & LOG_TSIG != 0
         }
         DNS_RECORD_TYPE_MAILA => {
-            return flags & LOG_MAILA != 0;
+            flags & LOG_MAILA != 0
         }
         DNS_RECORD_TYPE_ANY => {
-            return flags & LOG_ANY != 0;
+            flags & LOG_ANY != 0
         }
         DNS_RECORD_TYPE_URI => {
-            return flags & LOG_URI != 0;
+            flags & LOG_URI != 0
         }
         _ => {
-            return false;
+            false
         }
     }
 }
@@ -369,10 +369,10 @@ pub fn dns_rcode_string(flags: u16) -> String {
 /// Format bytes as an IP address string.
 pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     if addr.len() == 4 {
-        return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
+        format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3])
     }
     else if addr.len() == 16 {
-        return format!("{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}",
+        format!("{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}",
                        addr[0],
                        addr[1],
                        addr[2],
@@ -388,10 +388,10 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
                        addr[12],
                        addr[13],
                        addr[14],
-                       addr[15]);
+                       addr[15])
     }
     else {
-        return "".to_string();
+        "".to_string()
     }
 }
 
@@ -408,7 +408,7 @@ fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
     js.set_uint("minimum", soa.minimum as u64)?;
 
     js.close()?;
-    return Ok(js);
+    Ok(js)
 }
 
 /// Log SSHFP section fields.
@@ -426,7 +426,7 @@ fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError>
     js.set_uint("type", sshfp.fp_type as u64)?;
 
     js.close()?;
-    return Ok(js);
+    Ok(js)
 }
 
 /// Log SRV section fields.
@@ -440,7 +440,7 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError>
     js.set_string_from_bytes("name", &srv.target)?;
 
     js.close()?;
-    return Ok(js);
+    Ok(js)
 }
 
 fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError>
@@ -476,7 +476,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
     }
 
     jsa.close()?;
-    return Ok(jsa);
+    Ok(jsa)
 }
 
 fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
@@ -637,7 +637,7 @@ fn dns_log_query(tx: &mut DNSTransaction,
         }
     }
 
-    return Ok(false);
+    Ok(false)
 }
 
 #[no_mangle]
@@ -649,10 +649,10 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
 {
     match dns_log_query(tx, i, flags, jb) {
         Ok(false) | Err(_) => {
-            return false;
+            false
         }
         Ok(true) => {
-            return true;
+            true
         }
     }
 }
@@ -669,7 +669,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
             }
         }
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -683,5 +683,5 @@ pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction,
             }
         }
     }
-    return false;
+    false
 }

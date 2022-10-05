@@ -64,7 +64,7 @@ fn basename(filename: &str) -> &str {
             return basename;
         }
     }
-    return filename;
+    filename
 }
 
 pub fn sclog(level: Level, file: &str, line: u32, function: &str,
@@ -191,7 +191,7 @@ pub fn sc_log_message(level: Level,
     // 1.8.0 and newer we can unix UNIX_EPOCH.elapsed() to get the
     // unix time.
     println!("{}:{} <{:?}> -- {}", filename, line, level, message);
-    return 0;
+    0
 }
 
 // Convert a &str into a CString by first stripping NUL bytes.

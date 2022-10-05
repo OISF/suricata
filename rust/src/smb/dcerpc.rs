@@ -101,7 +101,7 @@ pub struct SMBTransactionDCERPC {
 
 impl SMBTransactionDCERPC {
     fn new_request(req: u8, call_id: u32) -> Self {
-        return Self {
+        Self {
             opnum: 0,
             context_id: 0,
             req_cmd: req,
@@ -111,7 +111,7 @@ impl SMBTransactionDCERPC {
         }
     }
     fn new_response(call_id: u32) -> Self {
-        return Self {
+        Self {
             call_id: call_id,
             ..Default::default()
         }
@@ -135,7 +135,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     fn new_dcerpc_tx_for_response(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32)
@@ -150,7 +150,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     fn get_dcerpc_tx(&mut self, hdr: &SMBCommonHdr, vercmd: &SMBVerCmdStat, call_id: u32)
@@ -171,7 +171,7 @@ impl SMBState {
                 return Some(tx);
             }
         }
-        return None;
+        None
     }
 }
 
@@ -318,7 +318,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
         // that is part of the state
         state.dcerpc_ifaces = bind_ifaces; // TODO store per ssn
     }
-    return true;
+    true
 }
 
 /// Update TX for bind ack. Needs to update both tx and state.
@@ -394,7 +394,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
             false
         },
     };
-    return found;
+    found
 }
 
 fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
@@ -519,7 +519,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
         state.set_event(SMBEvent::MalformedData);
     }
 
-    return true;
+    true
 }
 
 /// Try to find out if the input data looks like DCERPC
@@ -534,5 +534,5 @@ pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
                 return true;
             }
     }
-    return false;
+    false
 }

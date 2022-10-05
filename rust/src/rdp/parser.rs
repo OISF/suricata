@@ -471,7 +471,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
         None => T123TpktChild::Raw(data.to_vec()),
     };
 
-    return Ok((i4, T123Tpkt { child }));
+    Ok((i4, T123Tpkt { child }))
 }
 
 fn take_4_4_bits(input: &[u8]) -> IResult<&[u8], (u8, u8), RdpError> {
@@ -541,7 +541,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
         }
     };
 
-    return Ok((
+    Ok((
         i7,
         X224ConnectionRequest {
             cdt: cr_cdt.1,
@@ -553,7 +553,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
             negotiation_request,
             data: j2.to_vec(),
         },
-    ));
+    ))
 }
 
 /// rdp-spec, section 2.2.1.1
@@ -635,7 +635,7 @@ fn parse_x224_connection_confirm(input: &[u8]) -> IResult<&[u8], X224ConnectionC
         }
     };
 
-    return Ok((
+    Ok((
         i7,
         X224ConnectionConfirm {
             cdt: cr_cdt.1,
@@ -645,7 +645,7 @@ fn parse_x224_connection_confirm(input: &[u8]) -> IResult<&[u8], X224ConnectionC
             options: class_options.1,
             negotiation_from_server,
         },
-    ));
+    ))
 }
 
 /// rdp-spec, section 2.2.1.2
@@ -719,7 +719,7 @@ fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data, RdpError> {
         None => X223DataChild::Raw(i3.to_vec()),
     };
 
-    return Ok((&[], X223Data { child }));
+    Ok((&[], X223Data { child }))
 }
 
 /// rdp-spec, section 2.2.1.3.2
@@ -787,7 +787,7 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError
         }
     }
 
-    return Ok((i4, McsConnectRequest { children }));
+    Ok((i4, McsConnectRequest { children }))
 }
 
 /// rdp-spec, section 2.2.1.3.2
@@ -946,7 +946,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
         },
     };
 
-    return Ok((
+    Ok((
         i3,
         CsClientCoreData {
             version,
@@ -976,7 +976,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
             desktop_scale_factor,
             device_scale_factor,
         },
-    ));
+    ))
 }
 
 /// rdp-spec, section 2.2.1.3.4
@@ -999,7 +999,7 @@ fn parse_cs_net(input: &[u8]) -> IResult<&[u8], CsNet> {
         remainder = j2;
     }
 
-    return Ok((i4, CsNet { channels }));
+    Ok((i4, CsNet { channels }))
 }
 
 // generic CS structure parse

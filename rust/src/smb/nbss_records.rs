@@ -48,7 +48,7 @@ impl<'a> NbssRecord<'a> {
         valid
     }
     pub fn needs_more(&self) -> bool {
-        return self.is_valid() && self.length >= 4 && self.data.len() < 4;
+        self.is_valid() && self.length >= 4 && self.data.len() < 4
     }
     pub fn is_smb(&self) -> bool {
         let valid = self.is_valid();

@@ -46,7 +46,7 @@ fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn log_ike(
@@ -122,7 +122,7 @@ fn log_ike(
         log_ikev2(tx, jb)?;
     }
     jb.close()?;
-    return Ok(());
+    Ok(())
 }
 
 fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> {
@@ -200,7 +200,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
     }
     jb.close()?;
 
-    return Ok(());
+    Ok(())
 }
 
 fn append_payload_type_extended(js: &mut JsonBuilder, pt: &u8) -> Result<(), JsonError> {

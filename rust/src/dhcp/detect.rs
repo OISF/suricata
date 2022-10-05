@@ -32,7 +32,7 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_leasetime(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_rebinding_time(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -62,5 +62,5 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_renewal_time(
             }
         }
     }
-    return 0;
+    0
 }

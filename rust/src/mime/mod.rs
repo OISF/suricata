@@ -33,7 +33,7 @@ pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
     let (input, _) = tag("\"")(input)?;
     let (input, value) = take_until("\"")(input)?;
     let (input, _) = tag("\"")(input)?;
-    return Ok((input, value));
+    Ok((input, value))
 }
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
@@ -50,7 +50,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
         rest
     ))(input)?;
     let (input, _) = opt(complete(tag(";")))(input)?;
-    return Ok((input, (name, value)));
+    Ok((input, (name, value)))
 }
 
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
@@ -74,7 +74,7 @@ fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
             }
         }
     }
-    return Ok((input, MIMEHeaderTokens { tokens }));
+    Ok((input, MIMEHeaderTokens { tokens }))
 }
 
 fn mime_find_header_token<'a>(
@@ -122,7 +122,7 @@ fn mime_find_header_token<'a>(
             }
         }
         Err(_) => {
-            return Err(());
+            Err(())
         }
     }
 }
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn rs_mime_find_header_token(
         }
         _ => {}
     }
-    return false;
+    false
 }
 
 #[cfg(test)]

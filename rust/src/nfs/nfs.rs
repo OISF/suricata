@@ -146,7 +146,7 @@ pub struct NFSTransactionFile {
 
 impl NFSTransactionFile {
     pub fn new() -> Self {
-        return Self {
+        Self {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
         }
@@ -213,7 +213,7 @@ pub struct NFSTransaction {
 
 impl NFSTransaction {
     pub fn new() -> Self {
-        return Self {
+        Self {
             id: 0,
             xid: 0,
             procedure: 0,
@@ -401,7 +401,7 @@ impl NFSState {
                 }
             }
         }
-        return tx;
+        tx
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
@@ -432,7 +432,7 @@ impl NFSState {
             }
         }
         SCLogDebug!("Failed to find NFS TX with ID {}", tx_id);
-        return None;
+        None
     }
 
     pub fn get_tx_by_xid(&mut self, tx_xid: u32) -> Option<&mut NFSTransaction> {
@@ -444,7 +444,7 @@ impl NFSState {
             }
         }
         SCLogDebug!("Failed to find NFS TX with XID {:04X}", tx_xid);
-        return None;
+        None
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -706,7 +706,7 @@ impl NFSState {
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        return tx_ref.unwrap();
+        tx_ref.unwrap()
     }
 
     pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: Direction)
@@ -727,7 +727,7 @@ impl NFSState {
             }
         }
         SCLogDebug!("Failed to find NFS TX with handle {:?}", file_handle);
-        return None;
+        None
     }
 
     pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
@@ -810,7 +810,7 @@ impl NFSState {
         xidmap.file_handle = w.handle.value.to_vec();
         self.requestmap.insert(r.hdr.xid, xidmap);
 
-        return self.process_write_record(r, w);
+        self.process_write_record(r, w)
     }
 
     fn process_reply_record<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket<'b>) -> u32 {
@@ -838,24 +838,24 @@ impl NFSState {
                 SCLogDebug!("NFSv2 reply record");
                 self.add_nfs_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
                 self.process_reply_record_v2(r, &xidmap);
-                return 0;
+                0
             },
             3 => {
                 SCLogDebug!("NFSv3 reply record");
                 self.add_nfs_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
                 self.process_reply_record_v3(r, &mut xidmap);
-                return 0;
+                0
             },
             4 => {
                 SCLogDebug!("NFSv4 reply record");
                 self.add_nfs4_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
                 self.process_reply_record_v4(r, &mut xidmap);
-                return 0;
+                0
             },
             _ => {
                 SCLogDebug!("Invalid NFS version");
                 self.set_event(NFSEvent::NonExistingVersion);
-                return 0;
+                0
             },
         }
     }
@@ -966,7 +966,7 @@ impl NFSState {
             },
             None => { 0 },
         };
-        return consumed;
+        consumed
     }
 
     /// xidmapr is an Option as it's already removed from the map if we
@@ -1104,15 +1104,15 @@ impl NFSState {
         SCLogDebug!("REPLY {} to procedure READ blob size {} / {}",
                 r.hdr.xid, r.prog_data.len(), reply.count);
 
-        return self.process_read_record(r, reply, None);
+        self.process_read_record(r, reply, None)
     }
 
     fn peek_reply_record(&mut self, r: &RpcPacketHeader) -> u32 {
         if let Some(xidmap) = self.requestmap.get(&r.xid) {
-            return xidmap.procedure;
+            xidmap.procedure
         } else {
             SCLogDebug!("REPLY: xid {} NOT FOUND", r.xid);
-            return 0;
+            0
         }
     }
 
@@ -1127,7 +1127,7 @@ impl NFSState {
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         SCLogDebug!("parse_tcp_data_ts_gap ({}) done", gap_size);
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
@@ -1141,7 +1141,7 @@ impl NFSState {
         self.tc_ssn_gap = true;
         self.tc_gap = true;
         SCLogDebug!("parse_tcp_data_tc_gap ({}) done", gap_size);
-        return AppLayerResult::ok();
+        AppLayerResult::ok()
     }
 
     /// Handle partial records
@@ -1197,7 +1197,7 @@ impl NFSState {
         // but lower than the record size
         let n1 = cmp::max(cur_i.len(), 1024);
         let n2 = cmp::min(n1, rec_size);
-        return AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32);
+        AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32)
     }
 
     /// Parsing function, handling TCP chunks fragmentation
@@ -1361,7 +1361,7 @@ impl NFSState {
         // but lower than the record size
         let n1 = cmp::max(cur_i.len(), 1024);
         let n2 = cmp::min(n1, rec_size);
-        return AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32);
+        AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32)
     }
 
     /// Parsing function, handling TCP chunks fragmentation
@@ -1530,7 +1530,7 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return Box::into_raw(boxed) as *mut _;
+    Box::into_raw(boxed) as *mut _
 }
 
 /// Params:
@@ -1635,7 +1635,7 @@ pub unsafe extern "C" fn rs_nfs_state_get_tx_count(state: *mut std::os::raw::c_v
 {
     let state = cast_pointer!(state, NFSState);
     SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
-    return state.tx_id;
+    state.tx_id
 }
 
 #[no_mangle]
@@ -1646,10 +1646,10 @@ pub unsafe extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, NFSState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
-            return tx as *const _ as *mut _;
+            tx as *const _ as *mut _
         }
         None => {
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -1670,13 +1670,13 @@ pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c
     let tx = cast_pointer!(tx, NFSTransaction);
     if direction == Direction::ToServer.into() && tx.request_done {
         //SCLogNotice!("TOSERVER progress 1");
-        return 1;
+        1
     } else if direction == Direction::ToClient.into() && tx.response_done {
         //SCLogNotice!("TOCLIENT progress 1");
-        return 1;
+        1
     } else {
         //SCLogNotice!("{} progress 0", direction);
-        return 0;
+        0
     }
 }
 
@@ -1686,7 +1686,7 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, NFSTransaction);
-    return &mut tx.tx_data;
+    &mut tx.tx_data
 }
 
 export_state_data_get!(rs_nfs_get_state_data, NFSState);
@@ -1719,7 +1719,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -1744,13 +1744,13 @@ fn nfs_probe_dir(i: &[u8], rdir: *mut u8) -> i8 {
                 Direction::ToClient
             };
             unsafe { *rdir = dir as u8 };
-            return 1;
+            1
         },
         Err(Err::Incomplete(_)) => {
-            return 0;
+            0
         },
         Err(_) => {
-            return -1;
+            -1
         },
     }
 }
@@ -1761,9 +1761,9 @@ pub fn nfs_probe(i: &[u8], direction: Direction) -> i32 {
             Ok((_, ref rpc)) => {
                 if rpc.hdr.frag_len >= 24 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
                     SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
-                    return 1;
+                    1
                 } else {
-                    return -1;
+                    -1
                 }
             },
             Err(Err::Incomplete(_)) => {
@@ -1771,21 +1771,21 @@ pub fn nfs_probe(i: &[u8], direction: Direction) -> i32 {
                     Ok((_, ref rpc_hdr)) => {
                         if rpc_hdr.frag_len >= 24 && rpc_hdr.frag_len <= 35000 && rpc_hdr.xid != 0 && rpc_hdr.msgtype == 1 {
                             SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc_hdr.frag_len, rpc_hdr.xid, rpc_hdr.msgtype);
-                            return 1;
+                            1
                         } else {
-                            return -1;
+                            -1
                         }
                     },
                     Err(Err::Incomplete(_)) => {
-                        return 0;
+                        0
                     },
                     Err(_) => {
-                        return -1;
+                        -1
                     },
                 }
             },
             Err(_) => {
-                return -1;
+                -1
             },
         }
     } else {
@@ -1796,16 +1796,16 @@ pub fn nfs_probe(i: &[u8], direction: Direction) -> i32 {
                    rpc.program == 100003 &&
                    rpc.procedure <= NFSPROC3_COMMIT
                 {
-                    return rpc_auth_type_known(rpc.creds_flavor) as i32;
+                    rpc_auth_type_known(rpc.creds_flavor) as i32
                 } else {
-                    return -1;
+                    -1
                 }
             },
             Err(Err::Incomplete(_)) => {
-                return 0;
+                0
             },
             Err(_) => {
-                return -1;
+                -1
             },
         }
     }
@@ -1817,29 +1817,29 @@ pub fn nfs_probe_udp(i: &[u8], direction: Direction) -> i32 {
             Ok((_, ref rpc)) => {
                 if i.len() >= 32 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
                     SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
-                    return 1;
+                    1
                 } else {
-                    return -1;
+                    -1
                 }
             },
             Err(_) => {
-                return -1;
+                -1
             },
         }
     } else {
         match parse_rpc_udp_request(i) {
             Ok((_, ref rpc)) => {
                 if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
-                    return 1;
+                    1
                 } else if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 2 && rpc.program == 100003 {
                     SCLogDebug!("NFSv2!");
-                    return 1;
+                    1
                 } else {
-                    return -1;
+                    -1
                 }
             },
             Err(_) => {
-                return -1;
+                -1
             },
         }
     }

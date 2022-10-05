@@ -77,7 +77,7 @@ fn log_dcerpc_header_tcp(
         jsb.set_string("rpc_version", &vstr)?;
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn log_dcerpc_header_udp(
@@ -118,7 +118,7 @@ fn log_dcerpc_header_udp(
     jsb.set_string("activityuuid", &activityuuid)?;
     jsb.set_uint("seqnum", tx.seqnum as u64)?;
     jsb.set_string("rpc_version", "4.0")?;
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]

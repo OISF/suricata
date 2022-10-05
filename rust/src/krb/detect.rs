@@ -114,7 +114,7 @@ pub fn detect_parse_encryption_weak(i: &str) -> IResult<&str, DetectKrb5TicketEn
         Some(_) => false,
         _ => true,
     };
-    return Ok((i, DetectKrb5TicketEncryptionData::WEAK(value)));
+    Ok((i, DetectKrb5TicketEncryptionData::WEAK(value)))
 }
 
 trait MyFromStr {
@@ -162,9 +162,9 @@ impl MyFromStr for EncryptionType {
             "rc4-plain-exp" => Ok(EncryptionType::RC4_PLAIN_EXP),
             _ => {
                 if let Ok(num) = s.parse::<i32>() {
-                    return Ok(EncryptionType(num));
+                    Ok(EncryptionType(num))
                 } else {
-                    return Err(format!("'{}' is not a valid value for EncryptionType", s));
+                    Err(format!("'{}' is not a valid value for EncryptionType", s))
                 }
             }
         }
@@ -172,7 +172,7 @@ impl MyFromStr for EncryptionType {
 }
 
 pub fn is_alphanumeric_or_dash(chr: char) -> bool {
-    return chr.is_alphanumeric() || chr == '-';
+    chr.is_alphanumeric() || chr == '-'
 }
 
 pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
@@ -182,7 +182,7 @@ pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
     })(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = opt(char(','))(i)?;
-    return Ok((i, e));
+    Ok((i, e))
 }
 
 pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
@@ -198,14 +198,14 @@ pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEn
             l.other.push(val);
         }
     }
-    return Ok((i, DetectKrb5TicketEncryptionData::LIST(l)));
+    Ok((i, DetectKrb5TicketEncryptionData::LIST(l)))
 }
 
 pub fn detect_parse_encryption(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, parsed) = alt((detect_parse_encryption_weak, detect_parse_encryption_list))(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
-    return Ok((i, parsed));
+    Ok((i, parsed))
 }
 
 #[no_mangle]
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn rs_krb5_detect_encryption_parse(
             return Box::into_raw(boxed) as *mut _;
         }
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -253,7 +253,7 @@ pub unsafe extern "C" fn rs_krb5_detect_encryption_match(
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]

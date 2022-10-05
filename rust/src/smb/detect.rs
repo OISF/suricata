@@ -43,7 +43,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -123,7 +123,7 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
         }
     }
 
-    return 0;
+    0
 }
 
 /* mimic logic that is/was in the C code:
@@ -168,7 +168,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
             }
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(tx: &mut SMBTransaction,
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -214,5 +214,5 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(tx: &mut SMBTransaction,
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    0
 }

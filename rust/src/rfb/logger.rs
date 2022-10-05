@@ -109,7 +109,7 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 
     js.close()?;
 
-    return Ok(());
+    Ok(())
 }
 
 #[no_mangle]
