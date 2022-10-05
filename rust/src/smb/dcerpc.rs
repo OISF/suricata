@@ -194,7 +194,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
 
             /* if this isn't the first frag, simply update the existing
              * tx with the additional stub data */
-            if dcer.packet_type == DCERPC_TYPE_REQUEST && dcer.first_frag == false {
+            if dcer.packet_type == DCERPC_TYPE_REQUEST && !dcer.first_frag {
                 SCLogDebug!("NOT the first frag. Need to find an existing TX");
                 match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
                     Ok((_, recr)) => {
@@ -258,7 +258,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                     }
                 },
                 DCERPC_TYPE_BIND => {
-                    let brec = if dcer.little_endian == true {
+                    let brec = if dcer.little_endian {
                         parse_dcerpc_bind_record(dcer.data)
                     } else {
                         parse_dcerpc_bind_record_big(dcer.data)
@@ -271,7 +271,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             if !bindr.ifaces.is_empty() {
                                 let mut ifaces: Vec<DCERPCIface> = Vec::new();
                                 for i in bindr.ifaces {
-                                    let x = if dcer.little_endian == true {
+                                    let x = if dcer.little_endian {
                                         vec![i.iface[3],  i.iface[2],  i.iface[1],  i.iface[0],
                                              i.iface[5],  i.iface[4],  i.iface[7],  i.iface[6],
                                              i.iface[8],  i.iface[9],  i.iface[10], i.iface[11],
