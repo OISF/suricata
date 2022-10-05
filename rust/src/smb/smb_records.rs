@@ -27,7 +27,7 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError>
     SCLogDebug!("get_unicode_string: blob {} {:?}", blob.len(), blob);
     let mut name : Vec<u8> = Vec::new();
     let mut c = blob;
-    while c.len() >= 1 {
+    while !c.is_empty() {
         if c.len() == 1 && c[0] == 0 {
             let rem = &c[1..];
             SCLogDebug!("get_unicode_string: name {:?}", name);

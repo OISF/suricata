@@ -152,7 +152,7 @@ impl TelnetState {
         &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
     ) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -170,7 +170,7 @@ impl TelnetState {
         }
 
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             if self.request_frame.is_none() {
                 self.request_frame = Frame::new(
                     flow,
@@ -262,7 +262,7 @@ impl TelnetState {
 
     fn parse_response(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -278,7 +278,7 @@ impl TelnetState {
             self.response_gap = false;
         }
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             if self.response_frame.is_none() {
                 self.response_frame = Frame::new(flow, stream_slice, start, -1 as i64, TelnetFrameType::Pdu as u8);
             }

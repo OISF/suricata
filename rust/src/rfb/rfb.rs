@@ -150,7 +150,7 @@ impl RFBState {
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -158,7 +158,7 @@ impl RFBState {
         let mut consumed = 0;
         SCLogDebug!("request_state {}, input_len {}", self.state, input.len());
         loop {
-            if current.len() == 0 {
+            if current.is_empty() {
                 return AppLayerResult::ok();
             }
             match self.state {
@@ -279,7 +279,7 @@ impl RFBState {
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -287,7 +287,7 @@ impl RFBState {
         let mut consumed = 0;
         SCLogDebug!("response_state {}, response_len {}", self.state, input.len());
         loop {
-            if current.len() == 0 {
+            if current.is_empty() {
                 return AppLayerResult::ok();
             }
             match self.state {

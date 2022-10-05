@@ -437,7 +437,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
         }
     };
     let mut cur_i = tcp_buffer;
-    while cur_i.len() > 0 {
+    while !cur_i.is_empty() {
         if state.record_ts == 0 {
             match be_u32(cur_i) as IResult<&[u8],u32> {
                 Ok((rem,record)) => {
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
         }
     };
     let mut cur_i = tcp_buffer;
-    while cur_i.len() > 0 {
+    while !cur_i.is_empty() {
         if state.record_tc == 0 {
             match be_u32(cur_i) as IResult<&[u8],_> {
                 Ok((rem,record)) => {

@@ -520,7 +520,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     };
 
     let (j1, cookie) = {
-        if data.len() > 0 {
+        if !data.is_empty() {
             match opt(parse_rdp_cookie)(data) {
                 Ok((remainder, opt)) => (remainder, opt),
                 Err(e) => return Err(e),
@@ -531,7 +531,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     };
 
     let (j2, negotiation_request) = {
-        if j1.len() > 0 {
+        if !j1.is_empty() {
             match opt(parse_negotiation_request)(j1) {
                 Ok((remainder, opt)) => (remainder, opt),
                 Err(e) => return Err(e),
@@ -782,7 +782,7 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError
             Err(Err::Incomplete(i)) => return Err(Err::Incomplete(i)),
             Err(Err::Failure(_)) | Err(Err::Error(_)) => break,
         };
-        if remainder.len() == 0 {
+        if remainder.is_empty() {
             break;
         }
     }
