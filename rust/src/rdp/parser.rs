@@ -42,7 +42,7 @@ use nom7::{Err, IResult};
 /// constrains dimension to a range, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
 fn millimeters_to_opt(x: u32) -> Option<u32> {
-    if x >= 10 && x <= 10_000 {
+    if (10..=10_000).contains(&x) {
         Some(x)
     } else {
         None
@@ -52,7 +52,7 @@ fn millimeters_to_opt(x: u32) -> Option<u32> {
 /// constrains desktop scale to a range, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
 fn desktop_scale_to_opt(x: u32) -> Option<u32> {
-    if x >= 100 && x <= 500 {
+    if (100..=500).contains(&x) {
         Some(x)
     } else {
         None
