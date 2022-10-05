@@ -549,6 +549,9 @@ typedef struct SignatureInitData_ {
     bool src_contains_negation;
     bool dst_contains_negation;
 
+    /** see if any of the sigmatches supports an enabled prefilter */
+    bool has_possible_prefilter;
+
     /* used to hold flags that are used during init */
     uint32_t init_flags;
     /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
