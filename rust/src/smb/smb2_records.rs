@@ -599,7 +599,7 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
 
 fn smb_basic_search(d: &[u8]) -> usize {
     let needle = b"SMB";
-    let mut r = 0 as usize;
+    let mut r = 0_usize;
     // this could be replaced by aho-corasick
     let iter = d.windows(needle.len());
     for window in iter {
@@ -626,5 +626,5 @@ pub fn search_smb_record<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
         }
         d = &d[index + 3..];
     }
-    Err(Err::Incomplete(Needed::new(4 as usize - d.len())))
+    Err(Err::Incomplete(Needed::new(4_usize - d.len())))
 }
