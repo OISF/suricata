@@ -79,7 +79,7 @@ impl FileTransferTracker {
     }
 
     pub fn is_done(&self) -> bool {
-        self.file_open == false
+        !self.file_open
     }
 
     fn open(&mut self, config: &'static SuricataFileContext,
@@ -112,7 +112,7 @@ impl FileTransferTracker {
     }
 
     pub fn create(&mut self, _name: &[u8], _file_size: u64) {
-        if self.file_open == true { panic!("close existing file first"); }
+        if self.file_open { panic!("close existing file first"); }
 
         SCLogDebug!("CREATE: name {:?} file_size {}", _name, _file_size);
     }
@@ -146,13 +146,13 @@ impl FileTransferTracker {
         self.fill_bytes = fill_bytes;
         self.chunk_is_last = is_last;
 
-        if self.file_open == false {
+        if !self.file_open {
             SCLogDebug!("NEW CHUNK: FILE OPEN");
             self.track_id = *xid;
             self.open(config, files, flags, name);
         }
 
-        if self.file_open == true {
+        if self.file_open {
             let res = self.update(files, flags, data, 0);
             SCLogDebug!("NEW CHUNK: update res {:?}", res);
             return res;
@@ -173,7 +173,7 @@ impl FileTransferTracker {
 
         if self.chunk_left == 0 && self.fill_bytes == 0 {
             //SCLogDebug!("UPDATE: nothing to do");
-            if self.chunk_is_last == true {
+            if self.chunk_is_last {
                 SCLogDebug!("last empty chunk, closing");
                 self.close(files, flags);
                 self.chunk_is_last = false;
@@ -199,7 +199,7 @@ impl FileTransferTracker {
             if self.chunk_left <= data.len() as u32 {
                 let d = &data[0..self.chunk_left as usize];
 
-                if self.chunk_is_ooo == false {
+                if !self.chunk_is_ooo {
                     let res = files.file_append(&self.track_id, d, is_gap);
                     match res {
                         0   => { },
@@ -246,7 +246,7 @@ impl FileTransferTracker {
                 } else {
                     self.chunk_left = 0;
 
-                    if self.chunk_is_ooo == false {
+                    if !self.chunk_is_ooo {
                         loop {
                             let _offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
@@ -283,7 +283,7 @@ impl FileTransferTracker {
                         self.cur_ooo_chunk_offset = 0;
                     }
                 }
-                if self.chunk_is_last == true {
+                if self.chunk_is_last {
                     SCLogDebug!("last chunk, closing");
                     self.close(files, flags);
                     self.chunk_is_last = false;
@@ -292,7 +292,7 @@ impl FileTransferTracker {
                 }
 
             } else {
-                if self.chunk_is_ooo == false {
+                if !self.chunk_is_ooo {
                     let res = files.file_append(&self.track_id, data, is_gap);
                     match res {
                         0   => { },
