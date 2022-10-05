@@ -155,6 +155,14 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             memset(&b64, 0, sizeof(b64));
         }
     }
+
+    if (!valid && mode == BASE64_MODE_RFC4648) {
+        padding = B64_BLOCK - bbidx;
+        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
+        DecodeBase64Block(dptr, b64);
+        *consumed_bytes += bbidx;
+    }
+
     /* Finish remaining b64 bytes by padding */
     if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
         /* Decode remaining */
