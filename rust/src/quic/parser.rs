@@ -357,12 +357,10 @@ impl QuicHeader {
                 } else {
                     return Err(nom7::Err::Error(QuicError::InvalidPacket));
                 }
+            } else if let Ok(length) = u16::try_from(rest.len()) {
+                (rest, length)
             } else {
-                if let Ok(length) = u16::try_from(rest.len()) {
-                    (rest, length)
-                } else {
-                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
-                }
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
             };
 
             Ok((
