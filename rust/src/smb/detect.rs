@@ -84,7 +84,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
             } else {
                 &x.stub_data_tc
             };
-            if vref.len() > 0 {
+            if !vref.is_empty() {
                 *buffer = vref.as_ptr();
                 *buffer_len = vref.len() as u32;
                 return 1;

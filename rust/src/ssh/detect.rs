@@ -27,7 +27,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_protocol(
     match direction.into() {
         Direction::ToServer => {
             let m = &tx.cli_hdr.protover;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -35,7 +35,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_protocol(
         }
         Direction::ToClient => {
             let m = &tx.srv_hdr.protover;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_software(
     match direction.into() {
         Direction::ToServer => {
             let m = &tx.cli_hdr.swver;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_software(
         }
         Direction::ToClient => {
             let m = &tx.srv_hdr.swver;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh(
     match direction.into() {
         Direction::ToServer => {
             let m = &tx.cli_hdr.hassh;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh(
         }
         Direction::ToClient => {
             let m = &tx.srv_hdr.hassh;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh_string(
     match direction.into() {
         Direction::ToServer => {
             let m = &tx.cli_hdr.hassh_string;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh_string(
         }
         Direction::ToClient => {
             let m = &tx.srv_hdr.hassh_string;
-            if m.len() > 0 {
+            if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
                 return 1;

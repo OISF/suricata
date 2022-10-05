@@ -433,7 +433,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                     let mut bad_dialects = false;
                     let mut dialects : Vec<Vec<u8>> = Vec::new();
                     for d in &pr.dialects {
-                        if d.len() == 0 {
+                        if d.is_empty() {
                             bad_dialects = true;
                             continue;
                         } else if d.len() == 1 {
@@ -1126,7 +1126,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
 /// configured to do so, or if this is a tx especially
 /// for setting an event.
 fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
-    if smb1_create_new_tx(r.command) || events.len() > 0 {
+    if smb1_create_new_tx(r.command) || !events.is_empty() {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
         tx.set_events(events);
@@ -1149,7 +1149,7 @@ fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, eve
         },
         None => {},
     }
-    if events.len() > 0 {
+    if !events.is_empty() {
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
         tx.request_done = true;
         tx.response_done = true;

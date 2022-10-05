@@ -268,7 +268,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             is_bind = true;
                             SCLogDebug!("SMB DCERPC {:?} BIND {:?}", dcer, bindr);
 
-                            if bindr.ifaces.len() > 0 {
+                            if !bindr.ifaces.is_empty() {
                                 let mut ifaces: Vec<DCERPCIface> = Vec::new();
                                 for i in bindr.ifaces {
                                     let x = if dcer.little_endian == true {
@@ -470,7 +470,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 
     let mut malformed = false;
 
-    if data.len() == 0 {
+    if data.is_empty() {
         SCLogDebug!("weird: no DCERPC data"); // TODO
         // TODO set event?
         return false;

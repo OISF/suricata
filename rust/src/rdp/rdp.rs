@@ -176,7 +176,7 @@ impl RdpState {
         let mut available = input;
 
         loop {
-            if available.len() == 0 {
+            if available.is_empty() {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
@@ -269,7 +269,7 @@ impl RdpState {
         let mut available = input;
 
         loop {
-            if available.len() == 0 {
+            if available.is_empty() {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, 
 
 /// probe for T.123 type identifier, as each message is encapsulated in T.123
 fn probe_rdp(input: &[u8]) -> bool {
-    input.len() > 0 && input[0] == TpktVersion::T123 as u8
+    !input.is_empty() && input[0] == TpktVersion::T123 as u8
 }
 
 /// probe for T.123 message, whether to client or to server
@@ -424,7 +424,7 @@ pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
 
 /// probe for TLS
 fn probe_tls_handshake(input: &[u8]) -> bool {
-    input.len() > 0 && input[0] == u8::from(TlsRecordType::Handshake)
+    !input.is_empty() && input[0] == u8::from(TlsRecordType::Handshake)
 }
 
 //
