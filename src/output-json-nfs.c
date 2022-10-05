@@ -110,10 +110,8 @@ static OutputInitResult NFSLogInitSub(ConfNode *conf,
 void JsonNFSLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_NFS, "eve-log", "JsonNFSLog",
-        "eve-log.nfs", NFSLogInitSub, ALPROTO_NFS,
-        JsonNFSLogger, JsonLogThreadInit,
-        JsonLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonNFSLog", "eve-log.nfs", NFSLogInitSub,
+            ALPROTO_NFS, JsonNFSLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
 
     SCLogDebug("NFS JSON logger registered.");
 }

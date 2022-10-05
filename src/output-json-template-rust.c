@@ -172,10 +172,9 @@ void JsonTemplateRustLogRegister(void)
     }
     /* TEMPLATE_END_REMOVE */
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TEMPLATE_RUST, "eve-log",
-        "JsonTemplateRustLog", "eve-log.template-rust",
-        OutputTemplateLogInitSub, ALPROTO_TEMPLATE_RUST, JsonTemplateLogger,
-        JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateRustLog",
+            "eve-log.template-rust", OutputTemplateLogInitSub, ALPROTO_TEMPLATE_RUST,
+            JsonTemplateLogger, JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
 
     SCLogNotice("Template JSON logger registered.");
 }

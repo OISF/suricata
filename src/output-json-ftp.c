@@ -204,10 +204,10 @@ static OutputInitResult OutputFTPLogInitSub(ConfNode *conf,
 void JsonFTPLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog", "eve-log.ftp",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
             OutputFTPLogInitSub, ALPROTO_FTP, JsonFTPLogger, JsonLogThreadInit, JsonLogThreadDeinit,
             NULL);
-    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog", "eve-log.ftp",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
             OutputFTPLogInitSub, ALPROTO_FTPDATA, JsonFTPLogger, JsonLogThreadInit,
             JsonLogThreadDeinit, NULL);
 

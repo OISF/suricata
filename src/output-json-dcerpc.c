@@ -67,10 +67,9 @@ static OutputInitResult DCERPCLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 void JsonDCERPCLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_DCERPC, "eve-log", "JsonDCERPCLog",
-        "eve-log.dcerpc", DCERPCLogInitSub, ALPROTO_DCERPC,
-        JsonDCERPCLogger, JsonLogThreadInit,
-        JsonLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDCERPCLog", "eve-log.dcerpc",
+            DCERPCLogInitSub, ALPROTO_DCERPC, JsonDCERPCLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
 
     SCLogDebug("DCERPC JSON logger registered.");
 }
