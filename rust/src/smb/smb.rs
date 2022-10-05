@@ -1193,7 +1193,7 @@ impl SMBState {
     fn add_nbss_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
         let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8);
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
-        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4 as i64, SMBFrameType::NBSSHdr as u8);
+        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8);
         SCLogDebug!("NBSS HDR frame {:?}", nbss_hdr_frame);
         let nbss_data_frame = Frame::new(flow, stream_slice, &input[4..], nbss_len, SMBFrameType::NBSSData as u8);
         SCLogDebug!("NBSS DATA frame {:?}", nbss_data_frame);
@@ -1206,7 +1206,7 @@ impl SMBState {
         Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8)
     }
     fn add_smb1_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb1_hdr = Frame::new(flow, stream_slice, input, 32 as i64, SMBFrameType::SMB1Hdr as u8);
+        let _smb1_hdr = Frame::new(flow, stream_slice, input, 32_i64, SMBFrameType::SMB1Hdr as u8);
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > 32 {
             let _smb1_data = Frame::new(flow, stream_slice, &input[32..], (nbss_len - 32) as i64, SMBFrameType::SMB1Data as u8);
@@ -1234,7 +1234,7 @@ impl SMBState {
         Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB3Pdu as u8)
     }
     fn add_smb3_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52 as i64, SMBFrameType::SMB3Hdr as u8);
+        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
             let _smb3_data = Frame::new(flow, stream_slice, &input[52..], (nbss_len - 52) as i64, SMBFrameType::SMB3Data as u8);
@@ -1537,7 +1537,7 @@ impl SMBState {
     fn add_nbss_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
         let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8);
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
-        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4 as i64, SMBFrameType::NBSSHdr as u8);
+        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8);
         SCLogDebug!("NBSS HDR frame {:?}", nbss_hdr_frame);
         let nbss_data_frame = Frame::new(flow, stream_slice, &input[4..], nbss_len, SMBFrameType::NBSSData as u8);
         SCLogDebug!("NBSS DATA frame {:?}", nbss_data_frame);
@@ -1578,7 +1578,7 @@ impl SMBState {
         SCLogDebug!("SMBv3 PDU frame {:?}", _smb_pdu);
     }
     fn add_smb3_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52 as i64, SMBFrameType::SMB3Hdr as u8);
+        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
             let _smb3_data = Frame::new(flow, stream_slice, &input[52..], (nbss_len - 52) as i64, SMBFrameType::SMB3Data as u8);

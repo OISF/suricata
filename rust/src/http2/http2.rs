@@ -1014,7 +1014,7 @@ impl HTTP2State {
                 self.progress = HTTP2ConnectionState::Http2StateMagicDone;
             } else {
                 //still more buffer
-                return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
+                return AppLayerResult::incomplete(0_u32, HTTP2_MAGIC_LEN as u32);
             }
         }
         //first consume frame bytes

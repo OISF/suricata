@@ -127,7 +127,7 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
 fn http2_tx_get_next_priority(
     tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
 fn http2_tx_get_next_window(
     tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {
@@ -810,7 +810,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
 pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {

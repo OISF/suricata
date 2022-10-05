@@ -261,7 +261,7 @@ impl SSHState {
                     return r;
                 }
                 Err(Err::Incomplete(_)) => {
-                    return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
+                    return AppLayerResult::incomplete(0_u32, (input.len() + 1) as u32);
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
@@ -301,7 +301,7 @@ impl SSHState {
             Err(Err::Incomplete(_)) => {
                 if input.len() < SSH_MAX_BANNER_LEN {
                     //0 consumed, needs at least one more byte
-                    AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32)
+                    AppLayerResult::incomplete(0_u32, (input.len() + 1) as u32)
                 } else {
                     SCLogDebug!(
                         "SSH banner too long {} vs {} and waiting for eol",
