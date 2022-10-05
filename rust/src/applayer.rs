@@ -268,7 +268,7 @@ impl AppLayerResult {
 
 impl From<bool> for AppLayerResult {
     fn from(v: bool) -> Self {
-        if v == false {
+        if !v {
             Self::err()
         } else {
             Self::ok()

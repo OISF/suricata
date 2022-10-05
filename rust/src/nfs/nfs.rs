@@ -1984,7 +1984,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
-        if midstream == true {
+        if midstream {
             if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP as u8,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {

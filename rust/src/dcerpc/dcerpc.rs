@@ -565,7 +565,7 @@ impl DCERPCState {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
-                if tx.req_done == false {
+                if !tx.req_done {
                     tx.req_lost = true;
                 }
                 tx.req_done = true;
@@ -579,10 +579,10 @@ impl DCERPCState {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
-                if tx.req_done == false {
+                if !tx.req_done {
                     tx.req_lost = true;
                 }
-                if tx.resp_done == false {
+                if !tx.resp_done {
                     tx.resp_lost = true;
                 }
                 tx.req_done = true;
@@ -1080,7 +1080,7 @@ impl DCERPCState {
         self.bytes_consumed += retval;
 
         // If the query has been completed, clean the buffer and reset the direction
-        if self.query_completed == true {
+        if self.query_completed {
             self.clean_buffer(direction);
             self.reset_direction(direction);
         }
