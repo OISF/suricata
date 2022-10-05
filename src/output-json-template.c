@@ -180,10 +180,9 @@ void JsonTemplateLogRegister(void)
     }
     /* TEMPLATE_END_REMOVE */
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TEMPLATE, "eve-log", "JsonTemplateLog",
-        "eve-log.template", OutputTemplateLogInitSub, ALPROTO_TEMPLATE,
-        JsonTemplateLogger, JsonTemplateLogThreadInit,
-        JsonTemplateLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
+            OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonTemplateLogger,
+            JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
 
     SCLogNotice("Template JSON logger registered.");
 }
