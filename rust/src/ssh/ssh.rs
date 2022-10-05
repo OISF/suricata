@@ -426,10 +426,8 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
         if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
-    } else {
-        if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-            return SSHConnectionState::SshStateBannerDone as i32;
-        }
+    } else if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
+        return SSHConnectionState::SshStateBannerDone as i32;
     }
 
     SSHConnectionState::SshStateInProgress as i32
@@ -508,11 +506,9 @@ pub unsafe extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_v
             return true; 
         }
     }
-    else {
-        if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
-            tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
-            return true;
-        }
+    else if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
+        tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+        return true;
     }
     false
 }

@@ -312,10 +312,8 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
             if dir != Direction::ToServer {
                 *rdir = Direction::ToServer.into();
             }
-        } else {
-            if dir != Direction::ToClient {
-                *rdir = Direction::ToClient.into();
-            }
+        } else if dir != Direction::ToClient {
+            *rdir = Direction::ToClient.into();
         };
         return ALPROTO_DCERPC;
     }

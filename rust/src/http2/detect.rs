@@ -634,12 +634,10 @@ pub unsafe extern "C" fn rs_http2_tx_get_cookie(
             *buffer_len = value.len() as u32;
             return 1;
         }
-    } else {
-        if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToClient, "set-cookie") {
-            *buffer = value.as_ptr(); //unsafe
-            *buffer_len = value.len() as u32;
-            return 1;
-        }
+    } else if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToClient, "set-cookie") {
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
     }
     0
 }
@@ -717,10 +715,8 @@ fn http2_header_iscookie(direction: Direction, hname: &[u8]) -> bool {
             if s.to_lowercase() == "cookie" {
                 return true;
             }
-        } else {
-            if s.to_lowercase() == "set-cookie" {
-                return true;
-            }
+        } else if s.to_lowercase() == "set-cookie" {
+            return true;
         }
     }
     false

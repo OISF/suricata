@@ -237,13 +237,11 @@ impl HTTP2Transaction {
                         }
                     }
                 }
-            } else {
-                if !self.file_range.is_null() {
-                    if over {
-                        range::http2_range_close(self, Direction::ToClient, decompressed)
-                    } else {
-                        range::http2_range_append(self.file_range, decompressed)
-                    }
+            } else if !self.file_range.is_null() {
+                if over {
+                    range::http2_range_close(self, Direction::ToClient, decompressed)
+                } else {
+                    range::http2_range_append(self.file_range, decompressed)
                 }
             }
             let (files, flags) = self.files.get(Direction::ToClient);
@@ -348,10 +346,8 @@ impl HTTP2Transaction {
                         if self.state < HTTP2TransactionState::HTTP2StateDataClient {
                             self.state = HTTP2TransactionState::HTTP2StateDataClient;
                         }
-                    } else {
-                        if self.state < HTTP2TransactionState::HTTP2StateDataServer {
-                            self.state = HTTP2TransactionState::HTTP2StateDataServer;
-                        }
+                    } else if self.state < HTTP2TransactionState::HTTP2StateDataServer {
+                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
                     }
                 }
             }
