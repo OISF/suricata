@@ -233,7 +233,7 @@ impl NFSState {
 
                 // cut off final eof field
                 let d = if rd.data.len() >= 4 {
-                    &rd.data[..rd.data.len()-4 as usize]
+                    &rd.data[..rd.data.len()-4_usize]
                 } else {
                     rd.data
                 };
