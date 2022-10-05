@@ -547,7 +547,7 @@ pub fn parse_payload<'a>(
     let element = num::FromPrimitive::from_u8(payload_type);
     match element {
         Some(IsakmpPayloadType::SecurityAssociation) => {
-            if let Err(_) = parse_security_association_payload(
+            if parse_security_association_payload(
                 data,
                 data_length,
                 domain_of_interpretation,
@@ -556,14 +556,14 @@ pub fn parse_payload<'a>(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ) {
+            ).is_err() {
                 SCLogDebug!("Error parsing SecurityAssociation");
                 return Err(());
             }
             Ok(())
         }
         Some(IsakmpPayloadType::Proposal) => {
-            if let Err(_) = parse_proposal_payload(
+            if parse_proposal_payload(
                 data,
                 data_length,
                 domain_of_interpretation,
@@ -572,7 +572,7 @@ pub fn parse_payload<'a>(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ) {
+            ).is_err() {
                 SCLogDebug!("Error parsing Proposal");
                 return Err(());
             }
@@ -622,7 +622,7 @@ fn parse_proposal_payload<'a>(
             match parse_ikev1_payload_list(payload.data) {
                 Ok((_, payload_list)) => {
                     for isakmp_payload in payload_list {
-                        if let Err(_) = parse_payload(
+                        if parse_payload(
                             cur_payload_type,
                             isakmp_payload.data,
                             isakmp_payload.data.len() as u16,
@@ -632,7 +632,7 @@ fn parse_proposal_payload<'a>(
                             transforms,
                             vendor_ids,
                             payload_types,
-                        ) {
+                        ).is_err() {
                             SCLogDebug!("Error parsing transform payload");
                             return Err(());
                         }
@@ -673,7 +673,7 @@ fn parse_security_association_payload<'a>(
                     match parse_ikev1_payload_list(p_data) {
                         Ok((_, payload_list)) => {
                             for isakmp_payload in payload_list {
-                                if let Err(_) = parse_payload(
+                                if parse_payload(
                                     cur_payload_type,
                                     isakmp_payload.data,
                                     isakmp_payload.data.len() as u16,
@@ -683,7 +683,7 @@ fn parse_security_association_payload<'a>(
                                     transforms,
                                     vendor_ids,
                                     payload_types,
-                                ) {
+                                ).is_err() {
                                     SCLogDebug!("Error parsing proposal payload");
                                     return Err(());
                                 }
