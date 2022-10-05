@@ -250,8 +250,8 @@ impl AppLayerResult {
     pub fn incomplete(consumed: u32, needed: u32) -> Self {
         Self {
             status: 1,
-            consumed: consumed,
-            needed: needed,
+            consumed,
+            needed,
         }
     }
 
@@ -479,7 +479,7 @@ pub struct AppLayerGetTxIterTuple {
 impl AppLayerGetTxIterTuple {
     pub fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
         AppLayerGetTxIterTuple {
-            tx_ptr: tx_ptr, tx_id: tx_id, has_next: has_next,
+            tx_ptr, tx_id, has_next,
         }
     }
     pub fn not_found() -> AppLayerGetTxIterTuple {

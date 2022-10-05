@@ -169,7 +169,7 @@ impl SMBVerCmdStat {
             smb_ver: 1,
             smb1_cmd: cmd,
             status_set: true,
-            status: status,
+            status,
             ..Default::default()
         }
     }
@@ -186,7 +186,7 @@ impl SMBVerCmdStat {
             smb_ver: 2,
             smb2_cmd: cmd,
             status_set: true,
-            status: status,
+            status,
             ..Default::default()
         }
     }
@@ -312,10 +312,10 @@ impl SMBTransactionSetFilePathInfo {
         -> Self
     {
         Self {
-            filename: filename, fid: fid,
-            subcmd: subcmd,
-            loi: loi,
-            delete_on_close: delete_on_close,
+            filename, fid,
+            subcmd,
+            loi,
+            delete_on_close,
         }
     }
 }
@@ -369,7 +369,7 @@ pub struct SMBTransactionRename {
 impl SMBTransactionRename {
     pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> Self {
         Self {
-            fuid: fuid, oldname: oldname, newname: newname,
+            fuid, oldname, newname,
         }
     }
 }
@@ -414,7 +414,7 @@ impl SMBTransactionCreate {
             disposition: disp,
             delete_on_close: del,
             directory: dir,
-            filename: filename,
+            filename,
             ..Default::default()
         }
     }
@@ -434,7 +434,7 @@ pub struct SMBTransactionNegotiate {
 impl SMBTransactionNegotiate {
     pub fn new(smb_ver: u8) -> Self {
         Self {
-            smb_ver: smb_ver,
+            smb_ver,
             server_guid: Vec::with_capacity(16),
             ..Default::default()
         }
@@ -456,7 +456,7 @@ pub struct SMBTransactionTreeConnect {
 impl SMBTransactionTreeConnect {
     pub fn new(share_name: Vec<u8>) -> Self {
         Self {
-            share_name:share_name,
+            share_name,
             ..Default::default()
         }
     }
@@ -532,8 +532,8 @@ pub struct SMBFileGUIDOffset {
 impl SMBFileGUIDOffset {
     pub fn new(guid: Vec<u8>, offset: u64) -> Self {
         Self {
-            guid:guid,
-            offset:offset,
+            guid,
+            offset,
         }
     }
 }
@@ -565,10 +565,10 @@ impl SMBCommonHdr {
     }
     pub fn new(rec_type: u32, ssn_id: u64, tree_id: u32, msg_id: u64) -> Self {
         Self {
-            rec_type : rec_type,
-            ssn_id : ssn_id,
-            tree_id : tree_id,
-            msg_id : msg_id,
+            rec_type,
+            ssn_id,
+            tree_id,
+            msg_id,
         }
     }
     pub fn from2(r: &Smb2Record, rec_type: u32) -> SMBCommonHdr {
@@ -582,10 +582,10 @@ impl SMBCommonHdr {
         };
 
         SMBCommonHdr {
-            rec_type : rec_type,
+            rec_type,
             ssn_id : r.session_id,
-            tree_id : tree_id,
-            msg_id : msg_id,
+            tree_id,
+            msg_id,
         }
 
     }
@@ -601,10 +601,10 @@ impl SMBCommonHdr {
         };
 
         SMBCommonHdr {
-            rec_type : rec_type,
+            rec_type,
             ssn_id : r.session_id,
             tree_id : 0,
-            msg_id : msg_id,
+            msg_id,
         }
     }
     pub fn from1(r: &SmbRecord, rec_type: u32) -> SMBCommonHdr {
@@ -618,10 +618,10 @@ impl SMBCommonHdr {
         };
 
         SMBCommonHdr {
-            rec_type : rec_type,
+            rec_type,
             ssn_id : r.ssn_id as u64,
-            tree_id : tree_id,
-            msg_id : msg_id,
+            tree_id,
+            msg_id,
         }
     }
 
@@ -641,7 +641,7 @@ pub struct SMBHashKeyHdrGuid {
 impl SMBHashKeyHdrGuid {
     pub fn new(hdr: SMBCommonHdr, guid: Vec<u8>) -> Self {
         Self {
-            hdr: hdr, guid: guid,
+            hdr, guid,
         }
     }
 }
@@ -655,8 +655,8 @@ pub struct SMBTree {
 impl SMBTree {
     pub fn new(name: Vec<u8>, is_pipe: bool) -> Self {
         Self {
-            name:name,
-            is_pipe:is_pipe,
+            name,
+            is_pipe,
         }
     }
 }

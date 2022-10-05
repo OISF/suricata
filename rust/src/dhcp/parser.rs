@@ -102,13 +102,13 @@ pub fn parse_header(i: &[u8]) -> IResult<&[u8], DHCPHeader> {
     Ok((
         i,
         DHCPHeader {
-            opcode: opcode,
-            htype: htype,
-            hlen: hlen,
-            hops: hops,
-            txid: txid,
-            seconds: seconds,
-            flags: flags,
+            opcode,
+            htype,
+            hlen,
+            hops,
+            txid,
+            seconds,
+            flags,
             clientip: clientip.to_vec(),
             yourip: yourip.to_vec(),
             serverip: serverip.to_vec(),
@@ -129,7 +129,7 @@ pub fn parse_clientid_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     Ok((
         i,
         DHCPOption {
-            code: code,
+            code,
             data: None,
             option: DHCPOptionWrapper::ClientId(DHCPOptClientId {
                 htype: 1,
@@ -146,9 +146,9 @@ pub fn parse_address_time_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     Ok((
         i,
         DHCPOption {
-            code: code,
+            code,
             data: None,
-            option: DHCPOptionWrapper::TimeValue(DHCPOptTimeValue { seconds: seconds }),
+            option: DHCPOptionWrapper::TimeValue(DHCPOptTimeValue { seconds }),
         },
     ))
 }
@@ -160,7 +160,7 @@ pub fn parse_generic_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     Ok((
         i,
         DHCPOption {
-            code: code,
+            code,
             data: None,
             option: DHCPOptionWrapper::Generic(DHCPOptGeneric {
                 data: data.to_vec(),
@@ -226,10 +226,10 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                 }
             }
             let message = DHCPMessage {
-                header: header,
-                options: options,
-                malformed_options: malformed_options,
-                truncated_options: truncated_options,
+                header,
+                options,
+                malformed_options,
+                truncated_options,
             };
             Ok((next, message))
         }

@@ -143,7 +143,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
 
     let s = SpnegoRequest {
         krb: kticket,
-        ntlmssp: ntlmssp,
+        ntlmssp,
     };
     Some(s)
 }
@@ -181,9 +181,9 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
                             domain.retain(|&i|i != 0x00);
 
                             let d = NtlmsspData {
-                                host: host,
-                                user: user,
-                                domain: domain,
+                                host,
+                                user,
+                                domain,
                                 version: ad.version,
                             };
                             ntlmssp_data = Some(d);

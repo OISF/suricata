@@ -162,7 +162,7 @@ fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, De
         DetectUintData {
             arg1,
             arg2: T::min_value(),
-            mode: mode,
+            mode,
         },
     ))
 }

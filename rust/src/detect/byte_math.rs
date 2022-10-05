@@ -466,20 +466,20 @@ mod tests {
         result: &str, base: ByteMathBase, endian: ByteMathEndian, bitmask_val: u32, flags: u8,
     ) {
         let bmd = DetectByteMathData {
-            nbytes: nbytes,
-            offset: offset,
-            oper: oper,
+            nbytes,
+            offset,
+            oper,
             rvalue_str: if !rvalue_str.is_empty() {
                 CString::new(rvalue_str).unwrap().into_raw()
             } else {
                 std::ptr::null_mut()
             },
-            rvalue: rvalue,
+            rvalue,
             result: CString::new(result).unwrap().into_raw(),
-            base: base,
-            endian: endian,
-            bitmask_val: bitmask_val,
-            flags: flags,
+            base,
+            endian,
+            bitmask_val,
+            flags,
             ..Default::default()
         };
 

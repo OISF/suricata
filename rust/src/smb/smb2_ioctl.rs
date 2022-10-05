@@ -32,7 +32,7 @@ pub struct SMBTransactionIoctl {
 impl SMBTransactionIoctl {
     pub fn new(func: u32) -> Self {
         Self {
-            func: func,
+            func,
         }
     }
 }

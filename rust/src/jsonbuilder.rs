@@ -106,7 +106,7 @@ impl JsonBuilder {
         let mut buf = String::with_capacity(capacity);
         buf.push('{');
         Self {
-            buf: buf,
+            buf,
             state: vec![State::None, State::ObjectFirst],
             init_type: Type::Object,
         }
@@ -121,7 +121,7 @@ impl JsonBuilder {
         let mut buf = String::with_capacity(capacity);
         buf.push('[');
         Self {
-            buf: buf,
+            buf,
             state: vec![State::None, State::ArrayFirst],
             init_type: Type::Array,
         }

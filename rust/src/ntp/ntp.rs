@@ -155,7 +155,7 @@ impl NTPTransaction {
     pub fn new(id: u64) -> NTPTransaction {
         NTPTransaction {
             xid: 0,
-            id: id,
+            id,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }

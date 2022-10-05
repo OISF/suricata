@@ -237,8 +237,8 @@ impl QuicHeader {
                     rest,
                     QuicHeader {
                         flags,
-                        ty: ty,
-                        version: version,
+                        ty,
+                        version,
                         version_buf: version_buf.to_vec(),
                         dcid: dcid.to_vec(),
                         scid: Vec::new(),

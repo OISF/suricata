@@ -145,9 +145,9 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     }
 
     Ok(DCEIfaceData {
-        if_uuid: if_uuid,
-        du16: du16,
-        any_frag: any_frag,
+        if_uuid,
+        du16,
+        any_frag,
     })
 }
 

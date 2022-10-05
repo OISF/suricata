@@ -99,9 +99,9 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
     let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<u8>().ok())(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
     let du8 = DetectUintData::<u8> {
-        arg1: arg1,
+        arg1,
         arg2: 0,
-        mode: mode,
+        mode,
     };
     Ok((i, DetectIPRepData { du8, cat, cmd }))
 }

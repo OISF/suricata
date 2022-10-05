@@ -245,7 +245,7 @@ impl<'a> SNMPTransaction<'a> {
             community: None,
             usm: None,
             encrypted: false,
-            id: id,
+            id,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }

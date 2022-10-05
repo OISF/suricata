@@ -76,9 +76,9 @@ pub struct DCERPCIface {
 impl DCERPCIface {
     pub fn new(uuid: Vec<u8>, ver: u16, ver_min: u16) -> Self {
         Self {
-            uuid: uuid,
-            ver:ver,
-            ver_min:ver_min,
+            uuid,
+            ver,
+            ver_min,
             ..Default::default()
         }
     }
@@ -106,13 +106,13 @@ impl SMBTransactionDCERPC {
             context_id: 0,
             req_cmd: req,
             req_set: true,
-            call_id: call_id,
+            call_id,
             ..Default::default()
         }
     }
     fn new_response(call_id: u32) -> Self {
         Self {
-            call_id: call_id,
+            call_id,
             ..Default::default()
         }
     }
