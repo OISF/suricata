@@ -356,7 +356,7 @@ fn smb_dcerpc_response_bindack(
                             }
                             ifaces[i].ack_result = r.ack_result;
                             ifaces[i].acked = true;
-                            i = i + 1;
+                            i += 1;
                         }
                     },
                     _ => {},

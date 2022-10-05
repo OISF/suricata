@@ -185,7 +185,7 @@ impl MQTTState {
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
-                index = index + 1;
+                index += 1;
                 if !tx_old.complete {
                     tx_old.complete = true;
                     MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);

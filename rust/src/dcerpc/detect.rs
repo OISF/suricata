@@ -79,7 +79,7 @@ fn match_backuuid(
                 }
             }
             let ctxid = tx.get_req_ctxid();
-            ret = ret & ((uuidentry.ctxid == ctxid) as u8);
+            ret &= (uuidentry.ctxid == ctxid) as u8;
             if ret == 0 {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;

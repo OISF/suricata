@@ -903,7 +903,7 @@ fn add_up_data_size(columns: Vec<ColumnFieldValue>) -> u64 {
     for field in columns {
         // -1 value means data value is NULL, let's not add that up
         if field.value_length > 0 {
-            data_size = data_size + field.value_length as u64;
+            data_size += field.value_length as u64;
         }
     }
     data_size

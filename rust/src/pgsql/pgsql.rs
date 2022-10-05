@@ -76,7 +76,7 @@ impl PgsqlTransaction {
     }
 
     pub fn incr_row_cnt(&mut self) {
-        self.data_row_cnt = self.data_row_cnt + 1;
+        self.data_row_cnt += 1;
     }
 
     pub fn get_row_cnt(&self) -> u16 {
@@ -84,7 +84,7 @@ impl PgsqlTransaction {
     }
 
     pub fn sum_data_size(&mut self, row_size: u64) {
-        self.data_size = self.data_size + row_size;
+        self.data_size += row_size;
     }
 }
 
@@ -194,7 +194,7 @@ impl PgsqlState {
             // to avoid quadratic complexity
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
-                index = index + 1;
+                index += 1;
                 if tx_old.tx_state < PgsqlTransactionState::ResponseDone {
                     tx_old.tx_state = PgsqlTransactionState::FlushedOut;
                     //TODO set event

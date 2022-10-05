@@ -606,7 +606,7 @@ fn smb_basic_search(d: &[u8]) -> usize {
         if window == needle {
             return r;
         }
-        r = r + 1;
+        r += 1;
     }
     0
 }
