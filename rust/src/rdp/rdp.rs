@@ -153,12 +153,7 @@ impl RdpState {
     }
 
     fn get_tx(&self, tx_id: u64) -> Option<&RdpTransaction> {
-        for tx in &self.transactions {
-            if tx.id == tx_id {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|&tx| tx.id == tx_id)
     }
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
