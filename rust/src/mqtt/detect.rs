@@ -23,7 +23,7 @@ use std::ffi::CStr;
 use std::ptr;
 use std::str::FromStr;
 
-#[derive(FromPrimitive, Debug, Copy, Clone, PartialOrd, PartialEq)]
+#[derive(FromPrimitive, Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 pub enum MQTTFlagState {

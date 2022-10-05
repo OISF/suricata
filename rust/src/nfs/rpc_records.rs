@@ -31,14 +31,14 @@ pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
 pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
 pub const RPC_MAX_VERIFIER_SIZE: u32 = 4096; // Linux kernel defines 400.
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RpcRequestCreds<'a> {
     Unix(RpcRequestCredsUnix<'a>),
     GssApi(RpcRequestCredsGssApi<'a>),
     Unknown(&'a [u8]),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcRequestCredsUnix<'a> {
     pub stamp: u32,
     pub machine_name_len: u32,
@@ -71,7 +71,7 @@ fn parse_rpc_request_creds_unix(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
     Ok((i, creds))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcRequestCredsGssApi<'a> {
     pub version: u32,
     pub procedure: u32,
@@ -101,7 +101,7 @@ fn parse_rpc_request_creds_unknown(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> 
     Ok((&[], RpcRequestCreds::Unknown(i)))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcGssApiIntegrity<'a> {
     pub seq_num: u32,
     pub data: &'a [u8],
@@ -117,7 +117,7 @@ pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity
     Ok((i, res))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcPacketHeader {
     pub frag_is_last: bool,
     pub frag_len: u32,
@@ -145,7 +145,7 @@ pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
     Ok((i, hdr))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcReplyPacket<'a> {
     pub hdr: RpcPacketHeader,
 
@@ -161,7 +161,7 @@ pub struct RpcReplyPacket<'a> {
 }
 
 // top of request packet, just to get to procedure
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcRequestPacketPartial {
     pub hdr: RpcPacketHeader,
 
@@ -187,7 +187,7 @@ pub fn parse_rpc_request_partial(i: &[u8]) -> IResult<&[u8], RpcRequestPacketPar
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RpcPacket<'a> {
     pub hdr: RpcPacketHeader,
 

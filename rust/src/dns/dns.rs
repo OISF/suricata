@@ -123,7 +123,7 @@ pub enum DnsFrameType {
 }
 
 
-#[derive(Debug, PartialEq, AppLayerEvent)]
+#[derive(Debug, PartialEq, Eq, AppLayerEvent)]
 pub enum DNSEvent {
     MalformedData,
     NotRequest,
@@ -131,7 +131,7 @@ pub enum DNSEvent {
     ZFlagSet,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 #[repr(C)]
 pub struct DNSHeader {
     pub tx_id: u16,
@@ -149,7 +149,7 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
     pub mname: Vec<u8>,
@@ -167,7 +167,7 @@ pub struct DNSRDataSOA {
     pub minimum: u32,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSSHFP {
     /// Algorithm number
     pub algo: u8,
@@ -177,7 +177,7 @@ pub struct DNSRDataSSHFP {
     pub fingerprint: Vec<u8>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSRV {
     /// Priority
     pub priority: u16,
@@ -190,7 +190,7 @@ pub struct DNSRDataSRV {
 }
 
 /// Represents RData of various formats
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub enum DNSRData {
     // RData is an address
     A(Vec<u8>),
@@ -211,7 +211,7 @@ pub enum DNSRData {
     Unknown(Vec<u8>),
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
