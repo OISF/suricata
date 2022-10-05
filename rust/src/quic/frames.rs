@@ -196,7 +196,7 @@ fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
     ))
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuicTlsExtension {
     pub etype: TlsExtensionType,
     pub values: Vec<Vec<u8>>,

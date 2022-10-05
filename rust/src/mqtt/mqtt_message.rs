@@ -52,7 +52,7 @@ pub enum MQTTOperation {
 }
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, PartialOrd, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, FromPrimitive, Debug)]
 pub enum MQTTTypeCode {
     UNASSIGNED = 0,
     CONNECT = 1,

@@ -25,7 +25,7 @@ use nom7::IResult;
 
 use std::ffi::CStr;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
 pub enum DetectUintMode {
     DetectUintModeEqual,

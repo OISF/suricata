@@ -26,7 +26,7 @@ use crate::ike::ike::{IKEState, IKETransaction, IkeEvent};
 use crate::ike::parser::IsakmpHeader;
 use ipsec_parser::{IkeExchangeType, IkePayloadType, IkeV2Header};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum IKEV2ConnectionState {
     Init,
