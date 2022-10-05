@@ -641,11 +641,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-        true
-    } else {
-        false
-    };
+    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
 
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
