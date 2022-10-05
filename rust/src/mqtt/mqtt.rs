@@ -721,7 +721,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"mqtt\0";
+const PARSER_NAME: &[u8] = b"mqtt\0";
 
 export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
 export_state_data_get!(rs_mqtt_get_state_data, MQTTState);

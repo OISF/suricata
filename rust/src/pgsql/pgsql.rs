@@ -697,7 +697,7 @@ export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
 export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"pgsql\0";
+const PARSER_NAME: &[u8] = b"pgsql\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_pgsql_register_parser() {

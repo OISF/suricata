@@ -343,7 +343,7 @@ pub unsafe extern "C" fn rs_sip_parse_response(
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
 export_state_data_get!(rs_sip_get_state_data, SIPState);
 
-const PARSER_NAME: &'static [u8] = b"sip\0";
+const PARSER_NAME: &[u8] = b"sip\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_register_parser() {

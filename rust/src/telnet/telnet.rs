@@ -515,7 +515,7 @@ export_tx_data_get!(rs_telnet_get_tx_data, TelnetTransaction);
 export_state_data_get!(rs_telnet_get_state_data, TelnetState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"telnet\0";
+const PARSER_NAME: &[u8] = b"telnet\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_telnet_register_parser() {

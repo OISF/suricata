@@ -2309,7 +2309,7 @@ fn register_pattern_probe() -> i8 {
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"smb\0";
+const PARSER_NAME: &[u8] = b"smb\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_register_parser() {

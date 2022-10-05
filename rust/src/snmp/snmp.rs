@@ -372,7 +372,7 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
 export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
 export_state_data_get!(rs_snmp_get_state_data, SNMPState);
 
-const PARSER_NAME : &'static [u8] = b"snmp\0";
+const PARSER_NAME : &[u8] = b"snmp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_snmp_parser() {

@@ -434,7 +434,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ssh\0";
+const PARSER_NAME: &[u8] = b"ssh\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_register_parser() {

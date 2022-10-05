@@ -1341,7 +1341,7 @@ fn register_pattern_probe() -> i8 {
 export_state_data_get!(rs_dcerpc_get_state_data, DCERPCState);
 
 // Parser name as a C style string.
-pub const PARSER_NAME: &'static [u8] = b"dcerpc\0";
+pub const PARSER_NAME: &[u8] = b"dcerpc\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_register_parser() {

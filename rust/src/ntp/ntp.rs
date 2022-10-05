@@ -268,7 +268,7 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
 export_tx_data_get!(rs_ntp_get_tx_data, NTPTransaction);
 export_state_data_get!(rs_ntp_get_state_data, NTPState);
 
-const PARSER_NAME : &'static [u8] = b"ntp\0";
+const PARSER_NAME : &[u8] = b"ntp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_ntp_parser() {

@@ -1201,7 +1201,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"http2\0";
+const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {

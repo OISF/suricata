@@ -391,8 +391,8 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
 static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ike\0";
-const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
+const PARSER_NAME: &[u8] = b"ike\0";
+const PARSER_ALIAS: &[u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 export_state_data_get!(rs_ike_get_state_data, IKEState);
