@@ -165,7 +165,7 @@ impl FileTransferTracker {
     /// If gap_size > 0 'data' should not be used.
     /// return how much we consumed of data
     pub fn update(&mut self, files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32) -> u32 {
-        let mut consumed = 0 as usize;
+        let mut consumed = 0_usize;
         let is_gap = gap_size > 0;
         if is_gap || gap_size > 0 {
             SCLogDebug!("is_gap {} size {} ooo? {}", is_gap, gap_size, self.chunk_is_ooo);
