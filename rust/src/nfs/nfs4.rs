@@ -42,7 +42,7 @@ impl NFSState {
      * is not part of the write record itself so we pass it in here. */
     fn write_v4<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs4RequestWrite<'b>, fh: &'b [u8]) {
         // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
+        let is_last = w.stable == 2;
         SCLogDebug!("is_last {}", is_last);
 
         let mut fill_bytes = 0;

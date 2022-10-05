@@ -953,11 +953,7 @@ impl SMBState {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
-                    if x.smb_ver == smb_ver {
-                        true
-                    } else {
-                        false
-                    }
+                    x.smb_ver == smb_ver
                 },
                 _ => { false },
             };
