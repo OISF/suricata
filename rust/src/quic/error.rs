@@ -19,7 +19,7 @@ use nom7::error::{ErrorKind, ParseError};
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum QuicError {
     StreamTagNoMatch(u32),
     InvalidPacket,

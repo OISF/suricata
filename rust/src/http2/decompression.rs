@@ -25,7 +25,7 @@ use std::io::{Cursor, Read, Write};
 pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2ContentEncoding {
     HTTP2ContentEncodingUnknown = 0,
     HTTP2ContentEncodingGzip = 1,

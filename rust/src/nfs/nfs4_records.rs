@@ -36,7 +36,7 @@ const RPCSEC_GSS: u32 = 6;
 // Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
 const NFSD_MAX_OPS_PER_COMPOUND: usize = 64;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub enum Nfs4RequestContent<'a> {
     PutFH(Nfs4Handle<'a>),
     GetFH,
@@ -72,7 +72,7 @@ pub enum Nfs4RequestContent<'a> {
     DestroyClientID(&'a[u8]),
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4Attr {
     attr_mask: u64,
 }
@@ -106,7 +106,7 @@ fn nfs4_parse_attrbits(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     Ok((i, attr))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4StateId<'a> {
     pub seqid: u32,
     pub data: &'a[u8],
@@ -119,7 +119,7 @@ fn nfs4_parse_stateid(i: &[u8]) -> IResult<&[u8], Nfs4StateId> {
     Ok((i, state))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4Handle<'a> {
     pub len: u32,
     pub value: &'a[u8],
@@ -139,7 +139,7 @@ fn nfs4_parse_nfsstring(i: &[u8]) -> IResult<&[u8], &[u8]> {
     Ok((i, data))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestLayoutReturn<'a> {
     pub layout_type: u32,
     pub return_type: u32,
@@ -167,7 +167,7 @@ fn nfs4_req_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestGetDevInfo<'a> {
     pub device_id: &'a[u8],
     pub layout_type: u32,
@@ -190,7 +190,7 @@ fn nfs4_req_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCreateSession<'a> {
     pub client_id: &'a[u8],
     pub seqid: u32,
@@ -222,7 +222,7 @@ fn nfs4_req_putfh(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_handle, Nfs4RequestContent::PutFH)(i)
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestSetClientId<'a> {
     pub client_id: &'a[u8],
     pub r_netid: &'a[u8],
@@ -250,7 +250,7 @@ fn nfs4_req_setclientid_confirm(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> 
     Ok((i, Nfs4RequestContent::SetClientIdConfirm))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestCreate<'a> {
     pub ftype4: u32,
     pub filename: &'a[u8],
@@ -270,7 +270,7 @@ fn nfs4_req_create(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub enum Nfs4OpenRequestContent<'a> {
     Exclusive4(&'a[u8]),
     Unchecked4(Nfs4Attr),
@@ -300,7 +300,7 @@ fn nfs4_req_open_type(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent> {
     Ok((i, data))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestOpen<'a> {
     pub open_type: u32,
     pub filename: &'a[u8],
@@ -335,7 +335,7 @@ fn nfs4_req_readdir(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::ReadDir))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestRename<'a> {
     pub oldname: &'a[u8],
     pub newname: &'a[u8],
@@ -351,7 +351,7 @@ fn nfs4_req_rename(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestLookup<'a> {
     pub filename: &'a[u8],
 }
@@ -375,7 +375,7 @@ fn nfs4_req_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(be_u32, Nfs4RequestContent::SecInfoNoName) (i)
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestSetAttr<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -391,7 +391,7 @@ fn nfs4_req_getattr(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_attrbits, Nfs4RequestContent::GetAttr)(i)
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestWrite<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub offset: u64,
@@ -417,7 +417,7 @@ fn nfs4_req_write(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestRead<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub offset: u64,
@@ -442,7 +442,7 @@ fn nfs4_req_close(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::Close(stateid)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestOpenConfirm<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -495,7 +495,7 @@ fn nfs4_req_destroy_clientid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::DestroyClientID(client_id)))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestLayoutGet<'a> {
     pub layout_type: u32,
     pub length: u64,
@@ -521,7 +521,7 @@ fn nfs4_req_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestExchangeId<'a> {
     pub client_string: &'a[u8],
     pub nii_domain: &'a[u8],
@@ -546,7 +546,7 @@ fn nfs4_req_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestSequence<'a> {
     pub ssn_id: &'a[u8],
 }
@@ -603,7 +603,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
     Ok((i, cmd_data))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4RequestCompoundRecord<'a> {
     pub commands: Vec<Nfs4RequestContent<'a>>,
 }
@@ -620,7 +620,7 @@ pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompou
     Ok((i, Nfs4RequestCompoundRecord { commands }))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub enum Nfs4ResponseContent<'a> {
     PutFH(u32),
     PutRootFH(u32),
@@ -663,7 +663,7 @@ fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::LayoutReturn(status)))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseCreateSession<'a> {
     pub ssn_id: &'a[u8],
     pub seq_id: u32,
@@ -687,7 +687,7 @@ fn nfs4_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::CreateSession( status, create_ssn_data )))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseExchangeId<'a> {
     pub client_id: &'a[u8],
     pub eir_minorid: u64,
@@ -728,7 +728,7 @@ fn nfs4_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::ExchangeId( status, xchngid_data)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseWrite {
     pub count: u32,
     pub committed: u32,
@@ -747,7 +747,7 @@ fn nfs4_res_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Write(status, wd)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseRead<'a> {
     pub eof: bool,
     pub count: u32,
@@ -772,21 +772,21 @@ fn nfs4_res_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Read(status, rd)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseOpen<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub result_flags: u32,
     pub delegate: Nfs4ResponseFileDelegation<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Nfs4ResponseFileDelegation<'a> {
     DelegateRead(Nfs4ResponseOpenDelegateRead<'a>),
     DelegateWrite(Nfs4ResponseOpenDelegateWrite<'a>),
     DelegateNone(u32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseOpenDelegateWrite<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub who: &'a[u8],
@@ -807,7 +807,7 @@ fn nfs4_res_open_ok_delegate_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileD
     })))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseOpenDelegateRead<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -856,7 +856,7 @@ fn nfs4_res_open(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Open(status, open_data)))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseGetDevInfo<'a> {
     pub layout_type: u32,
     pub r_netid: &'a[u8],
@@ -888,7 +888,7 @@ fn nfs4_res_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
 
 /*https://datatracker.ietf.org/doc/html/rfc5661#section-13.1*/
 // in case of multiple file handles, return handles in a vector
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseLayoutGet<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub length: u64,
@@ -965,12 +965,12 @@ fn nfs4_res_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::SecInfoNoName(status)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseReaddirEntry<'a> {
     pub name: &'a[u8],
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseReaddir<'a> {
     pub eof: bool,
     pub listing: Vec<Option<Nfs4ResponseReaddirEntry<'a>>>,
@@ -1114,7 +1114,7 @@ fn nfs4_res_commit(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Commit(status)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseAccess {
     pub supported_types: u32,
     pub access_rights: u32,
@@ -1136,7 +1136,7 @@ fn nfs4_res_access(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Access(status, ad)))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseSequence<'a> {
     pub ssn_id: &'a[u8],
 }
@@ -1203,7 +1203,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, cmd_data))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs4ResponseCompoundRecord<'a> {
     pub status: u32,
     pub commands: Vec<Nfs4ResponseContent<'a>>,

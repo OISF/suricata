@@ -38,7 +38,7 @@ pub enum SSHEvent {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum SSHConnectionState {
     SshStateInProgress = 0,
     SshStateBannerWaitEol = 1,

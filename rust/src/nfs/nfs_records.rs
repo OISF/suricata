@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFS
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NfsReplyRead<'a> {
     pub status: u32,
     pub attr_follows: u32,

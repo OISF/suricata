@@ -78,7 +78,7 @@ impl From<u32> for QuicVersion {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum QuicType {
     Initial,
     Retry,
@@ -93,7 +93,7 @@ const QUIC_FLAG_DCID_LEN: u8 = 0x8;
 const QUIC_FLAG_NONCE: u8 = 0x4;
 const QUIC_FLAG_VERSION: u8 = 0x1;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PublicFlags {
     pub is_long: bool,
     pub raw: u8,
@@ -161,7 +161,7 @@ pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
 }
 
 /// A QUIC packet's header.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct QuicHeader {
     pub flags: PublicFlags,
     pub ty: QuicType,

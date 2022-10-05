@@ -25,7 +25,7 @@ use nom7::multi::{length_data, many0};
 use nom7::number::streaming::{be_u32, be_u64};
 use nom7::IResult;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3Handle<'a> {
     pub len: u32,
     pub value: &'a [u8],
@@ -38,7 +38,7 @@ pub fn parse_nfs3_handle(i: &[u8]) -> IResult<&[u8], Nfs3Handle> {
     Ok((i, handle))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ReplyCreate<'a> {
     pub status: u32,
     pub handle: Option<Nfs3Handle<'a>>,
@@ -52,7 +52,7 @@ pub fn parse_nfs3_response_create(i: &[u8]) -> IResult<&[u8], Nfs3ReplyCreate> {
     Ok((i, reply))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ReplyLookup<'a> {
     pub status: u32,
     pub handle: Nfs3Handle<'a>,
@@ -65,7 +65,7 @@ pub fn parse_nfs3_response_lookup(i: &[u8]) -> IResult<&[u8], Nfs3ReplyLookup> {
     Ok((i, reply))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestCreate<'a> {
     pub handle: Nfs3Handle<'a>,
     pub name_len: u32,
@@ -91,7 +91,7 @@ pub fn parse_nfs3_request_create(i: &[u8]) -> IResult<&[u8], Nfs3RequestCreate> 
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestRemove<'a> {
     pub handle: Nfs3Handle<'a>,
     pub name_len: u32,
@@ -111,7 +111,7 @@ pub fn parse_nfs3_request_remove(i: &[u8]) -> IResult<&[u8], Nfs3RequestRemove> 
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestRmdir<'a> {
     pub handle: Nfs3Handle<'a>,
     pub name_vec: Vec<u8>,
@@ -129,7 +129,7 @@ pub fn parse_nfs3_request_rmdir(i: &[u8]) -> IResult<&[u8], Nfs3RequestRmdir> {
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestMkdir<'a> {
     pub handle: Nfs3Handle<'a>,
     pub name_vec: Vec<u8>,
@@ -148,7 +148,7 @@ pub fn parse_nfs3_request_mkdir(i: &[u8]) -> IResult<&[u8], Nfs3RequestMkdir> {
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestRename<'a> {
     pub from_handle: Nfs3Handle<'a>,
     pub from_name_vec: Vec<u8>,
@@ -175,7 +175,7 @@ pub fn parse_nfs3_request_rename(i: &[u8]) -> IResult<&[u8], Nfs3RequestRename> 
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestGetAttr<'a> {
     pub handle: Nfs3Handle<'a>,
 }
@@ -185,7 +185,7 @@ pub fn parse_nfs3_request_getattr(i: &[u8]) -> IResult<&[u8], Nfs3RequestGetAttr
     Ok((i, Nfs3RequestGetAttr { handle }))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestAccess<'a> {
     pub handle: Nfs3Handle<'a>,
     pub check_access: u32,
@@ -201,7 +201,7 @@ pub fn parse_nfs3_request_access(i: &[u8]) -> IResult<&[u8], Nfs3RequestAccess> 
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestCommit<'a> {
     pub handle: Nfs3Handle<'a>,
 }
@@ -213,7 +213,7 @@ pub fn parse_nfs3_request_commit(i: &[u8]) -> IResult<&[u8], Nfs3RequestCommit> 
     Ok((i, Nfs3RequestCommit { handle }))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestRead<'a> {
     pub handle: Nfs3Handle<'a>,
     pub offset: u64,
@@ -226,7 +226,7 @@ pub fn parse_nfs3_request_read(i: &[u8]) -> IResult<&[u8], Nfs3RequestRead> {
     Ok((i, Nfs3RequestRead { handle, offset }))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestLookup<'a> {
     pub handle: Nfs3Handle<'a>,
     pub name_vec: Vec<u8>,
@@ -243,7 +243,7 @@ pub fn parse_nfs3_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs3RequestLookup> 
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ResponseReaddirplusEntryC<'a> {
     pub name_vec: Vec<u8>,
     pub handle: Option<Nfs3Handle<'a>>,
@@ -268,7 +268,7 @@ pub fn parse_nfs3_response_readdirplus_entry(
     Ok((i, resp))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ResponseReaddirplusEntry<'a> {
     pub entry: Option<Nfs3ResponseReaddirplusEntryC<'a>>,
 }
@@ -281,7 +281,7 @@ pub fn parse_nfs3_response_readdirplus_entry_cond(
     Ok((i, Nfs3ResponseReaddirplusEntry { entry }))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ResponseReaddirplus<'a> {
     pub status: u32,
     pub data: &'a [u8],
@@ -304,7 +304,7 @@ pub(crate) fn many0_nfs3_response_readdirplus_entries<'a>(
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestReaddirplus<'a> {
     pub handle: Nfs3Handle<'a>,
     pub cookie: u64,
@@ -329,7 +329,7 @@ pub fn parse_nfs3_request_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3RequestRea
     Ok((i, req))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3RequestWrite<'a> {
     pub handle: Nfs3Handle<'a>,
     pub offset: u64,

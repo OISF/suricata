@@ -23,7 +23,7 @@ use std::str::Utf8Error;
 
 const INIT_SIZE: usize = 4096;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum JsonError {
     InvalidState,
     Utf8Error(Utf8Error),

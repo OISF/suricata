@@ -48,7 +48,7 @@ pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum HTTP2ConnectionState {
     Http2StateInit = 0,
     Http2StateMagicDone = 1,
@@ -64,7 +64,7 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
 static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2FrameUnhandledReason {
     UnknownType = 0,
     TooLong = 1,
@@ -100,7 +100,7 @@ pub enum HTTP2FrameTypeData {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2TransactionState {
     HTTP2StateIdle = 0,
     HTTP2StateOpen = 1,

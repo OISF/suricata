@@ -476,14 +476,14 @@ pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
 }
 
 /// Windows operating system type (build and suffix/pack)
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OperatingSystem {
     pub build: Build,
     pub suffix: Suffix,
 }
 
 // <https://en.wikipedia.org/wiki/Windows_NT#Releases>
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Build {
     Other,
@@ -510,7 +510,7 @@ pub enum Build {
     Server2003 = 3790,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Suffix {
     Empty,
     Rtm,
