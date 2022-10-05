@@ -570,15 +570,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
             false
         },
     };
-    if !have_tx {
-        if smb1_create_new_tx(command) {
-            let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(1, command as u16, tx_key);
-            SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
-            tx.set_events(events);
-            if no_response_expected {
-                tx.response_done = true;
-            }
+    if !have_tx && smb1_create_new_tx(command) {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(1, command as u16, tx_key);
+        SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
+        tx.set_events(events);
+        if no_response_expected {
+            tx.response_done = true;
         }
     }
 }
