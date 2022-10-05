@@ -242,7 +242,7 @@ impl KRB5Transaction {
             etype: None,
             ticket_etype: None,
             error_code: None,
-            id: id,
+            id,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }

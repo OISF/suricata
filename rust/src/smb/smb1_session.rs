@@ -56,9 +56,9 @@ pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> Sessi
 
         SCLogDebug!("name1 {:?} name2 {:?} name3 {:?}", native_os,native_lm,primary_domain);
         SessionSetupRequest {
-            native_os:native_os,
-            native_lm:native_lm,
-            primary_domain:primary_domain,
+            native_os,
+            native_lm,
+            primary_domain,
         }
     } else {
         let (native_os, native_lm, primary_domain) = match smb_get_ascii_string(blob) {
@@ -78,9 +78,9 @@ pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> Sessi
 
         SCLogDebug!("session_setup_request_host_info: not unicode");
         SessionSetupRequest {
-            native_os: native_os,
-            native_lm: native_lm,
-            primary_domain: primary_domain,
+            native_os,
+            native_lm,
+            primary_domain,
         }
     }
 }
@@ -102,8 +102,8 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
 
         SCLogDebug!("name1 {:?} name2 {:?}", native_os,native_lm);
         SessionSetupResponse {
-            native_os:native_os,
-            native_lm:native_lm,
+            native_os,
+            native_lm,
         }
     } else {
         SCLogDebug!("session_setup_response_host_info: not unicode");
@@ -117,8 +117,8 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
             _ => { (Vec::new(), Vec::new()) },
         };
         SessionSetupResponse {
-            native_os: native_os,
-            native_lm: native_lm,
+            native_os,
+            native_lm,
         }
     }
 }
