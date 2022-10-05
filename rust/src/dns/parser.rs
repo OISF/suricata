@@ -69,7 +69,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b
         } else if len & 0b1100_0000 == 0 {
             let (rem, label) = length_data(be_u8)(pos)?;
             if name.len() > 0 {
-                name.push('.' as u8);
+                name.push(b'.');
             }
             name.extend(label);
             pos = rem;
