@@ -573,7 +573,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
 #define MODULE_NAME "JsonDnsLog"
 void JsonDnsLogRegister (void)
 {
-    OutputRegisterTxSubModule(LOGGER_JSON_DNS, "eve-log", MODULE_NAME, "eve-log.dns",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
             JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
             LogDnsLogThreadDeinit, NULL);
 }

@@ -445,38 +445,19 @@ typedef enum {
     LOGGER_HTTP,
     LOGGER_TLS_STORE,
     LOGGER_TLS,
-    LOGGER_JSON_DNS,
-    LOGGER_JSON_HTTP,
-    LOGGER_JSON_SMTP,
-    LOGGER_JSON_TLS,
-    LOGGER_JSON_NFS,
-    LOGGER_JSON_TFTP,
-    LOGGER_JSON_FTP,
+    LOGGER_JSON_TX,
+
+    /* DNP3 loggers. These ones don't fit the common model of a
+       transaction logger yet so are left with their own IDs for
+       now. */
     LOGGER_JSON_DNP3_TS,
     LOGGER_JSON_DNP3_TC,
-    LOGGER_JSON_SSH,
-    LOGGER_JSON_SMB,
-    LOGGER_JSON_IKE,
-    LOGGER_JSON_KRB5,
-    LOGGER_JSON_QUIC,
-    LOGGER_JSON_MODBUS,
-    LOGGER_JSON_DHCP,
-    LOGGER_JSON_SNMP,
-    LOGGER_JSON_SIP,
-    LOGGER_JSON_TEMPLATE_RUST,
-    LOGGER_JSON_RFB,
-    LOGGER_JSON_MQTT,
-    LOGGER_JSON_PGSQL,
-    LOGGER_JSON_TEMPLATE,
-    LOGGER_JSON_RDP,
-    LOGGER_JSON_DCERPC,
-    LOGGER_JSON_HTTP2,
 
     LOGGER_FILE,
     LOGGER_FILEDATA,
 
-    /** \warning when we exceed what we can express as a u32 flag here we need to update
-     *           LoggerFlags::flags (u32) and `tx_logged` in src/output-tx.c */
+    /** \warning Note that transaction loggers here with a value > 31
+        will not work. */
 
     /* non-tx loggers below */
 
