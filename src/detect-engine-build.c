@@ -1704,7 +1704,6 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
     }
 }
 
-extern int g_skip_prefilter;
 /**
  * \brief Preprocess signature, classify ip-only, etc, build sig array
  *
@@ -1787,39 +1786,6 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         SigParseApplyDsizeToContent(s);
 
         RuleSetScore(s);
-
-        /* if keyword engines are enabled in the config, handle them here */
-        if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
-                !(s->flags & SIG_FLAG_PREFILTER)) {
-            int prefilter_list = DETECT_TBLSIZE;
-
-            // TODO buffers?
-
-            /* get the keyword supporting prefilter with the lowest type */
-            for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
-                for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
-                    if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
-                        if (sigmatch_table[sm->type].SupportsPrefilter(s)) {
-                            prefilter_list = MIN(prefilter_list, sm->type);
-                        }
-                    }
-                }
-            }
-
-            /* apply that keyword as prefilter */
-            if (prefilter_list != DETECT_TBLSIZE) {
-                for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
-                    for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
-                        if (sm->type == prefilter_list) {
-                            s->init_data->prefilter_sm = sm;
-                            s->flags |= SIG_FLAG_PREFILTER;
-                            SCLogConfig("sid %u: prefilter is on \"%s\"", s->id, sigmatch_table[sm->type].name);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
 
         /* run buffer type callbacks if any */
         for (int x = 0; x < DETECT_SM_LIST_MAX; x++) {
