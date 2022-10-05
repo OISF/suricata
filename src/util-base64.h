@@ -35,6 +35,8 @@ typedef enum {
     BASE64_MODE_RELAX,
     BASE64_MODE_RFC2045, /* SPs are allowed during transfer but must be skipped by Decoder */
     BASE64_MODE_STRICT,
+    BASE64_MODE_RFC4648, /* reject the encoded data if it contains characters outside the base
+                            alphabet */
 } Base64Mode;
 
 typedef enum {
