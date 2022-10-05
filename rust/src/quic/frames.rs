@@ -167,7 +167,7 @@ fn parse_padding_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         if input[offset] != 0 {
             break;
         }
-        offset = offset + 1;
+        offset += 1;
     }
     return Ok((&input[offset..], Frame::Padding));
 }
