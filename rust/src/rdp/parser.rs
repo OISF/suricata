@@ -501,7 +501,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     let (i4, src_ref) = be_u16(i3)?;
     let (i5, class_options) = parse_class_options(i4).map_err(Err::convert)?;
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if !(length >= 6) {
+    if length < 6 {
         return Err(Err::Error(make_error(i1, ErrorKind::Verify)));
     }
     let i6 = i5;
@@ -606,7 +606,7 @@ fn parse_x224_connection_confirm(input: &[u8]) -> IResult<&[u8], X224ConnectionC
     let (i5, class_options) = parse_class_options(i4).map_err(Err::convert)?;
 
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if !(length >= 6) {
+    if length < 6 {
         return Err(Err::Error(make_error(i1, ErrorKind::Verify)));
     }
     let i6 = i5;
