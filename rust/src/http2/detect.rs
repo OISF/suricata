@@ -769,7 +769,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
             }
         }
     }
-    if vec.len() > 0 {
+    if !vec.is_empty() {
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];
@@ -801,7 +801,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
             }
         }
     }
-    if vec.len() > 0 {
+    if !vec.is_empty() {
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];

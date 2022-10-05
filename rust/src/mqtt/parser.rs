@@ -114,7 +114,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
             // parse properties
             let mut props = Vec::<MQTTProperty>::new();
             let (rem, mut newrem) = take(proplen as usize)(rem)?;
-            while newrem.len() > 0 {
+            while !newrem.is_empty() {
                 match parse_property(newrem) {
                     Ok((rem2, val)) => {
                         props.push(val);

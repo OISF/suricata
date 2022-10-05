@@ -198,7 +198,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
-            if name_raw.len() > 0 {
+            if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
                 if x.directory {
                     jsb.set_string("directory", &name)?;
@@ -407,7 +407,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
-            if name_raw.len() > 0 {
+            if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
                 jsb.set_string("filename", &name)?;
             } else {

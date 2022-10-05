@@ -95,7 +95,7 @@ impl FileContainer {
 
     pub fn file_append(&mut self, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
-        if data.len() == 0 {
+        if data.is_empty() {
             return 0
         }
         match unsafe {SC} {

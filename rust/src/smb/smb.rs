@@ -1360,13 +1360,13 @@ impl SMBState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         // gap
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
-            while cur_i.len() > 0 { // min record size
+            while !cur_i.is_empty() { // min record size
                 match search_smb_record(cur_i) {
                     Ok((_, pg)) => {
                         SCLogDebug!("smb record found");
@@ -1394,7 +1394,7 @@ impl SMBState {
                 }
             }
         }
-        while cur_i.len() > 0 { // min record size
+        while !cur_i.is_empty() { // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
                     SCLogDebug!("nbss frame offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
@@ -1435,7 +1435,7 @@ impl SMBState {
                                     }
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
-                                    while nbss_data.len() > 0 {
+                                    while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_request_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
@@ -1467,7 +1467,7 @@ impl SMBState {
                                 } else if smb.version == 0xfd_u8 { // SMB3 transform
 
                                     let mut nbss_data = nbss_hdr.data;
-                                    while nbss_data.len() > 0 {
+                                    while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv3 transform record");
                                         match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {
@@ -1692,13 +1692,13 @@ impl SMBState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         // gap
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
-            while cur_i.len() > 0 { // min record size
+            while !cur_i.is_empty() { // min record size
                 match search_smb_record(cur_i) {
                     Ok((_, pg)) => {
                         SCLogDebug!("smb record found");
@@ -1726,7 +1726,7 @@ impl SMBState {
                 }
             }
         }
-        while cur_i.len() > 0 { // min record size
+        while !cur_i.is_empty() { // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
                     SCLogDebug!("nbss record offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
@@ -1761,7 +1761,7 @@ impl SMBState {
                                     }
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
-                                    while nbss_data.len() > 0 {
+                                    while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
@@ -1786,7 +1786,7 @@ impl SMBState {
                                     }
                                 } else if smb.version == 0xfd_u8 { // SMB3 transform
                                     let mut nbss_data = nbss_hdr.data;
-                                    while nbss_data.len() > 0 {
+                                    while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv3 transform record");
                                         match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {

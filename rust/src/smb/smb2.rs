@@ -188,7 +188,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(n) => (n.name.to_vec(), n.is_pipe),
                     _ => { (Vec::new(), false) },
                 };
-                let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
+                let mut is_dcerpc = if is_pipe || (share_name.is_empty() && !is_pipe) {
                     state.get_service_for_guid(&file_guid).1
                 } else {
                     false
@@ -196,7 +196,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 SCLogDebug!("SMBv2/READ: share_name {:?} is_pipe {} is_dcerpc {}",
                         share_name, is_pipe, is_dcerpc);
 
-                if share_name.len() == 0 && !is_pipe {
+                if share_name.is_empty() && !is_pipe {
                     SCLogDebug!("SMBv2/READ: no tree connect seen, we don't know if we are a pipe");
 
                     if smb_dcerpc_probe(rd.data) == true {
@@ -327,7 +327,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(n) => { (n.name.to_vec(), n.is_pipe) },
                     _ => { (Vec::new(), false) },
                 };
-                let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
+                let mut is_dcerpc = if is_pipe || (share_name.is_empty() && !is_pipe) {
                     state.get_service_for_guid(wr.guid).1
                 } else {
                     false
@@ -336,7 +336,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         share_name, is_pipe, is_dcerpc);
 
                 // if we missed the TREE connect we can't be sure if 'is_dcerpc' is correct
-                if share_name.len() == 0 && !is_pipe {
+                if share_name.is_empty() && !is_pipe {
                     SCLogDebug!("SMBv2/WRITE: no tree connect seen, we don't know if we are a pipe");
 
                     if smb_dcerpc_probe(wr.data) == true {
