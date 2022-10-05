@@ -199,7 +199,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 if share_name.is_empty() && !is_pipe {
                     SCLogDebug!("SMBv2/READ: no tree connect seen, we don't know if we are a pipe");
 
-                    if smb_dcerpc_probe(rd.data) == true {
+                    if smb_dcerpc_probe(rd.data) {
                         SCLogDebug!("SMBv2/READ: looks like dcerpc");
                         // insert fake tree to assist in follow up lookups
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
@@ -339,7 +339,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 if share_name.is_empty() && !is_pipe {
                     SCLogDebug!("SMBv2/WRITE: no tree connect seen, we don't know if we are a pipe");
 
-                    if smb_dcerpc_probe(wr.data) == true {
+                    if smb_dcerpc_probe(wr.data) {
                         SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
 
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
