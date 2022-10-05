@@ -1386,7 +1386,7 @@ impl SMBState {
                         if consumed < 4 {
                             consumed = 0;
                         } else {
-                            consumed = consumed - 3;
+                            consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed as u32, 8);
@@ -1718,7 +1718,7 @@ impl SMBState {
                         if consumed < 4 {
                             consumed = 0;
                         } else {
-                            consumed = consumed - 3;
+                            consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed as u32, 8);
