@@ -73,13 +73,13 @@ impl QuicTransaction {
     fn new_empty(client: bool, header: QuicHeader) -> Self {
         QuicTransaction {
             tx_id: 0,
-            header: header,
+            header,
             cyu: Vec::new(),
             sni: None,
             ua: None,
             extv: Vec::new(),
             ja3: None,
-            client: client,
+            client,
             tx_data: AppLayerTxData::new(),
         }
     }
