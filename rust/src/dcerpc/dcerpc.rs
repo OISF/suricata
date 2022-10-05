@@ -602,7 +602,7 @@ impl DCERPCState {
             }
             d = &d[1..];
         }
-        Err(Err::Incomplete(Needed::new(2 as usize - d.len())))
+        Err(Err::Incomplete(Needed::new(2_usize - d.len())))
     }
 
     /// Makes a call to the nom parser for parsing DCERPC Header.
