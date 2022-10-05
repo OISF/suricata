@@ -2086,10 +2086,8 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
 
 fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppProto
 {
-    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
-        if smb_probe_tcp_midstream(flags.into(), slice, rdir, begins) == 1 {
-            unsafe { return ALPROTO_SMB; }
-        }
+    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM && smb_probe_tcp_midstream(flags.into(), slice, rdir, begins) == 1 {
+        unsafe { return ALPROTO_SMB; }
     }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {

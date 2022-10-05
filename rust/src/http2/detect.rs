@@ -308,10 +308,8 @@ fn http2_detect_sizeupdate_match(
     blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &DetectUintData<u64>,
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
-        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
-            if detect_match_uint(ctx, block.sizeupdate) {
-                return 1;
-            }
+        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate && detect_match_uint(ctx, block.sizeupdate) {
+            return 1;
         }
     }
     return 0;
