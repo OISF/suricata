@@ -33,8 +33,40 @@
 
 typedef enum {
     BASE64_MODE_RELAX,
+    /* If the following strings were to be passed to the decoder with RFC2045 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC2045 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("foobar") = "Zm 9v Ym Fy"   <-- Notice how the spaces are ignored
+     * BASE64("f") = "Zm$9vYm.Fy"    # TODO according to RFC, All line breaks or *other characters*
+     * not found in base64 alphabet must be ignored by decoding software
+     * */
     BASE64_MODE_RFC2045, /* SPs are allowed during transfer but must be skipped by Decoder */
     BASE64_MODE_STRICT,
+    /* If the following strings were to be passed to the decoder with RFC4648 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC4648 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("f") = "Zm 9v Ym Fy"   <-- Notice how the processing stops once space is encountered
+     * BASE64("f") = "Zm$9vYm.Fy"    <-- Notice how the processing stops once an invalid char is
+     * encountered
+     * */
+    BASE64_MODE_RFC4648, /* reject the encoded data if it contains characters outside the base
+                            alphabet */
 } Base64Mode;
 
 typedef enum {
