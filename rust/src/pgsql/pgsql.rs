@@ -35,7 +35,7 @@ static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 static mut PGSQL_MAX_TX: usize = 1024;
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum PgsqlTransactionState {
     Init = 0,
     RequestReceived,
@@ -88,7 +88,7 @@ impl PgsqlTransaction {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PgsqlStateProgress {
     IdleState,
     SSLRequestReceived,

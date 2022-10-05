@@ -19,7 +19,7 @@ use nom7::bytes::streaming::{tag, take};
 use nom7::number::streaming::{le_u16, le_u32, le_u64};
 use nom7::IResult;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Smb3TransformRecord<'a> {
     pub session_id: u64,
     pub enc_algo: u16,

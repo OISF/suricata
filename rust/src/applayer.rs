@@ -71,7 +71,7 @@ impl StreamSlice {
 }
 
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq, Eq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
     log_flags: u8,
@@ -96,7 +96,7 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
@@ -192,7 +192,7 @@ macro_rules!export_tx_data_get {
 }
 
 #[repr(C)]
-#[derive(Default,Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
 pub struct AppLayerStateData {
     pub file_flags: u16,
 }
@@ -222,7 +222,7 @@ macro_rules!export_state_data_get {
 }
 
 #[repr(C)]
-#[derive(Default,Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -491,7 +491,7 @@ impl AppLayerGetTxIterTuple {
 
 /// LoggerFlags tracks which loggers have already been executed.
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq, Eq)]
 pub struct LoggerFlags {
     flags: u32,
 }

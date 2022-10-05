@@ -148,7 +148,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
     Some(s)
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NtlmsspData {
     pub host: Vec<u8>,
     pub user: Vec<u8>,

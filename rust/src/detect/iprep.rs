@@ -27,7 +27,7 @@ use std::ffi::{CStr, CString};
 use std::str::FromStr;
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum DetectIPRepDataCmd {
     IPRepCmdAny = 0,
     IPRepCmdBoth = 1,

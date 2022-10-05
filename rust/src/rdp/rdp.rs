@@ -33,12 +33,12 @@ static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 // transactions
 //
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CertificateBlob {
     pub data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RdpTransactionItem {
     X224ConnectionRequest(X224ConnectionRequest),
     X224ConnectionConfirm(X224ConnectionConfirm),
@@ -47,7 +47,7 @@ pub enum RdpTransactionItem {
     TlsCertificateChain(Vec<CertificateBlob>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RdpTransaction {
     pub id: u64,
     pub item: RdpTransactionItem,
@@ -105,7 +105,7 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 // state
 //
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RdpState {
     state_data: AppLayerStateData,
     next_id: u64,

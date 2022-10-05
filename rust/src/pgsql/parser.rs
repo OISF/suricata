@@ -37,7 +37,7 @@ pub const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
 pub const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
 pub const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlParameters {
     // startup parameters
     User,
@@ -113,27 +113,27 @@ impl From<&[u8]> for PgsqlParameters {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PgsqlParameter {
     pub name: PgsqlParameters,
     pub value: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PgsqlStartupParameters {
     pub user: PgsqlParameter,
     pub database: Option<PgsqlParameter>,
     pub optional_params: Option<Vec<PgsqlParameter>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DummyStartupPacket {
     length: u32,
     proto_major: u16,
     proto_minor: u16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct StartupPacket {
     pub length: u32,
     pub proto_major: u16,
@@ -141,20 +141,20 @@ pub struct StartupPacket {
     pub params: PgsqlStartupParameters,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RegularPacket {
     pub identifier: u8,
     pub length: u32,
     pub payload: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PgsqlErrorNoticeMessageField {
     pub field_type: PgsqlErrorNoticeFieldType,
     pub field_value: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ErrorNoticeMessage {
     pub identifier: u8,
     pub length: u32,
@@ -171,7 +171,7 @@ impl ErrorNoticeMessage {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SSLResponseMessage {
     SSLAccepted,
     SSLRejected,
@@ -208,14 +208,14 @@ impl From<char> for SSLResponseMessage {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ParameterStatusMessage {
     pub identifier: u8,
     pub length: u32,
     pub param: PgsqlParameter,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BackendKeyDataMessage {
     pub identifier: u8,
     pub length: u32,
@@ -223,7 +223,7 @@ pub struct BackendKeyDataMessage {
     pub secret_key: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ConsolidatedDataRowPacket {
     pub identifier: u8,
     pub length: u32,
@@ -231,14 +231,14 @@ pub struct ConsolidatedDataRowPacket {
     pub data_size: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ReadyForQueryMessage {
     pub identifier: u8,
     pub length: u32,
     pub transaction_status: u8,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NotificationResponse {
     pub identifier: u8,
     pub length: u32,
@@ -248,7 +248,7 @@ pub struct NotificationResponse {
     pub payload: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlBEMessage {
     SSLResponse(SSLResponseMessage),
     ErrorResponse(ErrorNoticeMessage),
@@ -316,7 +316,7 @@ impl PgsqlBEMessage {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum SASLAuthenticationMechanism {
     ScramSha256,
     ScramSha256Plus,
@@ -332,13 +332,13 @@ impl SASLAuthenticationMechanism {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TerminationMessage {
     pub identifier: u8,
     pub length: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlFEMessage {
     SSLRequest(DummyStartupPacket),
     StartupMessage(StartupPacket),
@@ -363,7 +363,7 @@ impl PgsqlFEMessage {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AuthenticationMessage {
     pub identifier: u8,
     pub length: u32,
@@ -371,7 +371,7 @@ pub struct AuthenticationMessage {
     pub payload: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SASLInitialResponsePacket {
     pub identifier: u8,
     pub length: u32,
@@ -380,7 +380,7 @@ pub struct SASLInitialResponsePacket {
     pub sasl_param: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AuthenticationSASLMechanismMessage {
     identifier: u8,
     length: u32,
@@ -388,7 +388,7 @@ pub struct AuthenticationSASLMechanismMessage {
     auth_mechanisms: Vec<SASLAuthenticationMechanism>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RowField {
     pub field_name: Vec<u8>,
     pub table_oid: u32,
@@ -402,7 +402,7 @@ pub struct RowField {
     pub format_code: u16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RowDescriptionMessage {
     pub identifier: u8,
     pub length: u32,
@@ -410,14 +410,14 @@ pub struct RowDescriptionMessage {
     pub fields: Vec<RowField>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ColumnFieldValue {
     // Can be 0, or -1 as a special NULL column value
     pub value_length: i32,
     pub value: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlErrorNoticeFieldType {
     SeverityLocalizable,
     SeverityNonLocalizable,

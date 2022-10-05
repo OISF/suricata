@@ -32,7 +32,7 @@ use std::fmt;
 use std::str::FromStr;
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2FrameType {
     DATA = 0,
     HEADERS = 1,
@@ -74,7 +74,7 @@ impl std::str::FromStr for HTTP2FrameType {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct HTTP2FrameHeader {
     //we could add detection on (GOAWAY) additional data
     pub length: u32,
@@ -103,7 +103,7 @@ pub fn http2_parse_frame_header(i: &[u8]) -> IResult<&[u8], HTTP2FrameHeader> {
 }
 
 #[repr(u32)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2ErrorCode {
     NOERROR = 0,
     PROTOCOLERROR = 1,
@@ -330,7 +330,7 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2HeaderDecodeStatus {
     HTTP2HeaderDecodeSuccess = 0,
     HTTP2HeaderDecodeSizeUpdate = 1,
@@ -681,7 +681,7 @@ pub fn http2_parse_frame_continuation<'a>(
 }
 
 #[repr(u16)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
     SETTINGSHEADERTABLESIZE = 1,
     SETTINGSENABLEPUSH = 2,

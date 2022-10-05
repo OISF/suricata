@@ -24,7 +24,7 @@ use nom7::number::streaming::{le_u8, le_u16, le_u32};
 use nom7::sequence::tuple;
 use nom7::IResult;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NTLMSSPVersion {
     pub ver_major: u8,
     pub ver_minor: u8,
@@ -55,7 +55,7 @@ fn parse_ntlm_auth_version(i: &[u8]) -> IResult<&[u8], NTLMSSPVersion> {
     Ok((i, version))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NTLMSSPAuthRecord<'a> {
     pub domain: &'a[u8],
     pub user: &'a[u8],
@@ -121,7 +121,7 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NTLMSSPRecord<'a> {
     pub msg_type: u32,
     pub data: &'a[u8],
