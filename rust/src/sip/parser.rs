@@ -57,7 +57,7 @@ pub struct Response {
     pub body_len: u16,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Method {
     Register,
     Custom(String),

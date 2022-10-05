@@ -20,7 +20,7 @@ use crate::core::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DetectDnsOpcode {
     negate: bool,
     opcode: u8,

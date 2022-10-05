@@ -247,7 +247,7 @@ impl DCERPCUuidEntry {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Uuid {
     pub time_low: Vec<u8>,
     pub time_mid: Vec<u8>,
@@ -283,7 +283,7 @@ pub struct BindCtxItem {
     pub versionminor: u16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DCERPCBindAckResult {
     pub ack_result: u16,
     pub ack_reason: u16,

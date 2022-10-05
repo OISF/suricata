@@ -32,7 +32,7 @@ const DATA:         u8 = 3;
 const ACK:          u8 = 4;
 const ERROR:        u8 = 5;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TFTPTransaction {
     pub opcode : u8,
     pub filename : String,

@@ -27,7 +27,7 @@ pub const NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE:   u8 = 0x83;
 pub const NBSS_MSGTYPE_RETARG_RESPONSE:         u8 = 0x84;
 pub const NBSS_MSGTYPE_KEEP_ALIVE:              u8 = 0x85;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct NbssRecord<'a> {
     pub message_type: u8,
     pub length: u32,
