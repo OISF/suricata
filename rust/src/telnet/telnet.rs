@@ -435,11 +435,7 @@ pub unsafe extern "C" fn rs_telnet_parse_request(
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
-        true
-    } else {
-        false
-    };
+    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
     if eof {
         // If needed, handle EOF, or pass it into the parser.
@@ -467,11 +463,7 @@ pub unsafe extern "C" fn rs_telnet_parse_response(
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-        true
-    } else {
-        false
-    };
+    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TelnetState);
 
     if stream_slice.is_gap() {

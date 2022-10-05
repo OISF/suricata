@@ -52,14 +52,8 @@ impl<'a> NbssRecord<'a> {
     }
     pub fn is_smb(&self) -> bool {
         let valid = self.is_valid();
-        let smb = if self.data.len() >= 4 &&
-            self.data[1] == b'S' && self.data[2] == b'M' && self.data[3] == b'B' &&
-            (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD')
-        {
-            true
-        } else {
-            false
-        };
+        let smb = self.data.len() >= 4 &&
+            self.data[1] == b'S' && self.data[2] == b'M' && self.data[3] == b'B' && (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD');
 
         valid && smb
     }

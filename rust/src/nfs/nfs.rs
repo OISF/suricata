@@ -743,7 +743,7 @@ impl NFSState {
         }
 
         // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
+        let is_last = w.stable == 2;
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
