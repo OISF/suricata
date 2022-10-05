@@ -1646,7 +1646,7 @@ mod tests {
         let (r, attr) = nfs4_parse_attrbits(&buf[4..]).unwrap();
         assert_eq!(r.len(), 0);
         // assert_eq!(attr.attr_mask, 35618163785728);
-        assert_eq!(attr.attr_mask, (0x00002065_u64 << 32 | 0_u64));
+        assert_eq!(attr.attr_mask, 0x00002065_u64 << 32);
     }
     #[test]
     fn test_nfs4_response_compound() {
