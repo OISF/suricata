@@ -420,7 +420,7 @@ export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
 export_state_data_get!(rs_template_get_state_data, TemplateState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"template-rust\0";
+const PARSER_NAME: &[u8] = b"template-rust\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_register_parser() {
