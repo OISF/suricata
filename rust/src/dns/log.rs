@@ -514,7 +514,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
     }
     js.set_string("rcode", &dns_rcode_string(header.flags))?;
 
-    if response.answers.len() > 0 {
+    if !response.answers.is_empty() {
         let mut js_answers = JsonBuilder::new_array();
 
         // For grouped answers we use a HashMap keyed by the rrtype.
@@ -601,7 +601,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
 
     }
 
-    if response.authorities.len() > 0 {
+    if !response.authorities.is_empty() {
         js.open_array("authorities")?;
         for auth in &response.authorities {
             let auth_detail = dns_log_json_answer_detail(auth)?;

@@ -849,7 +849,7 @@ impl HTTP2State {
                 match parser::http2_parse_frame_headers(input, hflags, dyn_headers) {
                     Ok((hrem, hs)) => {
                         self.process_headers(&hs.blocks, dir);
-                        if hrem.len() > 0 {
+                        if !hrem.is_empty() {
                             SCLogDebug!("Remaining data for HTTP2 headers");
                             self.set_event(HTTP2Event::ExtraHeaderData);
                         }
@@ -889,7 +889,7 @@ impl HTTP2State {
     fn parse_frames(
         &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
     ) -> AppLayerResult {
-        while input.len() > 0 {
+        while !input.is_empty() {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
                     let hl = head.length as usize;

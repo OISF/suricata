@@ -100,7 +100,7 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
             js.set_string("ua", &String::from_utf8_lossy(ua))?;
         }
     }
-    if tx.cyu.len() > 0 {
+    if !tx.cyu.is_empty() {
         js.open_array("cyu")?;
         for cyu in &tx.cyu {
             js.start_object()?;
@@ -122,7 +122,7 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.set_string("string", ja3)?;
         js.close()?;
     }
-    if tx.extv.len() > 0 {
+    if !tx.extv.is_empty() {
         js.open_array("extensions")?;
         for e in &tx.extv {
             js.start_object()?;
@@ -132,7 +132,7 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
             }
             js.set_uint("type", etype.into())?;
 
-            if e.values.len() > 0 {
+            if !e.values.is_empty() {
                 js.open_array("values")?;
                 for i in 0..e.values.len() {
                     js.append_string(&String::from_utf8_lossy(&e.values[i]))?;

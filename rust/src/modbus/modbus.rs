@@ -185,7 +185,7 @@ impl ModbusState {
 
     pub fn parse(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         let mut rest = input;
-        while rest.len() > 0 {
+        while !rest.is_empty() {
             match MODBUS_PARSER.parse(rest, direction.clone()) {
                 Ok((inner_rest, Some(mut msg))) => {
                     match direction {
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
-    if buf.len() == 0 {
+    if buf.is_empty() {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             return AppLayerResult::ok();
         } else {
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
-    if buf.len() == 0 {
+    if buf.is_empty() {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             return AppLayerResult::ok();
         } else {

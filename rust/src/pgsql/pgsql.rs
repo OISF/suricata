@@ -301,7 +301,7 @@ impl PgsqlState {
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -320,7 +320,7 @@ impl PgsqlState {
         }
 
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             SCLogDebug!(
                 "In 'parse_request' State Progress is: {:?}",
                 &self.state_progress
@@ -437,7 +437,7 @@ impl PgsqlState {
 
     fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -453,7 +453,7 @@ impl PgsqlState {
         }
 
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
                     start = rem;

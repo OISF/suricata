@@ -466,7 +466,7 @@ impl NFSState {
                 mytx.response_done = true;
                 mytx.rpc_response_status = rpc_status;
                 mytx.nfs_response_status = nfs_status;
-                if mytx.file_handle.len() == 0 && resp_handle.len() > 0 {
+                if mytx.file_handle.is_empty() && !resp_handle.is_empty() {
                     mytx.file_handle = resp_handle.to_vec();
                 }
 
@@ -1212,14 +1212,14 @@ impl NFSState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
 
             let mut _cnt = 0;
-            while cur_i.len() > 0 {
+            while !cur_i.is_empty() {
                 _cnt += 1;
                 match nfs_probe(cur_i, Direction::ToServer) {
                     1 => {
@@ -1234,7 +1234,7 @@ impl NFSState {
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
-                        if cur_i.len() == 0 {
+                        if cur_i.is_empty() {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
@@ -1246,7 +1246,7 @@ impl NFSState {
             SCLogDebug!("TS GAP handling done (input {})", cur_i.len());
         }
 
-        while cur_i.len() > 0 { // min record size
+        while !cur_i.is_empty() { // min record size
             self.add_rpc_tcp_ts_pdu(flow, stream_slice, cur_i, cur_i.len() as i64);
             match parse_rpc_request_partial(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
@@ -1376,14 +1376,14 @@ impl NFSState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
 
             let mut _cnt = 0;
-            while cur_i.len() > 0 {
+            while !cur_i.is_empty() {
                 _cnt += 1;
                 match nfs_probe(cur_i, Direction::ToClient) {
                     1 => {
@@ -1398,7 +1398,7 @@ impl NFSState {
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
-                        if cur_i.len() == 0 {
+                        if cur_i.is_empty() {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
@@ -1410,7 +1410,7 @@ impl NFSState {
             SCLogDebug!("TC GAP handling done (input {})", cur_i.len());
         }
 
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             self.add_rpc_tcp_tc_pdu(flow, stream_slice, cur_i, cur_i.len() as i64);
             match parse_rpc_packet_header(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
@@ -1473,7 +1473,7 @@ impl NFSState {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
         self.add_rpc_udp_ts_pdu(flow, stream_slice, input, input.len() as i64);
-        if input.len() > 0 {
+        if !input.is_empty() {
             match parse_rpc_udp_request(input) {
                 Ok((_, ref rpc_record)) => {
                     self.is_udp = true;
@@ -1505,7 +1505,7 @@ impl NFSState {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_tc ({})", input.len());
         self.add_rpc_udp_tc_pdu(flow, stream_slice, input, input.len() as i64);
-        if input.len() > 0 {
+        if !input.is_empty() {
             match parse_rpc_udp_reply(input) {
                 Ok((_, ref rpc_record)) => {
                     self.is_udp = true;

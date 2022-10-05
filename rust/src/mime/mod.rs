@@ -56,7 +56,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
     let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
-    while input.len() > 0 {
+    while !input.is_empty() {
         match mime_parse_header_token(input) {
             Ok((rem, t)) => {
                 tokens.insert(t.0, t.1);

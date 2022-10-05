@@ -57,7 +57,7 @@ impl Ikev1ParticipantData {
     ) {
         self.key_exchange = key_exchange.clone();
         self.nonce = nonce.clone();
-        if self.nb_transforms == 0 && transforms.len() > 0 {
+        if self.nb_transforms == 0 && !transforms.is_empty() {
             self.transform.extend(transforms[0].iter().cloned());
         }
         self.nb_transforms += transforms.len() as u64;
@@ -146,7 +146,7 @@ pub fn handle_ikev1(
                     );
                 }
 
-                if rem.len() > 0 {
+                if !rem.is_empty() {
                     // more data left unread than should be
                     SCLogDebug!("Unread Payload Data");
                     state.set_event(IkeEvent::PayloadExtraData);

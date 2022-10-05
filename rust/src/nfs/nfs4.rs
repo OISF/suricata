@@ -376,7 +376,7 @@ impl NFSState {
                     }
                 }
                 &Nfs4ResponseContent::PutRootFH(s) => {
-                    if s == NFS4_OK && xidmap.file_name.len() == 0 {
+                    if s == NFS4_OK && xidmap.file_name.is_empty() {
                         xidmap.file_name = b"<mount_root>".to_vec();
                         SCLogDebug!("filename {:?}", xidmap.file_name);
                     }
