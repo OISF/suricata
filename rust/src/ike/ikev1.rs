@@ -94,7 +94,7 @@ pub fn handle_ikev1(
         match parse_ikev1_payload_list(current) {
             Ok((rem, payload_list)) => {
                 for isakmp_payload in payload_list {
-                    if let Err(_) = parse_payload(
+                    if parse_payload(
                         cur_payload_type,
                         isakmp_payload.data,
                         isakmp_payload.data.len() as u16,
@@ -104,7 +104,7 @@ pub fn handle_ikev1(
                         &mut tx.hdr.ikev1_transforms,
                         &mut tx.hdr.ikev1_header.vendor_ids,
                         &mut payload_types,
-                    ) {
+                    ).is_err() {
                         SCLogDebug!("Error while parsing IKEV1 payloads");
                         return AppLayerResult::err();
                     }
