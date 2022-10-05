@@ -183,7 +183,7 @@ macro_rules!export_tx_data_get {
     ($name:ident, $type:ty) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut crate::applayer::AppLayerTxData
+            -> *mut $crate::applayer::AppLayerTxData
         {
             let tx = &mut *(tx as *mut $type);
             &mut tx.tx_data
@@ -213,7 +213,7 @@ macro_rules!export_state_data_get {
     ($name:ident, $type:ty) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
-            -> *mut crate::applayer::AppLayerStateData
+            -> *mut $crate::applayer::AppLayerStateData
         {
             let state = &mut *(state as *mut $type);
             &mut state.state_data
