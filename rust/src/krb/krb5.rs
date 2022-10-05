@@ -530,7 +530,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
 export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
 export_state_data_get!(rs_krb5_get_state_data, KRB5State);
 
-const PARSER_NAME : &'static [u8] = b"krb5\0";
+const PARSER_NAME : &[u8] = b"krb5\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_krb5_parser() {
