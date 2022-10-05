@@ -439,7 +439,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                                     if guid_key.msg_id == 0 {
                                         b"<unknown>".to_vec()
                                     } else {
-                                        guid_key.msg_id = guid_key.msg_id - 1;
+                                        guid_key.msg_id -= 1;
                                         match state.ssn2vec_map.get(&guid_key) {
                                             Some(n) => { n.to_vec() },
                                             None => { b"<unknown>".to_vec()},
