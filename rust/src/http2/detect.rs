@@ -135,7 +135,7 @@ fn http2_tx_get_next_priority(
                     if pos == nb {
                         return prio.weight as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -143,7 +143,7 @@ fn http2_tx_get_next_priority(
                         if pos == nb {
                             return prio.weight as i32;
                         } else {
-                            pos = pos + 1;
+                            pos += 1;
                         }
                     }
                 }
@@ -157,7 +157,7 @@ fn http2_tx_get_next_priority(
                     if pos == nb {
                         return prio.weight as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -165,7 +165,7 @@ fn http2_tx_get_next_priority(
                         if pos == nb {
                             return prio.weight as i32;
                         } else {
-                            pos = pos + 1;
+                            pos += 1;
                         }
                     }
                 }
@@ -195,7 +195,7 @@ fn http2_tx_get_next_window(
                     if pos == nb {
                         return wu.sizeinc as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 _ => {}
@@ -208,7 +208,7 @@ fn http2_tx_get_next_window(
                     if pos == nb {
                         return wu.sizeinc as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 _ => {}
@@ -382,7 +382,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + blocks.len() as u32;
+                        pos += blocks.len() as u32;
                     }
                 }
             }
@@ -396,7 +396,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + blocks.len() as u32;
+                        pos += blocks.len() as u32;
                     }
                 }
             }
@@ -830,7 +830,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + blocks.len() as u32;
+                        pos += blocks.len() as u32;
                     }
                 }
             }
@@ -847,7 +847,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + blocks.len() as u32;
+                        pos += blocks.len() as u32;
                     }
                 }
             }

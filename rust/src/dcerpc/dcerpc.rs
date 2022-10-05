@@ -696,7 +696,7 @@ impl DCERPCState {
                     if retval == -1 {
                         return -1;
                     }
-                    idx = retval + idx;
+                    idx += retval;
                 }
                 let call_id = self.get_hdr_call_id().unwrap_or(0);
                 let mut tx = self.create_tx(call_id);
@@ -941,7 +941,7 @@ impl DCERPCState {
                     if consumed < 2 {
                         consumed = 0;
                     } else {
-                        consumed = consumed - 1;
+                        consumed -= 1;
                     }
                     SCLogDebug!("DCERPC record NOT found");
                     return AppLayerResult::incomplete(consumed as u32, 2);
