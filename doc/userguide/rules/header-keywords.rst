@@ -105,11 +105,11 @@ Example of ip_proto in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"GPL MISC IP Proto 103 PIM"; :example-rule-emphasis:`ip_proto:103;` reference:bugtraq,8211; reference:cve,2003-0567; classtype:non-standard-protocol; sid:2102189; rev:4;)
+    alert ip any any -> any any (msg:"IP Packet with protocol 1"; :example-rule-emphasis:`ip_proto:1;` classtype:bad-unknown; sid:5; rev:1;)
 
 The named variant of that example would be::
 
-    ip_proto:PIM
+    ip_proto:ICMP;
 
 ipv4.hdr
 ^^^^^^^^
