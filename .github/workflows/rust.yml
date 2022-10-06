@@ -66,12 +66,12 @@ jobs:
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: ./configure
-      - run: cargo clippy --fix
+      - run: cargo clippy --all-features --fix
         working-directory: rust
       - run: |
           diff=$(git diff)
           if [ "${diff}" ]; then
               echo "::warning ::Clippy --fix made changes, please fix"
           fi
-      - run: cargo clippy
+      - run: cargo clippy --all-features
         working-directory: rust
