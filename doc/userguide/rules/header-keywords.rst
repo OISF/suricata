@@ -114,16 +114,16 @@ The named variant of that example would be::
 ipv4.hdr
 ^^^^^^^^
 
-Sticky buffer to match on the whole IPv4 header.
+Sticky buffer to match on content contained within an IPv4 header.
 
 Example rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (:example-rule-emphasis:`ipv4.hdr; content:"|3A|"; offset:9; depth:1;` sid:1234; rev:5;)
+    alert ip any any -> any any (msg:"IPv4 header keyword example"; :example-rule-emphasis:`ipv4.hdr; content:"|06|"; offset:9; depth:1;` sid:1; rev:1;)
 
-This example looks if byte 9 of IPv4 header has value 3A.
-That means that the IPv4 protocol is ICMPv6.
+This example looks if byte 10 of IPv4 header has value 06, which indicates that
+the IPv4 protocol is TCP.
 
 ipv6.hdr
 ^^^^^^^^
