@@ -128,7 +128,16 @@ the IPv4 protocol is TCP.
 ipv6.hdr
 ^^^^^^^^
 
-Sticky buffer to match on the whole IPv6 header.
+Sticky buffer to match on content contained within an IPv6 header.
+
+Example rule:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"IPv6 header keyword example"; :example-rule-emphasis:`ipv6.hdr; content:"|06|"; offset:6; depth:1;` sid:1; rev:1;)
+
+This example looks if byte 7 of IP64 header has value 06, which indicates that
+the IPv6 protocol is TCP.
 
 id
 ^^
