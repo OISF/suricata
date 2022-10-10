@@ -39,7 +39,7 @@ typedef struct FlowBit_ {
 void FlowBitFree(FlowBit *);
 void FlowBitRegisterTests(void);
 
-void FlowBitSet(Flow *, uint32_t);
+int FlowBitSet(Flow *, uint32_t);
 void FlowBitUnset(Flow *, uint32_t);
 bool FlowBitToggle(Flow *, uint32_t);
 int FlowBitIsset(Flow *, uint32_t);
