@@ -719,7 +719,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     s->init_data->negated = false;
 
     if (st->flags & SIGMATCH_INFO_DEPRECATED) {
-#define URL "https://suricata-ids.org/about/deprecation-policy/"
+#define URL "https://suricata.io/our-story/deprecation-policy/"
         if (st->alternative == 0)
             SCLogWarning(SC_WARN_DEPRECATED, "keyword '%s' is deprecated "
                     "and will be removed soon. See %s", st->name, URL);
