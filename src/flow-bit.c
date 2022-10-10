@@ -55,19 +55,25 @@ static FlowBit *FlowBitGet(Flow *f, uint32_t idx)
     return NULL;
 }
 
-/* add a flowbit to the flow */
-static void FlowBitAdd(Flow *f, uint32_t idx)
+/** \brief add a flowbit to the flow
+ *  \retval -1 error
+ *  \retval 0 not added, already set before
+ *  \retval 1 added */
+static int FlowBitAdd(Flow *f, uint32_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         fb = SCMalloc(sizeof(FlowBit));
         if (unlikely(fb == NULL))
-            return;
+            return -1;
 
         fb->type = DETECT_FLOWBITS;
         fb->idx = idx;
         fb->next = NULL;
         GenericVarAppend(&f->flowvar, (GenericVar *)fb);
+        return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -81,9 +87,13 @@ static void FlowBitRemove(Flow *f, uint32_t idx)
     FlowBitFree(fb);
 }
 
-void FlowBitSet(Flow *f, uint32_t idx)
+/** \brief add a flowbit to the flow
+ *  \retval -1 error
+ *  \retval 0 not added, already set before
+ *  \retval 1 added */
+int FlowBitSet(Flow *f, uint32_t idx)
 {
-    FlowBitAdd(f, idx);
+    return FlowBitAdd(f, idx);
 }
 
 void FlowBitUnset(Flow *f, uint32_t idx)
