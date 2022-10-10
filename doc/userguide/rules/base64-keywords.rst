@@ -27,6 +27,10 @@ This option makes ``offset`` skip bytes relative to the previous match.
 
     The content match that you want to decode relative to must be the first match in the stream.
 
+.. note:: ``base64_decode`` follows RFC 4648 by default i.e. encounter with any character that is not found in the base64 alphabet leads to rejection of that character and the rest of the string.
+
+    See Redmine Bug 5223: https://redmine.openinfosecfoundation.org/issues/5223 and RFC 4648: https://www.rfc-editor.org/rfc/rfc4648#section-3.3
+
 base64_data
 -----------
 
