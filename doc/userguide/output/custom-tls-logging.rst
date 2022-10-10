@@ -18,7 +18,7 @@ And in your tls.log file you would get the following, for example:
 
 ::
 
- 12/03/16-19:20:14.85859 10.10.10.4:58274 -> 192.0.78.24:443 VERSION='TLS 1.2' suricata-ids.org NOTBEFORE='2016-10-27T20:36:00' NOTAFTER='2017-01-25T20:36:00'
+ 12/03/16-19:20:14.85859 10.10.10.4:58274 -> 192.0.78.24:443 VERSION='TLS 1.2' suricata.io NOTBEFORE='2016-10-27T20:36:00' NOTAFTER='2017-01-25T20:36:00'
 
 The list of supported format strings is the following:
 
