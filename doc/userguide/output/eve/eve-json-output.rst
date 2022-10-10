@@ -485,4 +485,4 @@ engine configurations. When these tenants are configured and the detection
 engine is running then all EVE logging will also report the ``tenant_id`` field
 for traffic matching a specific tenant.
 
-.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+.. _deprecation policy: https://suricata.io/our-story/deprecation-policy/

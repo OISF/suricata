@@ -544,19 +544,19 @@ Example of a DNS answer with "detailed" format:
       "rcode": "NOERROR",
       "answers": [
         {
-          "rrname": "www.suricata-ids.org",
+          "rrname": "www.suricata.io",
           "rrtype": "CNAME",
           "ttl": 3324,
-          "rdata": "suricata-ids.org"
+          "rdata": "suricata.io"
         },
         {
-          "rrname": "suricata-ids.org",
+          "rrname": "suricata.io",
           "rrtype": "A",
           "ttl": 10,
           "rdata": "192.0.78.24"
         },
         {
-          "rrname": "suricata-ids.org",
+          "rrname": "suricata.io",
           "rrtype": "A",
           "ttl": 10,
           "rdata": "192.0.78.25"
@@ -583,7 +583,7 @@ Example of a DNS answer with "grouped" format:
           "192.0.78.25"
         ],
         "CNAME": [
-          "suricata-ids.org"
+          "suricata.io"
         ]
       }
   }
