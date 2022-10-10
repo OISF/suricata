@@ -217,7 +217,7 @@ def FindBuild(branch, extension = "", builder_name = None):
 def GetBuildStatus(builder, buildid, extension="", builder_name = None):
     if builder_name == None:
         builder_name = username + extension
-    # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
+    # https://buildbot.oisf.net/json/builders/build%20deb6/builds/11
     request = urllib.request.Request(JSON_BUILDERS_URI + builder_name + '/builds/' + str(buildid))
     page = urllib.request.urlopen(request)
     result = page.read()

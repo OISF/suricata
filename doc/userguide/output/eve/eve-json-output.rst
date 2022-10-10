@@ -502,4 +502,4 @@ YAML::
       community-id-seed: 0
 
 
-.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+.. _deprecation policy: https://suricata.io/our-story/deprecation-policy/
