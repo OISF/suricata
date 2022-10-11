@@ -19,8 +19,10 @@ contributions that have made this user guide possible:
 - Jason Ish
 - Jason Taylor
 - Josh Smith
+- Juliana Fajardini
 - Ken Steele
 - Les Syv
+- Lukas Sismis
 - Mark Solaris
 - Martin Holste
 - Mats Klepsland
@@ -31,9 +33,11 @@ contributions that have made this user guide possible:
 - Nicolas Merle
 - Peter Manev
 - Philipp Buehler
+- Philippe Antoine
 - Ralph Broenink
 - Rob MacGregor
 - Russel Fulton
+- Shivani Bhardwaj
 - Victor Julien
 - Vincent Fang
 - Zach Rasmor
