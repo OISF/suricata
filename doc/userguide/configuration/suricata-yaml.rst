@@ -2452,4 +2452,4 @@ States are allocated as follows: for each detect script a state is used per
 detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
-.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+.. _deprecation policy: https://suricata.io/our-story/deprecation-policy/

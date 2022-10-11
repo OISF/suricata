@@ -47,7 +47,7 @@ setup(
     version=version,
     author='OISF Developers, Eric Leblond',
     author_email='oisf-devel@lists.openinfosecfoundation.org, eric@regit.org',
-    url='https://www.suricata-ids.org/',
+    url='https://www.suricata.io/',
     packages=[
         "suricata",
         "suricata.config",

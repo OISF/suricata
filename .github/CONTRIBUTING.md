@@ -8,7 +8,7 @@ Contribution Agreement
 
 Before accepting your pull requests we need you or your organization to sign our contribution agreement.
 
-We do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See https://suricata-ids.org/about/open-source/ and https://suricata-ids.org/about/contribution-agreement/
+We do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See https://suricata.io/features/open-source/ and https://suricata.io/our-story/contribution-agreement/
 
 Contribution Process
 --------------------
@@ -34,5 +34,5 @@ On a high level, the steps are:
 Questions
 ---------
 
-If you have questions about contributing, please contact us via https://suricata-ids.org/support/
+If you have questions about contributing, please contact us via https://suricata.io/community/
 

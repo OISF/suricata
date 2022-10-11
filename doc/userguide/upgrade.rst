@@ -81,4 +81,4 @@ Removals
 - ``file-log``, the non-EVE JSON file log. Use EVE.files instead.
 - ``drop-log``, the non-EVE JSON drop log.
 
-See https://suricata-ids.org/about/deprecation-policy/
+See https://suricata.io/our-story/deprecation-policy/
