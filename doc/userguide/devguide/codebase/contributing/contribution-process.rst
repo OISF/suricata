@@ -132,6 +132,20 @@ crates) those will also be optional and disabled by default.
 * keeping it up to date
 * offering end-user support via forum and/or Discord chat
 
+.. _stale-tickets-policy:
+
+Stale tickets policy
+====================
+
+We understand that people's availability and interested to volunteer their time
+to our project may change. Therefore, to prevent tickets going stale (not worked
+on), and issues going unsolved for a long time, we have a policy to unclaim
+tickets if there are no contribution updates within 6 months.
+
+If you claim a ticket and later on find out that you won't be able to work on
+it, it is also appreciated if you inform that to us in the ticket and unclaim
+it, so everyone knows that work is still open and waiting to be done.
+
 .. _what-branch-to-work-on:
 
 What branch to work on
