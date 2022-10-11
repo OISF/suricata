@@ -159,7 +159,7 @@ Example of id in a rule:
 
 .. container:: example-rule
 
-    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET DELETED F5 BIG-IP 3DNS TCP Probe 1"; :example-rule-emphasis:`id: 1;` dsize: 24; flags: S,12; content:"\|00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\|"; window: 2048; reference:url,www.f5.com/f5products/v9intro/index.html; reference:url,doc.emergingthreats.net/2001609; classtype:misc-activity; sid:2001609; rev:13;)
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"id keyword example"; :example-rule-emphasis:`id:1;` content:"content|3a 20|"; fast_pattern; classtype:misc-activity; sid:12; rev:1;)
 
 geoip
 ^^^^^
