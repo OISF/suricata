@@ -30,34 +30,34 @@ use std::fmt;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum MessageCode {
-	SshMsgDisconnect,
-	SshMsgIgnore,
-	SshMsgUnimplemented,
-	SshMsgDebug,
-	SshMsgServiceRequest,
-	SshMsgServiceAccept,
-	SshMsgKexinit,
-	SshMsgNewKeys,
-	SshMsgKexdhInit,
-	SshMsgKexdhReply,
+	Disconnect,
+	Ignore,
+	Unimplemented,
+	Debug,
+	ServiceRequest,
+	ServiceAccept,
+	Kexinit,
+	NewKeys,
+	KexdhInit,
+	KexdhReply,
 	
-	SshMsgUndefined(u8),
+	Undefined(u8),
 }
 
 impl MessageCode {
     fn from_u8(value: u8) -> MessageCode {
         match value {
-            1 => MessageCode::SshMsgDisconnect,
-            2 => MessageCode::SshMsgIgnore,
-            3 => MessageCode::SshMsgUnimplemented,
-            4 => MessageCode::SshMsgDebug,
-            5 => MessageCode::SshMsgServiceRequest,
-            6 => MessageCode::SshMsgServiceAccept,
-            20 => MessageCode::SshMsgKexinit,
-            21 => MessageCode::SshMsgNewKeys,
-            30 => MessageCode::SshMsgKexdhInit,
-            31 => MessageCode::SshMsgKexdhReply,
-            _ => MessageCode::SshMsgUndefined(value),
+            1 => MessageCode::Disconnect,
+            2 => MessageCode::Ignore,
+            3 => MessageCode::Unimplemented,
+            4 => MessageCode::Debug,
+            5 => MessageCode::ServiceRequest,
+            6 => MessageCode::ServiceAccept,
+            20 => MessageCode::Kexinit,
+            21 => MessageCode::NewKeys,
+            30 => MessageCode::KexdhInit,
+            31 => MessageCode::KexdhReply,
+            _ => MessageCode::Undefined(value),
         }
     }
 }
