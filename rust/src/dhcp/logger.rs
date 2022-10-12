@@ -240,7 +240,7 @@ impl DHCPLogger {
 
 }
 
-fn format_addr_hex(input: &Vec<u8>) -> String {
+fn format_addr_hex(input: &[u8]) -> String {
     let parts: Vec<String> = input.iter()
         .map(|b| format!("{:02x}", b))
         .collect();
