@@ -1425,6 +1425,104 @@ jobs:
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ LDFLAGS="-fsanitize=address" ./configure --enable-fuzztargets --disable-shared
       - run: AFL_HARDEN=1 make -j2
 
+  ubuntu-22-04-dpdk-build:
+    name: Ubuntu 22.04 (DPDK Build)
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
+    needs: [ prepare-deps, prepare-cbindgen ]
+    strategy:
+      matrix:
+        dpdk_version: [ 22.07, 21.11.2, 20.11.6, 19.11.13 ]
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                cargo \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags
+      - name: Install DPDK dependencies
+        run: |
+          apt update
+          apt install -y \
+          curl \
+          build-essential \
+          libnuma-dev \
+          ninja-build \
+          meson \
+          python3-pip \
+          python3-pyelftools \
+          python3-setuptools \
+          python3-wheel
+
+      - name: Compile and install DPDK
+        run: |
+          cd $HOME
+          rm -rf dpdk_${{ matrix.dpdk_version }}
+          find /usr/ -name 'librte_*.a' -delete
+          mkdir -p dpdk_${{ matrix.dpdk_version }} && cd dpdk_${{ matrix.dpdk_version }}
+          curl -fsLS https://fast.dpdk.org/rel/dpdk-${{ matrix.dpdk_version }}.tar.xz | tar -xJ --strip-components=1
+          rm -rf build/
+          meson setup -Dtests=false --prefix=/usr/ build
+          ninja -C build
+          ninja -C build install
+          ldconfig
+          cd $HOME
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-dpdk
+      - run: make -j2
+      - run: make check
+
   debian-10:
     name: Debian 10
     runs-on: ubuntu-latest
