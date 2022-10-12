@@ -450,7 +450,8 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
 
     if (iconf->mempool_cache_size <= 0 || iconf->mempool_cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE) {
         SCLogError(SC_ERR_INVALID_VALUE,
-                "Interface %s requires to have positive memory pool size and be less than %" PRIu32,
+                "Interface %s requires to have mempool cache size set to a positive number smaller "
+                "than %" PRIu32,
                 iconf->iface, RTE_MEMPOOL_CACHE_MAX_SIZE);
         SCReturnInt(-ERANGE);
     }
