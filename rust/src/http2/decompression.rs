@@ -27,11 +27,11 @@ pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum HTTP2ContentEncoding {
-    HTTP2ContentEncodingUnknown = 0,
-    HTTP2ContentEncodingGzip = 1,
-    HTTP2ContentEncodingBr = 2,
-    HTTP2ContentEncodingDeflate = 3,
-    HTTP2ContentEncodingUnrecognized = 4,
+    Unknown = 0,
+    Gzip = 1,
+    Br = 2,
+    Deflate = 3,
+    Unrecognized = 4,
 }
 
 //a cursor turning EOF into blocking errors
@@ -160,28 +160,28 @@ fn http2_decompress<'a>(
 impl HTTP2DecoderHalf {
     pub fn new() -> HTTP2DecoderHalf {
         HTTP2DecoderHalf {
-            encoding: HTTP2ContentEncoding::HTTP2ContentEncodingUnknown,
+            encoding: HTTP2ContentEncoding::Unknown,
             decoder: HTTP2Decompresser::UNASSIGNED,
         }
     }
 
     pub fn http2_encoding_fromvec(&mut self, input: &[u8]) {
         //use first encoding...
-        if self.encoding == HTTP2ContentEncoding::HTTP2ContentEncodingUnknown {
+        if self.encoding == HTTP2ContentEncoding::Unknown {
             if input == b"gzip" {
-                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingGzip;
+                self.encoding = HTTP2ContentEncoding::Gzip;
                 self.decoder = HTTP2Decompresser::GZIP(GzDecoder::new(HTTP2cursor::new()));
             } else if input == b"deflate" {
-                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingDeflate;
+                self.encoding = HTTP2ContentEncoding::Deflate;
                 self.decoder = HTTP2Decompresser::DEFLATE(DeflateDecoder::new(HTTP2cursor::new()));
             } else if input == b"br" {
-                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingBr;
+                self.encoding = HTTP2ContentEncoding::Br;
                 self.decoder = HTTP2Decompresser::BROTLI(brotli::Decompressor::new(
                     HTTP2cursor::new(),
                     HTTP2_DECOMPRESSION_CHUNK_SIZE,
                 ));
             } else {
-                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingUnrecognized;
+                self.encoding = HTTP2ContentEncoding::Unrecognized;
             }
         }
     }
