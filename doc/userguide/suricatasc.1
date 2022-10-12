@@ -1,0 +1,244 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "SURICATASC" "1" "Oct 11, 2022" "7.0.0-dev" "Suricata"
+.SH NAME
+suricatasc \- Tool to interact via unix socket
+.SH SYNOPSIS
+.sp
+\fBsuricatasc\fP
+.SH DESCRIPTION
+.sp
+Suricata socket control tool
+.SH COMMANDS
+.INDENT 0.0
+.TP
+.B shutdown
+Shut Suricata instance down.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B command\-list
+List available commands.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B help
+Get help about the available commands.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B version
+Print the version of Suricata instance.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B uptime
+Display the uptime of Suricata.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B running\-mode
+Display running mode. This can either be \fIworkers\fP, \fIautofp\fP or \fIsingle\fP\&.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B capture\-mode
+Display the capture mode. This can be either of \fIPCAP_DEV\fP,
+\fIPCAP_FILE\fP, \fIPFRING(DISABLED)\fP, \fINFQ\fP, \fINFLOG\fP, \fIIPFW\fP, \fIERF_FILE\fP,
+\fIERF_DAG\fP, \fIAF_PACKET_DEV\fP, \fINETMAP(DISABLED)\fP, \fIUNIX_SOCKET\fP or
+\fIWINDIVERT(DISABLED)\fP\&.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B conf\-get <variable>
+Get configuration value for a given variable. Variable to be provided can be
+either of the configuration parameters that are written in suricata.yaml.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B dump\-counters
+Dump Suricata\(aqs performance counters.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B ruleset\-reload\-rules
+Reload the ruleset and wait for completion.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B reload\-rules
+Alias .. describe \fIruleset\-reload\-rules\fP\&.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B ruleset\-reload\-nonblocking
+Reload ruleset and proceed without waiting.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B ruleset\-reload\-time
+Return time of last reload.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B ruleset\-stats
+Display the number of rules loaded and failed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B ruleset\-failed\-rules
+Display the list of failed rules.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B register\-tenant\-handler <id> <htype> [hargs]
+Register a tenant handler with the specified mapping.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B unregister\-tenant\-handler <id> <htype> [hargs]
+Unregister a tenant handler with the specified mapping.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B register\-tenant <id> <filename>
+Register tenant with a particular ID and filename.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B reload\-tenant <id> <filename>
+Reload a tenant with specified ID and filename.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B unregister\-tenant <id>
+Unregister tenant with a particular ID.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B add\-hostbit <ipaddress> <hostbit> <expire>
+Add hostbit on a host IP with a particular bit name and time of expiry.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B remove\-hostbit <ipaddress> <hostbit>
+Remove hostbit on a host IP with specified IP address and bit name.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B list\-hostbit <ipaddress>
+List hostbit for a particular host IP.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B reopen\-log\-files
+Reopen log files to be run after external log rotation.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B memcap\-set <config> <memcap>
+Update memcap value of a specified item.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B memcap\-show <config>
+Show memcap value of a specified item.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B memcap\-list
+List all memcap values available.
+.UNINDENT
+.SH PCAP MODE COMMANDS
+.INDENT 0.0
+.TP
+.B pcap\-file <file> <dir> [tenant] [continuous] [delete\-when\-done]
+Add pcap files to Suricata for sequential processing. The generated
+log/alert files will be put into the directory specified as second argument.
+Make sure to provide absolute path to the files and directory. It is
+acceptable to add multiple files without waiting the result.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-file\-continuous <file> <dir> [tenant] [delete\-when\-done]
+Add pcap files to Suricata for sequential processing. Directory will be
+monitored for new files being added until there is a use of
+\fBpcap\-interrupt\fP or directory is moved or deleted.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-file\-number
+Number of pcap files waiting to get processed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-file\-list
+List of queued pcap files.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-last\-processed
+Processed time of last file in milliseconds since epoch.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-interrupt
+Terminate the current state by interrupting directory processing.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B pcap\-current
+Currently processed file.
+.UNINDENT
+.SH BUGS
+.sp
+Please visit Suricata\(aqs support page for information about submitting
+bugs or feature requests.
+.SH NOTES
+.INDENT 0.0
+.IP \(bu 2
+Suricata Home Page
+.INDENT 2.0
+.INDENT 3.5
+\fI\%https://suricata.io/\fP
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Suricata Support Page
+.INDENT 2.0
+.INDENT 3.5
+\fI\%https://suricata.io/support/\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2016-2022, OISF
+.\" Generated by docutils manpage writer.
+.
