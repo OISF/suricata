@@ -286,7 +286,7 @@ impl NFSRequestXidMap {
 
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
+        flags: u16, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_NFS_FILE_CONFIG} {
@@ -685,7 +685,7 @@ impl NFSState {
         }
     }
 
-    pub fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
+    pub fn new_file_tx(&mut self, file_handle: &[u8], file_name: &[u8], direction: Direction)
         -> &mut NFSTransaction
     {
         let mut tx = self.new_tx();
@@ -709,7 +709,7 @@ impl NFSState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: Direction)
+    pub fn get_file_tx_by_handle(&mut self, file_handle: &[u8], direction: Direction)
         -> Option<&mut NFSTransaction>
     {
         let fh = file_handle.to_vec();
