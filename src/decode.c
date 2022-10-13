@@ -805,6 +805,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "threshold detection_filter";
         case PKT_DROP_REASON_NFQ_ERROR:
             return "nfq error";
+        case PKT_DROP_REASON_INNER_PACKET:
+            return "tunnel packet drop";
         case PKT_DROP_REASON_NOT_SET:
             return NULL;
     }
@@ -814,9 +816,9 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
 /* TODO drop reason stats! */
 void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p)
 {
-    if (unlikely(PacketTestAction(p, (ACTION_REJECT | ACTION_REJECT_DST | ACTION_REJECT_BOTH)))) {
+    if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
         StatsIncr(tv, s->counter_ips_rejected);
-    } else if (unlikely(PacketTestAction(p, ACTION_DROP))) {
+    } else if (unlikely(PacketCheckAction(p, ACTION_DROP))) {
         StatsIncr(tv, s->counter_ips_blocked);
     } else if (unlikely(p->flags & PKT_STREAM_MODIFIED)) {
         StatsIncr(tv, s->counter_ips_replaced);

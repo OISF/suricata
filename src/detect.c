@@ -1697,7 +1697,7 @@ static void DetectNoFlow(ThreadVars *tv,
                          Packet *p)
 {
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketTestAction(p, ACTION_DROP))) {
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketCheckAction(p, ACTION_DROP))) {
         return;
     }
 
