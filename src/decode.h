@@ -154,15 +154,6 @@ typedef struct Address_ {
         (a)->addr_data32[3] = 0;                                  \
     } while (0)
 
-/* clear the address structure by setting all fields to 0 */
-#define CLEAR_ADDR(a) do {       \
-        (a)->family = 0;         \
-        (a)->addr_data32[0] = 0; \
-        (a)->addr_data32[1] = 0; \
-        (a)->addr_data32[2] = 0; \
-        (a)->addr_data32[3] = 0; \
-    } while (0)
-
 /* Set the IPv6 addresses into the Addrs of the Packet.
  * Make sure p->ip6h is initialized and validated. */
 #define SET_IPV6_SRC_ADDR(p, a) do {                    \
@@ -223,7 +214,6 @@ typedef struct Address_ {
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
-#define RESET_PKT_LEN(p)           ((p)->pktlen = 0)
 #define GET_PKT_LEN(p) ((p)->pktlen)
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (uint8_t *)((p) + 1) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p) (uint8_t *)((p) + 1)
@@ -778,58 +768,33 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         }                                           \
     } while(0)
 
-/* macro's for setting the action
- * handle the case of a root packet
- * for tunnels */
-
-#define PACKET_SET_ACTION(p, a) (p)->action = (a)
-
-static inline void PacketSetAction(Packet *p, const uint8_t a)
-{
-    if (likely(p->root == NULL)) {
-        PACKET_SET_ACTION(p, a);
-    } else {
-        PACKET_SET_ACTION(p->root, a);
-    }
-}
-
-#define PACKET_ALERT(p) PACKET_SET_ACTION(p, ACTION_ALERT)
-
-#define PACKET_ACCEPT(p) PACKET_SET_ACTION(p, ACTION_ACCEPT)
-
-#define PACKET_TEST_ACTION(p, a) (p)->action &(a)
-
-#define PACKET_UPDATE_ACTION(p, a) (p)->action |= (a)
-static inline void PacketUpdateAction(Packet *p, const uint8_t a)
-{
-    if (likely(p->root == NULL)) {
-        PACKET_UPDATE_ACTION(p, a);
-    } else {
-        PACKET_UPDATE_ACTION(p->root, a);
-    }
-}
-
 static inline void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r)
 {
     if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
         p->drop_reason = (uint8_t)r;
-
-    PACKET_UPDATE_ACTION(p, action);
+    if (p->root) {
+        p->root->action |= (action & ACTION_DROP_REJECT);
+    }
+    p->action |= action;
 }
 
-static inline void PacketPass(Packet *p)
-{
-    PACKET_SET_ACTION(p, ACTION_PASS);
-}
-
-static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
+static inline uint8_t PacketCheckAction(const Packet *p, const uint8_t a)
 {
     if (likely(p->root == NULL)) {
-        return PACKET_TEST_ACTION(p, a);
+        return (p->action & a) != 0;
     } else {
-        return PACKET_TEST_ACTION(p->root, a);
+        /* check against both */
+        const uint8_t actions = p->action | p->root->action;
+        return (actions & a) != 0;
     }
 }
+
+#ifdef UNITTESTS
+static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
+{
+    return PacketCheckAction(p, a);
+}
+#endif
 
 #define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
