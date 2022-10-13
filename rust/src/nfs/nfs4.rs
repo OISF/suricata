@@ -129,7 +129,7 @@ impl NFSState {
 
     fn new_tx_v4<'b>(
         &mut self, r: &RpcPacket<'b>, xidmap: &NFSRequestXidMap, procedure: u32,
-        _aux_opcodes: &Vec<u32>,
+        _aux_opcodes: &[u32],
     ) {
         let mut tx = self.new_tx();
         tx.xid = r.hdr.xid;
