@@ -106,21 +106,21 @@ static void DNP3PushRequest(lua_State *luastate, DNP3Transaction *tx)
     /* Link header. */
     lua_pushliteral(luastate, "link_header");
     lua_newtable(luastate);
-    DNP3PushLinkHeader(luastate, &tx->request_lh);
+    DNP3PushLinkHeader(luastate, &tx->lh);
     lua_settable(luastate, -3);
 
     /* Transport header. */
-    LUA_PUSHT_INT(luastate, "transport_header", tx->request_th);
+    LUA_PUSHT_INT(luastate, "transport_header", tx->th);
 
     /* Application header. */
     lua_pushliteral(luastate, "application_header");
     lua_newtable(luastate);
-    DNP3PushApplicationHeader(luastate, &tx->request_ah);
+    DNP3PushApplicationHeader(luastate, &tx->ah);
     lua_settable(luastate, -3);
 
     lua_pushliteral(luastate, "objects");
     lua_newtable(luastate);
-    DNP3PushObjects(luastate, &tx->request_objects);
+    DNP3PushObjects(luastate, &tx->objects);
     lua_settable(luastate, -3);
 }
 
@@ -129,25 +129,24 @@ static void DNP3PushResponse(lua_State *luastate, DNP3Transaction *tx)
     /* Link header. */
     lua_pushliteral(luastate, "link_header");
     lua_newtable(luastate);
-    DNP3PushLinkHeader(luastate, &tx->response_lh);
+    DNP3PushLinkHeader(luastate, &tx->lh);
     lua_settable(luastate, -3);
 
     /* Transport header. */
-    LUA_PUSHT_INT(luastate, "transport_header", tx->response_th);
+    LUA_PUSHT_INT(luastate, "transport_header", tx->th);
 
     /* Application header. */
     lua_pushliteral(luastate, "application_header");
     lua_newtable(luastate);
-    DNP3PushApplicationHeader(luastate, &tx->response_ah);
+    DNP3PushApplicationHeader(luastate, &tx->ah);
     lua_settable(luastate, -3);
 
     /* Internal indicators. */
-    LUA_PUSHT_INT(luastate, "indicators",
-        tx->response_iin.iin1 << 8 | tx->response_iin.iin2);
+    LUA_PUSHT_INT(luastate, "indicators", tx->iin.iin1 << 8 | tx->iin.iin2);
 
     lua_pushliteral(luastate, "objects");
     lua_newtable(luastate);
-    DNP3PushObjects(luastate, &tx->response_objects);
+    DNP3PushObjects(luastate, &tx->objects);
     lua_settable(luastate, -3);
 }
 
@@ -168,22 +167,22 @@ static int DNP3GetTx(lua_State *luastate)
     lua_pushinteger(luastate, tx->tx_num);
     lua_settable(luastate, -3);
 
-    LUA_PUSHT_INT(luastate, "has_request", tx->has_request);
-    if (tx->has_request) {
+    LUA_PUSHT_INT(luastate, "has_request", tx->is_request ? 1 : 0);
+    if (tx->is_request) {
         lua_pushliteral(luastate, "request");
         lua_newtable(luastate);
-        LUA_PUSHT_INT(luastate, "done", tx->request_done);
-        LUA_PUSHT_INT(luastate, "complete", tx->request_complete);
+        LUA_PUSHT_INT(luastate, "done", tx->done);
+        LUA_PUSHT_INT(luastate, "complete", tx->complete);
         DNP3PushRequest(luastate, tx);
         lua_settable(luastate, -3);
     }
 
-    LUA_PUSHT_INT(luastate, "has_response", tx->has_response);
-    if (tx->has_response) {
+    LUA_PUSHT_INT(luastate, "has_response", tx->is_request ? 0 : 1);
+    if (!tx->is_request) {
         lua_pushliteral(luastate, "response");
         lua_newtable(luastate);
-        LUA_PUSHT_INT(luastate, "done", tx->response_done);
-        LUA_PUSHT_INT(luastate, "complete", tx->response_complete);
+        LUA_PUSHT_INT(luastate, "done", tx->done);
+        LUA_PUSHT_INT(luastate, "complete", tx->complete);
         DNP3PushResponse(luastate, tx);
         lua_settable(luastate, -3);
     }

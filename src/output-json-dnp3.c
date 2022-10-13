@@ -145,27 +145,27 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
     JB_SET_STRING(js, "type", "request");
 
     jb_open_object(js, "control");
-    JsonDNP3LogLinkControl(js, dnp3tx->request_lh.control);
+    JsonDNP3LogLinkControl(js, dnp3tx->lh.control);
     jb_close(js);
 
-    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->request_lh.src));
-    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->request_lh.dst));
+    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->lh.src));
+    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->lh.dst));
 
     jb_open_object(js, "application");
 
     jb_open_object(js, "control");
-    JsonDNP3LogApplicationControl(js, dnp3tx->request_ah.control);
+    JsonDNP3LogApplicationControl(js, dnp3tx->ah.control);
     jb_close(js);
 
-    jb_set_uint(js, "function_code", dnp3tx->request_ah.function_code);
+    jb_set_uint(js, "function_code", dnp3tx->ah.function_code);
 
-    if (!TAILQ_EMPTY(&dnp3tx->request_objects)) {
+    if (!TAILQ_EMPTY(&dnp3tx->objects)) {
         jb_open_array(js, "objects");
-        JsonDNP3LogObjects(js, &dnp3tx->request_objects);
+        JsonDNP3LogObjects(js, &dnp3tx->objects);
         jb_close(js);
     }
 
-    jb_set_bool(js, "complete", dnp3tx->request_complete);
+    jb_set_bool(js, "complete", dnp3tx->complete);
 
     /* Close application. */
     jb_close(js);
@@ -173,41 +173,40 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
 
 void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
 {
-    if (dnp3tx->response_ah.function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
+    if (dnp3tx->ah.function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
         JB_SET_STRING(js, "type", "unsolicited_response");
-    }
-    else {
+    } else {
         JB_SET_STRING(js, "type", "response");
     }
 
     jb_open_object(js, "control");
-    JsonDNP3LogLinkControl(js, dnp3tx->response_lh.control);
+    JsonDNP3LogLinkControl(js, dnp3tx->lh.control);
     jb_close(js);
 
-    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->response_lh.src));
-    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->response_lh.dst));
+    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->lh.src));
+    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->lh.dst));
 
     jb_open_object(js, "application");
 
     jb_open_object(js, "control");
-    JsonDNP3LogApplicationControl(js, dnp3tx->response_ah.control);
+    JsonDNP3LogApplicationControl(js, dnp3tx->ah.control);
     jb_close(js);
 
-    jb_set_uint(js, "function_code", dnp3tx->response_ah.function_code);
+    jb_set_uint(js, "function_code", dnp3tx->ah.function_code);
 
-    if (!TAILQ_EMPTY(&dnp3tx->response_objects)) {
+    if (!TAILQ_EMPTY(&dnp3tx->objects)) {
         jb_open_array(js, "objects");
-        JsonDNP3LogObjects(js, &dnp3tx->response_objects);
+        JsonDNP3LogObjects(js, &dnp3tx->objects);
         jb_close(js);
     }
 
-    jb_set_bool(js, "complete", dnp3tx->response_complete);
+    jb_set_bool(js, "complete", dnp3tx->complete);
 
     /* Close application. */
     jb_close(js);
 
     jb_open_object(js, "iin");
-    JsonDNP3LogIin(js, (uint16_t)(dnp3tx->response_iin.iin1 << 8 | dnp3tx->response_iin.iin2));
+    JsonDNP3LogIin(js, (uint16_t)(dnp3tx->iin.iin1 << 8 | dnp3tx->iin.iin2));
     jb_close(js);
 }
 
@@ -218,19 +217,16 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    if (tx->has_request && tx->request_done) {
-        JsonBuilder *js =
-                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
-        if (unlikely(js == NULL)) {
-            return TM_ECODE_OK;
-        }
-
-        jb_open_object(js, "dnp3");
-        JsonDNP3LogRequest(js, tx);
-        jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->ctx);
-        jb_free(js);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_OK;
     }
+
+    jb_open_object(js, "dnp3");
+    JsonDNP3LogRequest(js, tx);
+    jb_close(js);
+    OutputJsonBuilderBuffer(js, thread->ctx);
+    jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -242,20 +238,32 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    if (tx->has_response && tx->response_done) {
-        JsonBuilder *js =
-                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
-        if (unlikely(js == NULL)) {
-            return TM_ECODE_OK;
-        }
-
-        jb_open_object(js, "dnp3");
-        JsonDNP3LogResponse(js, tx);
-        jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->ctx);
-        jb_free(js);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_OK;
     }
 
+    jb_open_object(js, "dnp3");
+    JsonDNP3LogResponse(js, tx);
+    jb_close(js);
+    OutputJsonBuilderBuffer(js, thread->ctx);
+    jb_free(js);
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int JsonDNP3Logger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *vtx, uint64_t tx_id)
+{
+    SCEnter();
+    DNP3Transaction *tx = vtx;
+    static int count = 0;
+    if (tx->is_request && tx->done) {
+        JsonDNP3LoggerToServer(tv, thread_data, p, f, state, vtx, tx_id);
+    } else if (!tx->is_request && tx->done) {
+        JsonDNP3LoggerToClient(tv, thread_data, p, f, state, vtx, tx_id);
+    }
+    SCLogNotice("count = %d", ++count);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -338,13 +346,7 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonDNP3LogRegister(void)
 {
-    /* Register direction aware eve sub-modules. */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3_TS, "eve-log",
-        "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
-        JsonDNP3LoggerToServer, 0, 1, JsonDNP3LogThreadInit,
-        JsonDNP3LogThreadDeinit, NULL);
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3_TC, "eve-log",
-        "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
-        JsonDNP3LoggerToClient, 1, 1, JsonDNP3LogThreadInit,
-        JsonDNP3LogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDNP3Log", "eve-log.dnp3",
+            OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger, JsonDNP3LogThreadInit,
+            JsonDNP3LogThreadDeinit, NULL);
 }
