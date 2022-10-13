@@ -253,11 +253,10 @@ static void DetectFileextFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectFileextTestParse01 (void)
 {
     DetectFileextData *dfd = DetectFileextParse(NULL, "doc", false);
-    if (dfd != NULL) {
-        DetectFileextFree(NULL, dfd);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(dfd);
+    DetectFileextFree(NULL, dfd);
+
+    PASS;
 }
 
 /**
@@ -265,18 +264,13 @@ static int DetectFileextTestParse01 (void)
  */
 static int DetectFileextTestParse02 (void)
 {
-    int result = 0;
-
     DetectFileextData *dfd = DetectFileextParse(NULL, "tar.gz", false);
-    if (dfd != NULL) {
-        if (dfd->len == 6 && memcmp(dfd->ext, "tar.gz", 6) == 0) {
-            result = 1;
-        }
+    FAIL_IF_NULL(dfd);
+    FAIL_IF_NOT(dfd->len == 6);
+    FAIL_IF_NOT(memcmp(dfd->ext, "tar.gz", 6) == 0);
+    DetectFileextFree(NULL, dfd);
 
-        DetectFileextFree(NULL, dfd);
-        return result;
-    }
-    return 0;
+    PASS;
 }
 
 /**
@@ -284,18 +278,13 @@ static int DetectFileextTestParse02 (void)
  */
 static int DetectFileextTestParse03 (void)
 {
-    int result = 0;
-
     DetectFileextData *dfd = DetectFileextParse(NULL, "pdf", false);
-    if (dfd != NULL) {
-        if (dfd->len == 3 && memcmp(dfd->ext, "pdf", 3) == 0) {
-            result = 1;
-        }
+    FAIL_IF_NULL(dfd);
+    FAIL_IF_NOT(dfd->len == 3);
+    FAIL_IF_NOT(memcmp(dfd->ext, "pdf", 3) == 0);
+    DetectFileextFree(NULL, dfd);
 
-        DetectFileextFree(NULL, dfd);
-        return result;
-    }
-    return 0;
+    PASS;
 }
 
 /**
