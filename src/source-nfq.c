@@ -1039,7 +1039,7 @@ static inline uint32_t GetVerdict(const Packet *p)
 {
     uint32_t verdict = NF_ACCEPT;
 
-    if (PacketTestAction(p, ACTION_DROP)) {
+    if (PacketCheckAction(p, ACTION_DROP)) {
         verdict = NF_DROP;
     } else {
         switch (nfq_config.mode) {
@@ -1061,7 +1061,7 @@ static inline uint32_t GetVerdict(const Packet *p)
 #ifdef COUNTERS
 static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
 {
-    if (PacketTestAction(p, ACTION_DROP)) {
+    if (PacketCheckAction(p, ACTION_DROP)) {
         t->dropped++;
     } else {
         if (p->flags & PKT_STREAM_MODIFIED) {
