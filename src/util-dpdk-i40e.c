@@ -240,21 +240,23 @@ static int i40eDeviceSetRSSFlowIPv4(
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
     ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV4_OTHER, pattern);
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_OTHER, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_UDP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV4_UDP, pattern);
+    ret |= i40eDeviceCreateRSSFlow(
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_UDP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_TCP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV4_TCP, pattern);
+    ret |= i40eDeviceCreateRSSFlow(
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_TCP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
@@ -262,13 +264,13 @@ static int i40eDeviceSetRSSFlowIPv4(
     pattern[2].type = RTE_FLOW_ITEM_TYPE_SCTP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
     ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV4_SCTP, pattern);
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_SCTP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_FRAG_IPV4, pattern);
+    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_FRAG_IPV4, pattern);
 
     return ret;
 }
@@ -283,21 +285,23 @@ static int i40eDeviceSetRSSFlowIPv6(
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
     ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV6_OTHER, pattern);
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_OTHER, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_UDP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV6_UDP, pattern);
+    ret |= i40eDeviceCreateRSSFlow(
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_UDP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_TCP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV6_TCP, pattern);
+    ret |= i40eDeviceCreateRSSFlow(
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_TCP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
@@ -305,13 +309,13 @@ static int i40eDeviceSetRSSFlowIPv6(
     pattern[2].type = RTE_FLOW_ITEM_TYPE_SCTP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
     ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, ETH_RSS_NONFRAG_IPV6_SCTP, pattern);
+            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_SCTP, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, ETH_RSS_FRAG_IPV6, pattern);
+    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_FRAG_IPV6, pattern);
 
     return ret;
 }
@@ -375,13 +379,14 @@ int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
 void i40eDeviceSetRSSHashFunction(uint64_t *rss_hf)
 {
     if (RTE_VER_YEAR <= 19)
-        *rss_hf = ETH_RSS_FRAG_IPV4 | ETH_RSS_NONFRAG_IPV4_TCP | ETH_RSS_NONFRAG_IPV4_UDP |
-                  ETH_RSS_NONFRAG_IPV4_SCTP | ETH_RSS_NONFRAG_IPV4_OTHER | ETH_RSS_FRAG_IPV6 |
-                  ETH_RSS_NONFRAG_IPV6_TCP | ETH_RSS_NONFRAG_IPV6_UDP | ETH_RSS_NONFRAG_IPV6_SCTP |
-                  ETH_RSS_NONFRAG_IPV6_OTHER | ETH_RSS_SCTP;
+        *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_TCP |
+                  RTE_ETH_RSS_NONFRAG_IPV4_UDP | RTE_ETH_RSS_NONFRAG_IPV4_SCTP |
+                  RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
+                  RTE_ETH_RSS_NONFRAG_IPV6_TCP | RTE_ETH_RSS_NONFRAG_IPV6_UDP |
+                  RTE_ETH_RSS_NONFRAG_IPV6_SCTP | RTE_ETH_RSS_NONFRAG_IPV6_OTHER | RTE_ETH_RSS_SCTP;
     else
-        *rss_hf = ETH_RSS_FRAG_IPV4 | ETH_RSS_NONFRAG_IPV4_OTHER | ETH_RSS_FRAG_IPV6 |
-                  ETH_RSS_NONFRAG_IPV6_OTHER;
+        *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
+                  RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
 }
 
 #endif /* HAVE_DPDK */
