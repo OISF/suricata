@@ -649,7 +649,7 @@ static void AFPWritePacket(Packet *p, int version)
     int socket;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
-        if (PacketTestAction(p, ACTION_DROP)) {
+        if (PacketCheckAction(p, ACTION_DROP)) {
             return;
         }
     }
