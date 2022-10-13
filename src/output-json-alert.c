@@ -198,13 +198,13 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
             jb_get_mark(js, &mark);
             bool logged = false;
             jb_open_object(js, "dnp3");
-            if (tx->has_request && tx->request_done) {
+            if (tx->is_request && tx->done) {
                 jb_open_object(js, "request");
                 JsonDNP3LogRequest(js, tx);
                 jb_close(js);
                 logged = true;
             }
-            if (tx->has_response && tx->response_done) {
+            if (!tx->is_request && tx->done) {
                 jb_open_object(js, "response");
                 JsonDNP3LogResponse(js, tx);
                 jb_close(js);

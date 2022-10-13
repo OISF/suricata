@@ -156,21 +156,17 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         DNP3Transaction *tx = (DNP3Transaction *)txv;
         SCLogDebug("tx %p", tx);
 
-        const uint8_t *data = NULL;
-        uint32_t data_len = 0;
-
-        if (flow_flags & STREAM_TOSERVER) {
-            data = tx->request_buffer;
-            data_len = tx->request_buffer_len;
-        } else if (flow_flags & STREAM_TOCLIENT) {
-            data = tx->response_buffer;
-            data_len = tx->response_buffer_len;
-        }
-        if (data == NULL || data_len == 0)
+        if ((flow_flags & STREAM_TOSERVER && !tx->is_request) ||
+                (flow_flags & STREAM_TOCLIENT && tx->is_request)) {
             return NULL;
+        }
 
-        SCLogDebug("tx %p data %p data_len %u", tx, data, data_len);
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        if (tx->buffer == NULL || tx->buffer_len == 0) {
+            return NULL;
+        }
+
+        SCLogDebug("tx %p data %p data_len %u", tx, tx->buffer, tx->buffer_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, tx->buffer, tx->buffer_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;
@@ -425,11 +421,10 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
     int match = 0;
 
-    if (flags & STREAM_TOSERVER) {
-        match = detect->function_code == tx->request_ah.function_code;
-    }
-    else if (flags & STREAM_TOCLIENT) {
-        match = detect->function_code == tx->response_ah.function_code;
+    if (flags & STREAM_TOSERVER && tx->is_request) {
+        match = detect->function_code == tx->ah.function_code;
+    } else if (flags & STREAM_TOCLIENT && !tx->is_request) {
+        match = detect->function_code == tx->ah.function_code;
     }
 
     return match;
@@ -443,11 +438,10 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
     DNP3ObjectList *objects = NULL;
 
-    if (flags & STREAM_TOSERVER) {
-        objects = &tx->request_objects;
-    }
-    else if (flags & STREAM_TOCLIENT) {
-        objects = &tx->response_objects;
+    if (flags & STREAM_TOSERVER && tx->is_request) {
+        objects = &tx->objects;
+    } else if (flags & STREAM_TOCLIENT && !tx->is_request) {
+        objects = &tx->objects;
     }
 
     if (objects != NULL) {
@@ -471,8 +465,8 @@ static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
 
     if (flags & STREAM_TOCLIENT) {
-        if ((tx->response_iin.iin1 & (detect->ind_flags >> 8)) ||
-            (tx->response_iin.iin2 & (detect->ind_flags & 0xf))) {
+        if ((tx->iin.iin1 & (detect->ind_flags >> 8)) ||
+                (tx->iin.iin2 & (detect->ind_flags & 0xf))) {
             return 1;
         }
     }
