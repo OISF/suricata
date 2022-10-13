@@ -44,6 +44,16 @@ void PacketReleaseRefs(Packet *p)
  */
 void PacketReinit(Packet *p)
 {
+/* clear the address structure by setting all fields to 0 */
+#define CLEAR_ADDR(a)                                                                              \
+    do {                                                                                           \
+        (a)->family = 0;                                                                           \
+        (a)->addr_data32[0] = 0;                                                                   \
+        (a)->addr_data32[1] = 0;                                                                   \
+        (a)->addr_data32[2] = 0;                                                                   \
+        (a)->addr_data32[3] = 0;                                                                   \
+    } while (0)
+
     CLEAR_ADDR(&p->src);
     CLEAR_ADDR(&p->dst);
     p->sp = 0;
@@ -61,7 +71,8 @@ void PacketReinit(Packet *p)
     p->ts.tv_usec = 0;
     p->datalink = 0;
     p->drop_reason = 0;
-    PACKET_SET_ACTION(p, 0);
+#define PACKET_RESET_ACTION(p) (p)->action = 0
+    PACKET_RESET_ACTION(p);
     if (p->pktvar != NULL) {
         PktVarFree(p->pktvar);
         p->pktvar = NULL;
@@ -98,6 +109,7 @@ void PacketReinit(Packet *p)
     p->payload = NULL;
     p->payload_len = 0;
     p->BypassPacketsFlow = NULL;
+#define RESET_PKT_LEN(p) ((p)->pktlen = 0)
     RESET_PKT_LEN(p);
     p->alerts.cnt = 0;
     p->alerts.discarded = 0;

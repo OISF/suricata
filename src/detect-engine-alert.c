@@ -178,33 +178,46 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 }
 
 /** \brief Apply action(s) and Set 'drop' sig info,
- *         if applicable */
-static void PacketApplySignatureActions(Packet *p, const Signature *s, const uint8_t alert_flags)
+ *         if applicable
+ *  \param p packet
+ *  \param s signature -- for id, sig pointer, not actions
+ *  \param pa packet alert struct -- match, including actions after thresholding (rate_filter) */
+static void PacketApplySignatureActions(Packet *p, const Signature *s, const PacketAlert *pa)
 {
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
-            s->action, alert_flags);
+            pa->action, pa->flags);
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
-    if (s->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+    if (pa->action & ACTION_DROP_REJECT) {
         /* PacketDrop will update the packet action, too */
-        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
+        PacketDrop(p, pa->action,
+                (pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED) ? PKT_DROP_REASON_RULES_THRESHOLD
+                                                                : PKT_DROP_REASON_RULES);
+        SCLogDebug("[packet %p][DROP sid %u]", p, s->id);
 
         if (p->alerts.drop.action == 0) {
             p->alerts.drop.num = s->num;
-            p->alerts.drop.action = s->action;
+            p->alerts.drop.action = pa->action;
             p->alerts.drop.s = (Signature *)s;
         }
-        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(s->action, p->flow);
+        if ((p->flow != NULL) && (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(pa->action, p->flow);
         }
 
-        DEBUG_VALIDATE_BUG_ON(!PacketTestAction(p, ACTION_DROP));
+        DEBUG_VALIDATE_BUG_ON(!PacketCheckAction(p, ACTION_DROP));
     } else {
-        PacketUpdateAction(p, s->action);
+        if (pa->action & ACTION_PASS) {
+            SCLogDebug("[packet %p][PASS sid %u]", p, s->id);
+            // nothing to set in the packet
+        } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
+            // nothing to set in the packet
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
+        }
 
-        if ((s->action & ACTION_PASS) && (p->flow != NULL) &&
-                (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(s->action, p->flow);
+        if ((pa->action & ACTION_PASS) && (p->flow != NULL) &&
+                (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(pa->action, p->flow);
         }
     }
 }
@@ -357,9 +370,9 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     uint16_t max_pos = det_ctx->alert_queue_size;
 
     while (i < max_pos) {
-        const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
-        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
-
+        PacketAlert *pa = &det_ctx->alert_queue[i];
+        const Signature *s = de_ctx->sig_array[pa->num];
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
@@ -378,11 +391,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
 
             /* set actions on the flow */
-            FlowApplySignatureActions(
-                    p, &det_ctx->alert_queue[i], s, det_ctx->alert_queue[i].flags);
+            FlowApplySignatureActions(p, pa, s, pa->flags);
+
+            SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
+                    BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
 
             /* set actions on packet */
-            PacketApplySignatureActions(p, s, det_ctx->alert_queue[i].flags);
+            PacketApplySignatureActions(p, s, pa);
         }
 
         /* Thresholding removes this alert */
@@ -390,12 +405,11 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             /* we will not copy this to the AlertQueue */
             p->alerts.suppressed++;
         } else if (p->alerts.cnt < packet_alert_max) {
-            p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
+            p->alerts.alerts[p->alerts.cnt] = *pa;
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
 
-            if (PacketTestAction(p, ACTION_PASS)) {
-                /* Ok, reset the alert cnt to end in the previous of pass
-                 * so we ignore the rest with less prio */
+            /* pass "alert" found, we're done */
+            if (pa->action & ACTION_PASS) {
                 break;
             }
             p->alerts.cnt++;

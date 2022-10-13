@@ -301,7 +301,7 @@ static void DPDKReleasePacket(Packet *p)
        When enabling promiscuous mode on Intel cards, 2 ICMPv6 packets are generated.
        These get into the infinite cycle between the NIC and the switch in some cases */
     if ((p->dpdk_v.copy_mode == DPDK_COPY_MODE_TAP ||
-                (p->dpdk_v.copy_mode == DPDK_COPY_MODE_IPS && !PacketTestAction(p, ACTION_DROP)))
+                (p->dpdk_v.copy_mode == DPDK_COPY_MODE_IPS && !PacketCheckAction(p, ACTION_DROP)))
 #if defined(RTE_LIBRTE_I40E_PMD) || defined(RTE_LIBRTE_IXGBE_PMD) || defined(RTE_LIBRTE_ICE_PMD)
             && !(PKT_IS_ICMPV6(p) && p->icmpv6h->type == 143)
 #endif
