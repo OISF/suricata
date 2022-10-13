@@ -363,14 +363,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCEnter();
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
 
-#ifdef DEBUG_VALIDATION
-    /* Check that the drop reason has been set, if we have a drop.
-     * Use macro to avoid testing Packet::root. */
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        DEBUG_VALIDATE_BUG_ON((p)->drop_reason == PKT_DROP_REASON_NOT_SET);
-    }
-#endif
-
     if (IS_TUNNEL_PKT(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");
