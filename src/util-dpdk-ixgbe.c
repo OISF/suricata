@@ -37,7 +37,7 @@
 
 void ixgbeDeviceSetRSSHashFunction(uint64_t *rss_hf)
 {
-    *rss_hf = ETH_RSS_IPV4 | ETH_RSS_IPV6 | ETH_RSS_IPV6_EX;
+    *rss_hf = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_IPV6 | RTE_ETH_RSS_IPV6_EX;
 }
 
 #endif /* HAVE_DPDK */
