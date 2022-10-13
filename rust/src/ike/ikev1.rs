@@ -53,10 +53,10 @@ impl Ikev1ParticipantData {
     }
 
     pub fn update(
-        &mut self, key_exchange: &String, nonce: &String, transforms: &Vec<Vec<SaAttribute>>,
+        &mut self, key_exchange: &str, nonce: &str, transforms: &Vec<Vec<SaAttribute>>,
     ) {
-        self.key_exchange = key_exchange.clone();
-        self.nonce = nonce.clone();
+        self.key_exchange = key_exchange.to_string();
+        self.nonce = nonce.to_string();
         if self.nb_transforms == 0 && transforms.len() > 0 {
             self.transform.extend(transforms[0].iter().cloned());
         }

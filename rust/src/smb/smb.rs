@@ -1001,7 +1001,7 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_create_tx(&mut self, file_name: &Vec<u8>,
+    pub fn new_create_tx(&mut self, file_name: &[u8],
             disposition: u32, del: bool, dir: bool,
             hdr: SMBCommonHdr)
         -> &mut SMBTransaction
