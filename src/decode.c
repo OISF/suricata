@@ -803,6 +803,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "rules";
         case PKT_DROP_REASON_RULES_THRESHOLD:
             return "threshold detection_filter";
+        case PKT_DROP_REASON_NFQ_ERROR:
+            return "nfq error";
         case PKT_DROP_REASON_NOT_SET:
         default:
             return NULL;
