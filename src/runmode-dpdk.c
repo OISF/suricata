@@ -111,7 +111,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              1024
 #define DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS              1024
-#define DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS          ETH_RSS_IP
+#define DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS          RTE_ETH_RSS_IP
 #define DPDK_CONFIG_DEFAULT_MTU                         1500
 #define DPDK_CONFIG_DEFAULT_PROMISCUOUS_MODE            1
 #define DPDK_CONFIG_DEFAULT_MULTICAST_MODE              1
@@ -799,127 +799,137 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
 {
     SCLogConfig("REQUESTED (groups):");
 
-    SCLogConfig("ETH_RSS_IP %sset", ((requested & ETH_RSS_IP) == ETH_RSS_IP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_TCP %sset", ((requested & ETH_RSS_TCP) == ETH_RSS_TCP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_UDP %sset", ((requested & ETH_RSS_UDP) == ETH_RSS_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_SCTP %sset", ((requested & ETH_RSS_SCTP) == ETH_RSS_SCTP) ? "" : "NOT ");
     SCLogConfig(
-            "ETH_RSS_TUNNEL %sset", ((requested & ETH_RSS_TUNNEL) == ETH_RSS_TUNNEL) ? "" : "NOT ");
+            "RTE_ETH_RSS_IP %sset", ((requested & RTE_ETH_RSS_IP) == RTE_ETH_RSS_IP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_TCP %sset",
+            ((requested & RTE_ETH_RSS_TCP) == RTE_ETH_RSS_TCP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_UDP %sset",
+            ((requested & RTE_ETH_RSS_UDP) == RTE_ETH_RSS_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_SCTP %sset",
+            ((requested & RTE_ETH_RSS_SCTP) == RTE_ETH_RSS_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_TUNNEL %sset",
+            ((requested & RTE_ETH_RSS_TUNNEL) == RTE_ETH_RSS_TUNNEL) ? "" : "NOT ");
 
     SCLogConfig("REQUESTED (individual):");
-    SCLogConfig("ETH_RSS_IPV4 (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV4),
-            (requested & ETH_RSS_IPV4) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV4 (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_FRAG_IPV4),
-            (requested & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_TCP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_TCP),
-            (requested & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_UDP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_UDP),
-            (requested & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_SCTP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_SCTP),
-            (requested & ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_OTHER (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV4_OTHER),
-            (requested & ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6 (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV6),
-            (requested & ETH_RSS_IPV6) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV6 (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_FRAG_IPV6),
-            (requested & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_TCP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_TCP),
-            (requested & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_UDP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_UDP),
-            (requested & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_SCTP (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_SCTP),
-            (requested & ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_OTHER (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_NONFRAG_IPV6_OTHER),
-            (requested & ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
+    SCLogConfig("ETH_RSS_IPV4 (Bit position: %d) %sset", GetFirstSetBitPosition(RTE_ETH_RSS_IPV4),
+            (requested & RTE_ETH_RSS_IPV4) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_FRAG_IPV4 (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_FRAG_IPV4),
+            (requested & RTE_ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_TCP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV4_TCP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_UDP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV4_UDP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_SCTP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV4_SCTP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_OTHER (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV4_OTHER),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6 (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_IPV6), (requested & RTE_ETH_RSS_IPV6) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_FRAG_IPV6 (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_FRAG_IPV6),
+            (requested & RTE_ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_TCP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV6_TCP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_UDP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV6_UDP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_SCTP (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV6_SCTP),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_OTHER (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NONFRAG_IPV6_OTHER),
+            (requested & RTE_ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L2_PAYLOAD (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_L2_PAYLOAD),
-            (requested & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_EX (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_IPV6_EX),
-            (requested & ETH_RSS_IPV6_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_TCP_EX (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_IPV6_TCP_EX),
-            (requested & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_UDP_EX (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_IPV6_UDP_EX),
-            (requested & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L2_PAYLOAD (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_L2_PAYLOAD),
+            (requested & RTE_ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_EX (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_IPV6_EX),
+            (requested & RTE_ETH_RSS_IPV6_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_TCP_EX (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_IPV6_TCP_EX),
+            (requested & RTE_ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_UDP_EX (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_IPV6_UDP_EX),
+            (requested & RTE_ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_PORT (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_PORT),
-            (requested & ETH_RSS_PORT) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_VXLAN (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_VXLAN),
-            (requested & ETH_RSS_VXLAN) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NVGRE (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_NVGRE),
-            (requested & ETH_RSS_NVGRE) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_GTPU (Bit position: %d) %sset", GetFirstSetBitPosition(ETH_RSS_GTPU),
-            (requested & ETH_RSS_GTPU) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_PORT (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_PORT), (requested & RTE_ETH_RSS_PORT) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_VXLAN (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_VXLAN),
+            (requested & RTE_ETH_RSS_VXLAN) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NVGRE (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_NVGRE),
+            (requested & RTE_ETH_RSS_NVGRE) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_GTPU (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_GTPU), (requested & RTE_ETH_RSS_GTPU) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L3_SRC_ONLY (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_L3_SRC_ONLY),
-            (requested & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L3_DST_ONLY (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_L3_DST_ONLY),
-            (requested & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_SRC_ONLY (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_L4_SRC_ONLY),
-            (requested & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_DST_ONLY (Bit position: %d) %sset",
-            GetFirstSetBitPosition(ETH_RSS_L4_DST_ONLY),
-            (requested & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
-
+    SCLogConfig("RTE_ETH_RSS_L3_SRC_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_L3_SRC_ONLY),
+            (requested & RTE_ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L3_DST_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_L3_DST_ONLY),
+            (requested & RTE_ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L4_SRC_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_L4_SRC_ONLY),
+            (requested & RTE_ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L4_DST_ONLY (Bit position: %d) %sset",
+            GetFirstSetBitPosition(RTE_ETH_RSS_L4_DST_ONLY),
+            (requested & RTE_ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
     SCLogConfig("ACTUAL (group):");
-    SCLogConfig("ETH_RSS_IP %sset", ((actual & ETH_RSS_IP) == ETH_RSS_IP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_TCP %sset", ((actual & ETH_RSS_TCP) == ETH_RSS_TCP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_UDP %sset", ((actual & ETH_RSS_UDP) == ETH_RSS_UDP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_SCTP %sset", ((actual & ETH_RSS_SCTP) == ETH_RSS_SCTP) ? "" : "NOT ");
     SCLogConfig(
-            "ETH_RSS_TUNNEL %sset", ((actual & ETH_RSS_TUNNEL) == ETH_RSS_TUNNEL) ? "" : "NOT ");
+            "RTE_ETH_RSS_IP %sset", ((actual & RTE_ETH_RSS_IP) == RTE_ETH_RSS_IP) ? "" : "NOT ");
+    SCLogConfig(
+            "RTE_ETH_RSS_TCP %sset", ((actual & RTE_ETH_RSS_TCP) == RTE_ETH_RSS_TCP) ? "" : "NOT ");
+    SCLogConfig(
+            "RTE_ETH_RSS_UDP %sset", ((actual & RTE_ETH_RSS_UDP) == RTE_ETH_RSS_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_SCTP %sset",
+            ((actual & RTE_ETH_RSS_SCTP) == RTE_ETH_RSS_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_TUNNEL %sset",
+            ((actual & RTE_ETH_RSS_TUNNEL) == RTE_ETH_RSS_TUNNEL) ? "" : "NOT ");
 
     SCLogConfig("ACTUAL (individual flags):");
-    SCLogConfig("ETH_RSS_IPV4 %sset", (actual & ETH_RSS_IPV4) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV4 %sset", (actual & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV4_TCP %sset", (actual & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV4_UDP %sset", (actual & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV4_SCTP %sset", (actual & ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV4_OTHER %sset",
-            (actual & ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6 %sset", (actual & ETH_RSS_IPV6) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_FRAG_IPV6 %sset", (actual & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV6_TCP %sset", (actual & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV6_UDP %sset", (actual & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
-    SCLogConfig(
-            "ETH_RSS_NONFRAG_IPV6_SCTP %sset", (actual & ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NONFRAG_IPV6_OTHER %sset",
-            (actual & ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV4 %sset", (actual & RTE_ETH_RSS_IPV4) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_FRAG_IPV4 %sset", (actual & RTE_ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_TCP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_UDP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_SCTP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV4_OTHER %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6 %sset", (actual & RTE_ETH_RSS_IPV6) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_FRAG_IPV6 %sset", (actual & RTE_ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_TCP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_UDP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_SCTP %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NONFRAG_IPV6_OTHER %sset",
+            (actual & RTE_ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L2_PAYLOAD %sset", (actual & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_EX %sset", (actual & ETH_RSS_IPV6_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_TCP_EX %sset", (actual & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_IPV6_UDP_EX %sset", (actual & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L2_PAYLOAD %sset", (actual & RTE_ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_EX %sset", (actual & RTE_ETH_RSS_IPV6_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_TCP_EX %sset", (actual & RTE_ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_IPV6_UDP_EX %sset", (actual & RTE_ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_PORT %sset", (actual & ETH_RSS_PORT) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_VXLAN %sset", (actual & ETH_RSS_VXLAN) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_NVGRE %sset", (actual & ETH_RSS_NVGRE) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_GTPU %sset", (actual & ETH_RSS_GTPU) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_PORT %sset", (actual & RTE_ETH_RSS_PORT) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_VXLAN %sset", (actual & RTE_ETH_RSS_VXLAN) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_NVGRE %sset", (actual & RTE_ETH_RSS_NVGRE) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_GTPU %sset", (actual & RTE_ETH_RSS_GTPU) ? "" : "NOT ");
 
-    SCLogConfig("ETH_RSS_L3_SRC_ONLY %sset", (actual & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L3_DST_ONLY %sset", (actual & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_SRC_ONLY %sset", (actual & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
-    SCLogConfig("ETH_RSS_L4_DST_ONLY %sset", (actual & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L3_SRC_ONLY %sset", (actual & RTE_ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L3_DST_ONLY %sset", (actual & RTE_ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L4_SRC_ONLY %sset", (actual & RTE_ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RSS_L4_DST_ONLY %sset", (actual & RTE_ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
 }
 
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
@@ -962,17 +972,17 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
 {
     *port_conf = (struct rte_eth_conf){
             .rxmode = {
-                    .mq_mode = ETH_MQ_RX_NONE,
+                    .mq_mode = RTE_ETH_MQ_RX_NONE,
                     .offloads = 0, // turn every offload off to prevent any packet modification
             },
             .txmode = {
-                    .mq_mode = ETH_MQ_TX_NONE,
+                    .mq_mode = RTE_ETH_MQ_TX_NONE,
                     .offloads = 0,
             },
     };
 
     // configure RX offloads
-    if (dev_info->rx_offload_capa & DEV_RX_OFFLOAD_RSS_HASH) {
+    if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH) {
         if (iconf->nb_rx_queues > 1) {
             SCLogConfig("RSS enabled on %s for %d queues", iconf->iface, iconf->nb_rx_queues);
             port_conf->rx_adv_conf.rss_conf = (struct rte_eth_rss_conf){
@@ -994,7 +1004,7 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
                         iconf->iface, port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
                 port_conf->rx_adv_conf.rss_conf.rss_hf = rss_hf_tmp;
             }
-            port_conf->rxmode.mq_mode = ETH_MQ_RX_RSS;
+            port_conf->rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
         } else {
             SCLogConfig("RSS not enabled on %s", iconf->iface);
             port_conf->rx_adv_conf.rss_conf.rss_key = NULL;
@@ -1006,13 +1016,13 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
 
     if (iconf->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         SCLogConfig("Checksum validation disabled on %s", iconf->iface);
-    } else if (dev_info->rx_offload_capa & DEV_RX_OFFLOAD_CHECKSUM) {
+    } else if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_CHECKSUM) {
         if (iconf->checksum_mode == CHECKSUM_VALIDATION_ENABLE &&
                 iconf->flags & DPDK_RX_CHECKSUM_OFFLOAD) {
             SCLogConfig("IP, TCP and UDP checksum validation enabled and offloaded "
                         "on %s",
                     iconf->iface);
-            port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_CHECKSUM;
+            port_conf->rxmode.offloads |= RTE_ETH_RX_OFFLOAD_CHECKSUM;
         } else if (iconf->checksum_mode == CHECKSUM_VALIDATION_ENABLE &&
                    !(iconf->flags & DPDK_RX_CHECKSUM_OFFLOAD)) {
             SCLogConfig("Suricata checksum validation enabled (but can be offloaded on %s)",
@@ -1022,8 +1032,8 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
 
     DeviceSetMTU(port_conf, iconf->mtu);
 
-    if (dev_info->tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE) {
-        port_conf->txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+    if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
+        port_conf->txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
     }
 }
 
@@ -1231,7 +1241,7 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         return retval;
 
     DeviceInitPortConf(iconf, &dev_info, &port_conf);
-    if (port_conf.rxmode.offloads & DEV_RX_OFFLOAD_CHECKSUM) {
+    if (port_conf.rxmode.offloads & RTE_ETH_RX_OFFLOAD_CHECKSUM) {
         // Suricata does not need recalc checksums now
         iconf->checksum_mode = CHECKSUM_VALIDATION_OFFLOAD;
     }
