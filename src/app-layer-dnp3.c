@@ -490,7 +490,7 @@ static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 /**
  * \brief Allocation a DNP3 transaction.
  */
-static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3)
+static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
 {
     DNP3Transaction *tx = SCCalloc(1, sizeof(DNP3Transaction));
     if (unlikely(tx == NULL)) {
@@ -501,8 +501,8 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3)
     dnp3->curr = tx;
     tx->dnp3 = dnp3;
     tx->tx_num = dnp3->transaction_max;
-    TAILQ_INIT(&tx->request_objects);
-    TAILQ_INIT(&tx->response_objects);
+    tx->is_request = request;
+    TAILQ_INIT(&tx->objects);
     TAILQ_INSERT_TAIL(&dnp3->tx_list, tx, next);
 
     /* Check for flood state. */
@@ -872,12 +872,8 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
 
     if (!DNP3_TH_FIR(th)) {
         TAILQ_FOREACH(ttx, &dnp3->tx_list, next) {
-            if (ttx->request_lh.src == lh->src &&
-                ttx->request_lh.dst == lh->dst &&
-                ttx->has_request &&
-                !ttx->request_done &&
-                NEXT_TH_SEQNO(DNP3_TH_SEQ(ttx->request_th)) == DNP3_TH_SEQ(th))
-            {
+            if (ttx->lh.src == lh->src && ttx->lh.dst == lh->dst && ttx->is_request && !ttx->done &&
+                    NEXT_TH_SEQNO(DNP3_TH_SEQ(ttx->th)) == DNP3_TH_SEQ(th)) {
                 tx = ttx;
                 break;
             }
@@ -889,7 +885,7 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
 
         /* Update the saved transport header so subsequent segments
          * will be matched to this sequence number. */
-        tx->response_th = th;
+        tx->th = th;
     }
     else {
         ah = (DNP3ApplicationHeader *)(input + sizeof(DNP3LinkHeader) +
@@ -901,24 +897,21 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
         }
 
         /* Create a transaction. */
-        tx = DNP3TxAlloc(dnp3);
+        tx = DNP3TxAlloc(dnp3, true);
         if (unlikely(tx == NULL)) {
             return;
         }
-        tx->request_lh = *lh;
-        tx->request_th = th;
-        tx->request_ah = *ah;
-        tx->has_request = 1;
-
+        tx->lh = *lh;
+        tx->th = th;
+        tx->ah = *ah;
     }
 
     if (!DNP3ReassembleApplicationLayer(input + sizeof(DNP3LinkHeader),
-            input_len - sizeof(DNP3LinkHeader),
-            &tx->request_buffer, &tx->request_buffer_len)) {
+                input_len - sizeof(DNP3LinkHeader), &tx->buffer, &tx->buffer_len)) {
 
         /* Malformed, set event and mark as done. */
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
-        tx->request_done = 1;
+        tx->done = 1;
         return;
     }
 
@@ -927,26 +920,11 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
         return;
     }
 
-    tx->request_done = 1;
+    tx->done = 1;
 
-    /* Some function codes do not expect a reply. */
-    switch (tx->request_ah.function_code) {
-        case DNP3_APP_FC_CONFIRM:
-        case DNP3_APP_FC_DIR_OPERATE_NR:
-        case DNP3_APP_FC_FREEZE_NR:
-        case DNP3_APP_FC_FREEZE_CLEAR_NR:
-        case DNP3_APP_FC_FREEZE_AT_TIME_NR:
-        case DNP3_APP_FC_AUTH_REQ_NR:
-            tx->response_done = 1;
-        default:
-            break;
-    }
-
-    if (DNP3DecodeApplicationObjects(
-            tx, tx->request_buffer + sizeof(DNP3ApplicationHeader),
-                tx->request_buffer_len - sizeof(DNP3ApplicationHeader),
-                &tx->request_objects)) {
-        tx->request_complete = 1;
+    if (DNP3DecodeApplicationObjects(tx, tx->buffer + sizeof(DNP3ApplicationHeader),
+                tx->buffer_len - sizeof(DNP3ApplicationHeader), &tx->objects)) {
+        tx->complete = 1;
     }
 }
 
@@ -971,11 +949,8 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
 
     if (!DNP3_TH_FIR(th)) {
         TAILQ_FOREACH(ttx, &dnp3->tx_list, next) {
-            if (ttx->response_lh.src == lh->src &&
-                ttx->response_lh.dst == lh->dst &&
-                ttx->has_response && !ttx->response_done &&
-                NEXT_TH_SEQNO(DNP3_TH_SEQ(ttx->response_th)) == DNP3_TH_SEQ(th))
-            {
+            if (ttx->lh.src == lh->src && ttx->lh.dst == lh->dst && !ttx->is_request &&
+                    !ttx->done && NEXT_TH_SEQNO(DNP3_TH_SEQ(ttx->th)) == DNP3_TH_SEQ(th)) {
                 tx = ttx;
                 break;
             }
@@ -987,53 +962,27 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
 
         /* Replace the transport header in the transaction with this
          * one in case there are more frames. */
-        tx->response_th = th;
+        tx->th = th;
     }
     else {
         ah = (DNP3ApplicationHeader *)(input + offset);
         offset += sizeof(DNP3ApplicationHeader);
         iin = (DNP3InternalInd *)(input + offset);
 
-        if (ah->function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
-            tx = DNP3TxAlloc(dnp3);
-            if (unlikely(tx == NULL)) {
-                return;
-            }
-
-            /* There is no request associated with an unsolicited
-             * response, so mark the request done as far as
-             * transaction state handling is concerned. */
-            tx->request_done = 1;
+        tx = DNP3TxAlloc(dnp3, false);
+        if (unlikely(tx == NULL)) {
+            return;
         }
-        else {
-            /* Find transaction. */
-            TAILQ_FOREACH(ttx, &dnp3->tx_list, next) {
-                if (ttx->has_request &&
-                    ttx->request_done &&
-                    ttx->request_lh.src == lh->dst &&
-                    ttx->request_lh.dst == lh->src &&
-                    !ttx->has_response &&
-                    !ttx->response_done &&
-                    DNP3_APP_SEQ(ttx->request_ah.control) == DNP3_APP_SEQ(ah->control)) {
-                    tx = ttx;
-                    break;
-                }
-            }
-            if (tx == NULL) {
-                return;
-            }
-        }
-
-        tx->has_response = 1;
-        tx->response_lh = *lh;
-        tx->response_th = th;
-        tx->response_ah = *ah;
-        tx->response_iin = *iin;
+        tx->lh = *lh;
+        tx->th = th;
+        tx->ah = *ah;
+        tx->iin = *iin;
     }
 
+    BUG_ON(tx->is_request);
+
     if (!DNP3ReassembleApplicationLayer(input + sizeof(DNP3LinkHeader),
-            input_len - sizeof(DNP3LinkHeader),
-            &tx->response_buffer, &tx->response_buffer_len)) {
+                input_len - sizeof(DNP3LinkHeader), &tx->buffer, &tx->buffer_len)) {
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
         return;
     }
@@ -1042,13 +991,12 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
         return;
     }
 
-    tx->response_done = 1;
+    tx->done = 1;
 
     offset = sizeof(DNP3ApplicationHeader) + sizeof(DNP3InternalInd);
-    if (DNP3DecodeApplicationObjects(tx, tx->response_buffer + offset,
-            tx->response_buffer_len - offset,
-            &tx->response_objects)) {
-        tx->response_complete = 1;
+    if (DNP3DecodeApplicationObjects(
+                tx, tx->buffer + offset, tx->buffer_len - offset, &tx->objects)) {
+        tx->complete = 1;
     }
 }
 
@@ -1385,12 +1333,8 @@ static void DNP3TxFree(DNP3Transaction *tx)
 {
     SCEnter();
 
-    if (tx->request_buffer != NULL) {
-        SCFree(tx->request_buffer);
-    }
-
-    if (tx->response_buffer != NULL) {
-        SCFree(tx->response_buffer);
+    if (tx->buffer != NULL) {
+        SCFree(tx->buffer);
     }
 
     AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
@@ -1399,8 +1343,7 @@ static void DNP3TxFree(DNP3Transaction *tx)
         DetectEngineStateFree(tx->tx_data.de_state);
     }
 
-    DNP3TxFreeObjectList(&tx->request_objects);
-    DNP3TxFreeObjectList(&tx->response_objects);
+    DNP3TxFreeObjectList(&tx->objects);
 
     SCFree(tx);
     SCReturn;
@@ -1491,11 +1434,30 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
         SCReturnInt(1);
     }
 
-    if (direction & STREAM_TOCLIENT && dnp3tx->response_done) {
-        retval = 1;
-    }
-    else if (direction & STREAM_TOSERVER && dnp3tx->request_done) {
-        retval = 1;
+    /* This is a unidirectional protocol.
+     *
+     * If progress is being checked in the TOSERVER (request)
+     * direction, always return complete if the message is not a
+     * request, as there will never be replies on transactions created
+     * in the TOSERVER direction.
+     *
+     * Like wise, if progress is being checked in the TOCLIENT
+     * direction, requests will never be seen. So always return
+     * complete if the transaction is not a reply.
+     *
+     * Otherwise, if TOSERVER and transaction is a request, return
+     * complete if the transaction is complete. And if TOCLIENT and
+     * transaction is a response, return complete if the transaction
+     * is complete.
+     */
+    if (direction & STREAM_TOSERVER) {
+        if (!dnp3tx->is_request || dnp3tx->complete) {
+            retval = 1;
+        }
+    } else if (direction & STREAM_TOCLIENT) {
+        if (dnp3tx->is_request || dnp3tx->complete) {
+            retval = 1;
+        }
     }
 
     SCReturnInt(retval);
@@ -1626,6 +1588,12 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
+#if 0
+        /* While this parser is now fully unidirectional. setting this
+         * flag breaks detection at this time. */
+        AppLayerParserRegisterOptionFlags(
+                IPPROTO_TCP, ALPROTO_DNP3, APP_LAYER_PARSER_OPT_UNIDIR_TXS);
+#endif
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
@@ -2130,17 +2098,19 @@ static int DNP3ParserTestRequestResponse(void)
     FAIL_IF(tx == NULL);
     FAIL_IF(tx->tx_num != 1);
     FAIL_IF(tx != state->curr);
-    FAIL_IF(tx->request_buffer == NULL);
-    FAIL_IF(tx->request_buffer_len != 20);
-    FAIL_IF(tx->request_ah.function_code != DNP3_APP_FC_DIR_OPERATE);
+    FAIL_IF(tx->buffer == NULL);
+    FAIL_IF(tx->buffer_len != 20);
+    FAIL_IF(tx->ah.function_code != DNP3_APP_FC_DIR_OPERATE);
 
     SCMutexLock(&flow.m);
     FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
             STREAM_TOCLIENT, response, sizeof(response)));
     SCMutexUnlock(&flow.m);
-    FAIL_IF(DNP3GetTx(state, 0) != tx);
-    FAIL_IF(!tx->response_done);
-    FAIL_IF(tx->response_buffer == NULL);
+    DNP3Transaction *tx0 = DNP3GetTx(state, 1);
+    FAIL_IF(tx0 == NULL);
+    FAIL_IF(tx0 == tx);
+    FAIL_IF(!tx0->done);
+    FAIL_IF(tx0->buffer == NULL);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -2197,19 +2167,19 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
     FAIL_IF(tx == NULL);
     FAIL_IF(tx->tx_num != 1);
     FAIL_IF(tx != state->curr);
-    FAIL_IF(tx->request_buffer != NULL);
-    FAIL_IF(tx->response_buffer == NULL);
-    FAIL_IF(!tx->response_done);
-    FAIL_IF(tx->response_ah.function_code != DNP3_APP_FC_UNSOLICITED_RESP);
+    FAIL_IF(!tx->done);
+    FAIL_IF(tx->ah.function_code != DNP3_APP_FC_UNSOLICITED_RESP);
 
     SCMutexLock(&flow.m);
     FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
             STREAM_TOSERVER, confirm, sizeof(confirm)));
     SCMutexUnlock(&flow.m);
-    FAIL_IF(DNP3GetTx(state, 0) != tx);
-    FAIL_IF(!tx->response_done);
-    FAIL_IF(tx->response_buffer == NULL);
-    /* FAIL_IF(tx->iin1 != 0 || tx->iin2 != 0); */
+
+    /* Confirms are ignored currently.  With the move to
+       unidirectional transactions it might be easy to support these
+       now. */
+    DNP3Transaction *resptx = DNP3GetTx(state, 1);
+    FAIL_IF(resptx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -2219,6 +2189,9 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
 
 /**
  * \test Test flood state.
+ *
+ * Note that flood state needs to revisited with the modification to a
+ * unidirectional protocol.
  */
 static int DNP3ParserTestFlooded(void)
 {
@@ -2263,10 +2236,11 @@ static int DNP3ParserTestFlooded(void)
     FAIL_IF(tx == NULL);
     FAIL_IF(tx->tx_num != 1);
     FAIL_IF(tx != state->curr);
-    FAIL_IF(tx->request_buffer == NULL);
-    FAIL_IF(tx->request_buffer_len != 20);
-    /* FAIL_IF(tx->app_function_code != DNP3_APP_FC_DIR_OPERATE); */
-    FAIL_IF(tx->response_done);
+    FAIL_IF(tx->buffer == NULL);
+    FAIL_IF(tx->buffer_len != 20);
+    FAIL_IF(tx->ah.function_code != DNP3_APP_FC_DIR_OPERATE);
+    FAIL_IF_NOT(tx->done);
+    FAIL_IF_NOT(DNP3GetAlstateProgress(tx, STREAM_TOSERVER));
 
     for (int i = 0; i < DNP3_DEFAULT_REQ_FLOOD_COUNT - 1; i++) {
         SCMutexLock(&flow.m);
@@ -2275,7 +2249,7 @@ static int DNP3ParserTestFlooded(void)
         SCMutexUnlock(&flow.m);
     }
     FAIL_IF(state->flooded);
-    FAIL_IF(DNP3GetAlstateProgress(tx, 0));
+    FAIL_IF_NOT(DNP3GetAlstateProgress(tx, STREAM_TOSERVER));
 
     /* One more request should trip us into flooded state. */
     SCMutexLock(&flow.m);
@@ -2286,9 +2260,6 @@ static int DNP3ParserTestFlooded(void)
 
     /* Progress for the oldest tx should return 1. */
     FAIL_IF(!DNP3GetAlstateProgress(tx, 0));
-
-    /* But progress for the current state should still return 0. */
-    FAIL_IF(DNP3GetAlstateProgress(state->curr, 0));
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -2393,9 +2364,9 @@ static int DNP3ParserTestPartialFrame(void)
     FAIL_IF(tx == NULL);
     FAIL_IF(tx->tx_num != 1);
     FAIL_IF(tx != state->curr);
-    FAIL_IF(tx->request_buffer == NULL);
-    FAIL_IF(tx->request_buffer_len != 20);
-    FAIL_IF(tx->request_ah.function_code != DNP3_APP_FC_DIR_OPERATE);
+    FAIL_IF(tx->buffer == NULL);
+    FAIL_IF(tx->buffer_len != 20);
+    FAIL_IF(tx->ah.function_code != DNP3_APP_FC_DIR_OPERATE);
 
     /* Send partial response. */
     SCMutexLock(&flow.m);
@@ -2405,7 +2376,8 @@ static int DNP3ParserTestPartialFrame(void)
     FAIL_IF(r != 0);
     FAIL_IF(state->response_buffer.len != sizeof(response_partial1));
     FAIL_IF(state->response_buffer.offset != 0);
-    FAIL_IF(tx->response_done);
+    tx = DNP3GetTx(state, 1);
+    FAIL_IF_NOT_NULL(tx);
 
     /* Send rest of response. */
     SCMutexLock(&flow.m);
@@ -2418,10 +2390,11 @@ static int DNP3ParserTestPartialFrame(void)
     FAIL_IF(state->response_buffer.len != 0);
     FAIL_IF(state->response_buffer.offset != 0);
 
-    /* Transaction should be replied to now. */
-    FAIL_IF(!tx->response_done);
-    FAIL_IF(tx->response_buffer == NULL);
-    FAIL_IF(tx->response_buffer_len == 0);
+    /* There should now be a response transaction. */
+    tx = DNP3GetTx(state, 1);
+    FAIL_IF_NULL(tx);
+    FAIL_IF(tx->buffer == NULL);
+    FAIL_IF(tx->buffer_len == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -2508,9 +2481,9 @@ static int DNP3ParserTestParsePDU01(void)
     FAIL_IF(pdus < 1);
     DNP3Transaction *dnp3tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(dnp3tx);
-    FAIL_IF(!dnp3tx->has_request);
-    FAIL_IF(TAILQ_EMPTY(&dnp3tx->request_objects));
-    DNP3Object *object = TAILQ_FIRST(&dnp3tx->request_objects);
+    FAIL_IF(!dnp3tx->is_request);
+    FAIL_IF(TAILQ_EMPTY(&dnp3tx->objects));
+    DNP3Object *object = TAILQ_FIRST(&dnp3tx->objects);
     FAIL_IF(object->group != 1 || object->variation != 0);
     FAIL_IF(object->count != 0);
 
@@ -2548,8 +2521,8 @@ static int DNP3ParserDecodeG70V3Test(void)
     FAIL_IF(bytes != sizeof(pkt));
     DNP3Transaction *tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NOT(tx->has_request);
-    DNP3Object *obj = TAILQ_FIRST(&tx->request_objects);
+    FAIL_IF_NOT(tx->is_request);
+    DNP3Object *obj = TAILQ_FIRST(&tx->objects);
     FAIL_IF_NULL(obj);
     FAIL_IF_NOT(obj->group == 70);
     FAIL_IF_NOT(obj->variation == 3);

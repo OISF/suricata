@@ -446,13 +446,6 @@ typedef enum {
     LOGGER_TLS_STORE,
     LOGGER_TLS,
     LOGGER_JSON_TX,
-
-    /* DNP3 loggers. These ones don't fit the common model of a
-       transaction logger yet so are left with their own IDs for
-       now. */
-    LOGGER_JSON_DNP3_TS,
-    LOGGER_JSON_DNP3_TC,
-
     LOGGER_FILE,
     LOGGER_FILEDATA,
 

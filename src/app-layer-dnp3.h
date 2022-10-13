@@ -208,37 +208,20 @@ typedef struct DNP3Transaction_ {
     AppLayerTxData         tx_data;
 
     uint64_t tx_num; /**< Internal transaction ID. */
+    bool is_request; /**< Is this tx a request? */
 
     struct DNP3State_ *dnp3;
 
-    uint8_t                has_request;
-    uint8_t                request_done;
-    DNP3LinkHeader         request_lh;
-    DNP3TransportHeader    request_th;
-    DNP3ApplicationHeader  request_ah;
-    uint8_t               *request_buffer; /**< Reassembled request
-                                            * buffer. */
-    uint32_t               request_buffer_len;
-    uint8_t                request_complete; /**< Was the decode
-                                        * complete.  It will not be
-                                        * complete if we hit objects
-                                        * we do not know. */
-    DNP3ObjectList         request_objects;
-
-    uint8_t                has_response;
-    uint8_t                response_done;
-    DNP3LinkHeader         response_lh;
-    DNP3TransportHeader    response_th;
-    DNP3ApplicationHeader  response_ah;
-    DNP3InternalInd        response_iin;
-    uint8_t               *response_buffer; /**< Reassembed response
-                                             * buffer. */
-    uint32_t               response_buffer_len;
-    uint8_t                response_complete; /**< Was the decode
-                                         * complete.  It will not be
-                                         * complete if we hit objects
-                                         * we do not know. */
-    DNP3ObjectList         response_objects;
+    uint8_t *buffer; /**< Reassembled request buffer. */
+    uint32_t buffer_len;
+    DNP3ObjectList objects;
+    DNP3LinkHeader lh;
+    DNP3TransportHeader th;
+    DNP3ApplicationHeader ah;
+    DNP3InternalInd iin;
+    uint8_t done;
+    uint8_t complete; /**< Was the decode complete.  It will not be
+                         complete if we hit objects we do not know. */
 
     TAILQ_ENTRY(DNP3Transaction_) next;
 } DNP3Transaction;
