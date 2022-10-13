@@ -148,7 +148,7 @@ pub fn smb1_check_tx(cmd: u8) -> bool {
     }
 }
 
-fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>, direction: Direction)
+fn smb1_close_file(state: &mut SMBState, fid: &[u8], direction: Direction)
 {
     if let Some(tx) = state.get_file_tx_by_fuid(fid, direction) {
         SCLogDebug!("found tx {}", tx.id);

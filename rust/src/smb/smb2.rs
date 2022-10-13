@@ -571,7 +571,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     state.ssn2vec_map.insert(name_key, cr.data.to_vec());
 
                     let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                    let tx = state.new_create_tx(&cr.data.to_vec(),
+                    let tx = state.new_create_tx(cr.data,
                             cr.disposition, del, dir, tx_hdr);
                     tx.vercmd.set_smb2_cmd(r.command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);
@@ -590,7 +590,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
                 Ok((_, cd)) => {
-                    let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToServer) {
+                    let found_ts = match state.get_file_tx_by_fuid(cd.guid, Direction::ToServer) {
                         Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -605,7 +605,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         },
                         None => { false },
                     };
-                    let found_tc = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToClient) {
+                    let found_tc = match state.get_file_tx_by_fuid(cd.guid, Direction::ToClient) {
                         Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
