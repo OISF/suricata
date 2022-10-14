@@ -1668,11 +1668,8 @@ pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c
                                                   -> std::os::raw::c_int
 {
     let tx = cast_pointer!(tx, NFSTransaction);
-    if direction == Direction::ToServer.into() && tx.request_done {
-        //SCLogNotice!("TOSERVER progress 1");
-        return 1;
-    } else if direction == Direction::ToClient.into() && tx.response_done {
-        //SCLogNotice!("TOCLIENT progress 1");
+    if (direction == Direction::ToServer.into() && tx.request_done) || (direction == Direction::ToClient.into() && tx.response_done) {
+        //SCLogNotice!("TOSERVER progress 1"); or SCLogNotice!("TOCLIENT progress 1");
         return 1;
     } else {
         //SCLogNotice!("{} progress 0", direction);
