@@ -65,12 +65,11 @@ impl std::fmt::Display for Direction {
 
 impl From<u8> for Direction {
     fn from(d: u8) -> Self {
+         // d contém DIR_TOSERVER união DIR_TOCLIENT
         if d & (DIR_TOSERVER | DIR_TOCLIENT) == (DIR_TOSERVER | DIR_TOCLIENT) {
             debug_validate_fail!("Both directions are set");
             Direction::ToServer
-        } else if d & DIR_TOSERVER != 0 {
-            Direction::ToServer
-        } else if d & DIR_TOCLIENT != 0 {
+        } else if d & DIR_TOCLIENT != 0 { 
             Direction::ToClient
         } else {
             debug_validate_fail!("Unknown direction!!");

@@ -1668,11 +1668,8 @@ pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c
                                                   -> std::os::raw::c_int
 {
     let tx = cast_pointer!(tx, NFSTransaction);
-    if direction == Direction::ToServer.into() && tx.request_done {
+    if (direction == Direction::ToServer.into() && tx.request_done)||(direction == Direction::ToClient.into() && tx.response_done) {
         //SCLogNotice!("TOSERVER progress 1");
-        return 1;
-    } else if direction == Direction::ToClient.into() && tx.response_done {
-        //SCLogNotice!("TOCLIENT progress 1");
         return 1;
     } else {
         //SCLogNotice!("{} progress 0", direction);
@@ -1829,11 +1826,11 @@ pub fn nfs_probe_udp(i: &[u8], direction: Direction) -> i32 {
     } else {
         match parse_rpc_udp_request(i) {
             Ok((_, ref rpc)) => {
-                if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
-                    return 1;
-                } else if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 2 && rpc.program == 100003 {
-                    SCLogDebug!("NFSv2!");
-                    return 1;
+                if i.len() >= 48 && rpc.hdr.msgtype == 0 && (rpc.progver == 3 || rpc.progver == 2 )&& rpc.program == 100003 {
+                    if rpc.progver == 2 {
+                        SCLogDebug!("NFSv2!");
+                    }
+                    return 1;    
                 } else {
                     return -1;
                 }

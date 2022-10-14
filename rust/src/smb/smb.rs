@@ -2201,14 +2201,15 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 
     if direction == Direction::ToServer as u8 && tx.request_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.id, tx);
-        return 1;
     } else if direction == Direction::ToClient as u8 && tx.response_done {
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.id, tx);
-        return 1;
+
     } else {
         SCLogDebug!("tx {} direction {} progress 0 => {:?}", tx.id, direction, tx);
         return 0;
     }
+    return 1;
+
 }
 
 

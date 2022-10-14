@@ -1243,13 +1243,13 @@ pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c
     let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == Direction::ToServer.into() && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
-        return 1;
     } else if direction == Direction::ToClient.into() && tx.resp_done {
-        SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.call_id, tx);
-        return 1;
+        SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.call_id, tx); 
+    } else{
+        SCLogDebug!("tx {} direction {} progress 0", tx.call_id, direction);
+        return 0;
     }
-    SCLogDebug!("tx {} direction {} progress 0", tx.call_id, direction);
-    return 0;
+    return 1;
 }
 
 #[no_mangle]

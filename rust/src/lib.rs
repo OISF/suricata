@@ -54,7 +54,7 @@
 #![allow(clippy::module_inception)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::enum_variant_names)]
-#![allow(clippy::if_same_then_else)]
+//#![allow(clippy::if_same_then_else)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::extra_unused_lifetimes)]
 #![allow(clippy::mixed_case_hex_literals)]
