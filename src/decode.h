@@ -505,7 +505,9 @@ typedef struct Packet_
 #ifdef HAVE_DPDK
         DPDKPacketVars dpdk_v;
 #endif
-
+#ifdef HAVE_NAPATECH
+        NapatechPacketVars ntpv;
+#endif
         /* A chunk of memory that a plugin can use for its packet vars. */
         uint8_t plugin_v[PLUGIN_VAR_SIZE];
 
@@ -643,9 +645,6 @@ typedef struct Packet_
 
 #ifdef PROFILING
     PktProfiling *profile;
-#endif
-#ifdef HAVE_NAPATECH
-    NapatechPacketVars ntpv;
 #endif
 } Packet;
 
