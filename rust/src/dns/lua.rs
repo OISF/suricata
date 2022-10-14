@@ -170,7 +170,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 DNSRData::A(ref bytes) | DNSRData::AAAA(ref bytes) => {
                     if !bytes.is_empty() {
                         lua.pushstring("addr");
-                        lua.pushstring(&dns_print_addr(&bytes));
+                        lua.pushstring(&dns_print_addr(bytes));
                         lua.settable(-3);
                     }
                 },
@@ -183,7 +183,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 DNSRData::Unknown(ref bytes) => {
                     if !bytes.is_empty() {
                         lua.pushstring("addr");
-                        lua.pushstring(&String::from_utf8_lossy(&bytes));
+                        lua.pushstring(&String::from_utf8_lossy(bytes));
                         lua.settable(-3);
                     }
                 },
