@@ -434,6 +434,11 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
+    SCLogDebug("[packet %p][%s] %s", p,
+            IS_TUNNEL_PKT(p) ? IS_TUNNEL_ROOT_PKT(p) ? "tunnel::root" : "tunnel::leaf"
+                             : "no tunnel",
+            (p->action & ACTION_DROP) ? "DROP" : "no drop");
+
     /* we're done with the tunnel root now as well */
     if (proot == true) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
