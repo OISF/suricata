@@ -1162,7 +1162,7 @@ impl NFSState {
                     Ok((_rem, ref hdr)) => {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
-                        debug_validate_bug_on!(_rem.len() != 0);
+                        debug_validate_bug_on!(!_rem.is_empty());
 
                         match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
@@ -1326,7 +1326,7 @@ impl NFSState {
                     Ok((_rem, ref hdr)) => {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
-                        debug_validate_bug_on!(_rem.len() != 0);
+                        debug_validate_bug_on!(!_rem.is_empty());
 
                         match parse_nfs3_reply_read(hdr.prog_data, false) {
                             Ok((_, ref r)) => {
