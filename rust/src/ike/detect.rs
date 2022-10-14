@@ -24,7 +24,7 @@ use std::ptr;
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type: *mut u8) -> u8 {
-    debug_validate_bug_on!(exch_type == std::ptr::null_mut());
+    debug_validate_bug_on!(exch_type.is_null());
 
     if tx.ike_version == 1 {
         if let Some(r) = tx.hdr.ikev1_header.exchange_type {
@@ -47,7 +47,7 @@ pub extern "C" fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type:
 pub extern "C" fn rs_ike_state_get_spi_initiator(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(buffer == std::ptr::null_mut() || buffer_len == std::ptr::null_mut());
+    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
 
     unsafe {
         *buffer = tx.hdr.spi_initiator.as_ptr();
@@ -60,7 +60,7 @@ pub extern "C" fn rs_ike_state_get_spi_initiator(
 pub extern "C" fn rs_ike_state_get_spi_responder(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(buffer == std::ptr::null_mut() || buffer_len == std::ptr::null_mut());
+    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
 
     unsafe {
         *buffer = tx.hdr.spi_responder.as_ptr();
@@ -73,7 +73,7 @@ pub extern "C" fn rs_ike_state_get_spi_responder(
 pub extern "C" fn rs_ike_state_get_nonce(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(buffer == std::ptr::null_mut() || buffer_len == std::ptr::null_mut());
+    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
 
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.nonce.is_empty() {
         let p = &tx.hdr.ikev1_header.nonce;
@@ -96,7 +96,7 @@ pub extern "C" fn rs_ike_state_get_nonce(
 pub extern "C" fn rs_ike_state_get_key_exchange(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(buffer == std::ptr::null_mut() || buffer_len == std::ptr::null_mut());
+    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
 
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty() {
         let p = &tx.hdr.ikev1_header.key_exchange;
@@ -139,7 +139,7 @@ pub extern "C" fn rs_ike_tx_get_vendor(
 pub extern "C" fn rs_ike_state_get_sa_attribute(
     tx: &mut IKETransaction, sa_type: *const std::os::raw::c_char, value: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(value == std::ptr::null_mut());
+    debug_validate_bug_on!(value.is_null());
     let mut ret_val = 0;
     let mut ret_code = 0;
     let sa_type_s: Result<_, _>;
@@ -210,7 +210,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
 pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
     tx: &mut IKETransaction, value: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(value == std::ptr::null_mut());
+    debug_validate_bug_on!(value.is_null());
 
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty() {
         *value = tx.hdr.ikev1_header.key_exchange.len() as u32;
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
 pub unsafe extern "C" fn rs_ike_state_get_nonce_payload_length(
     tx: &mut IKETransaction, value: *mut u32,
 ) -> u8 {
-    debug_validate_bug_on!(value == std::ptr::null_mut());
+    debug_validate_bug_on!(value.is_null());
 
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.nonce.is_empty() {
         *value = tx.hdr.ikev1_header.nonce.len() as u32;
