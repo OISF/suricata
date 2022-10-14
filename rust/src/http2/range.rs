@@ -134,7 +134,8 @@ pub fn http2_range_open(
     if v.end <= 0 || v.size <= 0 {
         // skipped for incomplete range information
         return;
-    } else if v.end == v.size - 1 && v.start == 0 {
+    }
+    if v.end == v.size - 1 && v.start == 0 {
         // whole file in one range
         return;
     }
