@@ -42,14 +42,13 @@ impl SMBState {
         for i in 0..len {
             let tx = &self.transactions[i];
             let ver = tx.vercmd.get_version();
-            let _smbcmd;
-            if ver == 2 {
+            let _smbcmd = if ver == 2 {
                 let (_, cmd) = tx.vercmd.get_smb2_cmd();
-                _smbcmd = cmd;
+                cmd
             } else {
                 let (_, cmd) = tx.vercmd.get_smb1_cmd();
-                _smbcmd = cmd as u16;
-            }
+                cmd as u16
+            };
 
             match tx.type_data {
                 Some(SMBTransactionTypeData::FILE(ref d)) => {
