@@ -131,11 +131,11 @@ pub fn http2_range_open(
     tx: &mut HTTP2Transaction, v: &HTTPContentRange, flow: *const Flow,
     cfg: &'static SuricataFileContext, dir: Direction, data: &[u8],
 ) {
-    if v.end <= 0 || v.size <= 0 {
-        // skipped for incomplete range information
-        return;
-    } else if v.end == v.size - 1 && v.start == 0 {
+    if (v.end <= 0 || v.size <= 0)
+        // skipped for incomplete range information 
+    || (v.end == v.size - 1 && v.start == 0)
         // whole file in one range
+    {
         return;
     }
     let (_, flags) = tx.files.get(dir);
