@@ -184,11 +184,11 @@ impl NFSState {
                     }
                 }
                 &Nfs4RequestContent::Open(ref rd) => {
-                    SCLogDebug!("OPENv4: {}", String::from_utf8_lossy(&rd.filename));
+                    SCLogDebug!("OPENv4: {}", String::from_utf8_lossy(rd.filename));
                     xidmap.file_name = rd.filename.to_vec();
                 }
                 &Nfs4RequestContent::Lookup(ref rd) => {
-                    SCLogDebug!("LOOKUPv4: {}", String::from_utf8_lossy(&rd.filename));
+                    SCLogDebug!("LOOKUPv4: {}", String::from_utf8_lossy(rd.filename));
                     xidmap.file_name = rd.filename.to_vec();
                 }
                 &Nfs4RequestContent::Write(ref rd) => {
@@ -225,9 +225,9 @@ impl NFSState {
                 &Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!(
                         "SETCLIENTIDv4: client id {} r_netid {} r_addr {}",
-                        String::from_utf8_lossy(&_rd.client_id),
-                        String::from_utf8_lossy(&_rd.r_netid),
-                        String::from_utf8_lossy(&_rd.r_addr)
+                        String::from_utf8_lossy(_rd.client_id),
+                        String::from_utf8_lossy(_rd.r_netid),
+                        String::from_utf8_lossy(_rd.r_addr)
                     );
                 }
                 &_ => {}
@@ -325,7 +325,7 @@ impl NFSState {
 
                         for d in &rd.listing {
                             if let &Some(ref _d) = d {
-                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&_d.name));
+                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(_d.name));
                             }
                         }
                     }

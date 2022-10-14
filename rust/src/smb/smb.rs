@@ -1057,7 +1057,7 @@ impl SMBState {
                     Ok("suricata::dcerpc") => ("unknown", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
-                        SCLogDebug!("don't know {}", String::from_utf8_lossy(&n));
+                        SCLogDebug!("don't know {}", String::from_utf8_lossy(n));
                         ("UNKNOWN", false)
                     },
                 }
