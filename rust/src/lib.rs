@@ -57,7 +57,6 @@
 #![allow(clippy::if_same_then_else)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::extra_unused_lifetimes)]
-#![allow(clippy::mixed_case_hex_literals)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::nonminimal_bool)]
 #![allow(clippy::never_loop)]
