@@ -39,7 +39,6 @@
 #![allow(clippy::manual_find)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::match_ref_pats)]
-#![allow(clippy::mixed_case_hex_literals)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::needless_range_loop)]
