@@ -91,10 +91,12 @@ static int ENIPExtractUint32(uint32_t *res, const uint8_t *input, uint16_t *offs
         return 0;
     }
 
-    ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
-            (const uint8_t *) (input + *offset));
-    *offset += sizeof(uint32_t);
-    return 1;
+    if(ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
+            (const uint8_t *) (input + *offset)) != -1)
+    {
+        *offset += sizeof(uint32_t);
+        return 1;
+    }
 }
 
 /**
