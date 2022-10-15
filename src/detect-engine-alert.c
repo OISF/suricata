@@ -126,6 +126,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     SCReturnInt(1);
 }
 
+#ifdef UNITTESTS
 /**
  * \brief Check if a certain sid alerted, this is used in the test functions
  *
@@ -136,19 +137,17 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
  */
 int PacketAlertCheck(Packet *p, uint32_t sid)
 {
-    uint16_t i = 0;
     int match = 0;
 
-    for (i = 0; i < p->alerts.cnt; i++) {
-        if (p->alerts.alerts[i].s == NULL)
-            continue;
-
+    for (uint16_t i = 0; i < p->alerts.cnt; i++) {
+        BUG_ON(p->alerts.alerts[i].s == NULL);
         if (p->alerts.alerts[i].s->id == sid)
             match++;
     }
 
     return match;
 }
+#endif
 
 static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 {
