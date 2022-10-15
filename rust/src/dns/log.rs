@@ -86,6 +86,7 @@ pub const LOG_URI        : u64 = BIT_U64!(59);
 
 pub const LOG_FORMAT_GROUPED  : u64 = BIT_U64!(60);
 pub const LOG_FORMAT_DETAILED : u64 = BIT_U64!(61);
+pub const LOG_HTTPS      : u64 = BIT_U64!(62);
 
 fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
 {
@@ -249,6 +250,9 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
         }
         DNS_RECORD_TYPE_CDNSKEY => {
             return flags & LOG_CDNSKEY != 0;
+        }
+        DNS_RECORD_TYPE_HTTPS => {
+            return flags & LOG_HTTPS != 0;
         }
         DNS_RECORD_TYPE_SPF => {
             return flags & LOG_SPF != 0;
