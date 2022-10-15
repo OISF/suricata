@@ -35,7 +35,6 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 int PacketAlertCheck(Packet *, uint32_t);
 void PacketAlertTagInit(void);
-PacketAlert *PacketAlertGetTag(void);
 void DetectEngineAlertRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_ALERT_H__ */
