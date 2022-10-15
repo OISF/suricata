@@ -70,8 +70,12 @@ static int ENIPExtractUint16(uint16_t *res, const uint8_t *input, uint16_t *offs
         return 0;
     }
 
-    ByteExtractUint16(res, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + *offset));
+    if (ByteExtractUint16(res, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+            (const uint8_t *) (input + *offset)) == -1)
+    {  
+        return 0;
+    }
+
     *offset += sizeof(uint16_t);
     return 1;
 }
@@ -91,8 +95,12 @@ static int ENIPExtractUint32(uint32_t *res, const uint8_t *input, uint16_t *offs
         return 0;
     }
 
-    ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
-            (const uint8_t *) (input + *offset));
+    if (ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
+            (const uint8_t *) (input + *offset)) == -1)
+    {   
+        return 0;
+    }
+
     *offset += sizeof(uint32_t);
     return 1;
 }
@@ -112,8 +120,12 @@ static int ENIPExtractUint64(uint64_t *res, const uint8_t *input, uint16_t *offs
         return 0;
     }
 
-    ByteExtractUint64(res, BYTE_LITTLE_ENDIAN, sizeof(uint64_t),
-            (const uint8_t *) (input + *offset));
+    if (ByteExtractUint64(res, BYTE_LITTLE_ENDIAN, sizeof(uint64_t),
+            (const uint8_t *) (input + *offset)) == -1)
+    {   
+        return 0;
+    }
+
     *offset += sizeof(uint64_t);
     return 1;
 }
@@ -872,8 +884,12 @@ int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
     //use temp_offset just to grab the service offset, don't want to use and push offset
     uint16_t temp_offset = offset;
     uint16_t num_services;
-    ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + temp_offset));
+    if (ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+            (const uint8_t *) (input + temp_offset)) == -1)
+    {   
+        return 0;
+    }
+
     temp_offset += sizeof(uint16_t);
     //SCLogDebug("DecodeCIPRequestMSP number of services %d",num_services);
 
@@ -886,8 +902,11 @@ int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
         }
 
         uint16_t svc_offset; //read set of service offsets
-        ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-                (const uint8_t *) (input + temp_offset));
+        if (ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+                (const uint8_t *) (input + temp_offset)) == -1 )
+        {   
+            return 0;
+        }
         temp_offset += sizeof(uint16_t);
         //SCLogDebug("parseCIPRequestMSP service %d offset %d",svc, svc_offset);
 
@@ -920,8 +939,11 @@ int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
     //use temp_offset just to grab the service offset, don't want to use and push offset
     uint16_t temp_offset = offset;
     uint16_t num_services;
-    ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + temp_offset));
+    if (ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+            (const uint8_t *) (input + temp_offset)) == -1 )
+    {   
+        return 0;
+    }
     temp_offset += sizeof(uint16_t);
     //SCLogDebug("DecodeCIPResponseMSP number of services %d", num_services);
 
@@ -934,8 +956,11 @@ int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
         }
 
         uint16_t svc_offset; //read set of service offsets
-        ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-                (const uint8_t *) (input + temp_offset));
+        if (ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+                (const uint8_t *) (input + temp_offset)) == -1 )
+        {   
+            return 0;
+        }
         temp_offset += sizeof(uint16_t);
         //SCLogDebug("parseCIPResponseMSP service %d offset %d", svc, svc_offset);
 
