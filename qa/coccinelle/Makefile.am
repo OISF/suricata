@@ -1,5 +1,4 @@
 EXTRA_DIST= access-pkt-packet.cocci \
-    action-pkt.cocci \
     banned-functions.cocci \
     direct-packet.cocci \
     malloc-error-check.cocci \
