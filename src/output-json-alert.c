@@ -348,12 +348,11 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
-        if (PacketCheckAction(
-                    p, (ACTION_DROP | ACTION_REJECT | ACTION_REJECT_DST | ACTION_REJECT_BOTH))) {
+        if (PacketCheckAction(p, ACTION_DROP_REJECT)) {
             action = "blocked";
         }
     } else {
-        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+        if (pa->action & ACTION_REJECT_ANY) {
             action = "blocked";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
