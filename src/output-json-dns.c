@@ -118,6 +118,7 @@
 
 #define LOG_FORMAT_GROUPED     BIT_U64(60)
 #define LOG_FORMAT_DETAILED    BIT_U64(61)
+#define LOG_HTTPS              BIT_U64(62)
 
 #define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED|LOG_FORMAT_DETAILED)
 #define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS|LOG_FORMAT_DETAILED|LOG_FORMAT_GROUPED))
@@ -175,6 +176,7 @@ typedef enum {
     DNS_RRTYPE_HIP,
     DNS_RRTYPE_CDS,
     DNS_RRTYPE_CDNSKEY,
+    DNS_RRTYPE_HTTPS,
     DNS_RRTYPE_SPF,
     DNS_RRTYPE_TKEY,
     DNS_RRTYPE_TSIG,
@@ -188,6 +190,7 @@ static struct {
     const char *config_rrtype;
     uint64_t flags;
 } dns_rrtype_fields[] = {
+    // clang-format off
    { "a", LOG_A },
    { "ns", LOG_NS },
    { "md", LOG_MD },
@@ -246,6 +249,7 @@ static struct {
    { "maila", LOG_MAILA },
    { "any", LOG_ANY },
    { "uri", LOG_URI }
+    // clang-format on
 };
 
 typedef struct LogDnsFileCtx_ {
