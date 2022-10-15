@@ -55,11 +55,6 @@ void PacketAlertTagInit(void)
     g_tag_pa.s = &g_tag_signature;
 }
 
-PacketAlert *PacketAlertGetTag(void)
-{
-    return &g_tag_pa;
-}
-
 /**
  * \brief Handle a packet and check if needs a threshold logic
  *        Also apply rule action if necessary.
