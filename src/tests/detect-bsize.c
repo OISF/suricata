@@ -156,6 +156,7 @@ static int DetectBsizeSigTest01(void)
               "sid:17;)");
     TEST_FAIL("alert http any any -> any any (http.uri; content:\"abc\"; offset:65535; bsize:3; "
               "sid:18;)");
+    TEST_FAIL("alert http any any -> any any (http.user_agent; content:\"Suricata-UA\"; bsize:11; content:!\"abc\"; distance:2; within:3;  sid: 19;)");
     PASS;
 }
 
