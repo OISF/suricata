@@ -40,9 +40,57 @@
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);
+static int SigParseGetMaxBsize(DetectU64Data *bsz);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
+
+bool DetectBsizeValidateContentCallback(Signature *s, int list)
+{
+    int bsize = -1;
+    DetectU64Data *bsz;
+    for (const SigMatch *sm = s->init_data->smlists[list]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_BSIZE) {
+            bsz = (DetectU64Data *)sm->ctx;
+            bsize = SigParseGetMaxBsize(bsz);
+            break;
+        }
+    }
+
+    if (bsize == -1) {
+        return true;
+    }
+
+    uint64_t needed;
+    if (bsize >= 0) {
+        int len, offset;
+        SigParseRequiredContentSize(s, bsize, list, &len, &offset);
+        SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+        needed = len;
+        if (len > bsize) {
+            goto value_error;
+        }
+        if ((len + offset) > bsize) {
+            needed += offset;
+            goto value_error;
+        }
+    }
+
+    return true;
+value_error:
+    if (bsz->mode == DETECT_UINT_RA) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "signature can't match as required content length %" PRIu64
+                " exceeds bsize range: %" PRIu64 "-%" PRIu64,
+                needed, bsz->arg1, bsz->arg2);
+    } else {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "signature can't match as required content length %" PRIu64 " exceeds bsize value: "
+                "%" PRIu64,
+                needed, bsz->arg1);
+    }
+    return false;
+}
 
 /**
  * \brief Registration function for bsize: keyword
@@ -60,8 +108,6 @@ void DetectBsizeRegister(void)
     sigmatch_table[DETECT_BSIZE].RegisterTests = DetectBsizeRegisterTests;
 #endif
 }
-
-static int SigParseGetMaxBsize(DetectU64Data *bsz);
 
 /** \brief bsize match function
  *
@@ -167,23 +213,6 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (bsz == NULL)
         goto error;
 
-    const int bsize = SigParseGetMaxBsize(bsz);
-
-    uint64_t needed;
-    if (bsize >= 0) {
-        int len, offset;
-        SigParseRequiredContentSize(s, bsize, list, &len, &offset);
-        SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
-        needed = len;
-        if (len > bsize) {
-            goto value_error;
-        }
-        if ((len + offset) > bsize) {
-            needed += offset;
-            goto value_error;
-        }
-    }
-
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -193,19 +222,6 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatchAppendSMToList(s, sm, list);
 
     SCReturnInt(0);
-
-value_error:
-    if (bsz->mode == DETECT_UINT_RA) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "signature can't match as required content length %" PRIu64
-                " exceeds bsize range: %" PRIu64 "-%" PRIu64,
-                needed, bsz->arg1, bsz->arg2);
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "signature can't match as required content length %" PRIu64 " exceeds bsize value: "
-                "%" PRIu64,
-                needed, bsz->arg1);
-    }
 
 error:
     DetectBsizeFree(de_ctx, bsz);
