@@ -34,6 +34,7 @@
 #include "detect-engine-state.h"
 
 #include "detect-content.h"
+#include "detect-bsize.h"
 #include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
@@ -1712,6 +1713,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
 
             if (DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror) == FALSE) {
+                SCReturnInt(0);
+            }
+
+            if (!DetectBsizeValidateContentCallback(s, x)) {
                 SCReturnInt(0);
             }
         }
