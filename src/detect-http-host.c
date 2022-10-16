@@ -199,7 +199,7 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                 }
                 if (u != cd->content_len) {
                     *sigerror = "A pattern with "
-                                "uppercase chararacters detected for http.host. "
+                                "uppercase characters detected for http.host. "
                                 "The hostname buffer is normalized to lowercase, "
                                 "please specify a lowercase pattern.";
                     SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
