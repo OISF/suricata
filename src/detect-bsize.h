@@ -26,5 +26,6 @@
 
 void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
+bool DetectBsizeValidateContentCallback(Signature *s, int list);
 
 #endif	/* __DETECT_URILEN_H__ */
