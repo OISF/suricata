@@ -4448,6 +4448,7 @@ int DetectEngineReload(const SCInstance *suri)
 
     if (suri->conf_filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
+        SCLogConfig("Reloading %s", suri->conf_filename);
         if (ConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
             SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s",
                     suri->conf_filename);
@@ -4460,6 +4461,14 @@ int DetectEngineReload(const SCInstance *suri)
                     suri->conf_filename);
             return -1;
         }
+
+        if (suri->additional_configs) {
+            for (int i = 0; suri->additional_configs[i] != NULL; i++) {
+                SCLogConfig("Reloading %s", suri->additional_configs[i]);
+                ConfYamlHandleInclude(node, suri->additional_configs[i]);
+            }
+        }
+
 #if 0
         ConfDump();
 #endif

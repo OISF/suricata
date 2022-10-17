@@ -27,6 +27,7 @@
 int ConfYamlLoadFile(const char *);
 int ConfYamlLoadString(const char *, size_t);
 int ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix);
+int ConfYamlHandleInclude(ConfNode *parent, const char *filename);
 
 void ConfYamlRegisterTests(void);
 

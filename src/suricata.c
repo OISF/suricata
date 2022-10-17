@@ -648,6 +648,7 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_LIBNET11
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
+    printf("\t--include <path>                     : additonal configuration file\n");
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -924,6 +925,13 @@ static TmEcode LoadYamlConfig(SCInstance *suri)
     if (ConfYamlLoadFile(suri->conf_filename) != 0) {
         /* Error already displayed. */
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (suri->additional_configs) {
+        for (int i = 0; suri->additional_configs[i] != NULL; i++) {
+            SCLogNotice("Loading additonal configuration file %s", suri->additional_configs[i]);
+            ConfYamlHandleInclude(ConfGetRootNode(), suri->additional_configs[i]);
+        }
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -1310,6 +1318,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"simulate-packet-tcp-ssn-memcap", required_argument, 0, 0},
         {"simulate-packet-defrag-memcap", required_argument, 0, 0},
         {"simulate-alert-queue-realloc-failure", 0, 0, 0},
+        {"include", required_argument, 0, 0},
 
         {NULL, 0, NULL, 0}
     };
@@ -1678,6 +1687,36 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
+                }
+            } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
+                if (suri->additional_configs == NULL) {
+                    suri->additional_configs = SCCalloc(2, sizeof(char **));
+                    if (suri->additional_configs == NULL) {
+                        FatalError(SC_ERR_MEM_ALLOC,
+                                "Failed to allocate memory for additional configuration files: %s",
+                                strerror(errno));
+                    }
+                    suri->additional_configs[0] = optarg;
+                } else {
+                    for (int i = 0;; i++) {
+                        if (suri->additional_configs[i] == NULL) {
+                            const char **additional_configs =
+                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char **));
+                            if (additional_configs == NULL) {
+                                FatalError(SC_ERR_MEM_ALLOC,
+                                        "Failed to allocate memory for additional configuration "
+                                        "files: %s",
+                                        strerror(errno));
+                            } else {
+                                suri->additional_configs = additional_configs;
+                            }
+                            suri->additional_configs =
+                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char **));
+                            suri->additional_configs[i] = optarg;
+                            suri->additional_configs[i + 1] = NULL;
+                            break;
+                        }
+                    }
                 }
             } else {
                 int r = ExceptionSimulationCommandlineParser(

@@ -115,8 +115,7 @@ ConfYamlSetConfDirname(const char *filename)
  *
  * \retval 0 on success, -1 on failure.
  */
-static int
-ConfYamlHandleInclude(ConfNode *parent, const char *filename)
+int ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
     char include_filename[PATH_MAX];
