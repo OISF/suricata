@@ -12,6 +12,14 @@
 
    Path to configuration file.
 
+.. option:: --include <path>
+
+   Additional configuration files to include. Multiple additonal
+   configuration files can be provided and will be included in the
+   order specified on the command line.  These additonal configuration
+   files are loaded as if they existed at the end of the main
+   configuration file.
+
 .. option:: -T
 
    Test configuration.
