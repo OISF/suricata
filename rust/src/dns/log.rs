@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -86,6 +86,7 @@ pub const LOG_URI        : u64 = BIT_U64!(59);
 
 pub const LOG_FORMAT_GROUPED  : u64 = BIT_U64!(60);
 pub const LOG_FORMAT_DETAILED : u64 = BIT_U64!(61);
+pub const LOG_HTTPS      : u64 = BIT_U64!(62);
 
 fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
 {
@@ -249,6 +250,9 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
         }
         DNS_RECORD_TYPE_CDNSKEY => {
             return flags & LOG_CDNSKEY != 0;
+        }
+        DNS_RECORD_TYPE_HTTPS => {
+            return flags & LOG_HTTPS != 0;
         }
         DNS_RECORD_TYPE_SPF => {
             return flags & LOG_SPF != 0;
@@ -460,6 +464,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         DNSRData::NS(bytes) |
         DNSRData::TXT(bytes) |
         DNSRData::NULL(bytes) |
+        DNSRData::HTTPS(bytes) |
         DNSRData::PTR(bytes) => {
             jsa.set_string_from_bytes("rdata", bytes)?;
         }
@@ -539,6 +544,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                     DNSRData::NS(bytes) |
                     DNSRData::TXT(bytes) |
                     DNSRData::NULL(bytes) |
+                    DNSRData::HTTPS(bytes) |
                     DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),

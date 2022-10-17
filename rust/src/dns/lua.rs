@@ -179,6 +179,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 DNSRData::NS(ref bytes) |
                 DNSRData::TXT(ref bytes) |
                 DNSRData::NULL(ref bytes) |
+                DNSRData::HTTPS(ref bytes) |
                 DNSRData::PTR(ref bytes) |
                 DNSRData::Unknown(ref bytes) => {
                     if bytes.len() > 0 {

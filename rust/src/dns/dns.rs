@@ -81,6 +81,7 @@ pub const DNS_RECORD_TYPE_TLSA        : u16 = 52;
 pub const DNS_RECORD_TYPE_HIP         : u16 = 55;
 pub const DNS_RECORD_TYPE_CDS         : u16 = 59;
 pub const DNS_RECORD_TYPE_CDNSKEY     : u16 = 60;
+pub const DNS_RECORD_TYPE_HTTPS       : u16 = 65;
 pub const DNS_RECORD_TYPE_SPF         : u16 = 99;  // Obsolete
 pub const DNS_RECORD_TYPE_TKEY        : u16 = 249;
 pub const DNS_RECORD_TYPE_TSIG        : u16 = 250;
@@ -207,6 +208,8 @@ pub enum DNSRData {
     SOA(DNSRDataSOA),
     SRV(DNSRDataSRV),
     SSHFP(DNSRDataSSHFP),
+    // RData description to be added
+    HTTPS(Vec<u8>),
     // RData for remaining types is sometimes ignored
     Unknown(Vec<u8>),
 }

@@ -237,6 +237,10 @@ fn dns_parse_rdata_ns<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8
     dns_parse_name(input, message).map(|(input, name)| (input, DNSRData::NS(name)))
 }
 
+fn dns_parse_rdata_https<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+    rest(input).map(|(input, data)| (input, DNSRData::HTTPS(data.to_vec())))
+}
+
 fn dns_parse_rdata_ptr<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
     dns_parse_name(input, message).map(|(input, name)| (input, DNSRData::PTR(name)))
 }
@@ -330,6 +334,7 @@ pub fn dns_parse_rdata<'a>(
         DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message),
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
         DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
+        DNS_RECORD_TYPE_HTTPS => dns_parse_rdata_https(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
         DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message),
         _ => dns_parse_rdata_unknown(input),
