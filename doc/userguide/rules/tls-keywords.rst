@@ -246,8 +246,6 @@ The ``ssl_state`` keyword matches the state of the SSL connection. The possible 
 are ``client_hello``, ``server_hello``, ``client_keyx``, ``server_keyx`` and ``unknown``.
 You can specify several states with ``|`` (OR) to check for any of the specified states.
 
-Negation support is not available yet, see https://redmine.openinfosecfoundation.org/issues/1231
-
 tls.random
 ----------
 
