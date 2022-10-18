@@ -28,7 +28,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-
+#include "packet.h"
 #include "decode.h"
 #include "detect.h"
 
