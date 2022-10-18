@@ -881,8 +881,7 @@ int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
     uint16_t temp_offset = offset;
     uint16_t num_services;
     if (ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + temp_offset)) == -1)
-    {   
+                (const uint8_t *)(input + temp_offset)) == -1) {
         return 0;
     }
 
@@ -899,8 +898,7 @@ int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
 
         uint16_t svc_offset; //read set of service offsets
         if (ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-                (const uint8_t *) (input + temp_offset)) == -1 )
-        {   
+                    (const uint8_t *)(input + temp_offset)) == -1) {
             return 0;
         }
         temp_offset += sizeof(uint16_t);
@@ -936,15 +934,13 @@ int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
     uint16_t temp_offset = offset;
     uint16_t num_services;
     if (ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + temp_offset)) == -1 )
-    {   
+                (const uint8_t *)(input + temp_offset)) == -1) {
         return 0;
     }
     temp_offset += sizeof(uint16_t);
     //SCLogDebug("DecodeCIPResponseMSP number of services %d", num_services);
 
-    for (int svc = 0; svc < num_services; svc++)
-    {
+    for (int svc = 0; svc < num_services; svc++) {
         if (temp_offset >= (input_len - sizeof(uint16_t)))
         {
             SCLogDebug("DecodeCIPResponseMSP: Parsing beyond payload length");
@@ -953,8 +949,7 @@ int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
 
         uint16_t svc_offset; //read set of service offsets
         if (ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-                (const uint8_t *) (input + temp_offset)) == -1 )
-        {   
+                    (const uint8_t *)(input + temp_offset)) == -1) {
             return 0;
         }
         temp_offset += sizeof(uint16_t);

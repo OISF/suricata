@@ -134,7 +134,8 @@ int WARN_UNUSED ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED ByteExtractString(uint64_t *res, int base, size_t len, const char *str, bool strict);
+int WARN_UNUSED ByteExtractString(
+        uint64_t *res, int base, size_t len, const char *str, bool strict);
 
 /**
  * Extract unsigned integer value from a string as uint64_t.
@@ -200,7 +201,8 @@ int WARN_UNUSED ByteExtractStringUint8(uint8_t *res, int base, size_t len, const
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int WARN_UNUSED ByteExtractStringSigned(int64_t *res, int base, size_t len, const char *str, bool strict);
+int WARN_UNUSED ByteExtractStringSigned(
+        int64_t *res, int base, size_t len, const char *str, bool strict);
 
 /**
  * Extract signed integer value from a string as uint64_t.
