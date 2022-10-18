@@ -20,6 +20,16 @@
 
 #include "decode.h"
 
+void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r);
+bool PacketCheckAction(const Packet *p, const uint8_t a);
+
+#ifdef UNITTESTS
+static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
+{
+    return PacketCheckAction(p, a);
+}
+#endif
+
 void PacketInit(Packet *p);
 void PacketReleaseRefs(Packet *p);
 void PacketReinit(Packet *p);

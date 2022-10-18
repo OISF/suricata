@@ -34,6 +34,7 @@
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "suricata.h"
+#include "packet.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"

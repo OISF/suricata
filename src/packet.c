@@ -20,6 +20,40 @@
 #include "flow.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "util-validate.h"
+
+/** \brief issue drop action
+ *
+ *  Set drop (+reject) flags in both current and root packet.
+ *
+ *  \param action action bit flags. Must be limited to ACTION_DROP_REJECT
+ */
+void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r)
+{
+    DEBUG_VALIDATE_BUG_ON((action & ~ACTION_DROP_REJECT) != 0);
+
+    if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
+        p->drop_reason = (uint8_t)r;
+
+    if (p->root) {
+        p->root->action |= action;
+        if (p->root->drop_reason == PKT_DROP_REASON_NOT_SET) {
+            p->root->drop_reason = PKT_DROP_REASON_INNER_PACKET;
+        }
+    }
+    p->action |= action;
+}
+
+bool PacketCheckAction(const Packet *p, const uint8_t a)
+{
+    if (likely(p->root == NULL)) {
+        return (p->action & a) != 0;
+    } else {
+        /* check against both */
+        const uint8_t actions = p->action | p->root->action;
+        return (actions & a) != 0;
+    }
+}
 
 /**
  *  \brief Initialize a packet structure for use.
