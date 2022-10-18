@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "packet.h"
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"

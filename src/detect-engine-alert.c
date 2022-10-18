@@ -23,6 +23,7 @@
 #include "detect-engine-tag.h"
 
 #include "decode.h"
+#include "packet.h"
 
 #include "flow.h"
 #include "flow-private.h"
