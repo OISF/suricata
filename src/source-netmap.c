@@ -37,6 +37,7 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "tm-threads.h"
+#include "packet.h"
 #include "util-bpf.h"
 #include "util-privs.h"
 #include "util-validate.h"

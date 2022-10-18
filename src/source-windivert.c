@@ -28,7 +28,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "tm-threads.h"
-
+#include "packet.h"
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-device.h"

@@ -21,6 +21,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "packet.h"
 #include "util-exception-policy.h"
 #include "util-misc.h"
 #include "stream-tcp-reassemble.h"

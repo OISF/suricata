@@ -27,6 +27,7 @@
  */
 #include "suricata-common.h"
 #include "decode.h"
+#include "packet.h"
 #include "suricata.h"
 #include "threadvars.h"
 #include "util-datalink.h"
