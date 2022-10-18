@@ -590,11 +590,9 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
 static int DetectFilemagicTestParse01 (void)
 {
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "secret.pdf", false);
-    if (dnd != NULL) {
-        DetectFilemagicFree(NULL, dnd);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -602,18 +600,12 @@ static int DetectFilemagicTestParse01 (void)
  */
 static int DetectFilemagicTestParse02 (void)
 {
-    int result = 0;
-
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "backup.tar.gz", false);
-    if (dnd != NULL) {
-        if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
-            result = 1;
-        }
-
-        DetectFilemagicFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 13);
+    FAIL_IF_NOT(memcmp(dnd->name, "backup.tar.gz", 13) == 0);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -621,18 +613,12 @@ static int DetectFilemagicTestParse02 (void)
  */
 static int DetectFilemagicTestParse03 (void)
 {
-    int result = 0;
-
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "cmd.exe", false);
-    if (dnd != NULL) {
-        if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
-            result = 1;
-        }
-
-        DetectFilemagicFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 7);
+    FAIL_IF_NOT(memcmp(dnd->name, "cmd.exe", 7) == 0);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**
