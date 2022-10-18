@@ -806,9 +806,9 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
         case PKT_DROP_REASON_NFQ_ERROR:
             return "nfq error";
         case PKT_DROP_REASON_NOT_SET:
-        default:
             return NULL;
     }
+    return NULL;
 }
 
 /* TODO drop reason stats! */
