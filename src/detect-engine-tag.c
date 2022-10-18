@@ -553,7 +553,9 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
 
     prev = NULL;
     while (tmp != NULL) {
-        if ((tv->tv_sec - tmp->last_ts) <= TAG_MAX_LAST_TIME_SEEN) {
+        struct timeval last_ts = { .tv_sec = tmp->last_ts, 0 };
+        struct timeval timeout_at = TimevalWithSeconds(&last_ts, TAG_MAX_LAST_TIME_SEEN);
+        if (!TimevalEarlier(&timeout_at, tv)) {
             prev = tmp;
             tmp = tmp->next;
             retval = 0;
