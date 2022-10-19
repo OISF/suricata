@@ -28,6 +28,5 @@ int RunModeIdsAFPAutoFp(void);
 int RunModeIdsAFPWorkers(void);
 void RunModeIdsAFPRegister(void);
 const char *RunModeAFPGetDefaultMode(void);
-int AFPRunModeIsIPS(void);
 
 #endif /* __RUNMODE_AF_PACKET_H__ */

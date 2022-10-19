@@ -97,6 +97,7 @@ typedef struct RunMode_ {
     const char *description;
     /* runmode function */
     int (*RunModeFunc)(void);
+    void (*RunModeIsIPSEnabled)(void);
 } RunMode;
 
 typedef struct RunModes_ {
@@ -300,24 +301,18 @@ void RunModeListRunmodes(void)
     return;
 }
 
-/**
- */
-void RunModeDispatch(int runmode, const char *custom_mode,
-    const char *capture_plugin_name, const char *capture_plugin_args)
+static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture_plugin_name)
 {
-    char *local_custom_mode = NULL;
-
-    if (custom_mode == NULL) {
-        const char *val = NULL;
-        if (ConfGet("runmode", &val) != 1) {
-            custom_mode = NULL;
-        } else {
-            custom_mode = val;
-        }
+    const char *custom_mode = NULL;
+    const char *val = NULL;
+    if (ConfGet("runmode", &val) != 1) {
+        custom_mode = NULL;
+    } else {
+        custom_mode = val;
     }
 
-    if (custom_mode == NULL || strcmp(custom_mode, "auto") == 0) {
-        switch (runmode) {
+    if ((custom_mode == NULL) || (strcmp(custom_mode, "auto") == 0)) {
+        switch (capture_mode) {
             case RUNMODE_PCAP_DEV:
                 custom_mode = RunModeIdsGetDefaultMode();
                 break;
@@ -378,19 +373,53 @@ void RunModeDispatch(int runmode, const char *custom_mode,
                 break;
 #endif
             default:
-                FatalError(SC_ERR_FATAL, "Unknown runtime mode. Aborting");
+                custom_mode = NULL;
+                break;
         }
     } else { /* if (custom_mode == NULL) */
         /* Add compability with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
+            char *local_custom_mode = NULL;
             SCLogWarning(SC_ERR_RUNMODE, "'worker' mode have been renamed "
-                         "to 'workers', please modify your setup.");
+                                         "to 'workers', please modify your setup.");
             local_custom_mode = SCStrdup("workers");
             if (unlikely(local_custom_mode == NULL)) {
-                FatalError(SC_ERR_FATAL, "Unable to dup custom mode");
+                SCLogWarning(SC_ERR_FATAL, "Unable to dup custom mode");
             }
             custom_mode = local_custom_mode;
         }
+    }
+
+    return custom_mode;
+}
+
+void RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name)
+{
+    if (runmode == NULL) {
+        runmode = RunModeGetConfOrDefault(capture_mode, capture_plugin_name);
+    }
+
+    RunMode *mode = RunModeGetCustomMode(capture_mode, runmode);
+    if (mode == NULL) {
+        return;
+    }
+
+    if (mode->RunModeIsIPSEnabled != NULL) {
+        mode->RunModeIsIPSEnabled();
+    }
+}
+
+/**
+ */
+void RunModeDispatch(int runmode, const char *custom_mode, const char *capture_plugin_name,
+        const char *capture_plugin_args)
+{
+    char *local_custom_mode = NULL;
+
+    if (custom_mode == NULL) {
+        custom_mode = RunModeGetConfOrDefault(runmode, capture_plugin_name);
+        if (custom_mode == NULL)
+            FatalError(SC_ERR_FATAL, "Unknown runtime mode. Aborting");
     }
 
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
@@ -457,10 +486,8 @@ int RunModeNeedsBypassManager(void)
  * \param description Description for this runmode.
  * \param RunModeFunc The function to be run for this runmode.
  */
-void RunModeRegisterNewRunMode(enum RunModes runmode,
-                               const char *name,
-                               const char *description,
-                               int (*RunModeFunc)(void))
+void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description,
+        int (*RunModeFunc)(void), void (*RunModeIsIPSEnabled)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
         FatalError(SC_ERR_RUNMODE, "runmode '%s' has already "
@@ -490,6 +517,7 @@ void RunModeRegisterNewRunMode(enum RunModes runmode,
         FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
     }
     mode->RunModeFunc = RunModeFunc;
+    mode->RunModeIsIPSEnabled = RunModeIsIPSEnabled;
 
     return;
 }

@@ -90,7 +90,7 @@ void RunModeNapatechRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "workers",
             "Workers Napatech mode, each thread does all"
             " tasks from acquisition to logging",
-            RunModeNapatechWorkers);
+            RunModeNapatechWorkers, NULL);
     return;
 #endif
 }
@@ -271,10 +271,8 @@ static int NapatechInit(int runmode)
 
     switch (runmode) {
         case NT_RUNMODE_WORKERS:
-            status = RunModeSetLiveCaptureWorkers(NapatechConfigParser,
-                    NapatechGetThreadsCount,
-                    "NapatechStream", "NapatechDecode",
-                    thread_name_workers, NULL);
+            status = RunModeSetLiveCaptureWorkers(NapatechConfigParser, NapatechGetThreadsCount,
+                    "NapatechStream", "NapatechDecode", thread_name_workers, NULL);
             break;
         default:
             status = -1;

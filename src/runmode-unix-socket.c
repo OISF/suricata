@@ -607,12 +607,10 @@ void RunModeUnixSocketRegister(void)
 {
 #ifdef BUILD_UNIX_SOCKET
     /* a bit of a hack, but register twice to --list-runmodes shows both */
-    RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "single",
-                              "Unix socket mode",
-                              RunModeUnixSocketMaster);
-    RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "autofp",
-                              "Unix socket mode",
-                              RunModeUnixSocketMaster);
+    RunModeRegisterNewRunMode(
+            RUNMODE_UNIX_SOCKET, "single", "Unix socket mode", RunModeUnixSocketMaster, NULL);
+    RunModeRegisterNewRunMode(
+            RUNMODE_UNIX_SOCKET, "autofp", "Unix socket mode", RunModeUnixSocketMaster, NULL);
 #endif
 }
 

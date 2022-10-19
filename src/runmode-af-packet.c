@@ -31,6 +31,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
@@ -64,20 +65,108 @@ const char *RunModeAFPGetDefaultMode(void)
     return "workers";
 }
 
+static int AFPRunModeIsIPS(void)
+{
+    int nlive = LiveGetDeviceCount();
+    int ldev;
+    ConfNode *if_root;
+    ConfNode *if_default = NULL;
+    ConfNode *af_packet_node;
+    int has_ips = 0;
+    int has_ids = 0;
+
+    /* Find initial node */
+    af_packet_node = ConfGetNode("af-packet");
+    if (af_packet_node == NULL) {
+        return 0;
+    }
+
+    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+
+    for (ldev = 0; ldev < nlive; ldev++) {
+        const char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            return 0;
+        }
+        const char *copymodestr = NULL;
+        if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
+
+        if (if_root == NULL) {
+            if (if_default == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = if_default;
+        }
+
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = 1;
+            } else {
+                has_ids = 1;
+            }
+        } else {
+            has_ids = 1;
+        }
+    }
+
+    if (has_ids && has_ips) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                "AF_PACKET using both IPS and TAP/IDS mode, this will not "
+                "be allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
+        for (ldev = 0; ldev < nlive; ldev++) {
+            const char *live_dev = LiveGetDeviceName(ldev);
+            if (live_dev == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+            const char *copymodestr = NULL;
+
+            if (if_root == NULL) {
+                if (if_default == NULL) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    return 0;
+                }
+                if_root = if_default;
+            }
+
+            if (!((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) ==
+                          1) &&
+                        (strcmp(copymodestr, "ips") == 0))) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "AF_PACKET IPS mode used and interface '%s' is in IDS or TAP mode. "
+                        "Sniffing '%s' but expect bad result as stream-inline is activated.",
+                        live_dev, live_dev);
+            }
+        }
+    }
+
+    return has_ips;
+}
+
+static void AFPRunModeEnableIPS(void)
+{
+    if (AFPRunModeIsIPS()) {
+        SCLogInfo("AF_PACKET: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 void RunModeIdsAFPRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single",
-                              "Single threaded af-packet mode",
-                              RunModeIdsAFPSingle);
+    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single", "Single threaded af-packet mode",
+            RunModeIdsAFPSingle, AFPRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "workers",
-                              "Workers af-packet mode, each thread does all"
-                              " tasks from acquisition to logging",
-                              RunModeIdsAFPWorkers);
+            "Workers af-packet mode, each thread does all"
+            " tasks from acquisition to logging",
+            RunModeIdsAFPWorkers, AFPRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
-                              "Multi socket AF_PACKET mode.  Packets from "
-                              "each flow are assigned to a single detect "
-                              "thread.",
-                              RunModeIdsAFPAutoFp);
+            "Multi socket AF_PACKET mode.  Packets from "
+            "each flow are assigned to a single detect "
+            "thread.",
+            RunModeIdsAFPAutoFp, AFPRunModeEnableIPS);
     return;
 }
 
@@ -691,88 +780,7 @@ static int AFPConfigGeThreadsCount(void *conf)
     return afp->threads;
 }
 
-int AFPRunModeIsIPS()
-{
-    int nlive = LiveGetDeviceCount();
-    int ldev;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *af_packet_node;
-    int has_ips = 0;
-    int has_ids = 0;
-
-    /* Find initial node */
-    af_packet_node = ConfGetNode("af-packet");
-    if (af_packet_node == NULL) {
-        return 0;
-    }
-
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
-
-    for (ldev = 0; ldev < nlive; ldev++) {
-        const char *live_dev = LiveGetDeviceName(ldev);
-        if (live_dev == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-            return 0;
-        }
-        const char *copymodestr = NULL;
-        if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
-
-        if (if_root == NULL) {
-            if (if_default == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                return 0;
-            }
-            if_root = if_default;
-        }
-
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
-            if (strcmp(copymodestr, "ips") == 0) {
-                has_ips = 1;
-            } else {
-                has_ids = 1;
-            }
-        } else {
-            has_ids = 1;
-        }
-    }
-
-    if (has_ids && has_ips) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "AF_PACKET using both IPS and TAP/IDS mode, this will not "
-                "be allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
-        for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
-            if (live_dev == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                return 0;
-            }
-            if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
-            const char *copymodestr = NULL;
-
-            if (if_root == NULL) {
-                if (if_default == NULL) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                    return 0;
-                }
-                if_root = if_default;
-            }
-
-            if (! ((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) &&
-                        (strcmp(copymodestr, "ips") == 0))) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "AF_PACKET IPS mode used and interface '%s' is in IDS or TAP mode. "
-                        "Sniffing '%s' but expect bad result as stream-inline is activated.",
-                        live_dev, live_dev);
-            }
-        }
-    }
-
-    return has_ips;
-}
-
-#endif
-
+#endif /* HAVE_AF_PACKET */
 
 int RunModeIdsAFPAutoFp(void)
 {
@@ -795,11 +803,8 @@ int RunModeIdsAFPAutoFp(void)
         FatalError(SC_ERR_FATAL, "Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
-                              AFPConfigGeThreadsCount,
-                              "ReceiveAFP",
-                              "DecodeAFP", thread_name_autofp,
-                              live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP",
+            "DecodeAFP", thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -876,11 +881,8 @@ int RunModeIdsAFPWorkers(void)
         FatalError(SC_ERR_FATAL, "Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
-                                    AFPConfigGeThreadsCount,
-                                    "ReceiveAFP",
-                                    "DecodeAFP", thread_name_workers,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP",
+            "DecodeAFP", thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
