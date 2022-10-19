@@ -93,6 +93,14 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
+    if (p->flow != NULL) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            jb_set_string(js, "direction", "to_server");
+        } else {
+            jb_set_string(js, "direction", "to_client");
+        }
+    }
+
     jb_open_object(js, "drop");
 
     uint16_t proto = 0;
