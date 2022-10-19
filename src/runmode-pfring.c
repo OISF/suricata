@@ -476,11 +476,8 @@ int RunModeIdsPfringAutoFp(void)
                            "Unable to get parser and interface params");
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(tparser,
-                              PfringConfigGetThreadsCount,
-                              "ReceivePfring",
-                              "DecodePfring", thread_name_autofp,
-                              live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(tparser, NULL, PfringConfigGetThreadsCount, "ReceivePfring",
+            "DecodePfring", thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Runmode start failed");
     }
@@ -546,11 +543,8 @@ int RunModeIdsPfringWorkers(void)
                            "Unable to get parser and interface params");
     }
 
-    ret = RunModeSetLiveCaptureWorkers(tparser,
-                              PfringConfigGetThreadsCount,
-                              "ReceivePfring",
-                              "DecodePfring", thread_name_workers,
-                              live_dev);
+    ret = RunModeSetLiveCaptureWorkers(tparser, NULL, PfringConfigGetThreadsCount, "ReceivePfring",
+            "DecodePfring", thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Runmode start failed");
     }

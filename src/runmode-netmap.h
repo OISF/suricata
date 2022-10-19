@@ -28,6 +28,5 @@ int RunModeIdsNetmapAutoFp(void);
 int RunModeIdsNetmapWorkers(void);
 void RunModeIdsNetmapRegister(void);
 const char *RunModeNetmapGetDefaultMode(void);
-int NetmapRunModeIsIPS(void);
 
 #endif /* __RUNMODE_NETMAP_H__ */

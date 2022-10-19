@@ -85,11 +85,9 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
 /**
  */
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name,
-                              const char *thread_name,
-                              const char *live_dev)
+        ConfigRunmodeEnableIPSFunc runmodeEnableIPSFunc,
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
@@ -101,6 +99,10 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     char *queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
         FatalError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
+    }
+
+    if (runmodeEnableIPSFunc != NULL) {
+        runmodeEnableIPSFunc();
     }
 
     if ((nlive <= 1) && (live_dev != NULL)) {
@@ -328,14 +330,17 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 }
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev)
+        ConfigRunmodeEnableIPSFunc runmodeEnableIPSFunc,
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
     void *aconf;
     int ldev;
+
+    if (runmodeEnableIPSFunc != NULL) {
+        runmodeEnableIPSFunc();
+    }
 
     for (ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev_c = NULL;
