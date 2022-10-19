@@ -1414,8 +1414,8 @@ int RunModeIdsDpdkWorkers(void)
     TimeModeSetLive();
 
     InitEal();
-    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKConfigGetThreadsCount,
-            "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
+    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, NULL,
+            DPDKConfigGetThreadsCount, "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }

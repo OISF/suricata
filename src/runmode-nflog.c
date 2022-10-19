@@ -156,7 +156,7 @@ static int RunModeIdsNflogAutoFp(void)
     RunModeInitialize();
     TimeModeSetLive();
 
-    int ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig, NflogConfigGeThreadsCount,
+    int ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig, NULL, NflogConfigGeThreadsCount,
             "ReceiveNFLOG", "DecodeNFLOG", thread_name_autofp, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
@@ -196,7 +196,7 @@ static int RunModeIdsNflogWorkers(void)
     RunModeInitialize();
     TimeModeSetLive();
 
-    int ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig, NflogConfigGeThreadsCount,
+    int ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig, NULL, NflogConfigGeThreadsCount,
             "ReceiveNFLOG", "DecodeNFLOG", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");

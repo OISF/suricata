@@ -31,6 +31,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
@@ -691,7 +692,7 @@ static int AFPConfigGeThreadsCount(void *conf)
     return afp->threads;
 }
 
-int AFPRunModeIsIPS()
+static int AFPRunModeIsIPS(void)
 {
     int nlive = LiveGetDeviceCount();
     int ldev;
@@ -769,6 +770,14 @@ int AFPRunModeIsIPS()
     return has_ips;
 }
 
+static void AFPRunModeEnableIPS(void)
+{
+    if (AFPRunModeIsIPS()) {
+        SCLogInfo("AF_PACKET: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 #endif
 
 
@@ -793,11 +802,8 @@ int RunModeIdsAFPAutoFp(void)
         FatalError(SC_ERR_FATAL, "Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
-                              AFPConfigGeThreadsCount,
-                              "ReceiveAFP",
-                              "DecodeAFP", thread_name_autofp,
-                              live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig, AFPRunModeEnableIPS, AFPConfigGeThreadsCount,
+            "ReceiveAFP", "DecodeAFP", thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -874,11 +880,8 @@ int RunModeIdsAFPWorkers(void)
         FatalError(SC_ERR_FATAL, "Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
-                                    AFPConfigGeThreadsCount,
-                                    "ReceiveAFP",
-                                    "DecodeAFP", thread_name_workers,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig, AFPRunModeEnableIPS, AFPConfigGeThreadsCount,
+            "ReceiveAFP", "DecodeAFP", thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }

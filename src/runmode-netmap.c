@@ -326,7 +326,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
     return aconf->in.threads;
 }
 
-int NetmapRunModeIsIPS()
+static int NetmapRunModeIsIPS()
 {
     int nlive = LiveGetDeviceCount();
     int ldev;
@@ -404,6 +404,14 @@ int NetmapRunModeIsIPS()
     return has_ips;
 }
 
+static void NetmapRunModeEnableIPS(void)
+{
+    if (NetmapRunModeIsIPS()) {
+        SCLogInfo("Netmap: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 typedef enum { NETMAP_AUTOFP, NETMAP_WORKERS, NETMAP_SINGLE } NetmapRunMode_t;
 
 static int NetmapRunModeInit(NetmapRunMode_t runmode)
@@ -419,12 +427,14 @@ static int NetmapRunModeInit(NetmapRunMode_t runmode)
     int ret;
     switch (runmode) {
         case NETMAP_AUTOFP:
-            ret = RunModeSetLiveCaptureAutoFp(ParseNetmapConfig, NetmapConfigGeThreadsCount,
-                    "ReceiveNetmap", "DecodeNetmap", thread_name_autofp, live_dev);
+            ret = RunModeSetLiveCaptureAutoFp(ParseNetmapConfig, NetmapRunModeEnableIPS,
+                    NetmapConfigGeThreadsCount, "ReceiveNetmap", "DecodeNetmap", thread_name_autofp,
+                    live_dev);
             break;
         case NETMAP_WORKERS:
-            ret = RunModeSetLiveCaptureWorkers(ParseNetmapConfig, NetmapConfigGeThreadsCount,
-                    "ReceiveNetmap", "DecodeNetmap", thread_name_workers, live_dev);
+            ret = RunModeSetLiveCaptureWorkers(ParseNetmapConfig, NetmapRunModeEnableIPS,
+                    NetmapConfigGeThreadsCount, "ReceiveNetmap", "DecodeNetmap",
+                    thread_name_workers, live_dev);
             break;
         case NETMAP_SINGLE:
             ret = RunModeSetLiveCaptureSingle(ParseNetmapConfig, NetmapConfigGeThreadsCount,
