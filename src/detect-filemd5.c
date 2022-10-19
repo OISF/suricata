@@ -78,57 +78,32 @@ static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, const char
 static int MD5MatchLookupString(ROHashTable *hash, const char *string)
 {
     uint8_t md5[16];
-    if (ReadHashString(md5, string, "file", 88, 32) == 1) {
-        void *ptr = ROHashLookup(hash, &md5, (uint16_t)sizeof(md5));
-        if (ptr == NULL)
-            return 0;
-        else
-            return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(ReadHashString(md5, string, "file", 88, 32) == 1);
+    void *ptr = ROHashLookup(hash, &md5, (uint16_t)sizeof(md5));
+    FAIL_IF_NULL(ptr);
+    PASS;
 }
 
 static int MD5MatchTest01(void)
 {
     ROHashTable *hash = ROHashInit(4, 16);
-    if (hash == NULL) {
-        return 0;
-    }
-    if (LoadHashTable(hash, "d80f93a93dc5f3ee945704754d6e0a36", "file", 1, DETECT_FILEMD5) != 1)
-        return 0;
-    if (LoadHashTable(hash, "92a49985b384f0d993a36e4c2d45e206", "file", 2, DETECT_FILEMD5) != 1)
-        return 0;
-    if (LoadHashTable(hash, "11adeaacc8c309815f7bc3e33888f281", "file", 3, DETECT_FILEMD5) != 1)
-        return 0;
-    if (LoadHashTable(hash, "22e10a8fe02344ade0bea8836a1714af", "file", 4, DETECT_FILEMD5) != 1)
-        return 0;
-    if (LoadHashTable(hash, "c3db2cbf02c68f073afcaee5634677bc", "file", 5, DETECT_FILEMD5) != 1)
-        return 0;
-    if (LoadHashTable(hash, "7ed095da259638f42402fb9e74287a17", "file", 6, DETECT_FILEMD5) != 1)
-        return 0;
-
-    if (ROHashInitFinalize(hash) != 1) {
-        return 0;
-    }
-
-    if (MD5MatchLookupString(hash, "d80f93a93dc5f3ee945704754d6e0a36") != 1)
-        return 0;
-    if (MD5MatchLookupString(hash, "92a49985b384f0d993a36e4c2d45e206") != 1)
-        return 0;
-    if (MD5MatchLookupString(hash, "11adeaacc8c309815f7bc3e33888f281") != 1)
-        return 0;
-    if (MD5MatchLookupString(hash, "22e10a8fe02344ade0bea8836a1714af") != 1)
-        return 0;
-    if (MD5MatchLookupString(hash, "c3db2cbf02c68f073afcaee5634677bc") != 1)
-        return 0;
-    if (MD5MatchLookupString(hash, "7ed095da259638f42402fb9e74287a17") != 1)
-        return 0;
-    /* shouldn't match */
-    if (MD5MatchLookupString(hash, "33333333333333333333333333333333") == 1)
-        return 0;
-
+    FAIL_IF_NULL(hash == NULL);
+    FAIL_IF(LoadHashTable(hash, "d80f93a93dc5f3ee945704754d6e0a36", "file", 1, DETECT_FILEMD5) != 1);
+    FAIL_IF(LoadHashTable(hash, "92a49985b384f0d993a36e4c2d45e206", "file", 2, DETECT_FILEMD5) != 1);
+    FAIL_IF(LoadHashTable(hash, "11adeaacc8c309815f7bc3e33888f281", "file", 3, DETECT_FILEMD5) != 1);
+    FAIL_IF(LoadHashTable(hash, "22e10a8fe02344ade0bea8836a1714af", "file", 4, DETECT_FILEMD5) != 1);
+    FAIL_IF(LoadHashTable(hash, "c3db2cbf02c68f073afcaee5634677bc", "file", 5, DETECT_FILEMD5) != 1);
+    FAIL_IF(LoadHashTable(hash, "7ed095da259638f42402fb9e74287a17", "file", 6, DETECT_FILEMD5) != 1);
+    FAIL_IF(ROHashInitFinalize(hash) != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "d80f93a93dc5f3ee945704754d6e0a36") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "92a49985b384f0d993a36e4c2d45e206") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "11adeaacc8c309815f7bc3e33888f281") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "22e10a8fe02344ade0bea8836a1714af") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "c3db2cbf02c68f073afcaee5634677bc") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "7ed095da259638f42402fb9e74287a17") != 1);
+    FAIL_IF(MD5MatchLookupString(hash, "33333333333333333333333333333333") == 1);
     ROHashFree(hash);
-    return 1;
+    PASS;
 }
 
 void DetectFileMd5RegisterTests(void)
