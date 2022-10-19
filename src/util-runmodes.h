@@ -34,10 +34,8 @@ int RunModeSetLiveCaptureAuto(ConfigIfaceParserFunc configparser,
                               const char *live_dev);
 
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc configparser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev);
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
@@ -46,10 +44,8 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc configparser,
                               const char *live_dev);
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc configparser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev);
 
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                         const char *recv_mod_name,

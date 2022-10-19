@@ -2481,30 +2481,6 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
     }
 }
 
-static int PostDeviceFinalizedSetup(SCInstance *suri)
-{
-    SCEnter();
-
-#ifdef HAVE_AF_PACKET
-    if (suri->run_mode == RUNMODE_AFP_DEV) {
-        if (AFPRunModeIsIPS()) {
-            SCLogInfo("AF_PACKET: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-#ifdef HAVE_NETMAP
-    if (suri->run_mode == RUNMODE_NETMAP) {
-        if (NetmapRunModeIsIPS()) {
-            SCLogInfo("Netmap: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
 static void PostConfLoadedSetupHostMode(void)
 {
     const char *hostmode = NULL;
@@ -2724,10 +2700,8 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     LiveDeviceFinalize();
 
-    /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
+    RunModeEngineIsIPS(
+            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();

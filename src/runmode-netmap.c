@@ -47,6 +47,7 @@
 
 #include "source-netmap.h"
 #include "util-conf.h"
+#include "suricata.h"
 
 extern int max_pending_packets;
 
@@ -55,20 +56,108 @@ const char *RunModeNetmapGetDefaultMode(void)
     return "workers";
 }
 
+static int NetmapRunModeIsIPS(void)
+{
+    int nlive = LiveGetDeviceCount();
+    int ldev;
+    ConfNode *if_root;
+    ConfNode *if_default = NULL;
+    ConfNode *netmap_node;
+    int has_ips = 0;
+    int has_ids = 0;
+
+    /* Find initial node */
+    netmap_node = ConfGetNode("netmap");
+    if (netmap_node == NULL) {
+        return 0;
+    }
+
+    if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
+
+    for (ldev = 0; ldev < nlive; ldev++) {
+        const char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            return 0;
+        }
+        const char *copymodestr = NULL;
+        if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
+
+        if (if_root == NULL) {
+            if (if_default == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = if_default;
+        }
+
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = 1;
+            } else {
+                has_ids = 1;
+            }
+        } else {
+            has_ids = 1;
+        }
+    }
+
+    if (has_ids && has_ips) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                "Netmap using both IPS and TAP/IDS mode, this will not be "
+                "allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
+        for (ldev = 0; ldev < nlive; ldev++) {
+            const char *live_dev = LiveGetDeviceName(ldev);
+            if (live_dev == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
+            const char *copymodestr = NULL;
+
+            if (if_root == NULL) {
+                if (if_default == NULL) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    return 0;
+                }
+                if_root = if_default;
+            }
+
+            if (!((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) ==
+                          1) &&
+                        (strcmp(copymodestr, "ips") == 0))) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "Netmap IPS mode used and interface '%s' is in IDS or TAP mode. "
+                        "Sniffing '%s' but expect bad result as stream-inline is activated.",
+                        live_dev, live_dev);
+            }
+        }
+    }
+
+    return has_ips;
+}
+
+static void NetmapRunModeEnableIPS(void)
+{
+    if (NetmapRunModeIsIPS()) {
+        SCLogInfo("Netmap: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 void RunModeIdsNetmapRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single",
-            "Single threaded netmap mode",
-            RunModeIdsNetmapSingle);
+    RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single", "Single threaded netmap mode",
+            RunModeIdsNetmapSingle, NetmapRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "workers",
             "Workers netmap mode, each thread does all"
             " tasks from acquisition to logging",
-            RunModeIdsNetmapWorkers);
+            RunModeIdsNetmapWorkers, NetmapRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "autofp",
             "Multi-threaded netmap mode.  Packets from "
             "each flow are assigned to a single detect "
             "thread.",
-            RunModeIdsNetmapAutoFp);
+            RunModeIdsNetmapAutoFp, NetmapRunModeEnableIPS);
     return;
 }
 
@@ -324,86 +413,6 @@ static int NetmapConfigGeThreadsCount(void *conf)
 {
     NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)conf;
     return aconf->in.threads;
-}
-
-int NetmapRunModeIsIPS()
-{
-    int nlive = LiveGetDeviceCount();
-    int ldev;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *netmap_node;
-    int has_ips = 0;
-    int has_ids = 0;
-
-    /* Find initial node */
-    netmap_node = ConfGetNode("netmap");
-    if (netmap_node == NULL) {
-        return 0;
-    }
-
-    if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
-
-    for (ldev = 0; ldev < nlive; ldev++) {
-        const char *live_dev = LiveGetDeviceName(ldev);
-        if (live_dev == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-            return 0;
-        }
-        const char *copymodestr = NULL;
-        if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
-
-        if (if_root == NULL) {
-            if (if_default == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                return 0;
-            }
-            if_root = if_default;
-        }
-
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
-            if (strcmp(copymodestr, "ips") == 0) {
-                has_ips = 1;
-            } else {
-                has_ids = 1;
-            }
-        } else {
-            has_ids = 1;
-        }
-    }
-
-    if (has_ids && has_ips) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "Netmap using both IPS and TAP/IDS mode, this will not be "
-                "allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
-        for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
-            if (live_dev == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                return 0;
-            }
-            if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
-            const char *copymodestr = NULL;
-
-            if (if_root == NULL) {
-                if (if_default == NULL) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
-                    return 0;
-                }
-                if_root = if_default;
-            }
-
-            if (! ((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) &&
-                    (strcmp(copymodestr, "ips") == 0))) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "Netmap IPS mode used and interface '%s' is in IDS or TAP mode. "
-                                "Sniffing '%s' but expect bad result as stream-inline is activated.",
-                        live_dev, live_dev);
-            }
-        }
-    }
-
-    return has_ips;
 }
 
 typedef enum { NETMAP_AUTOFP, NETMAP_WORKERS, NETMAP_SINGLE } NetmapRunMode_t;

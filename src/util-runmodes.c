@@ -85,11 +85,8 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
 /**
  */
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name,
-                              const char *thread_name,
-                              const char *live_dev)
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
@@ -328,10 +325,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 }
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev)
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
     void *aconf;
