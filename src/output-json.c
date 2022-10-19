@@ -790,15 +790,9 @@ int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
         }
     } else {
         /* this is a packet context, so we need to add scalar fields */
-        uint8_t *src, *dst;
         if (p->ethh != NULL) {
-            if ((PKT_IS_TOCLIENT(p))) {
-                src = p->ethh->eth_dst;
-                dst = p->ethh->eth_src;
-            } else {
-                src = p->ethh->eth_src;
-                dst = p->ethh->eth_dst;
-            }
+            uint8_t *src = p->ethh->eth_src;
+            uint8_t *dst = p->ethh->eth_dst;
             JSONFormatAndAddMACAddr(js, "src_mac", src, false);
             JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
         }
