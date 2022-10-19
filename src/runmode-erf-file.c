@@ -38,14 +38,13 @@ const char *RunModeErfFileGetDefaultMode(void)
 
 void RunModeErfFileRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "single",
-        "Single threaded ERF file mode",
-        RunModeErfFileSingle);
+    RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "single", "Single threaded ERF file mode",
+            RunModeErfFileSingle, NULL);
 
     RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "autofp",
-        "Multi threaded ERF file mode.  Packets from "
-        "each flow are assigned to a single detect thread",
-        RunModeErfFileAutoFp);
+            "Multi threaded ERF file mode.  Packets from "
+            "each flow are assigned to a single detect thread",
+            RunModeErfFileAutoFp, NULL);
 
     return;
 }
