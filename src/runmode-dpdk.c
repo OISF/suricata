@@ -291,6 +291,7 @@ static void InitEal()
         FatalError(
                 SC_ERR_DPDK_EAL_INIT, "DPDK EAL initialization error: %s", rte_strerror(-retval));
     }
+    DPDKSetTimevalOfMachineStart();
 }
 
 static void DPDKDerefConfig(void *conf)
