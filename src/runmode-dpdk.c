@@ -45,6 +45,8 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-time.h"
+#include "util-conf.h"
+#include "suricata.h"
 
 #ifdef HAVE_DPDK
 
@@ -1395,6 +1397,65 @@ static int DPDKConfigGetThreadsCount(void *conf)
 
 #endif /* HAVE_DPDK */
 
+static int DPDKRunModeIsIPS(void)
+{
+    /* Find initial node */
+    const char dpdk_node_query[] = "dpdk.interfaces";
+    ConfNode *dpdk_node = ConfGetNode(dpdk_node_query);
+    if (dpdk_node == NULL) {
+        FatalError(SC_ERR_DPDK_CONF, "Unable to get %s configuration node", dpdk_node_query);
+    }
+
+    const char default_iface[] = "default";
+    ConfNode *if_default = ConfNodeLookupKeyValue(dpdk_node, "interface", default_iface);
+    int nlive = LiveGetDeviceCount();
+    bool has_ips = false;
+    bool has_ids = false;
+    for (int ldev = 0; ldev < nlive; ldev++) {
+        const char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL)
+            FatalError(
+                    SC_ERR_INVALID_VALUE, "Unable to get device id %d from LiveDevice list", ldev);
+
+        ConfNode *if_root = ConfFindDeviceConfig(dpdk_node, live_dev);
+        if (if_root == NULL) {
+            if (if_default == NULL)
+                FatalError(SC_ERR_INVALID_VALUE, "Unable to get %s or %s  interface", live_dev,
+                        default_iface);
+
+            if_root = if_default;
+        }
+
+        const char *copymodestr = NULL;
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = true;
+            } else {
+                has_ids = true;
+            }
+        } else {
+            has_ids = true;
+        }
+
+        if (has_ids && has_ips) {
+            FatalError(SC_ERR_DPDK_CONF,
+                    "Copy-mode of interface %s mixes with the previously set copy-modes "
+                    "(only IDS/TAP and IPS copy-mode combinations are allowed in DPDK",
+                    live_dev);
+        }
+    }
+
+    return has_ips;
+}
+
+static void DPDKRunModeEnableIPS(void)
+{
+    if (DPDKRunModeIsIPS()) {
+        SCLogInfo("Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 const char *RunModeDpdkGetDefaultMode(void)
 {
     return "workers";
@@ -1405,7 +1466,7 @@ void RunModeDpdkRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_DPDK, "workers",
             "Workers DPDK mode, each thread does all"
             " tasks from acquisition to logging",
-            RunModeIdsDpdkWorkers, NULL);
+            RunModeIdsDpdkWorkers, DPDKRunModeEnableIPS);
 }
 
 /**
