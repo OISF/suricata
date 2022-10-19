@@ -2429,9 +2429,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
             case RUNMODE_AFP_DEV:
             case RUNMODE_AFXDP_DEV:
             case RUNMODE_PFRING:
-                nlive = LiveGetDeviceNameCount();
+                nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
-                    const char *live_dev = LiveGetDeviceNameName(lthread);
+                    const char *live_dev = LiveGetDeviceName(lthread);
                     char dev[128]; /* need to be able to support GUID names on Windows */
                     (void)strlcpy(dev, live_dev, sizeof(dev));
 
@@ -2527,30 +2527,6 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
     }
-}
-
-static int PostDeviceFinalizedSetup(SCInstance *suri)
-{
-    SCEnter();
-
-#ifdef HAVE_AF_PACKET
-    if (suri->run_mode == RUNMODE_AFP_DEV) {
-        if (AFPRunModeIsIPS()) {
-            SCLogInfo("AF_PACKET: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-#ifdef HAVE_NETMAP
-    if (suri->run_mode == RUNMODE_NETMAP) {
-        if (NetmapRunModeIsIPS()) {
-            SCLogInfo("Netmap: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-
-    SCReturnInt(TM_ECODE_OK);
 }
 
 static void PostConfLoadedSetupHostMode(void)
@@ -2771,10 +2747,8 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     LiveDeviceFinalize();
 
-    /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
+    RunModeEngineIsIPS(
+            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
