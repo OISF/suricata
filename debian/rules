@@ -38,16 +38,13 @@ override_dh_auto_configure:
 		CFLAGS="$(CFLAGS)" \
 		--prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
 		--enable-ebpf \
-		--enable-pfring \
 		--enable-nfqueue \
 		--disable-gccmarch-native \
 		--enable-geoip \
 		--with-libnss-libraries=/usr/lib \
 		--with-libnss-includes=/usr/include/nss/ \
 		--with-libnspr-libraries=/usr/lib \
-		--with-libnspr-includes=/usr/include/nspr \
-		--with-libpfring-includes=/usr/local/pfring/include \
-		--with-libpfring-libraries=/usr/local/pfring/lib
+		--with-libnspr-includes=/usr/include/nspr
 override_dh_auto_install:
 	dh_auto_install -- prefix=/opt/suricata6
 	# remove the dependency_libs field (see wiki.debian.org/ReleaseGoals/LAFileRemoval)
