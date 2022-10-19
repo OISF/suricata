@@ -738,7 +738,9 @@ int AFPRunModeIsIPS()
     }
 
     if (has_ids && has_ips) {
-        SCLogInfo("AF_PACKET mode using IPS and IDS mode");
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                "AF_PACKET using both IPS and TAP/IDS mode, this will not "
+                "be allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
         for (ldev = 0; ldev < nlive; ldev++) {
             const char *live_dev = LiveGetDeviceName(ldev);
             if (live_dev == NULL) {
