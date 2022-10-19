@@ -45,6 +45,8 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-time.h"
+#include "util-conf.h"
+#include "suricata.h"
 
 #ifdef HAVE_DPDK
 
@@ -135,6 +137,10 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
 };
+
+// checks validity of set runmodes across all configured intefaces
+// (all ifaces should be either (IDS/TAP) or IPS)
+static DpdkCopyModeEnum g_dpdk_copy_mode = DPDK_COPY_MODE_UNKNOWN;
 
 static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
 {
@@ -602,6 +608,18 @@ static int ConfigSetCopyMode(DPDKIfaceConfig *iconf, const char *entry_str)
         iconf->copy_mode = DPDK_COPY_MODE_TAP;
     } else if (strcmp(entry_str, "ips") == 0) {
         iconf->copy_mode = DPDK_COPY_MODE_IPS;
+    }
+
+    if (g_dpdk_copy_mode == DPDK_COPY_MODE_UNKNOWN) {
+        g_dpdk_copy_mode = iconf->copy_mode;
+    } else {
+        DpdkCopyModeEnum cpy_mode;
+        cpy_mode = iconf->copy_mode == DPDK_COPY_MODE_TAP ? DPDK_COPY_MODE_NONE : iconf->copy_mode;
+        if (g_dpdk_copy_mode != cpy_mode)
+            FatalError(SC_ERR_DPDK_CONF,
+                    "Copy-mode of interface %s mixes with the previously set copy-modes "
+                    "(only IDS/TAP and IPS copy-mode combinations are allowed in DPDK",
+                    iconf->iface);
     }
 
     SCReturnInt(0);
@@ -1337,6 +1355,14 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static void DPDKRunModeEnableIPS(void)
+{
+    if (g_dpdk_copy_mode) {
+        SCLogNotice("Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
 {
     int retval;
@@ -1420,6 +1446,7 @@ int RunModeIdsDpdkWorkers(void)
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
 
+    DPDKRunModeEnableIPS();
     SCLogDebug("RunModeIdsDpdkWorkers initialised");
 
 #endif /* HAVE_DPDK */
