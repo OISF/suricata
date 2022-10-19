@@ -30,7 +30,12 @@
 #include <rte_ethdev.h>
 #endif
 
-typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } DpdkCopyModeEnum;
+typedef enum {
+    DPDK_COPY_MODE_UNKNOWN,
+    DPDK_COPY_MODE_NONE,
+    DPDK_COPY_MODE_TAP,
+    DPDK_COPY_MODE_IPS
+} DpdkCopyModeEnum;
 
 #define DPDK_BURST_TX_WAIT_US 1
 
