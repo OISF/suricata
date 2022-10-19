@@ -45,6 +45,8 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-time.h"
+#include "util-conf.h"
+#include "suricata.h"
 
 #ifdef HAVE_DPDK
 
@@ -1335,6 +1337,85 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static int DPDKRunModeIsIPS(void)
+{
+    /* Find initial node */
+    const char dpdk_node_query[] = "dpdk.interfaces";
+    ConfNode *dpdk_node = ConfGetNode(dpdk_node_query);
+    if (dpdk_node == NULL) {
+        FatalError(SC_ERR_DPDK_CONF, "Unable to get %s configuration node", dpdk_node_query);
+    }
+
+    const char default_iface[] = "default";
+    ConfNode *if_default = ConfNodeLookupKeyValue(dpdk_node, "interface", default_iface);
+    int nlive = LiveGetDeviceCount();
+    bool has_ips = false;
+    bool has_ids = false;
+    for (int ldev = 0; ldev < nlive; ldev++) {
+        const char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL)
+            FatalError(
+                    SC_ERR_INVALID_VALUE, "Unable to get device id %d from LiveDevice list", ldev);
+
+        ConfNode *if_root = ConfFindDeviceConfig(dpdk_node, live_dev);
+        if (if_root == NULL) {
+            if (if_default == NULL)
+                FatalError(SC_ERR_INVALID_VALUE, "Unable to get %s or %s  interface", live_dev,
+                        default_iface);
+
+            if_root = if_default;
+        }
+
+        const char *copymodestr = NULL;
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = true;
+            } else {
+                has_ids = true;
+            }
+        } else {
+            has_ids = true;
+        }
+    }
+
+    if (has_ids && has_ips) {
+        for (int ldev = 0; ldev < nlive; ldev++) {
+            const char *live_dev = LiveGetDeviceName(ldev);
+            if (live_dev == NULL)
+                FatalError(SC_ERR_INVALID_VALUE, "Unable to get device id %d from LiveDevice list",
+                        ldev);
+
+            ConfNode *if_root = ConfNodeLookupKeyValue(dpdk_node, "interface", live_dev);
+            if (if_root == NULL) {
+                if (if_default == NULL)
+                    FatalError(SC_ERR_INVALID_VALUE, "Unable to get the %s or %s interface",
+                            live_dev, default_iface);
+
+                if_root = if_default;
+            }
+
+            const char *copymodestr = NULL;
+            int r = ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr);
+            if (!(r == 1 && (strcmp(copymodestr, "ips") == 0))) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "DPDK IPS mode used and interface '%s' is in IDS or TAP mode. ", live_dev);
+            }
+        }
+        FatalError(SC_ERR_DPDK_CONF,
+                "Combining IDS/TAP and IPS runmode in interfaces is not allowed in DPDK");
+    }
+
+    return has_ips;
+}
+
+static void DPDKRunModeEnableIPS(void)
+{
+    if (DPDKRunModeIsIPS()) {
+        SCLogInfo("DPDK: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
 {
     int retval;
@@ -1412,7 +1493,7 @@ int RunModeIdsDpdkWorkers(void)
     TimeModeSetLive();
 
     InitEal();
-    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, NULL,
+    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKRunModeEnableIPS,
             DPDKConfigGetThreadsCount, "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
