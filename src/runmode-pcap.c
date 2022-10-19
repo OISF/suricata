@@ -281,11 +281,8 @@ int RunModeIdsPcapAutoFp(void)
 
     (void) ConfGet("pcap.single-pcap-dev", &live_dev);
 
-    ret = RunModeSetLiveCaptureAutoFp(ParsePcapConfig,
-                              PcapConfigGeThreadsCount,
-                              "ReceivePcap",
-                              "DecodePcap", thread_name_autofp,
-                              live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(ParsePcapConfig, NULL, PcapConfigGeThreadsCount,
+            "ReceivePcap", "DecodePcap", thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Runmode start failed");
     }
@@ -312,11 +309,8 @@ int RunModeIdsPcapWorkers(void)
 
     (void) ConfGet("pcap.single-pcap-dev", &live_dev);
 
-    ret = RunModeSetLiveCaptureWorkers(ParsePcapConfig,
-                                    PcapConfigGeThreadsCount,
-                                    "ReceivePcap",
-                                    "DecodePcap", thread_name_workers,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureWorkers(ParsePcapConfig, NULL, PcapConfigGeThreadsCount,
+            "ReceivePcap", "DecodePcap", thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }

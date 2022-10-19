@@ -102,12 +102,8 @@ int RunModeIdsErfDagAutoFp(void)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureAutoFp(ParseDagConfig,
-        DagConfigGetThreadCount,
-        "ReceiveErfDag",
-        "DecodeErfDag",
-        thread_name_autofp,
-        NULL);
+    ret = RunModeSetLiveCaptureAutoFp(ParseDagConfig, NULL, DagConfigGetThreadCount,
+            "ReceiveErfDag", "DecodeErfDag", thread_name_autofp, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "DAG autofp runmode failed to start");
     }
@@ -127,12 +123,8 @@ int RunModeIdsErfDagWorkers(void)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureWorkers(ParseDagConfig,
-        DagConfigGetThreadCount,
-        "ReceiveErfDag",
-        "DecodeErfDag",
-        thread_name_workers,
-        NULL);
+    ret = RunModeSetLiveCaptureWorkers(ParseDagConfig, NULL, DagConfigGetThreadCount,
+            "ReceiveErfDag", "DecodeErfDag", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "DAG workers runmode failed to start");
     }
