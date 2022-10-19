@@ -2455,24 +2455,6 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
 static int PostDeviceFinalizedSetup(SCInstance *suri)
 {
     SCEnter();
-
-#ifdef HAVE_AF_PACKET
-    if (suri->run_mode == RUNMODE_AFP_DEV) {
-        if (AFPRunModeIsIPS()) {
-            SCLogInfo("AF_PACKET: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-#ifdef HAVE_NETMAP
-    if (suri->run_mode == RUNMODE_NETMAP) {
-        if (NetmapRunModeIsIPS()) {
-            SCLogInfo("Netmap: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-
     SCReturnInt(TM_ECODE_OK);
 }
 

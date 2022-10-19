@@ -45,6 +45,8 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-time.h"
+#include "util-conf.h"
+#include "suricata.h"
 
 #ifdef HAVE_DPDK
 
@@ -1335,6 +1337,92 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static int DPDKRunModeIsIPS(void)
+{
+    int nlive = LiveGetDeviceCount();
+    int ldev;
+    ConfNode *if_root;
+    ConfNode *if_default = NULL;
+    ConfNode *dpdk_node;
+    int has_ips = 0;
+    int has_ids = 0;
+
+    /* Find initial node */
+    dpdk_node = ConfGetNode("dpdk.interfaces");
+    if (dpdk_node == NULL) {
+        return 0;
+    }
+
+    if_default = ConfNodeLookupKeyValue(dpdk_node, "interface", "default");
+
+    for (ldev = 0; ldev < nlive; ldev++) {
+        const char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            return 0;
+        }
+        const char *copymodestr = NULL;
+        if_root = ConfFindDeviceConfig(dpdk_node, live_dev);
+
+        if (if_root == NULL) {
+            if (if_default == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = if_default;
+        }
+
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = 1;
+            } else {
+                has_ids = 1;
+            }
+        } else {
+            has_ids = 1;
+        }
+    }
+
+    if (has_ids && has_ips) {
+        SCLogWarning(SC_ERR_CONF_YAML_ERROR, "DPDK mode using IPS and IDS mode");
+        for (ldev = 0; ldev < nlive; ldev++) {
+            const char *live_dev = LiveGetDeviceName(ldev);
+            if (live_dev == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = ConfNodeLookupKeyValue(dpdk_node, "interface", live_dev);
+            const char *copymodestr = NULL;
+
+            if (if_root == NULL) {
+                if (if_default == NULL) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    return 0;
+                }
+                if_root = if_default;
+            }
+
+            int r = ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr);
+            if (!(r == 1 && (strcmp(copymodestr, "ips") == 0))) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "DPDK IPS mode used and interface '%s' is in IDS or TAP mode. "
+                        "Sniffing '%s' but expect bad result as stream-inline is activated.",
+                        live_dev, live_dev);
+            }
+        }
+    }
+
+    return has_ips;
+}
+
+static void DPDKRunModeEnableIPS(void)
+{
+    if (DPDKRunModeIsIPS()) {
+        SCLogInfo("DPDK: Setting IPS mode");
+        EngineModeSetIPS();
+    }
+}
+
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
 {
     int retval;
@@ -1412,8 +1500,8 @@ int RunModeIdsDpdkWorkers(void)
     TimeModeSetLive();
 
     InitEal();
-    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKConfigGetThreadsCount,
-            "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
+    ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKRunModeEnableIPS,
+            DPDKConfigGetThreadsCount, "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
