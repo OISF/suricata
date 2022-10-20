@@ -35,7 +35,7 @@ typedef struct FlowStorageId {
 
 unsigned int FlowStorageSize(void);
 
-void *FlowGetStorageById(Flow *h, FlowStorageId id);
+void *FlowGetStorageById(const Flow *h, FlowStorageId id);
 int FlowSetStorageById(Flow *h, FlowStorageId id, void *ptr);
 void *FlowAllocStorageById(Flow *h, FlowStorageId id);
 
