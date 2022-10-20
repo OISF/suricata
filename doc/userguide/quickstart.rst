@@ -29,6 +29,8 @@ running and with what options as well as the service state::
     sudo suricata --build-info
     sudo systemctl status suricata
 
+.. _Basic setup:
+
 Basic setup
 -----------
 
