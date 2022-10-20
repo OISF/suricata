@@ -767,7 +767,7 @@ static int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
     } else if (f != NULL) {
         /* we are creating an ether object in a flow context, so we need to
            append to arrays */
-        MacSet *ms = FlowGetStorageById((Flow *)f, MacSetGetFlowStorageID());
+        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
         if (ms != NULL && MacSetSize(ms) > 0) {
             jb_open_object(js, "ether");
             JSONMACAddrInfo info;
