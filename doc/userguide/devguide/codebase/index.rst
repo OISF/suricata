@@ -10,3 +10,4 @@ Working with the Codebase
    testing
    unittests-c
    unittests-rust
+   installation-from-git
