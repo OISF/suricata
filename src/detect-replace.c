@@ -421,7 +421,8 @@ static int DetectReplaceMatchTest01(void)
                 " content:\"big\"; replace:\"pig\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -433,7 +434,8 @@ static int DetectReplaceMatchTest02(void)
                 " content:\"th\"; offset: 4; replace:\"TH\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; offset:4; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -445,7 +447,8 @@ static int DetectReplaceMatchTest03(void)
                 " content:\"th\"; replace:\"TH\"; offset: 4; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; offset:4; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -457,7 +460,8 @@ static int DetectReplaceMatchTest04(void)
                 " content:\"th\"; replace:\"TH\"; content:\"patter\"; replace:\"matter\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; content:\"matterns\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -469,7 +473,8 @@ static int DetectReplaceMatchTest05(void)
                 " content:\"th\"; replace:\"TH\"; content:\"nutella\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"TH\"; sid:2;)";
-    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -482,7 +487,8 @@ static int DetectReplaceMatchTest06(void)
                 " content:\"nutella\"; replace:\"commode\"; content:\"this is\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"commode\"; sid:2;)";
-    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -494,7 +500,8 @@ static int DetectReplaceMatchTest07(void)
                 " content:\"BiG\"; nocase; replace:\"pig\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -506,7 +513,8 @@ static int DetectReplaceMatchTest08(void)
                 " content:\"big\"; depth:17; replace:\"pig\"; sid:1;)";
     const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    FAIL_IF_NOT(DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2));
+    PASS;
 }
 
 /**
@@ -603,7 +611,6 @@ static int DetectReplaceParseTest01(void)
     run_mode = RUNMODE_NFQ;
 
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -613,10 +620,7 @@ static int DetectReplaceParseTest01(void)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
                                "(msg:\"test\"; content:\"doh\"; replace:\"; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
  end:
     run_mode = run_mode_backup;
@@ -624,8 +628,8 @@ static int DetectReplaceParseTest01(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
+    PASS;
 
-    return result;
 }
 
 /**
@@ -637,20 +641,15 @@ static int DetectReplaceParseTest02(void)
     run_mode = RUNMODE_NFQ;
 
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NOT_NULL(de_ctx == NULL)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert http any any -> any any "
                                "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list == NULL)
 
  end:
     run_mode = run_mode_backup;
@@ -658,8 +657,7 @@ static int DetectReplaceParseTest02(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
