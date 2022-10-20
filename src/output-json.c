@@ -79,6 +79,7 @@
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed);
+static int CreateJSONEther(JsonBuilder *parent, const Packet *p, const Flow *f);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -407,8 +408,6 @@ void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
         }
     }
 }
-
-int CreateJSONEther(JsonBuilder *parent, const Packet *p, const Flow *f);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js)
@@ -753,23 +752,24 @@ static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
     return 0;
 }
 
-int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
+static int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
 {
-    if (unlikely(js == NULL))
-        return 0;
-    /* start new EVE sub-object */
-    jb_open_object(js, "ether");
-    if (p == NULL) {
-        MacSet *ms = NULL;
-        /* ensure we have a flow */
-        if (unlikely(f == NULL)) {
+    if (p != NULL) {
+        /* this is a packet context, so we need to add scalar fields */
+        if (p->ethh != NULL) {
+            jb_open_object(js, "ether");
+            uint8_t *src = p->ethh->eth_src;
+            uint8_t *dst = p->ethh->eth_dst;
+            JSONFormatAndAddMACAddr(js, "src_mac", src, false);
+            JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
             jb_close(js);
-            return 0;
         }
+    } else if (f != NULL) {
         /* we are creating an ether object in a flow context, so we need to
            append to arrays */
-        ms = FlowGetStorageById((Flow *)f, MacSetGetFlowStorageID());
+        MacSet *ms = FlowGetStorageById((Flow *)f, MacSetGetFlowStorageID());
         if (ms != NULL && MacSetSize(ms) > 0) {
+            jb_open_object(js, "ether");
             JSONMACAddrInfo info;
             info.dst = jb_new_array();
             info.src = jb_new_array();
@@ -787,17 +787,9 @@ int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
             jb_set_object(js, "src_macs", info.src);
             jb_free(info.dst);
             jb_free(info.src);
-        }
-    } else {
-        /* this is a packet context, so we need to add scalar fields */
-        if (p->ethh != NULL) {
-            uint8_t *src = p->ethh->eth_src;
-            uint8_t *dst = p->ethh->eth_dst;
-            JSONFormatAndAddMACAddr(js, "src_mac", src, false);
-            JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
+            jb_close(js);
         }
     }
-    jb_close(js);
     return 0;
 }
 
