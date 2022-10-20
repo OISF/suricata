@@ -42,6 +42,8 @@
 
 #include "decode-icmpv4.h"
 
+#include "util-validate.h"
+
 /** \brief allocate a flow
  *
  *  We check against the memuse counter. If it passes that check we increment
@@ -163,13 +165,10 @@ void FlowInit(Flow *f, const Packet *p)
         FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
         f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));
         f->flags |= FLOW_IPV6;
+    } else {
+        SCLogDebug("neither IPv4 or IPv6, weird");
+        DEBUG_VALIDATE_BUG_ON(1);
     }
-#ifdef DEBUG
-    /* XXX handle default */
-    else {
-        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
-    }
-#endif
 
     if (p->tcph != NULL) { /* XXX MACRO */
         SET_TCP_SRC_PORT(p,&f->sp);
@@ -190,12 +189,10 @@ void FlowInit(Flow *f, const Packet *p)
         SET_SCTP_DST_PORT(p,&f->dp);
     } else if (p->esph != NULL) {
         f->esp.spi = ESP_GET_SPI(p);
-    } /* XXX handle default */
-#ifdef DEBUG
-    else {
-        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
+    } else {
+        /* nothing to do for this IP proto. */
+        SCLogDebug("no special setup for IP proto %u", p->proto);
     }
-#endif
     COPY_TIMESTAMP(&p->ts, &f->startts);
 
     f->protomap = FlowGetProtoMapping(f->proto);
