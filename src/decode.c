@@ -312,6 +312,11 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
 
     SCEnter();
 
+    if (parent->nb_decoded_layers + 1 >= decoder_max_layers) {
+        ENGINE_SET_INVALID_EVENT(parent, GENERIC_TOO_MANY_LAYERS);
+        SCReturnPtr(NULL, "Packet");
+    }
+
     /* get us a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
     if (unlikely(p == NULL)) {
@@ -320,7 +325,10 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
 
     /* copy packet and set length, proto */
     PacketCopyData(p, pkt, len);
+    DEBUG_VALIDATE_BUG_ON(parent->recursion_level == 255);
     p->recursion_level = parent->recursion_level + 1;
+    DEBUG_VALIDATE_BUG_ON(parent->nb_decoded_layers >= decoder_max_layers);
+    p->nb_decoded_layers = parent->nb_decoded_layers + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
