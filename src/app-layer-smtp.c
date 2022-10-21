@@ -1123,8 +1123,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                 }
                 tx->mime_state = MimeDecInitParser(f, SMTPProcessDataChunk);
                 if (tx->mime_state == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "MimeDecInitParser() failed to "
-                            "allocate data");
                     return MIME_DEC_ERR_MEM;
                 }
 
