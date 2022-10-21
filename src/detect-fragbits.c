@@ -193,7 +193,7 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
     }
 
     if (args[1] == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "invalid value");
+        SCLogError(SC_EINVAL, "invalid value");
         goto error;
     }
 

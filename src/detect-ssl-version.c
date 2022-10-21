@@ -215,7 +215,7 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
         tmp_str++;
     }
     if (tmp_str[0] == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid empty value");
+        SCLogError(SC_EINVAL, "Invalid empty value");
         goto error;
     }
     // iterate every version separated by comma
@@ -236,7 +236,7 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
             if (tmp_len == strlen(ssl_version_keywords[i].word) &&
                     strncasecmp(ssl_version_keywords[i].word, tmp_str, tmp_len) == 0) {
                 if (ssl->data[ssl_version_keywords[i].index].ver != 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid duplicate value");
+                    SCLogError(SC_EINVAL, "Invalid duplicate value");
                     goto error;
                 }
                 ssl->data[ssl_version_keywords[i].index].ver = ssl_version_keywords[i].value;
@@ -247,7 +247,7 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
             }
         }
         if (!is_keyword) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid unknown value");
+            SCLogError(SC_EINVAL, "Invalid unknown value");
             goto error;
         }
 
@@ -257,7 +257,7 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
         if (found == 0) {
             found |= 1 << neg;
         } else if (found != 1 << neg) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value mixing negative and positive forms");
+            SCLogError(SC_EINVAL, "Invalid value mixing negative and positive forms");
             goto error;
         }
 

@@ -283,7 +283,7 @@ LiveDevice *LiveGetDevice(const char *name)
     LiveDevice *pd;
 
     if (name == NULL) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "Name of device should not be null");
+        SCLogWarning(SC_EINVAL, "Name of device should not be null");
         return NULL;
     }
 
