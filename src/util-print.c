@@ -290,7 +290,7 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
             /* Format IPv6 without deleting zeroes */
             return PrintInetIPv6(src, dst, size);
         default:
-            SCLogError(SC_ERR_INVALID_VALUE, "Unsupported protocol: %d", af);
+            SCLogError(SC_EINVAL, "Unsupported protocol: %d", af);
     }
     return NULL;
 }

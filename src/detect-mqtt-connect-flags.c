@@ -152,31 +152,31 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
             }
             if (strcmp(flagv+offset, "username") == 0) {
                 if (de->username != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->username = fs_to_set;
             } else if (strcmp(flagv+offset, "password") == 0) {
                 if (de->password != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->password = fs_to_set;
             } else if (strcmp(flagv+offset, "will") == 0) {
                 if (de->will != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will = fs_to_set;
             } else if (strcmp(flagv+offset, "will_retain") == 0) {
                 if (de->will_retain != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will_retain = fs_to_set;
             } else if (strcmp(flagv+offset, "clean_session") == 0) {
                 if (de->clean_session != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->clean_session = fs_to_set;
