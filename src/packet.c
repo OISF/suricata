@@ -95,7 +95,7 @@ void PacketReinit(Packet *p)
     p->proto = 0;
     p->recursion_level = 0;
     PACKET_FREE_EXTDATA(p);
-    p->flags = p->flags & PKT_ALLOC;
+    p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
     p->vlan_id[0] = 0;

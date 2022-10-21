@@ -978,8 +978,8 @@ void DecodeUnregisterCounters(void);
 
 /** Flag to indicate that packet contents should not be inspected */
 #define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
-/** Packet was alloc'd this run, needs to be freed */
-#define PKT_ALLOC BIT_U32(3)
+// vacancy
+
 /** Packet has matched a tag */
 #define PKT_HAS_TAG BIT_U32(4)
 /** Packet payload was added to reassembled stream */

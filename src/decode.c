@@ -179,7 +179,6 @@ Packet *PacketGetFromAlloc(void)
     memset(p, 0, SIZE_OF_PACKET);
     PacketInit(p);
     p->ReleasePacket = PacketFree;
-    p->flags |= PKT_ALLOC;
 
     SCLogDebug("allocated a new packet only using alloc...");
 
@@ -192,11 +191,11 @@ Packet *PacketGetFromAlloc(void)
  */
 void PacketFreeOrRelease(Packet *p)
 {
-    if (p->flags & PKT_ALLOC)
-        PacketFree(p);
-    else {
+    if (likely(p->pool != NULL)) {
         p->ReleasePacket = PacketPoolReturnPacket;
         PacketPoolReturnPacket(p);
+    } else {
+        PacketFree(p);
     }
 }
 
