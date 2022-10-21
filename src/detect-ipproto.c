@@ -124,15 +124,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     if (!isdigit((unsigned char)*(args[1]))) {
         uint8_t proto;
         if (!SCGetProtoByName(args[1], &proto)) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Unknown protocol name: \"%s\"", str_ptr);
+            SCLogError(SC_EINVAL, "Unknown protocol name: \"%s\"", str_ptr);
             goto error;
         }
         data->proto = proto;
     }
     else {
         if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol number: %s",
-                       str_ptr);
+            SCLogError(SC_EINVAL, "Malformed protocol number: %s", str_ptr);
             goto error;
         }
     }

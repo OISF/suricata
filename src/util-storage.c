@@ -109,9 +109,10 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
     StorageList *list = storage_list;
     while (list) {
         if (strcmp(name, list->map.name) == 0 && type == list->map.type) {
-            SCLogError(SC_ERR_INVALID_VALUE, "storage for type \"%s\" with "
-                "name \"%s\" already registered", StoragePrintType(type),
-                name);
+            SCLogError(SC_EINVAL,
+                    "storage for type \"%s\" with "
+                    "name \"%s\" already registered",
+                    StoragePrintType(type), name);
             return -1;
         }
 

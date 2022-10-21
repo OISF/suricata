@@ -259,12 +259,14 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                 }
                 SCLogDebug("expire_str %s", expire_str);
                 if (StringParseUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                               "expire: \"%s\"", expire_str);
+                    SCLogError(SC_EINVAL,
+                            "Invalid value for "
+                            "expire: \"%s\"",
+                            expire_str);
                     return -1;
                 }
                 if (expire == 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "expire must be bigger than 0");
+                    SCLogError(SC_EINVAL, "expire must be bigger than 0");
                     return -1;
                 }
                 SCLogDebug("expire %d", expire);
