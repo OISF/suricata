@@ -365,8 +365,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             p,p->root ? "upper layer" : "tunnel root");
 
         /* get a lock to access root packet fields */
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-        SCMutexLock(m);
+        SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
+        SCSpinLock(lock);
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
@@ -390,7 +390,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 SET_TUNNEL_PKT_VERDICTED(p);
 
                 PACKET_PROFILING_END(p);
-                SCMutexUnlock(m);
+                SCSpinUnlock(lock);
                 SCReturn;
             }
         } else {
@@ -426,7 +426,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 /* fall through */
             }
         }
-        SCMutexUnlock(m);
+        SCSpinUnlock(lock);
 
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }

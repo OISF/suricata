@@ -60,7 +60,7 @@ bool PacketCheckAction(const Packet *p, const uint8_t a)
  */
 void PacketInit(Packet *p)
 {
-    SCMutexInit(&p->tunnel_mutex, NULL);
+    SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
     PACKET_RESET_CHECKSUMS(p);
     p->livedev = NULL;
@@ -181,7 +181,7 @@ void PacketDestructor(Packet *p)
     }
     PacketAlertFree(p->alerts.alerts);
     PACKET_FREE_EXTDATA(p);
-    SCMutexDestroy(&p->tunnel_mutex);
+    SCSpinDestroy(&p->persistent.tunnel_lock);
     AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     PACKET_PROFILING_RESET(p);
 }
