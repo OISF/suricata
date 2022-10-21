@@ -171,12 +171,10 @@ void PacketUpdateEngineEventCounters(ThreadVars *tv,
  */
 Packet *PacketGetFromAlloc(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = SCCalloc(1, SIZE_OF_PACKET);
     if (unlikely(p == NULL)) {
         return NULL;
     }
-
-    memset(p, 0, SIZE_OF_PACKET);
     PacketInit(p);
     p->ReleasePacket = PacketFree;
 
