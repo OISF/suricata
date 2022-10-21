@@ -52,7 +52,7 @@ impl SMBTransactionFile {
 
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
+        flags: u16, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
@@ -64,7 +64,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
+    pub fn new_file_tx(&mut self, fuid: &[u8], file_name: &[u8], direction: Direction)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
@@ -89,7 +89,7 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: Direction)
+    pub fn get_file_tx_by_fuid(&mut self, fuid: &[u8], direction: Direction)
         -> Option<&mut SMBTransaction>
     {
         let f = fuid.to_vec();

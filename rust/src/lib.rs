@@ -47,7 +47,6 @@
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::single_match)]
 #![allow(clippy::upper_case_acronyms)]
-#![allow(clippy::ptr_arg)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::match_ref_pats)]

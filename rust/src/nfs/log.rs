@@ -81,7 +81,7 @@ fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
     strings.join("")
 }
 */
-fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
+fn nfs_handle2crc(bytes: &[u8]) -> u32 {
     let c = crc32::checksum_ieee(bytes);
     c
 }
