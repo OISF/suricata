@@ -142,9 +142,6 @@ void PacketPoolWaitForN(int n)
  */
 static void PacketPoolStorePacket(Packet *p)
 {
-    /* Clear the PKT_ALLOC flag, since that indicates to push back
-     * onto the ring buffer. */
-    p->flags &= ~PKT_ALLOC;
     p->pool = GetThreadPacketPool();
     p->ReleasePacket = PacketPoolReturnPacket;
     PacketPoolReturnPacket(p);
@@ -361,7 +358,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     bool proot = false;
 
     SCEnter();
-    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
+    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
     if (IS_TUNNEL_PKT(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",
@@ -441,7 +438,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     /* we're done with the tunnel root now as well */
     if (proot == true) {
-        SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
+        SCLogDebug("getting rid of root pkt... alloc'd %s", BOOL2STR(p->root->pool == NULL));
 
         PacketReleaseRefs(p->root);
         p->root->ReleasePacket(p->root);
