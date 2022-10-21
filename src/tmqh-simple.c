@@ -82,7 +82,7 @@ void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
 
 void TmqhOutputSimple(ThreadVars *t, Packet *p)
 {
-    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true":"false");
+    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
     PacketQueue *q = t->outq->pq;
 
