@@ -221,14 +221,13 @@ static bool PrefilterITypeIsPrefilterable(const Signature *s)
 static int DetectITypeParseTest01(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_EQ)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_EQ);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -238,14 +237,13 @@ static int DetectITypeParseTest01(void)
 static int DetectITypeParseTest02(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, ">8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_GT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_GT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -255,14 +253,13 @@ static int DetectITypeParseTest02(void)
 static int DetectITypeParseTest03(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "<8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_LT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_LT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -272,14 +269,14 @@ static int DetectITypeParseTest03(void)
 static int DetectITypeParseTest04(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "8<>20");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->arg2 == 20 && itd->mode == DETECT_UINT_RA)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->arg2 == 20);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_RA);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -289,14 +286,13 @@ static int DetectITypeParseTest04(void)
 static int DetectITypeParseTest05(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "   8 ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_EQ)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_EQ);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -306,14 +302,13 @@ static int DetectITypeParseTest05(void)
 static int DetectITypeParseTest06(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "  >  8  ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_GT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_GT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -323,14 +318,14 @@ static int DetectITypeParseTest06(void)
 static int DetectITypeParseTest07(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "  8  <> 20  ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->arg2 == 20 && itd->mode == DETECT_UINT_RA)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->arg2 == 20);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_RA);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -340,10 +335,10 @@ static int DetectITypeParseTest08(void)
 {
     DetectU8Data *itd = NULL;
     itd = DetectITypeParse(NULL, "> 8 <> 20");
-    if (itd == NULL)
-        return 1;
+    FAIL_IF_NULL(itd);
     DetectITypeFree(NULL, itd);
-    return 0;
+
+    PASS;
 }
 
 /**
