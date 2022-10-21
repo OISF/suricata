@@ -92,44 +92,36 @@ static int SHA256MatchLookupString(ROHashTable *hash, const char *string)
 static int SHA256MatchTest01(void)
 {
     ROHashTable *hash = ROHashInit(4, 32);
-    if (hash == NULL) {
-        return 0;
-    }
-    if (LoadHashTable(hash, "9c891edb5da763398969b6aaa86a5d46971bd28a455b20c2067cb512c9f9a0f8", "file", 1, DETECT_FILESHA256) != 1)
-        return 0;
-    if (LoadHashTable(hash, "6eee51705f34b6cfc7f0c872a7949ec3e3172a908303baf5d67d03b98f70e7e3", "file", 2, DETECT_FILESHA256) != 1)
-        return 0;
-    if (LoadHashTable(hash, "b12c7d57507286bbbe36d7acf9b34c22c96606ffd904e3c23008399a4a50c047", "file", 3, DETECT_FILESHA256) != 1)
-        return 0;
-    if (LoadHashTable(hash, "ca496e1ddadc290050339dd75ce8830ad3028ce1556a5368874a4aec3aee114b", "file", 4, DETECT_FILESHA256) != 1)
-        return 0;
-    if (LoadHashTable(hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f", "file", 5, DETECT_FILESHA256) != 1)
-        return 0;
-    if (LoadHashTable(hash, "d765e722e295969c0a5c2d90f549db8b89ab617900bf4698db41c7cdad993bb9", "file", 6, DETECT_FILESHA256) != 1)
-        return 0;
-
-    if (ROHashInitFinalize(hash) != 1) {
-        return 0;
-    }
-
-    if (SHA256MatchLookupString(hash, "9c891edb5da763398969b6aaa86a5d46971bd28a455b20c2067cb512c9f9a0f8") != 1)
-        return 0;
-    if (SHA256MatchLookupString(hash, "6eee51705f34b6cfc7f0c872a7949ec3e3172a908303baf5d67d03b98f70e7e3") != 1)
-        return 0;
-    if (SHA256MatchLookupString(hash, "b12c7d57507286bbbe36d7acf9b34c22c96606ffd904e3c23008399a4a50c047") != 1)
-        return 0;
-    if (SHA256MatchLookupString(hash, "ca496e1ddadc290050339dd75ce8830ad3028ce1556a5368874a4aec3aee114b") != 1)
-        return 0;
-    if (SHA256MatchLookupString(hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f") != 1)
-        return 0;
-    if (SHA256MatchLookupString(hash, "d765e722e295969c0a5c2d90f549db8b89ab617900bf4698db41c7cdad993bb9") != 1)
-        return 0;
-    /* Shouldn't match */
-    if (SHA256MatchLookupString(hash, "3333333333333333333333333333333333333333333333333333333333333333") == 1)
-        return 0;
-
+    FAIL_IF_NULL(hash);
+    FAIL_IF(LoadHashTable(hash, "9c891edb5da763398969b6aaa86a5d46971bd28a455b20c2067cb512c9f9a0f8",
+                    "file", 1, DETECT_FILESHA256) != 1);
+    FAIL_IF(LoadHashTable(hash, "6eee51705f34b6cfc7f0c872a7949ec3e3172a908303baf5d67d03b98f70e7e3",
+                    "file", 2, DETECT_FILESHA256) != 1);
+    FAIL_IF(LoadHashTable(hash, "b12c7d57507286bbbe36d7acf9b34c22c96606ffd904e3c23008399a4a50c047",
+                    "file", 3, DETECT_FILESHA256) != 1);
+    FAIL_IF(LoadHashTable(hash, "ca496e1ddadc290050339dd75ce8830ad3028ce1556a5368874a4aec3aee114b",
+                    "file", 4, DETECT_FILESHA256) != 1);
+    FAIL_IF(LoadHashTable(hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+                    "file", 5, DETECT_FILESHA256) != 1);
+    FAIL_IF(LoadHashTable(hash, "d765e722e295969c0a5c2d90f549db8b89ab617900bf4698db41c7cdad993bb9",
+                    "file", 6, DETECT_FILESHA256) != 1);
+    FAIL_IF(ROHashInitFinalize(hash) != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "9c891edb5da763398969b6aaa86a5d46971bd28a455b20c2067cb512c9f9a0f8") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "6eee51705f34b6cfc7f0c872a7949ec3e3172a908303baf5d67d03b98f70e7e3") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "b12c7d57507286bbbe36d7acf9b34c22c96606ffd904e3c23008399a4a50c047") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "ca496e1ddadc290050339dd75ce8830ad3028ce1556a5368874a4aec3aee114b") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "d765e722e295969c0a5c2d90f549db8b89ab617900bf4698db41c7cdad993bb9") != 1);
+    FAIL_IF(SHA256MatchLookupString(
+                    hash, "3333333333333333333333333333333333333333333333333333333333333333") == 1);
     ROHashFree(hash);
-    return 1;
+    PASS;
 }
 
 void DetectFileSha256RegisterTests(void)
