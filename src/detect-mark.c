@@ -233,11 +233,11 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
              * are fine. */
             if (p->flags & PKT_REBUILT_FRAGMENT) {
                 Packet *tp = p->root ? p->root : p;
-                SCMutexLock(&tp->tunnel_mutex);
+                SCSpinLock(&tp->persistent.tunnel_lock);
                 tp->nfq_v.mark = (nf_data->mark & nf_data->mask)
                     | (tp->nfq_v.mark & ~(nf_data->mask));
                 tp->flags |= PKT_MARK_MODIFIED;
-                SCMutexUnlock(&tp->tunnel_mutex);
+                SCSpinUnlock(&tp->persistent.tunnel_lock);
             }
         }
     }

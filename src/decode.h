@@ -617,11 +617,6 @@ typedef struct Packet_
                            * It should always point to the lowest
                            * packet in a encapsulated packet */
 
-    /** mutex to protect access to:
-     *  - tunnel_rtv_cnt
-     *  - tunnel_tpr_cnt
-     */
-    SCMutex tunnel_mutex;
     /* ready to set verdict counter, only set in root */
     uint16_t tunnel_rtv_cnt;
     /* tunnel packet ref count */
@@ -638,6 +633,16 @@ typedef struct Packet_
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
+    /* things in the packet that live beyond a reinit */
+    struct {
+        /** lock to protect access to:
+         *  - tunnel_rtv_cnt
+         *  - tunnel_tpr_cnt
+         *  - nfq_v.mark
+         *  - flags
+         */
+        SCSpinlock tunnel_lock;
+    } persistent;
 } Packet;
 
 /** highest mtu of the interfaces we monitor */
@@ -773,11 +778,13 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
     } while (0)
 
-#define TUNNEL_INCR_PKT_TPR(p) do {                                                 \
-        SCMutexLock((p)->root ? &(p)->root->tunnel_mutex : &(p)->tunnel_mutex);     \
-        ((p)->root ? (p)->root->tunnel_tpr_cnt++ : (p)->tunnel_tpr_cnt++);          \
-        SCMutexUnlock((p)->root ? &(p)->root->tunnel_mutex : &(p)->tunnel_mutex);   \
-    } while (0)
+static inline void TUNNEL_INCR_PKT_TPR(Packet *p)
+{
+    Packet *rp = p->root ? p->root : p;
+    SCSpinLock(&rp->persistent.tunnel_lock);
+    rp->tunnel_tpr_cnt++;
+    SCSpinUnlock(&rp->persistent.tunnel_lock);
+}
 
 #define TUNNEL_PKT_RTV(p) ((p)->root ? (p)->root->tunnel_rtv_cnt : (p)->tunnel_rtv_cnt)
 #define TUNNEL_PKT_TPR(p) ((p)->root ? (p)->root->tunnel_tpr_cnt : (p)->tunnel_tpr_cnt)
@@ -1093,8 +1100,8 @@ static inline void DecodeSetNoPacketInspectionFlag(Packet *p)
 static inline bool VerdictTunnelPacket(Packet *p)
 {
     bool verdict = true;
-    SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-    SCMutexLock(m);
+    SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
+    SCSpinLock(lock);
     const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
     SCLogDebug("tunnel: outstanding %u", outstanding);
 
@@ -1108,7 +1115,7 @@ static inline bool VerdictTunnelPacket(Packet *p)
     } else {
         verdict = false;
     }
-    SCMutexUnlock(m);
+    SCSpinUnlock(lock);
     return verdict;
 }
 
