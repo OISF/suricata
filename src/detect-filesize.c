@@ -170,81 +170,73 @@ static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest01(void)
 {
-    int ret = 0;
     DetectU64Data *fsd = NULL;
 
     fsd = DetectU64Parse("10");
-    if (fsd != NULL) {
-        if (fsd->arg1 == 10 && fsd->mode == DETECT_UINT_EQ)
-            ret = 1;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 10);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_EQ);
+    DetectFilesizeFree(NULL, fsd);
 
-        DetectFilesizeFree(NULL, fsd);
-    }
-    return ret;
+    PASS;
 }
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest02(void)
 {
-    int ret = 0;
     DetectU64Data *fsd = NULL;
 
     fsd = DetectU64Parse(" < 10  ");
-    if (fsd != NULL) {
-        if (fsd->arg1 == 10 && fsd->mode == DETECT_UINT_LT)
-            ret = 1;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 10);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_LT);
+    DetectFilesizeFree(NULL, fsd);
 
-        DetectFilesizeFree(NULL, fsd);
-    }
-    return ret;
+    PASS;
 }
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest03(void)
 {
-    int ret = 0;
     DetectU64Data *fsd = NULL;
 
     fsd = DetectU64Parse(" > 10 ");
-    if (fsd != NULL) {
-        if (fsd->arg1 == 10 && fsd->mode == DETECT_UINT_GT)
-            ret = 1;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 10);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_GT);
+    DetectFilesizeFree(NULL, fsd);
 
-        DetectFilesizeFree(NULL, fsd);
-    }
-    return ret;
+    PASS;
 }
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest04(void)
 {
-    int ret = 0;
     DetectU64Data *fsd = NULL;
 
     fsd = DetectU64Parse(" 5 <> 10 ");
-    if (fsd != NULL) {
-        if (fsd->arg1 == 5 && fsd->arg2 == 10 && fsd->mode == DETECT_UINT_RA)
-            ret = 1;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 5);
+    FAIL_IF_NOT(fsd->arg2 == 10);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_RA);
+    DetectFilesizeFree(NULL, fsd);
 
-        DetectFilesizeFree(NULL, fsd);
-    }
-    return ret;
+    PASS;
 }
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest05(void)
 {
-    int ret = 0;
     DetectU64Data *fsd = NULL;
 
     fsd = DetectU64Parse("5<>10");
-    if (fsd != NULL) {
-        if (fsd->arg1 == 5 && fsd->arg2 == 10 && fsd->mode == DETECT_UINT_RA)
-            ret = 1;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 5);
+    FAIL_IF_NOT(fsd->arg2 == 10);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_RA);
+    DetectFilesizeFree(NULL, fsd);
 
-        DetectFilesizeFree(NULL, fsd);
-    }
-    return ret;
+    PASS;
 }
 
 /**
@@ -257,36 +249,28 @@ static int DetectFilesizeInitTest(
         DetectEngineCtx **de_ctx, Signature **sig, DetectU64Data **fsd, const char *str)
 {
     char fullstr[1024];
-    int result = 0;
 
     *de_ctx = NULL;
     *sig = NULL;
 
-    if (snprintf(fullstr, 1024, "alert http any any -> any any (msg:\"Filesize "
-                                "test\"; filesize:%s; sid:1;)", str) >= 1024) {
-        goto end;
-    }
+    FAIL_IF(snprintf(fullstr, 1024,
+                    "alert http any any -> any any (msg:\"Filesize "
+                    "test\"; filesize:%s; sid:1;)",
+                    str) >= 1024);
 
     *de_ctx = DetectEngineCtxInit();
-    if (*de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(DetectEngineAppendSig(de_ctx, fullstr);
 
     (*de_ctx)->flags |= DE_QUIET;
 
     (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
-    if ((*de_ctx)->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL((*de_ctx)->sig_list);
 
     *sig = (*de_ctx)->sig_list;
 
     *fsd = DetectU64Parse(str);
 
-    result = 1;
-
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -305,26 +289,17 @@ static int DetectFilesizeSetpTest01(void)
     DetectEngineCtx *de_ctx = NULL;
 
     res = DetectFilesizeInitTest(&de_ctx, &sig, &fsd, "1 <> 3 ");
-    if (res == 0) {
-        goto end;
-    }
+    FAIL_IF(res == 0);
 
-    if(fsd == NULL)
-        goto cleanup;
+    FAIL_IF_NULL(fsd);
+    FAIL_IF_NOT(fsd->arg1 == 1);
+    FAIL_IF_NOT(fsd->arg2 == 3);
+    FAIL_IF_NOT(fsd->mode == DETECT_UINT_RA);
 
-    if (fsd != NULL) {
-        if (fsd->arg1 == 1 && fsd->arg2 == 3 && fsd->mode == DETECT_UINT_RA)
-            res = 1;
-    }
-
-cleanup:
-    if (fsd)
-        DetectFilesizeFree(NULL, fsd);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    DetectFilesizeFree(NULL, fsd);
     DetectEngineCtxFree(de_ctx);
-end:
-    return res;
+
+    PASS;
 }
 
 /**
