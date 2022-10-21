@@ -2722,10 +2722,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             if (insp_recursion_limit != NULL) {
                 if (StringParseInt32(&de_ctx->inspection_recursion_limit, 10,
                                      0, (const char *)insp_recursion_limit) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                                 "detect-engine.inspection-recursion-limit: %s "
-                                 "resetting to %d", insp_recursion_limit,
-                                 DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
+                    SCLogWarning(SC_EINVAL,
+                            "Invalid value for "
+                            "detect-engine.inspection-recursion-limit: %s "
+                            "resetting to %d",
+                            insp_recursion_limit, DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
                     de_ctx->inspection_recursion_limit =
                         DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
                 }
@@ -4006,8 +4007,8 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
 
                 int vlanbool = 0;
                 if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "vlan tracking is disabled, "
-                            "can't use multi-detect selector 'vlan'");
+                    SCLogError(SC_EINVAL, "vlan tracking is disabled, "
+                                          "can't use multi-detect selector 'vlan'");
                     SCMutexUnlock(&master->lock);
                     goto error;
                 }
@@ -4024,8 +4025,10 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                 }
 
             } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
-                                                 "multi-detect.selector", handler);
+                SCLogError(SC_EINVAL,
+                        "unknown value %s "
+                        "multi-detect.selector",
+                        handler);
                 SCMutexUnlock(&master->lock);
                 goto error;
             }

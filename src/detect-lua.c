@@ -268,8 +268,10 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                 if (strcmp(k, "retval") == 0) {
                     int val;
                     if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'", v);
+                        SCLogError(SC_EINVAL,
+                                "Invalid value "
+                                "for \"retval\" from LUA return table: '%s'",
+                                v);
                         ret = 0;
                     }
                     else if (val == 1) {
@@ -423,8 +425,10 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                     int val;
                     if (StringParseInt32(&val, 10, 0,
                                          (const char *)v) < 0) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'", v);
+                        SCLogError(SC_EINVAL,
+                                "Invalid value "
+                                "for \"retval\" from LUA return table: '%s'",
+                                v);
                         ret = 0;
                     }
                     else if (val == 1) {
@@ -532,8 +536,10 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
                     int val;
                     if (StringParseInt32(&val, 10, 0,
                                          (const char *)v) < 0) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'", v);
+                        SCLogError(SC_EINVAL,
+                                "Invalid value "
+                                "for \"retval\" from LUA return table: '%s'",
+                                v);
                         ret = 0;
                     }
                     else if (val == 1) {

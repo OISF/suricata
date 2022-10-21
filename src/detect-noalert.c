@@ -42,7 +42,7 @@ void DetectNoalertRegister (void)
 static int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
+        SCLogError(SC_EINVAL, "nocase has no value");
         return -1;
     }
 
