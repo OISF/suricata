@@ -88,8 +88,8 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
     }
 
     if (strlen(e) >= CLASSTYPE_NAME_MAX_LEN) {
-        SCLogError(SC_ERR_INVALID_VALUE, "classtype '%s' is too big: max %d",
-                rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
+        SCLogError(
+                SC_EINVAL, "classtype '%s' is too big: max %d", rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
         return -1;
     }
     (void)strlcpy(out, e, outsize);

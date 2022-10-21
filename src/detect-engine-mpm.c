@@ -882,8 +882,8 @@ uint8_t PatternMatchDefaultMatcher(void)
 
 #ifndef BUILD_HYPERSCAN
             if ((strcmp(mpm_algo, "hs") == 0)) {
-                FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support for mpm-algo is "
-                        "not compiled into Suricata.");
+                FatalError(SC_EINVAL, "Hyperscan (hs) support for mpm-algo is "
+                                      "not compiled into Suricata.");
             }
 #endif
         }

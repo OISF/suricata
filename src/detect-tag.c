@@ -178,7 +178,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     } else if (strcasecmp("host", str_ptr) == 0) {
         td.type = DETECT_TAG_TYPE_HOST;
     } else {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument type. Must be session or host (%s)", tagstr);
+        SCLogError(SC_EINVAL, "Invalid argument type. Must be session or host (%s)", tagstr);
         goto error;
     }
     pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
@@ -200,7 +200,10 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         /* count */
         if (StringParseUint32(&td.count, 10, strlen(str_ptr),
                     str_ptr) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument for count. Must be a value in the range of 0 to %"PRIu32" (%s)", UINT32_MAX, tagstr);
+            SCLogError(SC_EINVAL,
+                    "Invalid argument for count. Must be a value in the range of 0 to %" PRIu32
+                    " (%s)",
+                    UINT32_MAX, tagstr);
             goto error;
         }
 
@@ -225,7 +228,10 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         } else if (strcasecmp("bytes", str_ptr) == 0) {
             td.metric = DETECT_TAG_METRIC_BYTES;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument metric. Must be one of \"seconds\", \"packets\" or \"bytes\" (%s)", tagstr);
+            SCLogError(SC_EINVAL,
+                    "Invalid argument metric. Must be one of \"seconds\", \"packets\" or \"bytes\" "
+                    "(%s)",
+                    tagstr);
             goto error;
         }
 
@@ -247,12 +253,18 @@ static DetectTagData *DetectTagParse(const char *tagstr)
             } else if (strcasecmp("dst", str_ptr) == 0) {
                 td.direction = DETECT_TAG_DIR_DST;
             } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument direction. Must be one of \"src\" or \"dst\" (only valid for tag host type, not sessions) (%s)", tagstr);
+                SCLogError(SC_EINVAL,
+                        "Invalid argument direction. Must be one of \"src\" or \"dst\" (only valid "
+                        "for tag host type, not sessions) (%s)",
+                        tagstr);
                 goto error;
             }
 
             if (td.type != DETECT_TAG_TYPE_HOST) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Argument direction doesn't make sense for type \"session\" (%s [%"PRIu8"])", tagstr, td.type);
+                SCLogWarning(SC_EINVAL,
+                        "Argument direction doesn't make sense for type \"session\" (%s [%" PRIu8
+                        "])",
+                        tagstr, td.type);
             }
 
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);

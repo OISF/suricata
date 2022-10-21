@@ -114,7 +114,7 @@ static int DetectTargetParse(Signature *s, const char *targetstr)
         }
         s->flags |= SIG_FLAG_DEST_IS_TARGET;
     } else {
-        SCLogError(SC_ERR_INVALID_VALUE, "only 'src_ip' and 'dest_ip' are supported as target value");
+        SCLogError(SC_EINVAL, "only 'src_ip' and 'dest_ip' are supported as target value");
         return -1;
     }
     return 0;

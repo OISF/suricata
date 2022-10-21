@@ -1065,7 +1065,7 @@ static const char *StreamTcpParseOSPolicy(char *conf_var_name)
 
     if (snprintf(conf_var_full_name, strlen(conf_var_type_name) + strlen(conf_var_name) + 2,
                 "%s.%s", conf_var_type_name, conf_var_name) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Error in making the conf full name");
+        SCLogError(SC_EINVAL, "Error in making the conf full name");
         goto end;
     }
 

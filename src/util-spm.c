@@ -85,8 +85,8 @@ uint16_t SinglePatternMatchDefaultMatcher(void)
 
 #ifndef BUILD_HYPERSCAN
         if ((spm_algo != NULL) && (strcmp(spm_algo, "hs") == 0)) {
-            FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support for spm-algo is "
-                       "not compiled into Suricata.");
+            FatalError(SC_EINVAL, "Hyperscan (hs) support for spm-algo is "
+                                  "not compiled into Suricata.");
         }
 #endif
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,

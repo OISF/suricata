@@ -178,7 +178,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     }
 
     if (df->count == 0 || df->seconds == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "found an invalid value");
+        SCLogError(SC_EINVAL, "found an invalid value");
         goto error;
     }
 

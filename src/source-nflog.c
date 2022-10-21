@@ -286,9 +286,9 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     ntv->livedev = LiveGetDevice(nflconfig->numgroup);
     if (ntv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
-	    SCFree(ntv);
-		SCReturnInt(TM_ECODE_FAILED);
+        SCLogError(SC_EINVAL, "Unable to find Live device");
+        SCFree(ntv);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     /* set a timeout to the socket so we can check for a signal

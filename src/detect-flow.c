@@ -306,7 +306,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
                 }
                 fd->flags |= DETECT_FLOW_FLAG_ONLY_FRAG;
             } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "invalid flow option \"%s\"", args[i]);
+                SCLogError(SC_EINVAL, "invalid flow option \"%s\"", args[i]);
                 goto error;
             }
 

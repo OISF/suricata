@@ -2587,16 +2587,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec) == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed to "
-                                     "add ipv6 server %s, ignoring", pval->val);
+                        SCLogWarning(SC_EINVAL,
+                                "LIBHTP failed to "
+                                "add ipv6 server %s, ignoring",
+                                pval->val);
                     }
                 } else {
                     SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec) == NULL) {
-                            SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed "
-                                         "to add ipv4 server %s, ignoring",
-                                         pval->val);
+                        SCLogWarning(SC_EINVAL,
+                                "LIBHTP failed "
+                                "to add ipv4 server %s, ignoring",
+                                pval->val);
                     }
                 } /* else - if (strchr(pval->val, ':') != NULL) */
             } /* TAILQ_FOREACH(pval, &p->head, next) */
@@ -2611,8 +2614,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
                            personality);
                 if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP Failed adding "
-                                 "personality \"%s\", ignoring", p->val);
+                    SCLogWarning(SC_EINVAL,
+                            "LIBHTP Failed adding "
+                            "personality \"%s\", ignoring",
+                            p->val);
                 } else {
                     SCLogDebug("LIBHTP personality set to %s",
                                HTPLookupPersonalityString(personality));
@@ -2843,11 +2848,12 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             uint32_t range;
             if (StringParseU32RangeCheck(&range, 10, 0,
                                          (const char *)p->val, 0, 100) < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for randomize"
-                           "-inspection-range setting from conf file - \"%s\"."
-                           " It should be a valid integer less than or equal to 100."
-                           " Killing engine",
-                           p->val);
+                SCLogError(SC_EINVAL,
+                        "Invalid value for randomize"
+                        "-inspection-range setting from conf file - \"%s\"."
+                        " It should be a valid integer less than or equal to 100."
+                        " Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
             cfg_prec->randomize_range = range;

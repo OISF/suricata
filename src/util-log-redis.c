@@ -387,9 +387,7 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                             }
                             break;
                         default:
-                            SCLogWarning(SC_ERR_INVALID_VALUE,
-                                    "Unsupported error code %d",
-                                    redis->err);
+                            SCLogWarning(SC_EINVAL, "Unsupported error code %d", redis->err);
                             return -1;
                     }
                 }
@@ -414,8 +412,7 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                     ret = 0;
                     break;
                 default:
-                    SCLogError(SC_ERR_INVALID_VALUE,
-                            "Redis default triggered with %d", reply->type);
+                    SCLogError(SC_EINVAL, "Redis default triggered with %d", reply->type);
                     SCConfLogReopenSyncRedis(file_ctx);
                     break;
             }
@@ -538,7 +535,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         FatalError(SC_ERR_FATAL, "Error allocating redis server string");
     }
     if (StringParseUint16(&log_ctx->redis_setup.port, 10, 0, (const char *)redis_port) < 0) {
-        FatalError(SC_ERR_INVALID_VALUE, "Invalid value for redis port: %s", redis_port);
+        FatalError(SC_EINVAL, "Invalid value for redis port: %s", redis_port);
     }
     log_ctx->Close = SCLogFileCloseRedis;
 

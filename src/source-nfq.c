@@ -845,7 +845,7 @@ int NFQRegisterQueue(const uint16_t number)
     ntv->livedev = LiveGetDevice(queue);
 
     if (ntv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCLogError(SC_EINVAL, "Unable to find Live device");
         return -1;
     }
 
