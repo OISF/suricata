@@ -328,7 +328,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     }
 
     if (! path) {
-        SCLogError(SC_ERR_INVALID_VALUE, "No file defined to load eBPF from");
+        SCLogError(SC_EINVAL, "No file defined to load eBPF from");
         return -1;
     }
 
@@ -347,9 +347,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         char err_buf[128];
         libbpf_strerror(error, err_buf,
                         sizeof(err_buf));
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to load eBPF objects in '%s': %s",
-                   path, err_buf);
+        SCLogError(SC_EINVAL, "Unable to load eBPF objects in '%s': %s", path, err_buf);
         return -1;
     }
 
@@ -392,10 +390,8 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     }
 
     if (found == false) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "No section '%s' in '%s' file. Will not be able to use the file",
-                   section,
-                   path);
+        SCLogError(SC_EINVAL, "No section '%s' in '%s' file. Will not be able to use the file",
+                section, path);
         return -1;
     }
 
@@ -408,10 +404,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         } else {
             char buf[129];
             libbpf_strerror(err, buf, sizeof(buf));
-            SCLogError(SC_ERR_INVALID_VALUE,
-                    "Unable to load eBPF object: %s (%d)",
-                    buf,
-                    err);
+            SCLogError(SC_EINVAL, "Unable to load eBPF object: %s (%d)", buf, err);
         }
         return -1;
     }
@@ -471,8 +464,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
      * (XDP case). */
     pfd = bpf_program__fd(bpfprog);
     if (pfd == -1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to find %s section", section);
+        SCLogError(SC_EINVAL, "Unable to find %s section", section);
         return -1;
     }
 
@@ -494,8 +486,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 #ifdef HAVE_PACKET_XDP
     unsigned int ifindex = if_nametoindex(iface);
     if (ifindex == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Unknown interface '%s'", iface);
+        SCLogError(SC_EINVAL, "Unknown interface '%s'", iface);
         return -1;
     }
 #ifdef HAVE_BPF_XDP_ATTACH
@@ -507,8 +498,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
     if (err != 0) {
         char buf[129];
         libbpf_strerror(err, buf, sizeof(buf));
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to set XDP on '%s': %s (%d)",
-                iface, buf, err);
+        SCLogError(SC_EINVAL, "Unable to set XDP on '%s': %s (%d)", iface, buf, err);
         return -1;
     }
 #endif
@@ -826,7 +816,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
     uint64_t hash_cnt = 0;
 
     if (tcfg->cpus_count == 0) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "CPU count should not be 0");
+        SCLogWarning(SC_EINVAL, "CPU count should not be 0");
         return 0;
     }
 
@@ -978,8 +968,7 @@ static int EBPFAddCPUToMap(const char *iface, uint32_t i)
 static void EBPFRedirectMapAddCPU(int i, void *data)
 {
     if (EBPFAddCPUToMap(data, i) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Unable to add CPU %d to set", i);
+        SCLogError(SC_EINVAL, "Unable to add CPU %d to set", i);
     } else {
         g_redirect_iface_cpu_counter++;
     }
@@ -990,8 +979,7 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface)
     uint32_t key0 = 0;
     int mapfd = EBPFGetMapFDByName(iface, "cpus_count");
     if (mapfd < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Unable to find 'cpus_count' map");
+        SCLogError(SC_EINVAL, "Unable to find 'cpus_count' map");
         return;
     }
     g_redirect_iface_cpu_counter = 0;
@@ -1023,21 +1011,19 @@ int EBPFSetPeerIface(const char *iface, const char *out_iface)
 {
     int mapfd = EBPFGetMapFDByName(iface, "tx_peer");
     if (mapfd < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to find 'tx_peer' map");
+        SCLogError(SC_EINVAL, "Unable to find 'tx_peer' map");
         return -1;
     }
     int intmapfd = EBPFGetMapFDByName(iface, "tx_peer_int");
     if (intmapfd < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to find 'tx_peer_int' map");
+        SCLogError(SC_EINVAL, "Unable to find 'tx_peer_int' map");
         return -1;
     }
 
     int key0 = 0;
     unsigned int peer_index = if_nametoindex(out_iface);
     if (peer_index == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "No iface '%s'", out_iface);
+        SCLogError(SC_EINVAL, "No iface '%s'", out_iface);
         return -1;
     }
     int ret = bpf_map_update_elem(mapfd, &key0, &peer_index, BPF_ANY);

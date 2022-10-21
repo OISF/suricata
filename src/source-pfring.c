@@ -510,7 +510,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     ptv->livedev = LiveGetDevice(pfconf->iface);
     if (ptv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCLogError(SC_EINVAL, "Unable to find Live device");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -532,9 +532,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_RXONLY) {
         if (strncmp(ptv->interface, "dna", 3) == 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                         "Can't use rxonly checksum-checks on DNA interface,"
-                         " resetting to auto");
+            SCLogWarning(SC_EINVAL, "Can't use rxonly checksum-checks on DNA interface,"
+                                    " resetting to auto");
             ptv->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else {
             opflag |= PF_RING_LONG_HEADER;
@@ -606,8 +605,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             SCMutexUnlock(&pfring_bpf_set_filter_lock);
 
             if (rc < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Failed to compile BPF \"%s\"",
-                           ptv->bpf_filter);
+                SCLogError(SC_EINVAL, "Failed to compile BPF \"%s\"", ptv->bpf_filter);
                 return TM_ECODE_FAILED;
             }
         }

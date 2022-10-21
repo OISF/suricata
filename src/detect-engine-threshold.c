@@ -279,8 +279,7 @@ static int ThresholdHandlePacketSuppress(Packet *p,
             break;
         case TRACK_RULE:
         default:
-            SCLogError(SC_ERR_INVALID_VALUE,
-                    "track mode %d is not supported", td->track);
+            SCLogError(SC_EINVAL, "track mode %d is not supported", td->track);
             break;
     }
     if (m == NULL)
@@ -527,7 +526,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
         }
         /* case TYPE_SUPPRESS: is not handled here */
         default:
-            SCLogError(SC_ERR_INVALID_VALUE, "type %d is not supported", td->type);
+            SCLogError(SC_EINVAL, "type %d is not supported", td->type);
     }
     return ret;
 }

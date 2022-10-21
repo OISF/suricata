@@ -328,7 +328,7 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
                              * cast to non-const as replace writes to it. */
                             det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, (uint8_t *)found, cd);
                         } else {
-                            SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
+                            SCLogWarning(SC_EINVAL, "Can't modify payload without packet");
                         }
                     }
 

@@ -227,7 +227,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                 break;
             }
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "invalid rpc option %s",rpcstr);
+            SCLogError(SC_EINVAL, "invalid rpc option %s", rpcstr);
             goto error;
         }
     }

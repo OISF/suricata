@@ -562,8 +562,8 @@ void FlowInitConfig(bool quiet)
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of "
-                                             "1 and 100 (as percentage)");
+            SCLogError(SC_EINVAL, "flow.emergency-recovery must be in the range of "
+                                  "1 and 100 (as percentage)");
             flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
         }
     } else {

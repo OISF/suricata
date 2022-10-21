@@ -57,7 +57,7 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "prefilter has value");
+        SCLogError(SC_EINVAL, "prefilter has value");
         SCReturnInt(-1);
     }
 

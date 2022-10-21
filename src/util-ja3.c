@@ -219,7 +219,7 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
     }
 
     if (buffer->data == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Buffer data should not be NULL");
+        SCLogError(SC_EINVAL, "Buffer data should not be NULL");
         return NULL;
     }
 

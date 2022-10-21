@@ -391,9 +391,9 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
         }
     } else if (id > 0 && gid == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
-                                         "sid > 0 and gid == 0. Please fix this "
-                                         "in your threshold.config file");
+        SCLogError(SC_EINVAL, "Can't use a event config that has "
+                              "sid > 0 and gid == 0. Please fix this "
+                              "in your threshold.config file");
         goto error;
     } else {
         s = SigFindSignatureBySidGid(de_ctx, id, gid);
@@ -548,9 +548,9 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             }
         }
     } else if (id > 0 && gid == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
-                   "sid > 0 and gid == 0. Please fix this "
-                   "in your threshold.conf file");
+        SCLogError(SC_EINVAL, "Can't use a event config that has "
+                              "sid > 0 and gid == 0. Please fix this "
+                              "in your threshold.conf file");
     } else {
         s = SigFindSignatureBySidGid(de_ctx, id, gid);
         if (s == NULL) {
@@ -709,7 +709,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     } else if (strcasecmp(th_rule_type,"suppress") == 0) {
         rule_type = THRESHOLD_TYPE_SUPPRESS;
     } else {
-        SCLogError(SC_ERR_INVALID_VALUE, "rule type %s is unknown", th_rule_type);
+        SCLogError(SC_EINVAL, "rule type %s is unknown", th_rule_type);
         goto error;
     }
 
@@ -901,7 +901,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
             else if (strcasecmp(th_track,"by_rule") == 0)
                 parsed_track = TRACK_RULE;
             else {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid track parameter %s in %s", th_track, rawstr);
+                SCLogError(SC_EINVAL, "Invalid track parameter %s in %s", th_track, rawstr);
                 goto error;
             }
 
@@ -909,7 +909,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 goto error;
             }
             if (parsed_count == 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "rate filter count should be > 0");
+                SCLogError(SC_EINVAL, "rate filter count should be > 0");
                 goto error;
             }
 
@@ -929,7 +929,8 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                     parsed_track = TRACK_EITHER;
                 }
                 else {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid track parameter %s in %s", th_track, rule_extend);
+                    SCLogError(
+                            SC_EINVAL, "Invalid track parameter %s in %s", th_track, rule_extend);
                     goto error;
                 }
             }

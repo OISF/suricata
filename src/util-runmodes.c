@@ -295,13 +295,13 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
+            FatalError(SC_EINVAL, "TmModuleGetByName failed for %s", recv_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, aconf);
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
+            FatalError(SC_EINVAL, "TmModuleGetByName %s failed", decode_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
@@ -546,13 +546,13 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
+            FatalError(SC_EINVAL, "TmModuleGetByName failed for %s", recv_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
+            FatalError(SC_EINVAL, "TmModuleGetByName %s failed", decode_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 

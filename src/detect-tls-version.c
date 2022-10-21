@@ -196,7 +196,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
             temp = (uint16_t)strtol(tmp_str, NULL, 0);
             tls->flags |= DETECT_TLS_VERSION_FLAG_RAW;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
+            SCLogError(SC_EINVAL, "Invalid value");
             goto error;
         }
 

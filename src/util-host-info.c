@@ -48,8 +48,7 @@ int SCKernelVersionIsAtLeast(int major, int minor)
 
     /* get local version */
     if (uname(&kuname) != 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid uname return: %s",
-                   strerror(errno));
+        SCLogError(SC_EINVAL, "Invalid uname return: %s", strerror(errno));
         return 0;
     }
 
@@ -85,11 +84,11 @@ int SCKernelVersionIsAtLeast(int major, int minor)
 
     bool err = false;
     if (StringParseInt32(&kmajor, 10, 0, (const char *)list[1]) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for kmajor: '%s'", list[1]);
+        SCLogError(SC_EINVAL, "Invalid value for kmajor: '%s'", list[1]);
         err = true;
     }
     if (StringParseInt32(&kminor, 10, 0, (const char *)list[2]) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for kminor: '%s'", list[2]);
+        SCLogError(SC_EINVAL, "Invalid value for kminor: '%s'", list[2]);
         err = true;
     }
 

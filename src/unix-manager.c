@@ -272,7 +272,7 @@ static void UnixCommandClose(UnixCommand  *this, int fd)
     }
 
     if (found == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "No fd found in client list");
+        SCLogError(SC_EINVAL, "No fd found in client list");
         return;
     }
 

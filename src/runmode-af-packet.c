@@ -198,8 +198,8 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->threads = 0;
             } else {
                 if (StringParseInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid number of "
-                                 "threads, resetting to default");
+                    SCLogWarning(SC_EINVAL, "Invalid number of "
+                                            "threads, resetting to default");
                     aconf->threads = 0;
                 }
             }
@@ -283,7 +283,7 @@ static void *ParseAFPConfig(const char *iface)
         aconf->cluster_id = (uint16_t)(cluster_id_auto++);
     } else {
         if (StringParseUint16(&aconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid cluster_id, resetting to 0");
+            SCLogWarning(SC_EINVAL, "Invalid cluster_id, resetting to 0");
             aconf->cluster_id = 0;
         }
         SCLogDebug("Going to use cluster-id %" PRIu16, aconf->cluster_id);
@@ -406,7 +406,7 @@ static void *ParseAFPConfig(const char *iface)
                                &aconf->ebpf_lb_fd,
                                &aconf->ebpf_t_config);
         if (ret != 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
+            SCLogWarning(SC_EINVAL, "Error when loading eBPF lb file");
         }
     }
 #else
@@ -445,8 +445,7 @@ static void *ParseAFPConfig(const char *iface)
                                &aconf->ebpf_filter_fd,
                                &aconf->ebpf_t_config);
         if (ret != 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                         "Error when loading eBPF filter file");
+            SCLogWarning(SC_EINVAL, "Error when loading eBPF filter file");
         }
 #else
         SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
@@ -496,8 +495,7 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->xdp_mode = XDP_FLAGS_HW_MODE;
                 aconf->ebpf_t_config.flags |= EBPF_XDP_HW_MODE;
             } else {
-                SCLogWarning(SC_ERR_INVALID_VALUE,
-                             "Invalid xdp-mode value: '%s'", xdp_mode);
+                SCLogWarning(SC_EINVAL, "Invalid xdp-mode value: '%s'", xdp_mode);
             }
         }
 
@@ -523,14 +521,12 @@ static void *ParseAFPConfig(const char *iface)
                 SCLogInfo("Loaded pinned maps from sysfs");
                 break;
             case -1:
-                SCLogWarning(SC_ERR_INVALID_VALUE,
-                             "Error when loading XDP filter file");
+                SCLogWarning(SC_EINVAL, "Error when loading XDP filter file");
                 break;
             case 0:
                 ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd, aconf->xdp_mode);
                 if (ret != 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
-                            "Error when setting up XDP");
+                    SCLogWarning(SC_EINVAL, "Error when setting up XDP");
                 } else {
                     /* Try to get the xdp-cpu-redirect key */
                     const char *cpuset;
@@ -539,8 +535,7 @@ static void *ParseAFPConfig(const char *iface)
                         SCLogConfig("Setting up CPU map XDP");
                         ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
                         if (node == NULL) {
-                            SCLogError(SC_ERR_INVALID_VALUE,
-                                       "Previously found node has disappeared");
+                            SCLogError(SC_EINVAL, "Previously found node has disappeared");
                         } else {
                             EBPFBuildCPUSet(node, aconf->iface);
                         }
@@ -570,7 +565,7 @@ static void *ParseAFPConfig(const char *iface)
 
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
         if (value % getpagesize()) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Block-size must be a multiple of pagesize.");
+            SCLogError(SC_EINVAL, "Block-size must be a multiple of pagesize.");
         } else {
             aconf->block_size = value;
         }
@@ -712,7 +707,7 @@ int AFPRunModeIsIPS()
     for (ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            SCLogError(SC_EINVAL, "Problem with config file");
             return 0;
         }
         const char *copymodestr = NULL;
@@ -720,7 +715,7 @@ int AFPRunModeIsIPS()
 
         if (if_root == NULL) {
             if (if_default == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError(SC_EINVAL, "Problem with config file");
                 return 0;
             }
             if_root = if_default;
@@ -742,7 +737,7 @@ int AFPRunModeIsIPS()
         for (ldev = 0; ldev < nlive; ldev++) {
             const char *live_dev = LiveGetDeviceName(ldev);
             if (live_dev == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError(SC_EINVAL, "Problem with config file");
                 return 0;
             }
             if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
@@ -750,7 +745,7 @@ int AFPRunModeIsIPS()
 
             if (if_root == NULL) {
                 if (if_default == NULL) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    SCLogError(SC_EINVAL, "Problem with config file");
                     return 0;
                 }
                 if_root = if_default;

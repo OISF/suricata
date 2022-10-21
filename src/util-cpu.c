@@ -80,8 +80,10 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
     const char* envvar = getenv("NUMBER_OF_PROCESSORS");
     if (envvar != NULL) {
         if (StringParseInt64(&nprocs, 10, 0, envvar) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for number of "
-                         "processors: %s", envvar);
+            SCLogWarning(SC_EINVAL,
+                    "Invalid value for number of "
+                    "processors: %s",
+                    envvar);
             return 0;
         }
     }

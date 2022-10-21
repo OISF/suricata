@@ -170,7 +170,7 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
             }
             if (strcmp(key, "memcap") == 0) {
                 if (ParseSizeStringU64(val, memcap) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                    SCLogWarning(SC_EINVAL,
                             "invalid value for memcap: %s,"
                             " resetting to default",
                             val);
@@ -179,7 +179,7 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
             }
             if (strcmp(key, "hashsize") == 0) {
                 if (ParseSizeStringU32(val, hashsize) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                    SCLogWarning(SC_EINVAL,
                             "invalid value for hashsize: %s,"
                             " resetting to default",
                             val);

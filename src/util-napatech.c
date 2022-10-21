@@ -763,16 +763,22 @@ static uint32_t CountWorkerThreads(void)
 
 
                         if (StringParseUint8(&start, 10, end_str - lnode->val, (const char *)lnode->val) < 0) {
-                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
-                                       " worker range start: '%s'", lnode->val);
+                            FatalError(SC_EINVAL,
+                                    "Napatech invalid"
+                                    " worker range start: '%s'",
+                                    lnode->val);
                         }
                         if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
-                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
-                                       " worker range end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
+                            FatalError(SC_EINVAL,
+                                    "Napatech invalid"
+                                    " worker range end: '%s'",
+                                    (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
                         }
                         if (end < start) {
-                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
-                                       " worker range start: '%d' is greater than end: '%d'", start, end);
+                            FatalError(SC_EINVAL,
+                                    "Napatech invalid"
+                                    " worker range start: '%d' is greater than end: '%d'",
+                                    start, end);
                         }
                         worker_count = end - start + 1;
 
@@ -918,12 +924,16 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
 
                     if (StringParseUint8(&start, 10, end_str - stream->val,
                                 (const char *)stream->val) < 0) {
-                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
-                                   "stream id start: '%s'", stream->val);
+                        FatalError(SC_EINVAL,
+                                "Napatech invalid "
+                                "stream id start: '%s'",
+                                stream->val);
                     }
                     if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
-                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
-                                   "stream id end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
+                        FatalError(SC_EINVAL,
+                                "Napatech invalid "
+                                "stream id end: '%s'",
+                                (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
                     }
                 } else {
                     if (stream_spec == CONFIG_SPECIFIER_RANGE) {
@@ -933,8 +943,10 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
                     if (StringParseUint8(&stream_config[instance_cnt].stream_id,
                                           10, 0, (const char *)stream->val) < 0) {
-                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
-                                   "stream id: '%s'", stream->val);
+                        FatalError(SC_EINVAL,
+                                "Napatech invalid "
+                                "stream id: '%s'",
+                                stream->val);
                     }
                     start = stream_config[instance_cnt].stream_id;
                     end = stream_config[instance_cnt].stream_id;

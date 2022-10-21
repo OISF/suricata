@@ -104,8 +104,7 @@ static DetectAsn1Data *DetectAsn1Parse(const char *asn1str)
     DetectAsn1Data *ad = rs_detect_asn1_parse(asn1str);
 
     if (ad == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Malformed asn1 argument: %s",
-                   asn1str);
+        SCLogError(SC_EINVAL, "Malformed asn1 argument: %s", asn1str);
     }
 
     return ad;

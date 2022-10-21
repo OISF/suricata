@@ -55,7 +55,7 @@ static int DetectRawbytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "rawbytes has no value");
+        SCLogError(SC_EINVAL, "rawbytes has no value");
         SCReturnInt(-1);
     }
 

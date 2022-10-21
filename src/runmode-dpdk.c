@@ -333,7 +333,7 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
     int retval;
 
     if (entry_str == NULL || entry_str[0] == '\0')
-        FatalError(SC_ERR_INVALID_VALUE, "Interface name in DPDK config is NULL or empty");
+        FatalError(SC_EINVAL, "Interface name in DPDK config is NULL or empty");
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->port_id);
     if (retval < 0)
@@ -354,8 +354,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (entry_str == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Number of threads for interface \"%s\" not specified",
-                iconf->iface);
+        SCLogError(SC_EINVAL, "Number of threads for interface \"%s\" not specified", iconf->iface);
         SCReturnInt(-EINVAL);
     }
 
@@ -366,15 +365,14 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (StringParseInt32(&iconf->threads, 10, 0, entry_str) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
+        SCLogError(SC_EINVAL,
                 "Threads entry for interface %s contain non-numerical characters - \"%s\"",
                 iconf->iface, entry_str);
         SCReturnInt(-EINVAL);
     }
 
     if (iconf->threads < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Interface %s has a negative number of threads",
-                iconf->iface);
+        SCLogError(SC_EINVAL, "Interface %s has a negative number of threads", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -386,8 +384,8 @@ static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
     SCEnter();
     iconf->nb_rx_queues = nb_queues;
     if (iconf->nb_rx_queues < 1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Interface %s requires to have positive number of RX queues", iconf->iface);
+        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of RX queues",
+                iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -399,8 +397,8 @@ static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
     SCEnter();
     iconf->nb_tx_queues = nb_queues;
     if (iconf->nb_tx_queues < 1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Interface %s requires to have positive number of TX queues", iconf->iface);
+        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of TX queues",
+                iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -411,8 +409,8 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Interface %s requires to have positive memory pool size",
-                iconf->iface);
+        SCLogError(
+                SC_EINVAL, "Interface %s requires to have positive memory pool size", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -429,8 +427,7 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
         //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
         // and at the same time "mempool-size modulo cache_size == 0".
         if (iconf->mempool_size == 0) {
-            SCLogError(SC_ERR_INVALID_VALUE,
-                    "Cannot calculate mempool cache size of a mempool with size %d",
+            SCLogError(SC_EINVAL, "Cannot calculate mempool cache size of a mempool with size %d",
                     iconf->mempool_size);
             SCReturnInt(-EINVAL);
         }
@@ -441,7 +438,7 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     }
 
     if (StringParseUint32(&iconf->mempool_cache_size, 10, 0, entry_str) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
+        SCLogError(SC_EINVAL,
                 "Mempool cache size entry for interface %s contain non-numerical "
                 "characters - \"%s\"",
                 iconf->iface, entry_str);
@@ -449,7 +446,7 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     }
 
     if (iconf->mempool_cache_size <= 0 || iconf->mempool_cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE) {
-        SCLogError(SC_ERR_INVALID_VALUE,
+        SCLogError(SC_EINVAL,
                 "Interface %s requires to have mempool cache size set to a positive number smaller "
                 "than %" PRIu32,
                 iconf->iface, RTE_MEMPOOL_CACHE_MAX_SIZE);
@@ -463,8 +460,8 @@ static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Interface %s requires to have positive number of RX descriptors", iconf->iface);
+        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of RX descriptors",
+                iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -476,8 +473,8 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Interface %s requires to have positive number of TX descriptors", iconf->iface);
+        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of TX descriptors",
+                iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -494,7 +491,7 @@ static int ConfigSetRSSHashFunctions(DPDKIfaceConfig *iconf, const char *entry_s
     }
 
     if (StringParseUint64(&iconf->rss_hf, 0, 0, entry_str) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
+        SCLogError(SC_EINVAL,
                 "RSS hash functions entry for interface %s contain non-numerical "
                 "characters - \"%s\"",
                 iconf->iface, entry_str);
@@ -508,7 +505,7 @@ static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int < RTE_ETHER_MIN_MTU || entry_int > RTE_ETHER_MAX_JUMBO_FRAME_LEN) {
-        SCLogError(SC_ERR_INVALID_VALUE,
+        SCLogError(SC_EINVAL,
                 "Interface %s requires to have size of MTU between %" PRIu32 " and %" PRIu32,
                 iconf->iface, RTE_ETHER_MIN_MTU, RTE_ETHER_MAX_JUMBO_FRAME_LEN);
         SCReturnInt(-ERANGE);
@@ -580,15 +577,14 @@ static int ConfigSetCopyMode(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
     if (entry_str == NULL) {
-        SCLogWarning(SC_ERR_INVALID_VALUE,
-                "Interface %s has no copy mode specified, changing to %s ", iconf->iface,
-                DPDK_CONFIG_DEFAULT_COPY_MODE);
+        SCLogWarning(SC_EINVAL, "Interface %s has no copy mode specified, changing to %s ",
+                iconf->iface, DPDK_CONFIG_DEFAULT_COPY_MODE);
         entry_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
     }
 
     if (strcmp(entry_str, "none") != 0 && strcmp(entry_str, "tap") != 0 &&
             strcmp(entry_str, "ips") != 0) {
-        SCLogWarning(SC_ERR_INVALID_VALUE,
+        SCLogWarning(SC_EINVAL,
                 "Copy mode \"%s\" is not one of the possible values (none|tap|ips) for interface "
                 "%s. Changing to %s",
                 entry_str, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_MODE);

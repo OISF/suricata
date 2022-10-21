@@ -150,13 +150,13 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
             }
             if (strcmp(flagv+offset, "dup") == 0) {
                 if (de->dup != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->dup = fs_to_set;
             } else if (strcmp(flagv+offset, "retain") == 0) {
                 if (de->retain != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError(SC_EINVAL, "duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->retain = fs_to_set;

@@ -124,8 +124,10 @@ static void *OldParsePfringConfig(const char *iface)
     } else {
         if (threadsstr != NULL) {
             if (StringParseInt32(&pfconf->threads, 10, 0, threadsstr) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                             "pfring.threads: '%s'. Resetting to 1.", threadsstr);
+                SCLogWarning(SC_EINVAL,
+                        "Invalid value for "
+                        "pfring.threads: '%s'. Resetting to 1.",
+                        threadsstr);
                 pfconf->threads = 1;
             }
         }
@@ -146,8 +148,10 @@ static void *OldParsePfringConfig(const char *iface)
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
     } else {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                         "pfring.cluster_id: '%s'. Resetting to 1.", tmpclusterid);
+            SCLogWarning(SC_EINVAL,
+                    "Invalid value for "
+                    "pfring.cluster_id: '%s'. Resetting to 1.",
+                    tmpclusterid);
             pfconf->cluster_id = 1;
         }
         pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
@@ -265,8 +269,10 @@ static void *ParsePfringConfig(const char *iface)
         } else {
             uint16_t threads = 0;
             if (StringParseUint16(&threads, 10, 0, (const char *)threadsstr) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                             "pfring.threads: '%s'. Resetting to 1.", threadsstr);
+                SCLogWarning(SC_EINVAL,
+                        "Invalid value for "
+                        "pfring.threads: '%s'. Resetting to 1.",
+                        threadsstr);
                 pfconf->threads = 1;
             } else {
                 pfconf->threads = threads;
@@ -283,8 +289,10 @@ static void *ParsePfringConfig(const char *iface)
     /* command line value has precedence */
     if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                         "pfring.cluster-id: '%s'. Resetting to 1.", tmpclusterid);
+            SCLogWarning(SC_EINVAL,
+                    "Invalid value for "
+                    "pfring.cluster-id: '%s'. Resetting to 1.",
+                    tmpclusterid);
             pfconf->cluster_id = 1;
         }
         pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
@@ -303,8 +311,10 @@ static void *ParsePfringConfig(const char *iface)
                        "Could not get cluster-id from config");
         } else {
             if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                             "pfring.cluster-id: '%s'. Resetting to 1.", tmpclusterid);
+                SCLogWarning(SC_EINVAL,
+                        "Invalid value for "
+                        "pfring.cluster-id: '%s'. Resetting to 1.",
+                        tmpclusterid);
                 pfconf->cluster_id = 1;
             }
             pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;

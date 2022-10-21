@@ -96,8 +96,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     uint16_t len = 0;
 
     if (s->init_data->negated) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Can't negate replacement string: %s",
-                   replacestr);
+        SCLogError(SC_EINVAL, "Can't negate replacement string: %s", replacestr);
         return -1;
     }
 

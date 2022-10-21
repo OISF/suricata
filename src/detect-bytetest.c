@@ -327,7 +327,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     /* Number of bytes */
     if (StringParseUint32(&nbytes, 10, 0, args[0]) <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", str_ptr);
+        SCLogError(SC_EINVAL, "Malformed number of bytes: %s", str_ptr);
         goto error;
     }
 
@@ -388,7 +388,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
                 goto error;
         } else {
             if (ByteExtractStringUint64(&data->value, 0, 0, test_value) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed value: %s", test_value);
+                SCLogError(SC_EINVAL, "Malformed value: %s", test_value);
                 goto error;
             }
         }
@@ -417,7 +417,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
                 goto error;
         } else {
             if (StringParseInt32(&data->offset, 0, 0, data_offset) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", data_offset);
+                SCLogError(SC_EINVAL, "Malformed offset: %s", data_offset);
                 goto error;
             }
         }
@@ -467,18 +467,16 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 23 bytes with \"string\": %s",
-                        optstr);
+            SCLogError(SC_EINVAL, "Cannot test more than 23 bytes with \"string\": %s", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 8 bytes without \"string\": %s",
-                        optstr);
+            SCLogError(SC_EINVAL, "Cannot test more than 8 bytes without \"string\": %s", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot use a base without \"string\": %s", optstr);
+            SCLogError(SC_EINVAL, "Cannot use a base without \"string\": %s", optstr);
             goto error;
         }
     }
@@ -488,7 +486,8 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     if (bitmask_index != -1 && data->flags & DETECT_BYTETEST_BITMASK) {
         if (ByteExtractStringUint32(&data->bitmask, 0, 0, args[bitmask_index]+strlen("bitmask")) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed bitmask value: %s", args[bitmask_index]+strlen("bitmask"));
+            SCLogError(SC_EINVAL, "Malformed bitmask value: %s",
+                    args[bitmask_index] + strlen("bitmask"));
             goto error;
         }
         /* determine how many trailing 0's are in the bitmask. This will be used

@@ -62,7 +62,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     int ret = -1;
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has value");
+        SCLogError(SC_EINVAL, "nocase has value");
         goto end;
     }
 

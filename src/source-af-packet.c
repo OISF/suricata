@@ -656,7 +656,7 @@ static void AFPWritePacket(Packet *p, int version)
     }
 
     if (p->ethh == NULL) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "Should have an Ethernet header");
+        SCLogWarning(SC_EINVAL, "Should have an Ethernet header");
         return;
     }
 
@@ -1550,8 +1550,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     if (snaplen == 0) {
         snaplen = GetIfaceMaxPacketSize(ptv->iface);
         if (snaplen <= 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                         "Unable to get MTU, setting snaplen to sane default of 1514");
+            SCLogWarning(SC_EINVAL, "Unable to get MTU, setting snaplen to sane default of 1514");
             snaplen = 1514;
         }
     }
@@ -1560,7 +1559,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     ptv->req.v2.tp_block_size = getpagesize() << order;
     int frames_per_block = ptv->req.v2.tp_block_size / ptv->req.v2.tp_frame_size;
     if (frames_per_block == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Frame size bigger than block size");
+        SCLogError(SC_EINVAL, "Frame size bigger than block size");
         return -1;
     }
     ptv->req.v2.tp_frame_nr = ptv->ring_size;
@@ -1585,8 +1584,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     if (snaplen == 0) {
         snaplen = GetIfaceMaxPacketSize(ptv->iface);
         if (snaplen <= 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                         "Unable to get MTU, setting snaplen to sane default of 1514");
+            SCLogWarning(SC_EINVAL, "Unable to get MTU, setting snaplen to sane default of 1514");
             snaplen = 1514;
         }
     }
@@ -1595,9 +1593,8 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     frames_per_block = ptv->req.v3.tp_block_size / ptv->req.v3.tp_frame_size;
 
     if (frames_per_block == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Block size is too small, it should be at least %d",
-                   ptv->req.v3.tp_frame_size);
+        SCLogError(SC_EINVAL, "Block size is too small, it should be at least %d",
+                ptv->req.v3.tp_frame_size);
         return -1;
     }
     ptv->req.v3.tp_block_nr = ptv->ring_size / frames_per_block + 1;
@@ -1803,8 +1800,10 @@ int AFPIsFanoutSupported(uint16_t cluster_id)
     close(fd);
 
     if (r < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "fanout not supported by kernel: "
-                "Kernel too old or cluster-id %d already in use.", cluster_id);
+        SCLogError(SC_EINVAL,
+                "fanout not supported by kernel: "
+                "Kernel too old or cluster-id %d already in use.",
+                cluster_id);
         return 0;
     }
     return 1;
@@ -1819,13 +1818,12 @@ static int SockFanoutSeteBPF(AFPThreadVars *ptv)
 {
     int pfd = ptv->ebpf_lb_fd;
     if (pfd == -1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Fanout file descriptor is invalid");
+        SCLogError(SC_EINVAL, "Fanout file descriptor is invalid");
         return -1;
     }
 
     if (setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT_DATA, &pfd, sizeof(pfd))) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf");
+        SCLogError(SC_EINVAL, "Error setting ebpf");
         return -1;
     }
     SCLogInfo("Activated eBPF on socket");
@@ -1837,13 +1835,12 @@ static int SetEbpfFilter(AFPThreadVars *ptv)
 {
     int pfd = ptv->ebpf_filter_fd;
     if (pfd == -1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Filter file descriptor is invalid");
+        SCLogError(SC_EINVAL, "Filter file descriptor is invalid");
         return -1;
     }
 
     if (setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_BPF, &pfd, sizeof(pfd))) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf: %s", strerror(errno));
+        SCLogError(SC_EINVAL, "Error setting ebpf: %s", strerror(errno));
         return -1;
     }
     SCLogInfo("Activated eBPF filter on socket");
@@ -2500,7 +2497,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     ptv->livedev = LiveGetDevice(ptv->iface);
     if (ptv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCLogError(SC_EINVAL, "Unable to find Live device");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -2540,16 +2537,14 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
         ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
         if (ptv->v4_map_fd == -1) {
             if (g_flowv4_ok == false) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'",
-                           "flow_table_v4");
+                SCLogError(SC_EINVAL, "Can't find eBPF map fd for '%s'", "flow_table_v4");
                 g_flowv4_ok = true;
             }
         }
         ptv->v6_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v6");
         if (ptv->v6_map_fd  == -1) {
             if (g_flowv6_ok) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'",
-                           "flow_table_v6");
+                SCLogError(SC_EINVAL, "Can't find eBPF map fd for '%s'", "flow_table_v6");
                 g_flowv6_ok = false;
             }
         }

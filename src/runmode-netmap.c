@@ -151,8 +151,10 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             ns->threads_auto = true;
         } else {
             if (StringParseUint16(&ns->threads, 10, 0, threadsstr) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid config value for "
-                             "threads: %s, resetting to 0", threadsstr);
+                SCLogWarning(SC_EINVAL,
+                        "Invalid config value for "
+                        "threads: %s, resetting to 0",
+                        threadsstr);
                 ns->threads = 0;
             }
         }
@@ -347,7 +349,7 @@ int NetmapRunModeIsIPS()
     for (ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            SCLogError(SC_EINVAL, "Problem with config file");
             return 0;
         }
         const char *copymodestr = NULL;
@@ -355,7 +357,7 @@ int NetmapRunModeIsIPS()
 
         if (if_root == NULL) {
             if (if_default == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError(SC_EINVAL, "Problem with config file");
                 return 0;
             }
             if_root = if_default;
@@ -377,7 +379,7 @@ int NetmapRunModeIsIPS()
         for (ldev = 0; ldev < nlive; ldev++) {
             const char *live_dev = LiveGetDeviceName(ldev);
             if (live_dev == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError(SC_EINVAL, "Problem with config file");
                 return 0;
             }
             if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
@@ -385,7 +387,7 @@ int NetmapRunModeIsIPS()
 
             if (if_root == NULL) {
                 if (if_default == NULL) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    SCLogError(SC_EINVAL, "Problem with config file");
                     return 0;
                 }
                 if_root = if_default;

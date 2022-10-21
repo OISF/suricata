@@ -844,7 +844,7 @@ void DecodeGlobalConfig(void)
     intmax_t value = 0;
     if (ConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
-            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for decoder.max-layers");
+            SCLogWarning(SC_EINVAL, "Invalid value for decoder.max-layers");
         } else {
             decoder_max_layers = (uint8_t)value;
         }
@@ -857,8 +857,8 @@ void PacketAlertGetMaxConfig(void)
     intmax_t max = 0;
     if (ConfGetInt("packet-alert-max", &max) == 1) {
         if (max <= 0 || max > UINT8_MAX) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                    "Invalid value for packet-alert-max, default value set instead");
+            SCLogWarning(
+                    SC_EINVAL, "Invalid value for packet-alert-max, default value set instead");
         } else {
             packet_alert_max = (uint16_t)max;
         }

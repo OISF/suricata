@@ -614,7 +614,7 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
     const char *str = NULL;
     if (ConfGet("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
+            SCLogWarning(SC_EINVAL,
                     "memcap value cannot be deduced: %s,"
                     " resetting to default",
                     str);
@@ -623,7 +623,7 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
     }
     if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
+            SCLogWarning(SC_EINVAL,
                     "hashsize value cannot be deduced: %s,"
                     " resetting to default",
                     str);
@@ -683,7 +683,7 @@ int DatasetsInit(void)
             ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
             if (set_memcap) {
                 if (ParseSizeStringU64(set_memcap->val, &memcap) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                    SCLogWarning(SC_EINVAL,
                             "memcap value cannot be"
                             " deduced: %s, resetting to default",
                             set_memcap->val);
@@ -693,7 +693,7 @@ int DatasetsInit(void)
             ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
             if (set_hashsize) {
                 if (ParseSizeStringU32(set_hashsize->val, &hashsize) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                    SCLogWarning(SC_EINVAL,
                             "hashsize value cannot be"
                             " deduced: %s, resetting to default",
                             set_hashsize->val);
