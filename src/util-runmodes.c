@@ -342,9 +342,6 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
         if ((nlive <= 1) && (live_dev != NULL)) {
             aconf = ConfigParser(live_dev);
             live_dev_c = live_dev;
-            if (unlikely(live_dev_c == NULL)) {
-                FatalError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
-            }
         } else {
             live_dev_c = LiveGetDeviceName(ldev);
             aconf = ConfigParser(live_dev_c);
