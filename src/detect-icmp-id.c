@@ -331,13 +331,11 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
  */
 static int DetectIcmpIdParseTest01 (void)
 {
-    DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse(NULL, "300");
-    if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(NULL, iid);
-        return 1;
-    }
-    return 0;
+    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "300");
+    FAIL_IF_NULL(iid);
+    FAIL_IF_NOT(iid->id == htons(300));
+    DetectIcmpIdFree(NULL, iid);
+    PASS;
 }
 
 /**
@@ -346,13 +344,11 @@ static int DetectIcmpIdParseTest01 (void)
  */
 static int DetectIcmpIdParseTest02 (void)
 {
-    DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse(NULL, "  300  ");
-    if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(NULL, iid);
-        return 1;
-    }
-    return 0;
+    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "  300  ");
+    FAIL_IF_NULL(iid);
+    FAIL_IF_NOT(iid->id == htons(300));
+    DetectIcmpIdFree(NULL, iid);
+    PASS;
 }
 
 /**
@@ -361,13 +357,11 @@ static int DetectIcmpIdParseTest02 (void)
  */
 static int DetectIcmpIdParseTest03 (void)
 {
-    DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse(NULL, "\"300\"");
-    if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(NULL, iid);
-        return 1;
-    }
-    return 0;
+    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300\"");
+    FAIL_IF_NULL(iid);
+    FAIL_IF_NOT(iid->id == htons(300));
+    DetectIcmpIdFree(NULL, iid);
+    PASS;
 }
 
 /**
@@ -376,13 +370,11 @@ static int DetectIcmpIdParseTest03 (void)
  */
 static int DetectIcmpIdParseTest04 (void)
 {
-    DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse(NULL, "   \"   300 \"");
-    if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(NULL, iid);
-        return 1;
-    }
-    return 0;
+    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "   \"   300 \"");
+    FAIL_IF_NULL(iid);
+    FAIL_IF_NOT(iid->id == htons(300));
+    DetectIcmpIdFree(NULL, iid);
+    PASS;
 }
 
 /**
@@ -391,13 +383,9 @@ static int DetectIcmpIdParseTest04 (void)
  */
 static int DetectIcmpIdParseTest05 (void)
 {
-    DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse(NULL, "\"300");
-    if (iid == NULL) {
-        DetectIcmpIdFree(NULL, iid);
-        return 1;
-    }
-    return 0;
+    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300");
+    FAIL_IF_NOT_NULL(iid);
+    PASS;
 }
 
 /**
