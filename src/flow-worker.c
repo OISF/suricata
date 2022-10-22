@@ -78,7 +78,8 @@ typedef struct FlowWorkerThreadData_ {
     uint16_t local_bypass_bytes;
     uint16_t both_bypass_pkts;
     uint16_t both_bypass_bytes;
-
+    /** Queue to put pseudo packets that have been created by the stream (RST response) and by the
+     * flush logic following a protocol change. */
     PacketQueueNoLock pq;
     FlowLookupStruct fls;
 
@@ -401,7 +402,7 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
         if (timeout) {
             PacketPoolReturnPacket(x);
         } else {
-            /* put these packets in the preq queue so that they are
+            /* put these packets in the decode queue so that they are processed
              * by the other thread modules before packet 'p'. */
             PacketEnqueueNoLock(&tv->decode_pq, x);
         }
