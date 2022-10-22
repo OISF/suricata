@@ -125,10 +125,10 @@ To erase all ``iptables`` rules, enter:
   sudo iptables -F
 
 
-Nftables configuration
+NFtables configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
-NFtables configuration is straight forward and allows mixing firewall rules
+The NFtables configuration is straight forward and allows mixing firewall rules
 with IPS. The concept is to create a dedicated chain for the IPS that will
 be evaluated after the firewalling rule. If your main table is named `filter`
 it can be created like so::
@@ -147,7 +147,7 @@ To only do it for packets exchanged between eth0 and eth1 ::
 NFQUEUE advanced options
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-NFQUEUE mechanism supports some interesting options. The ``nftables`` configuration
+The NFQUEUE mechanism supports some interesting options. The ``nftables`` configuration
 will be shown there but the features are also available in ``iptables``.
 
 The full syntax of the queuing mechanism is as follows::
@@ -174,8 +174,8 @@ multiple queues on command line: ::
 The `bypass` option can be used to avoid downtime of link when Suricata is not
 running but this also means that the blocking feature will not be present.
 
-Settings up IPS at Layer 2
---------------------------
+Setting up IPS at Layer 2
+-------------------------
 
 .. _afp-ips-l2-mode:
 
@@ -234,7 +234,7 @@ There are some important points to consider when setting up this mode:
   the other is direct and packets bigger then the MTU will be dropped by kernel.
 - Set different values of `cluster-id` on both interfaces to avoid conflict.
 - Any network card offloading creating bigger then physical layer datagram
-  (like GRO, LRO, TSO) will result in dropped packets as transmit path can not
+  (like GRO, LRO, TSO) will result in dropped packets as the transmit path can not
   handle them.
 - Set `stream.inline` to `auto` or `yes` so Suricata switches to
   blocking mode.
@@ -280,7 +280,7 @@ The eBPF file ``/usr/libexec/suricata/ebpf/lb.bpf`` may not be present on disk.
 See :ref:`ebpf-xdp` for more information.
 
 DPDK IPS mode
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 In the same way as you would configure AF_PACKET IPS mode, you can configure the DPDK capture module.
 Prior to starting with IPS (inline) setup, it is recommended to go over :ref:`dpdk-capture-module` manual page
@@ -347,3 +347,76 @@ The following snippet shows a possible :ref:`suricata-yaml-threading` configurat
         - worker-cpu-set:
             cpu: [ 2,4,6,8,10,12,14,16 ]
 
+Netmap IPS mode
+~~~~~~~~~~~~~~~
+
+Using Netmap to support IPS requires setting up pairs of interfaces; packets are received
+on one interface within the pair, inspected by Suricata, and transmitted on the other
+paired interface. You can use native or host mode; host mode is used when the interface
+name contains the ``^`` character, e.g, ``enp6s0f0^``. Host mode does not require
+multiple physical network interfaces.
+
+Paired network interfaces are specified in the ``netmap`` configuration section.
+For example, the following configuration will create a Suricata acting as IPS
+between interface ``enp6s0f0`` and ``enp6s0f1`` ::
+
+ netmap:
+   - interface: enp6s0f0
+     threads: auto
+     copy-mode: ips
+     copy-iface: enp6s0f1
+
+   - interface: enp6s0f1
+     threads: auto
+     copy-mode: ips
+     copy-iface: enp6s0f0
+
+You can specify the ``threads`` value; the default value of ``auto`` will create a
+thread for each queue supported by the NIC; restrict the thread count by specifying
+a value, e.g., ``threads: 1``
+
+This is a basic netmap configuration using two interfaces. Suricata will copy
+packets between interfaces ``enp6s0f0`` and ``en60sf1`` because of the `copy-*`
+configuration variable in interface's ``enp6s0f0`` configuration ::
+
+    copy-mode: ips
+    copy-iface: enp6s0f1
+
+The configuration on ``enp6s0f1`` is symmetric ::
+
+    copy-mode: ips
+    copy-iface: enp6s0f0
+
+
+The host mode feature of Netmap can be used. Host mode doesn't require a second network
+interface ::
+
+This example demonstrates host mode with a single physical network interface ``enp6s0f01`` ::
+
+  - interface: enp60s0f0
+    copy-mode: ips
+    copy-iface: enp6s0f0^
+
+The configuration on ``enp6s0f0^`` is symmetric ::
+
+  - interface: enp60s0f0^
+    copy-mode: ips
+    copy-iface: enp6s0f0
+
+
+Suricata will use zero-copy mode when the runmode is ``workers``.
+
+There are some important points to consider when setting up this mode:
+
+- MTU on both interfaces have to be equal: the copy from one interface to
+  the other is direct and packets bigger then the MTU will be dropped by kernel.
+- Any network card offloading creating bigger then physical layer datagram
+  (like GRO, LRO, TSO) will result in dropped packets as the transmit path can not
+  handle them.
+- Set `stream.inline` to `auto` or `yes` so Suricata switches to
+  blocking mode.
+
+The `copy-mode` variable can take the following values:
+
+- `ips`: the drop keyword is honored and matching packets are dropped.
+- `tap`: no drop occurs, Suricata acts as a bridge
