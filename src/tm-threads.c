@@ -125,7 +125,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
             return TM_ECODE_FAILED;
         }
 
-        /* handle new packets */
+        /* handle new pseudo packets immediately */
         while (tv->decode_pq.top != NULL) {
             Packet *extra_p = PacketDequeueNoLock(&tv->decode_pq);
             if (unlikely(extra_p == NULL))
