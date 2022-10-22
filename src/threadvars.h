@@ -104,8 +104,10 @@ typedef struct ThreadVars_ {
     void *outctx;
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
-    /** queue for decoders to temporarily store extra packets they
-     *  generate. */
+    /** Queue for decoders to temporarily store extra packets they
+     *  generate. These packets are generated as part of the tunnel
+     *  handling, and are processed directly after the "real" packet
+     *  from the current position in the pipeline. */
     PacketQueueNoLock decode_pq;
 
     /** Stream packet queue for flow time out injection. Either a pointer to the
