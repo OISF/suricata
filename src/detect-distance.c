@@ -160,55 +160,34 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
 static int DetectDistanceTest01(void)
 {
-    int result = 0;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("no de_ctx: ");
-        goto end;
-    }
+
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (content:\"|AA BB|\"; content:\"|CC DD EE FF 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE|\"; distance: 4; within: 19; sid:1; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"|AA BB|\"; content:\"|CC DD EE FF 00 11 22 33 "
+            "44 55 66 77 88 99 AA BB CC DD EE|\"; distance: 4; within: 19; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
 
     SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL) {
-        printf("sm NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(sm);
 
     sm = sm->next;
-    if (sm == NULL) {
-        printf("sm2 NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(sm);
 
     DetectContentData *co = (DetectContentData *)sm->ctx;
-    if (co == NULL) {
-        printf("co == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(co);
 
-    if (co->distance != 4) {
-        printf("distance %"PRIi32", expected 4: ", co->distance);
-        goto end;
-    }
+    FAIL_IF_NOT(co->distance = 4);
 
     /* within needs to be 23: distance + content_len as Snort auto fixes this */
-    if (co->within != 19) {
-        printf("within %"PRIi32", expected 23: ", co->within);
-        goto end;
-    }
+    FAIL_IF_NOT(co->within = 19);
 
-    result = 1;
-end:
     DetectEngineCtxFree(de_ctx);
-    return result;
+
+    PASS;
 }
 
 /**
@@ -218,25 +197,21 @@ end:
  */
 static int DetectDistanceTestPacket01 (void)
 {
-    int result = 0;
     uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint16_t buflen = sizeof(buf);
-    Packet *p;
-    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
-
+    FAIL_IF_NULL(p);
     char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; "
                     "byte_jump:1,2; content:\"|00|\"; "
                     "within:1; distance:2; sid:98711212; rev:1;)";
 
     p->flowflags = FLOW_PKT_ESTABLISHED | FLOW_PKT_TOCLIENT;
-    result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
-end:
-    return result;
+
+    PASS;
 }
 
 static void DetectDistanceRegisterTests(void)
