@@ -31,7 +31,6 @@ typedef enum {
     SC_ENOMEM,
     SC_EINVAL,
 
-    SC_ERR_MEM_ALLOC,
     SC_ERR_PCRE_MATCH,
     SC_ERR_ACTION_ORDER,
     SC_ERR_PCRE_GET_SUBSTRING,

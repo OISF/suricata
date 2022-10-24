@@ -46,7 +46,6 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ENOMEM);
         CASE_CODE(SC_EINVAL);
 
-        CASE_CODE (SC_ERR_MEM_ALLOC);
         CASE_CODE (SC_ERR_ACTION_ORDER);
         CASE_CODE (SC_ERR_PCRE_MATCH);
         CASE_CODE (SC_ERR_PCRE_GET_SUBSTRING);
