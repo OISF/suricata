@@ -28,6 +28,7 @@
 
 #include "util-error.h"
 
+thread_local SCError sc_errno = SC_OK;
 #define CASE_CODE(E)  case E: return #E
 
 /**
@@ -41,6 +42,10 @@ const char * SCErrorToString(SCError err)
 {
     switch (err) {
         CASE_CODE (SC_OK);
+
+        CASE_CODE(SC_ENOMEM);
+        CASE_CODE(SC_EINVAL);
+
         CASE_CODE (SC_ERR_MEM_ALLOC);
         CASE_CODE (SC_ERR_ACTION_ORDER);
         CASE_CODE (SC_ERR_PCRE_MATCH);

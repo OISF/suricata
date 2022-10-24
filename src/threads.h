@@ -27,6 +27,8 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
+#include "autoconf.h"
+
 #ifndef THREAD_NAME_LEN
 #define THREAD_NAME_LEN 16
 #endif

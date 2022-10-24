@@ -24,10 +24,13 @@
 #ifndef __ERROR_H__
 #define __ERROR_H__
 
-
 /* different error types */
 typedef enum {
     SC_OK,
+
+    SC_ENOMEM,
+    SC_EINVAL,
+
     SC_ERR_MEM_ALLOC,
     SC_ERR_PCRE_MATCH,
     SC_ERR_ACTION_ORDER,
@@ -385,5 +388,8 @@ typedef enum {
 
 const char *SCErrorToString(SCError);
 
+#include "threads.h"
+
+extern thread_local SCError sc_errno;
 
 #endif /* __ERROR_H__ */
