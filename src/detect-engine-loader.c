@@ -192,8 +192,10 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                         "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
 
                 if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
-                            "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+                    SCLogError(SC_ENOMEM,
+                            "Error adding sig \"%s\" from "
+                            "file %s at line %" PRId32 "",
+                            line, sig_file, lineno - multiline);
                 }
                 if (de_ctx->sigerror) {
                     de_ctx->sigerror = NULL;

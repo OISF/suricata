@@ -90,7 +90,7 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 {
     struct landlock_ruleset *ruleset = SCCalloc(1, sizeof(struct landlock_ruleset));
     if (ruleset == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc landlock ruleset");
+        SCLogError(SC_ENOMEM, "Can't alloc landlock ruleset");
         return NULL;
     }
 

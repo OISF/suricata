@@ -113,7 +113,7 @@ char *MagicThreadLookup(magic_t *ctx, const uint8_t *buf, uint32_t buflen)
         if (result != NULL) {
             magic = SCStrdup(result);
             if (unlikely(magic == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+                SCLogError(SC_ENOMEM, "Unable to dup magic");
             }
         }
     }

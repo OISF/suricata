@@ -85,7 +85,7 @@ static void FeatureInit(void) {
                                            FeatureHashFreeFunc);
 
     if (!feature_hash_table) {
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate feature hash table.");
+        FatalError(sc_errno, "Unable to allocate feature hash table.");
     }
 }
 
@@ -95,7 +95,7 @@ static void FeatureAddEntry(const char *feature_name)
 
     FeatureEntryType *feature = SCCalloc(1, sizeof(*feature));
     if (!feature) {
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate feature entry memory.");
+        FatalError(SC_ENOMEM, "Unable to allocate feature entry memory.");
     }
 
     feature->feature = SCStrdup(feature_name);

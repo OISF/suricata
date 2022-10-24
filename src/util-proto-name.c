@@ -390,7 +390,7 @@ static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number
 
     proto_ent->name = SCStrdup(proto_name);
     if (!proto_ent->name)
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for protocol name entries");
+        FatalError(SC_ENOMEM, "Unable to allocate memory for protocol name entries");
 
     proto_ent->number = proto_number;
 

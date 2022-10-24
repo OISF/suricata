@@ -417,7 +417,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
     struct FBAnalyze *array = SCCalloc(array_size, sizeof(struct FBAnalyze));
 
     if (array == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate flowbit analyze array");
+        SCLogError(SC_ENOMEM, "Unable to allocate flowbit analyze array");
         return -1;
     }
 
