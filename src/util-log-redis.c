@@ -215,7 +215,7 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
     }
 
     if (ctx->async == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocate redis async.");
+        SCLogError(SC_ENOMEM, "Error allocate redis async.");
         ctx->tried = time(NULL);
         return -1;
     }

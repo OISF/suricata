@@ -207,13 +207,13 @@ static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char
 
         const char *hkey = DetectMedatataHashAdd(de_ctx, key);
         if (hkey == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata key");
+            SCLogError(SC_ENOMEM, "can't create metadata key");
             continue;
         }
 
         const char *hval = DetectMedatataHashAdd(de_ctx, val);
         if (hval == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata value");
+            SCLogError(SC_ENOMEM, "can't create metadata value");
             goto next;
         }
 

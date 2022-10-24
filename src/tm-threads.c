@@ -282,7 +282,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         } else if (slot->tm_id == TMM_FLOWWORKER) {
             tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
             if (tv->stream_pq_local == NULL)
-                FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
+                FatalError(SC_ENOMEM, "failed to alloc PacketQueue");
             SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
             tv->stream_pq = tv->stream_pq_local;
             tv->tm_flowworker = slot;
@@ -412,7 +412,7 @@ static void *TmThreadsSlotVar(void *td)
         } else if (s->tm_id == TMM_FLOWWORKER) {
             tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
             if (tv->stream_pq_local == NULL)
-                FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
+                FatalError(SC_ENOMEM, "failed to alloc PacketQueue");
             SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
             tv->stream_pq = tv->stream_pq_local;
             tv->tm_flowworker = s;

@@ -54,7 +54,7 @@ bool RegisterPlugin(SCPlugin *plugin, void *lib)
 
     PluginListNode *node = SCCalloc(1, sizeof(*node));
     if (node == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for plugin");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory for plugin");
         return false;
     }
     node->plugin = plugin;

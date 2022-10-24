@@ -325,7 +325,7 @@ static void *DetectFilemagicThreadInit(void *data /*@unused@*/)
 {
     DetectFilemagicThreadData *t = SCCalloc(1, sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "couldn't alloc ctx memory");
+        SCLogError(SC_ENOMEM, "couldn't alloc ctx memory");
         return NULL;
     }
 
