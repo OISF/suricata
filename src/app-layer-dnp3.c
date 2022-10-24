@@ -1096,8 +1096,6 @@ static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory to buffer "
-                "DNP3 request data");
             goto error;
         }
         processed = DNP3HandleRequestLinkLayer(dnp3,
@@ -1122,8 +1120,6 @@ static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState
         /* Not all data was processed, buffer it. */
         if (input_len) {
             if (!DNP3BufferAdd(buffer, input, input_len)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory to buffer DNP3 request data");
                 goto error;
             }
         }
@@ -1235,8 +1231,6 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory to buffer "
-                "DNP3 response data");
             goto error;
         }
         processed = DNP3HandleResponseLinkLayer(dnp3,
@@ -1265,8 +1259,6 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
         /* Not all data was processed, buffer it. */
         if (input_len) {
             if (!DNP3BufferAdd(buffer, input, input_len)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory to buffer DNP3 response data");
                 goto error;
             }
         }
