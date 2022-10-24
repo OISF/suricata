@@ -419,7 +419,6 @@ static int UnixCommandAccept(UnixCommand *this)
 
     uclient = UnixClientAlloc();
     if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
         json_decref(server_msg);
         close(client);
         return 0;
