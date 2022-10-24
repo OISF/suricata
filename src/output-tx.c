@@ -356,7 +356,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             /* No child loggers registered. */
             return TM_ECODE_OK;
         }
-        if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
+        if (AppLayerParserProtocolHasLogger(ipproto, alproto) == 0)
             goto end;
     }
     void *alstate = f->alstate;
@@ -364,7 +364,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("no alstate");
         goto end;
     }
-    const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(p->proto, alproto);
+    const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
     if (logger_expectation == 0) {
         SCLogDebug("bail: logger_expectation %u. LOGGER_FILE %u LOGGER_FILEDATA %u",
                 logger_expectation, LOGGER_FILE, LOGGER_FILEDATA);
@@ -389,7 +389,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     uint64_t max_id = tx_id;
     int logged = 0;
     int gap = 0;
-    const bool support_files = AppLayerParserSupportsFiles(p->proto, alproto);
+    const bool support_files = AppLayerParserSupportsFiles(ipproto, alproto);
     const uint8_t pkt_dir = STREAM_FLAGS_FOR_PACKET(p);
 
     SCLogDebug("pcap_cnt %" PRIu64 ": tx_id %" PRIu64 " total_txs %" PRIu64, p->pcap_cnt, tx_id,
@@ -412,9 +412,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("STARTING tx_id %" PRIu64 ", tx %p", tx_id, tx);
 
         const int tx_progress_ts =
-                AppLayerParserGetStateProgress(p->proto, alproto, tx, ts_disrupt_flags);
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
         const int tx_progress_tc =
-                AppLayerParserGetStateProgress(p->proto, alproto, tx, tc_disrupt_flags);
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
         const bool tx_complete = (tx_progress_ts == complete_ts && tx_progress_tc == complete_tc);
 
         SCLogDebug("file_thread_data %p filedata_thread_data %p", op_thread_data->file,
