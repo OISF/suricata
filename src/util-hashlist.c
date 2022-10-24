@@ -32,23 +32,29 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 
-HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
-
+HashListTable *HashListTableInit(uint32_t size,
+        uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *))
+{
+    sc_errno = SC_OK;
     HashListTable *ht = NULL;
 
     if (size == 0) {
+        sc_errno = SC_EINVAL;
         goto error;
     }
 
     if (Hash == NULL) {
-        //printf("ERROR: HashListTableInit no Hash function\n");
+        sc_errno = SC_EINVAL;
         goto error;
     }
 
     /* setup the filter */
     ht = SCMalloc(sizeof(HashListTable));
-    if (unlikely(ht == NULL))
-    goto error;
+    if (unlikely(ht == NULL)) {
+        sc_errno = SC_ENOMEM;
+        goto error;
+    }
     memset(ht,0,sizeof(HashListTable));
     ht->array_size = size;
     ht->Hash = Hash;
@@ -61,8 +67,10 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
 
     /* setup the bitarray */
     ht->array = SCMalloc(ht->array_size * sizeof(HashListTableBucket *));
-    if (ht->array == NULL)
+    if (ht->array == NULL) {
+        sc_errno = SC_ENOMEM;
         goto error;
+    }
     memset(ht->array,0,ht->array_size * sizeof(HashListTableBucket *));
 
     ht->listhead = NULL;
