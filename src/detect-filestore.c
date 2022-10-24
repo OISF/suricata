@@ -154,10 +154,10 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
     } else if (this_tx) {
         /* set in AppLayerTxData. Parsers and logger will propegate it to the
          * individual files, both new and current. */
-        void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, tx_id);
+        void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
         DEBUG_VALIDATE_BUG_ON(txv == NULL);
         if (txv != NULL) {
-            AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+            AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
             DEBUG_VALIDATE_BUG_ON(txd == NULL);
             if (txd != NULL) {
                 txd->file_flags |= FLOWFILE_STORE;
@@ -167,7 +167,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
         /* set in flow and AppLayerStateData */
         f->file_flags |= FLOWFILE_STORE;
 
-        AppLayerStateData *sd = AppLayerParserGetStateData(p->proto, f->alproto, f->alstate);
+        AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
         if (sd != NULL) {
             sd->file_flags |= FLOWFILE_STORE;
         }
@@ -206,7 +206,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 #endif
     }
 
-    if (p->proto == IPPROTO_TCP && p->flow->protoctx != NULL) {
+    if (p->flow->proto == IPPROTO_TCP && p->flow->protoctx != NULL) {
         /* set filestore depth for stream reassembling */
         TcpSession *ssn = (TcpSession *)p->flow->protoctx;
         TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());

@@ -193,7 +193,8 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         void *txptr = NULL;
         if (p->flow && p->flow->alstate && (pa->flags & PACKET_ALERT_FLAG_TX))
-            txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, pa->tx_id);
+            txptr = AppLayerParserGetTx(
+                    p->flow->proto, p->flow->alproto, p->flow->alstate, pa->tx_id);
 
         LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
