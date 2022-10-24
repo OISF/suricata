@@ -891,7 +891,7 @@ int NFQParseAndRegisterQueues(const char *queues)
     // We do realloc() to preserve previously registered queues
     void *ptmp = SCRealloc(g_nfq_t, (receive_queue_num + num_queues) * sizeof(NFQThreadVars));
     if (ptmp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQThreadVars");
+        SCLogError(SC_ENOMEM, "Unable to allocate NFQThreadVars");
         NFQContextsClean();
         exit(EXIT_FAILURE);
     }
@@ -900,7 +900,7 @@ int NFQParseAndRegisterQueues(const char *queues)
 
     ptmp = SCRealloc(g_nfq_q, (receive_queue_num + num_queues) * sizeof(NFQQueueVars));
     if (ptmp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQQueueVars");
+        SCLogError(SC_ENOMEM, "Unable to allocate NFQQueueVars");
         NFQContextsClean();
         exit(EXIT_FAILURE);
     }

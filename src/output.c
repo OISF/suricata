@@ -833,8 +833,7 @@ void OutputRegisterFileRotationFlag(int *flag)
 {
     OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
     if (unlikely(flag_entry == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory to register file rotation flag");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory to register file rotation flag");
         return;
     }
     flag_entry->flag = flag;
@@ -969,7 +968,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
 
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc root logger");
+        FatalError(SC_ENOMEM, "failed to alloc root logger");
     }
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
@@ -983,7 +982,7 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
 {
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc root logger");
+        FatalError(SC_ENOMEM, "failed to alloc root logger");
     }
     logger->ThreadInit = reg->ThreadInit;
     logger->ThreadDeinit = reg->ThreadDeinit;
