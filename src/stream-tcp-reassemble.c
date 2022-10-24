@@ -555,7 +555,8 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
     }
     SCMutexUnlock(&segment_thread_pool_mutex);
     if (ra_ctx->segment_thread_pool_id < 0 || segment_thread_pool == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "failed to setup/expand stream segment pool. Expand stream.reassembly.memcap?");
+        SCLogError(sc_errno,
+                "failed to setup/expand stream segment pool. Expand stream.reassembly.memcap?");
         StreamTcpReassembleFreeThreadCtx(ra_ctx);
         SCReturnPtr(NULL, "TcpReassemblyThreadCtx");
     }
