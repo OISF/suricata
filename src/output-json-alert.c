@@ -584,7 +584,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
             (p->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT;
     FileContainer *ffc = NULL;
     if (p->flow->alstate != NULL) {
-        void *tx = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, tx_id);
+        void *tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, p->flow->alstate, tx_id);
         if (tx) {
             ffc = AppLayerParserGetTxFiles(p->flow, tx, direction);
         }
