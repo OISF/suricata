@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -594,7 +594,6 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
  */
 static int DetectTagTestPacket01 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
     uint16_t buf_len = strlen((char *)buf);
@@ -648,42 +647,41 @@ static int DetectTagTestPacket01 (void)
     HostInitConfig(1);
 
     SCLogDebug("running tests");
-    result = UTHGenericTest(p, 7, sigs, sid, (uint32_t *) results, 5);
+    FAIL_IF_NOT(UTHGenericTest(p, 7, sigs, sid, (uint32_t *)results, 5));
     SCLogDebug("running tests done");
 
     Host *src = HostLookupHostFromHash(&p[1]->src);
+    FAIL_IF_NULL(src);
     if (src) {
         void *tag = HostGetStorageById(src, host_tag_id);
         if (tag != NULL) {
             printf("tag should have been expired: ");
-            result = 0;
         }
-
+        FAIL_IF_NOT_NULL(tag);
         HostRelease(src);
     }
     Host *dst = HostLookupHostFromHash(&p[1]->dst);
-    if (dst) {
-        void *tag = HostGetStorageById(dst, host_tag_id);
-        BUG_ON(tag == NULL);
+    FAIL_IF_NULL(dst);
 
-        DetectTagDataEntry *iter = tag;
+    void *tag = HostGetStorageById(dst, host_tag_id);
+    FAIL_IF_NULL(tag);
 
-        /* check internal state */
-        if (!(iter->gid == 1 && iter->sid == 2 && iter->packets == 4 && iter->count == 4)) {
-            printf("gid %u sid %u packets %u count %u: ", iter->gid, iter->sid, iter->packets, iter->count);
-            result = 0;
-        }
+    DetectTagDataEntry *iter = tag;
 
-        HostRelease(dst);
+    /* check internal state */
+    if (!(iter->gid == 1 && iter->sid == 2 && iter->packets == 4 && iter->count == 4)) {
+        printf("gid %u sid %u packets %u count %u: ", iter->gid, iter->sid, iter->packets,
+                iter->count);
     }
-    BUG_ON(src == NULL || dst == NULL);
+
+    HostRelease(dst);
 
     UTHFreePackets(p, 7);
 
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    return result;
+    PASS;
 }
 
 /**
