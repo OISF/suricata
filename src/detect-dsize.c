@@ -139,7 +139,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
      * and put it in the Signature. */
     sm = SigMatchAlloc();
     if (sm == NULL){
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for SigMatch");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory for SigMatch");
         rs_detect_u16_free(dd);
         goto error;
     }
