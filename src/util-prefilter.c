@@ -83,8 +83,8 @@ PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size)
                                          new_size * sizeof(SigIntId));
         if (unlikely(new_array == NULL)) {
 
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
-                       " rule ID array. Some signature ID matches lost");
+            SCLogError(SC_ENOMEM, "Failed to realloc PatternMatchQueue"
+                                  " rule ID array. Some signature ID matches lost");
             return 0;
         }
     }

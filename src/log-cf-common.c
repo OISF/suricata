@@ -40,7 +40,7 @@ LogCustomFormatNode * LogCustomFormatNodeAlloc()
 {
     LogCustomFormatNode * node = SCCalloc(1, sizeof(LogCustomFormatNode));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to alloc custom format node");
+        SCLogError(SC_ENOMEM, "Failed to alloc custom format node");
         return NULL;
     }
     return node;
@@ -55,7 +55,7 @@ LogCustomFormat * LogCustomFormatAlloc()
 {
     LogCustomFormat * cf = SCCalloc(1, sizeof(LogCustomFormat));
     if (unlikely(cf == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to alloc custom format");
+        SCLogError(SC_ENOMEM, "Failed to alloc custom format");
         return NULL;
     }
     return cf;

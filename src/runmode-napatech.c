@@ -189,8 +189,7 @@ static void *NapatechConfigParser(const char *device)
 
     struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                "Failed to allocate memory for NAPATECH device name.");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory for NAPATECH device name.");
         return NULL;
     }
 

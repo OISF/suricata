@@ -352,7 +352,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                 goto error;
             }
 
@@ -381,7 +381,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                 goto error;
             }
 
@@ -412,7 +412,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                 goto error;
             }
 
@@ -494,7 +494,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                 goto error;
             }
 
@@ -534,7 +534,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
                 sm = SigMatchAlloc();
                 if (sm == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                    SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                     goto error;
                 }
 
@@ -605,7 +605,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
                 goto error;
             }
 

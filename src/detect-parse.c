@@ -321,7 +321,7 @@ void SigTableApplyStrictCommandlineOption(const char *str)
 
     char *copy = SCStrdup(str);
     if (copy == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "could not duplicate opt string");
+        FatalError(SC_ENOMEM, "could not duplicate opt string");
 
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
@@ -2512,7 +2512,7 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
 {
     DetectParseRegex *r = SCCalloc(1, sizeof(*r));
     if (r == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre free list");
+        FatalError(SC_ENOMEM, "failed to alloc memory for pcre free list");
     }
     r->regex = detect_parse->regex;
     r->match = detect_parse->match;

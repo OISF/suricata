@@ -83,7 +83,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
         buffer->size *= 2;
         char *tmp = SCRealloc(buffer->data, buffer->size * sizeof(char));
         if (tmp == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error resizing JA3 buffer");
+            SCLogError(SC_ENOMEM, "Error resizing JA3 buffer");
             return -1;
         }
         buffer->data = tmp;
@@ -177,8 +177,7 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
     if ((*buffer)->data == NULL) {
         (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE * sizeof(char));
         if ((*buffer)->data == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                       "Error allocating memory for JA3 data");
+            SCLogError(SC_ENOMEM, "Error allocating memory for JA3 data");
             Ja3BufferFree(buffer);
             return -1;
         }
@@ -226,8 +225,7 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
 
     char *ja3_hash = SCMalloc(MD5_STRING_LENGTH * sizeof(char));
     if (ja3_hash == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                   "Error allocating memory for JA3 hash");
+        SCLogError(SC_ENOMEM, "Error allocating memory for JA3 hash");
         return NULL;
     }
 

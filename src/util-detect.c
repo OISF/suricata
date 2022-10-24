@@ -65,13 +65,13 @@ static int SigStringAddSig(SigString *sig, const char *sig_file,
 
     sig->filename = SCStrdup(sig_file);
     if (sig->filename == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ENOMEM, "Error allocating memory");
         return 0;
     }
 
     sig->sig_str = SCStrdup(sig_str);
     if (sig->sig_str == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ENOMEM, "Error allocating memory");
         SCFree(sig->filename);
         return 0;
     }
@@ -79,7 +79,7 @@ static int SigStringAddSig(SigString *sig, const char *sig_file,
     if (sig_error) {
         sig->sig_error = SCStrdup(sig_error);
         if (sig->sig_error == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ENOMEM, "Error allocating memory");
             SCFree(sig->filename);
             SCFree(sig->sig_str);
             return 0;

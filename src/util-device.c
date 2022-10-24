@@ -504,7 +504,7 @@ int LiveDevUseBypass(LiveDevice *dev)
 {
     BypassInfo *bpinfo = SCCalloc(1, sizeof(*bpinfo));
     if (bpinfo == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bypass info structure");
+        SCLogError(SC_ENOMEM, "Can't allocate bypass info structure");
         return -1;
     }
 

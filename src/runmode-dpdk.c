@@ -154,7 +154,7 @@ static char *AllocArgument(size_t arg_len)
     arg_len += 1; // null character
     ptr = (char *)SCCalloc(arg_len, sizeof(char));
     if (ptr == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "Could not allocate memory for an argument");
+        FatalError(SC_ENOMEM, "Could not allocate memory for an argument");
 
     SCReturnPtr(ptr, "char *");
 }
@@ -201,7 +201,7 @@ static void ArgumentsInit(struct Arguments *args, unsigned capacity)
     SCEnter();
     args->argv = SCCalloc(capacity, sizeof(args->argv));
     if (args->argv == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "Could not allocate memory for Arguments structure");
+        FatalError(SC_ENOMEM, "Could not allocate memory for Arguments structure");
 
     args->capacity = capacity;
     args->argc = 0;
@@ -276,8 +276,7 @@ static void InitEal()
     // creating a shallow copy for cleanup because rte_eal_init changes array contents
     eal_argv = SCMalloc(args.argc * sizeof(args.argv));
     if (eal_argv == NULL) {
-        FatalError(
-                SC_ERR_MEM_ALLOC, "Failed to allocate memory for the array of DPDK EAL arguments");
+        FatalError(SC_ENOMEM, "Failed to allocate memory for the array of DPDK EAL arguments");
     }
     memcpy(eal_argv, args.argv, args.argc * sizeof(*args.argv));
 

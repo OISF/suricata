@@ -218,7 +218,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
 
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
     if (bpf_map_data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
+        SCLogError(SC_ENOMEM, "Can't allocate bpf map array");
         return -1;
     }
 
@@ -288,7 +288,7 @@ alloc_error:
         SCFree(bpf_map_data->array[i].name);
     }
     bpf_map_data->last = 0;
-    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map name");
+    SCLogError(SC_ENOMEM, "Can't allocate bpf map name");
     return -1;
 }
 
@@ -336,8 +336,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
      * locked memory so we set it to unlimited to avoid a ENOPERM error */
     struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
     if (setrlimit(RLIMIT_MEMLOCK, &r) != 0) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to lock memory: %s (%d)",
-                   strerror(errno), errno);
+        SCLogError(SC_ENOMEM, "Unable to lock memory: %s (%d)", strerror(errno), errno);
         return -1;
     }
 
@@ -422,7 +421,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
      * that we use bpf_maps_info:: */
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
     if (bpf_map_data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
+        SCLogError(SC_ENOMEM, "Can't allocate bpf map array");
         return -1;
     }
 
@@ -438,7 +437,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         snprintf(bpf_map_data->array[bpf_map_data->last].iface, IFNAMSIZ,
                  "%s", iface);
         if (!bpf_map_data->array[bpf_map_data->last].name) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate map name");
+            SCLogError(SC_ENOMEM, "Unable to duplicate map name");
             BpfMapsInfoFree(bpf_map_data);
             return -1;
         }

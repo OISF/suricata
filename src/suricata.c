@@ -499,7 +499,7 @@ static void SetBpfStringFromFile(char *filename)
 
     bpf_filter = SCMalloc(bpf_len * sizeof(char));
     if (unlikely(bpf_filter == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate buffer for bpf filter in file %s", filename);
+        SCLogError(SC_ENOMEM, "Failed to allocate buffer for bpf filter in file %s", filename);
         exit(EXIT_FAILURE);
     }
     memset(bpf_filter, 0x00, bpf_len);
@@ -1488,8 +1488,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
                 suri->pid_filename = SCStrdup(optarg);
                 if (suri->pid_filename == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s",
-                        strerror(errno));
+                    SCLogError(SC_ENOMEM, "strdup failed: %s", strerror(errno));
                     return TM_ECODE_FAILED;
                 }
             }
@@ -1677,7 +1676,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     suri->strict_rule_parsing_string = SCStrdup(optarg);
                 }
                 if (suri->strict_rule_parsing_string == NULL) {
-                    FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
+                    FatalError(SC_ENOMEM, "failed to duplicate 'strict' string");
                 }
             } else {
                 int r = ExceptionSimulationCommandlineParser(
@@ -1988,7 +1987,7 @@ static int MayDaemonize(SCInstance *suri)
         /* The pid file name may be in config memory, but is needed later. */
         suri->pid_filename = SCStrdup(pid_filename);
         if (suri->pid_filename == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
+            SCLogError(SC_ENOMEM, "strdup failed: %s", strerror(errno));
             return TM_ECODE_FAILED;
         }
     }

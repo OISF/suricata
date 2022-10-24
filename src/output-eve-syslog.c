@@ -45,7 +45,7 @@ static int SyslogInit(ConfNode *conf, bool threaded, void **init_data)
 {
     Context *context = SCCalloc(1, sizeof(Context));
     if (context == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate context for %s", OUTPUT_NAME);
+        SCLogError(SC_ENOMEM, "Unable to allocate context for %s", OUTPUT_NAME);
         return -1;
     }
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
@@ -101,7 +101,7 @@ void SyslogInitialize(void)
     SCEveFileType *file_type = SCCalloc(1, sizeof(SCEveFileType));
 
     if (file_type == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve file type %s", OUTPUT_NAME);
+        FatalError(SC_ENOMEM, "Unable to allocate memory for eve file type %s", OUTPUT_NAME);
     }
 
     file_type->name = OUTPUT_NAME;

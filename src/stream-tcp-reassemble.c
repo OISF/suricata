@@ -270,8 +270,8 @@ static void *TcpSegmentPoolAlloc(void)
 
         seg->pcap_hdr_storage = SCCalloc(1, sizeof(TcpSegmentPcapHdrStorage));
         if (seg->pcap_hdr_storage == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
-                                         "TcpSegmentPcapHdrStorage");
+            SCLogError(SC_ENOMEM, "Unable to allocate memory for "
+                                  "TcpSegmentPcapHdrStorage");
             SCFree(seg);
             return NULL;
         } else {
@@ -279,9 +279,9 @@ static void *TcpSegmentPoolAlloc(void)
             seg->pcap_hdr_storage->pkt_hdr =
                     SCCalloc(1, sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
             if (seg->pcap_hdr_storage->pkt_hdr == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
-                                             "packet header data within "
-                                             "TcpSegmentPcapHdrStorage");
+                SCLogError(SC_ENOMEM, "Unable to allocate memory for "
+                                      "packet header data within "
+                                      "TcpSegmentPcapHdrStorage");
                 SCFree(seg->pcap_hdr_storage);
                 SCFree(seg);
                 return NULL;

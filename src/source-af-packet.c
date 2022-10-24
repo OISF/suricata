@@ -1686,11 +1686,8 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
                 (void *) &ptv->req.v3, sizeof(ptv->req.v3));
         if (r < 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Unable to allocate RX Ring for iface %s: (%d) %s",
-                    devname,
-                    errno,
-                    strerror(errno));
+            SCLogError(SC_ENOMEM, "Unable to allocate RX Ring for iface %s: (%d) %s", devname,
+                    errno, strerror(errno));
             return AFP_FATAL_ERROR;
         }
     } else {
@@ -1709,20 +1706,15 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
                     SCLogInfo("Memory issue with ring parameters. Retrying.");
                     continue;
                 }
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Unable to allocate RX Ring for iface %s: (%d) %s",
-                        devname,
-                        errno,
-                        strerror(errno));
+                SCLogError(SC_EINVAL, "Unable to setup RX Ring for iface %s: (%d) %s", devname,
+                        errno, strerror(errno));
                 return AFP_FATAL_ERROR;
             } else {
                 break;
             }
         }
         if (order < 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Unable to allocate RX Ring for iface %s (order 0 failed)",
-                    devname);
+            SCLogError(SC_EINVAL, "Unable to setup RX Ring for iface %s (order 0 failed)", devname);
             return AFP_FATAL_ERROR;
         }
 #ifdef HAVE_TPACKET_V3
@@ -1745,15 +1737,14 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     ptv->ring_buf = mmap(0, ptv->ring_buflen, PROT_READ|PROT_WRITE,
             mmap_flag, ptv->socket, 0);
     if (ptv->ring_buf == MAP_FAILED) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap, error %s",
-                   strerror(errno));
+        SCLogError(SC_ENOMEM, "Unable to mmap, error %s", strerror(errno));
         goto mmap_err;
     }
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         ptv->ring.v3 = SCMalloc(ptv->req.v3.tp_block_nr * sizeof(*ptv->ring.v3));
         if (!ptv->ring.v3) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring.v3");
+            SCLogError(SC_ENOMEM, "Unable to malloc ptv ring.v3");
             goto postmmap_err;
         }
         for (i = 0; i < ptv->req.v3.tp_block_nr; ++i) {
@@ -1765,7 +1756,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         /* allocate a ring for each frame header pointer*/
         ptv->ring.v2 = SCCalloc(ptv->req.v2.tp_frame_nr, sizeof(union thdr *));
         if (ptv->ring.v2 == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
+            SCLogError(SC_ENOMEM, "Unable to allocate frame buf");
             goto postmmap_err;
         }
         /* fill the header ring with proper frame ptr*/

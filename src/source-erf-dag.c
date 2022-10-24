@@ -506,9 +506,8 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate a Packet on stream: %d, DAG: %s",
-            ewtn->dagstream, ewtn->dagname);
+        SCLogError(SC_ENOMEM, "Failed to allocate a Packet on stream: %d, DAG: %s", ewtn->dagstream,
+                ewtn->dagname);
         SCReturnInt(TM_ECODE_FAILED);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);

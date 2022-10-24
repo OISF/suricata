@@ -483,11 +483,11 @@ void RunModeRegisterNewRunMode(enum RunModes runmode,
     mode->runmode = runmode;
     mode->name = SCStrdup(name);
     if (unlikely(mode->name == NULL)) {
-        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        FatalError(SC_ENOMEM, "Failed to allocate string");
     }
     mode->description = SCStrdup(description);
     if (unlikely(mode->description == NULL)) {
-        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        FatalError(SC_ENOMEM, "Failed to allocate string");
     }
     mode->RunModeFunc = RunModeFunc;
 

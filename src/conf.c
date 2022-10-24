@@ -84,16 +84,14 @@ static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
         if ((node = ConfNodeLookupChild(parent, key)) == NULL) {
             node = ConfNodeNew();
             if (unlikely(node == NULL)) {
-                SCLogWarning(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for configuration.");
+                SCLogWarning(SC_ENOMEM, "Failed to allocate memory for configuration.");
                 goto end;
             }
             node->name = SCStrdup(key);
             if (unlikely(node->name == NULL)) {
                 ConfNodeFree(node);
                 node = NULL;
-                SCLogWarning(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for configuration.");
+                SCLogWarning(SC_ENOMEM, "Failed to allocate memory for configuration.");
                 goto end;
             }
             node->parent = parent;

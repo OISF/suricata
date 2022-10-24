@@ -660,7 +660,7 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.stats = SCCalloc(stats_table.nstats, sizeof(StatsRecord));
         if (stats_table.stats == NULL) {
             stats_table.nstats = 0;
-            SCLogError(SC_ERR_MEM_ALLOC, "could not alloc memory for stats");
+            SCLogError(SC_ENOMEM, "could not alloc memory for stats");
             return -1;
         }
 
@@ -669,7 +669,7 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.tstats = SCCalloc(stats_table.ntstats, array_size);
         if (stats_table.tstats == NULL) {
             stats_table.ntstats = 0;
-            SCLogError(SC_ERR_MEM_ALLOC, "could not alloc memory for stats");
+            SCLogError(SC_ENOMEM, "could not alloc memory for stats");
             return -1;
         }
 

@@ -491,7 +491,7 @@ FileContainer *FileContainerAlloc(void)
 {
     FileContainer *new = SCMalloc(sizeof(FileContainer));
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
+        SCLogError(SC_ENOMEM, "Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(FileContainer));
@@ -552,7 +552,7 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 {
     File *new = SCMalloc(sizeof(File));
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
+        SCLogError(SC_ENOMEM, "Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(File));

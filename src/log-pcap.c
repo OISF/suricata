@@ -784,16 +784,14 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 
         copy_comp->buffer = SCMalloc(copy_comp->buffer_size);
         if (copy_comp->buffer == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
-                    strerror(errno));
+            SCLogError(SC_ENOMEM, "SCMalloc failed: %s", strerror(errno));
             SCFree(copy->h);
             SCFree(copy);
             return NULL;
         }
         copy_comp->pcap_buf = SCMalloc(copy_comp->pcap_buf_size);
         if (copy_comp->pcap_buf == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
-                    strerror(errno));
+            SCLogError(SC_ENOMEM, "SCMalloc failed: %s", strerror(errno));
             SCFree(copy_comp->buffer);
             SCFree(copy->h);
             SCFree(copy);
@@ -1191,7 +1189,7 @@ static void PcapLogDataFree(PcapLogData *pl)
         LZ4F_errorCode_t errcode =
                 LZ4F_freeCompressionContext(pl->compression.lz4f_context);
         if (LZ4F_isError(errcode)) {
-            SCLogWarning(SC_ERR_MEM_ALLOC, "Error freeing lz4 context.");
+            SCLogWarning(SC_EINVAL, "Error freeing lz4 context.");
         }
     }
 #endif /* HAVE_LIBLZ4 */
@@ -1515,8 +1513,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                     sizeof(struct pcap_pkthdr) + PCAP_SNAPLEN;
             comp->pcap_buf = SCMalloc(comp->pcap_buf_size);
             if (comp->pcap_buf == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
-                        strerror(errno));
+                SCLogError(SC_ENOMEM, "SCMalloc failed: %s", strerror(errno));
                 exit(EXIT_FAILURE);
             }
             comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
@@ -1780,8 +1777,8 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         (void)SCMkDir(dirfull, 0700);
 
         if ((pf->dirname = SCStrdup(dirfull)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for "
-                       "directory name");
+            SCLogError(SC_ENOMEM, "Error allocating memory for "
+                                  "directory name");
             goto error;
         }
 
@@ -1880,7 +1877,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     }
 
     if ((pf->filename = SCStrdup(pl->filename)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. For filename");
+        SCLogError(SC_ENOMEM, "Error allocating memory. For filename");
         goto error;
     }
     SCLogDebug("Opening pcap file log %s", pf->filename);

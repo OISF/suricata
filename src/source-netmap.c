@@ -316,7 +316,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
     NetmapDevice *pdev = NULL, *spdev = NULL;
     pdev = SCCalloc(1, sizeof(*pdev));
     if (unlikely(pdev == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+        SCLogError(SC_ENOMEM, "Memory allocation failed");
         goto error;
     }
     SC_ATOMIC_INIT(pdev->threads_run);
@@ -510,7 +510,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
 
     NetmapThreadVars *ntv = SCCalloc(1, sizeof(*ntv));
     if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+        SCLogError(SC_ENOMEM, "Memory allocation failed");
         goto error;
     }
 

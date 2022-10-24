@@ -222,7 +222,7 @@ void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
     det_ctx->alert_queue_size = 0;
     det_ctx->alert_queue = SCCalloc(packet_alert_max, sizeof(PacketAlert));
     if (det_ctx->alert_queue == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIu64 " bytes for the alert queue",
+        FatalError(SC_ENOMEM, "failed to allocate %" PRIu64 " bytes for the alert queue",
                 (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
     }
     det_ctx->alert_queue_capacity = packet_alert_max;

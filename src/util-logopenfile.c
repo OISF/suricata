@@ -331,20 +331,20 @@ bool SCLogOpenThreadedFile(
 {
         parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
         if (!parent_ctx->threads) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads container");
+            SCLogError(SC_ENOMEM, "Unable to allocate threads container");
             return false;
         }
 
         parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
         if (!parent_ctx->threads->append) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads append setting");
+            SCLogError(SC_ENOMEM, "Unable to allocate threads append setting");
             goto error_exit;
         }
 
         parent_ctx->threads->slot_count = slot_count;
         parent_ctx->threads->lf_slots = SCCalloc(slot_count, sizeof(LogFileCtx *));
         if (!parent_ctx->threads->lf_slots) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate thread slots");
+            SCLogError(SC_ENOMEM, "Unable to allocate thread slots");
             goto error_exit;
         }
         SCLogDebug("Allocated %d file context pointers for threaded array",
@@ -586,8 +586,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     }
     log_ctx->filename = SCStrdup(log_path);
     if (unlikely(log_ctx->filename == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory for filename");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory for filename");
         return -1;
     }
 
@@ -696,7 +695,7 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
 
     if (new_array == NULL) {
         SCMutexUnlock(&parent_ctx->threads->mutex);
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to increase file context array size to %d", new_size);
+        SCLogError(SC_ENOMEM, "Unable to increase file context array size to %d", new_size);
         return NULL;
     }
 
@@ -775,7 +774,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 {
     LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
     if (!thread) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate thread file context slot %d", thread_id);
+        SCLogError(SC_ENOMEM, "Unable to allocate thread file context slot %d", thread_id);
         return false;
     }
 
@@ -793,8 +792,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         }
         thread->filename = SCStrdup(fname);
         if (!thread->filename) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate filename for context slot %d",
-                    thread_id);
+            SCLogError(SC_ENOMEM, "Unable to duplicate filename for context slot %d", thread_id);
             goto error;
         }
         thread->is_regular = true;

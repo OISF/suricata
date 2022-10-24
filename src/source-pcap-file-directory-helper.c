@@ -367,14 +367,14 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
 
             file_to_add = SCCalloc(1, sizeof(PendingFile));
             if (unlikely(file_to_add == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate pending file");
+                SCLogError(SC_ENOMEM, "Failed to allocate pending file");
 
                 SCReturnInt(TM_ECODE_FAILED);
             }
 
             file_to_add->filename = SCStrdup(pathbuff);
             if (unlikely(file_to_add->filename == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy filename");
+                SCLogError(SC_ENOMEM, "Failed to copy filename");
                 CleanupPendingFile(file_to_add);
 
                 SCReturnInt(TM_ECODE_FAILED);
@@ -434,14 +434,14 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
                 PcapFileFileVars *pftv = SCMalloc(sizeof(PcapFileFileVars));
                 if (unlikely(pftv == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate PcapFileFileVars");
+                    SCLogError(SC_ENOMEM, "Failed to allocate PcapFileFileVars");
                     SCReturnInt(TM_ECODE_FAILED);
                 }
                 memset(pftv, 0, sizeof(PcapFileFileVars));
 
                 pftv->filename = SCStrdup(current_file->filename);
                 if (unlikely(pftv->filename == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+                    SCLogError(SC_ENOMEM, "Failed to allocate filename");
                     CleanupPcapFileFileVars(pftv);
                     SCReturnInt(TM_ECODE_FAILED);
                 }

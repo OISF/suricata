@@ -236,12 +236,12 @@ static UnixClient *UnixClientAlloc(void)
 {
     UnixClient *uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
+        SCLogError(SC_ENOMEM, "Can't allocate new client");
         return NULL;
     }
     uclient->mbuf = MemBufferCreateNew(CLIENT_BUFFER_SIZE);
     if (uclient->mbuf == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client send buffer");
+        SCLogError(sc_errno, "Can't allocate new client send buffer");
         SCFree(uclient);
         return NULL;
     }
@@ -985,12 +985,12 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 
     cmd = SCMalloc(sizeof(Command));
     if (unlikely(cmd == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd");
+        SCLogError(SC_ENOMEM, "Can't alloc cmd");
         SCReturnInt(TM_ECODE_FAILED);
     }
     cmd->name = SCStrdup(keyword);
     if (unlikely(cmd->name == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd name");
+        SCLogError(SC_ENOMEM, "Can't alloc cmd name");
         SCFree(cmd);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1026,7 +1026,7 @@ TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
 
     task = SCMalloc(sizeof(Task));
     if (unlikely(task == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc task");
+        SCLogError(SC_ENOMEM, "Can't alloc task");
         SCReturnInt(TM_ECODE_FAILED);
     }
     task->Func = Func;

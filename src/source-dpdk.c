@@ -424,7 +424,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
 
     ptv = SCCalloc(1, sizeof(DPDKThreadVars));
     if (unlikely(ptv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory");
+        SCLogError(SC_ENOMEM, "Unable to allocate memory");
         goto fail;
     }
 

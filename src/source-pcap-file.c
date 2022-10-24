@@ -223,7 +223,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     } else {
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
         if (unlikely(ptv->shared.bpf_string == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate bpf_string");
+            SCLogError(SC_ENOMEM, "Failed to allocate bpf_string");
 
             CleanupPcapFileThreadVars(ptv);
 
@@ -248,7 +248,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCLogDebug("argument %s was a file", (char *)initdata);
         PcapFileFileVars *pv = SCMalloc(sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate file vars");
+            SCLogError(SC_ENOMEM, "Failed to allocate file vars");
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
@@ -256,7 +256,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->filename = SCStrdup((char *)initdata);
         if (unlikely(pv->filename == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+            SCLogError(SC_ENOMEM, "Failed to allocate filename");
             CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -278,7 +278,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCLogInfo("Argument %s was a directory", (char *)initdata);
         PcapFileDirectoryVars *pv = SCMalloc(sizeof(PcapFileDirectoryVars));
         if (unlikely(pv == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate directory vars");
+            SCLogError(SC_ENOMEM, "Failed to allocate directory vars");
             closedir(directory);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -287,7 +287,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->filename = SCStrdup((char*)initdata);
         if (unlikely(pv->filename == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+            SCLogError(SC_ENOMEM, "Failed to allocate filename");
             CleanupPcapFileDirectoryVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);

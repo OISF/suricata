@@ -36,18 +36,18 @@ Tmq *TmqCreateQueue(const char *name)
 {
     Tmq *q = SCCalloc(1, sizeof(*q));
     if (q == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "SCCalloc failed");
+        FatalError(SC_ENOMEM, "SCCalloc failed");
 
     q->name = SCStrdup(name);
     if (q->name == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "SCStrdup failed");
+        FatalError(SC_ENOMEM, "SCStrdup failed");
 
     q->id = tmq_id++;
     q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
     if (!q->is_packet_pool) {
         q->pq = PacketQueueAlloc();
         if (q->pq == NULL)
-            FatalError(SC_ERR_MEM_ALLOC, "PacketQueueAlloc failed");
+            FatalError(SC_ENOMEM, "PacketQueueAlloc failed");
     }
 
     TAILQ_INSERT_HEAD(&tmq_list, q, next);

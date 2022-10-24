@@ -281,7 +281,7 @@ static TmEcode UnixListAddFile(
         return TM_ECODE_FAILED;
     cfile = SCMalloc(sizeof(PcapFiles));
     if (unlikely(cfile == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate new file");
+        SCLogError(SC_ENOMEM, "Unable to allocate new file");
         return TM_ECODE_FAILED;
     }
     memset(cfile, 0, sizeof(PcapFiles));
@@ -289,7 +289,7 @@ static TmEcode UnixListAddFile(
     cfile->filename = SCStrdup(filename);
     if (unlikely(cfile->filename == NULL)) {
         SCFree(cfile);
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup filename");
+        SCLogError(SC_ENOMEM, "Unable to dup filename");
         return TM_ECODE_FAILED;
     }
 
@@ -298,7 +298,7 @@ static TmEcode UnixListAddFile(
         if (unlikely(cfile->output_dir == NULL)) {
             SCFree(cfile->filename);
             SCFree(cfile);
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup output_dir");
+            SCLogError(SC_ENOMEM, "Unable to dup output_dir");
             return TM_ECODE_FAILED;
         }
     }
@@ -1591,7 +1591,7 @@ static int RunModeUnixSocketMaster(void)
 
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
     if (unlikely(pcapcmd == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
+        SCLogError(SC_ENOMEM, "Can not allocate pcap command");
         return 1;
     }
     TAILQ_INIT(&pcapcmd->files);

@@ -127,7 +127,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 
         p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate a packet.");
+            SCLogError(SC_ENOMEM, "Failed to allocate a packet.");
             EngineStop();
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -231,7 +231,7 @@ ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     ErfFileThreadVars *etv = SCMalloc(sizeof(ErfFileThreadVars));
     if (unlikely(etv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for ERF file thread vars.");
+        SCLogError(SC_ENOMEM, "Failed to allocate memory for ERF file thread vars.");
         fclose(erf);
         SCReturnInt(TM_ECODE_FAILED);
     }

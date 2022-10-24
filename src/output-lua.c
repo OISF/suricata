@@ -724,7 +724,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
          * on it's needs. */
         OutputModule *om = SCCalloc(1, sizeof(*om));
         if (om == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "calloc() failed");
+            SCLogError(SC_ENOMEM, "calloc() failed");
             goto error;
         }
 

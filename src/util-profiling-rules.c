@@ -436,7 +436,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     int summary_size = sizeof(SCProfileSummary) * rules_ctx->size;
     SCProfileSummary *summary = SCMalloc(summary_size);
     if (unlikely(summary == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
+        SCLogError(SC_ENOMEM, "Error allocating memory for profiling summary");
         return;
     }
 
