@@ -44,14 +44,18 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size,
         uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *),
         void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
 {
+    sc_errno = SC_OK;
+
     if (threads <= 0) {
         SCLogDebug("error");
+        sc_errno = SC_EINVAL;
         return NULL;
     }
 
     PoolThread *pt = SCCalloc(1, sizeof(*pt));
     if (unlikely(pt == NULL)) {
         SCLogDebug("memory alloc error");
+        sc_errno = SC_ENOMEM;
         goto error;
     }
 
@@ -59,6 +63,7 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size,
     pt->array = SCMalloc(threads * sizeof(PoolThreadElement));
     if (pt->array == NULL) {
         SCLogDebug("memory alloc error");
+        sc_errno = SC_ENOMEM;
         goto error;
     }
     pt->size = threads;
@@ -92,7 +97,7 @@ error:
 int PoolThreadExpand(PoolThread *pt)
 {
     if (pt == NULL || pt->array == NULL || pt->size == 0) {
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        SCLogError(SC_EINVAL, "pool grow failed");
         return -1;
     }
 
@@ -103,7 +108,7 @@ int PoolThreadExpand(PoolThread *pt)
     if (ptmp == NULL) {
         SCFree(pt->array);
         pt->array = NULL;
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        SCLogError(SC_EINVAL, "pool grow failed");
         return -1;
     }
     pt->array = ptmp;
@@ -133,7 +138,7 @@ int PoolThreadExpand(PoolThread *pt)
             settings.Cleanup, settings.Free);
     SCMutexUnlock(&e->lock);
     if (e->pool == NULL) {
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        SCLogError(SC_EINVAL, "pool grow failed");
         return -1;
     }
 
