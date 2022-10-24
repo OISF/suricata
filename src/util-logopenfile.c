@@ -719,6 +719,8 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
 static bool LogFileThreadedName(
         const char *original_name, char *threaded_name, size_t len, uint32_t unique_id)
 {
+    sc_errno = SC_OK;
+
     if (strcmp("/dev/null", original_name) == 0) {
         strlcpy(threaded_name, original_name, len);
         return true;
@@ -737,6 +739,7 @@ static bool LogFileThreadedName(
     if (dot) {
         char *tname = SCStrdup(original_name);
         if (!tname) {
+            sc_errno = SC_ENOMEM;
             return false;
         }
 
@@ -780,7 +783,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     if (parent_ctx->type == LOGFILE_TYPE_FILE) {
         char fname[LOGFILE_NAME_MAX];
         if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
+            SCLogError(sc_errno, "Unable to create threaded filename for log");
             goto error;
         }
         SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
