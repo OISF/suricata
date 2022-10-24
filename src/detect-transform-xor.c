@@ -81,7 +81,7 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     // Create pxd from optstr
     DetectTransformXorData *pxd = SCCalloc(1, sizeof(*pxd));
     if (pxd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCLogError(SC_ENOMEM, "memory allocation failed");
         SCReturnInt(-1);
     }
 
@@ -99,7 +99,7 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     pxd->length = (uint8_t)(keylen / 2);
     pxd->key = SCMalloc(keylen / 2);
     if (pxd->key == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCLogError(SC_ENOMEM, "memory allocation failed");
         DetectTransformXorFree(de_ctx, pxd);
         SCReturnInt(-1);
     }

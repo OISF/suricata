@@ -470,7 +470,7 @@ static void *ParseAFPConfig(const char *iface)
                 RunModeEnablesBypassManager();
                 struct ebpf_timeout_config *ebt = SCCalloc(1, sizeof(struct ebpf_timeout_config));
                 if (ebt == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Flow bypass alloc error");
+                    SCLogError(SC_ENOMEM, "Flow bypass alloc error");
                 } else {
                     memcpy(ebt, &(aconf->ebpf_t_config), sizeof(struct ebpf_timeout_config));
                     BypassedFlowManagerRegisterCheckFunc(NULL,

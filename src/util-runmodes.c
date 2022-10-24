@@ -64,8 +64,7 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
 
     char *queues = SCMalloc(queues_size);
     if (unlikely(queues == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc queues buffer: %s",
-                strerror(errno));
+        SCLogError(SC_ENOMEM, "failed to alloc queues buffer: %s", strerror(errno));
         return NULL;
     }
     memset(queues, 0x00, queues_size);
@@ -169,7 +168,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             for (int thread = 0; thread < threads_count; thread++) {
                 char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(dev)));
                 if (unlikely(printable_threadname == NULL)) {
-                    FatalError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
+                    FatalError(SC_ENOMEM, "failed to alloc printable thread name: %s",
+                            strerror(errno));
                 }
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
@@ -270,7 +270,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         const char *visual_devname = LiveGetShortName(live_dev);
         char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(live_dev)));
         if (unlikely(printable_threadname == NULL)) {
-            FatalError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
+            FatalError(SC_ENOMEM, "failed to alloc printable thread name: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
 

@@ -317,7 +317,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
             sfd->targettype = FLOWINT_TARGET_VAR;
             sfd->target.tvar.name = SCStrdup(varval);
             if (unlikely(sfd->target.tvar.name == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
+                SCLogError(SC_ENOMEM, "malloc from strdup failed");
                 goto error;
             }
         }
@@ -328,7 +328,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     /* Set the name of the origin var to modify/compared with the target */
     sfd->name = SCStrdup(varname);
     if (unlikely(sfd->name == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
+        SCLogError(SC_ENOMEM, "malloc from strdup failed");
         goto error;
     }
     sfd->idx = VarNameStoreSetupAdd(varname, VAR_TYPE_FLOW_INT);
