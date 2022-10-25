@@ -1396,14 +1396,12 @@ static int LuaMatchTest01a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, sig);
     if (s == NULL) {
-        printf("sig parse failed: ");
+        printf("sig parse failed: "); //
         goto end;
     }
 
@@ -1413,12 +1411,12 @@ static int LuaMatchTest01a(void)
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r); //
         goto end;
     }
     HtpState *http_state = f.alstate;
     if (http_state == NULL) {
-        printf("no http state: ");
+        printf("no http state: "); //
         goto end;
     }
 
@@ -1427,13 +1425,13 @@ static int LuaMatchTest01a(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
+        printf("sid 1 didn't match on p1 but should have: "); //
         goto end;
     }
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r); //
         goto end;
     }
     /* do detect for p2 */
@@ -1441,25 +1439,25 @@ static int LuaMatchTest01a(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
     if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
+        printf("sid 1 didn't match on p2 but should have: "); //
         goto end;
     }
 
     FlowVar *fv = FlowVarGet(&f, 1);
     if (fv == NULL) {
-        printf("no flowvar: ");
+        printf("no flowvar: "); //
         goto end;
     }
 
     if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
+        printf("%u != %u: ", fv->data.fv_str.value_len, 1); //
         goto end;
     }
 
     if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
         PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
 
-        printf("buffer mismatch: ");
+        printf("buffer mismatch: "); //
         goto end;
     }
 
@@ -1474,7 +1472,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test payload buffer */
@@ -1550,9 +1548,7 @@ static int LuaMatchTest02(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, sig);
@@ -1607,7 +1603,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test payload buffer */
@@ -1683,9 +1679,7 @@ static int LuaMatchTest02a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, sig);
@@ -1816,9 +1810,7 @@ static int LuaMatchTest03(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, sig);
