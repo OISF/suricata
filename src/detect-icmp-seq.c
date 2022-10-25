@@ -337,11 +337,10 @@ static int DetectIcmpSeqParseTest01 (void)
 {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse(NULL, "300");
-    if (iseq != NULL && htons(iseq->seq) == 300) {
-        DetectIcmpSeqFree(NULL, iseq);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(iseq);
+    FAIL_IF_NOT(htons(iseq->seq) == 300);
+    DetectIcmpSeqFree(NULL, iseq);
+    PASS;
 }
 
 /**
@@ -352,11 +351,10 @@ static int DetectIcmpSeqParseTest02 (void)
 {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse(NULL, "  300  ");
-    if (iseq != NULL && htons(iseq->seq) == 300) {
-        DetectIcmpSeqFree(NULL, iseq);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(iseq);
+    FAIL_IF_NOT(htons(iseq->seq) == 300);
+    DetectIcmpSeqFree(NULL, iseq);
+    PASS;
 }
 
 /**
@@ -364,13 +362,9 @@ static int DetectIcmpSeqParseTest02 (void)
  */
 static int DetectIcmpSeqParseTest03 (void)
 {
-    DetectIcmpSeqData *iseq = NULL;
-    iseq = DetectIcmpSeqParse(NULL, "badc");
-    if (iseq != NULL) {
-        DetectIcmpSeqFree(NULL, iseq);
-        return 0;
-    }
-    return 1;
+    DetectIcmpSeqData *iseq = DetectIcmpSeqParse(NULL, "badc");
+    FAIL_IF_NOT_NULL(iseq);
+    PASS;
 }
 
 /**
