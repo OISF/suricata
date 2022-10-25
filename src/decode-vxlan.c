@@ -212,16 +212,13 @@ static int DecodeVXLANtest01 (void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
-    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
-
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
     FlowInitConfig(FLOW_QUIET);
-    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
 
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
     FAIL_IF(p->udph == NULL);
     FAIL_IF(tv.decode_pq.top == NULL);
 
@@ -231,7 +228,7 @@ static int DecodeVXLANtest01 (void)
 
     FlowShutdown();
     PacketFree(p);
-    PacketFree(tp);
+    PacketFreeOrRelease(tp);
     PASS;
 }
 
@@ -254,16 +251,13 @@ static int DecodeVXLANtest02 (void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
-    DecodeVXLANConfigPorts("1");
-
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    DecodeVXLANConfigPorts("1");
     FlowInitConfig(FLOW_QUIET);
-    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
 
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
     FAIL_IF(p->udph == NULL);
     FAIL_IF(tv.decode_pq.top != NULL);
 
