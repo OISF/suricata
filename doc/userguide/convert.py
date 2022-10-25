@@ -1,18 +1,18 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys
 import re
-import urlparse
 import os.path
-import urllib2
-from StringIO import StringIO
+import urllib.request, urllib.parse
+from io import StringIO
 
 import requests
+
 
 def fetch_images(url, dest):
 
     print("Parsing image URLs from %s." % (url))
-    urlparts = urlparse.urlparse(url)
+    urlparts = urllib.parse.urlparse(url)
     r = requests.get(url)
     for m in re.finditer(r"(/attachments/[^\s]+\.png)\"", r.text):
         filename = os.path.basename(m.group(1))
@@ -29,7 +29,8 @@ def fetch_images(url, dest):
         print("Fetching image %s." % (image_url))
 
         open(os.path.join(dest, filename), "w").write(
-            urllib2.urlopen(image_url).read())
+            urllib.request.urlopen(image_url).read())
+
 
 def main():
 
@@ -88,7 +89,8 @@ def main():
             # _italic_ -> *italic*
             line = re.sub(r"\s_(\w+)_\s", r" *\1* ", line)
 
-            fileobj.write(line.encode("utf-8"))
+            fileobj.write(line)
+
 
 if __name__ == "__main__":
     sys.exit(main())
