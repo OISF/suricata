@@ -1192,7 +1192,6 @@ void AppLayerDeSetupCounters()
     TCPHdr tcph;                                                                                   \
     PacketQueueNoLock pq;                                                                          \
     memset(&pq, 0, sizeof(PacketQueueNoLock));                                                     \
-    memset(p, 0, SIZE_OF_PACKET);                                                                  \
     memset(&f, 0, sizeof(Flow));                                                                   \
     memset(&tv, 0, sizeof(ThreadVars));                                                            \
     memset(&tcph, 0, sizeof(TCPHdr));                                                              \
