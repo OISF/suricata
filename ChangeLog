@@ -1,3 +1,447 @@
+7.0.0-beta1 -- 2022-10-26
+
+Feature #5509: App-layer event for protocol change failure
+Feature #5506: DHCP: signature keyword for rebinding_time
+Feature #5503: ips: add "reject" action to exception policies
+Feature #5479: Add landlock support
+Feature #5468: ips: midstream: add "exception policy" for midstream
+Feature #5442: kerberos: log ticket encryption method
+Feature #5435: DHCP: signature keyword for lease_time
+Feature #5416: SNMP: signature keyword for usm
+Feature #5218: ips: allow dropping of flow if applayer reaches error state
+Feature #5216: ips: allow dropping of flow if flow.memcap is hit
+Feature #5215: ips: allow dropping of flow if stream.reassembly.memcap is hit
+Feature #5214: ips: allow dropping of flow if stream.memcap is hit
+Feature #5202: eve/drop: include drop "reason"
+Feature #5191: new keyword for self signed certificates
+Feature #5190: new tls.random keyword
+Feature #5036: sip: add frames support
+Feature #4984: dns: add frames support
+Feature #4983: frames: support UDP
+Feature #4967: QUIC v1 support
+Feature #4872: nfs: add stream app-layer frame support 
+Feature #4556: HTTP2: support deflate decompression
+Feature #4551: eve: add direct base64 to json option to json builder
+Feature #4550: pthreads: set minimum stack size
+Feature #4541: netmap: new API version (14) supports multi-ring software mode
+Feature #4526: SIGSEGV handling -- log stack before aborting
+Feature #4515: Add DNS logging of Z flag
+Feature #4507: dpdk: initial support for IDS and IPS modes
+Feature #4498: decoder: add VN-Tag support
+Feature #4406: unix socket: Get flow information by flow_id
+Feature #4386: Support for RFC2231
+Feature #4332: Makes libhtp decompression time limit configurable from Suricata
+Feature #4241: Protocol support: PostgreSQL (pgsql)
+Feature #4144: file.data: support for request side files in HTTP
+Feature #4142: file.data: support for NFS
+Feature #4117: http2: byte-range support
+Feature #4116: http2: body compression handling
+Feature #3957: Convert protocol to Rust: Modbus
+Feature #3887: yaml: Increase maximum size for address vars
+Feature #3767: Add IKEv1 parser
+Feature #3701: eve: add tenant_id in eve-log for other types than alert
+Feature #3512: stream depth event rule
+Feature #3440: Add GQUIC Protocol Analysis and CYU Fingerprinting
+Feature #3292: support for network service header (NSH)
+Feature #3285: rules: XOR keyword
+Feature #3002: Flow and Netflow Not Logging ESP Traffic
+Feature #2697: prefilter support for stream_size
+Feature #2450: lua: scripts access to calling rule informations
+Feature #2323: Applayer support for telnet
+Feature #2096: eve: event_type for MODBUS
+Feature #2054: Extracting HTTPS URL´s from SMTP, currently only HTTP is supported
+Feature #1576: http: byte-range support
+Feature #1478: Active flow counters
+Feature #1369: eve: json schema
+Feature #1096: tls: client certificate handling
+Feature #120: Capture full session on alert
+Security #5408: filestore: Segfault with filestore enabled and forced
+Security #5399: mqtt: DOS by quadratic with too many transactions in one parse
+Security #5244: Infinite loop in JsonFTPLogger
+Security #5243: protocol detection: exploitable type confusion due to concurrent protocol changes
+Security #5237: nfs: arbitrary allocation from nfs4_res_secinfo_no_name
+Security #5187: Rust regex crate security advisory CVE-2022-24713
+Security #5024: ftp: GetLine function buffers data indefinitely if 0x0a was not found int the frag'd input
+Security #5023: smtp: GetLine function buffers data indefinitely if 0x0a was not found int the frag'd input
+Security #4857: ftp: SEGV at flow cleanup due to protocol confusion
+Security #4710: tcp: Bypass of Payload Detection on TCP RST with options of MD5header
+Security #4569: tcp: crafted injected packets cause desync after 3whs
+Security #4504: tcp: Evasion possibility on wrong/unexpected ACK value in crafted SYN packets
+Bug #5595: eve/alert: SEGV in files to alert logging
+Bug #5584: detect/tag: timeout handling issues on windows
+Bug #5581: eve: mac address logging for packet records reverses direction
+Bug #5571: ips: encapsulated packet logged as dropped, but not actually dropped
+Bug #5538: Compiler Warning on Fedora 36 / gcc 12.2.1
+Bug #5536: detect: flow.age keyword
+Bug #5527: postgresql: limit number of live transactions
+Bug #5521: detect: transform strip whitespace creates a 0-sized variable-length array
+Bug #5518: dcerpc: More efficient transaction handling for UDP
+Bug #5508: SMB2 async responses are not matched with its request
+Bug #5507: DHCP: signature keyword for renewal_time
+Bug #5458: Reject action is no longer working
+Bug #5457: Counters are not initialized in all places.
+Bug #5455: ike: logging state transforms instead of transaction transforms
+Bug #5419: Failed assert DeStateSearchState
+Bug #5409: PCRE: use match and recursion limit for pcrexform
+Bug #5402: detect: will still inspect packets of a "dropped" flow for non-TCP
+Bug #5401: tcp: assertion failed in DoInsertSegment (BUG_ON)
+Bug #5392: fileinfo: inconsistent file size tracking for GAPs
+Bug #5391: events: PACKET_RECYCLE does not reset event_last_logged
+Bug #5390: smb: have default stream-depth of 0
+Bug #5386: detect/threshold: offline time handling issue
+Bug #5377: modbus: probing parser recognizes modbus with unknown function code
+Bug #5368: bypass: Memory leak of some flow bypass objects. 
+Bug #5361: IPS: ip only rules, but with negated addresses not treated like pure ip-only rules in IPS context
+Bug #5353: detect/alert: fix segvfault when incrementing discarded alerts if alert-queue-expand fails
+Bug #5331: stacktrace-on-signal: Kills all processes in the same process group
+Bug #5330: flow: vlan.use-for-tracking is not used for ICMPv4
+Bug #5329: rust: inconsistency between rust structure RustParser and C structure AppLayerParser
+Bug #5327: track by_rule|by_both incorrectly rejected for global thresholds
+Bug #5321: dcerpc: More efficient transaction handling
+Bug #5317: flow manager: end of flow counters not working
+Bug #5316: smtp: PreProcessCommands does not handle all the edge cases
+Bug #5315: decode/mime: base64 decoding for data with spaces is broken
+Bug #5314: ftp: quadratic complexity for tx iterator with linked list
+Bug #5313: python: distutils deprecation warning
+Bug #5312: test failure on Ubuntu 22.04 with GCC 12
+Bug #5310: detect: several potential infinite loops by comparing u16 to size_t
+Bug #5309: CIDR prefix calculation fails on big endian archs
+Bug #5308: file handling: avoid toctou race conditions
+Bug #5306: dcerpc: unsigned integer overflow in parse_dcerpc_bindack
+Bug #5298: template (rust): convert transaction list to vecdeque
+Bug #5297: pgsql: convert transaction list to vecdeque
+Bug #5296: http2: convert transaction list to vecdeque
+Bug #5295: rdp: convert transaction list to vecdeque
+Bug #5294: mqtt: convert to vecdeque
+Bug #5291: cppcheck: various static analyzer "warning"s
+Bug #5285: frame: assertion failed in PrefilterMpmFrame
+Bug #5281: ftp: don't let first incomplete segment be over maximum length
+Bug #5280: nfs: ASSERT: attempt to subtract with overflow (compound)
+Bug #5278: app-layer: Allow for non slice based transaction containers in generate get iterator (rust)
+Bug #5277: dns: More efficient transaction handling
+Bug #5276: eve: payload field randomly missing even if the packet field is present
+Bug #5271: app-layer: timeout when removing many transactions from the beginning
+Bug #5268: mqtt: integer underflow with truncated
+Bug #5260: rust: update regex dependency
+Bug #5259: rust: update time dependency
+Bug #5248: flow: double unlock in tcp reuse case
+Bug #5246: smb: integer underflows and overflows
+Bug #5238: frame: memory leak in signature parsing
+Bug #5236: frame: buffer over read in SCACSearch
+Bug #5228: pcre2: SEGV during rule loading
+Bug #5226: Frames: failed assertion !((int64_t)data_len > frame->len)
+Bug #5223: base64_decode does not populate base64_data buffer once hitting non-base64 chars
+Bug #5208: DCERPC protocol detection when nested in SMB
+Bug #5205: FTP-data unrecognized depending on multi-threading
+Bug #5201: content:"22 2 22"; is parsed without error
+Bug #5197: fast_pattern assignment of specific content results in FN
+Bug #5188: SSL : over allocation for certificates
+Bug #5183: TLS Handshake Fragments not Reassembled
+Bug #5174: MIME URL extraction creates invalid url in JSON 
+Bug #5168: detect/iponly: non-cidr netmask settings can lead incorrect detection
+Bug #5162: inspection of smb traffic without smb/dcerpc doesn't work correct. 
+Bug #5147: frames: debug assertion on SMB2 traffic
+Bug #5146: libhtp: does not handle 100 continue if there is a 0 Content Length
+Bug #5145: nfs: Integer underflow in NFS
+Bug #5144: Failed assert DeStateSearchState
+Bug #5132: segfault: master - HTPFileCloseHandleRange
+Bug #5094: output: timestamp missing usecs on Arm 32bit + Musl
+Bug #5093: rust/proc-macro-crate: pin to old version to support our MSRV
+Bug #5086: htp: server personality radix handling issue
+Bug #5085: defrag: policy config can setup radix incorrectly
+Bug #5084: iprep: cidr support can set up radix incorrectly
+Bug #5081: detect/iponly: rule parsing does not always apply netmask correctly
+Bug #5080: eve/dnp3: coverity warnings for string handling
+Bug #5079: swf: coverity warning
+Bug #5077: byte_math rule options need to be in order or will fail otherwise
+Bug #5073: Off-by-one in flow-manager flow_hash row allocation
+Bug #5070: Stacktrace logger should propagate original signal
+Bug #5066: detect/iponly: mixing netblocks can lead to FN/FP
+Bug #5065: frames: coverity warning
+Bug #5046: Documentation copyright years are invalid
+Bug #5040: stats: add app-layer error counters
+Bug #5034: dns: probing/parser can return error when it should return incomplete
+Bug #5019: dataset: error with space in rule language
+Bug #5018: MQTT can return AppLayerResult::incomplete forever and buffer forever
+Bug #5011: frames: buffer overread in SigValidate
+Bug #5009: dpdk: fails to compile on ubuntu 22.04
+Bug #5007: pgsql: coverity warning
+Bug #4972: Null deference in ConfigApplyTx
+Bug #4969: Libhtp timeout lzma reallocing dictionary
+Bug #4953: stream: too aggressive pruning in lossy streams
+Bug #4948: SMTP assertion triggered
+Bug #4947: suricatasc loop if recv returns no data
+Bug #4945: smb: excessive CPU utilization and higher packet processing latency due to excessive calls to Vec::extend_from_slice()
+Bug #4941: alerts: 5.0.8/6.0.4 count noalert sigs towards built-in alert limit
+Bug #4935: DPDK: Packet counters set incorrectly
+Bug #4924: dns: transaction not created when z-bit set
+Bug #4920: detect/app-layer-protocol: app-layer-protocol:http broken
+Bug #4882: Netmap configuration -- need a configuration option for non-standard library locations.
+Bug #4877: Run stream reassembly on both directions upon receiving a FIN packet
+Bug #4862: MQTT : transactions are never cleaned by AppLayerParserTransactionsCleanup
+Bug #4860: eve.json remove app-layer specific fields from root object
+Bug #4859: dnp3: buffer over read in logging base64 empty objects
+Bug #4849: protodetect: SMB vs TLS protocol detection in midstream
+Bug #4848: TFTP: memory leak due to missing detect state
+Bug #4842: smb: excessive memory use during file transfer
+Bug #4839: Memory leak with signature using file_data and NFS
+Bug #4836: profiling: Invalid performance counter when using sampling
+Bug #4828: flow: flows not evicted & freed in time
+Bug #4817: smtp: smtp transaction not logged if no email is present
+Bug #4812: conf: quadratic complexity
+Bug #4811: Range: memory leak from HTTP2
+Bug #4810: pppoe decoder fails when protocol identity field is only 1 byte
+Bug #4808: flow: worker-evicted flows need to be processed quicker
+Bug #4807: packetpool: packets in pool may have capture method ReleasePacket callbacks set
+Bug #4804: af-packet: tpacket v3 if/down logic broken
+Bug #4803: af-packet: up/down logic leaks resources in autofp (tpacket v2)
+Bug #4801: af-packet: tpacket v3 socket reference handling broken
+Bug #4800: af-packet: flag colision between kernel and Suricata
+Bug #4785: af-packet: threads sometimes get stuck in capture
+Bug #4779: flow/bypass: flow worker not performing flow timeout "housekeeping"
+Bug #4778: flow/bypass: app-layer/stream resources not freed when bypass activated
+Bug #4771: pcrexform: does not capture substring but whole match
+Bug #4769: dcerpc dce_iface just match a packet
+Bug #4767: Rule error in SMB dce_iface and dce_opnum keywords
+Bug #4766: Flow leaked when flow->use_cnt access race happens
+Bug #4765: loopback: different AF_INET6 values per OS
+Bug #4764: range: no validity check with HTTP2 leads to over allocation
+Bug #4757: Incomplete range with overlap, and expected new bytes, lead to incomplete reassembly
+Bug #4754: Invalid range leads to OOM
+Bug #4752: Memory leak in SNMP with DetectEngineState
+Bug #4741: Quadratic complexity in modus due to missing tx_iterator
+Bug #4739: Absent app-layer protocol is always enabled by default
+Bug #4737: ubsan: bytejump warning
+Bug #4731: flows: spare pool not freeing flows aggressively enough
+Bug #4724: pcre2: scan-build warning
+Bug #4722: flows: TCP flow timeout handling stuck if there is no traffic
+Bug #4720: pcre2: ASAN heap-buffer-overflow
+Bug #4719: http2: byte-range test fails intermittently
+Bug #4699: coverity warnings after output changes
+Bug #4692: lua: file info callback returns wrong value
+Bug #4685: detect: too many prefilter engines lead to FNs
+Bug #4681: Wrong list_id with transforms for http_client_body and http file_data
+Bug #4680: nfs: failed assert self.tx_data.files_logged > 1
+Bug #4679: IPv6 : decoder event on invalid fragment length
+Bug #4670: rules: mix of drop and pass rules issues
+Bug #4666: http: ipv6 address is a valid host
+Bug #4664: ipv6 evasions : fragmentation
+Bug #4663: rules: drop rules with noalert not fully dropping
+Bug #4659: Configuration test mode succeeds when reference.config file contains invalid content
+Bug #4654: tcp: insert_data_normal_fail can hit without triggering memcap
+Bug #4650: Stream TCP raw reassembly is leaking
+Bug #4622: File deletions over SMB are not always logged
+Bug #4621: rust panic: when using smb stream-depth
+Bug #4620: Protocol detection : confusion with SMB in midstream
+Bug #4619: HTTP2 null dereference in upgrade
+Bug #4586: segmentfault when reopen redis
+Bug #4582: BUG_ON triggered from TmThreadsInjectFlowById
+Bug #4581: Excessive qsort/msort time when large number of rules using tls.fingerprint
+Bug #4577: coverity: minor warnings
+Bug #4570: eve/flow: many flows logged with reason==unknown
+Bug #4563: Rules based on SSH banner-related keywords only match on acked data
+Bug #4562: Memory leak in Protocol change during protocol detection
+Bug #4561: Failed assertion in SMTP SMTPTransactionComplete
+Bug #4560: Quadratic complexity in HTTP2 gzip decompression
+Bug #4558: DNP3: intra structure overflow in DNP3DecodeObjectG70V6
+Bug #4549: TCP reassembly, failed assert app_progress > last_ack_abs, both sides need to be pruned
+Bug #4540:  unused variables warnings on Windows compiles with rust
+Bug #4537: alert count shows up as 0 when stats are disabled
+Bug #4536: SWF decompression overread
+Bug #4534: Timeout in ikev2 parsing
+Bug #4533: Rust modbus parser does not handle gaps as it claims
+Bug #4530: DOS Quadratic complexity when having too many transactions
+Bug #4527: Fix implicit conversions in traffic facing source code modules
+Bug #4525: segv with --set cmdline option if incorrect key is provided
+Bug #4523: Application log cannot to be re-opened when running as non-root user
+Bug #4516: Integer overflows
+Bug #4509: Incorrect flags in Rust
+Bug #4508: SSH bypass is not working
+Bug #4505: Rust panic while parsing (new rust) modbus rule
+Bug #4503: Buffer overflow in "by_rule" threshold context
+Bug #4502: TCP reassembly memuse approaching memcap value results in TCP detection being stopped
+Bug #4495: output: threaded output coverity warning
+Bug #4494: Failed assertion in HTTP2 decompression
+Bug #4491: rules: rules w/o sid accepted, leading to alerts with signature_id: 0
+Bug #4478: freebsd: lockups due to mutex handling issues
+Bug #4477: Infinite loops in when using InspectionBufferMultipleForList
+Bug #4476: heap-buffer-overflow WRITE in InspectionBufferSetup with use of InspectionBufferGetMulti 
+Bug #4473: Timeout in ftp parsing rs_ftp_active_eprt
+Bug #4472: YAML -- interpretation of "~" (tilde)
+Bug #4448: Properly set the ICMP emergency-bypassed value
+Bug #4447: ipv6 & ftp & passive mode & error
+Bug #4442: build: Build failure on FreeBSD
+Bug #4440: eve: log if flow had gap
+Bug #4438: Null-dereference in HTTP2MimicHttp1Request in midstream
+Bug #4437: dns: high resource usage on long lived dns connections
+Bug #4436: Buffer overread in SMTP SMTPParseCommandBDAT
+Bug #4434: Duplicate alert record in eve log when using unix-socket mode
+Bug #4433: Debug assert failed in ikev1 logger
+Bug #4428: Rust panic in suricata::dcerpc::detect::handle_input_data (buffer overread)
+Bug #4425: threaded eve: files not closed on deinitialization
+Bug #4424: ftp: Memory leak with duplicate FTP expectation
+Bug #4407: threshold: slow startup on threshold.config with many addresses in suppression
+Bug #4404: eve/mqtt: mqtt logging crashes when eve is multithreaded
+Bug #4403: Use after free or read overflow or use of unitized memory in TransformStripWhitespace called by HttpServerBodyXformsGetDataCallback
+Bug #4401: Quadratic complexity in libhtp chunk parsing
+Bug #4400: Panic in Rust HTTP2 dynamic headers table eviction
+Bug #4397: eve.drop: alerts option logs lowest priority alert
+Bug #4395: Incorrect AppLayerResult::incomplete for RDP
+Bug #4394: detect: "drop" on protocol detect only rule doesn't drop flow
+Bug #4389: Protocol detection tls-dcerpc
+Bug #4388: Protocol detection evasion enip-dns
+Bug #4387: Heap-use-after-free READ 8 · JsonDNP3LoggerToClient
+Bug #4379: flow manager: using too much CPU during idle
+Bug #4376: TCP flow that retransmits the SYN with a newer TSval not properly tracked
+Bug #4375: segv in ApplyToU8Hash
+Bug #4369: Configuration test mode succeeds when threshold.config file contains invalid content
+Bug #4361: detect: file.data performance regression
+Bug #4348: ftp: "g_expectation_data_id" and "g_expectation_id" in AppLayerExpectationHandle function
+Bug #4335: Stack-buffer-overflow READ 4 in SetupU8Hash
+Bug #4331: libhtp: don't put stream in error state on compression issues
+Bug #4320: Heap use after free in parsing signatures with ip_proto and prefilter
+Bug #4280: Suricata is not fully reading or loading the iprep files
+Bug #4277: SIGABRT: rust panic  HTTP2State
+Bug #4274: Suricata crashes at exit in NFQ mode
+Bug #4273: protodetect: SEGV due to NULL ptr deref
+Bug #4272: Timeout in libhtp with lzma in gzip to be decompressed in many responses
+Bug #4271: datasets: reference counter issue in string lookup
+Bug #4267: output: don't use /etc/protocols
+Bug #4262: ebpf: llc detection failure
+Bug #4261: Mismatch between capture and outputs in rules leads to seg fault
+Bug #4258: ftp-data: support for file.name keyword is incomplete
+Bug #4254: Leak in signature parsing with urilen
+Bug #4253: lua: flowint/flowvar API naming consistency
+Bug #4247: detect: NOOPT flag not enforced correctly
+Bug #4246: Assertion failed in AdjustToAcked delta > 10000000ULL && delta > stream->window
+Bug #4245: SMTP/Email Body md5: Only logs the md5 of the first part in a multi-part mime message
+Bug #4239: dataset file not written when run as user
+Bug #4238: tcp/fastopen: false positive on "invalid option"
+Bug #4233: ssl : Integer underflow in ssl parsing SSLV3_HANDSHAKE_PROTOCOL
+Bug #4232: Protocol detection evasion enip-SMB
+Bug #4231: ICMPv6 failed assert p->icmpv6h == NULL with icmpv6.hdr
+Bug #4228: tcp/async: incorrect flagging of ACK values as invalid
+Bug #4225: SC_ERROR_CONF_YAML_ERROR anomaly logger error when in socket mode
+Bug #4224: modbus: Request flood leads to CPU exhaustion
+Bug #4216: 5.0.5 in socket mode crashes when using file-store due to uninitialized stats_ctx
+Bug #4211: Not all manpages are built by docs Makefile
+Bug #4210: Alert not generated with 2 rules - http.request body (alone) and http.request_body/url_decode
+Bug #4208: Suricata crashes with multi-threaded eve logger and HTTP/2 traffic
+Bug #4206: dns: output flags not set correctly on 32 bit systems
+Bug #4205: eve: Memory leak from jsonbuilder in @MetadataJson@
+Bug #4202: Wrong stream side after direction change
+Bug #4199: Transformation keyword can’t trigger an alert 
+Bug #4198: dcerpc: no alert triggered with dce opnum in 6.0
+Bug #4187: rs_dcerpc_udp_get_tx takes out unusual amount of CPU
+Bug #4171: Failed assert in TCPProtoDetectCheckBailConditions size_ts > 1000000UL
+Bug #4152: fatal error: 'gnu/stubs-32.h' file not found
+Bug #4106: Duplicate TLS subjects in tls metadata.
+Bug #4096: flow manager: 200% CPU in KVM host with no activity with Suricata 6
+Bug #4080:  DCERPCUDPState handle fragmented data functions pegging certain CPU cores/threads 
+Bug #3996: SIGABRT: SMTPTransactionComplete
+Bug #3995: SIGABRT stream-tcp-reassemble
+Bug #3846: Infinite loop if the sniffing interface temporarily goes down
+Bug #3703: fileinfo "stored: false" even if the file is kept on disk
+Bug #3685: Incorrect logging level for messages
+Bug #3542: FTP: expectation created in wrong direction.
+Bug #3475: SMB evasion against EICAR file detection
+Bug #3419: af-packet: cluster_id is not used when trying to set fanout support
+Bug #3109: dcerpc engine not generating alerts
+Bug #2809: Applayer Mismatch protocol both directions for kerberos AS-REQ/KDC_ERR_PREAUTH_REQUIRED exchange
+Bug #2802: iprep: use_cnt can get desynchronized (SIGABRT)
+Bug #2510: Suricata doesnt decompress HTTP Post body 
+Bug #2190: apparent 1000 character limit in threshold.conf IP lists
+Optimization #5592: tunnel: spinlock for tunnel packet sync
+Optimization #5577: Fix warning about "comparing with null" in debug code
+Optimization #5481: tls: support incomplete API to replace internal buffering
+Optimization #5454: http2: slow http2_frames_get_header_value_vec because of allocation
+Optimization #5400: dpdk: allow specifying of `rss_hf` flags in config
+Optimization #5232: rules: pattern id assignment is too slow
+Optimization #5231: rules: mpm setup more costly than needed
+Optimization #5230: rules: too much time spent in DetectUnregisterThreadCtxFuncs due to pcre2
+Optimization #5229: rules: too much time spent in SigMatchListSMBelongsTo at startup
+Optimization #4991: pgsql: convert parser to nom7 functions
+Optimization #4907: smtp: use AppLayerResult instead of buffering wherever possible
+Optimization #4805: af-packet: move vlan hdr insert logic to capture/decode
+Optimization #4795: Remove PASS_IF macro from the FAIL/PASS API
+Optimization #4748: app-layer/rust: explore if tx iterator can be implemented as a trait
+Optimization #4711: Clang 14 and rust nightly new warnings
+Optimization #4653: Flow cleaning with chunked approach is memory hungry
+Optimization #4609: Fix warning about "if same then else"
+Optimization #4604: Fix warning about "branches sharing code"
+Optimization #4599: Fix warning  about "ptr_arg"
+Optimization #4597: Fix warning about "enum's name"
+Optimization #4593: Fix warning about "mixed case hex literals"
+Optimization #4555: HTTP2: what to do when HTTP upgrade is requested and HTTP2 is disabled ?
+Optimization #4497: rust: clean up constructors of state, transaction structs
+Optimization #4496: decode: remove NULL checks after header casts
+Optimization #4475: Rust: Make default_port in parser registration an Option
+Optimization #4427: storage api: use dedicated 'id' type
+Optimization #4366: decoder: limit number of decoding layers
+Optimization #4319: dcerpc: improve protocol detection
+Optimization #4207: Use configurable or more dynamic @ PACKET_ALERT_MAX@
+Optimization #4154: Rust Parsers: Abstract AppLayer events to a derive macro
+Optimization #4126: Threaded eve logging for output types other than regular file (socket, plugins, redis etc)
+Optimization #4112: Use generic rust DetectU32Data in every keyword needing this
+Optimization #3832: rust: Make core::* as enum to improve readability
+Optimization #3825: Defining only one basic rust Files structure
+Optimization #3658: Use WARN_UNUSED for ByteExtract* functions
+Optimization #3315: app-layer: unify registration logic
+Task #5569: transversal: update references to suricata webpage version 2
+Task #5497: github-ci: update runners using ubuntu-18.04 image
+Task #5475: doc: add exception policy documentation
+Task #5319: add `alert-queue-expand-fails` command-line option
+Task #5179: stats/alert: log out to stats alerts that have been discarded from packet queue
+Task #5175: nfs4: Improve compound record parsers
+Task #5166: quic: Support older versions like Q039 and Q043
+Task #5143: QUIC: support JA3
+Task #5002: applayertemplate: convert parser to nom7 functions
+Task #5001: x509: convert parser to nom7 functions
+Task #5000: rfb: convert parser to nom7 functions
+Task #4999: ntp: convert parser to nom7 functions
+Task #4998: krb: convert parser to nom7 functions
+Task #4997: mime: convert parser to nom7 functions
+Task #4996: rdp: convert parser to nom7 functions
+Task #4995: snmp: convert parser to nom7 functions
+Task #4994: ike: convert parser to nom7 functions
+Task #4993: asn1: convert parser to nom7 functions
+Task #4992: dcerpc: convert parser to nom7 functions
+Task #4970: libhtp 0.5.40
+Task #4915: transversal: update references to suricata webpage
+Task #4912: Update default rule path to /var/lib/suricata/rules.
+Task #4909: devguide: move into userguide as last chapter
+Task #4796: af-packet: remove non-mmap tpacket-v1 support
+Task #4784: config: add suricata version as a comment to the top of the configuration file
+Task #4721: http2: enable by default
+Task #4668: Remove Prelude output
+Task #4667: libhtp 0.5.39
+Task #4446: pcre2: document changes vs prce1 for rule writers
+Task #4444: files: store files in transactions instead of per flow state
+Task #4221: Build Suricata into a static and shared library
+Task #4182: lua: Use lua_pushinteger for pushing integer types as integers instead of floats
+Task #4157: deprecation: remove dns eve v1 logging (May 2022)
+Task #4058: Convert unittests to new FAIL/PASS API: detect-sid.c
+Task #4056: Convert unittests to new FAIL/PASS API: detect-rpc.c
+Task #4053: Convert unittests to new FAIL/PASS API: detect-msg.c
+Task #4038: Convert unittests to new FAIL/PASS API: detect-filesha256.c
+Task #4036: Convert unittests to new FAIL/PASS API: detect-filename.c
+Task #4035: Convert unittests to new FAIL/PASS API: detect-filemd5.c
+Task #4034: Convert unittests to new FAIL/PASS API: detect-filemagic.c
+Task #4033: Convert unittests to new FAIL/PASS API: detect-fileext.c
+Task #4032: Convert unittests to new FAIL/PASS API: detect-file-data.c
+Task #3905: GitHub CI: use sccache for commits build
+Task #3194: pcre2 support
+Documentation #5511: userguide: add subsection about setting up Suri in IPS mode with DPDK
+Documentation #5441: userguide: rules meta page updates
+Documentation #5385: userguide: update rule's format document
+Documentation #5364: userguide: reorganize `Application Layers Parsers` and `Application layers` subsections in the suricata.yaml page
+Documentation #5130: doc: add flowbits ORing doc
+Documentation #4949: userguide: add explanation on max-streams in the suricata.yaml page
+Documentation #4671: Document changes to HTTP events with respect to http/http2 normalization
+Documentation #4396: Devguide: Transactions and State overview
+Documentation #3029: No documentation for "dcerpc" keywords
+Documentation #3017: No documentation for "rawbytes" keyword
+
 6.0.1 -- 2020-12-04
 
 Feature #2689: http: Normalized HTTP client body buffer 
