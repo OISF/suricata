@@ -1830,7 +1830,11 @@ again:
                 SleepUsec(100);
                 goto again;
             }
-
+            tv = tv->next;
+        }
+    }
+    for (int i = 0; i < TVT_MAX; i++) {
+        for (ThreadVars *tv = tv_root[i]; tv != NULL; tv = tv->next) {
             if (strncmp(thread_name_autofp, tv->name, strlen(thread_name_autofp)) == 0)
                 RX_num++;
             else if (strncmp(thread_name_workers, tv->name, strlen(thread_name_workers)) == 0)
@@ -1841,8 +1845,6 @@ again:
                 FM_num++;
             else if (strncmp(thread_name_flow_rec, tv->name, strlen(thread_name_flow_rec)) == 0)
                 FR_num++;
-
-            tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
