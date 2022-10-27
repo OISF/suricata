@@ -660,6 +660,74 @@ jobs:
       # Check compilation against systemd
       - run: ldd src/suricata | grep libsystemd &> /dev/null
 
+  fedora-36-non-root:
+    name: Fedora 36 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo \
+                ccache \
+                clang \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-softokn-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                systemd-devel \
+                which \
+                zlib-devel
+      - run: adduser suricata
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: mkdir /home/suricata/suricata
+      - run: cp -a . /home/suricata/suricata
+      - run: chown -R suricata:suricata /home/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh cbindgen
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh autogen
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh configure
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh make
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh unit-test
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh verify
+        working-directory: /home/suricata/suricata
+
   fedora-35:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
