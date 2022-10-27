@@ -349,6 +349,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
     ptv->slot = s->slot_next;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     PacketPoolWait();
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
