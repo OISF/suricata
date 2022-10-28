@@ -41,8 +41,15 @@
 #include "util-path.h"
 #include "util-conf.h"
 
-int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+#define DMD_CAP_STEP 16
+typedef struct DetectDatasetMatchData_ {
+    uint32_t nb;
+    uint32_t cap;
+    const uint8_t **data;
+    uint32_t *data_len;
+} DetectDatasetMatchData;
+
+int DetectDatasetMatch(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatasetFree (DetectEngineCtx *, void *);
 
@@ -53,6 +60,7 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
+    sigmatch_table[DETECT_DATASET].Match = DetectDatasetMatch;
 }
 
 /*
@@ -67,33 +75,79 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
     if (data == NULL || data_len == 0)
         return 0;
 
+    int r = DatasetLookup(sd->set, data, data_len);
+    SCLogDebug("r %d", r);
     switch (sd->cmd) {
         case DETECT_DATASET_CMD_ISSET: {
-            //PrintRawDataFp(stdout, data, data_len);
-            int r = DatasetLookup(sd->set, data, data_len);
-            SCLogDebug("r %d", r);
             if (r == 1)
                 return 1;
             break;
         }
         case DETECT_DATASET_CMD_ISNOTSET: {
-            //PrintRawDataFp(stdout, data, data_len);
-            int r = DatasetLookup(sd->set, data, data_len);
-            SCLogDebug("r %d", r);
             if (r < 1)
                 return 1;
             break;
         }
         case DETECT_DATASET_CMD_SET: {
-            //PrintRawDataFp(stdout, data, data_len);
-            int r = DatasetAdd(sd->set, data, data_len);
-            if (r == 1)
-                return 1;
-            break;
+            if (r == 1) {
+                /* Do not match if data is already in set */
+                return 0;
+            }
+            DetectDatasetMatchData *dmd =
+                    (DetectDatasetMatchData *)DetectThreadCtxGetKeywordThreadCtx(
+                            det_ctx, sd->thread_ctx_id);
+            if (dmd == NULL) {
+                return 0;
+            }
+            // No need to allocate and copy as this data lives
+            // as long as detection runs one iteration
+            if (dmd->nb >= dmd->cap) {
+                dmd->cap = dmd->cap + DMD_CAP_STEP;
+                void *tmp = SCRealloc(dmd->data_len, dmd->cap * sizeof(uint32_t));
+                if (tmp == NULL) {
+                    return 0;
+                }
+                dmd->data_len = tmp;
+                tmp = SCRealloc(dmd->data, dmd->cap * sizeof(uint8_t *));
+                if (tmp == NULL) {
+                    return 0;
+                }
+                dmd->data = tmp;
+            }
+            dmd->data_len[dmd->nb] = data_len;
+            dmd->data[dmd->nb] = data;
+            dmd->nb++;
+            return 1;
         }
         default:
             abort();
     }
+    return 0;
+}
+
+int DetectDatasetMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    const DetectDatasetData *sd = (DetectDatasetData *)ctx;
+    // This is only run for DETECT_SM_LIST_POSTMATCH
+    DEBUG_VALIDATE_BUG_ON(sd->cmd != DETECT_DATASET_CMD_SET);
+    DetectDatasetMatchData *dmd = (DetectDatasetMatchData *)DetectThreadCtxGetKeywordThreadCtx(
+            det_ctx, sd->thread_ctx_id);
+
+    if (dmd == NULL || dmd->nb == 0) {
+        return 0;
+    }
+    if (s == NULL) {
+        // hack : we are called with s == NULL when there is no match
+        // so we reset, to avoid reusing a dangling pointer
+        dmd->nb = 0;
+        return 0;
+    }
+    for (uint32_t i = 0; i < dmd->nb; i++) {
+        // ignore return value
+        DatasetAdd(sd->set, dmd->data[i], dmd->data_len[i]);
+    }
+    // return value is unused for postmatch functions
     return 0;
 }
 
@@ -340,6 +394,25 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
+static void *DetectDatasetMatchDataThreadInit(void *data)
+{
+    DetectDatasetMatchData *scmd = SCCalloc(1, sizeof(DetectDatasetMatchData));
+    // make cocci happy
+    if (unlikely(scmd == NULL))
+        return NULL;
+    return scmd;
+}
+
+static void DetectDatasetMatchDataThreadFree(void *ctx)
+{
+    if (ctx != NULL) {
+        DetectDatasetMatchData *scmd = (DetectDatasetMatchData *)ctx;
+        SCFree(scmd->data);
+        SCFree(scmd->data_len);
+        SCFree(scmd);
+    }
+}
+
 int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectDatasetData *cd = NULL;
@@ -416,8 +489,25 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     SCLogDebug("cmd %s, name %s",
         cmd_str, strlen(name) ? name : "(none)");
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
+    if (cmd == DETECT_DATASET_CMD_SET) {
+        // for set operation, we need one match, and one postmatch
+        cd->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "dataset",
+                DetectDatasetMatchDataThreadInit, (void *)cd, DetectDatasetMatchDataThreadFree, 0);
+        if (cd->thread_ctx_id == -1)
+            goto error;
+        DetectDatasetData *scd = SCCalloc(1, sizeof(DetectDatasetData));
+        if (unlikely(scd == NULL))
+            goto error;
+
+        scd->set = set;
+        scd->cmd = cmd;
+        scd->thread_ctx_id = cd->thread_ctx_id;
+        if (SigMatchAppendSMToList(de_ctx, s, DETECT_DATASET, (SigMatchCtx *)scd,
+                    DETECT_SM_LIST_POSTMATCH) == NULL) {
+            SCFree(scd);
+            goto error;
+        }
+    }
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_DATASET, (SigMatchCtx *)cd, list) == NULL) {
         goto error;
