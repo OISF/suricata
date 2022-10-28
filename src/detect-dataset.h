@@ -34,6 +34,7 @@
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
+    int thread_ctx_id;
 } DetectDatasetData;
 
 int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
