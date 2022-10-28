@@ -22,7 +22,7 @@ use nom7::bytes::complete::take_while1;
 use nom7::character::complete::char;
 use nom7::character::{is_alphabetic, is_alphanumeric};
 use nom7::combinator::verify;
-use nom7::multi::many1_count;
+use nom7::multi::many0_count;
 use nom7::IResult;
 
 #[no_mangle]
@@ -48,7 +48,7 @@ fn parse_subdomain(input: &[u8]) -> IResult<&[u8], ()> {
 }
 
 fn parse_domain(input: &[u8]) -> IResult<&[u8], ()> {
-    let (input, _) = many1_count(parse_subdomain)(input)?;
+    let (input, _) = many0_count(parse_subdomain)(input)?;
     let (input, _) = parse_domain_label(input)?;
     return Ok((input, ()));
 }
