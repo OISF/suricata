@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -327,8 +327,6 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectIcmpSeqParseTest01 is a test for setting a valid icmp_seq value
@@ -367,72 +365,10 @@ static int DetectIcmpSeqParseTest03 (void)
     PASS;
 }
 
-/**
- * \test DetectIcmpSeqMatchTest01 is a test for checking the working of
- *       icmp_seq keyword by creating 2 rules and matching a crafted packet
- *       against them. Only the first one shall trigger.
- */
-static int DetectIcmpSeqMatchTest01 (void)
-{
-    int result = 0;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
-    p->icmpv4vars.seq = htons(2216);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (icmp_seq:2216; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any (icmp_seq:5000; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) == 0) {
-        printf("sid 1 did not alert, but should have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 2)) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
-end:
-    return result;
-}
-
 static void DetectIcmpSeqRegisterTests (void)
 {
     UtRegisterTest("DetectIcmpSeqParseTest01", DetectIcmpSeqParseTest01);
     UtRegisterTest("DetectIcmpSeqParseTest02", DetectIcmpSeqParseTest02);
     UtRegisterTest("DetectIcmpSeqParseTest03", DetectIcmpSeqParseTest03);
-    UtRegisterTest("DetectIcmpSeqMatchTest01", DetectIcmpSeqMatchTest01);
 }
 #endif /* UNITTESTS */
