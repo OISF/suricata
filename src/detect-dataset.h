@@ -34,6 +34,8 @@
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
+    // for postmatch to retrieve the buffer
+    int list;
 } DetectDatasetData;
 
 int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
