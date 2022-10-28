@@ -41,8 +41,7 @@
 #include "util-path.h"
 #include "util-conf.h"
 
-int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+int DetectDatasetMatch(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatasetFree (DetectEngineCtx *, void *);
 
@@ -53,6 +52,7 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
+    sigmatch_table[DETECT_DATASET].Match = DetectDatasetMatch;
 }
 
 /*
@@ -86,15 +86,52 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
         }
         case DETECT_DATASET_CMD_SET: {
             //PrintRawDataFp(stdout, data, data_len);
-            int r = DatasetAdd(sd->set, data, data_len);
-            if (r == 1)
-                return 1;
-            break;
+            /* Simulate original behavior where there is no alert when data is in set */
+            int r = DatasetLookup(sd->set, data, data_len);
+            if (r == 1) {
+                return 0;
+            }
+            DetectDatasetMatchData *dmd =
+                    (DetectDatasetMatchData *)DetectThreadCtxGetKeywordThreadCtx(
+                            det_ctx, sd->thread_ctx_id);
+            if (data_len > dmd->data_len_max) {
+                if (dmd->data_len_max == 0) {
+                    dmd->data = SCCalloc(data_len, sizeof(uint8_t));
+                    if (dmd->data == NULL) {
+                        return 0;
+                    }
+                } else {
+                    void *rdata = SCRealloc(dmd->data, data_len);
+                    if (rdata == NULL) {
+                        return 0;
+                    }
+                    dmd->data = rdata;
+                }
+                dmd->data_len_max = data_len;
+            }
+            memcpy(dmd->data, data, data_len);
+            dmd->data_len = data_len;
+            return 1;
         }
         default:
             abort();
     }
     return 0;
+}
+
+int DetectDatasetMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    const DetectDatasetData *sd = (DetectDatasetData *)ctx;
+    DetectDatasetMatchData *dmd = (DetectDatasetMatchData *)DetectThreadCtxGetKeywordThreadCtx(
+            det_ctx, sd->thread_ctx_id);
+
+    if (dmd == NULL || dmd->data_len == 0) {
+        return 0;
+    }
+    int r = DatasetAdd(sd->set, dmd->data, dmd->data_len);
+    dmd->data_len = 0;
+    return r;
 }
 
 static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *name, int name_len,
@@ -328,10 +365,35 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
+static void *DetectDatasetMatchDataThreadInit(void *data)
+{
+    DetectDatasetMatchData *scmd = SCCalloc(1, sizeof(DetectDatasetMatchData));
+    if (unlikely(scmd == NULL))
+        return NULL;
+
+    scmd->data = NULL;
+    scmd->data_len = 0;
+    scmd->data_len_max = 0;
+    return scmd;
+}
+
+static void DetectDatasetMatchDataThreadFree(void *ctx)
+{
+    if (ctx != NULL) {
+        DetectDatasetMatchData *scmd = (DetectDatasetMatchData *)ctx;
+        if (scmd->data) {
+            SCFree(scmd->data);
+        }
+        SCFree(scmd);
+    }
+}
+
 int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectDatasetData *cd = NULL;
+    DetectDatasetData *scd = NULL;
     SigMatch *sm = NULL;
+    SigMatch *smp = NULL;
     uint8_t cmd = 0;
     uint64_t memcap = 0;
     uint32_t hashsize = 0;
@@ -419,6 +481,30 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (sm == NULL)
         goto error;
 
+    if (cmd == DETECT_DATASET_CMD_SET) {
+        smp = SigMatchAlloc();
+        if (smp == NULL)
+            goto error;
+
+        scd = SCCalloc(1, sizeof(DetectDatasetData));
+        if (unlikely(scd == NULL))
+            goto error;
+
+        cd->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "dataset",
+                DetectDatasetMatchDataThreadInit, (void *)cd, DetectDatasetMatchDataThreadFree, 0);
+        if (cd->thread_ctx_id == -1)
+            goto error;
+        scd->thread_ctx_id = cd->thread_ctx_id;
+
+        scd->set = set;
+        scd->cmd = cmd;
+
+        smp->type = DETECT_DATASET;
+        smp->ctx = (SigMatchCtx *)scd;
+
+        SigMatchAppendSMToList(s, smp, DETECT_SM_LIST_POSTMATCH);
+    }
+
     sm->type = DETECT_DATASET;
     sm->ctx = (SigMatchCtx *)cd;
     SigMatchAppendSMToList(s, sm, list);
@@ -429,6 +515,10 @@ error:
         SCFree(cd);
     if (sm != NULL)
         SCFree(sm);
+    if (smp != NULL)
+        SCFree(smp);
+    if (scd != NULL)
+        SCFree(scd);
     return -1;
 }
 
