@@ -824,7 +824,7 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 /**********Unittests**********/
 
 DetectEngineCtx *DetectEngineCtxInit(void);
-Signature *SigInit(DetectEngineCtx *, const char *);
+Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 void SigFree(DetectEngineCtx *, Signature *);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
@@ -836,8 +836,7 @@ static int SCSigOrderingTest01(void)
     int i = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
@@ -860,8 +859,8 @@ static int SCSigOrderingTest01(void)
     DetectEngineCtxFree(de_ctx);
 
     return (i == 5);
- end:
-    return 0;
+
+    PASS;
 }
 
 static int SCSigOrderingTest02(void)
@@ -985,111 +984,86 @@ static int SCSigOrderingTest02(void)
 
 static int SCSigOrderingTest03(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; flowbits:unset,TEST.one; rev:4; priority:2; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; "
+            "flowbits:unset,TEST.one; rev:4; priority:2; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; flowbits:isset,TEST.one; rev:4; priority:1; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:0; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; "
+            "flowbits:isset,TEST.one; rev:4; priority:1; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; priority:2; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; priority:2; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; flowbits:isnotset,TEST.one; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; rev:4; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; flowbits:isnotset,TEST.one; pcre:\"/^User-Agent: "
+            "(?P<flow_http_host>.*)\\r\\n/m\"; rev:4; sid:6;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; flowbits:unset,TEST.one; rev:4; priority:3; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; "
+            "flowbits:unset,TEST.one; rev:4; priority:3; sid:7;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; flowbits:toggle,TEST.one; rev:4; priority:1; pktvar:http_host,\"www.oisf.net\"; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/220[- ]/\"; flowbits:toggle,TEST.one; rev:4; priority:1; "
+            "pktvar:http_host,\"www.oisf.net\"; sid:8;)");
+    FAIL_IF_NULL(sig);
 
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; flowbits:set,TEST.one; "
+            "flowbits:noalert; pktvar:http_host,\"www.oisf.net\"; sid:9;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; rev:4; flowbits:set,TEST.one; flowbits:noalert; pktvar:http_host,\"www.oisf.net\"; sid:9;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:10;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:10;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:11;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:11;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:12;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:12;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; flowbits:isnotset,TEST.one; sid:13;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; flowbits:isnotset,TEST.one; sid:13;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; flowbits:set,TEST.one; sid:14;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; flowbits:set,TEST.one; sid:14;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1097,8 +1071,6 @@ static int SCSigOrderingTest03(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1111,112 +1083,102 @@ static int SCSigOrderingTest03(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 3);
-    sig = sig->next;
-    result &= (sig->id == 8);
-    sig = sig->next;
-    result &= (sig->id == 9);
-    sig = sig->next;
-    result &= (sig->id == 7);
-    sig = sig->next;
-    result &= (sig->id == 14);
-    sig = sig->next;
-    result &= (sig->id == 6);
-    sig = sig->next;
-    result &= (sig->id == 4);
-    sig = sig->next;
-    result &= (sig->id == 13);
-    sig = sig->next;
-    result &= (sig->id == 2);
-    sig = sig->next;
-    result &= (sig->id == 5);
-    sig = sig->next;
-    result &= (sig->id == 1);
-    sig = sig->next;
-    result &= (sig->id == 10);
-    sig = sig->next;
-    result &= (sig->id == 11);
-    sig = sig->next;
-    result &= (sig->id == 12);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    FAIL_IF_NOT(sig->id == 8);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 9);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 7);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 14);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 6);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 4);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 13);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 2);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 5);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 1);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 10);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 11);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 12);
+
+    sig = sig->next;
+
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
 }
 
 static int SCSigOrderingTest04(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; content:\"220\"; offset:10; rev:4; priority:3; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; content:\"220\"; "
+            "offset:10; rev:4; priority:3; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; rev:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: "
+            "(?P<flow_http_host>.*)\\r\\n/m\"; rev:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; rev:4; priority:3; flowvar:http_host,\"www.oisf.net\"; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; rev:4; "
+            "priority:3; flowvar:http_host,\"www.oisf.net\"; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; "
+            "pcre:\"/220[- ]/\"; rev:4; priority:3; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; pktvar:http_host,\"www.oisf.net\"; rev:4; priority:1; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; "
+            "pktvar:http_host,\"www.oisf.net\"; rev:4; priority:1; sid:6;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; flowvar:http_host,\"www.oisf.net\"; pktvar:http_host,\"www.oisf.net\"; priority:1; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; flowvar:http_host,\"www.oisf.net\"; "
+            "pktvar:http_host,\"www.oisf.net\"; priority:1; sid:7;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; flowvar:http_host,\"www.oisf.net\"; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; "
+            "flowvar:http_host,\"www.oisf.net\"; sid:8;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; flowvar:http_host,\"www.oisf.net\"; sid:9;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; "
+            "flowvar:http_host,\"www.oisf.net\"; sid:9;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1224,8 +1186,6 @@ static int SCSigOrderingTest04(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1239,98 +1199,84 @@ static int SCSigOrderingTest04(void)
     sig = de_ctx->sig_list;
 
     /* flowvar set */
-    result &= (sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 9);
+    FAIL_IF_NOT(sig->id == 9);
     sig = sig->next;
 
     /* pktvar */
-    result &= (sig->id == 5);
+
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
 
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
 
-end:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
 }
 
 static int SCSigOrderingTest05(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; content:\"220\"; offset:10; rev:4; priority:3; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; content:\"220\"; "
+            "offset:10; rev:4; priority:3; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: "
+            "(?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; priority:3; pktvar:http_host,\"www.oisf.net\"; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; "
+            "priority:3; pktvar:http_host,\"www.oisf.net\"; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:6;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; pktvar:http_host,\"www.oisf.net\"; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; pktvar:http_host,\"www.oisf.net\"; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; "
+            "pktvar:http_host,\"www.oisf.net\"; sid:7;)");
+    FAIL_IF_NULL(sig);
 
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; "
+            "pktvar:http_host,\"www.oisf.net\"; sid:8;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1338,8 +1284,6 @@ static int SCSigOrderingTest05(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1353,95 +1297,75 @@ static int SCSigOrderingTest05(void)
     sig = de_ctx->sig_list;
 
     /* pktvar set */
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
     /* pktvar read */
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 1);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 5);
+    sig = sig->next;
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
 
-    result &= (sig->id == 1);
-    sig = sig->next;
-    result &= (sig->id == 5);
-    sig = sig->next;
-    result &= (sig->id == 6);
-    sig = sig->next;
+    DetectEngineCtxFree(de_ctx);
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 static int SCSigOrderingTest06(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; rev:4; priority:2; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; rev:4; priority:2; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; rev:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1449,9 +1373,6 @@ static int SCSigOrderingTest06(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1464,94 +1385,74 @@ static int SCSigOrderingTest06(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
 
+    DetectEngineCtxFree(de_ctx);
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
-
 static int SCSigOrderingTest07(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1559,8 +1460,6 @@ static int SCSigOrderingTest07(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1573,27 +1472,26 @@ static int SCSigOrderingTest07(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
 }
 
 /**
@@ -1603,8 +1501,8 @@ end:
 static int SCSigOrderingTest08(void)
 {
 #ifdef HAVE_LIBNET11
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
     extern uint8_t action_order_sigs[4];
 
     /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
@@ -1614,64 +1512,47 @@ static int SCSigOrderingTest08(void)
     action_order_sigs[3] = ACTION_PASS;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "reject tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; "
+            "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1679,8 +1560,6 @@ static int SCSigOrderingTest08(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1693,35 +1572,33 @@ static int SCSigOrderingTest08(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
 
-end:
     /* Restore the default pre-order definition */
     action_order_sigs[0] = ACTION_PASS;
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-#else
-    return 1;
+
+    DetectEngineCtxFree(de_ctx);
+
 #endif
+    PASS;
 }
 
 /**
@@ -1730,8 +1607,8 @@ end:
  */
 static int SCSigOrderingTest09(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
     extern uint8_t action_order_sigs[4];
 
     /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
@@ -1741,64 +1618,47 @@ static int SCSigOrderingTest09(void)
     action_order_sigs[3] = ACTION_PASS;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; priority:2; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; priority:2; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:10; depth:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1806,8 +1666,6 @@ static int SCSigOrderingTest09(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1820,32 +1678,31 @@ static int SCSigOrderingTest09(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
 
-end:
     /* Restore the default pre-order definition */
     action_order_sigs[0] = ACTION_DROP;
     action_order_sigs[1] = ACTION_REJECT;
     action_order_sigs[2] = ACTION_PASS;
     action_order_sigs[3] = ACTION_ALERT;
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -1854,8 +1711,8 @@ end:
  */
 static int SCSigOrderingTest10(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
     extern uint8_t action_order_sigs[4];
 
     /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
@@ -1865,64 +1722,47 @@ static int SCSigOrderingTest10(void)
     action_order_sigs[3] = ACTION_REJECT;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; rev:4; priority:2; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; rev:4; priority:2; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; rev:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; "
+            "content:\"220\"; offset:10; depth:4; rev:4; priority:2; sid:4;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:5;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:6;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:7;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -1930,8 +1770,6 @@ static int SCSigOrderingTest10(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -1944,62 +1782,55 @@ static int SCSigOrderingTest10(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 4);
+    FAIL_IF_NOT(sig->id == 4);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
-    result &= (sig->id == 8);
+    FAIL_IF_NOT(sig->id == 8);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
 
-end:
     /* Restore the default pre-order definition */
     action_order_sigs[0] = ACTION_PASS;
     action_order_sigs[1] = ACTION_DROP;
     action_order_sigs[2] = ACTION_REJECT;
     action_order_sigs[3] = ACTION_ALERT;
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 static int SCSigOrderingTest11(void)
 {
-    int result = 0;
-    Signature *prevsig = NULL, *sig = NULL;
+
+    Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering set\"; flowbits:isnotset,myflow1; rev:4; sid:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig = sig;
-    de_ctx->sig_list = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering set\"; "
+            "flowbits:isnotset,myflow1; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering toggle\"; flowbits:toggle,myflow2; rev:4; sid:2;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
-    prevsig = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering toggle\"; "
+            "flowbits:toggle,myflow2; rev:4; sid:2;)");
+    FAIL_IF_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering unset\"; flowbits:isset, myflow1; flowbits:unset,myflow2; rev:4; priority:3; sid:3;)");
-    if (sig == NULL) {
-        goto end;
-    }
-    prevsig->next = sig;
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering unset\"; "
+            "flowbits:isset, myflow1; flowbits:unset,myflow2; rev:4; priority:3; sid:3;)");
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
@@ -2007,8 +1838,6 @@ static int SCSigOrderingTest11(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
     sig = de_ctx->sig_list;
 
@@ -2021,17 +1850,15 @@ static int SCSigOrderingTest11(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 2);
+    FAIL_IF_NOT(sig->id == 2);
     sig = sig->next;
-    result &= (sig->id == 3);
+    FAIL_IF_NOT(sig->id == 3);
     sig = sig->next;
-    result &= (sig->id == 1);
+    FAIL_IF_NOT(sig->id == 1);
     sig = sig->next;
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 static int SCSigOrderingTest12(void)
@@ -2039,7 +1866,6 @@ static int SCSigOrderingTest12(void)
     Signature *sig = NULL;
     Packet *p = NULL;
     uint8_t buf[] = "test message";
-    int result = 0;
     Flow f;
 
     FLOW_INITIALIZE(&f);
@@ -2048,8 +1874,7 @@ static int SCSigOrderingTest12(void)
     f.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
     const char *sigs[2];
@@ -2058,21 +1883,14 @@ static int SCSigOrderingTest12(void)
     UTHAppendSigs(de_ctx, sigs, 2);
 
     sig = de_ctx->sig_list;
-    if (sig == NULL)
-        goto end;
-    if (sig->next == NULL)
-        goto end;
-    if (sig->next->next != NULL)
-        goto end;
-    if (de_ctx->signum != 2)
-        goto end;
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NULL(sig->next);
+    FAIL_IF_NOT_NULL(sig->next->next);
+    FAIL_IF(de_ctx->signum != 2);
 
     FlowInitConfig(FLOW_QUIET);
     p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_TCP);
-    if (p == NULL) {
-        printf("Error building packet.");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2082,48 +1900,35 @@ static int SCSigOrderingTest12(void)
 
     uint32_t sids[2] = {1, 2};
     uint32_t results[2] = {1, 1};
-    result = UTHCheckPacketMatchResults(p, sids, results, 2);
+    FAIL_IF_NOT(UTHCheckPacketMatchResults(p, sids, results, 2));
 
-end:
-    if (p != NULL)
-        SCFree(p);
-    if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    SCFree(p);
+
+    DetectEngineCtxFree(de_ctx);
+
     FlowShutdown();
 
-    return result;
+    PASS;
 }
 
 /** \test Bug 1061 */
 static int SCSigOrderingTest13(void)
 {
-    int result = 0;
+
     Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:set,bit2; flowbits:set,bit3; sid:6;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(sig);
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(sig);
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
     SCSigOrderSignatures(de_ctx);
-
-    result = 1;
 
 #ifdef DEBUG
     sig = de_ctx->sig_list;
@@ -2135,17 +1940,15 @@ static int SCSigOrderingTest13(void)
 
     sig = de_ctx->sig_list;
 
-    result &= (sig->id == 7);
+    FAIL_IF_NOT(sig->id == 7);
     sig = sig->next;
-    result &= (sig->id == 6);
+    FAIL_IF_NOT(sig->id == 6);
     sig = sig->next;
-    result &= (sig->id == 5);
+    FAIL_IF_NOT(sig->id == 5);
     sig = sig->next;
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif
