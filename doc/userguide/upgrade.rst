@@ -54,6 +54,8 @@ Other changes
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
 - If installing Suricata without the bundled Suricata-Update, the ``default-rule-path`` has been changed from ``/etc/suricata/rules`` to ``/var/lib/suricata/rules`` to be consistent with Suricata when installed with Suricata-Update.
 - FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.
+- SWF decompression in http has been disabled by default. To change the default see :ref:`suricata-yaml-configure-libhtp`.
+  See https://redmine.openinfosecfoundation.org/issues/5632 for more information.
 
 Logging changes
 ~~~~~~~~~~~~~~~
