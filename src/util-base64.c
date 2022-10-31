@@ -143,7 +143,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
 
             /* Decode base-64 block into ascii block and move pointer */
             DecodeBase64Block(dptr, b64);
-            dptr += ASCII_BLOCK;
+            dptr += numDecoded_blk;
             *decoded_bytes += numDecoded_blk;
             /* Reset base-64 block and index */
             bbidx = 0;
