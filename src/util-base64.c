@@ -157,7 +157,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
 
     if (!valid && mode == BASE64_MODE_RFC4648) {
         padding = B64_BLOCK - bbidx;
-        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
+        *decoded_bytes += ASCII_BLOCK - padding;
         DecodeBase64Block(dptr, b64);
         *consumed_bytes += bbidx;
     }
