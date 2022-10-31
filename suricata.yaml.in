@@ -970,7 +970,7 @@ app-layer:
            # auto will use http-body-inline mode in IPS mode, yes or no set it statically
            http-body-inline: auto
 
-           # Decompress SWF files.
+           # Decompress SWF files. Disabled by default.
            # Two types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
            # compress-depth:
            # Specifies the maximum amount of data to decompress,
@@ -979,7 +979,7 @@ app-layer:
            # Specifies the maximum amount of decompressed data to obtain,
            # set 0 for unlimited.
            swf-decompression:
-             enabled: yes
+             enabled: no
              type: both
              compress-depth: 100kb
              decompress-depth: 100kb
