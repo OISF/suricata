@@ -236,6 +236,8 @@ void DetectReplaceFreeInternal(DetectReplaceList *replist)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+#include "detect-engine-alert.h"
+#include "packet.h"
 
 /**
  * \test Test packet Matches

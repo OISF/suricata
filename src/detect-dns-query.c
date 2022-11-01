@@ -262,6 +262,7 @@ static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 #ifdef UNITTESTS
 #include "detect-isdataat.h"
+#include "detect-engine-alert.h"
 
 /** \test simple google.com query matching */
 static int DetectDnsQueryTest01(void)

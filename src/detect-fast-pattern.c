@@ -365,6 +365,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 /*----------------------------------Unittests---------------------------------*/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 static int DetectFastPatternStickySingle(const char *sticky, const int list)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();

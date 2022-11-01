@@ -42,6 +42,7 @@
 #include "../detect-http-header.h"
 #include "../detect-http-header-common.h"
 #include "../detect-engine-build.h"
+#include "../detect-engine-alert.h"
 
 #include "../detect-isdataat.h"
 

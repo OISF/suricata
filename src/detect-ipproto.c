@@ -455,6 +455,7 @@ static void DetectIPProtoFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number

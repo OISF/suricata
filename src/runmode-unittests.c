@@ -28,6 +28,7 @@
 #ifdef UNITTESTS
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-alert.h"
 #include "detect-engine-address.h"
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"

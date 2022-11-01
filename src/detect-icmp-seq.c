@@ -327,6 +327,9 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectIcmpSeqParseTest01 is a test for setting a valid icmp_seq value

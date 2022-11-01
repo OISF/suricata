@@ -295,6 +295,7 @@ void DetectEngineStateResetTxs(Flow *f)
 /*********Unittests*********/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int DeStateTest01(void)
 {
