@@ -126,6 +126,7 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
 #include "detect-parse.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
+#include "detect-engine-alert.h"
 
 static int DetectTemplateRustBufferTest(void)
 {

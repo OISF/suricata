@@ -108,6 +108,7 @@ error:
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectL3protoTestSig01 is a test for checking the working of ttl keyword
