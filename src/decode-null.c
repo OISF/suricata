@@ -33,12 +33,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-raw.h"
-#include "decode-events.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 #define HDR_SIZE 4
 

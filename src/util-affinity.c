@@ -25,8 +25,6 @@
 #include "suricata-common.h"
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
-#include "conf.h"
-#include "runmodes.h"
 #include "util-cpu.h"
 #include "util-byte.h"
 #include "util-debug.h"

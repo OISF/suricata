@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "device-storage.h"
-#include "util-unittest.h"
 
 unsigned int LiveDevStorageSize(void)
 {

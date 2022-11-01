@@ -30,7 +30,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-mem.h"
 #include "app-layer-htp-body.h"
-#include "util-streaming-buffer.h"
 #include "util-print.h"
 
 static StreamingBufferConfig default_cfg = { 0, 3072, HTPCalloc, HTPRealloc, HTPFree };

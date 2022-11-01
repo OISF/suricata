@@ -24,7 +24,6 @@
  */
 
 #include "suricata.h"
-#include "threads.h"
 #include "tm-queues.h"
 #include "util-debug.h"
 

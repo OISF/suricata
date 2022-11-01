@@ -24,15 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-nocase.h"
-
-#include "util-debug.h"
 
 static int DetectNocaseSetup (DetectEngineCtx *, Signature *, const char *);
 

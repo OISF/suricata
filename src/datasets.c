@@ -23,16 +23,13 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "conf.h"
 #include "datasets.h"
 #include "datasets-string.h"
 #include "datasets-ipv4.h"
 #include "datasets-ipv6.h"
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
-#include "datasets-reputation.h"
 #include "util-conf.h"
-#include "util-thash.h"
 #include "util-print.h"
 #include "util-base64.h"    // decode base64
 #include "util-byte.h"

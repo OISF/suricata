@@ -29,8 +29,6 @@
 #include "suricata-common.h"
 #include "log-tlsstore.h"
 
-#include "decode.h"
-
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
 

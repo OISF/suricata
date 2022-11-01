@@ -31,10 +31,6 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
-#include "host-bit.h"
-#include "ippair-bit.h"
-
-#include "util-debug.h"
 
 void XBitFree(XBit *fb)
 {

@@ -23,7 +23,6 @@
  * Daemonization process
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "util-daemon.h"

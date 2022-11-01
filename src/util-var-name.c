@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "util-hashlist.h"
 #include "util-var-name.h"
 
 /* the way this can be used w/o locking lookups:

@@ -24,8 +24,6 @@
 #include "suricata-common.h"
 #include "log-tcp-data.h"
 
-#include "threadvars.h"
-
 #include "util-conf.h"
 #include "util-logopenfile.h"
 #include "util-path.h"

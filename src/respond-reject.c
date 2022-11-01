@@ -26,19 +26,10 @@
 
 #include "suricata-common.h"
 #include "packet.h"
-#include "decode.h"
-#include "packet-queue.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "action-globals.h"
 
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
-
-#include "util-debug.h"
-#include "util-privs.h"
 
 int RejectSendIPv4TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);

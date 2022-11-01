@@ -17,7 +17,6 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "util-atomic.h"
 #include "util-debug.h"
 
 #if defined(_WIN32) || defined(__WIN32)

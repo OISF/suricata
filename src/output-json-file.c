@@ -26,34 +26,9 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threadvars.h"
-#include "tm-modules.h"
-
-#include "threads.h"
-
-#include "app-layer-parser.h"
-
-#include "detect-filemagic.h"
-
-#include "stream.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-privs.h"
-#include "util-debug.h"
-#include "util-atomic.h"
-#include "util-file.h"
-#include "util-time.h"
-#include "util-buffer.h"
-#include "util-byte.h"
 #include "util-validate.h"
 
-#include "util-logopenfile.h"
-
-#include "output.h"
 #include "output-json.h"
 #include "output-json-file.h"
 #include "output-json-http.h"
@@ -62,11 +37,6 @@
 #include "output-json-nfs.h"
 #include "output-json-smb.h"
 #include "output-json-http2.h"
-
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
-#include "util-memcmp.h"
-#include "stream-tcp-reassemble.h"
 
 typedef struct OutputFileCtx_ {
     uint32_t file_cnt;

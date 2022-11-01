@@ -24,17 +24,12 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
-#include "threads.h"
 #include "pkt-var.h"
 #include "detect-pktvar.h"
 #include "detect-content.h"
-#include "util-spm.h"
-#include "util-debug.h"
 #include "util-var-name.h"
 
 #define PARSE_REGEX         "(.*),(.*)"

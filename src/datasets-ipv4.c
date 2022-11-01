@@ -22,11 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "datasets.h"
 #include "datasets-ipv4.h"
-#include "util-thash.h"
-#include "util-print.h"
 
 int IPv4Set(void *dst, void *src)
 {

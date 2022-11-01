@@ -31,12 +31,10 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "util-spm-bm.h"
 #include "util-spm.h"
 #include "util-debug.h"
-#include "util-error.h"
 #include "util-memcpy.h"
 #include "util-validate.h"
 

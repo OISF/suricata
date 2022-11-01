@@ -16,10 +16,7 @@
  */
 
 #include "suricata-common.h"
-#include "suricata-plugin.h"
 #include "suricata.h"
-#include "runmodes.h"
-#include "output-eve-syslog.h"
 #include "util-plugin.h"
 #include "util-debug.h"
 

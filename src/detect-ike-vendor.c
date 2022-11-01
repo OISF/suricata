@@ -21,8 +21,6 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
@@ -30,9 +28,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-ike-vendor.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
 
-#include "rust-bindings.h"
 #include "util-profiling.h"
 
 static int DetectIkeVendorSetup(DetectEngineCtx *, Signature *, const char *);

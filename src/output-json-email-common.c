@@ -26,28 +26,11 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 #include "suricata.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-#include "tm-threads-common.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
 #include "app-layer-parser.h"
-#include "output.h"
 #include "app-layer-smtp.h"
-#include "app-layer.h"
-#include "util-privs.h"
-#include "util-buffer.h"
 #include "util-byte.h"
-
-#include "util-logopenfile.h"
 
 #include "output-json.h"
 #include "output-json-email-common.h"

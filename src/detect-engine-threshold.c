@@ -36,37 +36,16 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "flow.h"
 
-#include "host.h"
-#include "host-storage.h"
-
-#include "ippair.h"
 #include "ippair-storage.h"
 
 #include "detect-parse.h"
-#include "detect-engine-sigorder.h"
 
-#include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
 
-#include "detect-engine.h"
 #include "detect-engine-threshold.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
-
-#include "util-hash.h"
 #include "util-time.h"
-#include "util-error.h"
-#include "util-debug.h"
-
-#include "util-var-name.h"
-#include "tm-threads.h"
 
 static HostStorageId host_threshold_id = { .id = -1 };     /**< host storage id for thresholds */
 static IPPairStorageId ippair_threshold_id = { .id = -1 }; /**< ip pair storage id for thresholds */

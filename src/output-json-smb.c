@@ -24,12 +24,9 @@
  */
 
 #include "suricata-common.h"
-#include "util-buffer.h"
-#include "output.h"
 #include "output-json.h"
 #include "app-layer-parser.h"
 #include "output-json-smb.h"
-#include "rust.h"
 
 bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
 {

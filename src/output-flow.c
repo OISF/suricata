@@ -26,7 +26,6 @@
 #include "suricata-common.h"
 #include "output.h"
 #include "output-flow.h"
-#include "util-profiling.h"
 #include "util-validate.h"
 
 /** per thread data for this module, contains a list of per thread

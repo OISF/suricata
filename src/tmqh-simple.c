@@ -24,10 +24,7 @@
  */
 
 #include "suricata.h"
-#include "packet-queue.h"
 #include "decode.h"
-#include "threads.h"
-#include "threadvars.h"
 
 #include "tm-queuehandlers.h"
 #include "tmqh-simple.h"

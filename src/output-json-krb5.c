@@ -25,28 +25,12 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-debug.h"
-#include "util-byte.h"
-
-#include "output.h"
 #include "output-json.h"
 
-#include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-krb5.h"
 #include "output-json-krb5.h"
-
-#include "rust.h"
 
 static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
