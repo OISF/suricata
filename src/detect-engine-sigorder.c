@@ -28,16 +28,12 @@
 #include "detect-xbits.h"
 #include "detect-flowbits.h"
 #include "detect-flowint.h"
-#include "detect-parse.h"
 #include "detect-engine-sigorder.h"
 #include "detect-pcre.h"
 #include "detect-engine-build.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 #include "util-action.h"
-#include "action-globals.h"
 #include "flow-util.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1

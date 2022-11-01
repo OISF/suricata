@@ -26,7 +26,6 @@
 #include "suricata-common.h"
 #include "conf-yaml-loader.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 

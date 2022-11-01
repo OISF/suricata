@@ -28,14 +28,12 @@
 #include "counters.h"
 
 #include "suricata.h"
-#include "threadvars.h"
 
 #include "output.h"
 #include "output-json-stats.h"
 
 #include "util-byte.h"
 #include "util-conf.h"
-#include "util-hash.h"
 #include "util-time.h"
 
 #include "tm-threads.h"

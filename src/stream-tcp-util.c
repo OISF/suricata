@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 #include "stream-tcp-util.h"
 

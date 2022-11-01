@@ -32,16 +32,11 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-#include "decode-events.h"
 #include "decode-ipv4.h"
 #include "decode-icmpv4.h"
 
 #include "flow.h"
-
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-debug.h"
 #include "util-print.h"
 #include "util-validate.h"
 

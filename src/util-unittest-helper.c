@@ -26,13 +26,9 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-
-#include "flow-private.h"
 #include "flow-util.h"
 #include "flow-spare-pool.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-alert.h"
@@ -40,12 +36,8 @@
 #include "detect-engine-build.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
 
-#include "util-debug.h"
 #include "util-time.h"
-#include "util-error.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #if defined(UNITTESTS) || defined(FUZZ)

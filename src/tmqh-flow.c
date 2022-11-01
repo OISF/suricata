@@ -27,7 +27,6 @@
  * handlers we provide.
  */
 
-#include "suricata.h"
 #include "decode.h"
 #include "tmqh-flow.h"
 

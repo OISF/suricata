@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 
 #include "util-print.h"
 

@@ -31,7 +31,6 @@
 #include "suricata.h"
 
 #include "util-conf.h"
-#include "util-enum.h"
 #include "util-path.h"
 #include "util-syslog.h"
 #include "util-time.h"

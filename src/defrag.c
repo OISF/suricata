@@ -60,7 +60,6 @@
 #include "decode.h"
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 #endif
 
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff

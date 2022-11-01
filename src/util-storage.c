@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-storage.h"
 #include "util-debug.h"
 

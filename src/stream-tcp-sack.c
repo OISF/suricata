@@ -25,9 +25,7 @@
 
 #include "suricata-common.h"
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp-sack.h"
-#include "util-unittest.h"
 
 RB_GENERATE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
 

@@ -41,7 +41,6 @@
 #include "suricata-common.h"
 #include "util-pool.h"
 #include "util-pool-thread.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 static int PoolMemset(void *pitem, void *initdata)
