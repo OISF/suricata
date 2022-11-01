@@ -288,6 +288,10 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
     uint8_t pm_results_bf[(ALPROTO_MAX / 8) + 1];
     memset(pm_results_bf, 0, sizeof(pm_results_bf));
 
+    // Do not take pm_ctx->pp_max_len of all probing parsers,
+    // but only the the probing parsers which matched a pattern.
+    uint32_t pp_max_len = pm_ctx->mpm_ctx.maxdepth;
+
     /* loop through unique pattern id's. Can't use search_cnt here,
      * as that contains all matches, tctx->pmq.pattern_id_array_cnt
      * contains only *unique* matches. */
@@ -297,6 +301,9 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
             AppProto proto = AppLayerProtoDetectPMMatchSignature(
                     s, tctx, f, flags, buf, buflen, searchlen, rflow);
 
+            if (s->pp_max_depth > pp_max_len) {
+                pp_max_len = s->pp_max_depth;
+            }
             /* store each unique proto once */
             if (AppProtoIsValid(proto) &&
                 !(pm_results_bf[proto / 8] & (1 << (proto % 8))) )
@@ -307,7 +314,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
             s = s->next;
         }
     }
-    if (pm_matches == 0 && buflen >= pm_ctx->pp_max_len) {
+    if (pm_matches == 0 && buflen >= pp_max_len) {
         pm_matches = -2;
     }
     PmqReset(&tctx->pmq);
