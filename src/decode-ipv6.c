@@ -650,6 +650,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
 
 /**
  * \test fragment decoding

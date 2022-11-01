@@ -373,6 +373,7 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /** \test Not the first but the second occurence of "abc" should be used
   *       for the 2nd match */

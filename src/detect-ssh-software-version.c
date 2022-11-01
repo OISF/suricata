@@ -261,6 +261,7 @@ static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectSshSoftwareVersionTestParse01 is a test to make sure that we parse

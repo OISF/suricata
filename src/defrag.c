@@ -1088,6 +1088,8 @@ void DefragDestroy(void)
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
+
 #define IP_MF 0x2000
 
 /**

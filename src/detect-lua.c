@@ -1163,6 +1163,8 @@ static void DetectLuaFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
+
 /** \test http buffer */
 static int LuaMatchTest01(void)
 {

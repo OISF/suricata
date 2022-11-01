@@ -135,6 +135,7 @@ int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
 
 /** \todo Must GRE+VLAN and Multi-Vlan packets to
  * create more tests

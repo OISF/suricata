@@ -40,6 +40,7 @@
 #include "../detect-isdataat.h"
 #include "../detect-pcre.h"
 #include "../detect-engine-build.h"
+#include "../detect-engine-alert.h"
 
 #include "../stream-tcp.h"
 #include "../app-layer.h"

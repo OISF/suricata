@@ -1117,6 +1117,9 @@ int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
+#include "packet.h"
+#include "action-globals.h"
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, for testing purposes.
