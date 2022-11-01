@@ -141,8 +141,8 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
         const uint64_t tx_id, AppLayerTxData *txd, const bool tx_complete, const bool ts_ready,
         const bool tc_ready, const bool ts_eof, const bool tc_eof, const bool eof)
 {
-    int packet_dir;
-    int opposing_dir;
+    uint8_t packet_dir;
+    uint8_t opposing_dir;
     bool packet_dir_ready;
     const bool opposing_dir_ready = eof;
     bool opposing_tx_ready;
