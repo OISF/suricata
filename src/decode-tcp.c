@@ -271,6 +271,7 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
 
 static int TCPCalculateValidChecksumtest01(void)
 {

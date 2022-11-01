@@ -520,6 +520,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
+#include "packet.h"
 #include "util-unittest-helper.h"
 
 static int ICMPV6CalculateValidChecksumtest01(void)

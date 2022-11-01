@@ -27,6 +27,7 @@
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
 #include "util-conf.h"
+#include "packet.h"
 
 #include <fuzz_pcap.h>
 

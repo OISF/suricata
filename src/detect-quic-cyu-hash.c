@@ -249,6 +249,7 @@ void DetectQuicCyuHashRegister(void)
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectQuicCyuHashTest01 is a test for a valid quic packet, matching

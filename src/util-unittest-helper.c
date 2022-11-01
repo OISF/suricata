@@ -35,6 +35,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-alert.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-build.h"
 
