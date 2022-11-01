@@ -948,7 +948,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
             (ppd->tp_status & TP_STATUS_VLAN_VALID || ppd->hv1.tp_vlan_tci)) {
         p->vlan_id[0] = ppd->hv1.tp_vlan_tci & 0x0fff;
         p->vlan_idx = 1;
-        p->afp_v.vlan_tci = ppd->hv1.tp_vlan_tci;
+        p->afp_v.vlan_tci = (uint16_t)ppd->hv1.tp_vlan_tci;
     }
 
     (void)PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen);
@@ -1116,7 +1116,7 @@ static void AFPCloseSocket(AFPThreadVars *ptv)
     }
 }
 
-static void AFPSwitchState(AFPThreadVars *ptv, int state)
+static void AFPSwitchState(AFPThreadVars *ptv, uint8_t state)
 {
     ptv->afp_state = state;
     ptv->down_count = 0;
@@ -2073,7 +2073,10 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
         return TM_ECODE_FAILED;
     }
 
-    fcode.len    = filter.bf_len;
+    if (filter.bf_len > USHRT_MAX) {
+        return TM_ECODE_FAILED;
+    }
+    fcode.len = (unsigned short)filter.bf_len;
     fcode.filter = (struct sock_filter*)filter.bf_insns;
 
     rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
