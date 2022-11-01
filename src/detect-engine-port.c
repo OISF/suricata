@@ -1494,6 +1494,8 @@ void DetectPortHashFree(DetectEngineCtx *de_ctx)
 /*---------------------- Unittests -------------------------*/
 
 #ifdef UNITTESTS
+#include "packet.h"
+
 /**
  * \brief Do a sorted insert, where the top of the list should be the biggest
  * port range.

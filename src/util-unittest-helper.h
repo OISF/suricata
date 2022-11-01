@@ -27,13 +27,8 @@
 #if defined(UNITTESTS)
 #include "packet.h"
 #include "flow.h"
-#include "stream-tcp.h"
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-alert.h"
-#include "detect-engine-build.h"
 #elif defined(FUZZ)
-#include "packet.h"
 #include "flow.h"
 #endif
 

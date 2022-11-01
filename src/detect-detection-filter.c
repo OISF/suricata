@@ -273,8 +273,11 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-alert.h"
 #include "util-time.h"
 #include "util-hashlist.h"
+#include "action-globals.h"
+#include "packet.h"
 
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options

@@ -39,6 +39,7 @@
 #include "../app-layer-htp.h"
 #include "../app-layer-protos.h"
 #include "../detect-engine-build.h"
+#include "../detect-engine-alert.h"
 
 static int DetectEngineHttpStatCodeTest01(void)
 {

@@ -1405,6 +1405,7 @@ void SCACBSPrintInfo(MpmCtx *mpm_ctx)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int SCACBSTest01(void)
 {

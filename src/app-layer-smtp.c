@@ -1781,6 +1781,7 @@ void SMTPParserCleanup(void)
 /***************************************Unittests******************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static void SMTPTestInitConfig(void)
 {

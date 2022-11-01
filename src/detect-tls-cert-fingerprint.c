@@ -226,5 +226,6 @@ static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 #include "tests/detect-tls-cert-fingerprint.c"
 #endif
