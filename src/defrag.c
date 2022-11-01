@@ -297,8 +297,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     rp->recursion_level = p->recursion_level;
 
     int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int hlen = 0;
+    uint16_t fragmentable_len = 0;
+    uint16_t hlen = 0;
     int ip_hdr_offset = 0;
 
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
@@ -345,8 +345,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         }
     }
 
-    SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u",
-            ip_hdr_offset, hlen, fragmentable_len);
+    SCLogDebug("ip_hdr_offset %u, hlen %" PRIu16 ", fragmentable_len %" PRIu16, ip_hdr_offset, hlen,
+            fragmentable_len);
 
     rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     uint16_t old = rp->ip4h->ip_len + rp->ip4h->ip_off;
@@ -431,10 +431,10 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
 
-    int unfragmentable_len = 0;
-    int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int ip_hdr_offset = 0;
+    uint16_t unfragmentable_len = 0;
+    uint16_t fragmentable_offset = 0;
+    uint16_t fragmentable_len = 0;
+    uint16_t ip_hdr_offset = 0;
     uint8_t next_hdr = 0;
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
         if (frag->skip)
