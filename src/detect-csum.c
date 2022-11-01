@@ -899,6 +899,8 @@ static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "detect-engine.h"
+#include "detect-engine-alert.h"
 
 #define mystr(s) #s
 #define TEST1(kwstr) {\

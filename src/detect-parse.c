@@ -2608,6 +2608,7 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
  */
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 static int SigParseTest01 (void)
 {
     int result = 1;

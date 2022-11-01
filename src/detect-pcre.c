@@ -962,6 +962,7 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+#include "detect-engine-alert.h"
 static int g_file_data_buffer_id = 0;
 static int g_http_header_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;

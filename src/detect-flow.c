@@ -483,6 +483,7 @@ static bool PrefilterFlowIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectFlowTestParse01 is a test to make sure that we return "something"

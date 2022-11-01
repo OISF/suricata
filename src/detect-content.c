@@ -681,6 +681,7 @@ void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, siz
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+#include "detect-engine-alert.h"
 
 static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
 {
