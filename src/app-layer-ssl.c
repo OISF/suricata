@@ -1512,6 +1512,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
 
+            DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->message_length != input_len);
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
             if (rc < 0)
                 return rc;
@@ -1611,6 +1612,8 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
 
             if (ssl_state->curr_connp->hs_buffer_message_size <=
                     ssl_state->curr_connp->hs_buffer_offset) {
+                DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->hs_buffer_message_size !=
+                                      ssl_state->curr_connp->hs_buffer_offset);
 
                 ssl_state->curr_connp->handshake_type =
                         ssl_state->curr_connp->hs_buffer_message_type;
