@@ -25,14 +25,11 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-prefilter.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 #include "detect-transform-strip-whitespace.h"
 
-#include "util-unittest.h"
 #include "util-print.h"
 
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);

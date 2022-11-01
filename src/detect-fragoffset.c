@@ -327,7 +327,6 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
 #include "detect-engine.h"
 #include "detect-engine-alert.h"
 

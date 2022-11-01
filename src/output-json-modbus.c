@@ -16,7 +16,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "output-json.h"
 #include "app-layer-parser.h"
 #include "output-json-modbus.h"

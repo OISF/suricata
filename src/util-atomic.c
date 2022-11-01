@@ -22,9 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "util-atomic.h"
-#include "util-unittest.h"
 
 #ifdef UNITTESTS
 

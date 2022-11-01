@@ -119,7 +119,6 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
 
 #ifdef UNITTESTS
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
 #include "stream-tcp.h"

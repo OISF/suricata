@@ -24,17 +24,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-tcp-window.h"
-#include "flow.h"
-#include "flow-var.h"
 
-#include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 

@@ -16,10 +16,8 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-dnp3.h"
 
 #include "detect-dnp3.h"
 

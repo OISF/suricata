@@ -47,7 +47,6 @@ void RegisterIKEParsers(void)
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util-unittest-helper.h"
 #include "flow-util.h"
 
 static int IkeParserTest(void)

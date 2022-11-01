@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "host-storage.h"
-#include "util-unittest.h"
 
 unsigned int HostStorageSize(void)
 {

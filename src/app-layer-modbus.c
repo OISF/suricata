@@ -58,7 +58,6 @@ void RegisterModbusParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-build.h"
@@ -66,13 +65,9 @@ void RegisterModbusParsers(void)
 
 #include "flow-util.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-
-#include "rust.h"
 
 /* Modbus default stream reassembly depth */
 #define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0

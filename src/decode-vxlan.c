@@ -27,18 +27,12 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-vxlan.h"
-#include "decode-events.h"
 
 #include "detect.h"
 #include "detect-engine-port.h"
 
-#include "flow.h"
-
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 #define VXLAN_HEADER_LEN sizeof(VXLANHeader)
 

@@ -51,7 +51,6 @@
 #include "decode.h"
 
 #include "packet.h"
-#include "flow.h"
 #include "flow-storage.h"
 #include "tmqh-packetpool.h"
 #include "app-layer.h"
@@ -62,7 +61,6 @@
 #include "decode-erspan.h"
 #include "decode-teredo.h"
 
-#include "util-hash.h"
 #include "util-hash-string.h"
 #include "util-print.h"
 #include "util-profiling.h"

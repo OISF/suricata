@@ -23,28 +23,9 @@
 
 #include "detect-smb-ntlmssp.h"
 #include "suricata-common.h"
-#include "suricata.h"
-#include "detect.h"
-#include "flow.h"
-#include "flow-private.h"
-#include "flow-bit.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-profile.h"
 
-#include "detect-engine-alert.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-proto.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
-#include "detect-engine-threshold.h"
-#include "detect-engine-prefilter.h"
-
-#include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
 #include "detect-dns-opcode.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
@@ -58,8 +39,6 @@
 #include "detect-tls-ja3-string.h"
 #include "detect-tls-ja3s-hash.h"
 #include "detect-tls-ja3s-string.h"
-#include "detect-engine-state.h"
-#include "detect-engine-analyzer.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
@@ -71,7 +50,6 @@
 #include "detect-nfs-version.h"
 
 #include "detect-engine-event.h"
-#include "decode.h"
 
 #include "detect-config.h"
 
@@ -87,7 +65,6 @@
 #include "detect-gid.h"
 #include "detect-tcp-ack.h"
 #include "detect-tcp-seq.h"
-#include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-depth.h"
@@ -106,10 +83,7 @@
 #include "detect-prefilter.h"
 #include "detect-priority.h"
 #include "detect-classtype.h"
-#include "detect-reference.h"
 #include "detect-tag.h"
-#include "detect-threshold.h"
-#include "detect-metadata.h"
 #include "detect-msg.h"
 #include "detect-rev.h"
 #include "detect-flow.h"
@@ -137,10 +111,8 @@
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
 #include "detect-hostbits.h"
-#include "detect-xbits.h"
 #include "detect-csum.h"
 #include "detect-stream_size.h"
-#include "detect-engine-sigorder.h"
 #include "detect-ttl.h"
 #include "detect-fast-pattern.h"
 #include "detect-itype.h"
@@ -159,7 +131,6 @@
 #include "detect-http-header.h"
 #include "detect-http-header-names.h"
 #include "detect-http-headers.h"
-#include "detect-http-raw-header.h"
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
 #include "detect-http-start.h"
@@ -235,7 +206,6 @@
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
-#include "detect-engine-content-inspection.h"
 
 #include "detect-transform-compress-whitespace.h"
 #include "detect-transform-strip-whitespace.h"
@@ -247,13 +217,6 @@
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
 
-#include "util-rule-vars.h"
-
-#include "app-layer.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-#include "app-layer-smtp.h"
-#include "app-layer-template.h"
 #include "detect-frame.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
@@ -280,34 +243,6 @@
 #include "detect-ike-nonce-payload-length.h"
 #include "detect-ike-nonce-payload.h"
 #include "detect-ike-key-exchange-payload.h"
-
-#include "action-globals.h"
-#include "tm-threads.h"
-
-#include "pkt-var.h"
-
-#include "conf.h"
-#include "conf-yaml-loader.h"
-
-#include "stream-tcp.h"
-#include "stream-tcp-inline.h"
-
-#include "util-lua.h"
-#include "util-var-name.h"
-#include "util-classification-config.h"
-#include "util-threshold-config.h"
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "util-hashlist.h"
-#include "util-privs.h"
-#include "util-profiling.h"
-#include "util-validate.h"
-#include "util-optimize.h"
-#include "util-path.h"
-#include "util-mpm-ac.h"
-#include "runmodes.h"
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {

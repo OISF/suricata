@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "stream-tcp-private.h"
 #include "stream-tcp-cache.h"
 
 typedef struct TcpPoolCache {

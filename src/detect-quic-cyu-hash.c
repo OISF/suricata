@@ -246,7 +246,6 @@ void DetectQuicCyuHashRegister(void)
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
 #include "detect-engine-alert.h"

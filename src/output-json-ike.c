@@ -25,7 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 
 #include "output-json.h"
 

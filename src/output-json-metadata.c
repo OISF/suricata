@@ -26,8 +26,6 @@
 
 #include "suricata-common.h"
 
-#include "app-layer-htp.h"
-
 #include "output-json.h"
 #include "output-json-metadata.h"
 

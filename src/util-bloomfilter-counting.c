@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "util-bloomfilter-counting.h"
-#include "util-unittest.h"
 
 /* type: 1, 2 or 4 for 8, 16, or 32 bit counters
  *

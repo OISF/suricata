@@ -155,7 +155,6 @@ error:
 #ifdef UNITTESTS
 
 #include "detect-isdataat.h"
-#include "stream-tcp-reassemble.h"
 
 /**
  * \test Checks if a uricontent is registered in a Signature

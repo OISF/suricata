@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"

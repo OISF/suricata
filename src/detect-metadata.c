@@ -27,12 +27,10 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-metadata.h"
 #include "util-hash-string.h"
-#include "util-unittest.h"
 #include "rust.h"
 #include "util-validate.h"
 

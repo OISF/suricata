@@ -212,9 +212,6 @@ static bool PrefilterITypeIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-
 /**
  * \test DetectITypeParseTest01 is a test for setting a valid itype value
  */

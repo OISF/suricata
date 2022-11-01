@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "tm-threads.h"
-#include "output.h"
 
 #include "detect-engine.h"
 

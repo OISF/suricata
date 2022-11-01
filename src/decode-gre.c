@@ -31,14 +31,10 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 #include "decode.h"
-#include "decode-events.h"
 #include "decode-gre.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 /**
  * \brief Function to decode GRE packets

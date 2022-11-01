@@ -265,11 +265,7 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "app-layer-parser.h"
-#include "flow-util.h"
-#include "stream-tcp.h"
 
 static int g_http_header_buffer_id = 0;
 

@@ -31,15 +31,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "decode-ppp.h"
-#include "decode-events.h"
 
 #include "flow.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
 
 int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)

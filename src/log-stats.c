@@ -23,7 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 
 #include "output.h"
 #include "log-stats.h"

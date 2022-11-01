@@ -25,7 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine.h"
 #include "util-byte.h"
 
 #include "app-layer-enip-common.h"

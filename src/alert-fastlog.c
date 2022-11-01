@@ -25,32 +25,19 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "flow.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "tm-threads.h"
-#include "threadvars.h"
-#include "util-debug.h"
-
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
-#include "detect-engine-mpm.h"
-#include "detect-reference.h"
 #include "util-classification-config.h"
 
 #include "output.h"
 #include "alert-fastlog.h"
 
-#include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
-#include "util-optimize.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
 

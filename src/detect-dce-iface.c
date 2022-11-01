@@ -25,27 +25,10 @@
 
 #include "suricata-common.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-build.h"
 #include "detect-dce-iface.h"
-
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
-
-#include "app-layer.h"
-#include "queue.h"
-#include "stream-tcp-reassemble.h"
-
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "stream-tcp.h"
 
 #include "rust.h"
 

@@ -146,8 +146,6 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
 #ifdef UNITTESTS
 
-#include "stream-tcp-reassemble.h"
-
 /**
  * \test Test that a signature containting a http_request_line is correctly parsed
  *       and the keyword is registered.

@@ -339,10 +339,8 @@ error:
  */
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "detect-engine-alert.h"
 #include "util-time.h"
-#include "util-hashlist.h"
 
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options

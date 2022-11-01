@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-byte.h"
 
 #include "detect-parse.h"
@@ -30,7 +29,6 @@
 
 #include "detect-krb5-msgtype.h"
 
-#include "app-layer-krb5.h"
 #include "rust.h"
 
 /**

@@ -23,11 +23,8 @@
  */
 
 #include "suricata-common.h"
-#include "util-byte.h"
 
-#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
 
 #include "detect-template2.h"

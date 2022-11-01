@@ -23,7 +23,6 @@
  * Simple queue handler
  */
 
-#include "suricata.h"
 #include "decode.h"
 
 #include "tm-queuehandlers.h"

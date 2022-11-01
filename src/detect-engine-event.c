@@ -24,15 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
-#include "detect.h"
 #include "detect-parse.h"
-
-#include "flow-var.h"
-#include "decode-events.h"
-
-#include "util-debug.h"
 
 #include "stream-tcp.h"
 
@@ -40,7 +32,6 @@
 /* Need to get the DEvents[] array */
 
 #include "detect-engine-event.h"
-#include "util-unittest.h"
 
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 

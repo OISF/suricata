@@ -23,7 +23,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-memrchr.h"
 
 #ifndef HAVE_MEMRCHR
