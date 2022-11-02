@@ -255,7 +255,7 @@ Example of fragoffset in a rule:
 
 .. container:: example-rule
 
-   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; fragbits: M; :example-rule-emphasis:`fragoffset: >0;` reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"fragoffset keyword example invalid non-fragmented packet with fragment offset>0"; fragbits:M; :example-rule-emphasis:`fragoffset:>0;` classtype:bad-unknown; sid:13; rev:1;)
 
 tos
 ^^^
