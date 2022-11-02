@@ -261,7 +261,7 @@ tos
 ^^^
 
 The tos keyword can match on specific decimal values of the IP header TOS
-field. The tos keyword can be have a value from 0 - 255. This field of the
+field. The tos keyword can have a value from 0 - 255. This field of the
 IP header has been updated by `rfc2474 <https://tools.ietf.org/html/rfc2474>`_
 to include functionality for
 `Differentiated services <https://en.wikipedia.org/wiki/Differentiated_services>`_.
@@ -271,7 +271,7 @@ the value 0. When specifying a value for tos, ensure that the value follows this
 E.g, instead of specifying the decimal value 34 (hex 22), right shift twice and use
 decimal 136 (hex 88).
 
-You can specify hexadecimal values as with a leading `x`, e.g, `x88`.
+You can specify hexadecimal values with a leading `x`, e.g, `x88`.
 
 Format of tos::
 
@@ -281,13 +281,13 @@ Example of tos in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"Differentiated Services Codepoint: Class Selector 1 (8)"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:2600115; rev:1;)
+    alert ip any any -> any any (msg:"tos keyword example tos value 8"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:123; rev:1;)
 
-Example of tos with negated values:
+Example of tos with a negated value:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"TGI HUNT non-DiffServ aware TOS setting"; flow:established,to_server; :example-rule-emphasis:`tos:!0; tos:!8; tos:!16; tos:!24; tos:!32; tos:!40; tos:!48; tos:!56;` threshold:type limit, track by_src, seconds 60, count 1; classtype:bad-unknown; sid:2600124; rev:1;)
+    alert ip any any -> any any (msg:"tos keyword example with negated content"; flow:established,to_server; :example-rule-emphasis:`tos:!8;` classtype:bad-unknown; sid:14; rev:1;)
 
 
 TCP keywords
