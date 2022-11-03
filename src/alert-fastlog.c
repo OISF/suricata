@@ -54,6 +54,9 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+// ACTION_DROP
+#include "action-globals.h"
+
 #define DEFAULT_LOG_FILENAME "fast.log"
 
 #define MODULE_NAME "AlertFastLog"

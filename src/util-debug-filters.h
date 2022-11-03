@@ -24,6 +24,7 @@
 #ifndef __DEBUG_FILTERS_H__
 #define __DEBUG_FILTERS_H__
 
+// pthread_t
 #include "threads.h"
 
 /**

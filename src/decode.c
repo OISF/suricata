@@ -67,6 +67,8 @@
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+// ACTION_DROP
+#include "action-globals.h"
 
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
