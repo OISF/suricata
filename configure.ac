@@ -580,6 +580,19 @@
         LIBS="${TMPLIBS} -lz"
     fi
 
+    AC_ARG_WITH(libpcre2_includes,
+            [  --with-libpcre2-includes=DIR  libpcre2 include directory],
+            [with_libpcre2_includes="$withval"],[with_libpcre2_includes="no"])
+    AC_ARG_WITH(libpcre2_libraries,
+            [  --with-libpcre2-libraries=DIR    libpcre2 library directory],
+            [with_libpcre2_libraries="$withval"],[with_libpcre2_libraries="no"])
+
+    if test "$with_libpcre2_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libpcre2_includes}"
+    fi
+    if test "$with_libpcre2_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS} -L${with_libpcre2_libraries}"
+    fi
     PCRE2=""
     AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,PCRE2="no")
     if test "$PCRE2" = "no"; then
