@@ -124,6 +124,7 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
         }
         return -2;
     }
+    s->init_data->init_flags |= SIG_FLAG_INIT_JA3;
 
     return 0;
 }
