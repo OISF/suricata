@@ -79,8 +79,6 @@ enum PktSrcEnum {
 #include "source-pfring.h"
 #endif
 
-#include "action-globals.h"
-
 #include "decode-ethernet.h"
 #include "decode-gre.h"
 #include "decode-ppp.h"

@@ -60,6 +60,7 @@
 #include "runmodes.h"
 #include "flow-storage.h"
 #include "util-validate.h"
+#include "action-globals.h"
 
 #ifdef HAVE_AF_PACKET
 
