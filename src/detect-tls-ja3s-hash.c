@@ -68,30 +68,6 @@ static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
        const char **sigerror);
 static int g_tls_ja3s_hash_buffer_id = 0;
 
-static InspectionBuffer *GetJa3Data(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
-        const int list_id)
-{
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
-        uint32_t b_len = 0;
-        const uint8_t *b = NULL;
-
-        if (rs_quic_tx_get_ja3(txv, &b, &b_len) != 1)
-            return NULL;
-        if (b == NULL || b_len == 0)
-            return NULL;
-
-        uint8_t ja3_hash[SC_MD5_HEX_LEN + 1];
-        // this adds a final zero
-        SCMd5HashBufferToHex(b, b_len, ja3_hash, SC_MD5_HEX_LEN + 1);
-
-        InspectionBufferSetup(det_ctx, list_id, buffer, ja3_hash, SC_MD5_HEX_LEN);
-        InspectionBufferApplyTransforms(buffer, transforms);
-    }
-    return buffer;
-}
-
 /**
  * \brief Registration function for keyword: ja3s.hash
  */
@@ -111,10 +87,10 @@ void DetectTlsJa3SHashRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
     DetectAppLayerMpmRegister2("ja3s.hash", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetJa3Data, ALPROTO_QUIC, 1);
+            Ja3DetectGetHash, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2("ja3s.hash", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectBufferGeneric, GetJa3Data);
+            DetectEngineInspectBufferGeneric, Ja3DetectGetHash);
 
     DetectBufferTypeSetDescriptionByName("ja3s.hash", "TLS JA3S hash");
 
