@@ -66,7 +66,7 @@ jobs:
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: ./configure
-      - run: cargo clippy --all-features --fix
+      - run: cargo clippy --all-features --fix --allow-no-vcs
         working-directory: rust
       - run: |
           diff=$(git diff)
