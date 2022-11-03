@@ -177,7 +177,7 @@ static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
         }
 
-        if (cd->content_len == 32)
+        if (cd->content_len == SC_MD5_HEX_LEN)
             return true;
 
         *sigerror = "Invalid length of the specified JA3S hash (should "
