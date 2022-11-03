@@ -30,8 +30,6 @@
 
 #include "detect-engine.h"
 
-#define MD5_STRING_LENGTH 33
-
 /**
  * \brief Allocate new buffer.
  *
@@ -226,14 +224,14 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
         return NULL;
     }
 
-    char *ja3_hash = SCMalloc(MD5_STRING_LENGTH);
+    char *ja3_hash = SCMalloc(SC_MD5_HEX_LEN + 1);
     if (ja3_hash == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
                    "Error allocating memory for JA3 hash");
         return NULL;
     }
 
-    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash, MD5_STRING_LENGTH);
+    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash, SC_MD5_HEX_LEN + 1);
     return ja3_hash;
 }
 
