@@ -59,8 +59,8 @@ pub extern "C" fn rs_log_set_level(level: i32) {
 
 fn basename(filename: &str) -> &str {
     let path = Path::new(filename);
-    for os_str in path.file_name() {
-        for basename in os_str.to_str() {
+    if let Some(os_str) = path.file_name() {
+        if let Some(basename) = os_str.to_str() {
             return basename;
         }
     }
