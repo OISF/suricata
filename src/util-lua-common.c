@@ -56,6 +56,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "action-globals.h"
 
 int LuaCallbackError(lua_State *luastate, const char *msg)
 {

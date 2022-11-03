@@ -48,6 +48,7 @@
 #include "util-syslog.h"
 #include "util-optimize.h"
 #include "util-logopenfile.h"
+#include "action-globals.h"
 
 #ifndef OS_WIN32
 

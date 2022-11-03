@@ -25,6 +25,7 @@
 #include "util-exception-policy.h"
 #include "util-misc.h"
 #include "stream-tcp-reassemble.h"
+#include "action-globals.h"
 
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {

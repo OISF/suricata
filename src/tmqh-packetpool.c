@@ -33,6 +33,7 @@
 #include "packet.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "action-globals.h"
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
