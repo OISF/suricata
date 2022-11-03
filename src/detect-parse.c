@@ -70,6 +70,8 @@
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
 
+#include "action-globals.h"
+
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 

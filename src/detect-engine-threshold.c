@@ -68,6 +68,8 @@
 #include "util-var-name.h"
 #include "tm-threads.h"
 
+#include "action-globals.h"
+
 static HostStorageId host_threshold_id = { .id = -1 };     /**< host storage id for thresholds */
 static IPPairStorageId ippair_threshold_id = { .id = -1 }; /**< ip pair storage id for thresholds */
 

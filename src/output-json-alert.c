@@ -88,6 +88,8 @@
 #include "util-buffer.h"
 #include "util-validate.h"
 
+#include "action-globals.h"
+
 #define MODULE_NAME "JsonAlertLog"
 
 #define LOG_JSON_PAYLOAD           BIT_U16(0)

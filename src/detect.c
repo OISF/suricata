@@ -65,6 +65,8 @@
 #include "util-detect.h"
 #include "util-profiling.h"
 
+#include "action-globals.h"
+
 typedef struct DetectRunScratchpad {
     const AppProto alproto;
     const uint8_t flow_flags; /* flow/state flags: STREAM_* */
