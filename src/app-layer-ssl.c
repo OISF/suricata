@@ -475,7 +475,7 @@ static inline int TlsDecodeHSCertificateFingerprint(
     if (unlikely(connp->cert0_fingerprint != NULL))
         return 0;
 
-    connp->cert0_fingerprint = SCCalloc(1, SHA1_STRING_LENGTH * sizeof(char));
+    connp->cert0_fingerprint = SCCalloc(1, SHA1_STRING_LENGTH);
     if (connp->cert0_fingerprint == NULL)
         return -1;
 
