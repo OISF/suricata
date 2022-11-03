@@ -41,6 +41,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
+#include "action-globals.h"
 
 #ifndef HAVE_DPDK
 

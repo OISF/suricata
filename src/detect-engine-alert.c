@@ -35,6 +35,8 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 
+#include "action-globals.h"
+
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
 /** tag packet alert structure for tag alerts */
