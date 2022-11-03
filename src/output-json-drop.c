@@ -56,6 +56,8 @@
 #include "util-time.h"
 #include "util-buffer.h"
 
+#include "action-globals.h"
+
 #define MODULE_NAME "JsonDropLog"
 
 #define LOG_DROP_ALERTS 1

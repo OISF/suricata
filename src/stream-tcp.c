@@ -78,6 +78,7 @@
 #include "util-time.h"
 
 #include "source-pcap-file.h"
+#include "action-globals.h"
 
 //#define DEBUG
 

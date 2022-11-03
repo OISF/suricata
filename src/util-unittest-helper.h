@@ -25,7 +25,6 @@
 #define __UTIL_UNITTEST_HELPER__
 
 #if defined(UNITTESTS)
-#include "packet.h"
 #include "flow.h"
 #include "detect.h"
 #elif defined(FUZZ)

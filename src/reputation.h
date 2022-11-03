@@ -42,8 +42,6 @@ typedef struct SReputation_ {
     uint8_t rep[SREP_MAX_CATS];
 } SReputation;
 
-#include "detect.h"
-
 void SRepFreeHostData(Host *h);
 uint8_t SRepCatGetByShortname(char *shortname);
 int SRepInit(struct DetectEngineCtx_ *de_ctx);

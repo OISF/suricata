@@ -26,6 +26,7 @@
  */
 
 #include "suricata-common.h"
+#include "detect.h"
 #include "reputation.h"
 #include "threads.h"
 #include "conf.h"

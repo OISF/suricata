@@ -26,6 +26,8 @@
 
 #include "threads.h"
 #include "util-pool.h"
+#include "threadvars.h"
+#include "decode.h"
 
 /**
  * A context for an instance of a fragmentation re-assembler, in case
