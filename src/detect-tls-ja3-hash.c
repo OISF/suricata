@@ -135,6 +135,7 @@ static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         }
         return -2;
     }
+    s->init_data->init_flags |= SIG_FLAG_INIT_JA3;
 
     return 0;
 }
