@@ -1912,6 +1912,12 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 #endif
 
+    if (s->init_data->init_flags & SIG_FLAG_INIT_JA3 && s->alproto != ALPROTO_UNKNOWN &&
+            s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Cannot have ja3 with protocol %s.",
+                AppProtoToString(s->alproto));
+        SCReturnInt(0);
+    }
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
         (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
         if (s->alproto != ALPROTO_UNKNOWN &&
