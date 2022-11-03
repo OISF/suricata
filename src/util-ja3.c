@@ -83,7 +83,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
     while (buffer->used + len + 2 > buffer->size)
     {
         buffer->size *= 2;
-        char *tmp = SCRealloc(buffer->data, buffer->size * sizeof(char));
+        char *tmp = SCRealloc(buffer->data, buffer->size);
         if (tmp == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error resizing JA3 buffer");
             return -1;
@@ -177,7 +177,7 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
     }
 
     if ((*buffer)->data == NULL) {
-        (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE * sizeof(char));
+        (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE);
         if ((*buffer)->data == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC,
                        "Error allocating memory for JA3 data");
@@ -226,15 +226,14 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
         return NULL;
     }
 
-    char *ja3_hash = SCMalloc(MD5_STRING_LENGTH * sizeof(char));
+    char *ja3_hash = SCMalloc(MD5_STRING_LENGTH);
     if (ja3_hash == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
                    "Error allocating memory for JA3 hash");
         return NULL;
     }
 
-    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash,
-            MD5_STRING_LENGTH * sizeof(char));
+    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash, MD5_STRING_LENGTH);
     return ja3_hash;
 }
 
