@@ -23,6 +23,7 @@ use super::{
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
 
@@ -91,7 +92,7 @@ pub struct QuicState {
     keys: Option<QuicKeys>,
     hello_tc: bool,
     hello_ts: bool,
-    transactions: Vec<QuicTransaction>,
+    transactions: VecDeque<QuicTransaction>,
 }
 
 impl Default for QuicState {
@@ -102,7 +103,7 @@ impl Default for QuicState {
             keys: None,
             hello_tc: false,
             hello_ts: false,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
         }
     }
 }
@@ -134,7 +135,7 @@ impl QuicState {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     fn tx_iterator(
@@ -251,7 +252,7 @@ impl QuicState {
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         tx.tx_data.set_event(event as u8);
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
