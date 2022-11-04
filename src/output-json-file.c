@@ -74,6 +74,7 @@ typedef struct OutputFileCtx_ {
     uint32_t file_cnt;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
+    OutputJsonCommonSettings cfg;
 } OutputFileCtx;
 
 typedef struct JsonFileLogThread_ {
@@ -82,8 +83,8 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
-JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg)
+JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool stored,
+        uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCommonSettings *cfg)
 {
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
@@ -122,6 +123,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     JsonBuilder *js = CreateEveHeader(p, fdir, "fileinfo", &addr);
     if (unlikely(js == NULL))
         return NULL;
+    if (cfg != NULL) {
+        EveAddCommonOptions(cfg, p, p->flow, js);
+    }
 
     JsonBuilderMark mark = { 0, 0, 0 };
     switch (p->flow->alproto) {
@@ -207,8 +211,8 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
-    JsonBuilder *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false, dir, xff_cfg);
+    JsonBuilder *js = JsonBuildFileInfoRecord(
+            p, ff, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, &aft->filelog_ctx->cfg);
     if (unlikely(js == NULL)) {
         return;
     }
@@ -313,6 +317,7 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     output_file_ctx->file_ctx = ojc->file_ctx;
+    output_file_ctx->cfg = ojc->cfg;
 
     if (conf) {
         const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");

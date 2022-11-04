@@ -52,6 +52,7 @@
 typedef struct LogMQTTFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogMQTTFileCtx;
 
 typedef struct LogMQTTLogThread_ {
@@ -90,6 +91,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
+    EveAddCommonOptions(&thread->mqttlog_ctx->cfg, p, f, js);
 
     if (!rs_mqtt_logger_log(state, tx, thread->mqttlog_ctx->flags, js))
         goto error;
@@ -137,6 +139,7 @@ static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
         return result;
     }
     mqttlog_ctx->file_ctx = ajt->file_ctx;
+    mqttlog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {

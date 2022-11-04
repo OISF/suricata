@@ -50,6 +50,7 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
+    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
 
     jb_open_object(jb, "dcerpc");
     if (p->proto == IPPROTO_TCP) {

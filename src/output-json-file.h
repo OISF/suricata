@@ -25,9 +25,10 @@
 #define __OUTPUT_JSON_FILE_H__
 
 #include "app-layer-htp-xff.h"
+#include "output-json.h"
 
 void JsonFileLogRegister(void);
-JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg);
+JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool stored,
+        uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCommonSettings *cfg);
 
 #endif /* __OUTPUT_JSON_FILE_H__ */
