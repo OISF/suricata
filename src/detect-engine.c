@@ -493,7 +493,6 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
             }
 
             list->next = new_engine;
-            break;
         }
         t = t->next;
     }
