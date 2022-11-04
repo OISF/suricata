@@ -49,6 +49,7 @@
 typedef struct LogRFBFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogRFBFileCtx;
 
 typedef struct LogRFBLogThread_ {
@@ -79,6 +80,8 @@ static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
+
+    EveAddCommonOptions(&thread->rfblog_ctx->cfg, p, f, js);
 
     if (!rs_rfb_logger_log(NULL, tx, js)) {
         goto error;
@@ -113,6 +116,7 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf,
         return result;
     }
     rfblog_ctx->file_ctx = ajt->file_ctx;
+    rfblog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
