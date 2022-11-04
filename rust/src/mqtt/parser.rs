@@ -166,7 +166,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
         FixedHeader {
             message_type: parse_message_type(flags.0),
             dup_flag: flags.1 != 0,
-            qos_level: flags.2 as u8,
+            qos_level: flags.2,
             retain: flags.3 != 0,
             remaining_length,
         },
@@ -207,7 +207,7 @@ fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
             username_flag: flags.0 != 0,
             password_flag: flags.1 != 0,
             will_retain: flags.2 != 0,
-            will_qos: flags.3 as u8,
+            will_qos: flags.3,
             will_flag: flags.4 != 0,
             clean_session: flags.5 != 0,
             keepalive,

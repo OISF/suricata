@@ -29,13 +29,13 @@ fn http2_tx_has_frametype(
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
-            if tx.frames_ts[i].header.ftype as u8 == value {
+            if tx.frames_ts[i].header.ftype == value {
                 return 1;
             }
         }
     } else {
         for i in 0..tx.frames_tc.len() {
-            if tx.frames_tc[i].header.ftype as u8 == value {
+            if tx.frames_tc[i].header.ftype == value {
                 return 1;
             }
         }
@@ -87,12 +87,12 @@ fn http2_tx_has_errorcode(
         for i in 0..tx.frames_tc.len() {
             match tx.frames_tc[i].data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
-                    if goaway.errorcode as u32 == code {
+                    if goaway.errorcode == code {
                         return 1;
                     }
                 }
                 HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode as u32 == code {
+                    if rst.errorcode == code {
                         return 1;
                     }
                 }

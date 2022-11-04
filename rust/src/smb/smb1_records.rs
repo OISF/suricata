@@ -115,7 +115,7 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     let (i, file_data) = rest(i)?;
     let record = Smb1WriteRequestRecord {
         offset: high_offset.map(|ho| (ho as u64) << 32 | offset as u64).unwrap_or(0),
-        len: (((data_len_high as u32) << 16) as u32)|(data_len_low as u32),
+        len: ((data_len_high as u32) << 16)|(data_len_low as u32),
         fid,
         data: file_data,
     };
@@ -547,7 +547,7 @@ pub fn parse_smb_read_andx_response_record(i: &[u8]) -> IResult<&[u8], SmbRespon
     let (i, file_data) = rest(i)?;
 
     let record = SmbResponseReadAndXRecord {
-        len: (((data_len_high as u32) << 16)|data_len_low as u32),
+        len: ((data_len_high << 16)|data_len_low as u32),
         data: file_data,
    };
     Ok((i, record))

@@ -181,7 +181,7 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     if unit.is_empty() {
         unit = "B";
     }
-    let unit = get_memunit(unit) as u64;
+    let unit = get_memunit(unit);
     if unit == 0 {
         return Err("Invalid memory unit");
     }

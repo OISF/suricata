@@ -115,7 +115,7 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
-    return state.tx_id as u64;
+    return state.tx_id;
 }
 
 fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
