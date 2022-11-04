@@ -69,9 +69,6 @@ impl Default for FileContainer {
 }
 
 impl FileContainer {
-    pub fn default() -> FileContainer {
-        FileContainer { head:ptr::null_mut(), tail:ptr::null_mut() }
-    }
     pub fn free(&mut self) {
         SCLogDebug!("freeing self");
         if let Some(c) = unsafe {SC} {
