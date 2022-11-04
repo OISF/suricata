@@ -242,11 +242,11 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
     let consumed = start_i.len() - i.len();
-    if consumed > rec_size as usize {
+    if consumed > rec_size {
         return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
     }
 
-    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let data_size : u32 = (rec_size - consumed) as u32;
     let (i, prog_data) = if !complete {
         rest(i)?
     } else {

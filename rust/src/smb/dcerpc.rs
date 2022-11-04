@@ -36,7 +36,7 @@ impl SMBCommonHdr {
         match vercmd.get_version() {
             2 => {
                 let (_, cmd2) = vercmd.get_smb2_cmd();
-                let x = match cmd2 as u16 {
+                let x = match cmd2 {
                     SMB2_COMMAND_READ => { 0 },
                     SMB2_COMMAND_WRITE => { 0 },
                     SMB2_COMMAND_IOCTL => { self.msg_id },
@@ -459,7 +459,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
     SCLogDebug!("lets first see if we have prior data");
     // msg_id 0 as this data crosses cmd/reply pairs
     let ehdr = SMBHashKeyHdrGuid::new(SMBCommonHdr::new(SMBHDR_TYPE_TRANS_FRAG,
-            hdr.ssn_id as u64, hdr.tree_id as u32, 0_u64), guid.to_vec());
+            hdr.ssn_id, hdr.tree_id, 0_u64), guid.to_vec());
     let mut prevdata = match state.ssnguid2vec_map.remove(&ehdr) {
         Some(s) => s,
         None => Vec::new(),

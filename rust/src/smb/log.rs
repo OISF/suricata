@@ -67,7 +67,7 @@ fn guid_to_string(guid: &Vec<u8>) -> String {
 
 fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction) -> Result<(), JsonError>
 {
-    jsb.set_uint("id", tx.id as u64)?;
+    jsb.set_uint("id", tx.id)?;
 
     if state.dialect != 0 {
         let dialect = &smb2_dialect_string(state.dialect);
@@ -136,7 +136,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
     }
 
 
-    jsb.set_uint("session_id", tx.hdr.ssn_id as u64)?;
+    jsb.set_uint("session_id", tx.hdr.ssn_id)?;
     jsb.set_uint("tree_id", tx.hdr.tree_id as u64)?;
 
     debug_add_progress(jsb, tx)?;

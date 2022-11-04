@@ -564,7 +564,7 @@ pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupPa
             }
         }
         params.remove(index);
-        if user.value.len() == 0 {
+        if user.value.is_empty() {
             return Err(Err::Error(make_error(i, ErrorKind::Tag)));
         }
         return Ok((i, PgsqlStartupParameters{

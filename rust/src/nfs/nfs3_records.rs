@@ -341,15 +341,15 @@ pub struct Nfs3RequestWrite<'a> {
 
 /// Complete data expected
 fn parse_nfs3_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
-    let (i, file_data) = take(file_len as usize)(i)?;
+    let (i, file_data) = take(file_len)(i)?;
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
     Ok((i, file_data))
 }
 
 /// Partial data. We have all file_len, but need to consider fill_bytes
 fn parse_nfs3_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
-    let (i, file_data) = take(file_len as usize)(i)?;
-    let fill_bytes = cmp::min(fill_bytes as usize, i.len());
+    let (i, file_data) = take(file_len)(i)?;
+    let fill_bytes = cmp::min(fill_bytes, i.len());
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
     Ok((i, file_data))
 }

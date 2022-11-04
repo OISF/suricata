@@ -526,7 +526,7 @@ impl MQTTState {
 
         while !current.is_empty() {
             SCLogDebug!("response: handling {}", current.len());
-            match parse_message(current, self.protocol_version, self.max_msg_len as usize) {
+            match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
                     SCLogDebug!("response msg {:?}", msg);
                     if let MQTTOperation::TRUNCATED(ref trunc) = msg.op {

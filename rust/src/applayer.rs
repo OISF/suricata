@@ -167,7 +167,7 @@ impl AppLayerTxData {
     }
 
     pub fn set_event(&mut self, event: u8) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event);
     }
 
     pub fn update_file_flags(&mut self, state_flags: u16) {
@@ -583,7 +583,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
-    if let Some(e) = T::from_id(event_id as i32) {
+    if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;

@@ -201,7 +201,7 @@ impl SSHState {
                                         hdr.record_left_msg = parser::MessageCode::Kexinit;
                                         return AppLayerResult::incomplete(
                                             (il - rem.len()) as u32,
-                                            (head.pkt_len - 2) as u32
+                                            head.pkt_len - 2
                                         );
                                     }
                                     else {
