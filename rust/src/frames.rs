@@ -65,7 +65,7 @@ impl Frame {
                     stream_slice,
                     offset as u32,
                     frame_len,
-                    if stream_slice.flags() & STREAM_TOSERVER != 0 { 0 } else { 1 },
+                    (stream_slice.flags() & STREAM_TOSERVER == 0).into(),
                     frame_type,
                 )
             };

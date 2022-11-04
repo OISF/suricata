@@ -87,8 +87,8 @@ struct SmbFlags {
 
 fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
     let (i, val) = le_u32(i)?;
-    let direction = if val & SMB2_FLAGS_SERVER_TO_REDIR != 0 { 1 } else { 0 };
-    let async_command = if val & SMB2_FLAGS_ASYNC_COMMAND != 0 { 1 } else { 0 };
+    let direction = u8::from(val & SMB2_FLAGS_SERVER_TO_REDIR != 0);
+    let async_command = u8::from(val & SMB2_FLAGS_ASYNC_COMMAND != 0);
     Ok((i, SmbFlags {
         direction,
         async_command,
