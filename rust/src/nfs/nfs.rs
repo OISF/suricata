@@ -1569,7 +1569,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_ts_gap(input_len as u32)
+    state.parse_tcp_data_ts_gap(input_len)
 }
 
 #[no_mangle]
@@ -1598,7 +1598,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_tc_gap(input_len as u32)
+    state.parse_tcp_data_tc_gap(input_len)
 }
 
 /// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
@@ -1701,7 +1701,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
                                            -> u8
 {
     if i == 0 {
-        *procedure = tx.procedure as u32;
+        *procedure = tx.procedure;
         return 1;
     }
 
@@ -1715,7 +1715,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
         let idx = i as usize - 1;
         if idx < tdf.file_additional_procs.len() {
             let p = tdf.file_additional_procs[idx];
-            *procedure = p as u32;
+            *procedure = p;
             return 1;
         }
     }
@@ -1985,20 +1985,20 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
 
         let midstream = conf_get_bool("stream.midstream");
         if midstream {
-            if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP as u8,
+            if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
                 SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP
                             detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8,
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     default_port.as_ptr(), ALPROTO_NFS, 0,
                     NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                     rs_nfs_probe_ms, rs_nfs_probe_ms);
             }
         } else {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8,
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe, rs_nfs_probe);
@@ -2062,13 +2062,13 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_NFS = alproto;
 
-        if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP as u8,
+        if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP,
                 parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
             SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP
                         detection UDP detection on port {:?}.",
                         default_port);
-            AppLayerProtoDetectPPRegister(IPPROTO_UDP as u8,
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc);

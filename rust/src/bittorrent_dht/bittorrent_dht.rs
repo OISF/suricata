@@ -281,7 +281,7 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         }
 
         if AppLayerProtoDetectPMRegisterPatternCS(
-            IPPROTO_UDP as u8,
+            IPPROTO_UDP,
             ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
             BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,
@@ -292,7 +292,7 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOSERVER");
         };
         if AppLayerProtoDetectPMRegisterPatternCS(
-            IPPROTO_UDP as u8,
+            IPPROTO_UDP,
             ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
             BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,

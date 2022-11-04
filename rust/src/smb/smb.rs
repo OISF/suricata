@@ -578,7 +578,7 @@ impl SMBCommonHdr {
         };
         let msg_id = match rec_type {
             SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
-            _ => { r.message_id as u64 },
+            _ => { r.message_id },
         };
 
         SMBCommonHdr {
@@ -597,7 +597,7 @@ impl SMBCommonHdr {
         // cf https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ea4560b7-90da-4803-82b5-344754b92a79
         let msg_id = match rec_type {
             SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
-            _ => { r.message_id as u64 },
+            _ => { r.message_id },
         };
 
         SMBCommonHdr {
@@ -1209,7 +1209,7 @@ impl SMBState {
         let _smb1_hdr = Frame::new(flow, stream_slice, input, 32_i64, SMBFrameType::SMB1Hdr as u8);
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > 32 {
-            let _smb1_data = Frame::new(flow, stream_slice, &input[32..], (nbss_len - 32) as i64, SMBFrameType::SMB1Data as u8);
+            let _smb1_data = Frame::new(flow, stream_slice, &input[32..], nbss_len - 32, SMBFrameType::SMB1Data as u8);
             SCLogDebug!("SMBv1 DATA frame {:?}", _smb1_data);
         }
     }
@@ -1237,7 +1237,7 @@ impl SMBState {
         let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
-            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], (nbss_len - 52) as i64, SMBFrameType::SMB3Data as u8);
+            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], nbss_len - 52, SMBFrameType::SMB3Data as u8);
             SCLogDebug!("SMBv3 DATA frame {:?}", _smb3_data);
         }
     }
@@ -1385,7 +1385,7 @@ impl SMBState {
                             consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
-                        return AppLayerResult::incomplete(consumed as u32, 8);
+                        return AppLayerResult::incomplete(consumed, 8);
                     },
                 }
             }
@@ -1508,7 +1508,7 @@ impl SMBState {
                             SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
                                     total_consumed, n, needed, stream_slice.len());
                             let need = n;
-                            return AppLayerResult::incomplete(total_consumed as u32, need as u32);
+                            return AppLayerResult::incomplete(total_consumed, need as u32);
                         }
                         // tracking a write record, which we don't need to
                         // queue up at the stream level, but can feed to us
@@ -1553,7 +1553,7 @@ impl SMBState {
         let _smb1_hdr = Frame::new(flow, stream_slice, input, SMB1_HEADER_SIZE as i64, SMBFrameType::SMB1Hdr as u8);
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > SMB1_HEADER_SIZE {
-            let _smb1_data = Frame::new(flow, stream_slice, &input[SMB1_HEADER_SIZE..], (nbss_len - SMB1_HEADER_SIZE as i64) as i64,
+            let _smb1_data = Frame::new(flow, stream_slice, &input[SMB1_HEADER_SIZE..], nbss_len - SMB1_HEADER_SIZE as i64,
                     SMBFrameType::SMB1Data as u8);
             SCLogDebug!("SMBv1 DATA frame {:?}", _smb1_data);
         }
@@ -1581,7 +1581,7 @@ impl SMBState {
         let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
-            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], (nbss_len - 52) as i64, SMBFrameType::SMB3Data as u8);
+            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], nbss_len - 52, SMBFrameType::SMB3Data as u8);
             SCLogDebug!("SMBv3 DATA frame {:?}", _smb3_data);
         }
     }
@@ -1717,7 +1717,7 @@ impl SMBState {
                             consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
-                        return AppLayerResult::incomplete(consumed as u32, 8);
+                        return AppLayerResult::incomplete(consumed, 8);
                     },
                 }
             }
@@ -1829,7 +1829,7 @@ impl SMBState {
                             SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
                                     total_consumed, n, needed, stream_slice.len());
                             let need = n;
-                            return AppLayerResult::incomplete(total_consumed as u32, need as u32);
+                            return AppLayerResult::incomplete(total_consumed, need as u32);
                         }
                         // tracking a read record, which we don't need to
                         // queue up at the stream level, but can feed to us
@@ -1973,7 +1973,7 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_ts_gap(input_len as u32)
+    state.parse_tcp_data_ts_gap(input_len)
 }
 
 
@@ -2008,7 +2008,7 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_tc_gap(input_len as u32)
+    state.parse_tcp_data_tc_gap(input_len)
 }
 
 fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, begins: bool) -> i8
@@ -2182,7 +2182,7 @@ pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state, SMBState);
-    SCLogDebug!("freeing tx {}", tx_id as u64);
+    SCLogDebug!("freeing tx {}", tx_id);
     state.free_tx(tx_id);
 }
 
@@ -2279,24 +2279,24 @@ fn register_pattern_probe() -> i8 {
     let mut r = 0;
     unsafe {
         // SMB1
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB2/3
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB3 encrypted records
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
     }
@@ -2362,11 +2362,11 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         }
 
         let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
-                    IPPROTO_TCP as u8, parser.name, ALPROTO_SMB, 0,
+                    IPPROTO_TCP, parser.name, ALPROTO_SMB, 0,
                     MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
 
         if have_cfg == 0 {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8, default_port.as_ptr(), ALPROTO_SMB,
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
                                           0, MIN_REC_SIZE, Direction::ToServer as u8, rs_smb_probe_tcp, rs_smb_probe_tcp);
         }
 
@@ -2385,7 +2385,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 Err(_) => { SCLogError!("Invalid depth value"); }
             }
         }
-        AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
+        AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {

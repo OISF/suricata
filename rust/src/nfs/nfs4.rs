@@ -104,7 +104,7 @@ impl NFSState {
         }
         self.ts_chunk_xid = r.hdr.xid;
         debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
-        self.ts_chunk_left = w.write_len as u32 - w.data.len()  as u32;
+        self.ts_chunk_left = w.write_len - w.data.len()  as u32;
     }
 
     fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b [u8]) {

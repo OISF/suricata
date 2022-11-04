@@ -105,7 +105,7 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder
         let s = format!("{:x}", c);
         js.set_string("hhash", &s)?;
     }
-    js.set_uint("id", tx.id as u64)?;
+    js.set_uint("id", tx.id)?;
     js.set_bool("file_tx", tx.is_file_tx)?;
     Ok(())
 }
