@@ -757,7 +757,7 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
                     SCLogError!("Invalid depth value");
                 }
             }
-            AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_PGSQL, stream_depth)
+            AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
         }
         if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
             if let Ok(v) = val.parse::<usize>() {

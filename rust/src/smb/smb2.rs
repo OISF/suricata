@@ -105,7 +105,7 @@ fn smb2_read_response_record_generic<'b>(state: &mut SMBState, r: &Smb2Record<'b
 {
     if smb2_create_new_tx(r.command) {
         let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.get_generic_tx(2, r.command as u16, &tx_hdr);
+        let tx = state.get_generic_tx(2, r.command, &tx_hdr);
         if let Some(tx) = tx {
             tx.set_status(r.nt_status, false);
             tx.response_done = true;
@@ -786,7 +786,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                                 if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
                                     tdn.share_type = tr.share_type;
                                     tdn.is_pipe = is_pipe;
-                                    tdn.tree_id = r.tree_id as u32;
+                                    tdn.tree_id = r.tree_id;
                                     share_name = tdn.share_name.to_vec();
                                 }
                                 // update hdr now that we have a tree_id
