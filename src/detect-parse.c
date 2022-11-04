@@ -434,7 +434,8 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
     uint32_t sm_type;
 
     /* if we have a sticky buffer, use that */
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
+            s->init_data->list < (int)s->init_data->smlists_array_size) {
         if (!(DetectEngineBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
             return NULL;
         }
