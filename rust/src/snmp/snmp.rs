@@ -57,6 +57,8 @@ pub struct SNMPPduInfo<'a> {
     pub trap_type: Option<(TrapType,Oid<'a>,NetworkAddress)>,
 
     pub vars: Vec<Oid<'a>>,
+
+    pub vals: Vec<String>,
 }
 
 pub struct SNMPTransaction<'a> {
@@ -104,6 +106,7 @@ impl<'a> Default for SNMPPduInfo<'a> {
             pdu_type: PduType(0),
             err: ErrorStatus::NoError,
             trap_type: None,
+            vals: Vec::new(),
             vars: Vec::new()
         }
     }
@@ -136,6 +139,13 @@ impl<'a> SNMPState<'a> {
 
         for var in pdu.vars_iter() {
             pdu_info.vars.push(var.oid.to_owned());
+            match &var.val {
+                // Request has empty, do not log it
+                ObjectSyntax::Empty => {}
+                _ => {
+                    pdu_info.vals.push(format!("{:?}", var.val));
+                }
+            }
         }
         tx.info = Some(pdu_info);
     }

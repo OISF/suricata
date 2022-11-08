@@ -3620,6 +3620,12 @@
                 "version": {
                     "type": "integer"
                 },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "vars": {
                     "type": "array",
                     "items": {

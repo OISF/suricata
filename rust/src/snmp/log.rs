@@ -66,6 +66,13 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
                     }
                     jsb.close()?;
                 }
+                if info.vals.len() > 0 {
+                    jsb.open_array("values")?;
+                    for val in info.vals.iter() {
+                        jsb.append_string(&val)?;
+                    }
+                    jsb.close()?;
+                }
             },
             _ => ()
         }
