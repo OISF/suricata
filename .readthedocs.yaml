@@ -1,6 +1,8 @@
 # Required by Read The Docs
 version: 2
 
+formats: all
+
 python:
   version: "3.8"
 
