@@ -36,6 +36,14 @@
 #define _GNU_SOURCE
 #define __USE_GNU
 
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define SC_ADDRESS_SANITIZER 1
+#endif
+#elif defined(__SANITIZE_ADDRESS__)
+#define SC_ADDRESS_SANITIZER 1
+#endif
+
 #if HAVE_CONFIG_H
 #include <autoconf.h>
 #endif

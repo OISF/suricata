@@ -691,7 +691,6 @@ static void PrintBuildInfo(void)
     const char *tls;
 
     printf("This is %s version %s\n", PROG_NAME, GetProgramVersion());
-
 #ifdef DEBUG
     strlcat(features, "DEBUG ", sizeof(features));
 #endif
@@ -766,6 +765,9 @@ static void PrintBuildInfo(void)
     strlcat(features, "MAGIC ", sizeof(features));
 #endif
     strlcat(features, "RUST ", sizeof(features));
+#if defined(SC_ADDRESS_SANITIZER)
+    strlcat(features, "ASAN ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -2913,8 +2915,17 @@ int SuricataMain(int argc, char **argv)
     if (ConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
         limit_nproc = 0;
     }
+
+#if defined(SC_ADDRESS_SANITIZER)
     if (limit_nproc) {
-#ifdef HAVE_SYS_RESOURCE_H
+        SCLogWarning(SC_ERR_SYSCONF,
+                "\"security.limit-noproc\" (setrlimit()) not set when using address sanitizer");
+        limit_nproc = 0;
+    }
+#endif
+
+    if (limit_nproc) {
+#if defined(HAVE_SYS_RESOURCE_H)
 #ifdef linux
         if (geteuid() == 0) {
             SCLogWarning(SC_ERR_SYSCONF, "setrlimit has no effet when running as root.");
