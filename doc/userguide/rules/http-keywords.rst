@@ -43,6 +43,7 @@ http.accept_lang               http_accept_lang (*)     Request
 http.accept_enc                http_accept_enc (*)      Request
 http.referer                   http_referer (*)         Request
 http.connection                http_connection (*)      Request
+file.data                      file_data (*)            Both
 http.content_type              http_content_type (*)    Both
 http.content_len               http_content_len (*)     Both
 http.start                     http_start (*)           Both
@@ -66,7 +67,7 @@ http.cookie                    http_cookie              Both
 http.response_body             http_server_body         Response
 http.server                    N/A                      Response
 http.location                  N/A                      Response
-file.data                      file_data (*)            Response
+file.data                      file_data (*)            Both
 http.content_type              http_content_type (*)    Both
 http.content_len               http_content_len (*)     Both
 http.start                     http_start (*)           Both
@@ -728,6 +729,8 @@ file.data
 
 With ``file.data``, the HTTP response body is inspected, just like
 with ``http.response_body``. The ``file.data`` keyword is a sticky buffer.
+``file.data`` also works for HTTP request body and can be used in other
+protocols than HTTP1.
 
 Example::
 
