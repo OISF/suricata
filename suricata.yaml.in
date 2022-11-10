@@ -285,6 +285,7 @@ outputs:
         - rfb
         - sip
         - quic
+        - pop3
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged

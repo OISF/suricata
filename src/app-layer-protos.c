@@ -117,6 +117,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_TELNET:
             proto_name = "telnet";
             break;
+        case ALPROTO_POP3:
+            proto_name = "pop3";
+            break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;
@@ -190,6 +193,8 @@ AppProto StringToAppProto(const char *proto_name)
         return ALPROTO_PGSQL;
     if (strcmp(proto_name, "telnet") == 0)
         return ALPROTO_TELNET;
+    if (strcmp(proto_name, "pop3") == 0)
+        return ALPROTO_POP3;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;

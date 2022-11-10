@@ -51,6 +51,7 @@ noinst_HEADERS = \
 	app-layer-snmp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
+	app-layer-pop3.h \
 	app-layer-template.h \
 	app-layer-template-rust.h \
 	app-layer-tftp.h \
@@ -427,6 +428,7 @@ noinst_HEADERS = \
 	output-json-snmp.h \
 	output-json-ssh.h \
 	output-json-stats.h \
+	output-json-pop3.h \
 	output-json-template.h \
 	output-json-template-rust.h \
 	output-json-tftp.h \
@@ -663,6 +665,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-snmp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
+	app-layer-pop3.c \
 	app-layer-template.c \
 	app-layer-template-rust.c \
 	app-layer-tftp.c \
@@ -1036,6 +1039,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-snmp.c \
 	output-json-ssh.c \
 	output-json-stats.c \
+	output-json-pop3.c \
 	output-json-template.c \
 	output-json-template-rust.c \
 	output-json-tftp.c \

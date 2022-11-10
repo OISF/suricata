@@ -60,6 +60,7 @@
 #include "app-layer-mqtt.h"
 #include "app-layer-snmp.h"
 #include "app-layer-quic.h"
+#include "app-layer-pop3.h"
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
 #include "app-layer-rdp.h"
@@ -1742,6 +1743,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterRFBParsers();
     RegisterMQTTParsers();
     rs_pgsql_register_parser();
+    RegisterPOP3Parsers();
     RegisterTemplateParsers();
     RegisterRdpParsers();
     RegisterHTTP2Parsers();
