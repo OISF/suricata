@@ -176,7 +176,7 @@ impl POP3State {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -199,7 +199,7 @@ impl POP3State {
         while !start.is_empty() {
             match POP3_PARSER.parse(start, Direction::ToClient) {
                 Ok((rem, Some(msg))) => {
-                    if let InnerMessage::Response(response) = msg.inner {
+                    if let InnerMessage::Response(mut response) = msg.inner {
                         let mut tx = if let Some(tx) = self.find_request() {
                             tx
                         } else {
@@ -211,6 +211,23 @@ impl POP3State {
                         };
 
                         tx.error_flags |= msg.error_flags;
+
+                        if response.status == sawp_pop3::Status::OK && tx.request.is_some() {
+                            let request = tx.request.as_ref().unwrap();
+                            match &request.keyword {
+                                sawp_pop3::Keyword::STLS => {
+                                    unsafe { AppLayerRequestProtocolTLSUpgrade(flow) };
+                                }
+                                _ => (),
+                            }
+                        }
+
+                        if response.status == sawp_pop3::Status::OK
+                            && tx.request.is_some()
+                            && tx.request.as_ref().unwrap().keyword == sawp_pop3::Keyword::STLS
+                        {
+                            unsafe { AppLayerRequestProtocolTLSUpgrade(flow) };
+                        }
                         tx.response = Some(response);
                     }
                     start = rem;
@@ -316,7 +333,7 @@ pub unsafe extern "C" fn rs_pop3_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_pop3_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
@@ -329,7 +346,7 @@ pub unsafe extern "C" fn rs_pop3_parse_response(
         AppLayerResult::ok()
     } else {
         let buf = stream_slice.as_slice();
-        state.parse_response(buf)
+        state.parse_response(buf, flow)
     }
 }
 
