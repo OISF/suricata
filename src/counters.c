@@ -512,6 +512,7 @@ static void *StatsWakeupThread(void *arg)
             /* assuming the assignment of an int to be atomic, and even if it's
              * not, it should be okay */
             tv->perf_public_ctx.perf_flag = 1;
+            tv->profile_flag = 1;
 
             if (tv->inq != NULL) {
                 PacketQueue *q = tv->inq->pq;
@@ -532,6 +533,7 @@ static void *StatsWakeupThread(void *arg)
             /* assuming the assignment of an int to be atomic, and even if it's
              * not, it should be okay */
             tv->perf_public_ctx.perf_flag = 1;
+            tv->profile_flag = 1;
 
             tv = tv->next;
         }
