@@ -109,6 +109,7 @@ you can pick from. These are:
 * tftp
 * sip
 * http2
+* pop3
 
 The availability of these protocols depends on whether the protocol
 is enabled in the configuration file, suricata.yaml.

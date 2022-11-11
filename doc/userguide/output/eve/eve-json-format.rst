@@ -775,6 +775,30 @@ Example of TFTP logging:
       "mode": "octet"
    }
 
+Event type: POP3
+----------------
+
+Fields
+~~~~~~
+
+* "keyword": The POP3 command keyword
+* "args": The arguments accompanying the command
+* "status": The response status, one of "OK" or "ERR"
+* "header": The response header
+* "data": The response data, which may contain multiple lines in array format
+
+Example of POP3 logging:
+
+::
+
+  "pop3": {
+      "keyword": "DELE",
+      "args": ["1"],
+      "status": "OK",
+      "header": "message 1 deleted",
+      "data": []
+   }
+
 
 Event type: SMB
 ---------------
