@@ -218,6 +218,11 @@ impl POP3State {
                                 sawp_pop3::Keyword::STLS => {
                                     unsafe { AppLayerRequestProtocolTLSUpgrade(flow) };
                                 }
+                                sawp_pop3::Keyword::RETR => {
+                                    // Don't hold onto whole email body
+                                    // TODO pass off to mime parser
+                                    response.data.clear();
+                                }
                                 _ => (),
                             }
                         }
