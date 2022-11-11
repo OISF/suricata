@@ -1025,7 +1025,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         /* Use the first (and prefered) valid version as client version,
          * skip over GREASE and other possible noise. */
         uint16_t i = 0;
-        while (i < (uint16_t)supported_ver_len) {
+        while (i + 1 < (uint16_t)supported_ver_len) {
             uint16_t ver = (uint16_t)(input[i] << 8) | input[i + 1];
             if (TLSVersionValid(ver)) {
                 ssl_state->curr_connp->version = ver;
