@@ -786,6 +786,7 @@ Fields
 * "status": The response status, one of "OK" or "ERR"
 * "header": The response header
 * "data": The response data, which may contain multiple lines in array format
+* "error_flags": Non-fatal protocol errors/non-compliance, which may contain multiple lines in array format
 
 Example of POP3 logging:
 
@@ -797,6 +798,7 @@ Example of POP3 logging:
       "status": "OK",
       "header": "message 1 deleted",
       "data": []
+      "error_flags": []
    }
 
 
