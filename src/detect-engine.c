@@ -2931,7 +2931,7 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     DetectEngineTenantMapping *map_array = NULL;
     uint32_t map_array_size = 0;
     uint32_t map_cnt = 0;
-    int max_tenant_id = 0;
+    uint32_t max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
     HashTable *mt_det_ctxs_hash = NULL;
 
@@ -4280,7 +4280,7 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
     return p->pcap_v.tenant_id;
 }
 
-DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
+DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);

@@ -106,7 +106,7 @@ uint32_t DetectEngineGetVersion(void);
 void DetectEngineBumpVersion(void);
 int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineGetCurrent(void);
-DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id);
+DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id);
 void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
