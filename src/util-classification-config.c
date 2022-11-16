@@ -350,15 +350,17 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint16_t i = 1;
+    int errors = 0;
 
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCClassConfIsLineBlankOrComment(line))
             continue;
 
         if (SCClassConfAddClasstype(de_ctx, line, i) == -1) {
-            return false;
+            errors++;
+        } else {
+            i++;
         }
-        i++;
     }
 
 #ifdef UNITTESTS
@@ -366,7 +368,7 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
               de_ctx->class_conf_ht->count);
 #endif
 
-    return true;
+    return errors == 0;
 }
 
 /**
