@@ -44,10 +44,16 @@ pub struct BitTorrentDHTTransaction {
     tx_data: AppLayerTxData,
 }
 
+impl Transaction for BitTorrentDHTTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
+
 impl BitTorrentDHTTransaction {
-    pub fn new() -> BitTorrentDHTTransaction {
+    pub fn new(tx_id: u64) -> BitTorrentDHTTransaction {
         BitTorrentDHTTransaction {
-            tx_id: 0,
+            tx_id,
             request_type: None,
             request: None,
             response: None,
@@ -64,7 +70,7 @@ impl BitTorrentDHTTransaction {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, AppLayerState)]
 pub struct BitTorrentDHTState {
     tx_id: u64,
     transactions: Vec<BitTorrentDHTTransaction>,
@@ -74,22 +80,6 @@ pub struct BitTorrentDHTState {
 impl BitTorrentDHTState {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    // Free a transaction by ID.
-    fn free_tx(&mut self, tx_id: u64) {
-        self.transactions.retain(|tx| tx.tx_id != tx_id + 1);
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&BitTorrentDHTTransaction> {
-        self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
-    }
-
-    fn new_tx(&mut self) -> BitTorrentDHTTransaction {
-        let mut tx = BitTorrentDHTTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
     }
 
     fn is_dht(input: &[u8]) -> bool {
@@ -120,56 +110,14 @@ impl BitTorrentDHTState {
 
         return status;
     }
-
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&BitTorrentDHTTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
 }
 
 // C exports.
 
-export_tx_data_get!(rs_bittorrent_dht_get_tx_data, BitTorrentDHTTransaction);
-export_state_data_get!(rs_bittorrent_dht_get_state_data, BitTorrentDHTState);
+export_tx_data_get!(rs_bit_torrent_dht_get_tx_data, BitTorrentDHTTransaction);
 
 #[no_mangle]
-pub extern "C" fn rs_bittorrent_dht_state_new(
-    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
-    let state = BitTorrentDHTState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(Box::from_raw(state as *mut BitTorrentDHTState));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_tx_free(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) {
-    let state = cast_pointer!(state, BitTorrentDHTState);
-    state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_parse(
+pub unsafe extern "C" fn rs_bit_torrent_dht_parse(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -179,30 +127,7 @@ pub unsafe extern "C" fn rs_bittorrent_dht_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let state = cast_pointer!(state, BitTorrentDHTState);
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        }
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
-    let state = cast_pointer!(state, BitTorrentDHTState);
-    return state.tx_id;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_bit_torrent_dht_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, BitTorrentDHTTransaction);
@@ -215,29 +140,11 @@ pub unsafe extern "C" fn rs_bittorrent_dht_tx_get_alstate_progress(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, BitTorrentDHTState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"bittorrent-dht\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
+pub unsafe extern "C" fn rs_bit_torrent_dht_udp_register_parser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -246,24 +153,26 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_bittorrent_dht_state_new,
-        state_free: rs_bittorrent_dht_state_free,
-        tx_free: rs_bittorrent_dht_state_tx_free,
-        parse_ts: rs_bittorrent_dht_parse,
-        parse_tc: rs_bittorrent_dht_parse,
-        get_tx_count: rs_bittorrent_dht_state_get_tx_count,
-        get_tx: rs_bittorrent_dht_state_get_tx,
+        state_new: rs_bit_torrent_dht_state_new,
+        state_free: rs_bit_torrent_dht_state_free,
+        tx_free: rs_bit_torrent_dht_state_tx_free,
+        parse_ts: rs_bit_torrent_dht_parse,
+        parse_tc: rs_bit_torrent_dht_parse,
+        get_tx_count: rs_bit_torrent_dht_state_get_tx_count,
+        get_tx: rs_bit_torrent_dht_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_bittorrent_dht_tx_get_alstate_progress,
+        tx_get_progress: rs_bit_torrent_dht_tx_get_alstate_progress,
         get_eventinfo: Some(BitTorrentDHTEvent::get_event_info),
         get_eventinfo_byid: Some(BitTorrentDHTEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(rs_bittorrent_dht_state_get_tx_iterator),
-        get_tx_data: rs_bittorrent_dht_get_tx_data,
-        get_state_data: rs_bittorrent_dht_get_state_data,
+        get_tx_iterator: Some(
+            applayer::state_get_tx_iterator::<BitTorrentDHTState, BitTorrentDHTTransaction>,
+        ),
+        get_tx_data: rs_bit_torrent_dht_get_tx_data,
+        get_state_data: rs_bit_torrent_dht_state_get_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
