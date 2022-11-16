@@ -15,6 +15,21 @@
  * 02110-1301, USA.
  */
 
+/// If we're being used from within Suricata we have to reference the internal name space with
+/// "crate", but if we're being used by a library or plugin user we need to reference the
+/// Suricata name space as "suricata". Check the CARGO_PKG_NAME environment variable to
+/// determine what identifier to setup.
+pub fn crate_id() -> syn::Ident {
+    let is_suricata = std::env::var("CARGO_PKG_NAME")
+        .map(|var| var == "suricata")
+        .unwrap_or(false);
+    if is_suricata {
+        syn::Ident::new("crate", proc_macro2::Span::call_site())
+    } else {
+        syn::Ident::new("suricata", proc_macro2::Span::call_site())
+    }
+}
+
 /// Transform names such as "OneTwoThree" to "one_two_three".
 pub fn transform_name(name: &str, delim: char) -> String {
     let mut out = String::new();

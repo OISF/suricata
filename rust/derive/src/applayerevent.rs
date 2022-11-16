@@ -45,17 +45,7 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
         _ => panic!("AppLayerEvent can only be derived for enums"),
     }
 
-    // If we're being used from within Suricata we have to reference the internal name space with
-    // "crate", but if we're being used by a library or plugin user we need to reference the
-    // Suricata name space as "suricata". Check the CARGO_PKG_NAME environment variable to
-    // determine what identifier to setup.
-    let is_suricata = std::env::var("CARGO_PKG_NAME").map(|var| var == "suricata").unwrap_or(false);
-    let crate_id = if is_suricata {
-        syn::Ident::new("crate", proc_macro2::Span::call_site())
-    } else {
-        syn::Ident::new("suricata", proc_macro2::Span::call_site())
-    };
-
+    let crate_id = utils::crate_id();
     let expanded = quote! {
         impl #crate_id::applayer::AppLayerEvent for #name {
             fn from_id(id: i32) -> Option<#name> {
