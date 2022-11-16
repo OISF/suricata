@@ -116,9 +116,9 @@ impl Transaction for IKETransaction {
 }
 
 impl IKETransaction {
-    pub fn new() -> IKETransaction {
+    pub fn new(tx_id: u64) -> IKETransaction {
         IKETransaction {
-            tx_id: 0,
+            tx_id,
             ike_version: 0,
             direction: Direction::ToServer,
             hdr: IkeHeaderWrapper::new(),
@@ -136,7 +136,7 @@ impl IKETransaction {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, AppLayerState)]
 pub struct IKEState {
     state_data: AppLayerStateData,
     tx_id: u64,
@@ -146,43 +146,9 @@ pub struct IKEState {
     pub ikev2_container: Ikev2Container,
 }
 
-impl State<IKETransaction> for IKEState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&IKETransaction> {
-        self.transactions.get(index)
-    }
-}
-
 impl IKEState {
-    // Free a transaction by ID.
-    fn free_tx(&mut self, tx_id: u64) {
-        let tx = self
-            .transactions
-            .iter()
-            .position(|tx| tx.tx_id == tx_id + 1);
-        debug_assert!(tx.is_some());
-        if let Some(idx) = tx {
-            let _ = self.transactions.remove(idx);
-        }
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
-    }
-
-    pub fn new_tx(&mut self) -> IKETransaction {
-        let mut tx = IKETransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
+    pub fn new() -> Self{
+        Self::default()
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -300,27 +266,6 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_new(
-    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
-    let state = IKEState::default();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    std::mem::drop(Box::from_raw(state as *mut IKEState));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
-    let state = cast_pointer!(state, IKEState);
-    state.free_tx(tx_id);
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
@@ -336,27 +281,6 @@ pub unsafe extern "C" fn rs_ike_parse_response(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let state = cast_pointer!(state, IKEState);
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        }
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
-    let state = cast_pointer!(state, IKEState);
-    return state.tx_id;
 }
 
 #[no_mangle]
@@ -395,7 +319,6 @@ const PARSER_NAME: &[u8] = b"ike\0";
 const PARSER_ALIAS: &[u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
-export_state_data_get!(rs_ike_get_state_data, IKEState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_register_parser() {
@@ -425,7 +348,7 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
         get_tx_data: rs_ike_get_tx_data,
-        get_state_data: rs_ike_get_state_data,
+        get_state_data: rs_ike_state_get_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
