@@ -21,6 +21,7 @@ use proc_macro::TokenStream;
 
 mod applayerevent;
 mod applayerframetype;
+mod applayerstate;
 mod utils;
 
 /// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
@@ -46,4 +47,23 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(AppLayerFrameType)]
 pub fn derive_app_layer_frame_type(input: TokenStream) -> TokenStream {
     applayerframetype::derive_app_layer_frame_type(input)
+}
+
+/// The `AppLayerState` derive macro generates `State` trait implementation,
+/// C FFI interface, and helper functions for AppLayerState; specifically
+///
+/// new_tx() -> Transaction
+/// free_tx()
+/// get_tx() -> Option<&Transaction>
+/// get_tx_mut() -> Option<&mut Transaction>
+/// get_current_tx() -> Option<&Transaction>
+/// get_current_tx_mut() -> Option<&mut Transaction>
+///
+/// The struct must have `transactions` a collection of `AppLayerTransaction`
+/// and tx_id: u64, and requires the associated transaction to support an 
+/// extension of the Transaction trait:
+/// fn new(tx_id: u64) -> Self
+#[proc_macro_derive(AppLayerState)]
+pub fn derive_app_layer_state(input: TokenStream) -> TokenStream {
+    applayerstate::derive_app_layer_state(input)
 }
