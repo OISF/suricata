@@ -35,6 +35,7 @@ pub enum KRB5Event {
     WeakEncryption,
 }
 
+#[derive(AppLayerState)]
 pub struct KRB5State {
     state_data: AppLayerStateData,
 
@@ -50,16 +51,6 @@ pub struct KRB5State {
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
-}
-
-impl State<KRB5Transaction> for KRB5State {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&KRB5Transaction> {
-        self.transactions.get(index)
-    }
 }
 
 pub struct KRB5Transaction {
@@ -201,29 +192,6 @@ impl KRB5State {
         }
     }
 
-    pub fn free(&mut self) {
-        // All transactions are freed when the `transactions` object is freed.
-        // But let's be explicit
-        self.transactions.clear();
-    }
-
-    fn new_tx(&mut self) -> KRB5Transaction {
-        self.tx_id += 1;
-        KRB5Transaction::new(self.tx_id)
-    }
-
-    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&KRB5Transaction> {
-        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
-    }
-
-    fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
-        debug_assert!(tx.is_some());
-        if let Some(idx) = tx {
-            let _ = self.transactions.remove(idx);
-        }
-    }
-
     /// Set an event. The event is set on the most recent transaction.
     fn set_event(&mut self, event: KRB5Event) {
         if let Some(tx) = self.transactions.last_mut() {
@@ -259,54 +227,6 @@ pub fn test_weak_encryption(alg:EncryptionType) -> bool {
         EncryptionType::CAMELLIA256_CTS_CMAC => false,
         _ => true, // all other ciphers are weak or deprecated
     }
-}
-
-
-
-
-
-/// Returns *mut KRB5State
-#[no_mangle]
-pub extern "C" fn rs_krb5_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = KRB5State::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-/// Params:
-/// - state: *mut KRB5State as void pointer
-#[no_mangle]
-pub extern "C" fn rs_krb5_state_free(state: *mut std::os::raw::c_void) {
-    let mut state: Box<KRB5State> = unsafe{Box::from_raw(state as _)};
-    state.free();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state,KRB5State);
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => tx as *const _ as *mut _,
-        None     => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state,KRB5State);
-    state.tx_id
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state,KRB5State);
-    state.free_tx(tx_id);
 }
 
 #[no_mangle]
@@ -528,7 +448,6 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
 }
 
 export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
-export_state_data_get!(rs_krb5_get_state_data, KRB5State);
 
 const PARSER_NAME : &[u8] = b"krb5\0";
 
@@ -560,7 +479,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
         get_tx_data        : rs_krb5_get_tx_data,
-        get_state_data     : rs_krb5_get_state_data,
+        get_state_data     : rs_krb5_state_get_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
