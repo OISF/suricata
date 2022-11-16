@@ -916,7 +916,7 @@ static inline void PacketDrop(Packet *p, const uint8_t action, enum PacketDropRe
     if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
         p->drop_reason = (uint8_t)r;
 
-    PACKET_UPDATE_ACTION(p, action);
+    PacketUpdateAction(p, action);
 }
 #define PACKET_DROP(p) PacketDrop((p), PKT_DROP_REASON_NOT_SET)
 
