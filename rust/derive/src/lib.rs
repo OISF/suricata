@@ -21,6 +21,7 @@ use proc_macro::TokenStream;
 
 mod applayerevent;
 mod applayerframetype;
+mod utils;
 
 /// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
 /// implementation for enums that define AppLayerEvents.

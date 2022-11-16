@@ -20,6 +20,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{self, parse_macro_input, DeriveInput};
 
+use crate::utils;
+
 pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
@@ -33,7 +35,7 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
         syn::Data::Enum(ref data) => {
             for (i, v) in (&data.variants).into_iter().enumerate() {
                 fields.push(v.ident.clone());
-                let name = transform_name(&v.ident.to_string());
+                let name = utils::transform_name(&v.ident.to_string(), '_');
                 let cname = format!("{}\0", name);
                 names.push(name);
                 cstrings.push(cname);
@@ -102,35 +104,4 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
     };
 
     proc_macro::TokenStream::from(expanded)
-}
-
-/// Transform names such as "OneTwoThree" to "one_two_three".
-pub fn transform_name(in_name: &str) -> String {
-    let mut out = String::new();
-    for (i, c) in in_name.chars().enumerate() {
-        if i == 0 {
-            out.push_str(&c.to_lowercase().to_string());
-        } else if c.is_uppercase() {
-            out.push('_');
-            out.push_str(&c.to_lowercase().to_string());
-        } else {
-            out.push(c);
-        }
-    }
-    out
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_transform_name() {
-        assert_eq!(transform_name("One"), "one".to_string());
-        assert_eq!(transform_name("SomeEvent"), "some_event".to_string());
-        assert_eq!(
-            transform_name("UnassignedMsgType"),
-            "unassigned_msg_type".to_string()
-        );
-    }
 }
