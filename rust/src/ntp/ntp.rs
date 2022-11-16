@@ -35,6 +35,7 @@ pub enum NTPEvent {
     NotResponse,
 }
 
+#[derive(AppLayerState)]
 pub struct NTPState {
     state_data: AppLayerStateData,
 
@@ -76,16 +77,6 @@ impl NTPState {
     }
 }
 
-impl State<NTPTransaction> for NTPState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&NTPTransaction> {
-        self.transactions.get(index)
-    }
-}
-
 impl NTPState {
     /// Parse an NTP request message
     ///
@@ -119,29 +110,6 @@ impl NTPState {
         }
     }
 
-    fn free(&mut self) {
-        // All transactions are freed when the `transactions` object is freed.
-        // But let's be explicit
-        self.transactions.clear();
-    }
-
-    fn new_tx(&mut self) -> NTPTransaction {
-        self.tx_id += 1;
-        NTPTransaction::new(self.tx_id)
-    }
-
-    pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NTPTransaction> {
-        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
-    }
-
-    fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
-        debug_assert!(tx.is_some());
-        if let Some(idx) = tx {
-            let _ = self.transactions.remove(idx);
-        }
-    }
-
     /// Set an event. The event is set on the most recent transaction.
     pub fn set_event(&mut self, event: NTPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
@@ -159,22 +127,6 @@ impl NTPTransaction {
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
-}
-
-/// Returns *mut NTPState
-#[no_mangle]
-pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = NTPState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-/// Params:
-/// - state: *mut NTPState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
-    let mut ntp_state = unsafe{ Box::from_raw(state as *mut NTPState) };
-    ntp_state.free();
 }
 
 #[no_mangle]
@@ -203,34 +155,6 @@ pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state,NTPState);
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => tx as *const _ as *mut _,
-        None     => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state,NTPState);
-    state.tx_id
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state,NTPState);
-    state.free_tx(tx_id);
 }
 
 #[no_mangle]
@@ -266,7 +190,6 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
 }
 
 export_tx_data_get!(rs_ntp_get_tx_data, NTPTransaction);
-export_state_data_get!(rs_ntp_get_state_data, NTPState);
 
 const PARSER_NAME : &[u8] = b"ntp\0";
 
@@ -298,7 +221,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<NTPState, NTPTransaction>),
         get_tx_data        : rs_ntp_get_tx_data,
-        get_state_data     : rs_ntp_get_state_data,
+        get_state_data     : rs_ntp_state_get_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
