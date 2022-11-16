@@ -188,14 +188,14 @@ pub struct DCERPCTransaction {
 
 impl Transaction for DCERPCTransaction {
     fn id(&self) -> u64 {
-        // need +1 to match state.tx_id
-        self.id + 1
+        self.id
     }
 }
 
 impl DCERPCTransaction {
-    pub fn new() -> Self {
+    pub fn new(id: u64) -> Self {
         return Self {
+            id,
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
             req_cmd: DCERPC_TYPE_REQUEST,
@@ -299,7 +299,7 @@ pub struct DCERPCBindAck {
     pub ctxitems: Vec<DCERPCBindAckResult>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, AppLayerState)]
 pub struct DCERPCState {
     pub header: Option<DCERPCHdr>,
     pub bind: Option<DCERPCBind>,
@@ -324,16 +324,6 @@ pub struct DCERPCState {
     state_data: AppLayerStateData,
 }
 
-impl State<DCERPCTransaction> for DCERPCState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&DCERPCTransaction> {
-        self.transactions.get(index)
-    }
-}
-
 impl DCERPCState {
     pub fn new() -> Self {
         return Self {
@@ -344,36 +334,13 @@ impl DCERPCState {
     }
 
     fn create_tx(&mut self, call_id: u32) -> DCERPCTransaction {
-        let mut tx = DCERPCTransaction::new();
+        let mut tx = self.new_tx();
         let endianness = self.get_hdr_drep_0() & 0x10;
-        tx.id = self.tx_id;
         tx.call_id = call_id;
         tx.endianness = endianness;
-        self.tx_id += 1;
         tx.req_done = self.ts_ssn_trunc;
         tx.resp_done = self.tc_ssn_trunc;
         tx
-    }
-
-    pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id { //+ 1 {
-                found = true;
-                index = i;
-                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
-                break;
-            }
-        }
-        if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
-            self.transactions.remove(index);
-        }
     }
 
     fn get_hdr_drep_0(&self) -> u8 {
@@ -484,27 +451,6 @@ impl DCERPCState {
         }
     }
 
-    /// Get transaction as per the given transaction ID. Transaction ID with
-    /// which the lookup is supposed to be done as per the calls from AppLayer
-    /// parser in C. This requires an internal transaction ID to be maintained.
-    ///
-    /// Arguments:
-    /// * `tx_id`:
-    ///           type: unsigned 32 bit integer
-    ///    description: internal transaction ID to track transactions
-    ///
-    /// Return value:
-    /// Option mutable reference to DCERPCTransaction
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
-        for tx in &mut self.transactions {
-            let found = tx.id == tx_id;
-            if found {
-                return Some(tx);
-            }
-        }
-        None
-    }
-
     /// Find the transaction as per call ID defined in header. If the tx is not
     /// found, create one.
     ///
@@ -561,7 +507,7 @@ impl DCERPCState {
         SCLogDebug!("ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}", self.ts_ssn_gap, self.tc_ssn_gap, dir);
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
-                if tx.id >= self.tx_id {
+                if tx.id > self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
@@ -575,7 +521,7 @@ impl DCERPCState {
             }
         } else if self.tc_ssn_gap && dir == Direction::ToClient {
             for tx in &mut self.transactions {
-                if tx.id >= self.tx_id {
+                if tx.id > self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
@@ -1175,25 +1121,6 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
-    let state = DCERPCState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
-    let dce_state = cast_pointer!(state, DCERPCState);
-    SCLogDebug!("freeing tx {}", tx_id);
-    dce_state.free_tx(tx_id);
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
     let dce_state = cast_pointer!(state, DCERPCState);
     match direction.into() {
@@ -1218,23 +1145,6 @@ pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void,
             SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());
         }
     }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx(
-    vtx: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let dce_state = cast_pointer!(vtx, DCERPCState);
-    match dce_state.get_tx(tx_id) {
-        Some(tx) => tx as *const _ as *mut _,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
-    let dce_state = cast_pointer!(vtx, DCERPCState);
-    dce_state.tx_id
 }
 
 #[no_mangle]
@@ -1338,8 +1248,6 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
-export_state_data_get!(rs_dcerpc_get_state_data, DCERPCState);
-
 // Parser name as a C style string.
 pub const PARSER_NAME: &[u8] = b"dcerpc\0";
 
@@ -1355,11 +1263,11 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         max_depth: 16,
         state_new: rs_dcerpc_state_new,
         state_free: rs_dcerpc_state_free,
-        tx_free: rs_dcerpc_state_transaction_free,
+        tx_free: rs_dcerpc_state_tx_free,
         parse_ts: rs_dcerpc_parse_request,
         parse_tc: rs_dcerpc_parse_response,
-        get_tx_count: rs_dcerpc_get_tx_cnt,
-        get_tx: rs_dcerpc_get_tx,
+        get_tx_count: rs_dcerpc_state_get_tx_count,
+        get_tx: rs_dcerpc_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
@@ -1370,7 +1278,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCState, DCERPCTransaction>),
         get_tx_data: rs_dcerpc_get_tx_data,
-        get_state_data: rs_dcerpc_get_state_data,
+        get_state_data: rs_dcerpc_state_get_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,

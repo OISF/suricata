@@ -16,7 +16,7 @@
  */
 
 use crate::applayer::{self, *};
-use crate::core::{self, Direction, DIR_BOTH};
+use crate::core::{self, *};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
@@ -53,21 +53,11 @@ pub struct DCERPCHdrUdp {
     pub serial_lo: u8,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, AppLayerState)]
 pub struct DCERPCUDPState {
     state_data: AppLayerStateData,
     pub tx_id: u64,
     pub transactions: VecDeque<DCERPCTransaction>,
-}
-
-impl State<DCERPCTransaction> for DCERPCUDPState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&DCERPCTransaction> {
-        self.transactions.get(index)
-    }
 }
 
 impl DCERPCUDPState {
@@ -76,54 +66,11 @@ impl DCERPCUDPState {
     }
 
     fn create_tx(&mut self,  hdr: &DCERPCHdrUdp) -> DCERPCTransaction {
-        let mut tx = DCERPCTransaction::new();
-        tx.id = self.tx_id;
+        let mut tx = self.new_tx();
         tx.endianness = hdr.drep[0] & 0x10;
         tx.activityuuid = hdr.activityuuid.to_vec();
         tx.seqnum = hdr.seqnum;
-        self.tx_id += 1;
         tx
-    }
-
-    pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id { //+ 1 {
-                found = true;
-                index = i;
-                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
-                break;
-            }
-        }
-        if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
-            self.transactions.remove(index);
-        }
-    }
-
-    /// Get transaction as per the given transaction ID. Transaction ID with
-    /// which the lookup is supposed to be done as per the calls from AppLayer
-    /// parser in C. This requires an internal transaction ID to be maintained.
-    ///
-    /// Arguments:
-    /// * `tx_id`:
-    ///    description: internal transaction ID to track transactions
-    ///
-    /// Return value:
-    /// Option mutable reference to DCERPCTransaction
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
-        for tx in &mut self.transactions {
-            let found = tx.id == tx_id;
-            if found {
-                return Some(tx);
-            }
-        }
-        None
     }
 
     fn find_incomplete_tx(&mut self, hdr: &DCERPCHdrUdp) -> Option<&mut DCERPCTransaction> {
@@ -228,54 +175,12 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCUDPState) });
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
-    let state = DCERPCUDPState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) {
-    let dce_state = cast_pointer!(state, DCERPCUDPState);
-    SCLogDebug!("freeing tx {}", tx_id);
-    dce_state.free_tx(tx_id);
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let dce_state = cast_pointer!(state, DCERPCUDPState);
-    match dce_state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        },
-        None => {
-            return std::ptr::null_mut();
-        }
-    } 
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
-    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
-    dce_state.tx_id
 }
 
 /// Probe input to see if it looks like DCERPC.
@@ -329,8 +234,6 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
-export_state_data_get!(rs_dcerpc_udp_get_state_data, DCERPCUDPState);
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
     let parser = RustParser {
@@ -341,13 +244,13 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_dcerpc_udp_state_new,
-        state_free: rs_dcerpc_udp_state_free,
-        tx_free: rs_dcerpc_udp_state_transaction_free,
+        state_new: rs_dcerpcudp_state_new,
+        state_free: rs_dcerpcudp_state_free,
+        tx_free: rs_dcerpcudp_state_tx_free,
         parse_ts: rs_dcerpc_udp_parse,
         parse_tc: rs_dcerpc_udp_parse,
-        get_tx_count: rs_dcerpc_udp_get_tx_cnt,
-        get_tx: rs_dcerpc_udp_get_tx,
+        get_tx_count: rs_dcerpcudp_state_get_tx_count,
+        get_tx: rs_dcerpcudp_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
@@ -358,7 +261,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCUDPState, DCERPCTransaction>),
         get_tx_data: rs_dcerpc_udp_get_tx_data,
-        get_state_data: rs_dcerpc_udp_get_state_data,
+        get_state_data: rs_dcerpcudp_state_get_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
