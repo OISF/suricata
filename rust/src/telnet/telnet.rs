@@ -41,9 +41,9 @@ pub struct TelnetTransaction {
 }
 
 impl TelnetTransaction {
-    pub fn new() -> TelnetTransaction {
+    pub fn new(tx_id: u64) -> TelnetTransaction {
         TelnetTransaction {
-            tx_id: 0,
+            tx_id,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -65,6 +65,7 @@ pub enum TelnetProtocolState {
     AuthFail,
 }
 
+#[derive(AppLayerState)]
 pub struct TelnetState {
     state_data: AppLayerStateData,
     tx_id: u64,
@@ -82,16 +83,6 @@ pub struct TelnetState {
     state: TelnetProtocolState,
 }
 
-impl State<TelnetTransaction> for TelnetState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&TelnetTransaction> {
-        self.transactions.get(index)
-    }
-}
-
 impl TelnetState {
     pub fn new() -> Self {
         Self {
@@ -106,45 +97,6 @@ impl TelnetState {
             response_specific_frame: None,
             state: TelnetProtocolState::Idle,
         }
-    }
-
-    // Free a transaction by ID.
-    fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
-            self.transactions.remove(index);
-        }
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&TelnetTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
-    }
-
-    fn _new_tx(&mut self) -> TelnetTransaction {
-        let mut tx = TelnetTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
-    }
-
-    fn _find_request(&mut self) -> Option<&mut TelnetTransaction> {
-        // TODO
-        None
     }
 
     // app-layer-frame-documentation tag start: parse_request
@@ -407,27 +359,6 @@ pub unsafe extern "C" fn rs_telnet_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_telnet_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = TelnetState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(Box::from_raw(state as *mut TelnetState));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) {
-    let state = cast_pointer!(state, TelnetState);
-    state.free_tx(tx_id);
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_telnet_parse_request(
     flow: *const Flow,
     state: *mut std::os::raw::c_void,
@@ -478,30 +409,6 @@ pub unsafe extern "C" fn rs_telnet_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let state = cast_pointer!(state, TelnetState);
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        }
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
-    let state = cast_pointer!(state, TelnetState);
-    return state.tx_id;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_telnet_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
@@ -512,7 +419,6 @@ pub unsafe extern "C" fn rs_telnet_tx_get_alstate_progress(
 }
 
 export_tx_data_get!(rs_telnet_get_tx_data, TelnetTransaction);
-export_state_data_get!(rs_telnet_get_state_data, TelnetState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"telnet\0";
@@ -545,7 +451,7 @@ pub unsafe extern "C" fn rs_telnet_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<TelnetState, TelnetTransaction>),
         get_tx_data: rs_telnet_get_tx_data,
-        get_state_data: rs_telnet_get_state_data,
+        get_state_data: rs_telnet_state_get_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,
