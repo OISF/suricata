@@ -54,9 +54,9 @@ impl Transaction for RFBTransaction {
 }
 
 impl RFBTransaction {
-    pub fn new() -> RFBTransaction {
+    pub fn new(tx_id: u64) -> RFBTransaction {
         RFBTransaction {
-            tx_id: 0,
+            tx_id,
             complete: false,
             chosen_security_type: None,
 
@@ -77,22 +77,12 @@ impl RFBTransaction {
     }
 }
 
+#[derive(AppLayerState)]
 pub struct RFBState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: Vec<RFBTransaction>,
     state: parser::RFBGlobalState
-}
-
-impl State<RFBTransaction> for RFBState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&RFBTransaction> {
-        self.transactions.get(index)
-    }
-
 }
 
 impl RFBState {
@@ -103,49 +93,6 @@ impl RFBState {
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion
         }
-    }
-
-    // Free a transaction by ID.
-    fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
-            self.transactions.remove(index);
-        }
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
-    }
-
-    fn new_tx(&mut self) -> RFBTransaction {
-        let mut tx = RFBTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
-    }
-
-    fn get_current_tx(&mut self) -> Option<&mut RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == self.tx_id {
-                return Some(tx);
-            }
-        }
-        return None;
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -175,7 +122,7 @@ impl RFBState {
                                 self.state = parser::RFBGlobalState::TCSupportedSecurityTypes;
                             }
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.ts_client_protocol_version = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -202,7 +149,7 @@ impl RFBState {
                                 _ => return AppLayerResult::err(),
                             }
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.ts_security_type_selection = Some(request);
                                 current_transaction.chosen_security_type = Some(chosen_security_type as u32);
                             } else {
@@ -225,7 +172,7 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::TCSecurityResult;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.ts_vnc_response = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -247,7 +194,7 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::TCServerInit;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.ts_client_init = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -301,7 +248,7 @@ impl RFBState {
                             let tx = self.new_tx();
                             self.transactions.push(tx);
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_server_protocol_version = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -331,7 +278,7 @@ impl RFBState {
                                 self.state = parser::RFBGlobalState::TCFailureReason;
                             }
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_supported_security_types = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -364,7 +311,7 @@ impl RFBState {
                                 }
                             }
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_server_security_type = Some(request);
                                 current_transaction.chosen_security_type = Some(chosen_security_type);
                             } else {
@@ -387,7 +334,7 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::TSVncResponse;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_vnc_challenge = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -410,7 +357,7 @@ impl RFBState {
                             if request.status == 0 {
                                 self.state = parser::RFBGlobalState::TSClientInit;
 
-                                if let Some(current_transaction) = self.get_current_tx() {
+                                if let Some(current_transaction) = self.get_current_tx_mut() {
                                     current_transaction.tc_security_result = Some(request);
                                 } else {
                                     return AppLayerResult::err();
@@ -432,7 +379,7 @@ impl RFBState {
                 parser::RFBGlobalState::TCFailureReason => {
                     match parser::parse_failure_reason(current) {
                         Ok((_rem, request)) => {
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_failure_reason = Some(request);
                             } else {
                                 return AppLayerResult::err();
@@ -455,7 +402,7 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::Message;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
+                            if let Some(current_transaction) = self.get_current_tx_mut() {
                                 current_transaction.tc_server_init = Some(request);
                                 // connection initialization is complete and parsed
                                 current_transaction.complete = true;
@@ -485,29 +432,6 @@ impl RFBState {
 }
 
 // C exports.
-
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = RFBState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    std::mem::drop(unsafe { Box::from_raw(state as *mut RFBState) });
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) {
-    let state = cast_pointer!(state, RFBState);
-    state.free_tx(tx_id);
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
@@ -533,30 +457,6 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) -> *mut std::os::raw::c_void {
-    let state = cast_pointer!(state, RFBState);
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        }
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
-    let state = cast_pointer!(state, RFBState);
-    return state.tx_id;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
@@ -572,7 +472,6 @@ pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
 const PARSER_NAME: &[u8] = b"rfb\0";
 
 export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
-export_state_data_get!(rs_rfb_get_state_data, RFBState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_register_parser() {
@@ -601,7 +500,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<RFBState, RFBTransaction>),
         get_tx_data: rs_rfb_get_tx_data,
-        get_state_data: rs_rfb_get_state_data,
+        get_state_data: rs_rfb_state_get_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,
