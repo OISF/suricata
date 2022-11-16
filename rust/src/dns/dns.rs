@@ -251,9 +251,9 @@ impl Transaction for DNSTransaction {
 
 impl DNSTransaction {
 
-    pub fn new() -> Self {
-        return Self {
-            id: 0,
+    pub fn new(id: u64) -> Self {
+        Self {
+            id,
             request: None,
             response: None,
             tx_data: AppLayerTxData::new(),
@@ -314,7 +314,7 @@ impl ConfigTracker {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, AppLayerState)]
 pub struct DNSState {
     state_data: AppLayerStateData,
 
@@ -329,60 +329,13 @@ pub struct DNSState {
     gap: bool,
 }
 
-impl State<DNSTransaction> for DNSState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&DNSTransaction> {
-        self.transactions.get(index)
-    }
-}
-
 impl DNSState {
-
     pub fn new() -> Self {
             Default::default()
     }
 
     pub fn new_tcp() -> Self {
             Default::default()
-    }
-
-    pub fn new_tx(&mut self) -> DNSTransaction {
-        let mut tx = DNSTransaction::new();
-        self.tx_id += 1;
-        tx.id = self.tx_id;
-        return tx;
-    }
-
-    pub fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
-            self.transactions.remove(index);
-        }
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
-        SCLogDebug!("get_tx: tx_id={}", tx_id);
-        for tx in &mut self.transactions {
-            if tx.id == tx_id + 1 {
-                SCLogDebug!("Found DNS TX with ID {}", tx_id);
-                return Some(tx);
-            }
-        }
-        SCLogDebug!("Failed to find DNS TX with ID {}", tx_id);
-        return None;
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -673,38 +626,6 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
     return (false, false, false);
 }
 
-/// Returns *mut DNSState
-#[no_mangle]
-pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = DNSState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-/// Returns *mut DNSState
-#[no_mangle]
-pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
-    let state = DNSState::new_tcp();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
-/// Params:
-/// - state: *mut DNSState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DNSState) });
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state, DNSState);
-    state.free_tx(tx_id);
-}
-
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_parse_request(flow: *const core::Flow,
@@ -785,31 +706,6 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state, DNSState);
-    SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
-    return state.tx_id;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state, DNSState);
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx as *const _ as *mut _;
-        }
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dns_tx_is_request(tx: &mut DNSTransaction) -> bool {
     tx.request.is_some()
 }
@@ -826,8 +722,6 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     let tx = cast_pointer!(tx, DNSTransaction);
     return &mut tx.tx_data;
 }
-
-export_state_data_get!(rs_dns_get_state_data, DNSState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
@@ -984,7 +878,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
-        get_state_data: rs_dns_get_state_data,
+        get_state_data: rs_dns_state_get_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
@@ -1002,7 +896,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     }
 }
 
-#[no_mangle]
+#[no_mangle]    
 pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
     let default_port = std::ffi::CString::new("53").unwrap();
     let parser = RustParser{
@@ -1030,7 +924,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
-        get_state_data: rs_dns_get_state_data,
+        get_state_data: rs_dns_state_get_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
