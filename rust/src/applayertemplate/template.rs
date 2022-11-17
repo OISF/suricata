@@ -248,8 +248,7 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 // C exports.
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_probing_parser(
+unsafe extern "C" fn rs_template_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     // Need at least 2 bytes.
@@ -262,8 +261,7 @@ pub unsafe extern "C" fn rs_template_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_template_state_new(
+extern "C" fn rs_template_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
@@ -271,19 +269,16 @@ pub extern "C" fn rs_template_state_new(
     return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
+unsafe extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn rs_template_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, TemplateState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_parse_request(
+unsafe extern "C" fn rs_template_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -307,8 +302,7 @@ pub unsafe extern "C" fn rs_template_parse_request(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_parse_response(
+unsafe extern "C" fn rs_template_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -326,8 +320,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx(
+unsafe extern "C" fn rs_template_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, TemplateState);
@@ -341,14 +334,12 @@ pub unsafe extern "C" fn rs_template_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
+unsafe extern "C" fn rs_template_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
