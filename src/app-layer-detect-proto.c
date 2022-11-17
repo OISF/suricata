@@ -915,8 +915,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_PGSQL\n");
                     else if (pp_pe->alproto == ALPROTO_TELNET)
                         printf("            alproto: ALPROTO_TELNET\n");
-                    else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                        printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
                         printf("            alproto: ALPROTO_DNP3\n");
                     else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
@@ -1000,8 +998,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_PGSQL\n");
                 else if (pp_pe->alproto == ALPROTO_TELNET)
                     printf("            alproto: ALPROTO_TELNET\n");
-                else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                    printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
                     printf("            alproto: ALPROTO_DNP3\n");
                 else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
