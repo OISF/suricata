@@ -232,7 +232,6 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 
-#include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
@@ -253,7 +252,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
-#include "app-layer-template.h"
 #include "detect-frame.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
@@ -678,7 +676,6 @@ void SigTableSetup(void)
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
 
-    DetectTemplateBufferRegister();
     DetectBypassRegister();
     DetectConfigRegister();
 
