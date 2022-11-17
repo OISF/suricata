@@ -99,6 +99,8 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* We have IPFW compiled in */
 
+#include "action-globals.h"
+
 extern int max_pending_packets;
 
 /**
