@@ -64,10 +64,6 @@ def copy_app_layer_templates(proto, rust):
 
     if rust:
         pairs = (
-            ("src/app-layer-template-rust.c",
-             "src/app-layer-%s.c" % (lower)),
-            ("src/app-layer-template-rust.h",
-             "src/app-layer-%s.h" % (lower)),
             ("rust/src/applayertemplate/mod.rs",
              "rust/src/applayer%s/mod.rs" % (lower)),
             ("rust/src/applayertemplate/template.rs",
@@ -170,16 +166,20 @@ def patch_app_layer_detect_proto_c(proto):
         output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def patch_app_layer_parser_c(proto):
+def patch_app_layer_parser_c(proto, rust):
     filename = "src/app-layer-parser.c"
     print("Patching %s." % (filename))
     output = io.StringIO()
     inlines = open(filename).readlines()
     for line in inlines:
-        if line.find("app-layer-template.h") > -1:
-            output.write(line.replace("template", proto.lower()))
-        if line.find("RegisterTemplateParsers()") > -1:
-            output.write(line.replace("Template", proto))
+        if rust:
+            if line.find("rs_template_register_parser") > -1:
+                output.write(line.replace("template", proto.lower()))
+        else:
+            if line.find("app-layer-template.h") > -1:
+                output.write(line.replace("template", proto.lower()))
+            if line.find("RegisterTemplateParsers()") > -1:
+                output.write(line.replace("Template", proto))
         output.write(line)
     open(filename, "w").write(output.getvalue())
 
@@ -462,11 +462,12 @@ def main():
         copy_app_layer_templates(proto, args.rust)
         if args.rust:
             patch_rust_lib_rs(proto)
-        patch_makefile_am(proto)
+        if not args.rust:
+            patch_makefile_am(proto)
         patch_app_layer_protos_h(proto)
         patch_app_layer_protos_c(proto)
         patch_app_layer_detect_proto_c(proto)
-        patch_app_layer_parser_c(proto)
+        patch_app_layer_parser_c(proto, args.rust)
         patch_suricata_yaml_in(proto)
 
     if logger:

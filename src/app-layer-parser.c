@@ -61,7 +61,6 @@
 #include "app-layer-snmp.h"
 #include "app-layer-quic.h"
 #include "app-layer-template.h"
-#include "app-layer-template-rust.h"
 #include "app-layer-rdp.h"
 #include "app-layer-http2.h"
 
@@ -1738,7 +1737,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSNMPParsers();
     RegisterSIPParsers();
     RegisterQuicParsers();
-    RegisterTemplateRustParsers();
+    rs_template_register_parser();
     RegisterRFBParsers();
     RegisterMQTTParsers();
     rs_pgsql_register_parser();

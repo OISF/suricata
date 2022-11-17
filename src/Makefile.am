@@ -52,7 +52,6 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-template.h \
-	app-layer-template-rust.h \
 	app-layer-tftp.h \
 	autoconf.h \
 	build-info.h \
@@ -664,7 +663,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer-template.c \
-	app-layer-template-rust.c \
 	app-layer-tftp.c \
 	conf.c \
 	conf-yaml-loader.c \
