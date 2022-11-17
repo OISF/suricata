@@ -35,6 +35,22 @@ extern {
                          vptr: *mut *const c_char) -> i8;
     fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
                              vptr: *mut c_int) -> i8;
+    fn ConfGetNode(key: *const c_char) -> *const c_void;
+}
+
+pub fn conf_get_node(key: &str) -> Option<ConfNode> {
+    let key = if let Ok(key) = CString::new(key) {
+        key
+    } else {
+        return None;
+    };
+
+    let node = unsafe { ConfGetNode(key.as_ptr()) };
+    if node.is_null() {
+        None
+    } else {
+        Some(ConfNode::wrap(node))
+    }
 }
 
 // Return the string value of a configuration value.
