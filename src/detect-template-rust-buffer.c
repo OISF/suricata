@@ -41,9 +41,7 @@
 #include "detect-engine-build.h"
 #include "rust.h"
 
-
-static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
-    const char *);
+static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *, const char *);
 static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
@@ -82,8 +80,7 @@ void DetectTemplateRustBufferRegister(void)
     SCLogNotice("Template application layer detect registered.");
 }
 
-static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
-    const char *str)
+static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_template_rust_id;
 
@@ -157,26 +154,24 @@ static int DetectTemplateRustBufferTest(void)
     FAIL_IF_NULL(de_ctx);
 
     /* This rule should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_rust_buffer; content:\"World!\"; "
-        "sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                      "msg:\"TEMPLATE Test Rule\"; "
+                                      "template_rust_buffer; content:\"World!\"; "
+                                      "sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     /* This rule should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_rust_buffer; content:\"W0rld!\"; "
-        "sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                      "msg:\"TEMPLATE Test Rule\"; "
+                                      "template_rust_buffer; content:\"W0rld!\"; "
+                                      "sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE_RUST,
-                        STREAM_TOSERVER, request, sizeof(request));
+    AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TEMPLATE_RUST, STREAM_TOSERVER, request, sizeof(request));
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

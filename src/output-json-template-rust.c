@@ -53,7 +53,7 @@
 #include "rust.h"
 
 typedef struct LogTemplateFileCtx_ {
-    uint32_t    flags;
+    uint32_t flags;
     OutputJsonCtx *eve_ctx;
 } LogTemplateFileCtx;
 
@@ -62,8 +62,8 @@ typedef struct LogTemplateLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogTemplateLogThread;
 
-static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonTemplateLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
 {
     SCLogNotice("JsonTemplateLogger");
     LogTemplateLogThread *thread = thread_data;
@@ -97,8 +97,7 @@ static void OutputTemplateLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
