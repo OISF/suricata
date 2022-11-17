@@ -424,6 +424,12 @@ const PARSER_NAME: &[u8] = b"template-rust\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_register_parser() {
+    /* TEMPLATE_START_REMOVE */
+    if crate::conf::conf_get_node("app-layer.protocols.template-rust").is_none() {
+        return;
+    }
+    /* TEMPLATE_END_REMOVE */
+
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

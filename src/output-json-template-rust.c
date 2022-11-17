@@ -49,7 +49,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-template-rust.h"
 #include "output-json-template-rust.h"
 #include "rust.h"
 
