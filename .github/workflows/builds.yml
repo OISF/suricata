@@ -331,7 +331,7 @@ jobs:
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
           make -j2
-      - run: ./scripts/setup-app-layer.py --rust --parser --logger --detect FooBar payload
+      - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
       - run: make -j2
       - run: ./src/suricata --list-app-layer-protos | grep foobar
 
