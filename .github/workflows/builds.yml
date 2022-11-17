@@ -250,10 +250,10 @@ jobs:
 
   # This build also creates the distribution package that some other builds
   # depend on.
-  alma-8:
+  almalinux-8:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
-    container: almalinux:8.4
+    container: almalinux:8
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
@@ -378,7 +378,7 @@ jobs:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: [prepare-deps, alma-8]
+    needs: [prepare-deps, almalinux-8]
     steps:
       - name: Install system dependencies
         run: |
@@ -1075,7 +1075,7 @@ jobs:
     name: Ubuntu 20.04 (unsupported rust)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: alma-8
+    needs: almalinux-8
     steps:
       - name: Install dependencies
         run: |
