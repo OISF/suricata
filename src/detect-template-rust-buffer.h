@@ -24,7 +24,6 @@
 #ifndef __DETECT_TEMPLATE_RUST_BUFFER_H__
 #define __DETECT_TEMPLATE_RUST_BUFFER_H__
 
-
 void DetectTemplateRustBufferRegister(void);
 
 #endif /* __DETECT_TEMPLATE_RUST_BUFFER_H__ */
