@@ -8,6 +8,9 @@ import os.path
 import argparse
 import io
 import re
+import datetime
+
+YEAR = datetime.date.today().year
 
 class SetupError(Exception):
     """Functions in this script can raise this error which will cause the
@@ -39,7 +42,10 @@ def common_copy_templates(proto, pairs, replacements=()):
         with open(src) as template_in:
             skip = False
             for line in template_in:
-                if line.find("TEMPLATE_START_REMOVE") > -1:
+                if line.find("/* Copyright") > -1:
+                    output.write("/* Copyright (C) {} Open Information Security Foundation\n".format(YEAR))
+                    continue
+                elif line.find("TEMPLATE_START_REMOVE") > -1:
                     skip = True
                     continue
                 elif line.find("TEMPLATE_END_REMOVE") > -1:
