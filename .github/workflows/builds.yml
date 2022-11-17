@@ -248,6 +248,93 @@ jobs:
       - run: suricatasc -h
       - run: suricata-update -V
 
+  almalinux-9-templates:
+    name: AlmaLinux 9 Test Templates
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          # TODO: Find some variable that matches the job name.
+          key: almalinux-9-templates-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - uses: actions/checkout@v3.1.0
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                rust-toolset \
+                sudo \
+                which \
+                zlib-devel
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          make -j2
+      - run: ./scripts/setup-app-layer.py --rust --parser --logger --detect FooBar payload
+      - run: make -j2
+      - run: ./src/suricata --list-app-layer-protos | grep foobar
+
   # This build also creates the distribution package that some other builds
   # depend on.
   almalinux-8:
