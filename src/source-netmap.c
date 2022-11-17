@@ -91,6 +91,8 @@ void TmModuleDecodeNetmapRegister (void)
 
 #else /* We have NETMAP support */
 
+#include "action-globals.h"
+
 #define POLL_TIMEOUT 100
 
 #if defined(__linux__)
