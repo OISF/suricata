@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Open Information Security Foundation
+/* Copyright (C) 2015-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,25 +57,22 @@ void DetectTemplateRustBufferRegister(void)
         return;
     }
     /* TEMPLATE_END_REMOVE */
-    sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].name =
-        "template_rust_buffer";
-    sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].desc =
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_rust_buffer";
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
             "Template content modifier to match on the template buffers";
-    sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].Setup =
-        DetectTemplateRustBufferSetup;
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].Setup = DetectTemplateRustBufferSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].RegisterTests =
-        DetectTemplateRustBufferRegisterTests;
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].RegisterTests = DetectTemplateRustBufferRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_NOOPT;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("template_rust_buffer", ALPROTO_TEMPLATE_RUST,
-            SIG_FLAG_TOSERVER, 0, DetectEngineInspectTemplateRustBuffer, NULL);
-    DetectAppLayerInspectEngineRegister2("template_rust_buffer", ALPROTO_TEMPLATE_RUST,
-            SIG_FLAG_TOCLIENT, 0, DetectEngineInspectTemplateRustBuffer, NULL);
+    DetectAppLayerInspectEngineRegister2("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectTemplateRustBuffer, NULL);
+    DetectAppLayerInspectEngineRegister2("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectTemplateRustBuffer, NULL);
 
-    g_template_rust_id = DetectBufferTypeGetByName("template_rust_buffer");
+    g_template_rust_id = DetectBufferTypeGetByName("template_buffer");
 
     SCLogNotice("Template application layer detect registered.");
 }
@@ -84,7 +81,7 @@ static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s, 
 {
     s->init_data->list = g_template_rust_id;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE_RUST) != 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0)
         return -1;
 
     return 0;
@@ -141,7 +138,7 @@ static int DetectTemplateRustBufferTest(void)
     memset(&tv, 0, sizeof(ThreadVars));
     p = UTHBuildPacket(request, sizeof(request), IPPROTO_TCP);
     FLOW_INITIALIZE(&f);
-    f.alproto = ALPROTO_TEMPLATE_RUST;
+    f.alproto = ALPROTO_TEMPLATE;
     f.protoctx = (void *)&tcp;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
@@ -171,7 +168,7 @@ static int DetectTemplateRustBufferTest(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_TEMPLATE_RUST, STREAM_TOSERVER, request, sizeof(request));
+            NULL, alp_tctx, &f, ALPROTO_TEMPLATE, STREAM_TOSERVER, request, sizeof(request));
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

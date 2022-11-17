@@ -399,12 +399,12 @@ export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
 export_state_data_get!(rs_template_get_state_data, TemplateState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &[u8] = b"template-rust\0";
+const PARSER_NAME: &[u8] = b"template\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_register_parser() {
     /* TEMPLATE_START_REMOVE */
-    if crate::conf::conf_get_node("app-layer.protocols.template-rust").is_none() {
+    if crate::conf::conf_get_node("app-layer.protocols.template").is_none() {
         return;
     }
     /* TEMPLATE_END_REMOVE */

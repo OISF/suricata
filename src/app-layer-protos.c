@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -117,8 +117,8 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_TELNET:
             proto_name = "telnet";
             break;
-        case ALPROTO_TEMPLATE_RUST:
-            proto_name = "template-rust";
+        case ALPROTO_TEMPLATE:
+            proto_name = "template";
             break;
         case ALPROTO_RDP:
             proto_name = "rdp";
@@ -187,8 +187,8 @@ AppProto StringToAppProto(const char *proto_name)
         return ALPROTO_PGSQL;
     if (strcmp(proto_name, "telnet") == 0)
         return ALPROTO_TELNET;
-    if (strcmp(proto_name, "template-rust") == 0)
-        return ALPROTO_TEMPLATE_RUST;
+    if (strcmp(proto_name, "template") == 0)
+        return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;
     if (strcmp(proto_name,"http2")==0) return ALPROTO_HTTP2;
     if (strcmp(proto_name, "bittorrent-dht") == 0)

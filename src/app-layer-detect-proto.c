@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -905,8 +905,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_SNMP\n");
                     else if (pp_pe->alproto == ALPROTO_SIP)
                         printf("            alproto: ALPROTO_SIP\n");
-                    else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
-                        printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
+                    else if (pp_pe->alproto == ALPROTO_TEMPLATE)
+                        printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_RFB)
                         printf("            alproto: ALPROTO_RFB\n");
                     else if (pp_pe->alproto == ALPROTO_MQTT)
@@ -988,8 +988,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_SNMP\n");
                 else if (pp_pe->alproto == ALPROTO_SIP)
                     printf("            alproto: ALPROTO_SIP\n");
-                else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
-                    printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
+                else if (pp_pe->alproto == ALPROTO_TEMPLATE)
+                    printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_RFB)
                     printf("            alproto: ALPROTO_RFB\n");
                 else if (pp_pe->alproto == ALPROTO_MQTT)
