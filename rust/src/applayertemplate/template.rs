@@ -22,6 +22,7 @@ use nom7 as nom;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::os::raw::{c_char, c_int, c_void};
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
@@ -262,25 +263,25 @@ unsafe extern "C" fn rs_template_probing_parser(
 }
 
 extern "C" fn rs_template_state_new(
-    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
+    _orig_state: *mut c_void, _orig_proto: AppProto,
+) -> *mut c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
-unsafe extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
+unsafe extern "C" fn rs_template_state_free(state: *mut c_void) {
     std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
-unsafe extern "C" fn rs_template_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn rs_template_state_tx_free(state: *mut c_void, tx_id: u64) {
     let state = cast_pointer!(state, TemplateState);
     state.free_tx(tx_id);
 }
 
 unsafe extern "C" fn rs_template_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
@@ -303,8 +304,8 @@ unsafe extern "C" fn rs_template_parse_request(
 }
 
 unsafe extern "C" fn rs_template_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _data: *const c_void,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TemplateState);
@@ -320,9 +321,7 @@ unsafe extern "C" fn rs_template_parse_response(
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+unsafe extern "C" fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -334,14 +333,12 @@ unsafe extern "C" fn rs_template_state_get_tx(
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
 }
 
-unsafe extern "C" fn rs_template_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void, _direction: u8,
-) -> std::os::raw::c_int {
+unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
 
     // Transaction is done if we have a response.
@@ -357,7 +354,7 @@ unsafe extern "C" fn rs_template_tx_get_alstate_progress(
 /// pointer to the request buffer from C for detection.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_get_request_buffer(
-    tx: *mut std::os::raw::c_void, buf: *mut *const u8, len: *mut u32,
+    tx: *mut c_void, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
@@ -373,7 +370,7 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
 /// Get the response buffer for a transaction from C.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_get_response_buffer(
-    tx: *mut std::os::raw::c_void, buf: *mut *const u8, len: *mut u32,
+    tx: *mut c_void, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
@@ -402,7 +399,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
 
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
-        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
         probe_ts: Some(rs_template_probing_parser),
