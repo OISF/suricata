@@ -163,10 +163,15 @@ static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
  *  \retval 2 not inserted, data overlap
  *  \retval 1 inserted with overlap detected
  *  \retval 0 inserted, no overlap
+ *  \retval -ENOMEM memcap reached
+ *  \retval -EINVAL seg out of seq range
  */
 static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup_seg, Packet *p)
 {
-    BUG_ON(SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq));
+    /* in lossy traffic, we can get here with the wrong sequence numbers */
+    if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq)) {
+        return -EINVAL;
+    }
 
     /* fast track */
     if (RB_EMPTY(&stream->seg_tree)) {
