@@ -28,6 +28,7 @@
 #ifdef PROFILING
 
 #include "detect.h"
+#include "util-cpu.h"
 #include "util-profiling-locks.h"
 
 extern int profiling_rules_enabled;
