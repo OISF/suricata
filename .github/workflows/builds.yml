@@ -1622,6 +1622,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - uses: actions/checkout@v3.1.0
       - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
         with:
@@ -1673,6 +1678,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - uses: actions/checkout@v3.1.0
       - uses: msys2/setup-msys2@v2
         with:
