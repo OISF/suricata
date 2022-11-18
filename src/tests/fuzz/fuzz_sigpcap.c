@@ -163,6 +163,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     p->ts.tv_sec = header->ts.tv_sec;
     p->ts.tv_usec = header->ts.tv_usec % 1000000;
     p->datalink = pcap_datalink(pkts);
+    p->pkt_src = PKT_SRC_WIRE;
     while (r > 0) {
         if (PacketCopyData(p, pkt, header->caplen) == 0) {
             // DecodePcapFile
@@ -187,6 +188,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->ts.tv_sec = header->ts.tv_sec;
         p->ts.tv_usec = header->ts.tv_usec % 1000000;
         p->datalink = pcap_datalink(pkts);
+        p->pkt_src = PKT_SRC_WIRE;
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
     }
