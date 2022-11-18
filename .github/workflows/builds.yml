@@ -38,11 +38,6 @@ jobs:
     name: Prepare dependencies
     runs-on: ubuntu-latest
     steps:
-      - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
-        with:
-          path: ~/.cargo
-          key: cargo
       - run: sudo apt update && sudo apt -y install jq curl
       - name: Parse repo and branch information
         env:
@@ -126,7 +121,7 @@ jobs:
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
           path: ~/.cargo
-          key: cbindgen
+          key: ${{ github.job }}-cargo
       - name: Installing Rust
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -152,8 +147,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - uses: actions/checkout@v3.1.0
 
@@ -260,8 +255,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - uses: actions/checkout@v3.1.0
 
@@ -380,6 +375,11 @@ jobs:
     container: centos:7
     needs: [prepare-deps, alma-8]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -451,8 +451,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           dnf -y install \
@@ -541,8 +541,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           dnf -y install \
@@ -635,8 +635,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           dnf -y install \
@@ -726,8 +726,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           dnf -y install \
@@ -789,6 +789,11 @@ jobs:
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -901,6 +906,11 @@ jobs:
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -993,6 +1003,11 @@ jobs:
     container: ubuntu:20.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1077,6 +1092,11 @@ jobs:
     container: ubuntu:20.04
     needs: alma-8
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -1135,8 +1155,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1207,8 +1227,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1302,8 +1322,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1365,8 +1385,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           apt update
@@ -1435,6 +1455,11 @@ jobs:
     container: debian:9
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - run: |
           apt update
           apt -y install \
@@ -1503,8 +1528,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - run: |
          brew install \
           autoconf \
