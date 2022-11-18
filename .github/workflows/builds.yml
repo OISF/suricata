@@ -1591,7 +1591,7 @@ jobs:
           rust \
           xz
       - name: Install cbindgen
-        run: cargo install --force --debug --version 0.24.3 cbindgen
+        run: cargo install --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
       - uses: actions/checkout@v3.1.0
