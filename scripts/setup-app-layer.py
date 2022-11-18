@@ -9,6 +9,7 @@ import argparse
 import io
 import re
 import datetime
+import subprocess
 
 YEAR = datetime.date.today().year
 
@@ -20,6 +21,13 @@ class SetupError(Exception):
     pass
 
 progname = os.path.basename(sys.argv[0])
+
+def rustfmt(filename):
+    print("Formatting {}".format(filename))
+    try:
+        subprocess.run(["rustfmt", filename])
+    except Exception as err:
+        print("ERROR: Failed to run rustfmt on {}: {}".format(filename, err))
 
 def fail_if_exists(filename):
     if os.path.exists(filename):
@@ -64,6 +72,9 @@ def common_copy_templates(proto, pairs, replacements=()):
                 output.write(line)
         output.close()
 
+        if dst.endswith(".rs"):
+            rustfmt(dst)
+                
 def copy_app_layer_templates(proto):
     lower = proto.lower()
     upper = proto.upper()
@@ -103,6 +114,7 @@ def patch_rust_applayer_mod_rs(protoname):
                 done = True
             output.write(line)
     open(filename, "w").write(output.getvalue())
+    rustfmt(filename)
 
 def patch_app_layer_protos_h(protoname):
     filename = "src/app-layer-protos.h"
