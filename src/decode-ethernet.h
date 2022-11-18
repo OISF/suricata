@@ -25,6 +25,7 @@
 #define __DECODE_ETHERNET_H__
 
 #define ETHERNET_HEADER_LEN           14
+#define ETHERNET_PKT_MIN_LEN          60 // Min. transmission unit on Ethernet is 64B (4B for FCS)
 
 /* Cisco Fabric Path / DCE header length. */
 #define ETHERNET_DCE_HEADER_LEN       (ETHERNET_HEADER_LEN + 2)

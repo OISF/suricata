@@ -56,7 +56,9 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
         return -1;
     }
 
-    if (unlikely(len != UDP_GET_LEN(p))) {
+    if (unlikely(len != UDP_GET_LEN(p) &&
+                 // avoid flagging IP padded packets to the minimal Ethernet unit as invalid HLEN
+                 (p->ethh != NULL && p->pktlen > ETHERNET_PKT_MIN_LEN))) {
         ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_INVALID);
         return -1;
     }
