@@ -395,6 +395,13 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/yum
+          key: ${{ github.job }}-yum
+      - run: echo "keepcache=1" >> /etc/yum.conf
+
       - name: Install system dependencies
         run: |
           yum -y install epel-release
