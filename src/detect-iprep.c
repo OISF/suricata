@@ -255,6 +255,9 @@ void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
+#include "packet.h"
+#include "action-globals.h"
+
 static FILE *DetectIPRepGenerateCategoriesDummy(void)
 {
     FILE *fd = NULL;

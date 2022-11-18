@@ -147,5 +147,6 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 #include "tests/detect-template-buffer.c"
 #endif

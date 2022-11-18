@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-cache.h"
 

@@ -1480,6 +1480,7 @@ void MpmACTileRegister(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int SCACTileTest01(void)
 {

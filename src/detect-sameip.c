@@ -115,6 +115,7 @@ error:
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /* NOTE: No parameters, so no parse tests */
 

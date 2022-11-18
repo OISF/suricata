@@ -306,6 +306,7 @@ void DetectRpcFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 /**
  * \test DetectRpcTestParse01 is a test to make sure that we return "something"
  *  when given valid rpc opt
