@@ -160,6 +160,9 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
 
     if (de->event == STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA) {
         StreamTcpReassembleConfigEnableOverlapCheck();
+    } else if (de->event == UDP_HLEN_INVALID) {
+        SCLogWarning("Rule uses decode-event \"udp.hlen_invalid\" which will be deprecated in "
+                     "Suricata 8.0");
     }
     return de;
 
