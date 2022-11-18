@@ -266,10 +266,6 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.udp.hlen_too_small",
             UDP_HLEN_TOO_SMALL,
     },
-    {
-            "decoder.udp.hlen_invalid",
-            UDP_HLEN_INVALID,
-    },
 
     /* SLL EVENTS */
     {

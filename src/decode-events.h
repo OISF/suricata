@@ -102,7 +102,6 @@ enum {
     /* UDP EVENTS */
     UDP_PKT_TOO_SMALL,  /**< udp packet smaller than minimum size */
     UDP_HLEN_TOO_SMALL, /**< udp header smaller than minimum size */
-    UDP_HLEN_INVALID,   /**< invalid len of upd header */
 
     /* SLL EVENTS */
     SLL_PKT_TOO_SMALL, /**< sll packet smaller than minimum size */
