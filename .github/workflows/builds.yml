@@ -150,6 +150,13 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
       - uses: actions/checkout@v3.1.0
 
       # Download and extract dependency archives created during prep
@@ -257,6 +264,13 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - uses: actions/checkout@v3.1.0
 
@@ -380,6 +394,7 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -453,6 +468,13 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -543,6 +565,13 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -638,6 +667,13 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
       - run: |
           dnf -y install \
                 autoconf \
@@ -728,6 +764,13 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
