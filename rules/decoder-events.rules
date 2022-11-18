@@ -67,7 +67,6 @@ alert pkthdr any any -> any any (msg:"SURICATA TCP option invalid length"; decod
 alert pkthdr any any -> any any (msg:"SURICATA TCP duplicated option"; decode-event:tcp.opt_duplicate; classtype:protocol-command-decode; sid:2200037; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA UDP packet too small"; decode-event:udp.pkt_too_small; classtype:protocol-command-decode; sid:2200038; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA UDP header length too small"; decode-event:udp.hlen_too_small; classtype:protocol-command-decode; sid:2200039; rev:2;)
-alert pkthdr any any -> any any (msg:"SURICATA UDP invalid header length"; decode-event:udp.hlen_invalid; classtype:protocol-command-decode; sid:2200040; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA SLL packet too small"; decode-event:sll.pkt_too_small; classtype:protocol-command-decode; sid:2200041; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA Ethernet packet too small"; decode-event:ethernet.pkt_too_small; classtype:protocol-command-decode; sid:2200042; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA PPP packet too small"; decode-event:ppp.pkt_too_small; classtype:protocol-command-decode; sid:2200043; rev:2;)
