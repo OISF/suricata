@@ -280,12 +280,6 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core
@@ -293,7 +287,6 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
-                cargo-vendor \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -322,10 +315,15 @@ jobs:
                 python3-devel \
                 python3-sphinx \
                 python3-yaml \
-                rust-toolset \
                 sudo \
                 which \
                 zlib-devel
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cp prep/cbindgen $HOME/.cargo/bin
+      - run: chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: rustup component add rustfmt
+      - run: rustup component add clippy
       - name: Build
         run: |
           ./autogen.sh
@@ -334,6 +332,12 @@ jobs:
       - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
       - run: make -j2
       - run: ./src/suricata --list-app-layer-protos | grep foobar
+      - name: Verify rustfmt
+        run: rustfmt -v --check src/applayerfoobar/*.rs
+        working-directory: rust
+      - name: Verify clippy
+        run: cargo clippy --all-features
+        working-directory: rust
 
   # This build also creates the distribution package that some other builds
   # depend on.
