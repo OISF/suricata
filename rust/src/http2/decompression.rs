@@ -50,6 +50,11 @@ impl HTTP2cursor {
     pub fn set_position(&mut self, pos: u64) {
         return self.cursor.set_position(pos);
     }
+
+    pub fn clear(&mut self) {
+        self.cursor.get_mut().clear();
+        self.cursor.set_position(0);
+    }
 }
 
 // we need to implement this as flate2 and brotli crates
@@ -156,8 +161,7 @@ fn http2_decompress<'a>(
         }
     }
     //brotli does not consume all input if it reaches some end
-
-    decoder.get_mut().set_position(0);
+    decoder.get_mut().clear();
     return Ok(&output[..offset]);
 }
 
