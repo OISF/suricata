@@ -7,7 +7,7 @@ Suricata
 Introduction
 ------------
 
-[Suricata](https://suricata.io) is a network IDS, IPS and NSM engine developed by the [OISF](https://oisf.net) and the Suricata community.
+[Suricata](https://suricata.io) is a network IDS, IPS, and NSM engine developed by the [OISF](https://oisf.net) and the Suricata community.
 
 Installation
 ------------
@@ -26,9 +26,9 @@ We're happily taking patches and other contributions. Please see https://redmine
 
 Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences:
 
-* in IPS mode a crash may knock a network offline;
-* in passive mode a compromise of the IDS may lead to loss of critical and confidential data;
-* missed detection may lead to undetected compromise of the network.
+- in IPS mode a crash may knock a network offline;
+- in passive mode a compromise of the IDS may lead to loss of critical and confidential data;
+- missed detection may lead to undetected compromise of the network.
 
 In other words, we think the stakes are pretty high, especially since in many common cases the IDS/IPS will be directly reachable by an attacker.
 
@@ -49,23 +49,23 @@ OISF team members are able to submit builds to our private QA setup. It will run
 
 The final QA runs takes a few hours minimally, and generally runs overnight. It currently runs:
 
-- extensive build tests on different OS', compilers, optimization levels, configure features
-- static code analysis using cppcheck, scan-build
-- runtime code analysis using valgrind, AddressSanitizer, LeakSanitizer
-- regression tests for past bugs
-- output validation of logging
-- unix socket testing
-- pcap based fuzz testing using ASAN and LSAN
-- traffic replay based IDS and IPS tests
+- extensive build tests on different OS', compilers, optimization levels, configure features;
+- static code analysis using cppcheck, scan-build;
+- runtime code analysis using valgrind, AddressSanitizer, LeakSanitizer;
+- regression tests for past bugs;
+- output validation of logging;
+- unix socket testing;
+- pcap based fuzz testing using ASAN and LSAN;
+- traffic replay based IDS and IPS tests.
 
 Next to these tests, based on the type of code change further tests can be run manually:
 
-- traffic replay testing (multi-gigabit)
-- large pcap collection processing (multi-terabytes)
-- fuzz testing (might take multiple days or even weeks)
-- pcap based performance testing
-- live performance testing
-- various other manual tests based on evaluation of the proposed changes
+- traffic replay testing (multi-gigabit);
+- large pcap collection processing (multi-terabytes);
+- fuzz testing (might take multiple days or even weeks);
+- pcap based performance testing;
+- live performance testing;
+- various other manual tests based on evaluation of the proposed changes.
 
 
 It's important to realize that almost all of the tests above are used as acceptance tests. If something fails, it's up to you to address this in your code.
@@ -100,14 +100,14 @@ If the PR was closed without comments it's likely due to QA failure. If the Gith
 
 __Q: the compiler/code analyser/tool is wrong, what now?__
 
-A: To assist in the automation of the QA, we're not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.g. valgrind, DrMemory). Some warnings can be disabled. In some exceptional cases the only 'solution' is to refactor the code to work around a static code checker limitation false positive. While frustrating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
+A: To assist in the automation of the QA, we're not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.g. Valgrind, Dr. Memory). Some warnings can be disabled. In some exceptional cases the only "solution" is to refactor the code to work around a static code checker limitation false positive. While frustrating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
 
 
-__Q: I think your QA test is wrong__
+__Q: I think your QA test is wrong.__
 
 A: If you really think it is, we can discuss how to improve it. But don't come to this conclusion too quickly, more often it's the code that turns out to be wrong.
 
 
-__Q: do you require signing of a contributor license agreement?__
+__Q: Do you require signing of a contributor license agreement?__
 
 A: Yes, we do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See http://suricata.io/about/open-source/ and http://suricata.io/about/contribution-agreement/
