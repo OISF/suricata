@@ -933,6 +933,7 @@ impl HTTP2State {
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
+                    let padded = head.flags & parser::HTTP2_FLAG_HEADER_PADDED != 0;
                     if dir == Direction::ToServer {
                         tx.frames_ts.push(HTTP2Frame {
                             header: head,
@@ -956,9 +957,12 @@ impl HTTP2State {
                                     } else {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
-
+                                    let mut dinput = &rem[..hlsafe];
+                                    if padded && rem.len() > 0 && usize::from(rem[0]) < hlsafe{
+                                        dinput = &rem[1..hlsafe - usize::from(rem[0])];
+                                    }
                                     match tx_same.decompress(
-                                        &rem[..hlsafe],
+                                        dinput,
                                         dir,
                                         sfcm,
                                         over,
