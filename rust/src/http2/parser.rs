@@ -610,7 +610,7 @@ pub struct HTTP2FrameHeaders {
 //end stream
 pub const HTTP2_FLAG_HEADER_EOS: u8 = 0x1;
 pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
-const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
+pub const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 pub fn http2_parse_frame_headers<'a>(
