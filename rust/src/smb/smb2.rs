@@ -143,7 +143,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
             // get the request info. If we don't have it, there is nothing
             // we can do except skip this record.
-            let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_OFFSET);
+            let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
             let (offset, file_guid) = match state.ssn2vecoffset_map.remove(&guid_key) {
                 Some(o) => (o.offset, o.guid),
                 None => {
@@ -523,7 +523,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                                 rd.guid, rd.rd_len, rd.rd_offset);
 
                         // store read guid,offset in map
-                        let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_OFFSET);
+                        let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
                         let guidoff = SMBFileGUIDOffset::new(rd.guid.to_vec(), rd.rd_offset);
                         state.ssn2vecoffset_map.insert(guid_key, guidoff);
                     }
@@ -671,7 +671,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             } else if r.nt_status == SMB_NTSTATUS_END_OF_FILE {
                 SCLogDebug!("SMBv2: read response => EOF");
 
-                let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_OFFSET);
+                let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
                 let file_guid = match state.ssn2vecoffset_map.remove(&guid_key) {
                     Some(o) => o.guid,
                     _ => {
