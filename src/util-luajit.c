@@ -109,9 +109,9 @@ void LuajitFreeStatesPool(void)
     pthread_mutex_lock(&luajit_states_lock);
     if (luajit_states_cnt_max > luajit_states_size) {
         SCLogNotice("luajit states used %d is bigger than pool size %d. Set "
-                "luajit.states to %d to avoid memory issues. "
-                "See #1577 and #1955.", luajit_states_cnt_max, luajit_states_size,
-                luajit_states_cnt_max);
+                    "luajit.states to %d to avoid memory issues. "
+                    "See tickets #1577 and #1955.",
+                luajit_states_cnt_max, luajit_states_size, luajit_states_cnt_max);
     }
     PoolFree(luajit_states);
     luajit_states = NULL;
@@ -128,9 +128,11 @@ lua_State *LuajitGetState(void)
         s = (lua_State *)PoolGet(luajit_states);
         if (s != NULL) {
             if (luajit_states_cnt == luajit_states_size) {
-                SCLogWarning(SC_WARN_LUA_SCRIPT, "luajit states pool size %d "
+                SCLogWarning(SC_WARN_LUA_SCRIPT,
+                        "luajit states pool size %d "
                         "reached. Increase luajit.states config option. "
-                        "See #1577 and #1955", luajit_states_size);
+                        "See tickets #1577 and #1955",
+                        luajit_states_size);
             }
 
             luajit_states_cnt++;

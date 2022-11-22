@@ -462,7 +462,7 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                 if (cidr < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE,
                             "netmask \"%s\" is not usable. Only netmasks that are compatible with "
-                            "CIDR notation are supported. See #5168.",
+                            "CIDR notation are supported. See ticket #5168.",
                             mask);
                     goto error;
                 }
