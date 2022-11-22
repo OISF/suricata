@@ -79,7 +79,8 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 
 #define _LANDLOCK_SURI_ACCESS_FS_WRITE                                                             \
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
-            LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK)
+            LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK |                        \
+            LANDLOCK_ACCESS_FS_REFER)
 
 struct landlock_ruleset {
     int fd;
