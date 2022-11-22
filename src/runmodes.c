@@ -381,7 +381,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
             default:
                 FatalError("Unknown runtime mode. Aborting");
         }
-    } else { /* if (custom_mode == NULL) */
+    } else {
         /* Add compability with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
             char *local_custom_mode = NULL;
