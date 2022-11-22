@@ -401,8 +401,9 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
 
     if (stats_decoder_events &&
             strcmp(stats_decoder_events_prefix, "decoder") == 0) {
-        SCLogWarning(SC_WARN_EVE_MISSING_EVENTS, "eve.stats will not display "
-                "all decoder events correctly. See #2225. Set a prefix in "
+        SCLogWarning(SC_WARN_EVE_MISSING_EVENTS,
+                "eve.stats will not display "
+                "all decoder events correctly. See ticket #2225. Set a prefix in "
                 "stats.decoder-events-prefix.");
     }
 

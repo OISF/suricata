@@ -262,7 +262,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
         if (!ptv->vlan_hdr_warned) {
             SCLogWarning(SC_ERR_PF_RING_VLAN, "no VLAN header in the raw "
-                    "packet. See #2355.");
+                                              "packet. See ticket #2355.");
             ptv->vlan_hdr_warned = true;
         }
     }

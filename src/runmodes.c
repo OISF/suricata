@@ -797,18 +797,16 @@ void RunModeInitializeOutputs(void)
         }
 
         if (strcmp(output->val, "file-log") == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "file-log is no longer supported,"
-                    " use eve.files instead "
-                    "(see https://redmine.openinfosecfoundation.org/issues/2376"
-                    " for an explanation)");
+            SCLogWarning(SC_ERR_NOT_SUPPORTED, "file-log is no longer supported,"
+                                               " use eve.files instead "
+                                               "(see ticket #2376"
+                                               " for an explanation)");
             continue;
         } else if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "Unified1 is no longer supported,"
-                    " use Unified2 instead "
-                    "(see https://redmine.openinfosecfoundation.org/issues/353"
-                    " for an explanation)");
+            SCLogWarning(SC_ERR_NOT_SUPPORTED, "Unified1 is no longer supported,"
+                                               " use Unified2 instead "
+                                               "(see ticket #353"
+                                               " for an explanation)");
             continue;
         } else if (strncmp(output->val, "unified2-", sizeof("unified2-") - 1) == 0) {
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
