@@ -117,7 +117,7 @@ static int DetectFlowbitMatchIsset (Packet *p, const void *fd)
     uint32_t or_list_size = rs_xbits_get_or_list_size(fd);
     if (or_list_size > 0) {
         for (uint8_t i = 0; i < or_list_size; i++) {
-            uint8_t or_list_item_i = rs_xbits_get_or_list_item(fd, i);
+            uint8_t or_list_item_i = rs_xbits_get_or_list_idx(fd, i);
             if (FlowBitIsset(p->flow, or_list_item_i) == 1)
                 return 1;
         }
@@ -135,7 +135,7 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const void *fd)
     uint32_t or_list_size = rs_xbits_get_or_list_size(fd);
     if (or_list_size > 0) {
         for (uint8_t i = 0; i < or_list_size; i++) {
-            uint8_t or_list_item_i = rs_xbits_get_or_list_item(fd, i);
+            uint8_t or_list_item_i = rs_xbits_get_or_list_idx(fd, i);
             if (FlowBitIsnotset(p->flow, or_list_item_i) == 1)
                 return 1;
         }
@@ -181,9 +181,9 @@ static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
         const char *rawstr, void **cdout)
 {
     const char *name = NULL;
-    int32_t cmd = 0;
-    int32_t vartype = 0;
-    int32_t or_list_size = 0;
+    uint32_t cmd = 0;
+    uint32_t vartype = 0;
+    uint32_t or_list_size = 0;
     void *cd = rs_xbits_parse(rawstr, 1);
 
     if (cd == NULL) {
@@ -221,14 +221,15 @@ static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
 
     if (or_list_size != 0) {
         for (uint32_t i = 0; i < or_list_size; i++) {
-            int leq = VarNameStoreSetupAdd(rs_xbits_get_fbname_at(i), VAR_TYPE_FLOW_BIT);
-            rs_xbits_set_or_list_id_at(i, leq);
+            int leq = VarNameStoreSetupAdd(rs_xbits_get_or_list_item(cd, i), VAR_TYPE_FLOW_BIT);
+            rs_xbits_set_or_list_id_at(cd, i, leq);
             //cd->or_list[i] = leq;
-            de_ctx->max_fb_id = MAX(leq, de_ctx->max_fb_id);
+            de_ctx->max_fb_id = MAX((uint32_t)leq, de_ctx->max_fb_id);
         }
     } else {
-        idx = VarNameStoreSetupAdd(name, vartype);
-        rs_xbits_set_idx(&cd, idx);
+        uint32_t idx = VarNameStoreSetupAdd(name, vartype);
+        de_ctx->max_fb_id = MAX(rs_xbits_get_idx(cd), de_ctx->max_fb_id);
+        rs_xbits_set_idx(cd, idx);
     }
     *cdout = cd;
     return 0;
@@ -258,7 +259,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     sm->type = DETECT_FLOWBITS;
     sm->ctx = (SigMatchCtx *)cd;
 
-    switch (cd->cmd) {
+    uint8_t cmd = rs_xbits_get_cmd(cd);
+    switch (cmd) {
         /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
 
         case DETECT_FLOWBITS_CMD_ISNOTSET:
@@ -364,11 +366,11 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                     uint8_t cmd = rs_xbits_get_cmd(sm->ctx);
                     // Handle flowbit array in case of ORed flowbits
                     for (uint8_t k = 0; k < or_list_size; k++) {
-                        uint8_t fb_k = rs_xbits_set_or_list_id_at(k);
+                        uint8_t fb_k = rs_xbits_get_or_list_idx(sm->ctx, k);
                         array[fb_k].cnts[cmd]++;
                         if (has_state)
                             array[fb_k].state_cnts[cmd]++;
-                        if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                        if (cmd == DETECT_FLOWBITS_CMD_ISSET) {
                             if (array[fb_k].isset_sids_idx >= array[fb_k].isset_sids_size) {
                                 uint32_t old_size = array[fb_k].isset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
@@ -382,7 +384,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 
                             array[fb_k].isset_sids[array[fb_k].isset_sids_idx] = s->num;
                             array[fb_k].isset_sids_idx++;
-                        } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
+                        } else if (cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                             if (array[fb_k].isnotset_sids_idx >= array[fb_k].isnotset_sids_size) {
                                 uint32_t old_size = array[fb_k].isnotset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
@@ -398,14 +400,12 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                             array[fb_k].isnotset_sids_idx++;
                         }
                     }
-                    uint8_t or_list_size = rs_xbits_get_or_list_size(sm->ctx);
                     uint8_t fb_idx = rs_xbits_get_idx(sm->ctx);
-                    uint8_t fb_cmd = rs_xbits_get_cmd(sm->ctx);
                     if (or_list_size == 0) {
-                        array[fb_idx].cnts[fb_cmd]++;
+                        array[fb_idx].cnts[cmd]++;
                         if (has_state)
-                            array[fb_idx].state_cnts[fb_cmd]++;
-                        if (fb_cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                            array[fb_idx].state_cnts[cmd]++;
+                        if (cmd == DETECT_FLOWBITS_CMD_ISSET) {
                             if (array[fb_idx].isset_sids_idx >= array[fb_idx].isset_sids_size) {
                                 uint32_t old_size = array[fb_idx].isset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
@@ -419,7 +419,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 
                             array[fb_idx].isset_sids[array[fb_idx].isset_sids_idx] = s->num;
                             array[fb_idx].isset_sids_idx++;
-                        } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
+                        } else if (cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                             if (array[fb_idx].isnotset_sids_idx >= array[fb_idx].isnotset_sids_size) {
                                 uint32_t old_size = array[fb_idx].isnotset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);

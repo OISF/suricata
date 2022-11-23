@@ -83,67 +83,75 @@ void DetectXbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectIPPairbitMatchToggle (Packet *p, const DetectBitsData *fd)
+static int DetectIPPairbitMatchToggle (Packet *p, const void *fd)
 {
     IPPair *pair = IPPairGetIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
         return 0;
 
-    IPPairBitToggle(pair,fd->idx,p->ts.tv_sec + fd->expire);
+    uint32_t idx = rs_xbits_get_idx(fd);
+    uint32_t expire = rs_xbits_get_expire(fd);
+    IPPairBitToggle(pair,idx,p->ts.tv_sec + expire);
     IPPairRelease(pair);
     return 1;
 }
 
 /* return true even if bit not found */
-static int DetectIPPairbitMatchUnset (Packet *p, const DetectBitsData *fd)
+static int DetectIPPairbitMatchUnset (Packet *p, const void *fd)
 {
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
         return 1;
 
-    IPPairBitUnset(pair,fd->idx);
+    uint32_t idx = rs_xbits_get_idx(fd);
+    IPPairBitUnset(pair,idx);
     IPPairRelease(pair);
     return 1;
 }
 
-static int DetectIPPairbitMatchSet (Packet *p, const DetectBitsData *fd)
+static int DetectIPPairbitMatchSet (Packet *p, const void *fd)
 {
     IPPair *pair = IPPairGetIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
         return 0;
 
-    IPPairBitSet(pair, fd->idx, p->ts.tv_sec + fd->expire);
+    uint32_t idx = rs_xbits_get_idx(fd);
+    uint32_t expire = rs_xbits_get_expire(fd);
+    IPPairBitSet(pair, idx, p->ts.tv_sec + expire);
     IPPairRelease(pair);
     return 1;
 }
 
-static int DetectIPPairbitMatchIsset (Packet *p, const DetectBitsData *fd)
+static int DetectIPPairbitMatchIsset (Packet *p, const void *fd)
 {
     int r = 0;
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
         return 0;
 
-    r = IPPairBitIsset(pair,fd->idx,p->ts.tv_sec);
+    uint32_t idx = rs_xbits_get_idx(fd);
+    r = IPPairBitIsset(pair,idx,p->ts.tv_sec);
     IPPairRelease(pair);
     return r;
 }
 
-static int DetectIPPairbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
+static int DetectIPPairbitMatchIsnotset (Packet *p, const void *fd)
 {
     int r = 0;
     IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
     if (pair == NULL)
         return 1;
 
-    r = IPPairBitIsnotset(pair,fd->idx,p->ts.tv_sec);
+    uint32_t idx = rs_xbits_get_idx(fd);
+    r = IPPairBitIsnotset(pair,idx,p->ts.tv_sec);
     IPPairRelease(pair);
     return r;
 }
 
-static int DetectXbitMatchIPPair(Packet *p, const DetectBitsData *xd)
+static int DetectXbitMatchIPPair(Packet *p, const void *xd)
 {
-    switch (xd->cmd) {
+    uint8_t cmd = rs_xbits_get_cmd(fd);
+    switch (cmd) {
         case DETECT_BITS_CMD_ISSET:
             return DetectIPPairbitMatchIsset(p,xd);
         case DETECT_BITS_CMD_ISNOTSET:
@@ -164,18 +172,18 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectBitsData *xd)
  *        -1: error
  */
 
-static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *fd)
 {
-    const DetectBitsData *fd = (const DetectBitsData *)ctx;
     if (fd == NULL)
         return 0;
 
-    switch (fd->vartype) {
+    uint8_t vartype = rs_xbits_get_cmd(fd);
+    switch (vartype) {
         case VAR_TYPE_HOST_BIT:
-            return DetectXbitMatchHost(p, (const DetectBitsData *)fd);
+            return DetectXbitMatchHost(p, (const void *)fd);
             break;
         case VAR_TYPE_IPPAIR_BIT:
-            return DetectXbitMatchIPPair(p, (const DetectBitsData *)fd);
+            return DetectXbitMatchIPPair(p, (const void *)fd);
             break;
         default:
             break;
@@ -187,20 +195,22 @@ static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Sig
  *  \brief parse xbits rule options
  *  \retval 0 ok
  *  \retval -1 bad
- *  \param[out] cdout return DetectBitsData structure or NULL if noalert
+ *  \param[out] cdout return void structure or NULL if noalert
  */
 static int DetectXbitParse(DetectEngineCtx *de_ctx,
-        const char *rawstr, DetectBitsData **cdout)
+        const char *rawstr, void **cdout)
 {
-    DetectBitsData *cd = NULL;
-    cd = rs_xbits_parse(rawstr, 0);
+    void *cd = rs_xbits_parse(rawstr, 0);
 
     if (cd == NULL) {
         return -1;
     }
-    switch (cd->cmd) {
+    uint8_t cmd = rs_xbits_get_cmd(cd);
+    const char *name = rs_xbits_get_name(cd);
+    uint8_t vartype = rs_xbits_get_vartype(cd);
+    switch (cmd) {
         case DETECT_BITS_CMD_NOALERT: {
-            if (cd->name != NULL) {
+            if (name != NULL) {
                 rs_bits_free(cd);
                 return -1;
             }
@@ -214,14 +224,16 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         case DETECT_BITS_CMD_UNSET:
         case DETECT_BITS_CMD_TOGGLE:
         default:
-            if (strlen(cd->name) == 0) {
+            if (strlen(name) == 0) {
                 rs_bits_free(cd);
                 return -1;
             }
             break;
     }
 
-    cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
+
+    uint32_t idx = VarNameStoreSetupAdd(name, vartype);
+    rs_xbits_set_idx(cd, idx);
     *cdout = cd;
     return 0;
 }
@@ -229,7 +241,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SigMatch *sm = NULL;
-    DetectBitsData *cd = NULL;
+    void *cd = NULL;
 
     int result = DetectXbitParse(de_ctx, rawstr, &cd);
     if (result < 0) {
@@ -249,7 +261,9 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     sm->type = DETECT_XBITS;
     sm->ctx = (void *)cd;
 
-    switch (cd->cmd) {
+    uint8_t cmd = rs_xbits_get_cmd(sm->ctx);
+
+    switch (cmd) {
         /* case DETECT_BITS_CMD_NOALERT can't happen here */
 
         case DETECT_BITS_CMD_ISNOTSET:

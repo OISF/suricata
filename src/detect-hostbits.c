@@ -295,7 +295,7 @@ static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 static int DetectHostbitParse(const char *rawstr, void **cdout)
 {
-    void *cd = rs_xbits_parse(rawstr, 0);
+    const void *cd = rs_xbits_parse(rawstr, 0);
 
     if (cd == NULL) {
         return -1;

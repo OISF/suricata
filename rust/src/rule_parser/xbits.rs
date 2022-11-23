@@ -235,19 +235,24 @@ fn parse_xbits(arg: &str, bit_type: u8) -> Result<DetectBitsData, ()> {
 //}
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_get_name(dbd: *mut std::os::raw::c_void) -> *const i8 {
+pub unsafe extern "C" fn rs_xbits_get_name(dbd: *const std::os::raw::c_void) -> *const c_char {
     let dbd = cast_pointer!(dbd, DetectBitsData);
-    let name = dbd.name.as_ref().unwrap();
-//    if let Some(n) = (*dbd).name {
-//        return n.into_raw();
-//    }
-    name.as_ptr()
+    if let Some(name) = &dbd.name {
+        return name.as_c_str().as_ptr();
+    }
+    std::ptr::null()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_get_or_list_item(dbd: *const std::os::raw::c_void, i: usize) -> u32 {
+pub unsafe extern "C" fn rs_xbits_get_or_list_idx(dbd: *const std::os::raw::c_void, i: usize) -> u32 {
     let dbd = cast_pointer!(dbd, DetectBitsData);
     dbd.or_list[i]
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_or_list_item(dbd: *const std::os::raw::c_void, i: usize) -> *const c_char {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.fb_names[i].as_c_str().as_ptr()
 }
 
 #[no_mangle]
@@ -299,7 +304,7 @@ pub unsafe extern "C" fn rs_xbits_get_or_list_size(dbd: *const std::os::raw::c_v
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char, bit_type: u8) -> *const DetectBitsData {
+pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char, bit_type: u8) -> *const std::os::raw::c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -313,7 +318,7 @@ pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char, bit_type: u8) -> *c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_bits_free(ptr: *mut DetectBitsData) {
+pub unsafe extern "C" fn rs_bits_free(ptr: *mut std::os::raw::c_void) {
     if !ptr.is_null() {
         let _xbdata = Box::from_raw(ptr);
    }

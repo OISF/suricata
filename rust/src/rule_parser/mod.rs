@@ -15,11 +15,4 @@
  * 02110-1301, USA.
  */
 
-pub mod byte_math;
-pub mod error;
-pub mod iprep;
-pub mod parser;
-pub mod stream_size;
-pub mod uint;
-pub mod uri;
 pub mod xbits;
