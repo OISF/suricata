@@ -47,7 +47,6 @@ impl Files {
     }
 }
 
-pub struct File;
 #[repr(C)]
 #[derive(Debug)]
 pub struct FileContainer {
