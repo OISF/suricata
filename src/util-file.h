@@ -61,6 +61,10 @@ typedef struct SCMd5 SCMd5;
 // to be used instead of PATH_MAX which depends on the OS
 #define SC_FILENAME_MAX 4096
 
+#define FILEDATA_CONTENT_LIMIT            100000
+#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 32768
+#define FILEDATA_CONTENT_INSPECT_WINDOW   4096
+
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
     FILE_STATE_OPENED,      /**< flow file is opened */
