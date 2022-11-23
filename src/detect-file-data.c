@@ -139,10 +139,6 @@ void DetectFiledataRegister(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
-#define FILEDATA_CONTENT_LIMIT 100000
-#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 32768
-#define FILEDATA_CONTENT_INSPECT_WINDOW 4096
-
 static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     if (de_ctx->filedata_config_initialized)
         return;
