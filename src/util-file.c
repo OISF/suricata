@@ -955,6 +955,9 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
 
     FileContainerAdd(ffc, ff);
 
+    /* set default window and min inspection size */
+    FileSetInspectSizes(ff, FILEDATA_CONTENT_INSPECT_WINDOW, FILEDATA_CONTENT_INSPECT_MIN_SIZE);
+
     ff->size += data_len;
     if (data != NULL) {
         if (AppendData(ff, data, data_len) != 0) {
