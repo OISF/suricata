@@ -26,8 +26,6 @@ extern {
 }
 pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
 
-
-pub struct File;
 #[repr(C)]
 #[derive(Debug)]
 pub struct FileContainer {
