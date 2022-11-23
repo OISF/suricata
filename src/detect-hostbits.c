@@ -47,6 +47,7 @@
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "rust.h"
 
 /*
     hostbits:isset,bitname;
@@ -93,9 +94,12 @@ void DetectHostbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectHostbitMatchToggle (Packet *p, const DetectBitsData *fd)
+static int DetectHostbitMatchToggle (Packet *p, const void *fd)
 {
-    switch (fd->tracker) {
+    uint8_t fd_tracker = rs_xbits_get_tracker(fd);
+    uint8_t fd_idx = rs_xbits_get_idx(fd);
+    uint8_t fd_expire = rs_xbits_get_expire(fd);
+    switch (fd_tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostGetHostFromHash(&p->src);
@@ -105,7 +109,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectBitsData *fd)
             else
                 HostLock(p->host_src);
 
-            HostBitToggle(p->host_src,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitToggle(p->host_src,fd_idx,p->ts.tv_sec + fd_expire);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -117,7 +121,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectBitsData *fd)
             else
                 HostLock(p->host_dst);
 
-            HostBitToggle(p->host_dst,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitToggle(p->host_dst,fd_idx,p->ts.tv_sec + fd_expire);
             HostUnlock(p->host_dst);
             break;
     }
@@ -125,9 +129,11 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectBitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectHostbitMatchUnset (Packet *p, const DetectBitsData *fd)
+static int DetectHostbitMatchUnset (Packet *p, const void *fd)
 {
-    switch (fd->tracker) {
+    uint8_t fd_tracker = rs_xbits_get_tracker(fd);
+    uint8_t fd_idx = rs_xbits_get_idx(fd);
+    switch (fd_tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
@@ -136,7 +142,7 @@ static int DetectHostbitMatchUnset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostBitUnset(p->host_src,fd->idx);
+            HostBitUnset(p->host_src,fd_idx);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -147,16 +153,19 @@ static int DetectHostbitMatchUnset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostBitUnset(p->host_dst,fd->idx);
+            HostBitUnset(p->host_dst,fd_idx);
             HostUnlock(p->host_dst);
             break;
     }
     return 1;
 }
 
-static int DetectHostbitMatchSet (Packet *p, const DetectBitsData *fd)
+static int DetectHostbitMatchSet (Packet *p, const void *fd)
 {
-    switch (fd->tracker) {
+    uint8_t fd_tracker = rs_xbits_get_tracker(fd);
+    uint8_t fd_idx = rs_xbits_get_idx(fd);
+    uint8_t fd_expire = rs_xbits_get_expire(fd);
+    switch (fd_tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostGetHostFromHash(&p->src);
@@ -165,7 +174,7 @@ static int DetectHostbitMatchSet (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostBitSet(p->host_src,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitSet(p->host_src,fd_idx,p->ts.tv_sec + fd_expire);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -176,17 +185,19 @@ static int DetectHostbitMatchSet (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostBitSet(p->host_dst,fd->idx, p->ts.tv_sec + fd->expire);
+            HostBitSet(p->host_dst,fd_idx, p->ts.tv_sec + fd_expire);
             HostUnlock(p->host_dst);
             break;
     }
     return 1;
 }
 
-static int DetectHostbitMatchIsset (Packet *p, const DetectBitsData *fd)
+static int DetectHostbitMatchIsset (Packet *p, const void *fd)
 {
     int r = 0;
-    switch (fd->tracker) {
+    uint8_t fd_tracker = rs_xbits_get_tracker(fd);
+    uint8_t fd_idx = rs_xbits_get_idx(fd);
+    switch (fd_tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
@@ -195,7 +206,7 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            r = HostBitIsset(p->host_src,fd->idx, p->ts.tv_sec);
+            r = HostBitIsset(p->host_src,fd_idx, p->ts.tv_sec);
             HostUnlock(p->host_src);
             return r;
         case DETECT_XBITS_TRACK_IPDST:
@@ -206,17 +217,19 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            r = HostBitIsset(p->host_dst,fd->idx, p->ts.tv_sec);
+            r = HostBitIsset(p->host_dst,fd_idx, p->ts.tv_sec);
             HostUnlock(p->host_dst);
             return r;
     }
     return 0;
 }
 
-static int DetectHostbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
+static int DetectHostbitMatchIsnotset (Packet *p, const void *fd)
 {
     int r = 0;
-    switch (fd->tracker) {
+    uint8_t fd_tracker = rs_xbits_get_tracker(fd);
+    uint8_t fd_idx = rs_xbits_get_idx(fd);
+    switch (fd_tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
@@ -225,7 +238,7 @@ static int DetectHostbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            r = HostBitIsnotset(p->host_src,fd->idx, p->ts.tv_sec);
+            r = HostBitIsnotset(p->host_src,fd_idx, p->ts.tv_sec);
             HostUnlock(p->host_src);
             return r;
         case DETECT_XBITS_TRACK_IPDST:
@@ -236,16 +249,17 @@ static int DetectHostbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            r = HostBitIsnotset(p->host_dst,fd->idx, p->ts.tv_sec);
+            r = HostBitIsnotset(p->host_dst,fd_idx, p->ts.tv_sec);
             HostUnlock(p->host_dst);
             return r;
     }
     return 0;
 }
 
-int DetectXbitMatchHost(Packet *p, const DetectBitsData *xd)
+int DetectXbitMatchHost(Packet *p, const void *xd)
 {
-    switch (xd->cmd) {
+    uint8_t xd_cmd = rs_xbits_get_cmd(xd);
+    switch (xd_cmd) {
         case DETECT_BITS_CMD_ISSET:
             return DetectHostbitMatchIsset(p,xd);
         case DETECT_BITS_CMD_ISNOTSET:
@@ -257,7 +271,7 @@ int DetectXbitMatchHost(Packet *p, const DetectBitsData *xd)
         case DETECT_BITS_CMD_TOGGLE:
             return DetectHostbitMatchToggle(p,xd);
         default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd_cmd);
             return 0;
     }
 
@@ -273,24 +287,24 @@ int DetectXbitMatchHost(Packet *p, const DetectBitsData *xd)
 static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    const DetectBitsData *xd = (const DetectBitsData *)ctx;
-    if (xd == NULL)
+    if (ctx == NULL)
         return 0;
 
-    return DetectXbitMatchHost(p, xd);
+    return DetectXbitMatchHost(p, ctx);
 }
 
-static int DetectHostbitParse(const char *rawstr, DetectBitsData **cdout)
+static int DetectHostbitParse(const char *rawstr, void **cdout)
 {
-    DetectBitsData *cd = NULL;
-    cd = rs_xbits_parse(rawstr, 0);
+    void *cd = rs_xbits_parse(rawstr, 0);
 
     if (cd == NULL) {
         return -1;
     }
-    switch (cd->cmd) {
+    uint8_t  cd_cmd = rs_xbits_get_cmd(cd);
+    const char *cd_name = rs_xbits_get_name(cd);
+    switch (cd_cmd) {
         case DETECT_BITS_CMD_NOALERT: {
-            if (cd->name != NULL) {
+            if (cd_name != NULL) {
                 rs_bits_free(cd);
                 return -1;
             }
@@ -304,14 +318,16 @@ static int DetectHostbitParse(const char *rawstr, DetectBitsData **cdout)
         case DETECT_BITS_CMD_UNSET:
         case DETECT_BITS_CMD_TOGGLE:
         default:
-            if (strlen(cd->name) == 0) {
+            if (strlen(cd_name) == 0) {
                 rs_bits_free(cd);
                 return -1;
             }
             break;
     }
 
-    cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
+    uint8_t cd_vartype = rs_xbits_get_tracker(cd);
+    uint8_t idx = VarNameStoreSetupAdd(cd_name, cd_vartype);
+    rs_xbits_set_idx(cd, idx);
     *cdout = cd;
     return 0;
 }
@@ -320,7 +336,7 @@ static int DetectHostbitParse(const char *rawstr, DetectBitsData **cdout)
 int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SigMatch *sm = NULL;
-    DetectBitsData *cd = NULL;
+    void *cd = NULL;
 
     int result = DetectHostbitParse(rawstr, &cd);
     if (result < 0) {
@@ -338,7 +354,8 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     sm->type = DETECT_HOSTBITS;
     sm->ctx = (void *)cd;
 
-    switch (cd->cmd) {
+    uint8_t cd_cmd = rs_xbits_get_idx(sm->ctx);
+    switch (cd_cmd) {
         /* case DETECT_BITS_CMD_NOALERT can't happen here */
 
         case DETECT_BITS_CMD_ISNOTSET:
@@ -370,15 +387,15 @@ error:
     return -1;
 }
 
+#if 0
 void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectBitsData *fd = (DetectBitsData *)ptr;
-
-    if (fd == NULL)
+    if (ptr == NULL)
         return;
 
-    SCFree(fd);
+    SCFree(ptr);
 }
+#endif
 
 #ifdef UNITTESTS
 

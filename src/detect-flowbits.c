@@ -77,63 +77,72 @@ void DetectFlowbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectFlowbitMatchToggle (Packet *p, const DetectBitsData *fd)
+static int DetectFlowbitMatchToggle (Packet *p, const void *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    FlowBitToggle(p->flow,fd->idx);
+    uint32_t fd_idx = rs_xbits_get_idx(fd);
+    FlowBitToggle(p->flow,fd_idx);
 
     return 1;
 }
 
-static int DetectFlowbitMatchUnset (Packet *p, const DetectBitsData *fd)
+static int DetectFlowbitMatchUnset (Packet *p, const void *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    FlowBitUnset(p->flow,fd->idx);
+    uint32_t fd_idx = rs_xbits_get_idx(fd);
+    FlowBitUnset(p->flow,fd_idx);
 
     return 1;
 }
 
-static int DetectFlowbitMatchSet (Packet *p, const DetectBitsData *fd)
+static int DetectFlowbitMatchSet (Packet *p, const void *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    FlowBitSet(p->flow,fd->idx);
+    uint32_t fd_idx = rs_xbits_get_idx(fd);
+    FlowBitSet(p->flow,fd_idx);
 
     return 1;
 }
 
-static int DetectFlowbitMatchIsset (Packet *p, const DetectBitsData *fd)
+static int DetectFlowbitMatchIsset (Packet *p, const void *fd)
 {
     if (p->flow == NULL)
         return 0;
-    if (fd->or_list_size > 0) {
-        for (uint8_t i = 0; i < fd->or_list_size; i++) {
-            if (FlowBitIsset(p->flow, fd->or_list[i]) == 1)
+    uint32_t or_list_size = rs_xbits_get_or_list_size(fd);
+    if (or_list_size > 0) {
+        for (uint8_t i = 0; i < or_list_size; i++) {
+            uint8_t or_list_item_i = rs_xbits_get_or_list_item(fd, i);
+            if (FlowBitIsset(p->flow, or_list_item_i) == 1)
                 return 1;
         }
         return 0;
     }
 
-    return FlowBitIsset(p->flow,fd->idx);
+    uint32_t fd_idx = rs_xbits_get_idx(fd);
+    return FlowBitIsset(p->flow,fd_idx);
 }
 
-static int DetectFlowbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
+static int DetectFlowbitMatchIsnotset (Packet *p, const void *fd)
 {
     if (p->flow == NULL)
         return 0;
-    if (fd->or_list_size > 0) {
-        for (uint8_t i = 0; i < fd->or_list_size; i++) {
-            if (FlowBitIsnotset(p->flow, fd->or_list[i]) == 1)
+    uint32_t or_list_size = rs_xbits_get_or_list_size(fd);
+    if (or_list_size > 0) {
+        for (uint8_t i = 0; i < or_list_size; i++) {
+            uint8_t or_list_item_i = rs_xbits_get_or_list_item(fd, i);
+            if (FlowBitIsnotset(p->flow, or_list_item_i) == 1)
                 return 1;
         }
         return 0;
     }
-    return FlowBitIsnotset(p->flow,fd->idx);
+    uint32_t fd_idx = rs_xbits_get_idx(fd);
+    return FlowBitIsnotset(p->flow,fd_idx);
 }
 
 /*
@@ -143,13 +152,13 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectBitsData *fd)
  */
 
 int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+        const Signature *s, const SigMatchCtx *fd)
 {
-    const DetectBitsData *fd = (const DetectBitsData *)ctx;
     if (fd == NULL)
         return 0;
 
-    switch (fd->cmd) {
+    uint8_t fd_cmd = rs_xbits_get_cmd(fd);
+    switch (fd_cmd) {
         case DETECT_FLOWBITS_CMD_ISSET:
             return DetectFlowbitMatchIsset(p,fd);
         case DETECT_FLOWBITS_CMD_ISNOTSET:
@@ -161,7 +170,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         case DETECT_FLOWBITS_CMD_TOGGLE:
             return DetectFlowbitMatchToggle(p,fd);
         default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd_cmd);
             return 0;
     }
 
@@ -169,23 +178,31 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 }
 
 static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
-        const char *rawstr, DetectBitsData **cdout)
+        const char *rawstr, void **cdout)
 {
-    DetectBitsData *cd = NULL;
-    cd = rs_xbits_parse(rawstr, 1);
+    const char *name = NULL;
+    int32_t cmd = 0;
+    int32_t vartype = 0;
+    int32_t or_list_size = 0;
+    void *cd = rs_xbits_parse(rawstr, 1);
 
     if (cd == NULL) {
         return -1;
     }
-    switch (cd->cmd) {
+    name = rs_xbits_get_name(cd);
+    cmd = rs_xbits_get_cmd(cd);
+    vartype = rs_xbits_get_vartype(cd);
+    or_list_size = rs_xbits_get_or_list_size(cd);
+
+    switch (cmd) {
         case DETECT_BITS_CMD_NOALERT: {
-            if (cd->name != NULL) {
+            if (name != NULL) {
                 SCLogNotice("Freed cd bc noalert");
-                rs_bits_free(cd);
+            //    rs_bits_free(cd);
                 return -1;
             }
             /* return ok, cd is NULL. Flag sig. */
-            *cdout = NULL;
+            //*cdout = NULL;
             return 0;
         }
         case DETECT_BITS_CMD_ISNOTSET:
@@ -194,22 +211,24 @@ static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
         case DETECT_BITS_CMD_UNSET:
         case DETECT_BITS_CMD_TOGGLE:
         default:
-            if (strlen(cd->name) == 0) {
+            if (strlen(name) == 0) {
                 SCLogNotice("Freed cd bc name");
-                rs_bits_free(cd);
+              //  rs_bits_free(cd);
                 return -1;
             }
             break;
     }
 
-    if (cd->or_list_size != 0) {
-        for (int i = 0; i < cd->or_list_size; i++) {
-            int leq = VarNameStoreSetupAdd(cd->fb_names[i], VAR_TYPE_FLOW_BIT);
-            cd->or_list[i] = leq;
-            de_ctx->max_fb_id = MAX(cd->or_list[i], de_ctx->max_fb_id);
+    if (or_list_size != 0) {
+        for (uint32_t i = 0; i < or_list_size; i++) {
+            int leq = VarNameStoreSetupAdd(rs_xbits_get_fbname_at(i), VAR_TYPE_FLOW_BIT);
+            rs_xbits_set_or_list_id_at(i, leq);
+            //cd->or_list[i] = leq;
+            de_ctx->max_fb_id = MAX(leq, de_ctx->max_fb_id);
         }
     } else {
-        cd->idx = VarNameStoreSetupAdd(cd->name, cd->vartype);
+        idx = VarNameStoreSetupAdd(name, vartype);
+        rs_xbits_set_idx(&cd, idx);
     }
     *cdout = cd;
     return 0;
@@ -218,7 +237,7 @@ static int DetectFlowbitParse(DetectEngineCtx *de_ctx,
 
 int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectBitsData *cd = NULL;
+    void *cd = NULL;
     SigMatch *sm = NULL;
 
     int result = DetectFlowbitParse(de_ctx, rawstr, &cd);
@@ -341,74 +360,79 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 case DETECT_FLOWBITS:
                 {
                     /* figure out the flowbit action */
-                    const DetectBitsData *fb = (DetectBitsData *)sm->ctx;
+                    uint8_t or_list_size = rs_xbits_get_or_list_size(sm->ctx);
+                    uint8_t cmd = rs_xbits_get_cmd(sm->ctx);
                     // Handle flowbit array in case of ORed flowbits
-                    for (uint8_t k = 0; k < fb->or_list_size; k++) {
-                        array[fb->or_list[k]].cnts[fb->cmd]++;
+                    for (uint8_t k = 0; k < or_list_size; k++) {
+                        uint8_t fb_k = rs_xbits_set_or_list_id_at(k);
+                        array[fb_k].cnts[cmd]++;
                         if (has_state)
-                            array[fb->or_list[k]].state_cnts[fb->cmd]++;
+                            array[fb_k].state_cnts[cmd]++;
                         if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                            if (array[fb->or_list[k]].isset_sids_idx >= array[fb->or_list[k]].isset_sids_size) {
-                                uint32_t old_size = array[fb->or_list[k]].isset_sids_size;
+                            if (array[fb_k].isset_sids_idx >= array[fb_k].isset_sids_size) {
+                                uint32_t old_size = array[fb_k].isset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                                void *ptr = SCRealloc(array[fb->or_list[k]].isset_sids, new_size * sizeof(uint32_t));
+                                void *ptr = SCRealloc(array[fb_k].isset_sids, new_size * sizeof(uint32_t));
                                 if (ptr == NULL)
                                     goto end;
-                                array[fb->or_list[k]].isset_sids_size = new_size;
-                                array[fb->or_list[k]].isset_sids = ptr;
+                                array[fb_k].isset_sids_size = new_size;
+                                array[fb_k].isset_sids = ptr;
                             }
 
-                            array[fb->or_list[k]].isset_sids[array[fb->or_list[k]].isset_sids_idx] = s->num;
-                            array[fb->or_list[k]].isset_sids_idx++;
+                            array[fb_k].isset_sids[array[fb_k].isset_sids_idx] = s->num;
+                            array[fb_k].isset_sids_idx++;
                         } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
-                            if (array[fb->or_list[k]].isnotset_sids_idx >= array[fb->or_list[k]].isnotset_sids_size) {
-                                uint32_t old_size = array[fb->or_list[k]].isnotset_sids_size;
+                            if (array[fb_k].isnotset_sids_idx >= array[fb_k].isnotset_sids_size) {
+                                uint32_t old_size = array[fb_k].isnotset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                                void *ptr = SCRealloc(array[fb->or_list[k]].isnotset_sids, new_size * sizeof(uint32_t));
+                                void *ptr = SCRealloc(array[fb_k].isnotset_sids, new_size * sizeof(uint32_t));
                                 if (ptr == NULL)
                                     goto end;
-                                array[fb->or_list[k]].isnotset_sids_size = new_size;
-                                array[fb->or_list[k]].isnotset_sids = ptr;
+                                array[fb_k].isnotset_sids_size = new_size;
+                                array[fb_k].isnotset_sids = ptr;
                             }
 
-                            array[fb->or_list[k]].isnotset_sids[array[fb->or_list[k]].isnotset_sids_idx] = s->num;
-                            array[fb->or_list[k]].isnotset_sids_idx++;
+                            array[fb_k].isnotset_sids[array[fb_k].isnotset_sids_idx] = s->num;
+                            array[fb_k].isnotset_sids_idx++;
                         }
                     }
-                    if (fb->or_list_size == 0) {
-                        array[fb->idx].cnts[fb->cmd]++;
+                    uint8_t or_list_size = rs_xbits_get_or_list_size(sm->ctx);
+                    uint8_t fb_idx = rs_xbits_get_idx(sm->ctx);
+                    uint8_t fb_cmd = rs_xbits_get_cmd(sm->ctx);
+                    if (or_list_size == 0) {
+                        array[fb_idx].cnts[fb_cmd]++;
                         if (has_state)
-                            array[fb->idx].state_cnts[fb->cmd]++;
-                        if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                            if (array[fb->idx].isset_sids_idx >= array[fb->idx].isset_sids_size) {
-                                uint32_t old_size = array[fb->idx].isset_sids_size;
+                            array[fb_idx].state_cnts[fb_cmd]++;
+                        if (fb_cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                            if (array[fb_idx].isset_sids_idx >= array[fb_idx].isset_sids_size) {
+                                uint32_t old_size = array[fb_idx].isset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                                void *ptr = SCRealloc(array[fb->idx].isset_sids, new_size * sizeof(uint32_t));
+                                void *ptr = SCRealloc(array[fb_idx].isset_sids, new_size * sizeof(uint32_t));
                                 if (ptr == NULL)
                                     goto end;
-                                array[fb->idx].isset_sids_size = new_size;
-                                array[fb->idx].isset_sids = ptr;
+                                array[fb_idx].isset_sids_size = new_size;
+                                array[fb_idx].isset_sids = ptr;
                             }
 
-                            array[fb->idx].isset_sids[array[fb->idx].isset_sids_idx] = s->num;
-                            array[fb->idx].isset_sids_idx++;
+                            array[fb_idx].isset_sids[array[fb_idx].isset_sids_idx] = s->num;
+                            array[fb_idx].isset_sids_idx++;
                         } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
-                            if (array[fb->idx].isnotset_sids_idx >= array[fb->idx].isnotset_sids_size) {
-                                uint32_t old_size = array[fb->idx].isnotset_sids_size;
+                            if (array[fb_idx].isnotset_sids_idx >= array[fb_idx].isnotset_sids_size) {
+                                uint32_t old_size = array[fb_idx].isnotset_sids_size;
                                 uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                                void *ptr = SCRealloc(array[fb->idx].isnotset_sids, new_size * sizeof(uint32_t));
+                                void *ptr = SCRealloc(array[fb_idx].isnotset_sids, new_size * sizeof(uint32_t));
                                 if (ptr == NULL)
                                     goto end;
-                                array[fb->idx].isnotset_sids_size = new_size;
-                                array[fb->idx].isnotset_sids = ptr;
+                                array[fb_idx].isnotset_sids_size = new_size;
+                                array[fb_idx].isnotset_sids = ptr;
                             }
 
-                            array[fb->idx].isnotset_sids[array[fb->idx].isnotset_sids_idx] = s->num;
-                            array[fb->idx].isnotset_sids_idx++;
+                            array[fb_idx].isnotset_sids[array[fb_idx].isnotset_sids_idx] = s->num;
+                            array[fb_idx].isnotset_sids_idx++;
                         }
                     }
                 }
@@ -419,54 +443,55 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 case DETECT_FLOWBITS:
                 {
                     /* figure out what flowbit action */
-                    const DetectBitsData *fb = (DetectBitsData *)sm->ctx;
-                    array[fb->idx].cnts[fb->cmd]++;
+                    uint8_t fb_idx = rs_xbits_get_idx(sm->ctx);
+                    uint8_t fb_cmd = rs_xbits_get_cmd(sm->ctx);
+                    array[fb_idx].cnts[fb_cmd]++;
                     if (has_state)
-                        array[fb->idx].state_cnts[fb->cmd]++;
-                    if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
-                        if (array[fb->idx].set_sids_idx >= array[fb->idx].set_sids_size) {
-                            uint32_t old_size = array[fb->idx].set_sids_size;
+                        array[fb_idx].state_cnts[fb_cmd]++;
+                    if (fb_cmd == DETECT_FLOWBITS_CMD_SET) {
+                        if (array[fb_idx].set_sids_idx >= array[fb_idx].set_sids_size) {
+                            uint32_t old_size = array[fb_idx].set_sids_size;
                             uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                            void *ptr = SCRealloc(array[fb->idx].set_sids, new_size * sizeof(uint32_t));
+                            void *ptr = SCRealloc(array[fb_idx].set_sids, new_size * sizeof(uint32_t));
                             if (ptr == NULL)
                                 goto end;
-                            array[fb->idx].set_sids_size = new_size;
-                            array[fb->idx].set_sids = ptr;
+                            array[fb_idx].set_sids_size = new_size;
+                            array[fb_idx].set_sids = ptr;
                         }
 
-                        array[fb->idx].set_sids[array[fb->idx].set_sids_idx] = s->num;
-                        array[fb->idx].set_sids_idx++;
+                        array[fb_idx].set_sids[array[fb_idx].set_sids_idx] = s->num;
+                        array[fb_idx].set_sids_idx++;
                     }
-                    else if (fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
-                        if (array[fb->idx].unset_sids_idx >= array[fb->idx].unset_sids_size) {
-                            uint32_t old_size = array[fb->idx].unset_sids_size;
+                    else if (fb_cmd == DETECT_FLOWBITS_CMD_UNSET) {
+                        if (array[fb_idx].unset_sids_idx >= array[fb_idx].unset_sids_size) {
+                            uint32_t old_size = array[fb_idx].unset_sids_size;
                             uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                            void *ptr = SCRealloc(array[fb->idx].unset_sids, new_size * sizeof(uint32_t));
+                            void *ptr = SCRealloc(array[fb_idx].unset_sids, new_size * sizeof(uint32_t));
                             if (ptr == NULL)
                                 goto end;
-                            array[fb->idx].unset_sids_size = new_size;
-                            array[fb->idx].unset_sids = ptr;
+                            array[fb_idx].unset_sids_size = new_size;
+                            array[fb_idx].unset_sids = ptr;
                         }
 
-                        array[fb->idx].unset_sids[array[fb->idx].unset_sids_idx] = s->num;
-                        array[fb->idx].unset_sids_idx++;
+                        array[fb_idx].unset_sids[array[fb_idx].unset_sids_idx] = s->num;
+                        array[fb_idx].unset_sids_idx++;
                     }
-                    else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
-                        if (array[fb->idx].toggle_sids_idx >= array[fb->idx].toggle_sids_size) {
-                            uint32_t old_size = array[fb->idx].toggle_sids_size;
+                    else if (fb_cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+                        if (array[fb_idx].toggle_sids_idx >= array[fb_idx].toggle_sids_size) {
+                            uint32_t old_size = array[fb_idx].toggle_sids_size;
                             uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                            void *ptr = SCRealloc(array[fb->idx].toggle_sids, new_size * sizeof(uint32_t));
+                            void *ptr = SCRealloc(array[fb_idx].toggle_sids, new_size * sizeof(uint32_t));
                             if (ptr == NULL)
                                 goto end;
-                            array[fb->idx].toggle_sids_size = new_size;
-                            array[fb->idx].toggle_sids = ptr;
+                            array[fb_idx].toggle_sids_size = new_size;
+                            array[fb_idx].toggle_sids = ptr;
                         }
 
-                        array[fb->idx].toggle_sids[array[fb->idx].toggle_sids_idx] = s->num;
-                        array[fb->idx].toggle_sids_idx++;
+                        array[fb_idx].toggle_sids[array[fb_idx].toggle_sids_idx] = s->num;
+                        array[fb_idx].toggle_sids_idx++;
                     }
                 }
             }

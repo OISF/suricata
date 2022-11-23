@@ -1,5 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use crate::cast_pointer;
 
 pub const DETECT_BITS_CMD_SET: u8 = 0;
 pub const DETECT_BITS_CMD_TOGGLE: u8 = 1;
@@ -22,14 +23,7 @@ pub const BIT_TYPE_XBIT: u8 = 0;
 pub const BIT_TYPE_FLOWBIT: u8 = 1;
 pub const BIT_TYPE_HOSTBIT: u8 = 2;
 
-#[repr(C)]
-#[derive(Debug)]
-pub struct FlowbitStr {
-    fb_str: *const c_char,
-    fb_str_len: u32,
-}
 
-#[repr(C)]
 #[derive(Debug)]
 pub struct DetectBitsData {
     idx: u32,
@@ -37,9 +31,9 @@ pub struct DetectBitsData {
     tracker: u8,
     expire: u32,
     vartype: u8,
-    name: *mut c_char,
-    fb_names: *mut *mut c_char,
-    or_list: *mut u32,
+    name: Option<CString>,
+    fb_names: Vec<CString>,
+    or_list: Vec<u32>,
     or_list_size: u8,
 }
 
@@ -77,7 +71,7 @@ fn get_bit_cmd(str_c: &str) -> Result<u8, ()> {
     Ok(res)
 }
 
-fn parse_cmd_name(args: Vec<&str>, bit_type: u8) -> Result<(u8, CString, Vec<*mut c_char>, u8), ()> {
+fn parse_cmd_name(args: Vec<&str>, bit_type: u8) -> Result<(u8, CString, Vec<CString>, u8), ()> {
     if args.len() < 2 {
         println!("cmd name parsing issue, args: {:#?}", args);
         return Err(());
@@ -90,18 +84,12 @@ fn parse_cmd_name(args: Vec<&str>, bit_type: u8) -> Result<(u8, CString, Vec<*mu
         }
     };
     let mut fb_names = vec![];
-    let mut cstr_fb_vec: Vec<CString> = vec![];
     if bit_type == BIT_TYPE_FLOWBIT {
         let or_op = args[1].find("|");
         if or_op.is_some() == true {
-            cstr_fb_vec = args[1].split("|")
+            fb_names = args[1].split("|")
                 .map(|x| CString::new(x).unwrap())
                 .collect();
-            SCLogNotice!("str_fb_vec: {:#?}", cstr_fb_vec);
-            fb_names = cstr_fb_vec.iter()
-                .map(|arg| arg.clone().into_raw())
-                .collect();
-            SCLogNotice!("str_fb_vec: {:#?}", cstr_fb_vec);
         }
     }
     let fb_len = fb_names.len();
@@ -165,7 +153,7 @@ fn evaluate_args(args: Vec<&str>, bit_type: u8) -> Result<(u8, u32, u8), ()> {
 fn parse_xbits(arg: &str, bit_type: u8) -> Result<DetectBitsData, ()> {
     let split_args: Vec<&str> = arg.trim().split(',').collect();
     let res;
-    let mut cmd_name;
+    let cmd_name;
 
     match split_args.len() {
         1 => match split_args[0] {
@@ -173,12 +161,12 @@ fn parse_xbits(arg: &str, bit_type: u8) -> Result<DetectBitsData, ()> {
                 return Ok(DetectBitsData {
                     idx: 0,  // TODO is this a right thing to do?
                     cmd: get_bit_cmd("noalert")?,
-                    name: std::ptr::null_mut(),
+                    name: None,
                     tracker: 0,
                     expire: 0,
                     vartype: 0,
-                    fb_names: vec![].as_mut_ptr(),
-                    or_list: vec![].as_mut_ptr(),
+                    fb_names: vec![],
+                    or_list: vec![],
                     or_list_size: 0,
                 })
             }
@@ -198,12 +186,12 @@ fn parse_xbits(arg: &str, bit_type: u8) -> Result<DetectBitsData, ()> {
             return Ok(DetectBitsData {
                 idx: 0,
                 cmd: cmd_name.0,
-                name: (cmd_name.1).into_raw(),
+                name: Some(cmd_name.1),
                 tracker: 0,
                 expire: 0,
                 vartype: VAR_TYPE_FLOW_BIT,
-                fb_names: (cmd_name.2).as_mut_ptr(),
-                or_list: vec![].as_mut_ptr(),
+                fb_names: cmd_name.2,
+                or_list: vec![],
                 or_list_size: cmd_name.3,
             });
         }
@@ -225,34 +213,93 @@ fn parse_xbits(arg: &str, bit_type: u8) -> Result<DetectBitsData, ()> {
     Ok(DetectBitsData {
         idx: 0,
         cmd: cmd_name.0,
-        name: (cmd_name.1).into_raw(),
+        name: Some(cmd_name.1),
         tracker: res.0,
         expire: res.1,
         vartype: res.2,
-        fb_names: vec![].as_mut_ptr(),
-        or_list: vec![].as_mut_ptr(),
+        fb_names: vec![],
+        or_list: vec![],
         or_list_size: 0,
     })
 }
 
-impl Drop for DetectBitsData {
-    fn drop(&mut self) {
-        if !self.name.is_null() {
-            unsafe {
-                let _str = CString::from_raw(self.name as *mut c_char);
-            }
-        }
-        unsafe {
-            let fb_names = Vec::from_raw_parts(self.fb_names, self.or_list_size as usize, (2 * self.or_list_size) as usize); // TODO is the capacity gonna be a problem
-            for name in fb_names {
-                let _name = CString::from_raw(name as *mut c_char);
-            }
-        }
-    }
+//impl Drop for DetectBitsData {
+//    fn drop(&mut self) {
+//        unsafe {
+//            let fb_names = Vec::from_raw_parts(self.fb_names, self.or_list_size as usize, (2 * self.or_list_size) as usize); // TODO is the capacity gonna be a problem
+//            for name in fb_names {
+//                let _name = name;
+//            }
+//        }
+//    }
+//}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_name(dbd: *mut std::os::raw::c_void) -> *const i8 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    let name = dbd.name.as_ref().unwrap();
+//    if let Some(n) = (*dbd).name {
+//        return n.into_raw();
+//    }
+    name.as_ptr()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char, bit_type: u8) -> *mut DetectBitsData {
+pub unsafe extern "C" fn rs_xbits_get_or_list_item(dbd: *const std::os::raw::c_void, i: usize) -> u32 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.or_list[i]
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_set_or_list_id_at(dbd: *mut std::os::raw::c_void, i: usize, val: u32) {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.or_list[i] = val;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_set_idx(dbd: *mut std::os::raw::c_void, idx: u32) {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.idx = idx;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_idx(dbd: *const std::os::raw::c_void) -> u32 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.idx
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_expire(dbd: *const std::os::raw::c_void) -> u32 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.expire
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_tracker(dbd: *const std::os::raw::c_void) -> u8 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.tracker
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_cmd(dbd: *const std::os::raw::c_void) -> u8 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.cmd
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_vartype(dbd: *const std::os::raw::c_void) -> u8 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.vartype
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_get_or_list_size(dbd: *const std::os::raw::c_void) -> u8 {
+    let dbd = cast_pointer!(dbd, DetectBitsData);
+    dbd.or_list_size
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_xbits_parse(carg: *const c_char, bit_type: u8) -> *const DetectBitsData {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
