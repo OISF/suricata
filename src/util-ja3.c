@@ -277,7 +277,8 @@ InspectionBuffer *Ja3DetectGetHash(DetectEngineThreadCtx *det_ctx,
         // this adds a final zero
         SCMd5HashBufferToHex(b, b_len, (char *)ja3_hash, SC_MD5_HEX_LEN + 1);
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, ja3_hash, SC_MD5_HEX_LEN);
+        InspectionBufferSetup(det_ctx, list_id, buffer, NULL, 0);
+        InspectionBufferCopy(buffer, ja3_hash, SC_MD5_HEX_LEN);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;
