@@ -2592,6 +2592,9 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 #endif
 
+    RunModeEngineIsIPS(
+            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+
     /* load the pattern matchers */
     MpmTableSetup();
     SpmTableSetup();
@@ -2745,9 +2748,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     DecodeGlobalConfig();
 
     LiveDeviceFinalize();
-
-    RunModeEngineIsIPS(
-            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
