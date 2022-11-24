@@ -440,9 +440,23 @@ static void SBBPrune(StreamingBuffer *sb)
     }
 }
 
+static thread_local bool g2s_warn_once = false;
+
 static int WARN_UNUSED
 GrowToSize(StreamingBuffer *sb, uint32_t size)
 {
+    DEBUG_VALIDATE_BUG_ON(sb->buf_size > BIT_U32(30));
+    if (size > BIT_U32(30)) { // 1GiB
+        if (!g2s_warn_once) {
+            SCLogWarning(SC_ERR_MEM_ALLOC,
+                    "StreamingBuffer::GrowToSize() tried to alloc %u bytes, exceeds limit of %lu",
+                    size, BIT_U32(30));
+            g2s_warn_once = true;
+        }
+        DEBUG_VALIDATE_BUG_ON(size);
+        return -1;
+    }
+
     /* try to grow in multiples of sb->cfg->buf_size */
     uint32_t x = sb->cfg->buf_size ? size % sb->cfg->buf_size : 0;
     uint32_t base = size - x;
@@ -469,6 +483,8 @@ GrowToSize(StreamingBuffer *sb, uint32_t size)
     return 0;
 }
 
+static thread_local bool grow_warn_once = false;
+
 /** \internal
  *  \brief try to double the buffer size
  *  \retval 0 ok
@@ -476,7 +492,19 @@ GrowToSize(StreamingBuffer *sb, uint32_t size)
  */
 static int WARN_UNUSED Grow(StreamingBuffer *sb)
 {
+    DEBUG_VALIDATE_BUG_ON(sb->buf_size > BIT_U32(30));
     uint32_t grow = sb->buf_size * 2;
+    if (grow > BIT_U32(30)) { // 1GiB
+        if (!grow_warn_once) {
+            SCLogWarning(SC_ERR_MEM_ALLOC,
+                    "StreamingBuffer::Grow() tried to alloc %u bytes, exceeds limit of %lu", grow,
+                    BIT_U32(30));
+            grow_warn_once = true;
+        }
+        DEBUG_VALIDATE_BUG_ON(grow);
+        return -1;
+    }
+
     void *ptr = REALLOC(sb->cfg, sb->buf, sb->buf_size, grow);
     if (ptr == NULL)
         return -1;
