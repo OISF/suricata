@@ -179,32 +179,32 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 
 /** \brief Apply action(s) and Set 'drop' sig info,
  *         if applicable */
-static void PacketApplySignatureActions(Packet *p, const Signature *s, const uint8_t alert_flags)
+static void PacketApplySignatureActions(Packet *p, const Signature *s, const PacketAlert *pa)
 {
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
-            s->action, alert_flags);
+            s->action, pa->flags);
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
-    if (s->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+    if (pa->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
         /* PacketDrop will update the packet action, too */
-        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
+        PacketDrop(p, pa->action, PKT_DROP_REASON_RULES);
 
         if (p->alerts.drop.action == 0) {
             p->alerts.drop.num = s->num;
-            p->alerts.drop.action = s->action;
+            p->alerts.drop.action = pa->action;
             p->alerts.drop.s = (Signature *)s;
         }
-        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(s->action, p->flow);
+        if ((p->flow != NULL) && (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(pa->action, p->flow);
         }
 
-        DEBUG_VALIDATE_BUG_ON(!PacketTestAction(p, ACTION_DROP));
+        DEBUG_VALIDATE_BUG_ON(!PacketTestActionOnRealPkt(p, ACTION_DROP));
     } else {
-        PACKET_UPDATE_ACTION(p, s->action);
+        p->action |= pa->action;
 
-        if ((s->action & ACTION_PASS) && (p->flow != NULL) &&
-                (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(s->action, p->flow);
+        if ((pa->action & ACTION_PASS) && (p->flow != NULL) &&
+                (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(pa->action, p->flow);
         }
     }
 }
@@ -380,7 +380,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     p, &det_ctx->alert_queue[i], s, det_ctx->alert_queue[i].flags);
 
             /* set actions on packet */
-            PacketApplySignatureActions(p, s, det_ctx->alert_queue[i].flags);
+            PacketApplySignatureActions(p, s, &det_ctx->alert_queue[i]);
         }
 
         /* Thresholding removes this alert */
@@ -391,7 +391,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             p->alerts.alerts[p->alerts.cnt] = det_ctx->alert_queue[i];
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
 
-            if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
+            if (p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
                 break;

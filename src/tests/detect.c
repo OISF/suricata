@@ -4877,7 +4877,7 @@ static int SigTestDropFlow04(void)
     FAIL_IF(PacketAlertCheck(p1, 2));
 
     FAIL_IF_NOT(p1->flow->flags & FLOW_ACTION_DROP);
-    FAIL_IF_NOT(PacketTestAction(p1, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestActionOnRealPkt(p1, ACTION_DROP));
 
     FAIL_IF(p2->flags & PKT_NOPACKET_INSPECTION);
 
@@ -4890,7 +4890,7 @@ static int SigTestDropFlow04(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
     FAIL_IF(PacketAlertCheck(p2, 2));
-    FAIL_IF_NOT(PacketTestAction(p2, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestActionOnRealPkt(p2, ACTION_DROP));
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&tv, det_ctx);

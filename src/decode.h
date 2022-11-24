@@ -887,27 +887,17 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
  * handle the case of a root packet
  * for tunnels */
 
-#define PACKET_SET_ACTION(p, a) do { \
-    ((p)->root ? \
-     ((p)->root->action = a) : \
-     ((p)->action = a)); \
-} while (0)
+static inline void PacketSetActionOnCurrentPkt(Packet *p, const uint8_t action)
+{
+    p->action |= action;
+}
 
-#define PACKET_ALERT(p) PACKET_SET_ACTION(p, ACTION_ALERT)
-
-#define PACKET_ACCEPT(p) PACKET_SET_ACTION(p, ACTION_ACCEPT)
-
-#define PACKET_PASS(p) PACKET_SET_ACTION(p, ACTION_PASS)
-
-#define PACKET_TEST_ACTION_DO(p, a) (p)->action &(a)
-
-#define PACKET_UPDATE_ACTION(p, a) (p)->action |= (a)
-static inline void PacketUpdateAction(Packet *p, const uint8_t a)
+static inline void PacketSetActionOnRealPkt(Packet *p, const uint8_t action)
 {
     if (likely(p->root == NULL)) {
-        PACKET_UPDATE_ACTION(p, a);
+        p->action |= action;
     } else {
-        PACKET_UPDATE_ACTION(p->root, a);
+        p->root->action |= action;
     }
 }
 
@@ -916,19 +906,29 @@ static inline void PacketDrop(Packet *p, const uint8_t action, enum PacketDropRe
     if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
         p->drop_reason = (uint8_t)r;
 
-    PacketUpdateAction(p, action);
-}
-#define PACKET_DROP(p) PacketDrop((p), PKT_DROP_REASON_NOT_SET)
-
-static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
-{
     if (likely(p->root == NULL)) {
-        return PACKET_TEST_ACTION_DO(p, a);
+        p->action |= action;
     } else {
-        return PACKET_TEST_ACTION_DO(p->root, a);
+        p->root->action |= action;
     }
 }
-#define PACKET_TEST_ACTION(p, a) PacketTestAction((p), (a))
+
+static inline uint8_t PacketTestActionOnCurrentPkt(const Packet *p, const uint8_t a)
+{
+    return (p->action & a);
+}
+
+static inline uint8_t PacketTestActionOnRealPkt(const Packet *p, const uint8_t a)
+{
+    if (likely(p->root == NULL)) {
+        return (p->action & a);
+    } else {
+        return (p->root->action & a);
+    }
+}
+
+// Tests on "real" packets. Should only be used to check for ACTION_DROP|ACTION_REJECT*
+#define PACKET_TEST_ACTION(p, a) PacketTestActionOnRealPkt((p), (a))
 
 #define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \

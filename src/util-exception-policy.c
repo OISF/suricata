@@ -64,7 +64,7 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
                 SCLogDebug("EXCEPTION_POLICY_PASS_PACKET");
                 DecodeSetNoPayloadInspectionFlag(p);
                 DecodeSetNoPacketInspectionFlag(p);
-                PACKET_PASS(p);
+                PacketSetActionOnCurrentPkt(p, ACTION_PASS);
                 break;
         }
     }

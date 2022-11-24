@@ -39,7 +39,7 @@ static int TestDetectAlertPacketApplySignatureActions01(void)
 
     const char sig[] = "reject tcp any any -> any 80 (content:\"Hi all\"; sid:1; rev:1;)";
     FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
-    FAIL_IF_NOT(PacketTestAction(p, ACTION_REJECT_ANY));
+    FAIL_IF_NOT(PacketTestActionOnRealPkt(p, ACTION_REJECT_ANY));
 
     UTHFreePackets(&p, 1);
 #endif /* HAVE_LIBNET11 */
@@ -59,7 +59,7 @@ static int TestDetectAlertPacketApplySignatureActions02(void)
 
     const char sig[] = "drop tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
     FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
-    FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestActionOnRealPkt(p, ACTION_DROP));
 
     UTHFreePackets(&p, 1);
     PASS;

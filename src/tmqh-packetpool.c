@@ -451,11 +451,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
-    /* Check that the drop reason has been set, if we have a drop */
-    if (PacketTestAction(p, ACTION_DROP)) {
-        DEBUG_VALIDATE_BUG_ON((p)->drop_reason == PKT_DROP_REASON_NOT_SET);
-    }
-
     /* we're done with the tunnel root now as well */
     if (proot == true) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");

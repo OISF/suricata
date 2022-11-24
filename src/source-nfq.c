@@ -475,7 +475,7 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 static void NFQReleasePacket(Packet *p)
 {
     if (unlikely(!p->nfq_v.verdicted)) {
-        PACKET_UPDATE_ACTION(p, ACTION_DROP);
+        p->action |= ACTION_DROP;
         NFQSetVerdict(p);
     }
     PacketFreeOrRelease(p);
