@@ -35,7 +35,6 @@
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::new_without_default)]
-#![allow(clippy::redundant_pattern_matching)]
 #![allow(clippy::result_unit_err)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::upper_case_acronyms)]
