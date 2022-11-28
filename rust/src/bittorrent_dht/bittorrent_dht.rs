@@ -27,7 +27,7 @@ const BITTORRENT_DHT_PAYLOAD_PREFIX: &[u8] = b"d1:ad2:id20:\0";
 
 static mut ALPROTO_BITTORRENT_DHT: AppProto = ALPROTO_UNKNOWN;
 
-#[derive(AppLayerEvent, Debug, PartialEq)]
+#[derive(AppLayerEvent, Debug, PartialEq, Eq)]
 pub enum BitTorrentDHTEvent {
     MalformedPacket,
 }
