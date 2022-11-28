@@ -36,6 +36,7 @@ pub enum SNMPEvent {
     VersionMismatch,
 }
 
+#[derive(Default)]
 pub struct SNMPState<'a> {
     state_data: AppLayerStateData,
 
@@ -89,12 +90,7 @@ impl<'a> Transaction for SNMPTransaction<'a> {
 
 impl<'a> SNMPState<'a> {
     pub fn new() -> SNMPState<'a> {
-        SNMPState{
-            state_data: AppLayerStateData::new(),
-            version: 0,
-            transactions: Vec::new(),
-            tx_id: 0,
-        }
+        Default::default()
     }
 }
 

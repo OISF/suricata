@@ -235,7 +235,7 @@ pub struct DNSResponse {
     pub authorities: Vec<DNSAnswerEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
@@ -250,14 +250,8 @@ impl Transaction for DNSTransaction {
 }
 
 impl DNSTransaction {
-
     pub fn new() -> Self {
-        return Self {
-            id: 0,
-            request: None,
-            response: None,
-            tx_data: AppLayerTxData::new(),
-        }
+        Default::default()
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
@@ -342,11 +336,7 @@ impl State<DNSTransaction> for DNSState {
 impl DNSState {
 
     pub fn new() -> Self {
-            Default::default()
-    }
-
-    pub fn new_tcp() -> Self {
-            Default::default()
+        Default::default()
     }
 
     pub fn new_tx(&mut self) -> DNSTransaction {
@@ -684,7 +674,7 @@ pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 /// Returns *mut DNSState
 #[no_mangle]
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
-    let state = DNSState::new_tcp();
+    let state = DNSState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
