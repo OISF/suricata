@@ -394,7 +394,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
     return found;
 }
 
-fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
+fn dcerpc_response_handle(tx: &mut SMBTransaction,
         vercmd: SMBVerCmdStat,
         dcer: &DceRpcRecord)
 {
@@ -520,7 +520,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 }
 
 /// Try to find out if the input data looks like DCERPC
-pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
+pub fn smb_dcerpc_probe(data: &[u8]) -> bool
 {
     if let Ok((_, recr)) = parse_dcerpc_record(data) {
         SCLogDebug!("SMB: could be DCERPC {:?}", recr);
