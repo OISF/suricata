@@ -512,10 +512,9 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
         js.set_bool("z", true)?;
     }
 
-    for query in &response.queries {
+    if let Some(query) = response.queries.first() {
         js.set_string_from_bytes("rrname", &query.name)?;
         js.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
-        break;
     }
     js.set_string("rcode", &dns_rcode_string(header.flags))?;
 
