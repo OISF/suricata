@@ -73,9 +73,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         let dialect = &smb2_dialect_string(state.dialect);
         jsb.set_string("dialect", dialect)?;
     } else {
-        let dialect = match &state.dialect_vec {
-            &Some(ref d) => str::from_utf8(d).unwrap_or("invalid"),
-            &None        => "unknown",
+        let dialect = match state.dialect_vec {
+            Some(ref d) => str::from_utf8(d).unwrap_or("invalid"),
+            None        => "unknown",
         };
         jsb.set_string("dialect", dialect)?;
     }
