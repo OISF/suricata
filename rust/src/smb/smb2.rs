@@ -188,7 +188,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(n) => (n.name.to_vec(), n.is_pipe),
                     _ => { (Vec::new(), false) },
                 };
-                let mut is_dcerpc = if is_pipe || (share_name.is_empty() && !is_pipe) {
+                let mut is_dcerpc = if is_pipe || share_name.is_empty() {
                     state.get_service_for_guid(&file_guid).1
                 } else {
                     false
@@ -327,7 +327,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(n) => { (n.name.to_vec(), n.is_pipe) },
                     _ => { (Vec::new(), false) },
                 };
-                let mut is_dcerpc = if is_pipe || (share_name.is_empty() && !is_pipe) {
+                let mut is_dcerpc = if is_pipe || share_name.is_empty() {
                     state.get_service_for_guid(wr.guid).1
                 } else {
                     false
