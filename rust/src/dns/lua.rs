@@ -42,12 +42,12 @@ pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState,
     };
 
     if let &Some(ref request) = &tx.request {
-        for query in &request.queries {
+        if let Some(query) = request.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
     } else if let &Some(ref response) = &tx.response {
-        for query in &response.queries {
+        if let Some(query) = response.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
