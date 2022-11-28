@@ -557,9 +557,9 @@ pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupPa
     if let Some(ref mut params) = optional {
         let mut user = PgsqlParameter{name: PgsqlParameters::User, value: Vec::new() };
         let mut index: usize = 0;
-        for j in 0..params.len() {
-            if params[j].name == PgsqlParameters::User {
-                user.value.extend_from_slice(&params[j].value);
+        for (j, p) in params.iter().enumerate() {
+            if p.name == PgsqlParameters::User {
+                user.value.extend_from_slice(&p.value);
                 index = j;
             }
         }
