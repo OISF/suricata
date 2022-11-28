@@ -1,3 +1,28 @@
+6.0.9 -- 2022-11-28
+
+Security #5710: smb: crash inside of streaming buffer Grow() (6.0.x backport)
+Security #5694: smtp/base64: crash / memory corruption (6.0.x backport)
+Security #5688: decoder/tunnel: tunnel depth not limited properly (6.0.x backport)
+Security #5600: ips: encapsulated packet logged as dropped, but not actually dropped (6.0.x backport)
+Bug #5715: smb: file not tracked on smb2 async (6.0.x backport)
+Bug #5714: SMB2 async responses are not matched with its request (6.0.x backport)
+Bug #5709: HTTP/2 decompression bug (6.0.x backport)
+Bug #5696: Integer overflow at dcerpc.rs:846 (6.0.x backport)
+Bug #5695: readthedocs: not showing pdf download option for recent versions (6.0.x backport)
+Bug #5683: FlowSwapFileFlags function is incorrect (6.0.x backport)
+Bug #5635: track by_rule|by_both incorrectly rejected for global thresholds (6.0.x backport)
+Bug #5633: Pass rules on 6.0.8 are generating alert events when passing tunneled traffic
+Bug #5608: base64: skip over all invalid characters for RFC 2045 mode (6.0.x backport)
+Bug #5607: base64_decode does not populate base64_data buffer once hitting non-base64 chars (6.0.x backport)
+Bug #5602: dcerpc: rust integer underflow (6.0.x backport)
+Bug #5599: eve: mac address logging for packet records reverses direction (6.0.x backport)
+Bug #5598: detect/tag: timeout handling issues on windows (6.0.x backport)
+Bug #5594: ips/tap: in layer 2 ips/tap setups, warn that mixed usage of ips and tap will be removed in 8.0 (6.0.x backport)
+Bug #4883: Netmap configuration -- need a configuration option for non-standard library locations (6.0.x backport)
+Feature #5478: Support for RFC2231 (6.0.x backport)
+Task #5698: libhtp 0.5.42
+Task #5570: transversal: update references to suricata webpage version 2 (backport 6.0.x)
+Task #4852: netmap: new API version (14) supports multi-ring software mode (6.0.x backport)
 6.0.8 -- 2022-09-27
 
 Task #5552: libhtp 0.5.41
