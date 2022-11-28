@@ -19,7 +19,7 @@
 
 /// converts a locale identifier into a locale name
 /// <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/70feba9f-294e-491e-b6eb-56532684c37f>
-pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
+pub fn lcid_to_string(lcid: u32, default: &str) -> String {
     let s = match lcid {
         0x0001 => "ar",
         0x0002 => "bg",
@@ -550,7 +550,7 @@ pub fn build_number_to_os(number: u32) -> OperatingSystem {
 }
 
 /// convert an OperatingSystem into a string description
-pub fn os_to_string<'a>(os: &OperatingSystem, default: &'a str) -> String {
+pub fn os_to_string(os: &OperatingSystem, default: &str) -> String {
     let s = match os.build {
         Build::Win31 => "Windows NT 3.1",
         Build::Win35 => "Windows NT 3.5",

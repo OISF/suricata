@@ -38,7 +38,7 @@ pub struct HTTPContentRange {
     pub size: i64,
 }
 
-pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_star(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, _) = char('*')(input)?;
     let (i2, _) = char('/')(i2)?;
     let (i2, size) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
@@ -52,7 +52,7 @@ pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], 
     ));
 }
 
-pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_def(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, start) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(input)?;
     let (i2, _) = char('-')(i2)?;
     let (i2, end) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
@@ -64,7 +64,7 @@ pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], H
     return Ok((i2, HTTPContentRange { start, end, size }));
 }
 
-fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+fn http2_parse_content_range(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, _) = take_while(|c| c == b' ')(input)?;
     let (i2, _) = take_till(|c| c == b' ')(i2)?;
     let (i2, _) = take_while(|c| c == b' ')(i2)?;
@@ -74,7 +74,7 @@ fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPConte
     ))(i2);
 }
 
-pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_check_content_range(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
     if v.start > v.end || (v.end > 0 && v.size > 0 && v.end > v.size - 1) {
         return Err(Err::Error(make_error(rem, ErrorKind::Verify)));

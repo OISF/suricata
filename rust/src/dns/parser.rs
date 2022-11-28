@@ -184,7 +184,7 @@ fn dns_parse_answer<'a>(
 }
 
 /// Parse a DNS response.
-pub fn dns_parse_response<'a>(slice: &'a [u8]) -> IResult<&[u8], DNSResponse> {
+pub fn dns_parse_response(slice: &[u8]) -> IResult<&[u8], DNSResponse> {
     let i = slice;
     let (i, header) = dns_parse_header(i)?;
     let (i, queries) = count(|b| dns_parse_query(b, slice), header.questions as usize)(i)?;
@@ -221,11 +221,11 @@ pub fn dns_parse_query<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u
     ))
 }
 
-fn dns_parse_rdata_a<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_a(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::A(data.to_vec())))
 }
 
-fn dns_parse_rdata_aaaa<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_aaaa(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::AAAA(data.to_vec())))
 }
 
@@ -289,16 +289,16 @@ fn dns_parse_rdata_srv<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u
     ))
 }
 
-fn dns_parse_rdata_txt<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_txt(input: &[u8]) -> IResult<&[u8], DNSRData> {
     let (i, txt) = length_data(be_u8)(input)?;
     Ok((i, DNSRData::TXT(txt.to_vec())))
 }
 
-fn dns_parse_rdata_null<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_null(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::NULL(data.to_vec())))
 }
 
-fn dns_parse_rdata_sshfp<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_sshfp(input: &[u8]) -> IResult<&[u8], DNSRData> {
     let i = input;
     let (i, algo) = be_u8(i)?;
     let (i, fp_type) = be_u8(i)?;
@@ -313,7 +313,7 @@ fn dns_parse_rdata_sshfp<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
     ))
 }
 
-fn dns_parse_rdata_unknown<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_unknown(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::Unknown(data.to_vec())))
 }
 
@@ -337,7 +337,7 @@ pub fn dns_parse_rdata<'a>(
 }
 
 /// Parse a DNS request.
-pub fn dns_parse_request<'a>(input: &'a [u8]) -> IResult<&[u8], DNSRequest> {
+pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
     let i = input;
     let (i, header) = dns_parse_header(i)?;
     let (i, queries) = count(|b| dns_parse_query(b, input), header.questions as usize)(i)?;

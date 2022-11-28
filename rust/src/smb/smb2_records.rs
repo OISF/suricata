@@ -489,8 +489,8 @@ pub struct Smb2ReadResponseRecord<'a> {
 // parse read/write data. If all is available, 'take' it.
 // otherwise just return what we have. So this may return
 // partial data.
-fn parse_smb2_data<'a>(i: &'a[u8], len: u32)
-    -> IResult<&'a[u8], &'a[u8]>
+fn parse_smb2_data(i: &[u8], len: u32)
+    -> IResult<&[u8], &[u8]>
 {
     if len as usize > i.len() {
         rest(i)
@@ -611,7 +611,7 @@ fn smb_basic_search(d: &[u8]) -> usize {
     return 0;
 }
 
-pub fn search_smb_record<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+pub fn search_smb_record(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut d = i;
     while d.len() >= 4 {
         let index = smb_basic_search(d);
