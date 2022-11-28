@@ -50,7 +50,7 @@ pub fn dns_parse_header(i: &[u8]) -> IResult<&[u8], DNSHeader> {
 /// Parameters:
 ///   start: the start of the name
 ///   message: the complete message that start is a part of
-pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
+pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
     let mut pos = start;
     let mut pivot = start;
     let mut name: Vec<u8> = Vec::with_capacity(32);

@@ -1316,7 +1316,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
+    pub fn parse_tcp_data_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
     {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
@@ -1645,7 +1645,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
+    pub fn parse_tcp_data_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
     {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);

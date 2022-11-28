@@ -1113,7 +1113,7 @@ impl NFSState {
         }
     }
 
-    pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
+    pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(Direction::ToServer, &gap, gap_size);
@@ -1127,7 +1127,7 @@ impl NFSState {
         return AppLayerResult::ok();
     }
 
-    pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
+    pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(Direction::ToClient, &gap, gap_size);
@@ -1198,7 +1198,7 @@ impl NFSState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_tcp_data_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
@@ -1362,7 +1362,7 @@ impl NFSState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_tcp_data_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
@@ -1466,7 +1466,7 @@ impl NFSState {
         AppLayerResult::ok()
     }
     /// Parsing function
-    pub fn parse_udp_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_udp_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
         self.add_rpc_udp_ts_pdu(flow, stream_slice, input, input.len() as i64);
@@ -1498,7 +1498,7 @@ impl NFSState {
     }
 
     /// Parsing function
-    pub fn parse_udp_tc<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_udp_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_tc ({})", input.len());
         self.add_rpc_udp_tc_pdu(flow, stream_slice, input, input.len() as i64);
