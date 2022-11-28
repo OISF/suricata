@@ -28,16 +28,11 @@ use widestring::U16CString;
 pub fn le_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
     let mut vec = Vec::new();
     let mut cursor = Cursor::new(input);
-    loop {
-        match cursor.read_u16::<byteorder::LittleEndian>() {
-            Ok(x) => {
-                if x == 0 {
-                    break;
-                };
-                vec.push(x)
-            }
-            Err(_) => break,
+    while let Ok(x) = cursor.read_u16::<byteorder::LittleEndian>() {
+        if x == 0 {
+            break;
         }
+        vec.push(x);
     }
     match U16CString::new(vec) {
         Ok(x) => match x.to_string() {
