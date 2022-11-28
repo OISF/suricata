@@ -28,7 +28,6 @@
 #![allow(clippy::too_many_arguments)]
 
 // To be fixed, but remove the noise for now.
-#![allow(clippy::bool_comparison)]
 #![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::derive_partial_eq_without_eq)]
