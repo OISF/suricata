@@ -101,25 +101,16 @@ pub unsafe extern "C" fn rs_http_parse_content_range(
 fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()> {
     let hostv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":authority")?;
     let mut hostv = &hostv[..];
-    match hostv.iter().position(|&x| x == b':') {
-        Some(p) => {
-            hostv = &hostv[..p];
-        }
-        None => {}
+    if let Some(p) = hostv.iter().position(|&x| x == b':') {
+        hostv = &hostv[..p];
     }
     let uriv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":path")?;
     let mut uriv = &uriv[..];
-    match uriv.iter().position(|&x| x == b'?') {
-        Some(p) => {
-            uriv = &uriv[..p];
-        }
-        None => {}
+    if let Some(p) = uriv.iter().position(|&x| x == b'?') {
+        uriv = &uriv[..p];
     }
-    match uriv.iter().rposition(|&x| x == b'/') {
-        Some(p) => {
-            uriv = &uriv[p..];
-        }
-        None => {}
+    if let Some(p) = uriv.iter().rposition(|&x| x == b'/') {
+        uriv = &uriv[p..];
     }
     let mut r = Vec::with_capacity(hostv.len() + uriv.len());
     r.extend_from_slice(hostv);

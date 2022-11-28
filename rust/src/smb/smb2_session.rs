@@ -23,6 +23,7 @@ use crate::smb::auth::*;
 pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
 {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
+    #[allow(clippy::single_match)]
     match parse_smb2_request_session_setup(r.data) {
         Ok((_, setup)) => {
             let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);

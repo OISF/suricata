@@ -961,17 +961,13 @@ impl HTTP2State {
                                     if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
-                                    match tx_same.decompress(
+                                    if tx_same.decompress(
                                         dinput,
                                         dir,
                                         sfcm,
                                         over,
-                                        flow,
-                                    ) {
-                                        Err(_e) => {
-                                            self.set_event(HTTP2Event::FailedDecompression);
-                                        }
-                                        _ => {}
+                                        flow).is_err() {
+                                        self.set_event(HTTP2Event::FailedDecompression);
                                     }
                                 }
                             }

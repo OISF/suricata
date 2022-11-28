@@ -339,6 +339,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
             // Check kerberos version
             if let Ok((rem,_hdr)) = der_read_element_header(rem) {
                 if rem.len() > 5 {
+                    #[allow(clippy::single_match)]
                     match (rem[2],rem[3],rem[4]) {
                         // Encoding of DER integer 5 (version)
                         (2,1,5) => { return alproto; },

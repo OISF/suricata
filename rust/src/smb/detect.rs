@@ -28,16 +28,12 @@ pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
                                             buffer_len: *mut u32)
                                             -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
-            SCLogDebug!("is_pipe {}", x.is_pipe);
-            if !x.is_pipe {
-                *buffer = x.share_name.as_ptr();
-                *buffer_len = x.share_name.len() as u32;
-                return 1;
-            }
-        }
-        _ => {
+    if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
+        SCLogDebug!("is_pipe {}", x.is_pipe);
+        if !x.is_pipe {
+            *buffer = x.share_name.as_ptr();
+            *buffer_len = x.share_name.len() as u32;
+            return 1;
         }
     }
 
@@ -52,16 +48,12 @@ pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
                                             buffer_len: *mut u32)
                                             -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
-            SCLogDebug!("is_pipe {}", x.is_pipe);
-            if x.is_pipe {
-                *buffer = x.share_name.as_ptr();
-                *buffer_len = x.share_name.len() as u32;
-                return 1;
-            }
-        }
-        _ => {
+    if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
+        SCLogDebug!("is_pipe {}", x.is_pipe);
+        if x.is_pipe {
+            *buffer = x.share_name.as_ptr();
+            *buffer_len = x.share_name.len() as u32;
+            return 1;
         }
     }
 
@@ -77,20 +69,16 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
                                             buffer_len: *mut u32)
                                             -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            let vref = if direction == Direction::ToServer as u8 {
-                &x.stub_data_ts
-            } else {
-                &x.stub_data_tc
-            };
-            if !vref.is_empty() {
-                *buffer = vref.as_ptr();
-                *buffer_len = vref.len() as u32;
-                return 1;
-            }
-        }
-        _ => {
+    if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
+        let vref = if direction == Direction::ToServer as u8 {
+            &x.stub_data_ts
+        } else {
+            &x.stub_data_tc
+        };
+        if !vref.is_empty() {
+            *buffer = vref.as_ptr();
+            *buffer_len = vref.len() as u32;
+            return 1;
         }
     }
 
@@ -105,21 +93,17 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
                                             -> u8
 {
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
-    match tx.type_data {
-        Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            if x.req_cmd == DCERPC_TYPE_REQUEST {
-                for range in dce_data.data.iter() {
-                    if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
-                        if range.range1 == x.opnum as u32 {
-                            return 1;
-                        }
-                    } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+    if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
+        if x.req_cmd == DCERPC_TYPE_REQUEST {
+            for range in dce_data.data.iter() {
+                if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
+                    if range.range1 == x.opnum as u32 {
                         return 1;
                     }
+                } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+                    return 1;
                 }
             }
-        }
-        _ => {
         }
     }
 
@@ -177,15 +161,11 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(tx: &mut SMBTransaction,
                                             buffer_len: *mut u32)
                                             -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
-            if let Some(ref ntlmssp) = x.ntlmssp {
-                *buffer = ntlmssp.user.as_ptr();
-                *buffer_len = ntlmssp.user.len() as u32;
-                return 1;
-            }
-        }
-        _ => {
+    if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
+        if let Some(ref ntlmssp) = x.ntlmssp {
+            *buffer = ntlmssp.user.as_ptr();
+            *buffer_len = ntlmssp.user.len() as u32;
+            return 1;
         }
     }
 
@@ -200,15 +180,11 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(tx: &mut SMBTransaction,
                                             buffer_len: *mut u32)
                                             -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
-            if let Some(ref ntlmssp) = x.ntlmssp {
-                *buffer = ntlmssp.domain.as_ptr();
-                *buffer_len = ntlmssp.domain.len() as u32;
-                return 1;
-            }
-        }
-        _ => {
+    if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
+        if let Some(ref ntlmssp) = x.ntlmssp {
+            *buffer = ntlmssp.domain.as_ptr();
+            *buffer_len = ntlmssp.domain.len() as u32;
+            return 1;
         }
     }
 

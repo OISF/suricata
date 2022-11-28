@@ -40,8 +40,10 @@ impl DHCPLogger {
         let options = &tx.message.options;
         for option in options {
             let code = option.code;
+            #[allow(clippy::single_match)]
             match &option.option {
                 &DHCPOptionWrapper::Generic(ref option) => {
+                    #[allow(clippy::single_match)]
                     match code {
                         DHCP_OPT_TYPE => {
                             if !option.data.is_empty() {
