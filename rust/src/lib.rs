@@ -50,7 +50,6 @@
 #![allow(clippy::single_match)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::upper_case_acronyms)]
-#![allow(clippy::while_let_loop)]
 
 #[macro_use]
 extern crate bitflags;
