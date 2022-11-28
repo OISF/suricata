@@ -178,10 +178,10 @@ impl SMBState {
 /// Handle DCERPC request data from a WRITE, IOCTL or TRANS record.
 /// return bool indicating whether an tx has been created/updated.
 ///
-pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
+pub fn smb_write_dcerpc_record(state: &mut SMBState,
         vercmd: SMBVerCmdStat,
         hdr: SMBCommonHdr,
-        data: &'b [u8]) -> bool
+        data: &[u8]) -> bool
 {
     let mut bind_ifaces : Option<Vec<DCERPCIface>> = None;
     let mut is_bind = false;

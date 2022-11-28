@@ -39,7 +39,6 @@
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::match_ref_pats)]
 #![allow(clippy::module_inception)]
-#![allow(clippy::needless_lifetimes)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::never_loop)]
 #![allow(clippy::new_without_default)]
