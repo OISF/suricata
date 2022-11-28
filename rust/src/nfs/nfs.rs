@@ -211,6 +211,12 @@ pub struct NFSTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Default for NFSTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NFSTransaction {
     pub fn new() -> Self {
         return Self {
@@ -340,6 +346,12 @@ pub struct NFSState {
     /// Timestamp in seconds of last update. This is packet time,
     /// potentially coming from pcaps.
     ts: u64,
+}
+
+impl Default for NFSState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl State<NFSTransaction> for NFSState {

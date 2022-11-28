@@ -32,6 +32,7 @@ pub enum BitTorrentDHTEvent {
     MalformedPacket,
 }
 
+#[derive(Default)]
 pub struct BitTorrentDHTTransaction {
     tx_id: u64,
     pub request_type: Option<String>,
@@ -45,17 +46,8 @@ pub struct BitTorrentDHTTransaction {
 }
 
 impl BitTorrentDHTTransaction {
-    pub fn new() -> BitTorrentDHTTransaction {
-        BitTorrentDHTTransaction {
-            tx_id: 0,
-            request_type: None,
-            request: None,
-            response: None,
-            error: None,
-            transaction_id: Vec::new(),
-            client_version: None,
-            tx_data: AppLayerTxData::new(),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Set an event on the transaction
@@ -86,7 +78,7 @@ impl BitTorrentDHTState {
     }
 
     fn new_tx(&mut self) -> BitTorrentDHTTransaction {
-        let mut tx = BitTorrentDHTTransaction::new();
+        let mut tx = BitTorrentDHTTransaction::default();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         return tx;

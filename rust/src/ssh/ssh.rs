@@ -62,9 +62,15 @@ pub struct SshHeader {
     pub hassh_string: Vec<u8>,
 }
 
+impl Default for SshHeader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SshHeader {
     pub fn new() -> SshHeader {
-        SshHeader {
+        Self {
             record_left: 0,
             record_left_msg: parser::MessageCode::Undefined(0),
 
@@ -78,6 +84,7 @@ impl SshHeader {
     }
 }
 
+#[derive(Default)]
 pub struct SSHTransaction {
     pub srv_hdr: SshHeader,
     pub cli_hdr: SshHeader,
@@ -87,14 +94,11 @@ pub struct SSHTransaction {
 
 impl SSHTransaction {
     pub fn new() -> SSHTransaction {
-        SSHTransaction {
-            srv_hdr: SshHeader::new(),
-            cli_hdr: SshHeader::new(),
-            tx_data: AppLayerTxData::new(),
-        }
+        Default::default()
     }
 }
 
+#[derive(Default)]
 pub struct SSHState {
     state_data: AppLayerStateData,
     transaction: SSHTransaction,
@@ -102,10 +106,7 @@ pub struct SSHState {
 
 impl SSHState {
     pub fn new() -> Self {
-        Self {
-            state_data: AppLayerStateData::new(),
-            transaction: SSHTransaction::new(),
-        }
+        Default::default()
     }
 
     fn set_event(&mut self, event: SSHEvent) {
