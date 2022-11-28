@@ -69,16 +69,13 @@ impl SMBState {
     {
         let mut tx = self.new_tx();
         tx.type_data = Some(SMBTransactionTypeData::FILE(SMBTransactionFile::new()));
-        match tx.type_data {
-            Some(SMBTransactionTypeData::FILE(ref mut d)) => {
-                d.direction = direction;
-                d.fuid = fuid.to_vec();
-                d.file_name = file_name.to_vec();
-                d.file_tracker.tx_id = tx.id - 1;
-                tx.tx_data.update_file_flags(self.state_data.file_flags);
-                d.update_file_flags(tx.tx_data.file_flags);
-            },
-            _ => { },
+        if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+            d.direction = direction;
+            d.fuid = fuid.to_vec();
+            d.file_name = file_name.to_vec();
+            d.file_tracker.tx_id = tx.id - 1;
+            tx.tx_data.update_file_flags(self.state_data.file_flags);
+            d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
         tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?

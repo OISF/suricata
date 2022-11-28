@@ -124,11 +124,8 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             },
             BerObjectContent::OctetString(os) => {
                 if have_kerberos {
-                    match parse_kerberos5_request(os) {
-                        Ok((_, t)) => {
-                            kticket = Some(t)
-                        },
-                        _ => { },
+                    if let Ok((_, t)) = parse_kerberos5_request(os) {
+                        kticket = Some(t)
                     }
                 }
 
@@ -162,39 +159,33 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
     let mut ntlmssp_data : Option<NtlmsspData> = None;
 
     SCLogDebug!("NTLMSSP {:?}", blob);
-    match parse_ntlmssp(blob) {
-        Ok((_, nd)) => {
-            SCLogDebug!("NTLMSSP TYPE {}/{} nd {:?}",
+    if let Ok((_, nd)) = parse_ntlmssp(blob) {
+        SCLogDebug!("NTLMSSP TYPE {}/{} nd {:?}",
                     nd.msg_type, &ntlmssp_type_string(nd.msg_type), nd);
-            match nd.msg_type {
-                NTLMSSP_NEGOTIATE => {
-                },
-                NTLMSSP_AUTH => {
-                    match parse_ntlm_auth_record(nd.data) {
-                        Ok((_, ad)) => {
-                            SCLogDebug!("auth data {:?}", ad);
-                            let mut host = ad.host.to_vec();
-                            host.retain(|&i|i != 0x00);
-                            let mut user = ad.user.to_vec();
-                            user.retain(|&i|i != 0x00);
-                            let mut domain = ad.domain.to_vec();
-                            domain.retain(|&i|i != 0x00);
-
-                            let d = NtlmsspData {
-                                host,
-                                user,
-                                domain,
-                                version: ad.version,
-                            };
-                            ntlmssp_data = Some(d);
-                        },
-                        _ => {},
-                    }
-                },
-                _ => {},
-            }
-        },
-        _ => {},
+        match nd.msg_type {
+            NTLMSSP_NEGOTIATE => {
+            },
+            NTLMSSP_AUTH => {
+                if let Ok((_, ad)) = parse_ntlm_auth_record(nd.data) {
+                    SCLogDebug!("auth data {:?}", ad);
+                    let mut host = ad.host.to_vec();
+                    host.retain(|&i|i != 0x00);
+                    let mut user = ad.user.to_vec();
+                    user.retain(|&i|i != 0x00);
+                    let mut domain = ad.domain.to_vec();
+                    domain.retain(|&i|i != 0x00);
+                    
+                    let d = NtlmsspData {
+                        host,
+                        user,
+                        domain,
+                        version: ad.version,
+                    };
+                    ntlmssp_data = Some(d);
+                }
+            },
+            _ => {},
+        }
     }
     return ntlmssp_data;
 }

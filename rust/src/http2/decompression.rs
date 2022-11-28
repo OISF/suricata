@@ -200,31 +200,22 @@ impl HTTP2DecoderHalf {
         match self.decoder {
             HTTP2Decompresser::GZIP(ref mut gzip_decoder) => {
                 let r = http2_decompress(&mut *gzip_decoder.as_mut(), input, output);
-                match r {
-                    Err(_) => {
-                        self.decoder = HTTP2Decompresser::UNASSIGNED;
-                    }
-                    _ => {}
+                if r.is_err() {
+                    self.decoder = HTTP2Decompresser::UNASSIGNED;
                 }
                 return r;
             }
             HTTP2Decompresser::BROTLI(ref mut br_decoder) => {
                 let r = http2_decompress(&mut *br_decoder.as_mut(), input, output);
-                match r {
-                    Err(_) => {
-                        self.decoder = HTTP2Decompresser::UNASSIGNED;
-                    }
-                    _ => {}
+                if r.is_err() {
+                    self.decoder = HTTP2Decompresser::UNASSIGNED;
                 }
                 return r;
             }
             HTTP2Decompresser::DEFLATE(ref mut df_decoder) => {
                 let r = http2_decompress(&mut *df_decoder.as_mut(), input, output);
-                match r {
-                    Err(_) => {
-                        self.decoder = HTTP2Decompresser::UNASSIGNED;
-                    }
-                    _ => {}
+                if r.is_err() {
+                    self.decoder = HTTP2Decompresser::UNASSIGNED;
                 }
                 return r;
             }

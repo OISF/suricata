@@ -206,35 +206,29 @@ fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
     ja3.push(',');
     let mut dash = false;
     for e in &exts {
-        match e {
-            TlsExtension::EllipticCurves(x) => {
-                for ec in x {
-                    if dash {
-                        ja3.push('-');
-                    } else {
-                        dash = true;
-                    }
-                    ja3.push_str(&ec.0.to_string());
+        if let TlsExtension::EllipticCurves(x) = e {
+            for ec in x {
+                if dash {
+                    ja3.push('-');
+                } else {
+                    dash = true;
                 }
+                ja3.push_str(&ec.0.to_string());
             }
-            _ => {}
         }
     }
     ja3.push(',');
     dash = false;
     for e in &exts {
-        match e {
-            TlsExtension::EcPointFormats(x) => {
-                for ec in *x {
-                    if dash {
-                        ja3.push('-');
-                    } else {
-                        dash = true;
-                    }
-                    ja3.push_str(&ec.to_string());
+        if let TlsExtension::EcPointFormats(x) = e {
+            for ec in *x {
+                if dash {
+                    ja3.push('-');
+                } else {
+                    dash = true;
                 }
+                ja3.push_str(&ec.to_string());
             }
-            _ => {}
         }
     }
 }
@@ -498,36 +492,27 @@ impl Frame {
         let mut crypto_max_size = 0;
         let mut crypto_total_size = 0;
         for f in &frames {
-            match f {
-                Frame::CryptoFrag(c) => {
-                    if crypto_max_size < c.offset + c.length {
-                        crypto_max_size = c.offset + c.length;
-                    }
-                    crypto_total_size += c.length;
+            if let Frame::CryptoFrag(c) = f {
+                if crypto_max_size < c.offset + c.length {
+                    crypto_max_size = c.offset + c.length;
                 }
-                _ => {}
+                crypto_total_size += c.length;
             }
         }
         if crypto_max_size > 0 && crypto_total_size == crypto_max_size {
             // we have some, and no gaps from offset 0
             let mut d = vec![0; crypto_max_size as usize];
             for f in &frames {
-                match f {
-                    Frame::CryptoFrag(c) => {
-                        d[c.offset as usize..(c.offset + c.length) as usize]
-                            .clone_from_slice(&c.data);
-                    }
-                    _ => {}
+                if let Frame::CryptoFrag(c) = f {
+                    d[c.offset as usize..(c.offset + c.length) as usize]
+                        .clone_from_slice(&c.data);
                 }
             }
-            match parse_tls_message_handshake(&d) {
-                Ok((_, msg)) => {
-                    if let Some(c) = parse_quic_handshake(msg) {
-                        // add a parsed crypto frame
-                        frames.push(c);
-                    }
+            if let Ok((_, msg)) = parse_tls_message_handshake(&d) {
+                if let Some(c) = parse_quic_handshake(msg) {
+                    // add a parsed crypto frame
+                    frames.push(c);
                 }
-                _ => {}
             }
         }
 

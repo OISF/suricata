@@ -190,28 +190,22 @@ fn http2_tx_get_next_window(
     let mut pos = 0_u32;
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
-            match tx.frames_ts[i].data {
-                HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
-                    if pos == nb {
-                        return wu.sizeinc as i32;
-                    } else {
-                        pos += 1;
-                    }
+            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_ts[i].data {
+                if pos == nb {
+                    return wu.sizeinc as i32;
+                } else {
+                    pos += 1;
                 }
-                _ => {}
             }
         }
     } else {
         for i in 0..tx.frames_tc.len() {
-            match tx.frames_tc[i].data {
-                HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
-                    if pos == nb {
-                        return wu.sizeinc as i32;
-                    } else {
-                        pos += 1;
-                    }
+            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_tc[i].data {
+                if pos == nb {
+                    return wu.sizeinc as i32;
+                } else {
+                    pos += 1;
                 }
-                _ => {}
             }
         }
     }
@@ -271,24 +265,18 @@ fn http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
-            match &tx.frames_ts[i].data {
-                HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(set, ctx) != 0 {
-                        return 1;
-                    }
+            if let HTTP2FrameTypeData::SETTINGS(set ) = &tx.frames_ts[i].data {
+                if http2_detect_settings_match(set, ctx) != 0 {
+                    return 1;
                 }
-                _ => {}
             }
         }
     } else {
         for i in 0..tx.frames_tc.len() {
-            match &tx.frames_tc[i].data {
-                HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(set, ctx) != 0 {
-                        return 1;
-                    }
+            if let HTTP2FrameTypeData::SETTINGS(set) = &tx.frames_tc[i].data {
+                if http2_detect_settings_match(set, ctx) != 0 {
+                    return 1;
                 }
-                _ => {}
             }
         }
     }

@@ -43,31 +43,25 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
     if tx.encrypted {
         jsb.set_string("pdu_type", "encrypted")?;
     } else {
-        match tx.info {
-            Some(ref info) => {
-                jsb.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type))?;
-                if info.err.0 != 0 {
-                    jsb.set_string("error", &format!("{:?}", info.err))?;
+        if let Some(ref info) = tx.info {
+            jsb.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type))?;
+            if info.err.0 != 0 {
+                jsb.set_string("error", &format!("{:?}", info.err))?;
+            }
+            if let Some((trap_type, ref oid, address)) = info.trap_type {
+                jsb.set_string("trap_type", &format!("{:?}", trap_type))?;
+                jsb.set_string("trap_oid", &oid.to_string())?;
+                match address {
+                    NetworkAddress::IPv4(ip) => {jsb.set_string("trap_address", &ip.to_string())?;},
                 }
-                match info.trap_type {
-                    Some((trap_type, ref oid, address)) => {
-                        jsb.set_string("trap_type", &format!("{:?}", trap_type))?;
-                        jsb.set_string("trap_oid", &oid.to_string())?;
-                        match address {
-                            NetworkAddress::IPv4(ip) => {jsb.set_string("trap_address", &ip.to_string())?;},
-                        }
-                    },
-                    _ => ()
+            }
+            if !info.vars.is_empty() {
+                jsb.open_array("vars")?;
+                for var in info.vars.iter() {
+                    jsb.append_string(&var.to_string())?;
                 }
-                if !info.vars.is_empty() {
-                    jsb.open_array("vars")?;
-                    for var in info.vars.iter() {
-                        jsb.append_string(&var.to_string())?;
-                    }
-                    jsb.close()?;
-                }
-            },
-            _ => ()
+                jsb.close()?;
+            }
         }
         if let Some(community) = &tx.community {
             jsb.set_string("community", community)?;

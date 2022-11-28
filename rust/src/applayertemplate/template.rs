@@ -196,14 +196,11 @@ impl TemplateState {
                 Ok((rem, response)) => {
                     start = rem;
 
-                    match self.find_request() {
-                        Some(tx) => {
-                            tx.response = Some(response);
-                            SCLogNotice!("Found response for request:");
-                            SCLogNotice!("- Request: {:?}", tx.request);
-                            SCLogNotice!("- Response: {:?}", tx.response);
-                        }
-                        None => {}
+                    if let Some(tx) =  self.find_request() {
+                        tx.response = Some(response);
+                        SCLogNotice!("Found response for request:");
+                        SCLogNotice!("- Request: {:?}", tx.request);
+                        SCLogNotice!("- Response: {:?}", tx.response);
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {

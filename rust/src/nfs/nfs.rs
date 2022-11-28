@@ -461,21 +461,18 @@ impl NFSState {
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
-        match self.get_tx_by_xid(xid) {
-            Some(mytx) => {
-                mytx.response_done = true;
-                mytx.rpc_response_status = rpc_status;
-                mytx.nfs_response_status = nfs_status;
-                if mytx.file_handle.is_empty() && !resp_handle.is_empty() {
-                    mytx.file_handle = resp_handle.to_vec();
-                }
-
-                SCLogDebug!("process_reply_record: tx ID {} XID {:04X} REQUEST {} RESPONSE {}",
+        if let Some(mytx) = self.get_tx_by_xid(xid) {
+            mytx.response_done = true;
+            mytx.rpc_response_status = rpc_status;
+            mytx.nfs_response_status = nfs_status;
+            if mytx.file_handle.is_empty() && !resp_handle.is_empty() {
+                mytx.file_handle = resp_handle.to_vec();
+            }
+            
+            SCLogDebug!("process_reply_record: tx ID {} XID {:04X} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
-            },
-            None => {
-                //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
-            },
+        } else {
+            //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
         }
     }
 

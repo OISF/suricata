@@ -63,16 +63,13 @@ pub fn conf_get(key: &str) -> Option<&str> {
 // Return the value of key as a boolean. A value that is not set is
 // the same as having it set to false.
 pub fn conf_get_bool(key: &str) -> bool {
-    match conf_get(key) {
-        Some(val) => {
-            match val {
-                "1" | "yes" | "true" | "on" => {
-                    return true;
-                },
-                _ => {},
-            }
-        },
-        None => {},
+    if let Some(val) = conf_get(key) {
+        match val {
+            "1" | "yes" | "true" | "on" => {
+                return true;
+            },
+            _ => {},
+        }
     }
 
     return false;

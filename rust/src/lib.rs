@@ -47,7 +47,6 @@
 #![allow(clippy::nonminimal_bool)]
 #![allow(clippy::redundant_pattern_matching)]
 #![allow(clippy::result_unit_err)]
-#![allow(clippy::single_match)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::upper_case_acronyms)]
 

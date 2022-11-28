@@ -58,6 +58,7 @@ fn log_dcerpc_header_tcp(
 
     if tx.resp_done && !tx.resp_lost {
         jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
+        #[allow(clippy::single_match)]
         match tx.resp_cmd {
             DCERPC_TYPE_RESPONSE => {
                 jsb.open_object("res")?;
@@ -85,6 +86,7 @@ fn log_dcerpc_header_udp(
 ) -> Result<(), JsonError> {
     if tx.req_done && !tx.req_lost {
         jsb.set_string("request", &dcerpc_type_string(tx.req_cmd))?;
+        #[allow(clippy::single_match)]
         match tx.req_cmd {
             DCERPC_TYPE_REQUEST => {
                 jsb.open_object("req")?;
@@ -101,6 +103,7 @@ fn log_dcerpc_header_udp(
 
     if tx.resp_done && !tx.resp_lost {
         jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
+        #[allow(clippy::single_match)]
         match tx.resp_cmd {
             DCERPC_TYPE_RESPONSE => {
                 jsb.open_object("res")?;

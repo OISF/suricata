@@ -211,6 +211,7 @@ impl RdpState {
 
                             // X.223 data packet, evaluate what it encapsulates
                             T123TpktChild::Data(x223) => {
+                                #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectRequest(mcs) => {
                                         let tx =
@@ -273,6 +274,7 @@ impl RdpState {
                         // bytes available for futher parsing are what remain
                         available = remainder;
                         for message in &tls.msg {
+                            #[allow(clippy::single_match)]
                             match message {
                                 TlsMessage::Handshake(TlsMessageHandshake::Certificate(
                                     contents,
@@ -323,6 +325,7 @@ impl RdpState {
 
                             // X.223 data packet, evaluate what it encapsulates
                             T123TpktChild::Data(x223) => {
+                                #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectResponse(mcs) => {
                                         let tx = self

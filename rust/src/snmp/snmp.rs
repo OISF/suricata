@@ -184,9 +184,8 @@ impl<'a> SNMPState<'a> {
     /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
         if self.version == 0 {
-            match parse_pdu_enveloppe_version(i) {
-                Ok((_,x)) => self.version = x,
-                _         => (),
+            if let Ok((_, x)) = parse_pdu_enveloppe_version(i) {
+                self.version = x;
             }
         }
         match parse_snmp_generic_message(i) {
@@ -331,6 +330,7 @@ static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
     match parse_der_sequence(i) {
         Ok((_,x))     => {
+            #[allow(clippy::single_match)]
             match x.content {
                 BerObjectContent::Sequence(ref v) => {
                     if v.len() == 3 {
