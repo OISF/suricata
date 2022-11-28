@@ -195,10 +195,10 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
-        for i in 0..blocks.len() {
-            if blocks[i].name == b"content-encoding" {
-                self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
+        for block in blocks {
+            if block.name == b"content-encoding" {
+                self.decoder.http2_encoding_fromvec(&block.value, dir);
             }
         }
     }
@@ -617,17 +617,17 @@ impl HTTP2State {
 
     fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
         let (mut update, mut sizeup) = (false, 0);
-        for i in 0..blocks.len() {
-            if blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
+        for block in blocks {
+            if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 self.set_event(HTTP2Event::InvalidHeader);
-            } else if blocks[i].error
+            } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
             {
                 update = true;
-                if blocks[i].sizeupdate > sizeup {
-                    sizeup = blocks[i].sizeupdate;
+                if block.sizeupdate > sizeup {
+                    sizeup = block.sizeupdate;
                 }
-            } else if blocks[i].error
+            } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
                 self.set_event(HTTP2Event::HeaderIntegerOverflow);
@@ -670,16 +670,16 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::SETTINGS) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
-                        for i in 0..set.len() {
-                            if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                        for e in &set {
+                            if e.id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
                                 //reverse order as this is what we accept from the other endpoint
                                 let dyn_headers = if dir == Direction::ToClient {
                                     &mut self.dynamic_headers_ts
                                 } else {
                                     &mut self.dynamic_headers_tc
                                 };
-                                dyn_headers.max_size = set[i].value as usize;
-                                if set[i].value > unsafe { HTTP2_MAX_TABLESIZE } {
+                                dyn_headers.max_size = e.value as usize;
+                                if e.value > unsafe { HTTP2_MAX_TABLESIZE } {
                                     //mark potential overflow
                                     dyn_headers.overflow = 1;
                                 } else {

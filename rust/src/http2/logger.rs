@@ -32,44 +32,44 @@ enum HeaderName {
 }
 
 fn log_http2_headers<'a>(
-    blocks: &'a Vec<parser::HTTP2FrameHeaderBlock>, js: &mut JsonBuilder,
+    blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
     common: &mut HashMap<HeaderName, &'a Vec<u8>>,
 ) -> Result<(), JsonError> {
-    for j in 0..blocks.len() {
+    for block in blocks {
         js.start_object()?;
-        match blocks[j].error {
+        match block.error {
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
-                js.set_string_from_bytes("name", &blocks[j].name)?;
-                js.set_string_from_bytes("value", &blocks[j].value)?;
-                if let Ok(name) = std::str::from_utf8(&blocks[j].name) {
+                js.set_string_from_bytes("name", &block.name)?;
+                js.set_string_from_bytes("value", &block.value)?;
+                if let Ok(name) = std::str::from_utf8(&block.name) {
                     match name.to_lowercase().as_ref() {
                         ":method" => {
-                            common.insert(HeaderName::Method, &blocks[j].value);
+                            common.insert(HeaderName::Method, &block.value);
                         }
                         ":path" => {
-                            common.insert(HeaderName::Path, &blocks[j].value);
+                            common.insert(HeaderName::Path, &block.value);
                         }
                         ":status" => {
-                            common.insert(HeaderName::Status, &blocks[j].value);
+                            common.insert(HeaderName::Status, &block.value);
                         }
                         "user-agent" => {
-                            common.insert(HeaderName::UserAgent, &blocks[j].value);
+                            common.insert(HeaderName::UserAgent, &block.value);
                         }
                         "host" => {
-                            common.insert(HeaderName::Host, &blocks[j].value);
+                            common.insert(HeaderName::Host, &block.value);
                         }
                         "content-length" => {
-                            common.insert(HeaderName::ContentLength, &blocks[j].value);
+                            common.insert(HeaderName::ContentLength, &block.value);
                         }
                         _ => {}
                     }
                 }
             }
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate => {
-                js.set_uint("table_size_update", blocks[j].sizeupdate)?;
+                js.set_uint("table_size_update", block.sizeupdate)?;
             }
             _ => {
-                js.set_string("error", &blocks[j].error.to_string())?;
+                js.set_string("error", &block.error.to_string())?;
             }
         }
         js.close()?;
@@ -102,18 +102,18 @@ fn log_headers<'a>(
     Ok(has_headers)
 }
 
-fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool, JsonError> {
     let mut has_settings = false;
-    for i in 0..frames.len() {
-        if let HTTP2FrameTypeData::SETTINGS(set) = &frames[i].data {
+    for frame in frames {
+        if let HTTP2FrameTypeData::SETTINGS(set) = &frame.data {
             if !has_settings {
                 js.open_array("settings")?;
                 has_settings = true;
             }
-            for j in 0..set.len() {
+            for e in set {
                 js.start_object()?;
-                js.set_string("settings_id", &set[j].id.to_string())?;
-                js.set_uint("settings_value", set[j].value as u64)?;
+                js.set_string("settings_id", &e.id.to_string())?;
+                js.set_uint("settings_value", e.value as u64)?;
                 js.close()?;
             }
         }
@@ -125,8 +125,8 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
     let mut has_error_code = false;
     let mut has_priority = false;
     let mut has_multiple = false;
-    for i in 0..frames.len() {
-        match &frames[i].data {
+    for frame in frames {
+        match &frame.data {
             HTTP2FrameTypeData::GOAWAY(goaway) => {
                 if !has_error_code {
                     let errcode: Option<parser::HTTP2ErrorCode> =
