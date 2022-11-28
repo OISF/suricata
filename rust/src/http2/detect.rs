@@ -243,14 +243,14 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw
 fn http2_detect_settings_match(
     set: &[parser::HTTP2FrameSettings], ctx: &parser::DetectHTTP2settingsSigCtx,
 ) -> std::os::raw::c_int {
-    for i in 0..set.len() {
-        if set[i].id == ctx.id {
+    for e in set {
+        if e.id == ctx.id {
             match &ctx.value {
                 None => {
                     return 1;
                 }
                 Some(x) => {
-                    if detect_match_uint(x, set[i].value) {
+                    if detect_match_uint(x, e.value) {
                         return 1;
                     }
                 }
@@ -399,8 +399,8 @@ fn http2_frames_get_header_firstvalue<'a>(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 if block.name == name.as_bytes() {
                     return Ok(&block.value);
@@ -423,8 +423,8 @@ pub fn http2_frames_get_header_value_vec(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 if block.name == name.as_bytes() {
                     if found == 0 {
@@ -460,8 +460,8 @@ fn http2_frames_get_header_value<'a>(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 if block.name == name.as_bytes() {
                     if found == 0 {
@@ -536,8 +536,8 @@ fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
             // we got at least one upper character, need to transform
             let mut vec: Vec<u8> = Vec::with_capacity(value.len());
             vec.extend_from_slice(value);
-            for j in i..vec.len() {
-                vec[j].make_ascii_lowercase();
+            for e in &mut vec {
+                e.make_ascii_lowercase();
             }
             return Some(vec);
         }
@@ -674,8 +674,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 // we do not escape linefeeds in headers names
                 vec.extend_from_slice(&block.name);
@@ -738,8 +738,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 if !http2_header_iscookie(direction.into(), &block.name) {
                     // we do not escape linefeeds nor : in headers names
@@ -772,8 +772,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
     } else {
         &tx.frames_tc
     };
-    for i in 0..frames.len() {
-        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+    for frame in frames {
+        if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 // we do not escape linefeeds nor : in headers names
                 vec.extend_from_slice(&block.name);

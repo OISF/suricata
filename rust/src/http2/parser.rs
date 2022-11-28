@@ -512,8 +512,8 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
         return Ok((i3, 0));
     }
     let mut varval = max;
-    for i in 0..varia.len() {
-        varval += ((varia[i] & 0x7F) as u64) << (7 * i);
+    for (i, e) in varia.iter().enumerate() {
+        varval += ((e & 0x7F) as u64) << (7 * i);
     }
     match varval.checked_add((finalv as u64) << (7 * varia.len())) {
         None => {
@@ -892,11 +892,8 @@ mod tests {
         match r1 {
             Ok((rem, ctx)) => {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
-                match ctx.value {
-                    Some(_) => {
-                        panic!("Unexpected value");
-                    }
-                    None => {}
+                if ctx.value.is_some() {
+                    panic!("Unexpected value");
                 }
                 assert_eq!(rem.len(), 1);
             }
