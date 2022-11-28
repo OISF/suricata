@@ -728,10 +728,9 @@ impl DCERPCState {
         match parser::parse_dcerpc_bindack(input) {
             Ok((leftover_bytes, mut back)) => {
                 if let Some(ref mut bind) = self.bind {
-                    let mut uuid_internal_id = 0;
-                    for r in back.ctxitems.iter() {
+                    for (uuid_internal_id, r) in back.ctxitems.iter().enumerate() {
                         for mut uuid in bind.uuid_list.iter_mut() {
-                            if uuid.internal_id == uuid_internal_id {
+                            if uuid.internal_id == uuid_internal_id as u16 {
                                 uuid.result = r.ack_result;
                                 if uuid.result != 0 {
                                     break;
@@ -740,7 +739,6 @@ impl DCERPCState {
                                 SCLogDebug!("DCERPC BINDACK accepted UUID: {:?}", uuid);
                             }
                         }
-                        uuid_internal_id += 1;
                     }
                     self.bindack = Some(back);
                 }

@@ -599,14 +599,12 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
 
 fn smb_basic_search(d: &[u8]) -> usize {
     let needle = b"SMB";
-    let mut r = 0_usize;
     // this could be replaced by aho-corasick
     let iter = d.windows(needle.len());
-    for window in iter {
+    for (r, window) in iter.enumerate() {
         if window == needle {
             return r;
         }
-        r += 1;
     }
     return 0;
 }
