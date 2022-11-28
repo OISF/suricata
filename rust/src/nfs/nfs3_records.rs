@@ -297,9 +297,9 @@ pub fn parse_nfs3_response_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3ResponseR
     Ok((i, resp))
 }
 
-pub(crate) fn many0_nfs3_response_readdirplus_entries<'a>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], Vec<Nfs3ResponseReaddirplusEntry<'a>>> {
+pub(crate) fn many0_nfs3_response_readdirplus_entries(
+    input: &[u8],
+) -> IResult<&[u8], Vec<Nfs3ResponseReaddirplusEntry>> {
     many0(complete(parse_nfs3_response_readdirplus_entry_cond))(input)
 }
 

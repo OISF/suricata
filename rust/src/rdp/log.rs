@@ -375,7 +375,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
 }
 
 /// converts RdpClientVersion to a string, using the provided prefix
-fn version_to_string<'a>(ver: &RdpClientVersion, prefix: &'a str) -> String {
+fn version_to_string(ver: &RdpClientVersion, prefix: &str) -> String {
     let mut result = String::from(prefix);
     match ver {
         RdpClientVersion::V4 => result.push('4'),

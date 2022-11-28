@@ -125,7 +125,7 @@ fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
     )(i)
 }
 
-fn tftp_request<'a>(slice: &'a [u8]) -> IResult<&[u8], TFTPTransaction> {
+fn tftp_request(slice: &[u8]) -> IResult<&[u8], TFTPTransaction> {
     let (i, _) = tag([0])(slice)?;
     let (i, opcode) = be_u8(i)?;
     let (i, filename) = getstr(i)?;
