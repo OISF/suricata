@@ -29,12 +29,9 @@ pub unsafe extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction, versio
 pub unsafe extern "C" fn rs_snmp_tx_get_community(
     tx: &mut SNMPTransaction, buf: *mut *const u8, len: *mut u32,
 ) {
-    match tx.community {
-        Some(ref c) => {
-            *buf = c.as_ptr();
-            *len = c.len() as u32;
-        }
-        None => (),
+    if let Some(ref c) =  tx.community {
+        *buf = c.as_ptr();
+        *len = c.len() as u32;
     }
 }
 
@@ -54,11 +51,8 @@ pub unsafe extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction, pdu_t
 pub unsafe extern "C" fn rs_snmp_tx_get_usm(
     tx: &mut SNMPTransaction, buf: *mut *const u8, len: *mut u32,
 ) {
-    match tx.usm {
-        Some(ref c) => {
-            *buf = c.as_ptr();
-            *len = c.len() as u32;
-        }
-        None => (),
+    if let Some(ref c) =  tx.usm {
+        *buf = c.as_ptr();
+        *len = c.len() as u32;
     }
 }

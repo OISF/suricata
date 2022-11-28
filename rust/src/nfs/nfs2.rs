@@ -74,6 +74,7 @@ impl NFSState {
             }
 
             tx.auth_type = r.creds_flavor;
+            #[allow(clippy::single_match)]
             match r.creds {
                 RpcRequestCreds::Unix(ref u) => {
                     tx.request_machine_name = u.machine_name_buf.to_vec();

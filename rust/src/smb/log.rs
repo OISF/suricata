@@ -110,6 +110,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.set_string("status_code", &status_hex)?;
         },
         (false, _) => {
+            #[allow(clippy::single_match)]
             match tx.vercmd.get_dos_error() {
                 (true, errclass, errcode) => {
                     match errclass {
@@ -172,27 +173,21 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 jsb.close()?;
             }
 
-            match x.request_host {
-                Some(ref r) => {
-                    jsb.open_object("request")?;
-                    let os = String::from_utf8_lossy(&r.native_os);
-                    jsb.set_string("native_os", &os)?;
-                    let lm = String::from_utf8_lossy(&r.native_lm);
-                    jsb.set_string("native_lm", &lm)?;
-                    jsb.close()?;
-                },
-                None => { },
+            if let Some(ref r) = x.request_host {
+                jsb.open_object("request")?;
+                let os = String::from_utf8_lossy(&r.native_os);
+                jsb.set_string("native_os", &os)?;
+                let lm = String::from_utf8_lossy(&r.native_lm);
+                jsb.set_string("native_lm", &lm)?;
+                jsb.close()?;
             }
-            match x.response_host {
-                Some(ref r) => {
-                    jsb.open_object("response")?;
-                    let os = String::from_utf8_lossy(&r.native_os);
-                    jsb.set_string("native_os", &os)?;
-                    let lm = String::from_utf8_lossy(&r.native_lm);
-                    jsb.set_string("native_lm", &lm)?;
-                    jsb.close()?;
-                },
-                None => { },
+            if let Some(ref r) = x.response_host {
+                jsb.open_object("response")?;
+                let os = String::from_utf8_lossy(&r.native_os);
+                jsb.set_string("native_os", &os)?;
+                let lm = String::from_utf8_lossy(&r.native_lm);
+                jsb.set_string("native_lm", &lm)?;
+                jsb.close()?;
             }
         },
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
@@ -343,50 +338,45 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                         jsb.set_uint("frag_cnt", x.frag_cnt_ts as u64)?;
                         jsb.set_uint("stub_data_size", x.stub_data_ts.len() as u64)?;
                         jsb.close()?;
-                        match state.dcerpc_ifaces {
-                            Some(ref ifaces) => {
-                                for i in ifaces {
-                                    if i.context_id == x.context_id {
-                                        jsb.open_object("interface")?;
-                                        let ifstr = uuid::Uuid::from_slice(&i.uuid);
-                                        let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
-                                        jsb.set_string("uuid", &ifstr)?;
-                                        let vstr = format!("{}.{}", i.ver, i.ver_min);
-                                        jsb.set_string("version", &vstr)?;
-                                        jsb.close()?;
-                                    }
-                                }
-                            },
-                            _ => {},
-                        }
-                    },
-                    DCERPC_TYPE_BIND => {
-                        match state.dcerpc_ifaces {
-                            Some(ref ifaces) => {
-                                jsb.open_array("interfaces")?;
-                                for i in ifaces {
-                                    jsb.start_object()?;
+                        if let Some(ref ifaces) = state.dcerpc_ifaces {
+                            for i in ifaces {
+                                if i.context_id == x.context_id {
+                                    jsb.open_object("interface")?;
                                     let ifstr = uuid::Uuid::from_slice(&i.uuid);
                                     let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
                                     jsb.set_string("version", &vstr)?;
-
-                                    if i.acked {
-                                        jsb.set_uint("ack_result", i.ack_result as u64)?;
-                                        jsb.set_uint("ack_reason", i.ack_reason as u64)?;
-                                    }
                                     jsb.close()?;
                                 }
+                            }
+                        }
+                    },
+                    DCERPC_TYPE_BIND => {
+                        if let Some(ref ifaces) = state.dcerpc_ifaces {
+                            jsb.open_array("interfaces")?;
+                            for i in ifaces {
+                                jsb.start_object()?;
+                                let ifstr = uuid::Uuid::from_slice(&i.uuid);
+                                let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
+                                jsb.set_string("uuid", &ifstr)?;
+                                let vstr = format!("{}.{}", i.ver, i.ver_min);
+                                jsb.set_string("version", &vstr)?;
+                                
+                                if i.acked {
+                                    jsb.set_uint("ack_result", i.ack_result as u64)?;
+                                    jsb.set_uint("ack_reason", i.ack_reason as u64)?;
+                                }
                                 jsb.close()?;
-                            },
-                            _ => {},
+                            }
+                            jsb.close()?;
                         }
                     },
                     _ => {},
                 }
             }
             if x.res_set {
+                #[allow(clippy::single_match)]
                 match x.res_cmd {
                     DCERPC_TYPE_RESPONSE => {
                         jsb.open_object("res")?;
@@ -430,6 +420,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 _ => { },
             }
 
+            #[allow(clippy::single_match)]
             match x.loi {
                 1013 => { // Set Disposition Information
                     jsb.set_string("level_of_interest", "Set Disposition Information")?;

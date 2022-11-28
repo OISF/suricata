@@ -105,34 +105,28 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 smb_read_dcerpc_record(state, vercmd, hdr, &[],rd.data);
             } else {
                 SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", hdr);
-                match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
-                    Some(tx) => {
-                        tx.set_status(r.nt_status, false);
-                        if r.nt_status != SMB_NTSTATUS_PENDING {
-                            tx.response_done = true;
-                        }
-                    },
-                    None => { },
+                if let Some(tx) = state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
+                    tx.set_status(r.nt_status, false);
+                    if r.nt_status != SMB_NTSTATUS_PENDING {
+                        tx.response_done = true;
+                    }
                 }
             }
         },
         _ => {
             SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", hdr);
-            match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
-                Some(tx) => {
-                    SCLogDebug!("updated status of tx {}", tx.id);
-                    tx.set_status(r.nt_status, false);
-                    if r.nt_status != SMB_NTSTATUS_PENDING {
-                        tx.response_done = true;
-                    }
-
-                    // parsing failed for 'SUCCESS' record, set event
-                    if r.nt_status == SMB_NTSTATUS_SUCCESS {
-                        SCLogDebug!("parse fail {:?}", r);
-                        tx.set_event(SMBEvent::MalformedData);
-                    }
-                },
-                _ => { },
+            if let Some(tx) = state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
+                SCLogDebug!("updated status of tx {}", tx.id);
+                tx.set_status(r.nt_status, false);
+                if r.nt_status != SMB_NTSTATUS_PENDING {
+                    tx.response_done = true;
+                }
+                
+                // parsing failed for 'SUCCESS' record, set event
+                if r.nt_status == SMB_NTSTATUS_SUCCESS {
+                    SCLogDebug!("parse fail {:?}", r);
+                    tx.set_event(SMBEvent::MalformedData);
+                }
             }
         },
     };

@@ -126,6 +126,7 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
 pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offset: usize)
 {
     SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
+    #[allow(clippy::single_match)]
     match parse_smb_setup_andx_record(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
         Ok((rem, setup)) => {
             let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
@@ -134,12 +135,9 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
             tx.vercmd.set_smb1_cmd(r.command);
 
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
-                match parse_secblob(setup.sec_blob) {
-                    Some(s) => {
-                        td.ntlmssp = s.ntlmssp;
-                        td.krb_ticket = s.krb;
-                    },
-                    None => { },
+                if let Some(s) = parse_secblob(setup.sec_blob) {
+                    td.ntlmssp = s.ntlmssp;
+                    td.krb_ticket = s.krb;
                 }
                 td.request_host = Some(smb1_session_setup_request_host_info(r, rem));
             }
