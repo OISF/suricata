@@ -347,15 +347,13 @@ fn smb_dcerpc_response_bindack(
             };
             if found {
                 if let Some(ref mut ifaces) = state.dcerpc_ifaces {
-                    let mut i = 0;
-                    for r in bindackr.results {
+                    for (i, r) in bindackr.results.into_iter().enumerate() {
                         if i >= ifaces.len() {
                             // TODO set event: more acks that requests
                             break;
                         }
                         ifaces[i].ack_result = r.ack_result;
                         ifaces[i].acked = true;
-                        i += 1;
                     }
                 }
             }
