@@ -36,9 +36,15 @@ pub struct TemplateTransaction {
     tx_data: AppLayerTxData,
 }
 
+impl Default for TemplateTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TemplateTransaction {
     pub fn new() -> TemplateTransaction {
-        TemplateTransaction {
+        Self {
             tx_id: 0,
             request: None,
             response: None,
@@ -53,6 +59,7 @@ impl Transaction for TemplateTransaction {
     }
 }
 
+#[derive(Default)]
 pub struct TemplateState {
     state_data: AppLayerStateData,
     tx_id: u64,
@@ -73,13 +80,7 @@ impl State<TemplateTransaction> for TemplateState {
 
 impl TemplateState {
     pub fn new() -> Self {
-        Self {
-            state_data: AppLayerStateData::new(),
-            tx_id: 0,
-            transactions: VecDeque::new(),
-            request_gap: false,
-            response_gap: false,
-        }
+        Default::default()
     }
 
     // Free a transaction by ID.

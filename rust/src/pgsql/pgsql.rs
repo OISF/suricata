@@ -62,9 +62,15 @@ impl Transaction for PgsqlTransaction {
     }
 }
 
+impl Default for PgsqlTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PgsqlTransaction {
-    pub fn new() -> PgsqlTransaction {
-        PgsqlTransaction {
+    pub fn new() -> Self {
+        Self {
             tx_id: 0,
             tx_state: PgsqlTransactionState::Init,
             request: None,
@@ -140,6 +146,12 @@ impl State<PgsqlTransaction> for PgsqlState {
     }
 }
 
+impl Default for PgsqlState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+    
 impl PgsqlState {
     pub fn new() -> Self {
         Self {

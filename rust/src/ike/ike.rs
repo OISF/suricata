@@ -60,9 +60,15 @@ pub struct IkeHeaderWrapper {
     pub ikev2_header: IkeV2Header,
 }
 
+impl Default for IkeHeaderWrapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IkeHeaderWrapper {
-    pub fn new() -> IkeHeaderWrapper {
-        IkeHeaderWrapper {
+    pub fn new() -> Self {
+        Self {
             spi_initiator: String::new(),
             spi_responder: String::new(),
             maj_ver: 0,
@@ -93,6 +99,7 @@ pub struct IkePayloadWrapper {
     pub ikev2_payload_types: Vec<IkePayloadType>,
 }
 
+#[derive(Default)]
 pub struct IKETransaction {
     tx_id: u64,
 
@@ -116,18 +123,8 @@ impl Transaction for IKETransaction {
 }
 
 impl IKETransaction {
-    pub fn new() -> IKETransaction {
-        IKETransaction {
-            tx_id: 0,
-            ike_version: 0,
-            direction: Direction::ToServer,
-            hdr: IkeHeaderWrapper::new(),
-            payload_types: Default::default(),
-            notify_types: vec![],
-            logged: LoggerFlags::new(),
-            tx_data: applayer::AppLayerTxData::new(),
-            errors: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     /// Set an event.

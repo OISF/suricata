@@ -45,6 +45,7 @@ pub enum SIPEvent {
     InvalidData,
 }
 
+#[derive(Default)]
 pub struct SIPState {
     state_data: AppLayerStateData,
     transactions: Vec<SIPTransaction>,
@@ -78,11 +79,7 @@ impl Transaction for SIPTransaction {
 
 impl SIPState {
     pub fn new() -> SIPState {
-        SIPState {
-            state_data: AppLayerStateData::new(),
-            transactions: Vec::new(),
-            tx_id: 0,
-        }
+        Default::default()
     }
 
     pub fn free(&mut self) {

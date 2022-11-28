@@ -102,9 +102,15 @@ pub fn to_hex_string(bytes: &[u8]) -> String {
     s
 }
 
+impl Default for KRB5State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KRB5State {
     pub fn new() -> KRB5State {
-        KRB5State{
+        Self {
             state_data: AppLayerStateData::new(),
             req_id: 0,
             record_ts: 0,

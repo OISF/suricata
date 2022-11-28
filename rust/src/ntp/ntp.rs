@@ -35,6 +35,7 @@ pub enum NTPEvent {
     NotResponse,
 }
 
+#[derive(Default)]
 pub struct NTPState {
     state_data: AppLayerStateData,
 
@@ -48,7 +49,7 @@ pub struct NTPState {
     tx_id: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NTPTransaction {
     /// The NTP reference ID
     pub xid: u32,
@@ -66,13 +67,8 @@ impl Transaction for NTPTransaction {
 }
 
 impl NTPState {
-    pub fn new() -> NTPState {
-        NTPState {
-            state_data: AppLayerStateData::new(),
-            transactions: Vec::new(),
-            events: 0,
-            tx_id: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 

@@ -118,6 +118,12 @@ impl State<MQTTTransaction> for MQTTState {
     }
 }
 
+impl Default for MQTTState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MQTTState {
     pub fn new() -> Self {
         Self {

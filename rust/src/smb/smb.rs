@@ -488,12 +488,18 @@ impl Transaction for SMBTransaction {
     }
 }
 
+impl Default for SMBTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SMBTransaction {
     pub fn new() -> Self {
         return Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
-              hdr: SMBCommonHdr::init(),
+              hdr: SMBCommonHdr::default(),
               request_done: false,
               response_done: false,
               type_data: None,
@@ -560,9 +566,6 @@ pub struct SMBCommonHdr {
 }
 
 impl SMBCommonHdr {
-    pub fn init() -> Self {
-        Default::default()
-    }
     pub fn new(rec_type: u32, ssn_id: u64, tree_id: u32, msg_id: u64) -> Self {
         Self {
             rec_type,

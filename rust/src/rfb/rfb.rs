@@ -53,9 +53,15 @@ impl Transaction for RFBTransaction {
     }
 }
 
+impl Default for RFBTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RFBTransaction {
-    pub fn new() -> RFBTransaction {
-        RFBTransaction {
+    pub fn new() -> Self {
+        Self {
             tx_id: 0,
             complete: false,
             chosen_security_type: None,
@@ -93,6 +99,12 @@ impl State<RFBTransaction> for RFBState {
         self.transactions.get(index)
     }
 
+}
+
+impl Default for RFBState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RFBState {

@@ -39,12 +39,18 @@ pub struct DCEOpnumRange {
     pub range2: u32,
 }
 
+impl Default for DCEOpnumRange {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DCEOpnumRange {
     pub fn new() -> Self {
-        return Self {
+        Self {
             range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
             range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
-        };
+        }
     }
 }
 

@@ -152,9 +152,15 @@ impl Transaction for HTTP2Transaction {
     }
 }
 
+impl Default for HTTP2Transaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HTTP2Transaction {
-    pub fn new() -> HTTP2Transaction {
-        HTTP2Transaction {
+    pub fn new() -> Self {
+        Self {
             tx_id: 0,
             stream_id: 0,
             child_stream_id: 0,
@@ -386,6 +392,12 @@ pub struct HTTP2DynTable {
     pub overflow: u8,
 }
 
+impl Default for HTTP2DynTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HTTP2DynTable {
     pub fn new() -> Self {
         Self {
@@ -415,6 +427,12 @@ impl State<HTTP2Transaction> for HTTP2State {
 
     fn get_transaction_by_index(&self, index: usize) -> Option<&HTTP2Transaction> {
         self.transactions.get(index)
+    }
+}
+
+impl Default for HTTP2State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
