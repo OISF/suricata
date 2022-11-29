@@ -21,14 +21,20 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::let_and_return)]
 
-// Clippy lints we want to suppress due to style, or simply too noisy
-// and not a priority right now.
-#![allow(clippy::missing_safety_doc)]
+// We find this makes sense at time.
+#![allow(clippy::module_inception)]
+
+// The match macro is not always more clear. But its use is
+// recommended where it makes sense.
+#![allow(clippy::match_like_matches_macro)]
+
+// Something we should be conscious of, but due to interfacing with C
+// is unavoidable at this time.
 #![allow(clippy::too_many_arguments)]
 
-// To be fixed, but remove the noise for now.
-#![allow(clippy::match_like_matches_macro)]
-#![allow(clippy::module_inception)]
+// TODO: All unsafe functions should have a safety doc, even if its
+// just due to FFI.
+#![allow(clippy::missing_safety_doc)]
 
 #[macro_use]
 extern crate bitflags;
