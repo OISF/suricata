@@ -122,6 +122,7 @@ For Ubuntu, the OISF maintains a PPA ``suricata-stable`` that always contains th
 
 To use it::
 
+    sudo apt-get install software-properties-common
     sudo add-apt-repository ppa:oisf/suricata-stable
     sudo apt-get update
     sudo apt-get install suricata
