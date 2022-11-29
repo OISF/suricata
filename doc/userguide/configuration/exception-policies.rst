@@ -66,10 +66,10 @@ are:
 - ``pass-flow``: disable payload and packet detection; stream reassembly,
   app-layer parsing and logging still happen.
 - ``pass-packet``: disable detection, still does stream updates and app-layer
-  parsing (depeding on which policy triggered it).
+  parsing (depending on which policy triggered it).
 - ``ignore``: do not apply exception policies (default behavior).
 
-The *Drop*, *pass* and *reject* are similar to the rule actions described in :ref:`rule
+The *drop*, *pass* and *reject* are similar to the rule actions described in :ref:`rule
 actions<suricata-yaml-action-order>`.
 
 Command-line Options for Simulating Exceptions
