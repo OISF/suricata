@@ -686,10 +686,10 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
 uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
 {
     if (RB_EMPTY(&stream->sb.sbb_tree)) {
-        if (stream->sb.stream_offset != 0)
+        if (stream->sb.region.stream_offset != 0)
             return 0;
 
-        return stream->sb.buf_offset;
+        return stream->sb.region.buf_offset;
     } else {
         DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
         DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
@@ -913,7 +913,6 @@ uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
     }
 
     const uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
-
     SCLogDebug("%s: app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
             dirstr,
             STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
@@ -945,7 +944,7 @@ static uint64_t GetStreamSize(TcpStream *stream)
         uint64_t last_ack_abs = GetAbsLastAck(stream);
         uint64_t last_re = 0;
 
-        SCLogDebug("stream_offset %" PRIu64, stream->sb.stream_offset);
+        SCLogDebug("stream_offset %" PRIu64, stream->sb.region.stream_offset);
 
         TcpSegment *seg;
         RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
@@ -1065,6 +1064,7 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
             SCLogDebug("blk at offset");
 
             StreamingBufferSBBGetData(&stream->sb, blk, data, data_len);
+            BUG_ON(blk->len != *data_len);
 
             gap_ahead = check_for_gap && GapAhead(stream, blk);
 

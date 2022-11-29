@@ -74,6 +74,19 @@ typedef struct StreamingBufferConfig_ {
         0, 0, NULL, NULL, NULL,                                                                    \
     }
 
+#define STREAMING_BUFFER_REGION_INIT                                                               \
+    {                                                                                              \
+        NULL, 0, 0, 0ULL, NULL,                                                                    \
+    }
+
+typedef struct StreamingBufferRegion_ {
+    uint8_t *buf;           /**< memory block for reassembly */
+    uint32_t buf_size;      /**< size of memory block */
+    uint32_t buf_offset;    /**< how far we are in buf_size */
+    uint64_t stream_offset; /**< stream offset of this region */
+    struct StreamingBufferRegion_ *next;
+} StreamingBufferRegion;
+
 /**
  *  \brief block of continues data
  */
@@ -92,15 +105,12 @@ StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlo
 
 typedef struct StreamingBuffer_ {
     const StreamingBufferConfig *cfg;
-    uint64_t stream_offset; /**< offset of the start of the memory block */
-
-    uint8_t *buf;           /**< memory block for reassembly */
-    uint32_t buf_size;      /**< size of memory block */
-    uint32_t buf_offset;    /**< how far we are in buf_size */
-
+    StreamingBufferRegion region;
     struct SBB sbb_tree;    /**< red black tree of Stream Buffer Blocks */
     StreamingBufferBlock *head; /**< head, should always be the same as RB_MIN */
     uint32_t sbb_size;          /**< data size covered by sbbs */
+    uint16_t regions;
+    uint16_t max_regions;
 #ifdef DEBUG
     uint32_t buf_size_max;
 #endif
@@ -108,33 +118,34 @@ typedef struct StreamingBuffer_ {
 
 static inline bool StreamingBufferHasData(const StreamingBuffer *sb)
 {
-    return (sb->stream_offset || sb->buf_offset || !RB_EMPTY(&sb->sbb_tree));
+    return (sb->region.stream_offset || sb->region.buf_offset || sb->region.next != NULL ||
+            !RB_EMPTY(&sb->sbb_tree));
 }
 
 static inline uint64_t StreamingBufferGetConsecutiveDataRightEdge(const StreamingBuffer *sb)
 {
-    return sb->stream_offset + sb->buf_offset;
+    return sb->region.stream_offset + sb->region.buf_offset;
 }
 
 static inline uint64_t StreamingBufferGetOffset(const StreamingBuffer *sb)
 {
-    return sb->stream_offset;
+    return sb->region.stream_offset;
 }
 
 #ifndef DEBUG
 #define STREAMING_BUFFER_INITIALIZER(cfg)                                                          \
     {                                                                                              \
         (cfg),                                                                                     \
-        0,                                                                                         \
-        NULL,                                                                                      \
-        0,                                                                                         \
-        0,                                                                                         \
+        STREAMING_BUFFER_REGION_INIT,                                                              \
         { NULL },                                                                                  \
         NULL,                                                                                      \
         0,                                                                                         \
+        1,                                                                                         \
+        1,                                                                                         \
     };
 #else
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, NULL, 0, 0 };
+#define STREAMING_BUFFER_INITIALIZER(cfg)                                                          \
+    { (cfg), STREAMING_BUFFER_REGION_INIT, { NULL }, NULL, 0, 1, 1, 0 };
 #endif
 
 typedef struct StreamingBufferSegment_ {

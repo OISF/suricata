@@ -380,7 +380,7 @@ static void EveHttpLogJSONHeaders(JsonBuilder *js, uint32_t direction, htp_tx_t 
 
 static void BodyPrintableBuffer(JsonBuilder *js, HtpBody *body, const char *key)
 {
-    if (body->sb != NULL && body->sb->buf != NULL) {
+    if (body->sb != NULL && body->sb->region.buf != NULL) {
         uint32_t offset = 0;
         const uint8_t *body_data;
         uint32_t body_data_len;
@@ -418,7 +418,7 @@ void EveHttpLogJSONBodyPrintable(JsonBuilder *js, Flow *f, uint64_t tx_id)
 
 static void BodyBase64Buffer(JsonBuilder *js, HtpBody *body, const char *key)
 {
-    if (body->sb != NULL && body->sb->buf != NULL) {
+    if (body->sb != NULL && body->sb->region.buf != NULL) {
         const uint8_t *body_data;
         uint32_t body_data_len;
         uint64_t body_offset;
