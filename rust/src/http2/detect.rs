@@ -841,7 +841,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
 fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
     let head = parser::HTTP2FrameHeader {
         length: 0,
-        ftype: parser::HTTP2FrameType::HEADERS as u8,
+        ftype: parser::HTTP2FrameType::Headers as u8,
         flags: 0,
         reserved: 0,
         stream_id: 1,
@@ -894,7 +894,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
 
             let head = parser::HTTP2FrameHeader {
                 length: dec.len() as u32,
-                ftype: parser::HTTP2FrameType::SETTINGS as u8,
+                ftype: parser::HTTP2FrameType::Settings as u8,
                 flags: 0,
                 reserved: 0,
                 stream_id: 0,
@@ -997,7 +997,7 @@ mod tests {
         let mut tx = HTTP2Transaction::new();
         let head = parser::HTTP2FrameHeader {
             length: 0,
-            ftype: parser::HTTP2FrameType::HEADERS as u8,
+            ftype: parser::HTTP2FrameType::Headers as u8,
             flags: 0,
             reserved: 0,
             stream_id: 1,

@@ -31,7 +31,6 @@
 #![allow(clippy::module_inception)]
 #![allow(clippy::result_unit_err)]
 #![allow(clippy::type_complexity)]
-#![allow(clippy::upper_case_acronyms)]
 
 #[macro_use]
 extern crate bitflags;
