@@ -140,7 +140,7 @@ typedef struct TcpStream_ {
     struct TCPSACK sack_tree;       /**< red back tree of TCP SACK records. */
 } TcpStream;
 
-#define STREAM_BASE_OFFSET(stream)  ((stream)->sb.stream_offset)
+#define STREAM_BASE_OFFSET(stream)  ((stream)->sb.region.stream_offset)
 #define STREAM_APP_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->app_progress_rel)
 #define STREAM_RAW_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->raw_progress_rel)
 #define STREAM_LOG_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->log_progress_rel)
