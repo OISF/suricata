@@ -112,7 +112,7 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
             }
             for e in set {
                 js.start_object()?;
-                js.set_string("settings_id", &e.id.to_string())?;
+                js.set_string("settings_id", &format!("SETTINGS{}", &e.id.to_string().to_uppercase()))?;
                 js.set_uint("settings_value", e.value as u64)?;
                 js.close()?;
             }
@@ -133,7 +133,7 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
                         num::FromPrimitive::from_u32(goaway.errorcode);
                     match errcode {
                         Some(errstr) => {
-                            js.set_string("error_code", &errstr.to_string())?;
+                            js.set_string("error_code", &errstr.to_string().to_uppercase())?;
                         }
                         None => {
                             //use uint32

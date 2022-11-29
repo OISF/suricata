@@ -80,23 +80,23 @@ impl Read for HTTP2cursor {
 }
 
 pub enum HTTP2Decompresser {
-    UNASSIGNED,
+    Unassigned,
     // Box because large.
-    GZIP(Box<GzDecoder<HTTP2cursor>>),
+    Gzip(Box<GzDecoder<HTTP2cursor>>),
     // Box because large.
-    BROTLI(Box<brotli::Decompressor<HTTP2cursor>>),
+    Brotli(Box<brotli::Decompressor<HTTP2cursor>>),
     // This one is not so large, at 88 bytes as of doing this, but box
     // for consistency.
-    DEFLATE(Box<DeflateDecoder<HTTP2cursor>>),
+    Deflate(Box<DeflateDecoder<HTTP2cursor>>),
 }
 
 impl std::fmt::Debug for HTTP2Decompresser {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            HTTP2Decompresser::UNASSIGNED => write!(f, "UNASSIGNED"),
-            HTTP2Decompresser::GZIP(_) => write!(f, "GZIP"),
-            HTTP2Decompresser::BROTLI(_) => write!(f, "BROTLI"),
-            HTTP2Decompresser::DEFLATE(_) => write!(f, "DEFLATE"),
+            HTTP2Decompresser::Unassigned => write!(f, "UNASSIGNED"),
+            HTTP2Decompresser::Gzip(_) => write!(f, "GZIP"),
+            HTTP2Decompresser::Brotli(_) => write!(f, "BROTLI"),
+            HTTP2Decompresser::Deflate(_) => write!(f, "DEFLATE"),
         }
     }
 }
@@ -169,7 +169,7 @@ impl HTTP2DecoderHalf {
     pub fn new() -> HTTP2DecoderHalf {
         HTTP2DecoderHalf {
             encoding: HTTP2ContentEncoding::Unknown,
-            decoder: HTTP2Decompresser::UNASSIGNED,
+            decoder: HTTP2Decompresser::Unassigned,
         }
     }
 
@@ -178,13 +178,13 @@ impl HTTP2DecoderHalf {
         if self.encoding == HTTP2ContentEncoding::Unknown {
             if input == b"gzip" {
                 self.encoding = HTTP2ContentEncoding::Gzip;
-                self.decoder = HTTP2Decompresser::GZIP(Box::new(GzDecoder::new(HTTP2cursor::new())));
+                self.decoder = HTTP2Decompresser::Gzip(Box::new(GzDecoder::new(HTTP2cursor::new())));
             } else if input == b"deflate" {
                 self.encoding = HTTP2ContentEncoding::Deflate;
-                self.decoder = HTTP2Decompresser::DEFLATE(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
+                self.decoder = HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
             } else if input == b"br" {
                 self.encoding = HTTP2ContentEncoding::Br;
-                self.decoder = HTTP2Decompresser::BROTLI(Box::new(brotli::Decompressor::new(
+                self.decoder = HTTP2Decompresser::Brotli(Box::new(brotli::Decompressor::new(
                     HTTP2cursor::new(),
                     HTTP2_DECOMPRESSION_CHUNK_SIZE,
                 )));
@@ -198,24 +198,24 @@ impl HTTP2DecoderHalf {
         &mut self, input: &'a [u8], output: &'a mut Vec<u8>,
     ) -> io::Result<&'a [u8]> {
         match self.decoder {
-            HTTP2Decompresser::GZIP(ref mut gzip_decoder) => {
+            HTTP2Decompresser::Gzip(ref mut gzip_decoder) => {
                 let r = http2_decompress(&mut *gzip_decoder.as_mut(), input, output);
                 if r.is_err() {
-                    self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    self.decoder = HTTP2Decompresser::Unassigned;
                 }
                 return r;
             }
-            HTTP2Decompresser::BROTLI(ref mut br_decoder) => {
+            HTTP2Decompresser::Brotli(ref mut br_decoder) => {
                 let r = http2_decompress(&mut *br_decoder.as_mut(), input, output);
                 if r.is_err() {
-                    self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    self.decoder = HTTP2Decompresser::Unassigned;
                 }
                 return r;
             }
-            HTTP2Decompresser::DEFLATE(ref mut df_decoder) => {
+            HTTP2Decompresser::Deflate(ref mut df_decoder) => {
                 let r = http2_decompress(&mut *df_decoder.as_mut(), input, output);
                 if r.is_err() {
-                    self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    self.decoder = HTTP2Decompresser::Unassigned;
                 }
                 return r;
             }
