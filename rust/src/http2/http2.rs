@@ -346,7 +346,7 @@ impl HTTP2Transaction {
                             }
                         }
                     }
-                } else if header.ftype == parser::HTTP2FrameType::DATA as u8 {
+                } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
                     //not end of stream
                     if dir == Direction::ToServer {
                         if self.state < HTTP2TransactionState::HTTP2StateDataClient {
@@ -595,9 +595,9 @@ impl HTTP2State {
         if index > 0 {
             if self.transactions[index - 1].state == HTTP2TransactionState::HTTP2StateClosed {
                 //these frames can be received in this state for a short period
-                if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
-                    && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
-                    && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
+                if header.ftype != parser::HTTP2FrameType::RstStream as u8
+                    && header.ftype != parser::HTTP2FrameType::WindowUpdate as u8
+                    && header.ftype != parser::HTTP2FrameType::Priority as u8
                 {
                     self.set_event(HTTP2Event::StreamIdReuse);
                 }
@@ -666,7 +666,7 @@ impl HTTP2State {
         &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: Direction,
     ) -> HTTP2FrameTypeData {
         match num::FromPrimitive::from_u8(ftype) {
-            Some(parser::HTTP2FrameType::GOAWAY) => {
+            Some(parser::HTTP2FrameType::GoAway) => {
                 if input.len() < HTTP2_FRAME_GOAWAY_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -685,11 +685,11 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::SETTINGS) => {
+            Some(parser::HTTP2FrameType::Settings) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
                         for e in &set {
-                            if e.id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                            if e.id == parser::HTTP2SettingsId::HeaderTableSize {
                                 //reverse order as this is what we accept from the other endpoint
                                 let dyn_headers = if dir == Direction::ToClient {
                                     &mut self.dynamic_headers_ts
@@ -729,7 +729,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::RSTSTREAM) => {
+            Some(parser::HTTP2FrameType::RstStream) => {
                 if input.len() != HTTP2_FRAME_RSTSTREAM_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -749,7 +749,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PRIORITY) => {
+            Some(parser::HTTP2FrameType::Priority) => {
                 if input.len() != HTTP2_FRAME_PRIORITY_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -769,7 +769,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::WINDOWUPDATE) => {
+            Some(parser::HTTP2FrameType::WindowUpdate) => {
                 if input.len() != HTTP2_FRAME_WINDOWUPDATE_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -789,7 +789,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PUSHPROMISE) => {
+            Some(parser::HTTP2FrameType::PushPromise) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -820,10 +820,10 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::DATA) => {
+            Some(parser::HTTP2FrameType::Data) => {
                 return HTTP2FrameTypeData::DATA;
             }
-            Some(parser::HTTP2FrameType::CONTINUATION) => {
+            Some(parser::HTTP2FrameType::Continuation) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -854,7 +854,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::HEADERS) => {
+            Some(parser::HTTP2FrameType::Headers) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -889,7 +889,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PING) => {
+            Some(parser::HTTP2FrameType::Ping) => {
                 return HTTP2FrameTypeData::PING;
             }
             _ => {
@@ -934,7 +934,7 @@ impl HTTP2State {
                         (hl, true)
                     };
 
-                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::SETTINGS as u8 {
+                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::Settings as u8 {
                         input = &rem[hlsafe..];
                         continue;
                     }
@@ -963,7 +963,7 @@ impl HTTP2State {
                             data: txdata,
                         });
                     }
-                    if ftype == parser::HTTP2FrameType::DATA as u8 {
+                    if ftype == parser::HTTP2FrameType::Data as u8 {
                         match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             Some(sfcm) => {
                                 //borrow checker forbids to reuse directly tx
@@ -1095,7 +1095,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
-                    || header.ftype != parser::HTTP2FrameType::SETTINGS as u8
+                    || header.ftype != parser::HTTP2FrameType::Settings as u8
                 {
                     return ALPROTO_FAILED;
                 }
