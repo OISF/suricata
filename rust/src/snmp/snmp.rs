@@ -117,8 +117,10 @@ impl<'a> State<SNMPTransaction<'a>> for SNMPState<'a> {
 
 impl<'a> SNMPState<'a> {
     fn add_pdu_info(&mut self, pdu: &SnmpPdu<'a>, tx: &mut SNMPTransaction<'a>) {
-        let mut pdu_info = SNMPPduInfo::default();
-        pdu_info.pdu_type = pdu.pdu_type();
+        let mut pdu_info = SNMPPduInfo {
+            pdu_type: pdu.pdu_type(),
+            ..Default::default()
+        };
         match *pdu {
             SnmpPdu::Generic(ref pdu) => {
                 pdu_info.err = pdu.err;
