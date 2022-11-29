@@ -29,7 +29,6 @@
 
 // To be fixed, but remove the noise for now.
 #![allow(clippy::collapsible_else_if)]
-#![allow(clippy::collapsible_if)]
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::manual_find)]
 #![allow(clippy::match_like_matches_macro)]
