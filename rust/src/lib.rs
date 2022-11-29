@@ -23,7 +23,6 @@
 
 // Clippy lints we want to suppress due to style, or simply too noisy
 // and not a priority right now.
-#![allow(clippy::len_without_is_empty)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::too_many_arguments)]
 
