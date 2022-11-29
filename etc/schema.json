@@ -960,6 +960,10 @@
                 "version": {
                     "type": "integer"
                 },
+                "opcode": {
+                    "description": "DNS opcode as an integer",
+                    "type": "integer"
+                },
                 "answers": {
                     "type": "array",
                     "items": {
@@ -1074,6 +1078,10 @@
                             },
                             "z": {
                                 "type": "boolean"
+                            },
+                            "opcode": {
+                                "description": "DNS opcode as an integer",
+                                "type": "integer"
                             }
                         },
                         "additionalProperties": false
@@ -1110,6 +1118,10 @@
                             "type": "string"
                         },
                         "version": {
+                            "type": "integer"
+                        },
+                        "opcode": {
+                            "description": "DNS opcode as an integer",
                             "type": "integer"
                         }
                     },
