@@ -174,6 +174,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 }
 
 #[inline]
+#[allow(clippy::type_complexity)]
 fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8, u8, u8)> {
     bits(tuple((
         take_bits(1u8),
