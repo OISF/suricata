@@ -120,26 +120,36 @@ fn dns_parse_answer<'a>(
     let mut answers = Vec::new();
     let mut input = slice;
 
+    struct Answer<'a> {
+        name: Vec<u8>,
+        rrtype: u16,
+        rrclass: u16,
+        ttl: u32,
+        data: &'a [u8],
+    }
+
     fn subparser<'a>(
         i: &'a [u8], message: &'a [u8],
-    ) -> IResult<&'a [u8], (Vec<u8>, u16, u16, u32, &'a [u8])> {
+    ) -> IResult<&'a [u8], Answer<'a>> {
         let (i, name) = dns_parse_name(i, message)?;
         let (i, rrtype) = be_u16(i)?;
         let (i, rrclass) = be_u16(i)?;
         let (i, ttl) = be_u32(i)?;
         let (i, data) = length_data(be_u16)(i)?;
-        Ok((i, (name, rrtype, rrclass, ttl, data)))
+        let answer = Answer {
+            name,
+            rrtype,
+            rrclass,
+            ttl,
+            data,
+        };
+        Ok((i, answer))
     }
 
     for _ in 0..count {
         match subparser(input, message) {
             Ok((rem, val)) => {
-                let name = val.0;
-                let rrtype = val.1;
-                let rrclass = val.2;
-                let ttl = val.3;
-                let data = val.4;
-                let n = match rrtype {
+                let n = match val.rrtype {
                     DNS_RECORD_TYPE_TXT => {
                         // For TXT records we need to run the parser
                         // multiple times. Set n high, to the maximum
@@ -155,15 +165,15 @@ fn dns_parse_answer<'a>(
                     }
                 };
                 let result: IResult<&'a [u8], Vec<DNSRData>> =
-                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, rrtype)))(data);
+                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype)))(val.data);
                 match result {
                     Ok((_, rdatas)) => {
                         for rdata in rdatas {
                             answers.push(DNSAnswerEntry {
-                                name: name.clone(),
-                                rrtype,
-                                rrclass,
-                                ttl,
+                                name: val.name.clone(),
+                                rrtype: val.rrtype,
+                                rrclass: val.rrclass,
+                                ttl: val.ttl,
                                 data: rdata,
                             });
                         }
