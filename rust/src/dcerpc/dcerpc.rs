@@ -1137,7 +1137,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 
     SCLogDebug!("Handling request: input_len {} flags {:x} EOF {}",
             stream_slice.len(), flags, flags & core::STREAM_EOF != 0);
-    if flags & core::STREAM_EOF != 0 && stream_slice.len() == 0 {
+    if flags & core::STREAM_EOF != 0 && stream_slice.is_empty() {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
@@ -1160,7 +1160,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
     let state = cast_pointer!(state, DCERPCState);
     let flags = stream_slice.flags();
 
-    if flags & core::STREAM_EOF != 0 && stream_slice.len() == 0 {
+    if flags & core::STREAM_EOF != 0 && stream_slice.is_empty() {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */

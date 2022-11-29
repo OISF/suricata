@@ -628,7 +628,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    if stream_slice.len() == 0 {
+    if stream_slice.is_empty() {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             SCLogDebug!(" Suricata reached `eof`");
             return AppLayerResult::ok();
@@ -642,7 +642,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 
     if stream_slice.is_gap() {
         state_safe.on_request_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state_safe.parse_request(stream_slice.as_slice());
     }
     AppLayerResult::ok()
@@ -659,7 +659,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
 
     if stream_slice.is_gap() {
         state_safe.on_response_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state_safe.parse_response(stream_slice.as_slice(), flow);
     }
     AppLayerResult::ok()
