@@ -136,12 +136,7 @@ impl RFBState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn new_tx(&mut self) -> RFBTransaction {
@@ -152,12 +147,8 @@ impl RFBState {
     }
 
     fn get_current_tx(&mut self) -> Option<&mut RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == self.tx_id {
-                return Some(tx);
-            }
-        }
-        return None;
+        let tx_id = self.tx_id;
+        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id)
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {

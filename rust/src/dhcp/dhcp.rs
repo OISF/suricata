@@ -148,12 +148,7 @@ impl DHCPState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&DHCPTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn free_tx(&mut self, tx_id: u64) {

@@ -131,12 +131,7 @@ impl TelnetState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&TelnetTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn _new_tx(&mut self) -> TelnetTransaction {
