@@ -102,12 +102,7 @@ impl TemplateState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&TemplateTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn new_tx(&mut self) -> TemplateTransaction {
@@ -118,12 +113,7 @@ impl TemplateState {
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
-        for tx in &mut self.transactions {
-            if tx.response.is_none() {
-                return Some(tx);
-            }
-        }
-        None
+        self.transactions.iter_mut().find(|tx| tx.response.is_none())
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {

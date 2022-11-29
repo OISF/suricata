@@ -27,7 +27,6 @@
 #![allow(clippy::too_many_arguments)]
 
 // To be fixed, but remove the noise for now.
-#![allow(clippy::manual_find)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::result_unit_err)]

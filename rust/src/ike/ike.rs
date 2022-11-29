@@ -167,12 +167,7 @@ impl IKEState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     pub fn new_tx(&mut self) -> IKETransaction {
