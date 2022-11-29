@@ -59,6 +59,9 @@ impl StreamSlice {
     pub fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
     }
+    pub fn is_empty(&self) -> bool {
+        self.input_len == 0
+    }
     pub fn len(&self) -> u32 {
         self.input_len
     }

@@ -740,7 +740,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.request_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state.parse_request_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
@@ -757,7 +757,7 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.response_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state.parse_response_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
