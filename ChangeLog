@@ -23,6 +23,7 @@ Feature #5478: Support for RFC2231 (6.0.x backport)
 Task #5698: libhtp 0.5.42
 Task #5570: transversal: update references to suricata webpage version 2 (backport 6.0.x)
 Task #4852: netmap: new API version (14) supports multi-ring software mode (6.0.x backport)
+
 6.0.8 -- 2022-09-27
 
 Task #5552: libhtp 0.5.41
