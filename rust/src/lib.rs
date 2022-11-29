@@ -29,7 +29,6 @@
 // To be fixed, but remove the noise for now.
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::module_inception)]
-#![allow(clippy::result_unit_err)]
 #![allow(clippy::type_complexity)]
 
 #[macro_use]

@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+#![allow(clippy::result_unit_err)]
+
 mod decompression;
 pub mod detect;
 pub mod http2;
