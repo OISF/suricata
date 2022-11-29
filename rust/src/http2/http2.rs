@@ -671,7 +671,7 @@ impl HTTP2State {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
                         for i in 0..set.len() {
-                            if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                            if set[i].id == parser::HTTP2SettingsId::HeaderTableSize {
                                 //reverse order as this is what we accept from the other endpoint
                                 let dyn_headers = if dir == Direction::ToClient {
                                     &mut self.dynamic_headers_ts

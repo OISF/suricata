@@ -683,17 +683,25 @@ pub fn http2_parse_frame_continuation<'a>(
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
-    SETTINGSHEADERTABLESIZE = 1,
-    SETTINGSENABLEPUSH = 2,
-    SETTINGSMAXCONCURRENTSTREAMS = 3,
-    SETTINGSINITIALWINDOWSIZE = 4,
-    SETTINGSMAXFRAMESIZE = 5,
-    SETTINGSMAXHEADERLISTSIZE = 6,
+    HeaderTableSize = 1,
+    EnablePush = 2,
+    MaxConcurrentStreams = 3,
+    InitialWindowSize = 4,
+    MaxFrameSize = 5,
+    MaxHeaderListSize = 6,
 }
 
 impl fmt::Display for HTTP2SettingsId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        let name = match self {
+            HTTP2SettingsId::HeaderTableSize => "SETTINGS_HEADER_TABLE_SIZE",
+            HTTP2SettingsId::EnablePush => "SETTINGS_ENABLE_PUSH",
+            HTTP2SettingsId::MaxConcurrentStreams => "SETTINGS_MAX_CONCURRENT_STREAMS",
+            HTTP2SettingsId::InitialWindowSize => "SETTINGS_INITIAL_WINDOW_SIZE",
+            HTTP2SettingsId::MaxFrameSize => "SETTINGS_MAX_FRAME_SIZE",
+            HTTP2SettingsId::MaxHeaderListSize => "SETTINGS_MAX_HEADER_LIST_SIZE",
+        };
+        write!(f, "{}", name)
     }
 }
 
@@ -704,12 +712,12 @@ impl std::str::FromStr for HTTP2SettingsId {
         let su = s.to_uppercase();
         let su_slice: &str = &su;
         match su_slice {
-            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::SETTINGSHEADERTABLESIZE),
-            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::SETTINGSENABLEPUSH),
-            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS),
-            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::SETTINGSINITIALWINDOWSIZE),
-            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXFRAMESIZE),
-            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXHEADERLISTSIZE),
+            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::HeaderTableSize),
+            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::EnablePush),
+            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::MaxConcurrentStreams),
+            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::InitialWindowSize),
+            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::MaxFrameSize),
+            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::MaxHeaderListSize),
             _ => Err(format!("'{}' is not a valid value for HTTP2SettingsId", s)),
         }
     }
@@ -872,7 +880,7 @@ mod tests {
         let r = http2_parse_settingsctx(s);
         match r {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
+                assert_eq!(ctx.id, HTTP2SettingsId::EnablePush);
                 match ctx.value {
                     Some(_) => {
                         panic!("Unexpected value");
@@ -891,7 +899,7 @@ mod tests {
         let r1 = http2_parse_settingsctx(s1);
         match r1 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
+                assert_eq!(ctx.id, HTTP2SettingsId::EnablePush);
                 match ctx.value {
                     Some(_) => {
                         panic!("Unexpected value");
@@ -909,7 +917,7 @@ mod tests {
         let r2 = http2_parse_settingsctx(s2);
         match r2 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 42);
@@ -929,7 +937,7 @@ mod tests {
         let r3 = http2_parse_settingsctx(s3);
         match r3 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 42);
@@ -951,7 +959,7 @@ mod tests {
         let r4 = http2_parse_settingsctx(s4);
         match r4 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 54);
@@ -972,7 +980,7 @@ mod tests {
         let r5 = http2_parse_settingsctx(s5);
         match r5 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 76);
