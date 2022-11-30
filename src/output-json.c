@@ -978,7 +978,7 @@ static inline enum LogFileType FileTypeFromConf(const char *typestr)
 #ifdef HAVE_LIBHIREDIS
         log_filetype = LOGFILE_TYPE_REDIS;
 #else
-        FatalError(SC_ERR_FATAL, "redis JSON output option is not compiled");
+        FatalError("redis JSON output option is not compiled");
 #endif
     }
     SCLogDebug("type %s, file type value %d", typestr, log_filetype);
@@ -1052,9 +1052,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
      * node (deprecated). If that fails, lookup the global one. */
     const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
     if (sensor_name != NULL) {
-        SCLogWarning(SC_ERR_DEPRECATED_CONF,
-            "Found deprecated eve-log setting \"sensor-name\". "
-            "Please set sensor-name globally.");
+        SCLogWarning("Found deprecated eve-log setting \"sensor-name\". "
+                     "Please set sensor-name globally.");
     }
     else {
         (void)ConfGet("sensor-name", &sensor_name);
@@ -1099,7 +1098,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 json_ctx->plugin = plugin;
             } else
 #endif
-                FatalError(SC_ERR_INVALID_ARGUMENT, "Invalid JSON output option: %s", output_s);
+                FatalError("Invalid JSON output option: %s", output_s);
         }
 
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
@@ -1109,8 +1108,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->file_ctx->prefix = SCStrdup(prefix);
             if (json_ctx->file_ctx->prefix == NULL)
             {
-                    FatalError(SC_ERR_FATAL,
-                               "Failed to allocate memory for eve-log.prefix setting.");
+                FatalError("Failed to allocate memory for eve-log.prefix setting.");
             }
             json_ctx->file_ctx->prefix_len = strlen(prefix);
         }
@@ -1130,9 +1128,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
             if (StringParseUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) < 0) {
-                FatalError(SC_ERR_INVALID_ARGUMENT,
-                        "Failed to initialize JSON output, "
-                        "invalid sensor-id: %s",
+                FatalError("Failed to initialize JSON output, "
+                           "invalid sensor-id: %s",
                         sensor_id_s);
             }
         }
@@ -1168,9 +1165,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             if (StringParseUint16(&json_ctx->cfg.community_id_seed,
                         10, 0, cid_seed) < 0)
             {
-                FatalError(SC_ERR_INVALID_ARGUMENT,
-                        "Failed to initialize JSON output, "
-                        "invalid community-id-seed: %s",
+                FatalError("Failed to initialize JSON output, "
+                           "invalid community-id-seed: %s",
                         cid_seed);
             }
         }
@@ -1222,9 +1218,9 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
     if (logfile_ctx->dropped) {
-        SCLogWarning(SC_WARN_EVENT_DROPPED,
-                "%"PRIu64" events were dropped due to slow or "
-                "disconnected socket", logfile_ctx->dropped);
+        SCLogWarning("%" PRIu64 " events were dropped due to slow or "
+                     "disconnected socket",
+                logfile_ctx->dropped);
     }
     if (json_ctx->xff_cfg != NULL) {
         SCFree(json_ctx->xff_cfg);

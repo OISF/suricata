@@ -162,7 +162,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
     ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
 
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid ssh.softwareversion option");
+        SCLogError("invalid ssh.softwareversion option");
         goto error;
     }
 
@@ -171,7 +171,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 

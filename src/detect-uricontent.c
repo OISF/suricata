@@ -121,18 +121,20 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *con
     const char *legacy = NULL;
     if (ConfGet("legacy.uricontent", &legacy) == 1) {
         if (strcasecmp("disabled", legacy) == 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "uriconent deprecated.  To "
+            SCLogError("uriconent deprecated.  To "
                        "use a rule with \"uricontent\", either set the "
                        "option - \"legacy.uricontent\" in the conf to "
                        "\"enabled\" OR replace uricontent with "
-                       "\'content:%s; http_uri;\'.", contentstr);
+                       "\'content:%s; http_uri;\'.",
+                    contentstr);
             goto error;
         } else if (strcasecmp("enabled", legacy) == 0) {
             ;
         } else {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+            SCLogError("Invalid value found "
                        "for legacy.uriconent - \"%s\".  Valid values are "
-                       "\"enabled\" OR \"disabled\".", legacy);
+                       "\"enabled\" OR \"disabled\".",
+                    legacy);
             goto error;
         }
     }

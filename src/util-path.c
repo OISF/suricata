@@ -89,12 +89,12 @@ TmEcode PathJoin (char *out_buf, uint16_t buf_len, const char *const dir, const 
     uint16_t max_path_len = MAX(buf_len, PATH_MAX);
     int bytes_written = snprintf(out_buf, max_path_len, "%s%c%s", dir, DIRECTORY_SEPARATOR, fname);
     if (bytes_written <= 0) {
-        SCLogError(SC_ERR_SPRINTF, "Could not join filename to path");
+        SCLogError("Could not join filename to path");
         SCReturnInt(TM_ECODE_FAILED);
     }
     char *tmp_buf = SCRealPath(out_buf, NULL);
     if (tmp_buf == NULL) {
-        SCLogError(SC_ERR_SPRINTF, "Error resolving path: %s", strerror(errno));
+        SCLogError("Error resolving path: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
     memset(out_buf, 0, buf_len);

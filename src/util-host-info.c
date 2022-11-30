@@ -48,7 +48,7 @@ int SCKernelVersionIsAtLeast(int major, int minor)
 
     /* get local version */
     if (uname(&kuname) != 0) {
-        SCLogError(SC_EINVAL, "Invalid uname return: %s", strerror(errno));
+        SCLogError("Invalid uname return: %s", strerror(errno));
         return 0;
     }
 
@@ -59,9 +59,8 @@ int SCKernelVersionIsAtLeast(int major, int minor)
     if (version_regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 VERSION_REGEX, (int)eo, errbuffer);
         goto error;
     }
@@ -71,12 +70,12 @@ int SCKernelVersionIsAtLeast(int major, int minor)
             version_regex_match, NULL);
 
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Version did not cut");
+        SCLogError("Version did not cut");
         goto error;
     }
 
     if (ret < 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Version major and minor not found (ret %d)", ret);
+        SCLogError("Version major and minor not found (ret %d)", ret);
         goto error;
     }
 
@@ -84,11 +83,11 @@ int SCKernelVersionIsAtLeast(int major, int minor)
 
     bool err = false;
     if (StringParseInt32(&kmajor, 10, 0, (const char *)list[1]) < 0) {
-        SCLogError(SC_EINVAL, "Invalid value for kmajor: '%s'", list[1]);
+        SCLogError("Invalid value for kmajor: '%s'", list[1]);
         err = true;
     }
     if (StringParseInt32(&kminor, 10, 0, (const char *)list[2]) < 0) {
-        SCLogError(SC_EINVAL, "Invalid value for kminor: '%s'", list[2]);
+        SCLogError("Invalid value for kminor: '%s'", list[2]);
         err = true;
     }
 
@@ -111,7 +110,7 @@ error:
 
 int SCKernelVersionIsAtLeast(int major, int minor)
 {
-    SCLogError(SC_ERR_NOT_SUPPORTED, "OS compare is not supported on Windows");
+    SCLogError("OS compare is not supported on Windows");
     return 0;
 }
 

@@ -86,7 +86,7 @@ static int DetectDHCPRenewalTimeSetup(DetectEngineCtx *de_ctx, Signature *s, con
 
     DetectU64Data *dd = DetectU64Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Parsing \'%s\' failed for %s", rawstr,
+        SCLogError("Parsing \'%s\' failed for %s", rawstr,
                 sigmatch_table[DETECT_AL_DHCP_RENEWAL_TIME].name);
         return -1;
     }

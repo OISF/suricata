@@ -40,7 +40,7 @@ LogCustomFormatNode * LogCustomFormatNodeAlloc()
 {
     LogCustomFormatNode * node = SCCalloc(1, sizeof(LogCustomFormatNode));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ENOMEM, "Failed to alloc custom format node");
+        SCLogError("Failed to alloc custom format node");
         return NULL;
     }
     return node;
@@ -55,7 +55,7 @@ LogCustomFormat * LogCustomFormatAlloc()
 {
     LogCustomFormat * cf = SCCalloc(1, sizeof(LogCustomFormat));
     if (unlikely(cf == NULL)) {
-        SCLogError(SC_ENOMEM, "Failed to alloc custom format");
+        SCLogError("Failed to alloc custom format");
         return NULL;
     }
     return cf;
@@ -188,7 +188,7 @@ void LogCustomFormatAddNode(LogCustomFormat *cf, LogCustomFormatNode *node)
         return;
 
     if (cf->cf_n == LOG_MAXN_NODES) {
-        SCLogWarning(SC_WARN_LOG_CF_TOO_MANY_NODES, "Too many options for custom format");
+        SCLogWarning("Too many options for custom format");
         return;
     }
 

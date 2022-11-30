@@ -55,20 +55,20 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
     char *endptr = NULL;
     id = strtoul(sidstr, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
+        SCLogError("invalid character as arg "
                    "to sid keyword");
         goto error;
     }
     if (id >= UINT_MAX) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "sid value too high, max %u", UINT_MAX);
+        SCLogError("sid value too high, max %u", UINT_MAX);
         goto error;
     }
     if (id == 0) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "sid value 0 is invalid");
+        SCLogError("sid value 0 is invalid");
         goto error;
     }
     if (s->id > 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "duplicated 'sid' keyword detected");
+        SCLogError("duplicated 'sid' keyword detected");
         goto error;
     }
 

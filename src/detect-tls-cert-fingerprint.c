@@ -161,7 +161,7 @@ static bool DetectTlsFingerprintValidateCallback(const Signature *s,
         if (cd->content_len != 59) {
             *sigerror = "Invalid length of the specified fingerprint. "
                         "This rule will therefore never match.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
             return false;
         }
 
@@ -179,7 +179,7 @@ static bool DetectTlsFingerprintValidateCallback(const Signature *s,
             *sigerror = "No colon delimiters ':' detected in content after "
                         "tls.cert_fingerprint. This rule will therefore "
                         "never match.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
             return false;
         }
 
@@ -187,7 +187,7 @@ static bool DetectTlsFingerprintValidateCallback(const Signature *s,
             *sigerror = "tls.cert_fingerprint should not be used together "
                         "with nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
         }
     }
 

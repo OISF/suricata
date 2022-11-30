@@ -75,8 +75,7 @@ static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SCEnter();
     if (s->init_data->transforms.cnt) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "previous transforms not consumed before 'pkt_data'");
+        SCLogError("previous transforms not consumed before 'pkt_data'");
         SCReturnInt(-1);
     }
     s->init_data->list = DETECT_SM_LIST_NOTSET;

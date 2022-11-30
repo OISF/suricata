@@ -228,8 +228,7 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
         fp = fopen(profiling_file_name, profiling_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_file_name, strerror(errno));
             return;
         }
     } else {
@@ -282,7 +281,7 @@ static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
     SCProfileSghDetectCtx *ctx = SCCalloc(1, sizeof(SCProfileSghDetectCtx));
     if (ctx != NULL) {
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
-                    FatalError(SC_ERR_FATAL, "Failed to initialize mutex.");
+            FatalError("Failed to initialize mutex.");
         }
     }
 

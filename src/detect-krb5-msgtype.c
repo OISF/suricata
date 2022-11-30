@@ -128,14 +128,14 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
 
     ret = DetectParsePcreExec(&parse_regex, krb5str, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
+        SCLogError("parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
     pcre2len = sizeof(arg1);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

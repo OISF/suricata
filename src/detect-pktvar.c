@@ -96,14 +96,14 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for pktvar.", rawstr);
+        SCLogError("\"%s\" is not a valid setting for pktvar.", rawstr);
         return -1;
     }
 
     const char *str_ptr;
     res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         return -1;
     }
     varname = (char *)str_ptr;
@@ -111,7 +111,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         pcre2_substring_free((PCRE2_UCHAR8 *)varname);
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         return -1;
     }
     varcontent = (char *)str_ptr;

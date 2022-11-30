@@ -970,7 +970,7 @@ void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size
     DEBUG_VALIDATE_BUG_ON(det_ctx->tx_candidates);
     det_ctx->tx_candidates = SCCalloc(size, sizeof(RuleMatchCandidateTx));
     if (det_ctx->tx_candidates == NULL) {
-        FatalError(SC_ENOMEM, "failed to allocate %" PRIu64 " bytes",
+        FatalError("failed to allocate %" PRIu64 " bytes",
                 (uint64_t)(size * sizeof(RuleMatchCandidateTx)));
     }
     det_ctx->tx_candidates_size = size;
@@ -1000,7 +1000,7 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
     uint32_t new_size = needed;
     void *ptmp = SCRealloc(det_ctx->tx_candidates, (new_size * sizeof(RuleMatchCandidateTx)));
     if (ptmp == NULL) {
-        FatalError(SC_ENOMEM, "failed to expand to %" PRIu64 " bytes",
+        FatalError("failed to expand to %" PRIu64 " bytes",
                 (uint64_t)(new_size * sizeof(RuleMatchCandidateTx)));
         // TODO can this be handled more gracefully?
     }

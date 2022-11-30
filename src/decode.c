@@ -616,8 +616,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                         StringHashCompareFunc,
                         StringHashFreeFunc);
                 if (g_counter_table == NULL) {
-                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
-                            "table init failed");
+                    FatalError("decoder counter hash "
+                               "table init failed");
                 }
             }
 
@@ -631,12 +631,12 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
             if (!found) {
                 char *add = SCStrdup(name);
                 if (add == NULL)
-                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
-                            "table name init failed");
+                    FatalError("decoder counter hash "
+                               "table name init failed");
                 int r = HashTableAdd(g_counter_table, add, 0);
                 if (r != 0)
-                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
-                            "table name add failed");
+                    FatalError("decoder counter hash "
+                               "table name add failed");
                 found = add;
             }
             dtv->counter_engine_events[i] = StatsRegisterCounter(
@@ -697,7 +697,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
     dtv->app_tctx = AppLayerGetCtxThread(tv);
 
     if (OutputFlowLogThreadInit(tv, NULL, &dtv->output_flow_thread_data) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+        SCLogError("initializing flow log API for thread failed");
         DecodeThreadVarsFree(tv, dtv);
         return NULL;
     }
@@ -850,7 +850,7 @@ void DecodeGlobalConfig(void)
     intmax_t value = 0;
     if (ConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
-            SCLogWarning(SC_EINVAL, "Invalid value for decoder.max-layers");
+            SCLogWarning("Invalid value for decoder.max-layers");
         } else {
             decoder_max_layers = (uint8_t)value;
         }
@@ -863,8 +863,7 @@ void PacketAlertGetMaxConfig(void)
     intmax_t max = 0;
     if (ConfGetInt("packet-alert-max", &max) == 1) {
         if (max <= 0 || max > UINT8_MAX) {
-            SCLogWarning(
-                    SC_EINVAL, "Invalid value for packet-alert-max, default value set instead");
+            SCLogWarning("Invalid value for packet-alert-max, default value set instead");
         } else {
             packet_alert_max = (uint16_t)max;
         }

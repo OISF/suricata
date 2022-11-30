@@ -169,14 +169,14 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
 
     ret = DetectParsePcreExec(&parse_regex, icmpseqstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", icmpseqstr);
+        SCLogError("Parse error %s", icmpseqstr);
         goto error;
     }
 
     for (i = 1; i < ret; i++) {
         res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;
@@ -190,20 +190,21 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
 
     if (substr[0] != NULL && strlen(substr[0]) != 0) {
         if (substr[2] == NULL) {
-            SCLogError(SC_ERR_MISSING_QUOTE,"Missing quote in input");
+            SCLogError("Missing quote in input");
             goto error;
         }
     } else {
         if (substr[2] != NULL) {
-            SCLogError(SC_ERR_MISSING_QUOTE,"Missing quote in input");
+            SCLogError("Missing quote in input");
             goto error;
         }
     }
 
     uint16_t seq = 0;
     if (StringParseUint16(&seq, 10, 0, substr[1]) < 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp seq %s is not "
-                                        "valid", substr[1]);
+        SCLogError("specified icmp seq %s is not "
+                   "valid",
+                substr[1]);
         goto error;
     }
     iseq->seq = htons(seq);

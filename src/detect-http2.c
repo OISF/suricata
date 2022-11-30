@@ -290,8 +290,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
 
     if (!DetectHTTP2FuncParseFrameType(str, &frame_type)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                   "Invalid argument \"%s\" supplied to http2.frametype keyword.", str);
+        SCLogError("Invalid argument \"%s\" supplied to http2.frametype keyword.", str);
         return -1;
     }
 
@@ -376,8 +375,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
 
     if (!DetectHTTP2FuncParseErrorCode(str, &error_code)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                   "Invalid argument \"%s\" supplied to http2.errorcode keyword.", str);
+        SCLogError("Invalid argument \"%s\" supplied to http2.errorcode keyword.", str);
         return -1;
     }
 
@@ -933,7 +931,7 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
                         *sigerror = "Invalid http2.header string : "
                         "': ' is a special sequence for separation between name and value "
                         " and thus can only be present once";
-                        SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+                        SCLogWarning("rule %u: %s", s->id, *sigerror);
                         return false;
                     }
                     namevaluesep = true;
@@ -941,7 +939,7 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
                     *sigerror = "Invalid http2.header string : "
                                 "':' is an escaping character for itself, "
                                 "or space for the separation between name and value";
-                    SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+                    SCLogWarning("rule %u: %s", s->id, *sigerror);
                     return false;
                 }
                 escaped = false;
@@ -953,7 +951,7 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
             *sigerror = "Invalid http2.header string : "
             "':' is an escaping character for itself, "
             "or space for the separation between name and value";
-            SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
             return false;
         }
     }

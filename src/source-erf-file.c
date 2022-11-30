@@ -131,7 +131,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 
         p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate a packet.");
+            SCLogError("Failed to allocate a packet.");
             EngineStop();
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -171,8 +171,8 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     uint16_t rlen = SCNtohs(dr.rlen);
     uint16_t wlen = SCNtohs(dr.wlen);
     if (rlen < sizeof(DagRecord)) {
-        SCLogError(SC_ERR_ERF_BAD_RLEN, "Bad ERF record, "
-            "record length less than size of header");
+        SCLogError("Bad ERF record, "
+                   "record length less than size of header");
         SCReturnInt(TM_ECODE_FAILED);
     }
     r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
@@ -188,8 +188,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
 
     /* Only support ethernet at this time. */
     if (dr.type != DAG_TYPE_ETH) {
-        SCLogError(SC_ERR_UNIMPLEMENTED,
-            "DAG record type %d not implemented.", dr.type);
+        SCLogError("DAG record type %d not implemented.", dr.type);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -222,20 +221,19 @@ ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
     SCEnter();
 
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Error: No filename provided.");
+        SCLogError("Error: No filename provided.");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     FILE *erf = fopen((const char *)initdata, "r");
     if (erf == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to open %s: %s", (char *)initdata,
-            strerror(errno));
+        SCLogError("Failed to open %s: %s", (char *)initdata, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     ErfFileThreadVars *etv = SCMalloc(sizeof(ErfFileThreadVars));
     if (unlikely(etv == NULL)) {
-        SCLogError(SC_ENOMEM, "Failed to allocate memory for ERF file thread vars.");
+        SCLogError("Failed to allocate memory for ERF file thread vars.");
         fclose(erf);
         SCReturnInt(TM_ECODE_FAILED);
     }

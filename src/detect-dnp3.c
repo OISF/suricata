@@ -212,8 +212,7 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
 
     if (!DetectDNP3FuncParseFunctionCode(str, &function_code)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-            "Invalid argument \"%s\" supplied to dnp3_func keyword.", str);
+        SCLogError("Invalid argument \"%s\" supplied to dnp3_func keyword.", str);
         return -1;
     }
 
@@ -264,8 +263,7 @@ static int DetectDNP3IndParseByName(const char *str, uint16_t *flags)
         }
 
         if (!found) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "Bad argument \"%s\" supplied to dnp3.ind keyword.", p);
+            SCLogError("Bad argument \"%s\" supplied to dnp3.ind keyword.", p);
             return 0;
         }
     }
@@ -300,8 +298,7 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         return -1;
 
     if (!DetectDNP3IndParse(str, &flags)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-            "Invalid argument \"%s\" supplied to dnp3.ind keyword.", str);
+        SCLogError("Invalid argument \"%s\" supplied to dnp3.ind keyword.", str);
         return -1;
     }
 

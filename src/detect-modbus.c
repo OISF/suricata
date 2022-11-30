@@ -91,7 +91,7 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         return -1;
 
     if ((modbus = rs_modbus_parse(str)) == NULL) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
+        SCLogError("invalid modbus option");
         goto error;
     }
 

@@ -92,8 +92,9 @@ void TmModuleDecodeIPFWRegister (void)
 TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
 
-    SCLogError(SC_ERR_IPFW_NOSUPPORT,"Error creating thread %s: you do not have support for ipfw "
-           "enabled please recompile with --enable-ipfw", tv->name);
+    SCLogError("Error creating thread %s: you do not have support for ipfw "
+               "enabled please recompile with --enable-ipfw",
+            tv->name);
     exit(EXIT_FAILURE);
 }
 
@@ -236,7 +237,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
     nq = IPFWGetQueue(ptv->ipfw_index);
     if (nq == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Can't get thread variable");
+        SCLogWarning("Can't get thread variable");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -268,9 +269,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
                 /* Nothing for us to process */
                 continue;
             } else {
-                SCLogWarning(SC_WARN_IPFW_RECV,
-                             "Read from IPFW divert socket failed: %s",
-                             strerror(errno));
+                SCLogWarning("Read from IPFW divert socket failed: %s", strerror(errno));
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
@@ -346,7 +345,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
 #else
     if ((nq->fd = socket(PF_INET, SOCK_RAW, IPPROTO_DIVERT)) == -1) {
 #endif
-        SCLogError(SC_ERR_IPFW_SOCK,"Can't create divert socket: %s", strerror(errno));
+        SCLogError("Can't create divert socket: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -356,7 +355,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
     timev.tv_usec = 0;
 
     if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
-        SCLogError(SC_ERR_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
+        SCLogError("Can't set IPFW divert socket timeout: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -368,7 +367,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     /* Bind that SOB */
     if (bind(nq->fd, (struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
-        SCLogError(SC_ERR_IPFW_BIND,"Can't bind divert socket on port %d: %s",nq->port_num,strerror(errno));
+        SCLogError("Can't bind divert socket on port %d: %s", nq->port_num, strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -416,7 +415,7 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
 
     /* Attempt to shut the socket down...close instead? */
     if (shutdown(nq->fd, SHUT_RD) < 0) {
-        SCLogWarning(SC_WARN_IPFW_UNBIND,"Unable to disable ipfw socket: %s",strerror(errno));
+        SCLogWarning("Unable to disable ipfw socket: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -521,13 +520,13 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
     SCEnter();
 
     if (p == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Packet is NULL");
+        SCLogWarning("Packet is NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     nq = IPFWGetQueue(p->ipfw_v.ipfw_index);
     if (nq == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "No thread found");
+        SCLogWarning("No thread found");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -566,7 +565,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
             int r = errno;
             switch (r) {
                 default:
-                    SCLogWarning(SC_WARN_IPFW_XMIT,"Write to ipfw divert socket failed: %s",strerror(r));
+                    SCLogWarning("Write to ipfw divert socket failed: %s", strerror(r));
                     IPFWMutexUnlock(nq);
                     SCReturnInt(TM_ECODE_FAILED);
                 case EHOSTDOWN:
@@ -709,16 +708,15 @@ int IPFWRegisterQueue(char *queue)
     uint16_t port_num = 0;
     if ((StringParseUint16(&port_num, 10, strlen(queue), queue)) < 0)
     {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified queue number %s is not "
-                                        "valid", queue);
+        SCLogError("specified queue number %s is not "
+                   "valid",
+                queue);
         return -1;
     }
 
     SCMutexLock(&ipfw_init_lock);
     if (receive_port_num >= IPFW_MAX_QUEUE) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "too much IPFW divert port registered (%d)",
-                   receive_port_num);
+        SCLogError("too much IPFW divert port registered (%d)", receive_port_num);
         SCMutexUnlock(&ipfw_init_lock);
         return -1;
     }

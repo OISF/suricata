@@ -184,21 +184,21 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");
+        SCLogError("pcre match failed");
         SCReturnPtr(NULL, "DetectFlagsData");
     }
 
     pcre2len = sizeof(arg1);
     res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         SCReturnPtr(NULL, "DetectFlagsData");
     }
     if (ret >= 2) {
         pcre2len = sizeof(arg2);
         res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             SCReturnPtr(NULL, "DetectFlagsData");
         }
     }
@@ -206,7 +206,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
         pcre2len = sizeof(arg3);
         res = SC_Pcre2SubstringCopy(parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             SCReturnPtr(NULL, "DetectFlagsData");
         }
     }
@@ -347,8 +347,8 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
 
                 case '!':
                     if (de->modifier != 0) {
-                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                                " one modifier at a time");
+                        SCLogError("\"flags\" supports only"
+                                   " one modifier at a time");
                         goto error;
                     }
                     de->modifier = MODIFIER_NOT;
@@ -356,8 +356,8 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
                     break;
                 case '+':
                     if (de->modifier != 0) {
-                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                                " one modifier at a time");
+                        SCLogError("\"flags\" supports only"
+                                   " one modifier at a time");
                         goto error;
                     }
                     de->modifier = MODIFIER_PLUS;
@@ -365,8 +365,8 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
                     break;
                 case '*':
                     if (de->modifier != 0) {
-                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                                " one modifier at a time");
+                        SCLogError("\"flags\" supports only"
+                                   " one modifier at a time");
                         goto error;
                     }
                     de->modifier = MODIFIER_ANY;

@@ -137,7 +137,7 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH,
+        SCLogError(
                 "pcre match for ike.chosen_sa_attribute failed, should be: <sa_attribute>=<type>, "
                 "but was: %s; error code %d",
                 rawstr, ret);
@@ -147,14 +147,14 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
     pcre2len = sizeof(attribute);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)attribute, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     pcre2len = sizeof(value);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -167,8 +167,8 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
         goto error;
 
     if (ByteExtractStringUint32(&dd->sa_value, 10, strlen(value), value) <= 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid input as arg "
-                                             "to ike.chosen_sa_attribute keyword");
+        SCLogError("invalid input as arg "
+                   "to ike.chosen_sa_attribute keyword");
         goto error;
     }
 
@@ -200,7 +200,7 @@ static int DetectIkeChosenSaSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     DetectIkeChosenSaData *dd = DetectIkeChosenSaParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 

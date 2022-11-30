@@ -162,7 +162,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     dd = DetectNfsProcedureParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 

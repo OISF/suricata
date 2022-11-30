@@ -263,17 +263,17 @@ static void StatsInitCtxPreOutput(void)
         /* warn if we are using legacy config to enable stats */
         ConfNode *gstats = ConfGetNode("stats");
         if (gstats == NULL) {
-            SCLogWarning(SC_ERR_STATS_LOG_GENERIC, "global stats config is missing. "
-                    "Stats enabled through legacy stats.log. "
-                    "See %s/configuration/suricata-yaml.html#stats", GetDocURL());
+            SCLogWarning("global stats config is missing. "
+                         "Stats enabled through legacy stats.log. "
+                         "See %s/configuration/suricata-yaml.html#stats",
+                    GetDocURL());
         }
 
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             if (StringParseUint32(&stats_tts, 10, 0, interval) < 0) {
-                SCLogWarning(SC_EINVAL,
-                        "Invalid value for "
-                        "interval: \"%s\". Resetting to %d.",
+                SCLogWarning("Invalid value for "
+                             "interval: \"%s\". Resetting to %d.",
                         interval, STATS_MGMTT_TTS);
                 stats_tts = STATS_MGMTT_TTS;
             }
@@ -305,7 +305,7 @@ static void StatsInitCtxPostOutput(void)
 
     /* init the lock used by StatsThreadStore */
     if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
-        FatalError(SC_ERR_FATAL, "error initializing sts mutex");
+        FatalError("error initializing sts mutex");
     }
 
     if (stats_enabled && !OutputStatsLoggersRegistered()) {
@@ -314,7 +314,7 @@ static void StatsInitCtxPostOutput(void)
         /* if the unix command socket is enabled we do the background
          * stats sync just in case someone runs 'dump-counters' */
         if (!ConfUnixSocketIsEnable()) {
-            SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
+            SCLogWarning("stats are enabled but no loggers are active");
             stats_enabled = false;
             SCReturn;
         }
@@ -395,7 +395,7 @@ static void *StatsMgmtThread(void *arg)
     SCDropCaps(tv_local);
 
     if (stats_ctx == NULL) {
-        SCLogError(SC_ERR_STATS_NOT_INIT, "Stats API not init"
+        SCLogError("Stats API not init"
                    "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -405,7 +405,7 @@ static void *StatsMgmtThread(void *arg)
     BUG_ON(tm->ThreadInit == NULL);
     int r = tm->ThreadInit(tv_local, NULL, &stats_thread_data);
     if (r != 0 || stats_thread_data == NULL) {
-        SCLogError(SC_ERR_THREAD_INIT, "Stats API "
+        SCLogError("Stats API "
                    "ThreadInit failed");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -445,7 +445,7 @@ static void *StatsMgmtThread(void *arg)
 
     r = tm->ThreadDeinit(tv_local, stats_thread_data);
     if (r != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_DEINIT, "Stats Counter API "
+        SCLogError("Stats Counter API "
                    "ThreadDeinit failed");
     }
 
@@ -475,7 +475,7 @@ static void *StatsWakeupThread(void *arg)
     SCDropCaps(tv_local);
 
     if (stats_ctx == NULL) {
-        SCLogError(SC_ERR_STATS_NOT_INIT, "Stats API not init"
+        SCLogError("Stats API not init"
                    "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -662,7 +662,7 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.stats = SCCalloc(stats_table.nstats, sizeof(StatsRecord));
         if (stats_table.stats == NULL) {
             stats_table.nstats = 0;
-            SCLogError(SC_ENOMEM, "could not alloc memory for stats");
+            SCLogError("could not alloc memory for stats");
             return -1;
         }
 
@@ -671,7 +671,7 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.tstats = SCCalloc(stats_table.ntstats, array_size);
         if (stats_table.tstats == NULL) {
             stats_table.ntstats = 0;
-            SCLogError(SC_ENOMEM, "could not alloc memory for stats");
+            SCLogError("could not alloc memory for stats");
             return -1;
         }
 
@@ -879,8 +879,7 @@ void StatsInit(void)
 {
     BUG_ON(stats_ctx != NULL);
     if ( (stats_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in StatsInitCtx. Exiting...");
+        FatalError("Fatal error encountered in StatsInitCtx. Exiting...");
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
 
@@ -919,12 +918,12 @@ void StatsSpawnThreads(void)
     tv_wakeup = TmThreadCreateMgmtThread(thread_name_counter_wakeup,
                                          StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
-        FatalError(SC_ERR_FATAL, "TmThreadCreateMgmtThread "
+        FatalError("TmThreadCreateMgmtThread "
                    "failed");
     }
 
     if (TmThreadSpawn(tv_wakeup) != 0) {
-        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed for "
+        FatalError("TmThreadSpawn failed for "
                    "StatsWakeupThread");
     }
 
@@ -932,11 +931,11 @@ void StatsSpawnThreads(void)
     tv_mgmt = TmThreadCreateMgmtThread(thread_name_counter_stats,
                                        StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
-                   FatalError(SC_ERR_FATAL, "TmThreadCreateMgmtThread failed");
+        FatalError("TmThreadCreateMgmtThread failed");
     }
 
     if (TmThreadSpawn(tv_mgmt) != 0) {
-        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed for "
+        FatalError("TmThreadSpawn failed for "
                    "StatsWakeupThread");
     }
 

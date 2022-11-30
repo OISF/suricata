@@ -124,9 +124,8 @@ static void *OldParsePfringConfig(const char *iface)
     } else {
         if (threadsstr != NULL) {
             if (StringParseInt32(&pfconf->threads, 10, 0, threadsstr) < 0) {
-                SCLogWarning(SC_EINVAL,
-                        "Invalid value for "
-                        "pfring.threads: '%s'. Resetting to 1.",
+                SCLogWarning("Invalid value for "
+                             "pfring.threads: '%s'. Resetting to 1.",
                         threadsstr);
                 pfconf->threads = 1;
             }
@@ -145,12 +144,11 @@ static void *OldParsePfringConfig(const char *iface)
     else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not setting cluster-id");
     } else if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
+        SCLogError("Could not get cluster-id from config");
     } else {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-            SCLogWarning(SC_EINVAL,
-                    "Invalid value for "
-                    "pfring.cluster_id: '%s'. Resetting to 1.",
+            SCLogWarning("Invalid value for "
+                         "pfring.cluster_id: '%s'. Resetting to 1.",
                     tmpclusterid);
             pfconf->cluster_id = 1;
         }
@@ -165,7 +163,7 @@ static void *OldParsePfringConfig(const char *iface)
         SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
                 pfconf->iface);
     } else if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
+        SCLogError("Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
                 pfconf->iface);
@@ -175,7 +173,7 @@ static void *OldParsePfringConfig(const char *iface)
                 pfconf->iface);
         pfconf->ctype = (cluster_type)tmpctype;
     } else {
-        SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
+        SCLogError("invalid cluster-type %s", tmpctype);
         SCFree(pfconf);
         return NULL;
     }
@@ -269,9 +267,8 @@ static void *ParsePfringConfig(const char *iface)
         } else {
             uint16_t threads = 0;
             if (StringParseUint16(&threads, 10, 0, (const char *)threadsstr) < 0) {
-                SCLogWarning(SC_EINVAL,
-                        "Invalid value for "
-                        "pfring.threads: '%s'. Resetting to 1.",
+                SCLogWarning("Invalid value for "
+                             "pfring.threads: '%s'. Resetting to 1.",
                         threadsstr);
                 pfconf->threads = 1;
             } else {
@@ -289,9 +286,8 @@ static void *ParsePfringConfig(const char *iface)
     /* command line value has precedence */
     if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-            SCLogWarning(SC_EINVAL,
-                    "Invalid value for "
-                    "pfring.cluster-id: '%s'. Resetting to 1.",
+            SCLogWarning("Invalid value for "
+                         "pfring.cluster-id: '%s'. Resetting to 1.",
                     tmpclusterid);
             pfconf->cluster_id = 1;
         }
@@ -307,13 +303,11 @@ static void *ParsePfringConfig(const char *iface)
             SCLogInfo("DNA interface detected, not setting cluster-id for PF_RING (iface %s)",
                     pfconf->iface);
         } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                       "Could not get cluster-id from config");
+            SCLogError("Could not get cluster-id from config");
         } else {
             if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
-                SCLogWarning(SC_EINVAL,
-                        "Invalid value for "
-                        "pfring.cluster-id: '%s'. Resetting to 1.",
+                SCLogWarning("Invalid value for "
+                             "pfring.cluster-id: '%s'. Resetting to 1.",
                         tmpclusterid);
                 pfconf->cluster_id = 1;
             }
@@ -328,7 +322,7 @@ static void *ParsePfringConfig(const char *iface)
         if (strlen(bpf_filter) > 0) {
             pfconf->bpf_filter = SCStrdup(bpf_filter);
             if (unlikely(pfconf->bpf_filter == NULL)) {
-                SCLogError(SC_ENOMEM, "Can't allocate BPF filter string");
+                SCLogError("Can't allocate BPF filter string");
             } else {
                 SCLogDebug("Going to use command-line provided bpf filter %s",
                            pfconf->bpf_filter);
@@ -339,7 +333,7 @@ static void *ParsePfringConfig(const char *iface)
             if (strlen(bpf_filter) > 0) {
                 pfconf->bpf_filter = SCStrdup(bpf_filter);
                 if (unlikely(pfconf->bpf_filter == NULL)) {
-                    SCLogError(SC_ENOMEM, "Can't allocate BPF filter string");
+                    SCLogError("Can't allocate BPF filter string");
                 } else {
                     SCLogDebug("Going to use bpf filter %s",
                                pfconf->bpf_filter);
@@ -359,8 +353,7 @@ static void *ParsePfringConfig(const char *iface)
             SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
                     pfconf->iface);
         } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
-            SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
-                       "Could not get cluster-type from config");
+            SCLogError("Could not get cluster-type from config");
         } else {
             getctype = 1;
         }
@@ -376,9 +369,7 @@ static void *ParsePfringConfig(const char *iface)
                     pfconf->iface);
             pfconf->ctype = CLUSTER_FLOW;
         } else {
-            SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,
-                       "invalid cluster-type %s",
-                       tmpctype);
+            SCLogError("invalid cluster-type %s", tmpctype);
             SCFree(pfconf);
             return NULL;
         }
@@ -393,7 +384,7 @@ static void *ParsePfringConfig(const char *iface)
         } else if (strcmp(tmpctype, "rx-only") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", pfconf->iface);
+            SCLogError("Invalid value for checksum-checks for %s", pfconf->iface);
         }
     }
 
@@ -403,7 +394,7 @@ static void *ParsePfringConfig(const char *iface)
             SCLogConfig("Enabling bypass support in PF_RING for iface %s (if supported by underlying hw)", pfconf->iface);
             pfconf->flags |= PFRING_CONF_FLAGS_BYPASS;
 #else
-            SCLogError(SC_ERR_BYPASS_NOT_SUPPORTED, "Bypass is not supported by this Pfring version, please upgrade");
+            SCLogError("Bypass is not supported by this Pfring version, please upgrade");
             SCFree(pfconf);
             return NULL;
 #endif
@@ -412,8 +403,7 @@ static void *ParsePfringConfig(const char *iface)
 
     if (LiveGetOffload() == 0) {
         if (GetIfaceOffloading(iface, 0, 1) == 1) {
-            SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                    "Using PF_RING with offloading activated leads to capture problems");
+            SCLogWarning("Using PF_RING with offloading activated leads to capture problems");
         }
     } else {
         DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
@@ -480,8 +470,7 @@ int RunModeIdsPfringAutoFp(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-                FatalError(SC_ERR_FATAL,
-                           "Unable to get parser and interface params");
+        FatalError("Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureAutoFp(tparser,
@@ -490,7 +479,7 @@ int RunModeIdsPfringAutoFp(void)
                               "DecodePfring", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Runmode start failed");
+        FatalError("Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
@@ -515,8 +504,7 @@ int RunModeIdsPfringSingle(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-                FatalError(SC_ERR_FATAL,
-                           "Unable to get parser and interface params");
+        FatalError("Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureSingle(tparser,
@@ -525,7 +513,7 @@ int RunModeIdsPfringSingle(void)
                               "DecodePfring", thread_name_single,
                               live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Runmode start failed");
+        FatalError("Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringSingle initialised");
@@ -550,8 +538,7 @@ int RunModeIdsPfringWorkers(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-                FatalError(SC_ERR_FATAL,
-                           "Unable to get parser and interface params");
+        FatalError("Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureWorkers(tparser,
@@ -560,7 +547,7 @@ int RunModeIdsPfringWorkers(void)
                               "DecodePfring", thread_name_workers,
                               live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Runmode start failed");
+        FatalError("Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringWorkers initialised");

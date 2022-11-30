@@ -43,7 +43,7 @@ IPPairQueue *IPPairQueueNew()
 {
     IPPairQueue *q = (IPPairQueue *)SCMalloc(sizeof(IPPairQueue));
     if (q == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in IPPairQueueNew. Exiting...");
+        SCLogError("Fatal error encountered in IPPairQueueNew. Exiting...");
         exit(EXIT_SUCCESS);
     }
     q = IPPairQueueInit(q);

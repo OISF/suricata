@@ -493,8 +493,7 @@ static void JsonDnsCheckVersion(ConfNode *conf)
                     break;
                 case 1:
                     if (!v1_deprecation_warned) {
-                        SCLogError(SC_WARN_DEPRECATED,
-                                "DNS EVE v1 logging has been removed, will use v2");
+                        SCLogError("DNS EVE v1 logging has been removed, will use v2");
                         v1_deprecation_warned = true;
                     }
                     break;
@@ -506,8 +505,7 @@ static void JsonDnsCheckVersion(ConfNode *conf)
             invalid = true;
         }
         if (invalid) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid EVE DNS version \"%s\", will use v2",
-                    has_version->val);
+            SCLogWarning("Invalid EVE DNS version \"%s\", will use v2", has_version->val);
         }
     }
 }

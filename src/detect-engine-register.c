@@ -707,8 +707,9 @@ void SigTableRegisterTests(void)
                    "registration function.", sigmatch_table[i].name);
 
             if (coverage_unittests)
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "detection plugin %s has no unittest "
-                        "registration function.", sigmatch_table[i].name);
+                SCLogWarning("detection plugin %s has no unittest "
+                             "registration function.",
+                        sigmatch_table[i].name);
         }
     }
 }

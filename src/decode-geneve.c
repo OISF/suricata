@@ -116,8 +116,7 @@ static void DecodeGeneveConfigPorts(const char *pstr)
     g_geneve_ports_idx = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
         if (g_geneve_ports_idx >= GENEVE_MAX_PORTS) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "more than %d Geneve ports defined",
-                    GENEVE_MAX_PORTS);
+            SCLogWarning("more than %d Geneve ports defined", GENEVE_MAX_PORTS);
             break;
         }
         g_geneve_ports[g_geneve_ports_idx++] = (int)p->port;

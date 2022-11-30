@@ -189,7 +189,7 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                             "The hostname buffer is normalized "
                             "to lowercase, specifying "
                             "nocase is redundant.";
-                SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
                 return false;
             } else {
                 uint32_t u;
@@ -202,7 +202,7 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                                 "uppercase characters detected for http.host. "
                                 "The hostname buffer is normalized to lowercase, "
                                 "please specify a lowercase pattern.";
-                    SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+                    SCLogWarning("rule %u: %s", s->id, *sigerror);
                     return false;
                 }
             }

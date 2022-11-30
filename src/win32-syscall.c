@@ -132,23 +132,23 @@ int GetGlobalMTUWin32(void) { return 0; }
 
 int GetIfaceOffloadingWin32(const char *ifname, int csum, int other)
 {
-    SCLogWarning(SC_ERR_SYSCALL, "Suricata not targeted for Windows Vista or "
-                                 "higher. Network offload interrogation not "
-                                 "available.");
+    SCLogWarning("Suricata not targeted for Windows Vista or "
+                 "higher. Network offload interrogation not "
+                 "available.");
     return -1;
 }
 int DisableIfaceOffloadingWin32(LiveDevice *ldev, int csum, int other)
 {
-    SCLogWarning(SC_ERR_SYSCALL, "Suricata not targeted for Windows Vista or "
-                                 "higher. Network offload interrogation not "
-                                 "available.");
+    SCLogWarning("Suricata not targeted for Windows Vista or "
+                 "higher. Network offload interrogation not "
+                 "available.");
     return -1;
 }
 int RestoreIfaceOffloadingWin32(LiveDevice *ldev)
 {
-    SCLogWarning(SC_ERR_SYSCALL, "Suricata not targeted for Windows Vista or "
-                                 "higher. Network offload interrogation not "
-                                 "available.");
+    SCLogWarning("Suricata not targeted for Windows Vista or "
+                 "higher. Network offload interrogation not "
+                 "available.");
     return -1;
 }
 
@@ -300,10 +300,9 @@ release:
 
     if (err != S_OK) {
         const char *errbuf = Win32GetErrorString(err, WmiUtils());
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failure when trying to get MTU via syscall for '%s': %s "
+        SCLogWarning("Failure when trying to get MTU via syscall for '%s': %s "
                      "(0x%08" PRIx32 ")",
-                     pcap_dev, errbuf, (uint32_t)err);
+                pcap_dev, errbuf, (uint32_t)err);
         LocalFree((LPVOID)errbuf);
     } else {
         SCLogInfo("Found an MTU of %d for '%s'", mtu, pcap_dev);
@@ -353,11 +352,8 @@ fail:
                            FORMAT_MESSAGE_IGNORE_INSERTS,
                    NULL, err, 0, (LPTSTR)&errbuf, 0, NULL);
 
-    SCLogWarning(
-            SC_ERR_SYSCALL,
-            "Failure when trying to get global MTU via syscall: %s (%" PRId32
-            ")",
-            errbuf, (uint32_t)err);
+    SCLogWarning("Failure when trying to get global MTU via syscall: %s (%" PRId32 ")", errbuf,
+            (uint32_t)err);
 
     return -1;
 }
@@ -412,7 +408,7 @@ static HRESULT ComInstanceInit(ComInstance *instance, LPCWSTR resource)
     BSTR resource_bstr = SysAllocString(resource);
     if (resource_bstr == NULL) {
         hr = HRESULT_FROM_WIN32(E_OUTOFMEMORY);
-        SCLogWarning(SC_ERR_SYSCALL, "Failed to allocate BSTR");
+        SCLogWarning("Failed to allocate BSTR");
         goto release;
     }
 
@@ -423,17 +419,14 @@ static HRESULT ComInstanceInit(ComInstance *instance, LPCWSTR resource)
         hr = S_OK;
     } else {
         if (hr != S_OK) {
-            SCLogWarning(SC_ERR_SYSCALL,
-                         "COM CoInitializeEx failed: 0x%" PRIx32, (uint32_t)hr);
+            SCLogWarning("COM CoInitializeEx failed: 0x%" PRIx32, (uint32_t)hr);
             goto release;
         }
         hr = CoInitializeSecurity(
                 NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
                 RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
         if (hr != S_OK) {
-            SCLogWarning(SC_ERR_SYSCALL,
-                         "COM CoInitializeSecurity failed: 0x%" PRIx32,
-                         (uint32_t)hr);
+            SCLogWarning("COM CoInitializeSecurity failed: 0x%" PRIx32, (uint32_t)hr);
             goto release;
         }
     }
@@ -442,16 +435,14 @@ static HRESULT ComInstanceInit(ComInstance *instance, LPCWSTR resource)
     hr = CoCreateInstance(&CLSID_WbemLocator, NULL, CLSCTX_INPROC_SERVER,
                           &IID_IWbemLocator, (LPVOID *)&instance->locator);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL, "COM CoCreateInstance failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("COM CoCreateInstance failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
     hr = instance->locator->lpVtbl->ConnectServer(
             instance->locator, resource_bstr, NULL, NULL, NULL, 0, NULL, NULL,
             &instance->services);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL, "COM ConnectServer failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("COM ConnectServer failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -493,7 +484,7 @@ static HRESULT GetWbemClass(ComInstance *instance, LPCWSTR name,
     name_bstr = SysAllocString(name);
     if (name_bstr == NULL) {
         hr = HRESULT_FROM_WIN32(E_OUTOFMEMORY);
-        SCLogWarning(SC_ERR_SYSCALL, "Failed to allocate BSTR");
+        SCLogWarning("Failed to allocate BSTR");
         goto release;
     }
 
@@ -503,8 +494,7 @@ static HRESULT GetWbemClass(ComInstance *instance, LPCWSTR name,
                                                NULL, p_class, NULL);
     if (hr != S_OK) {
         WbemLogDebug(hr);
-        SCLogWarning(SC_ERR_SYSCALL, "WMI GetObject failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI GetObject failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -532,8 +522,7 @@ static HRESULT GetWbemClassInstance(ComInstance *instance, LPCWSTR name,
     hr = class->lpVtbl->SpawnInstance(class, 0, p_instance);
     if (hr != WBEM_S_NO_ERROR) {
         WbemLogDebug(hr);
-        SCLogWarning(SC_ERR_SYSCALL, "WMI SpawnInstance failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI SpawnInstance failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -563,13 +552,13 @@ static HRESULT GetWbemMethod(ComInstance *com_instance, LPCWSTR class_name,
     BSTR class_name_bstr = SysAllocString(class_name);
     if (class_name_bstr == NULL) {
         hr = HRESULT_FROM_WIN32(E_OUTOFMEMORY);
-        SCLogWarning(SC_ERR_SYSCALL, "Failed to allocate BSTR");
+        SCLogWarning("Failed to allocate BSTR");
         goto release;
     }
     method->method_name = SysAllocString(method_name);
     if (method->method_name == NULL) {
         hr = HRESULT_FROM_WIN32(E_OUTOFMEMORY);
-        SCLogWarning(SC_ERR_SYSCALL, "Failed to allocate BSTR");
+        SCLogWarning("Failed to allocate BSTR");
         goto release;
     }
 
@@ -584,8 +573,7 @@ static HRESULT GetWbemMethod(ComInstance *com_instance, LPCWSTR class_name,
                                   &method->out_params);
     if (hr != WBEM_S_NO_ERROR) {
         WbemLogDebug(hr);
-        SCLogWarning(SC_ERR_SYSCALL, "WMI GetMethod failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI GetMethod failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -631,8 +619,7 @@ static HRESULT GetWbemMethodCall(WbemMethod *method, LPCWSTR instance_path,
     call->instance_path = SysAllocString(instance_path);
     if (call->instance_path == NULL) {
         hr = HRESULT_FROM_WIN32(E_OUTOFMEMORY);
-        SCLogWarning(SC_ERR_SYSCALL, "Failed to allocate BSTR: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("Failed to allocate BSTR: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -641,9 +628,7 @@ static HRESULT GetWbemMethodCall(WbemMethod *method, LPCWSTR instance_path,
                                                   &call->in_params);
     if (hr != S_OK) {
         WbemLogDebug(hr);
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "WMI SpawnInstance failed on in_params: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI SpawnInstance failed on in_params: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -705,9 +690,7 @@ static HRESULT WbemGetSubObject(IWbemClassObject *object, LPCWSTR property_name,
     hr = unknown->lpVtbl->QueryInterface(unknown, &IID_IWbemClassObject,
                                          (void **)sub_object);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "WMI QueryInterface (IWbemClassObject) failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI QueryInterface (IWbemClassObject) failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -768,9 +751,7 @@ static HRESULT GetIUnknown(IWbemClassObject *object, IUnknown **p_unknown)
     hr = object->lpVtbl->QueryInterface(object, &IID_IUnknown,
                                         (void **)p_unknown);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "WMI QueryInterface (IUnknown) failed: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("WMI QueryInterface (IUnknown) failed: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 
@@ -964,7 +945,7 @@ static HRESULT GetNdisOffload(LPCWSTR if_description, uint32_t *offload_flags)
     IWbemClassObject *ndis_offload = NULL;
 
     if (if_description == NULL) {
-        SCLogWarning(SC_ERR_SYSCALL, "No description specified for device");
+        SCLogWarning("No description specified for device");
         hr = HRESULT_FROM_WIN32(E_INVALIDARG);
         goto release;
     }
@@ -975,17 +956,14 @@ static HRESULT GetNdisOffload(LPCWSTR if_description, uint32_t *offload_flags)
                      wcslen(instance_name_fmt);
     LPWSTR instance_name = SCMalloc((n_chars + 1) * sizeof(wchar_t));
     if (instance_name == NULL) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failed to allocate buffer for instance path");
+        SCLogWarning("Failed to allocate buffer for instance path");
         goto release;
     }
     instance_name[n_chars] = 0; /* defensively null-terminate */
     hr = StringCchPrintfW(instance_name, n_chars, instance_name_fmt, class_name,
                           if_description);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failed to format WMI class instance name: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("Failed to format WMI class instance name: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
     /* method name */
@@ -1041,8 +1019,7 @@ static HRESULT GetNdisOffload(LPCWSTR if_description, uint32_t *offload_flags)
         size_t if_description_len = wcslen(if_description);
         char *if_description_ansi = SCMalloc(if_description_len + 1);
         if (if_description_ansi == NULL) {
-            SCLogWarning(SC_ERR_SYSCALL,
-                         "Failed to allocate buffer for interface description");
+            SCLogWarning("Failed to allocate buffer for interface description");
             goto release;
         }
         if_description_ansi[if_description_len] = 0;
@@ -1192,26 +1169,23 @@ int GetIfaceOffloadingWin32(const char *pcap_dev, int csum, int other)
                   (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP4) != 0,
                   (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP6) != 0);
     } else {
-        SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                     "NIC offloading on %s: Checksum IPv4 Rx: %d Tx: %d IPv6 "
+        SCLogWarning("NIC offloading on %s: Checksum IPv4 Rx: %d Tx: %d IPv6 "
                      "Rx: %d Tx: %d LSOv1 IPv4: %d LSOv2 IPv4: %d IPv6: %d",
-                     pcap_dev,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP4RX) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP4TX) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP6RX) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP6TX) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV1_IP4) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP4) != 0,
-                     (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP6) != 0);
+                pcap_dev, (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP4RX) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP4TX) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP6RX) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_CSUM_IP6TX) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV1_IP4) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP4) != 0,
+                (offload_flags & WIN32_TCP_OFFLOAD_FLAG_LSOV2_IP6) != 0);
     }
 
 release:
     if (ret == -1) {
         const char *err_str = Win32GetErrorString(err, WmiUtils());
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failure when trying to get feature via syscall for '%s': "
+        SCLogWarning("Failure when trying to get feature via syscall for '%s': "
                      "%s (0x%08" PRIx32 ")",
-                     pcap_dev, err_str, (uint32_t)err);
+                pcap_dev, err_str, (uint32_t)err);
         LocalFree((LPVOID)err_str);
     }
 
@@ -1462,7 +1436,7 @@ static HRESULT SetNdisOffload(LPCWSTR if_description, uint32_t offload_flags,
     IWbemClassObject *ndis_tcp_offload_parameters = NULL;
 
     if (if_description == NULL) {
-        SCLogWarning(SC_ERR_SYSCALL, "No description specified for device");
+        SCLogWarning("No description specified for device");
         return E_INVALIDARG;
     }
 
@@ -1472,17 +1446,14 @@ static HRESULT SetNdisOffload(LPCWSTR if_description, uint32_t offload_flags,
                      wcslen(instance_name_fmt);
     LPWSTR instance_name = SCMalloc((n_chars + 1) * sizeof(wchar_t));
     if (instance_name == NULL) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failed to allocate buffer for instance path");
+        SCLogWarning("Failed to allocate buffer for instance path");
         goto release;
     }
     instance_name[n_chars] = 0; /* defensively null-terminate */
     hr = StringCchPrintfW(instance_name, n_chars, instance_name_fmt, class_name,
                           if_description);
     if (hr != S_OK) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failed to format WMI class instance name: 0x%" PRIx32,
-                     (uint32_t)hr);
+        SCLogWarning("Failed to format WMI class instance name: 0x%" PRIx32, (uint32_t)hr);
         goto release;
     }
 

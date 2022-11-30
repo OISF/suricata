@@ -134,14 +134,14 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
 
     int ret = DetectParsePcreExec(&parse_regex, ftpcommandstr, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
+        SCLogError("parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
     pcre2len = sizeof(arg1);
     int res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
@@ -154,7 +154,7 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
     } else if (!strcmp(arg1, "retr")) {
         ftpcommandd->command = FTP_COMMAND_RETR;
     } else {
-        SCLogError(SC_ERR_NOT_SUPPORTED, "Invalid command value");
+        SCLogError("Invalid command value");
         goto error;
     }
 
