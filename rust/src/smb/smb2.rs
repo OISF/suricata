@@ -157,7 +157,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
             let mut set_event_fileoverlap = false;
             // look up existing tracker and if we have it update it
-            let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToClient) {
+            let found = match state.get_file_tx_by_fuid_with_open_file(&file_guid, Direction::ToClient) {
                 Some(tx) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
@@ -297,7 +297,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             };
 
             let mut set_event_fileoverlap = false;
-            let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToServer) {
+            let found = match state.get_file_tx_by_fuid_with_open_file(&file_guid, Direction::ToServer) {
                 Some(tx) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
