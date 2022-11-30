@@ -255,7 +255,7 @@ error:
  * \param function  Function_name from where the message originated
  * \param line      Line_no from where the messaged originated
  *
- * \retval SC_OK on success; else an error code
+ * \retval 0 on success; else a negative value on error
  */
 static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPType type,
         char *buffer, size_t buffer_size, const char *log_format,
@@ -300,7 +300,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
 
 	while ( (temp_fmt = strchr(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-            return SC_OK;
+            return 0;
         }
         switch(temp_fmt[1]) {
             case SC_LOG_FMT_TIME:
@@ -315,7 +315,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
                               tms->tm_sec, reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -327,7 +327,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%u%s", substr, yellow, getpid(), reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -339,7 +339,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%lu%s", substr, yellow, SCGetThreadIdLong(), reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -351,7 +351,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s", substr,
                         yellow, t_thread_name, reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -379,7 +379,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                                   "%s%s", substr, "INVALID");
                 }
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -391,7 +391,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%s%s", substr, blue, file, reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -403,7 +403,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%u%s", substr, green, line, reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -415,7 +415,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%s%s", substr, green, function, reset);
                 if (cw < 0)
-                    return SC_ERR_SPRINTF;
+                    return -1;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -426,15 +426,15 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
         temp_fmt++;
 	}
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        return SC_OK;
+        return 0;
     }
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", substr);
     if (cw < 0) {
-        return SC_ERR_SPRINTF;
+        return -1;
     }
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        return SC_OK;
+        return 0;
     }
 
     const char *hi = "";
@@ -444,21 +444,21 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
         hi = yellow;
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", hi, message, reset);
     if (cw < 0) {
-        return SC_ERR_SPRINTF;
+        return -1;
     }
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        return SC_OK;
+        return 0;
     }
 
     if (sc_log_config->op_filter_regex != NULL) {
         if (pcre2_match(sc_log_config->op_filter_regex, (PCRE2_SPTR8)buffer, strlen(buffer), 0, 0,
                     sc_log_config->op_filter_regex_match, NULL) < 0) {
-            return SC_ERR_LOG_FG_FILTER_MATCH; // bit hacky, but just return !0
+            return -1; // bit hacky, but just return !0
         }
     }
 
-    return SC_OK;
+    return 0;
 }
 
 /** \internal
