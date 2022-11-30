@@ -55,11 +55,11 @@ void TagInitCtx(void)
 
     host_tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
     if (host_tag_id.id == -1) {
-        FatalError(SC_ERR_FATAL, "Can't initiate host storage for tag");
+        FatalError("Can't initiate host storage for tag");
     }
     flow_tag_id = FlowStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
     if (flow_tag_id.id == -1) {
-        FatalError(SC_ERR_FATAL, "Can't initiate flow storage for tag");
+        FatalError("Can't initiate flow storage for tag");
     }
 }
 

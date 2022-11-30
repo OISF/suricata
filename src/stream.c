@@ -45,10 +45,10 @@ int StreamSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback Ca
             break;
 #ifdef DEBUG
         case IPPROTO_UDP:
-            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "UDP is currently unsupported");
+            SCLogWarning("UDP is currently unsupported");
             break;
         default:
-            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "This protocol is currently unsupported");
+            SCLogWarning("This protocol is currently unsupported");
             break;
 #endif
     }
@@ -70,10 +70,10 @@ int StreamSegmentForSession(
             break;
 #ifdef DEBUG
         case IPPROTO_UDP:
-            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "UDP is currently unsupported");
+            SCLogWarning("UDP is currently unsupported");
             break;
         default:
-            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "This protocol is currently unsupported");
+            SCLogWarning("This protocol is currently unsupported");
             break;
 #endif
     }

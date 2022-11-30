@@ -360,8 +360,8 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
     DecodeThreadVars dtv;
     ThreadVars th_v;
     if (raw_eth == NULL || pktsize == NULL || numpkts <= 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "The arrays cant be null, and the number"
-                                        " of packets should be grater thatn zero");
+        SCLogError("The arrays cant be null, and the number"
+                   " of packets should be grater thatn zero");
         return NULL;
     }
     Packet **p = NULL;
@@ -609,7 +609,8 @@ int UTHGenericTest(Packet **pkt, int numpkts, const char *sigs[], uint32_t sids[
     int result = 0;
     if (pkt == NULL || sigs == NULL || numpkts == 0
         || sids == NULL || results == NULL || numsigs == 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, that the pointer/arrays are not NULL, and the number of signatures and packets is > 0");
+        SCLogError("Arguments invalid, that the pointer/arrays are not NULL, and the number of "
+                   "signatures and packets is > 0");
         goto end;
     }
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -646,8 +647,8 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
         uint32_t results[], int numsids)
 {
     if (p == NULL || sids == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if the "
-                "packet is NULL, and if the array contain sids is set");
+        SCLogError("Arguments invalid, check if the "
+                   "packet is NULL, and if the array contain sids is set");
         return 0;
     }
 
@@ -684,14 +685,16 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 
     for (int i = 0; i < numsigs; i++) {
         if (sigs[i] == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature"
-                       " at position %d", i);
+            SCLogError("Check the signature"
+                       " at position %d",
+                    i);
             return 0;
         }
         Signature *s = DetectEngineAppendSig(de_ctx, sigs[i]);
         if (s == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature at"
-                       " position %d (%s)", i, sigs[i]);
+            SCLogError("Check the signature at"
+                       " position %d (%s)",
+                    i, sigs[i]);
             return 0;
         }
     }

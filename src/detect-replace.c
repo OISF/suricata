@@ -96,7 +96,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     uint16_t len = 0;
 
     if (s->init_data->negated) {
-        SCLogError(SC_EINVAL, "Can't negate replacement string: %s", replacestr);
+        SCLogError("Can't negate replacement string: %s", replacestr);
         return -1;
     }
 
@@ -105,9 +105,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
         case RUNMODE_IPFW:
             break;
         default:
-            SCLogWarning(SC_ERR_RUNMODE,
-                         "Can't use 'replace' keyword in non IPS mode: %s",
-                         s->sig_str);
+            SCLogWarning("Can't use 'replace' keyword in non IPS mode: %s", s->sig_str);
             /* this is a success, having the alert is interesting */
             return 0;
     }
@@ -120,8 +118,8 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     const SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
             DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "replace needs"
-                "preceding content option for raw sig");
+        SCLogError("replace needs"
+                   "preceding content option for raw sig");
         SCFree(content);
         return -1;
     }
@@ -129,18 +127,18 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     /* we can remove this switch now with the unified structure */
     DetectContentData *ud = (DetectContentData *)pm->ctx;
     if (ud == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
+        SCLogError("invalid argument");
         SCFree(content);
         return -1;
     }
     if (ud->flags & DETECT_CONTENT_NEGATED) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                "negated keyword set along with a replacement");
+        SCLogError("can't have a relative "
+                   "negated keyword set along with a replacement");
         goto error;
     }
     if (ud->content_len != len) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a content "
-                "length different from replace length");
+        SCLogError("can't have a content "
+                   "length different from replace length");
         goto error;
     }
 

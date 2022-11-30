@@ -151,7 +151,7 @@ int ConfUnixSocketIsEnable(void)
     }
 
     if (value == NULL) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed value for unix-command.enabled: NULL");
+        SCLogError("malformed value for unix-command.enabled: NULL");
         return 0;
     }
 

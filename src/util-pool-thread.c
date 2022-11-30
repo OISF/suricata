@@ -97,7 +97,7 @@ error:
 int PoolThreadExpand(PoolThread *pt)
 {
     if (pt == NULL || pt->array == NULL || pt->size == 0) {
-        SCLogError(SC_EINVAL, "pool grow failed");
+        SCLogError("pool grow failed");
         return -1;
     }
 
@@ -108,7 +108,7 @@ int PoolThreadExpand(PoolThread *pt)
     if (ptmp == NULL) {
         SCFree(pt->array);
         pt->array = NULL;
-        SCLogError(SC_EINVAL, "pool grow failed");
+        SCLogError("pool grow failed");
         return -1;
     }
     pt->array = ptmp;
@@ -138,7 +138,7 @@ int PoolThreadExpand(PoolThread *pt)
             settings.Cleanup, settings.Free);
     SCMutexUnlock(&e->lock);
     if (e->pool == NULL) {
-        SCLogError(SC_EINVAL, "pool grow failed");
+        SCLogError("pool grow failed");
         return -1;
     }
 

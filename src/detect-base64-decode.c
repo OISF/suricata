@@ -134,8 +134,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
         if (pcre2_substring_get_bynumber(
                     decode_pcre.match, 2, (PCRE2_UCHAR8 **)&bytes_str, &pcre2_len) == 0) {
             if (StringParseUint32(bytes, 10, 0, bytes_str) <= 0) {
-                SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                    "Bad value for bytes: \"%s\"", bytes_str);
+                SCLogError("Bad value for bytes: \"%s\"", bytes_str);
                 goto error;
             }
         }
@@ -145,8 +144,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
         if (pcre2_substring_get_bynumber(
                     decode_pcre.match, 4, (PCRE2_UCHAR8 **)&offset_str, &pcre2_len) == 0) {
             if (StringParseUint32(offset, 10, 0, offset_str) <= 0) {
-                SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                    "Bad value for offset: \"%s\"", offset_str);
+                SCLogError("Bad value for offset: \"%s\"", offset_str);
                 goto error;
             }
         }
@@ -159,8 +157,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
                 *relative = 1;
             }
             else {
-                SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                    "Invalid argument: \"%s\"", relative_str);
+                SCLogError("Invalid argument: \"%s\"", relative_str);
                 goto error;
             }
         }

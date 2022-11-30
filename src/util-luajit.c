@@ -91,7 +91,7 @@ int LuajitSetupStatesPool(void)
 
         luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, NULL, LuaStatePoolFree);
         if (luajit_states == NULL) {
-            SCLogError(SC_ERR_LUA_ERROR, "luastate pool init failed, lua/luajit keywords won't work");
+            SCLogError("luastate pool init failed, lua/luajit keywords won't work");
             retval = -1;
         }
 
@@ -128,10 +128,9 @@ lua_State *LuajitGetState(void)
         s = (lua_State *)PoolGet(luajit_states);
         if (s != NULL) {
             if (luajit_states_cnt == luajit_states_size) {
-                SCLogWarning(SC_WARN_LUA_SCRIPT,
-                        "luajit states pool size %d "
-                        "reached. Increase luajit.states config option. "
-                        "See tickets #1577 and #1955",
+                SCLogWarning("luajit states pool size %d "
+                             "reached. Increase luajit.states config option. "
+                             "See tickets #1577 and #1955",
                         luajit_states_size);
             }
 

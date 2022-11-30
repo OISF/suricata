@@ -135,8 +135,7 @@ struct in_addr *ValidateIPV4Address(const char *addr_str)
         return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in ValidateIPV4Address. Exiting...");
+        FatalError("Fatal error encountered in ValidateIPV4Address. Exiting...");
     }
 
     if (inet_pton(AF_INET, addr_str, addr) <= 0) {
@@ -165,8 +164,7 @@ struct in6_addr *ValidateIPV6Address(const char *addr_str)
         return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in ValidateIPV6Address. Exiting...");
+        FatalError("Fatal error encountered in ValidateIPV6Address. Exiting...");
     }
 
     if (inet_pton(AF_INET6, addr_str, addr) <= 0) {

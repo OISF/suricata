@@ -81,10 +81,8 @@ void TmModuleDecodeWinDivertRegister(void)
 TmEcode NoWinDivertSupportExit(ThreadVars *tv, const void *initdata,
                                void **data)
 {
-    SCLogError(
-            SC_ERR_WINDIVERT_NOSUPPORT,
-            "Error creating thread %s: you do not have support for WinDivert "
-            "enabled; please recompile with --enable-windivert",
+    SCLogError("Error creating thread %s: you do not have support for WinDivert "
+               "enabled; please recompile with --enable-windivert",
             tv->name);
     exit(EXIT_FAILURE);
 }
@@ -196,15 +194,13 @@ static const char *WinDivertGetErrorString(DWORD error_code)
 /**
  * \brief logs a WinDivert error at Error level.
  */
-#define WinDivertLogError(err_code)                                            \
-    do {                                                                       \
-        const char *win_err_str = Win32GetErrorString((err_code), NULL);       \
-        SCLogError(SC_ERR_WINDIVERT_GENERIC,                                   \
-                   "WinDivertOpen failed, error %" PRId32 " (0x%08" PRIx32     \
-                   "): %s %s",                                                 \
-                   (uint32_t)(err_code), (uint32_t)(err_code), win_err_str,    \
-                   WinDivertGetErrorString(err_code));                         \
-        LocalFree((LPVOID)win_err_str);                                        \
+#define WinDivertLogError(err_code)                                                                \
+    do {                                                                                           \
+        const char *win_err_str = Win32GetErrorString((err_code), NULL);                           \
+        SCLogError("WinDivertOpen failed, error %" PRId32 " (0x%08" PRIx32 "): %s %s",             \
+                (uint32_t)(err_code), (uint32_t)(err_code), win_err_str,                           \
+                WinDivertGetErrorString(err_code));                                                \
+        LocalFree((LPVOID)win_err_str);                                                            \
     } while (0);
 
 /**
@@ -267,20 +263,17 @@ int WinDivertRegisterQueue(bool forward, char *filter_str)
     bool valid = WinDivertHelperCheckFilter(filter_str, layer, &error_str,
                                             &error_pos);
     if (!valid) {
-        SCLogWarning(
-                SC_ERR_WINDIVERT_INVALID_FILTER,
-                "Invalid filter \"%s\" supplied to WinDivert: %s at position "
-                "%" PRId32 "",
+        SCLogWarning("Invalid filter \"%s\" supplied to WinDivert: %s at position "
+                     "%" PRId32 "",
                 filter_str, error_str, error_pos);
-        SCReturnInt(SC_ERR_WINDIVERT_INVALID_FILTER);
+        SCReturnInt(-1);
     }
 
     /* initialize the queue */
     SCMutexLock(&g_wd_init_lock);
 
     if (g_wd_num >= WINDIVERT_MAX_QUEUE) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "Too many WinDivert queues specified %" PRId32 "", g_wd_num);
+        SCLogError("Too many WinDivert queues specified %" PRId32 "", g_wd_num);
         ret = -1;
         goto unlock;
     }
@@ -305,9 +298,8 @@ int WinDivertRegisterQueue(bool forward, char *filter_str)
     size_t copy_len =
             strlcpy(wd_qv->filter_str, filter_str, sizeof(wd_qv->filter_str));
     if (filter_len > copy_len) {
-        SCLogWarning(SC_ERR_WINDIVERT_TOOLONG_FILTER,
-                     "Queue length exceeds storage by %" PRId32 " bytes",
-                     (int32_t)(filter_len - copy_len));
+        SCLogWarning("Queue length exceeds storage by %" PRId32 " bytes",
+                (int32_t)(filter_len - copy_len));
         ret = -1;
         goto unlock;
     }
@@ -526,14 +518,14 @@ TmEcode ReceiveWinDivertThreadInit(ThreadVars *tv, const void *initdata,
     WinDivertThreadVars *wd_tv = (WinDivertThreadVars *)initdata;
 
     if (wd_tv == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        SCLogError("initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     WinDivertQueueVars *wd_qv = WinDivertGetQueue(wd_tv->thread_num);
 
     if (wd_qv == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "queue == NULL");
+        SCLogError("queue == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -549,8 +541,7 @@ TmEcode ReceiveWinDivertThreadInit(ThreadVars *tv, const void *initdata,
     if (WinDivertCollectFilterDevices(wd_tv, wd_qv) == TM_ECODE_OK) {
         WinDivertDisableOffloading(wd_tv);
     } else {
-        SCLogWarning(SC_ERR_SYSCALL,
-                     "Failed to obtain network devices for WinDivert filter");
+        SCLogWarning("Failed to obtain network devices for WinDivert filter");
     }
 
     /* we open now so that we can immediately start handling packets,
@@ -643,8 +634,7 @@ static bool WinDivertIfaceMatchFilter(const char *filter_string, int if_index)
     if (!match) {
         int err = GetLastError();
         if (err != 0) {
-            SCLogWarning(SC_ERR_WINDIVERT_GENERIC,
-                         "Failed to evaluate filter: 0x%" PRIx32, err);
+            SCLogWarning("Failed to evaluate filter: 0x%" PRIx32, err);
         }
     }
 
@@ -716,7 +706,7 @@ void ReceiveWinDivertThreadExitStats(ThreadVars *tv, void *data)
     WinDivertThreadVars *wd_tv = (WinDivertThreadVars *)data;
     WinDivertQueueVars *wd_qv = WinDivertGetQueue(wd_tv->thread_num);
     if (wd_qv == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "queue == NULL");
+        SCLogError("queue == NULL");
         SCReturn;
     }
 
@@ -939,8 +929,7 @@ static TmEcode WinDivertCloseHelper(WinDivertThreadVars *wd_tv)
     }
 
     if (!WinDivertClose(wd_qv->filter_handle)) {
-        SCLogError(SC_ERR_FATAL, "WinDivertClose failed: error %" PRIu32 "",
-                   (uint32_t)(GetLastError()));
+        SCLogError("WinDivertClose failed: error %" PRIu32 "", (uint32_t)(GetLastError()));
         ret = TM_ECODE_FAILED;
         goto unlock;
     }

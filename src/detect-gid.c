@@ -75,12 +75,12 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
     char *endptr = NULL;
     gid = strtoul(rawstr, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
+        SCLogError("invalid character as arg "
                    "to gid keyword");
         goto error;
     }
     if (gid >= UINT_MAX) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "gid value to high, max %u", UINT_MAX);
+        SCLogError("gid value to high, max %u", UINT_MAX);
         goto error;
     }
 

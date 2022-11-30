@@ -281,7 +281,7 @@ static TmEcode UnixListAddFile(
         return TM_ECODE_FAILED;
     cfile = SCMalloc(sizeof(PcapFiles));
     if (unlikely(cfile == NULL)) {
-        SCLogError(SC_ENOMEM, "Unable to allocate new file");
+        SCLogError("Unable to allocate new file");
         return TM_ECODE_FAILED;
     }
     memset(cfile, 0, sizeof(PcapFiles));
@@ -289,7 +289,7 @@ static TmEcode UnixListAddFile(
     cfile->filename = SCStrdup(filename);
     if (unlikely(cfile->filename == NULL)) {
         SCFree(cfile);
-        SCLogError(SC_ENOMEM, "Unable to dup filename");
+        SCLogError("Unable to dup filename");
         return TM_ECODE_FAILED;
     }
 
@@ -298,7 +298,7 @@ static TmEcode UnixListAddFile(
         if (unlikely(cfile->output_dir == NULL)) {
             SCFree(cfile->filename);
             SCFree(cfile);
-            SCLogError(SC_ENOMEM, "Unable to dup output_dir");
+            SCLogError("Unable to dup output_dir");
             return TM_ECODE_FAILED;
         }
     }
@@ -339,7 +339,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
 
     json_t *jarg = json_object_get(cmd, "filename");
     if (!json_is_string(jarg)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "filename is not a string");
+        SCLogError("filename is not a string");
         json_object_set_new(answer, "message",
                             json_string("filename is not a string"));
         return TM_ECODE_FAILED;
@@ -358,7 +358,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     json_t *oarg = json_object_get(cmd, "output-dir");
     if (oarg != NULL) {
         if (!json_is_string(oarg)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "output-dir is not a string");
+            SCLogError("output-dir is not a string");
 
             json_object_set_new(answer, "message",
                                 json_string("output-dir is not a string"));
@@ -366,7 +366,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         }
         output_dir = json_string_value(oarg);
     } else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "can't get output-dir");
+        SCLogError("can't get output-dir");
 
         json_object_set_new(answer, "message",
                             json_string("output-dir param is mandatory"));
@@ -401,7 +401,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     json_t *delay_arg = json_object_get(cmd, "delay");
     if (delay_arg != NULL) {
         if (!json_is_integer(delay_arg)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "delay is not a integer");
+            SCLogError("delay is not a integer");
             json_object_set_new(answer, "message",
                                 json_string("delay is not a integer"));
             return TM_ECODE_FAILED;
@@ -412,7 +412,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     json_t *interval_arg = json_object_get(cmd, "poll-interval");
     if (interval_arg != NULL) {
         if (!json_is_integer(interval_arg)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "poll-interval is not a integer");
+            SCLogError("poll-interval is not a integer");
 
             json_object_set_new(answer, "message",
                                 json_string("poll-interval is not a integer"));
@@ -515,8 +515,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     this->running = 1;
 
     if (ConfSetFinal("pcap-file.file", cfile->filename) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set working file to '%s'",
-                   cfile->filename);
+        SCLogError("Can not set working file to '%s'", cfile->filename);
         PcapFilesFree(cfile);
         return TM_ECODE_FAILED;
     }
@@ -528,7 +527,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         set_res = ConfSetFinal("pcap-file.continuous", "false");
     }
     if (set_res != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set continuous mode for pcap processing");
+        SCLogError("Can not set continuous mode for pcap processing");
         PcapFilesFree(cfile);
         return TM_ECODE_FAILED;
     }
@@ -538,7 +537,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         set_res = ConfSetFinal("pcap-file.delete-when-done", "false");
     }
     if (set_res != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set delete mode for pcap processing");
+        SCLogError("Can not set delete mode for pcap processing");
         PcapFilesFree(cfile);
         return TM_ECODE_FAILED;
     }
@@ -547,7 +546,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->delay);
         if (ConfSetFinal("pcap-file.delay", tstr) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set delay to '%s'", tstr);
+            SCLogError("Can not set delay to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
@@ -557,8 +556,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->poll_interval);
         if (ConfSetFinal("pcap-file.poll-interval", tstr) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                       "Can not set poll-interval to '%s'", tstr);
+            SCLogError("Can not set poll-interval to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
@@ -568,8 +566,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         char tstr[16];
         snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
         if (ConfSetFinal("pcap-file.tenant-id", tstr) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                       "Can not set working tenant-id to '%s'", tstr);
+            SCLogError("Can not set working tenant-id to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
@@ -579,8 +576,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     if (cfile->output_dir) {
         if (ConfSetFinal("default-log-dir", cfile->output_dir) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                       "Can not set output dir to '%s'", cfile->output_dir);
+            SCLogError("Can not set output dir to '%s'", cfile->output_dir);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
@@ -1073,7 +1069,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
+        SCLogError("failed to load yaml %s", filename);
         json_object_set_new(answer, "message", json_string("failed to load yaml"));
         return TM_ECODE_FAILED;
     }
@@ -1512,8 +1508,9 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
     value_str = (char *)json_string_value(jarg);
 
     if (ParseSizeStringU64(value_str, &value) < 0) {
-        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
-                   "memcap from unix socket: %s", value_str);
+        SCLogError("Error parsing "
+                   "memcap from unix socket: %s",
+                value_str);
         json_object_set_new(answer, "message",
                             json_string("error parsing memcap specified, "
                                         "value not changed"));
@@ -1685,7 +1682,7 @@ static int RunModeUnixSocketMaster(void)
 
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
     if (unlikely(pcapcmd == NULL)) {
-        SCLogError(SC_ENOMEM, "Can not allocate pcap command");
+        SCLogError("Can not allocate pcap command");
         return 1;
     }
     TAILQ_INIT(&pcapcmd->files);

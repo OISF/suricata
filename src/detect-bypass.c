@@ -72,8 +72,7 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *sm = NULL;
 
     if (s->flags & SIG_FLAG_FILESTORE) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "bypass can't work with filestore keyword");
+        SCLogError("bypass can't work with filestore keyword");
         return -1;
     }
     s->flags |= SIG_FLAG_BYPASS;

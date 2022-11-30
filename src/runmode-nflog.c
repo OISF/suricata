@@ -85,7 +85,7 @@ static void *ParseNflogConfig(const char *group)
     strlcpy(nflogconf->numgroup, group, sizeof(nflogconf->numgroup));
 
     if (ParseSizeStringU16(group, &nflogconf->group) < 0) {
-        FatalError(SC_ERR_FATAL, "NFLOG's group number invalid.");
+        FatalError("NFLOG's group number invalid.");
     }
 
     boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
@@ -94,7 +94,7 @@ static void *ParseNflogConfig(const char *group)
     if (boolval)
         nflogconf->nlbufsiz = bufsize;
     else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid buffer-size value");
+        SCLogError("Invalid buffer-size value");
         SCFree(nflogconf);
         return NULL;
     }
@@ -105,14 +105,14 @@ static void *ParseNflogConfig(const char *group)
     if (boolval)
         nflogconf->nlbufsiz_max = bufsize_max;
     else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid max-size value");
+        SCLogError("Invalid max-size value");
         SCFree(nflogconf);
         return NULL;
     }
 
     if (nflogconf->nlbufsiz > nflogconf->nlbufsiz_max) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "buffer-size value larger "
-                "than max-size value, adjusting buffer-size");
+        SCLogWarning("buffer-size value larger "
+                     "than max-size value, adjusting buffer-size");
         nflogconf->nlbufsiz = nflogconf->nlbufsiz_max;
     }
 
@@ -122,7 +122,7 @@ static void *ParseNflogConfig(const char *group)
     if (boolval)
         nflogconf->qthreshold = qthreshold;
     else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid qthreshold value");
+        SCLogError("Invalid qthreshold value");
         SCFree(nflogconf);
         return NULL;
     }
@@ -133,7 +133,7 @@ static void *ParseNflogConfig(const char *group)
     if (boolval)
         nflogconf->qtimeout = qtimeout;
     else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid qtimeout value");
+        SCLogError("Invalid qtimeout value");
         SCFree(nflogconf);
         return NULL;
     }
@@ -159,7 +159,7 @@ static int RunModeIdsNflogAutoFp(void)
     int ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig, NflogConfigGeThreadsCount,
             "ReceiveNFLOG", "DecodeNFLOG", thread_name_autofp, NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogInfo("RunModeIdsNflogAutoFp initialised");
@@ -179,7 +179,7 @@ static int RunModeIdsNflogSingle(void)
     int ret = RunModeSetLiveCaptureSingle(ParseNflogConfig, NflogConfigGeThreadsCount,
             "ReceiveNFLOG", "DecodeNFLOG", thread_name_single, NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogInfo("RunModeIdsNflogSingle initialised");
@@ -199,7 +199,7 @@ static int RunModeIdsNflogWorkers(void)
     int ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig, NflogConfigGeThreadsCount,
             "ReceiveNFLOG", "DecodeNFLOG", thread_name_workers, NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogInfo("RunModeIdsNflogWorkers initialised");

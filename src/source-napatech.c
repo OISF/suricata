@@ -67,9 +67,8 @@ void TmModuleNapatechDecodeRegister(void)
 
 TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    SCLogError(SC_ERR_NAPATECH_NOSUPPORT,
-            "Error creating thread %s: you do not have support for Napatech adapter "
-            "enabled please recompile with --enable-napatech",
+    SCLogError("Error creating thread %s: you do not have support for Napatech adapter "
+               "enabled please recompile with --enable-napatech",
             tv->name);
     exit(EXIT_FAILURE);
 }
@@ -268,8 +267,7 @@ int NapatechSetPortmap(int port, int peer)
         inline_port_map[port] = peer;
         inline_port_map[peer] = port;
     } else {
-        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                "Port pairing is already configured.");
+        SCLogError("Port pairing is already configured.");
         return 0;
     }
     return 1;
@@ -293,7 +291,7 @@ int NapatechGetAdapter(uint8_t port)
 
     if (unlikely(port_adapter_map[port] == -1)) {
         if ((status = NT_InfoOpen(&h_info_stream, "ExampleInfo")) != NT_SUCCESS) {
-            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            NAPATECH_ERROR(status);
             return -1;
         }
         /* Read the system info */
@@ -301,7 +299,7 @@ int NapatechGetAdapter(uint8_t port)
         h_info.u.port_v9.portNo = (uint8_t) port;
         if ((status = NT_InfoRead(h_info_stream, &h_info)) != NT_SUCCESS) {
             /* Get the status code as text */
-            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            NAPATECH_ERROR(status);
             NT_InfoClose(h_info_stream);
             return -1;
         }
@@ -381,8 +379,8 @@ static NtFlowStream_t InitFlowStream(int adapter, int stream_id)
     snprintf(flow_name, sizeof(flow_name), "Flow_stream_%d", stream_id );
     SCLogDebug("Opening flow programming stream:  %s", flow_name);
     if ((status = NT_FlowOpen_Attr(&hFlowStream, flow_name, &attr)) != NT_SUCCESS) {
-        SCLogWarning(SC_WARN_COMPATIBILITY,
-                "Napatech bypass functionality not supported by the FPGA version on adapter %d - disabling support.",
+        SCLogWarning("Napatech bypass functionality not supported by the FPGA version on adapter "
+                     "%d - disabling support.",
                 adapter);
         return NULL;
     }
@@ -596,7 +594,7 @@ static int ProgramFlow(Packet *p, int is_inline)
 
     if (NT_FlowWrite(ntpv->flow_stream, &flow_match, -1) != NT_SUCCESS) {
         if (!(suricata_ctl_flags & SURICATA_STOP)) {
-            SCLogError(SC_ERR_NAPATECH_OPEN_FAILED,"NT_FlowWrite failed!.");
+            SCLogError("NT_FlowWrite failed!.");
             exit(EXIT_FAILURE);
         }
     }
@@ -651,8 +649,7 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
 
     NapatechThreadVars *ntv = SCCalloc(1, sizeof (NapatechThreadVars));
     if (unlikely(ntv == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Failed to allocate memory for NAPATECH  thread vars.");
+        FatalError("Failed to allocate memory for NAPATECH  thread vars.");
     }
 
     memset(ntv, 0, sizeof (NapatechThreadVars));
@@ -719,8 +716,7 @@ static int GetNumaNode(void)
     cpu = sched_getcpu();
     node = numa_node_of_cpu(cpu);
 #else
-    SCLogWarning(SC_ERR_NAPATECH_NOSUPPORT,
-            "Auto configuration of NUMA node is not supported on this OS.");
+    SCLogWarning("Auto configuration of NUMA node is not supported on this OS.");
 #endif
 
     return node;
@@ -775,8 +771,8 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
                 "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2,
                 string3);
     } else if (log_level == SC_LOG_ERROR) {
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
-                "Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream NUMA config.");
+        SCLogError("Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream "
+                   "NUMA config.");
     }
 }
 
@@ -870,14 +866,12 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             closer = 1;
 
             if (status == 0x20002061) {
-                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
-                        "Check host buffer configuration in ntservice.ini.");
+                SCLogError("Check host buffer configuration in ntservice.ini.");
                 RecommendNUMAConfig(SC_LOG_ERROR);
                 exit(EXIT_FAILURE);
 
             } else if (status == 0x20000008) {
-                        FatalError(SC_ERR_FATAL,
-                                   "Check napatech.ports in the suricata config file.");
+                FatalError("Check napatech.ports in the suricata config file.");
             }
             RecommendNUMAConfig(SC_LOG_PERF);
             SCLogNotice("Napatech packet input engine started.");
@@ -891,8 +885,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     if (ntv->hba > 0) {
         char *s_hbad_pkt = SCCalloc(1, 32);
         if (unlikely(s_hbad_pkt == NULL)) {
-                    FatalError(SC_ERR_FATAL,
-                               "Failed to allocate memory for NAPATECH stream counter.");
+            FatalError("Failed to allocate memory for NAPATECH stream counter.");
         }
         snprintf(s_hbad_pkt, 32, "nt%d.hba_drop", ntv->stream_id);
         hba_pkt = StatsRegisterCounter(s_hbad_pkt, tv);
@@ -904,7 +897,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream",
             NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
 
-        NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+        NAPATECH_ERROR(status);
         SCFree(ntv);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -929,7 +922,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             }
             continue;
         } else if (unlikely(status != NT_SUCCESS)) {
-            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            NAPATECH_ERROR(status);
             SCLogInfo("Failed to read from Napatech Stream %d: %s",
                     ntv->stream_id, error_buffer);
             break;
@@ -973,8 +966,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0);
                 break;
             default:
-                SCLogError(SC_ERR_NAPATECH_TIMESTAMP_TYPE_NOT_SUPPORTED,
-                        "Packet from Napatech Stream: %u does not have a supported timestamp format",
+                SCLogError("Packet from Napatech Stream: %u does not have a supported timestamp "
+                           "format",
                         ntv->stream_id);
                 NT_NetRxRelease(ntv->rx_stream, packet_buffer);
                 SCReturnInt(TM_ECODE_FAILED);
@@ -985,7 +978,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             stat_cmd.cmd = NT_NETRX_READ_CMD_STREAM_DROP;
             /* Update drop counter */
             if (unlikely((status = NT_NetRxRead(ntv->rx_stream, &stat_cmd)) != NT_SUCCESS)) {
-                NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+                NAPATECH_ERROR(status);
                 SCLogInfo("Couldn't retrieve drop statistics from the RX stream: %u",
                         ntv->stream_id);
             } else {
@@ -1122,8 +1115,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data)
             DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         default:
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
-                    "Datalink type %" PRId32 " not yet supported in module NapatechDecode",
+            SCLogError("Datalink type %" PRId32 " not yet supported in module NapatechDecode",
                     p->datalink);
             break;
     }

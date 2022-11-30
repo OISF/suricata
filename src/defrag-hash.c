@@ -192,9 +192,9 @@ void DefragInitConfig(bool quiet)
     if ((ConfGet("defrag.memcap", &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &defrag_memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing defrag.memcap "
+            SCLogError("Error parsing defrag.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(defrag_config.memcap, defrag_memcap);
@@ -227,18 +227,18 @@ void DefragInitConfig(bool quiet)
     /* alloc hash memory */
     uint64_t hash_size = defrag_config.hash_size * sizeof(DefragTrackerHashRow);
     if (!(DEFRAG_CHECK_MEMCAP(hash_size))) {
-        SCLogError(SC_ERR_DEFRAG_INIT, "allocating defrag hash failed: "
-                "max defrag memcap is smaller than projected hash size. "
-                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
-                "total hash size by multiplying \"defrag.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", SC_ATOMIC_GET(defrag_config.memcap), hash_size,
+        SCLogError("allocating defrag hash failed: "
+                   "max defrag memcap is smaller than projected hash size. "
+                   "Memcap: %" PRIu64 ", Hash table size %" PRIu64 ". Calculate "
+                   "total hash size by multiplying \"defrag.hash-size\" with %" PRIuMAX ", "
+                   "which is the hash bucket size.",
+                SC_ATOMIC_GET(defrag_config.memcap), hash_size,
                 (uintmax_t)sizeof(DefragTrackerHashRow));
         exit(EXIT_FAILURE);
     }
     defragtracker_hash = SCCalloc(defrag_config.hash_size, sizeof(DefragTrackerHashRow));
     if (unlikely(defragtracker_hash == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in DefragTrackerInitConfig. Exiting...");
+        FatalError("Fatal error encountered in DefragTrackerInitConfig. Exiting...");
     }
     memset(defragtracker_hash, 0, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
 
@@ -261,16 +261,18 @@ void DefragInitConfig(bool quiet)
             /* pre allocate defrag trackers */
             for (i = 0; i < defrag_config.prealloc; i++) {
                 if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
-                    SCLogError(SC_ERR_DEFRAG_INIT, "preallocating defrag trackers failed: "
-                            "max defrag memcap reached. Memcap %"PRIu64", "
-                            "Memuse %"PRIu64".", SC_ATOMIC_GET(defrag_config.memcap),
-                            ((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)sizeof(DefragTracker)));
+                    SCLogError("preallocating defrag trackers failed: "
+                               "max defrag memcap reached. Memcap %" PRIu64 ", "
+                               "Memuse %" PRIu64 ".",
+                            SC_ATOMIC_GET(defrag_config.memcap),
+                            ((uint64_t)SC_ATOMIC_GET(defrag_memuse) +
+                                    (uint64_t)sizeof(DefragTracker)));
                     exit(EXIT_FAILURE);
                 }
 
                 DefragTracker *h = DefragTrackerAlloc();
                 if (h == NULL) {
-                    SCLogError(SC_ERR_DEFRAG_INIT, "preallocating defrag failed: %s", strerror(errno));
+                    SCLogError("preallocating defrag failed: %s", strerror(errno));
                     exit(EXIT_FAILURE);
                 }
                 DefragTrackerEnqueue(&defragtracker_spare_q,h);

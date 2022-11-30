@@ -371,9 +371,9 @@ void StreamTcpInitConfig(bool quiet)
     SC_ATOMIC_INIT(stream_config.reassembly_memcap);
 
     if ((ConfGetInt("stream.max-sessions", &value)) == 1) {
-        SCLogWarning(SC_WARN_OPTION_OBSOLETE, "max-sessions is obsolete. "
-            "Number of concurrent sessions is now only limited by Flow and "
-            "TCP stream engine memcaps.");
+        SCLogWarning("max-sessions is obsolete. "
+                     "Number of concurrent sessions is now only limited by Flow and "
+                     "TCP stream engine memcaps.");
     }
 
     if ((ConfGetInt("stream.prealloc-sessions", &value)) == 1) {
@@ -399,9 +399,9 @@ void StreamTcpInitConfig(bool quiet)
     if (ConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
         uint64_t stream_memcap_copy;
         if (ParseSizeStringU64(temp_stream_memcap_str, &stream_memcap_copy) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing stream.memcap "
+            SCLogError("Error parsing stream.memcap "
                        "from conf file - %s.  Killing engine",
-                       temp_stream_memcap_str);
+                    temp_stream_memcap_str);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(stream_config.memcap, stream_memcap_copy);
@@ -517,10 +517,10 @@ void StreamTcpInitConfig(bool quiet)
         uint64_t stream_reassembly_memcap_copy;
         if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
                                &stream_reassembly_memcap_copy) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "stream.reassembly.memcap "
                        "from conf file - %s.  Killing engine",
-                       temp_stream_reassembly_memcap_str);
+                    temp_stream_reassembly_memcap_str);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(stream_config.reassembly_memcap, stream_reassembly_memcap_copy);
@@ -538,10 +538,10 @@ void StreamTcpInitConfig(bool quiet)
     if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
         if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
                                &stream_config.reassembly_depth) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "stream.reassembly.depth "
                        "from conf file - %s.  Killing engine",
-                       temp_stream_reassembly_depth_str);
+                    temp_stream_reassembly_depth_str);
             exit(EXIT_FAILURE);
         }
     } else {
@@ -564,15 +564,14 @@ void StreamTcpInitConfig(bool quiet)
         const char *temp_rdrange;
         if (ConfGet("stream.reassembly.randomize-chunk-range", &temp_rdrange) == 1) {
             if (ParseSizeStringU16(temp_rdrange, &rdrange) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
-                        "stream.reassembly.randomize-chunk-range "
-                        "from conf file - %s.  Killing engine",
+                SCLogError("Error parsing "
+                           "stream.reassembly.randomize-chunk-range "
+                           "from conf file - %s.  Killing engine",
                         temp_rdrange);
                 exit(EXIT_FAILURE);
             } else if (rdrange >= 100) {
-                           FatalError(SC_ERR_FATAL,
-                                      "stream.reassembly.randomize-chunk-range "
-                                      "must be lower than 100");
+                FatalError("stream.reassembly.randomize-chunk-range "
+                           "must be lower than 100");
             }
         }
     }
@@ -582,10 +581,10 @@ void StreamTcpInitConfig(bool quiet)
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
                                &stream_config.reassembly_toserver_chunk_size) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "stream.reassembly.toserver-chunk-size "
                        "from conf file - %s.  Killing engine",
-                       temp_stream_reassembly_toserver_chunk_size_str);
+                    temp_stream_reassembly_toserver_chunk_size_str);
             exit(EXIT_FAILURE);
         }
     } else {
@@ -604,10 +603,10 @@ void StreamTcpInitConfig(bool quiet)
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
                                &stream_config.reassembly_toclient_chunk_size) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "stream.reassembly.toclient-chunk-size "
                        "from conf file - %s.  Killing engine",
-                       temp_stream_reassembly_toclient_chunk_size_str);
+                    temp_stream_reassembly_toclient_chunk_size_str);
             exit(EXIT_FAILURE);
         }
     } else {
@@ -5466,7 +5465,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
     SCMutexUnlock(&ssn_pool_mutex);
     if (stt->ssn_pool_id < 0 || ssn_pool == NULL) {
-        SCLogError(sc_errno, "failed to setup/expand stream session pool. Expand stream.memcap?");
+        SCLogError("failed to setup/expand stream session pool. Expand stream.memcap?");
         SCReturnInt(TM_ECODE_FAILED);
     }
 

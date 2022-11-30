@@ -77,7 +77,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     /* retrieve the sm to apply the within against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "within needs "
+        SCLogError("within needs "
                    "preceding content option");
         goto end;
     }
@@ -85,47 +85,47 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd->flags & DETECT_CONTENT_WITHIN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple withins for the same content.");
+        SCLogError("can't use multiple withins for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+        SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
-                   "content." );
+                   "content.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "negated keyword set along with a fast_pattern");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "keyword set along with a fast_pattern:only;");
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(str, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
-                       "seen in within - %s\n", str);
+            SCLogError("unknown byte_ keyword var "
+                       "seen in within - %s\n",
+                    str);
             goto end;
         }
         cd->within = index;
         cd->flags |= DETECT_CONTENT_WITHIN_VAR;
     } else {
         if (StringParseInt32(&cd->within, 0, 0, str) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                      "invalid value for within: %s", str);
+            SCLogError("invalid value for within: %s", str);
             goto end;
         }
 
         if (cd->within < (int32_t)cd->content_len) {
-            SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                       "less than the content length \"%"PRIu32"\" which is invalid, since "
-                       "this will never match.  Invalidating signature", cd->within,
-                       cd->content_len);
+            SCLogError("within argument \"%" PRIi32 "\" is "
+                       "less than the content length \"%" PRIu32 "\" which is invalid, since "
+                       "this will never match.  Invalidating signature",
+                    cd->within, cd->content_len);
             goto end;
         }
     }
@@ -143,7 +143,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *prev_cd = (DetectContentData *)prev_pm->ctx;
         if (prev_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
+            SCLogError("previous keyword "
                        "has a fast_pattern:only; set. Can't "
                        "have relative keywords around a fast_pattern "
                        "only content");

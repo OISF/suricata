@@ -70,7 +70,7 @@ static void WaitForChild (pid_t pid)
         if (waitpid(pid, &status, WNOHANG)) {
             /* Check if the child is still there, otherwise the parent should exit */
             if (WIFEXITED(status) || WIFSIGNALED(status)) {
-                FatalError(SC_ERR_FATAL, "Child died unexpectedly");
+                FatalError("Child died unexpectedly");
             }
         }
         /* sigsuspend(); */
@@ -121,26 +121,25 @@ void Daemonize (void)
 
     if (pid < 0) {
         /* Fork error */
-        FatalError(SC_ERR_FATAL, "Error forking the process");
+        FatalError("Error forking the process");
     } else if (pid == 0) {
         /* Child continues here */
         const char *daemondir;
 
         sid = setsid();
         if (sid < 0) {
-            FatalError(SC_ERR_FATAL, "Error creating new session");
+            FatalError("Error creating new session");
         }
 
         if (ConfGet("daemon-directory", &daemondir) == 1) {
             if ((chdir(daemondir)) < 0) {
-                FatalError(SC_ERR_FATAL,
-                           "Error changing to working directory");
+                FatalError("Error changing to working directory");
             }
         }
 #ifndef OS_WIN32
         else {
             if (chdir("/") < 0) {
-                SCLogError(SC_ERR_DAEMON, "Error changing to working directory '/'");
+                SCLogError("Error changing to working directory '/'");
             }
         }
 #endif
@@ -180,10 +179,10 @@ int CheckValidDaemonModes (int daemon, int mode)
     if (daemon) {
         switch (mode) {
             case RUNMODE_PCAP_FILE:
-                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
+                SCLogError("ERROR: pcap offline mode cannot run as daemon");
                 return 0;
             case RUNMODE_UNITTEST:
-                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
+                SCLogError("ERROR: unittests cannot run as daemon");
                 return 0;
             default:
                 SCLogDebug("Allowed mode");

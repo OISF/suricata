@@ -43,9 +43,8 @@ void ParseSizeInit(void)
     if (parse_regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 PARSE_REGEX, (int)eo, errbuffer);
         exit(EXIT_FAILURE);
     }
@@ -71,13 +70,12 @@ static int ParseSizeString(const char *size, double *res)
     *res = 0;
 
     if (size == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS,"invalid size argument - NULL. Valid size "
+        SCLogError("invalid size argument - NULL. Valid size "
                    "argument should be in the format - \n"
                    "xxx <- indicates it is just bytes\n"
                    "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
                    "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
-                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n"
-			    );
+                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n");
         retval = -2;
         goto end;
     }
@@ -86,13 +84,13 @@ static int ParseSizeString(const char *size, double *res)
             parse_regex, (PCRE2_SPTR8)size, strlen(size), 0, 0, parse_regex_match, NULL);
 
     if (!(pcre2_match_ret == 2 || pcre2_match_ret == 3)) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid size argument - %s. Valid size "
+        SCLogError("invalid size argument - %s. Valid size "
                    "argument should be in the format - \n"
                    "xxx <- indicates it is just bytes\n"
                    "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
                    "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
                    "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n",
-                   size);
+                size);
         retval = -2;
         goto end;
     }
@@ -100,7 +98,7 @@ static int ParseSizeString(const char *size, double *res)
     size_t copylen = sizeof(str);
     r = pcre2_substring_copy_bynumber(parse_regex_match, 1, (PCRE2_UCHAR8 *)str, &copylen);
     if (r < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         retval = -2;
         goto end;
     }
@@ -109,11 +107,11 @@ static int ParseSizeString(const char *size, double *res)
     errno = 0;
     *res = strtod(str_ptr, &endptr);
     if (errno == ERANGE) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        SCLogError("Numeric value out of range");
         retval = -1;
         goto end;
     } else if (endptr == str_ptr) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        SCLogError("Invalid numeric value");
         retval = -1;
         goto end;
     }
@@ -123,7 +121,7 @@ static int ParseSizeString(const char *size, double *res)
         r = pcre2_substring_copy_bynumber(parse_regex_match, 2, (PCRE2_UCHAR8 *)str2, &copylen);
 
         if (r < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             retval = -2;
             goto end;
         }

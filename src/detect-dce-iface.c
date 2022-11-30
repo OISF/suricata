@@ -149,7 +149,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     void *did = rs_dcerpc_iface_parse(arg);
     if (did == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_iface option in "
+        SCLogError("Error parsing dce_iface option in "
                    "signature");
         return -1;
     }

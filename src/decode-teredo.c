@@ -92,8 +92,7 @@ static void DecodeTeredoConfigPorts(const char *pstr)
     g_teredo_ports_cnt = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
         if (g_teredo_ports_cnt >= TEREDO_MAX_PORTS) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "only %d Teredo ports can be defined",
-                    TEREDO_MAX_PORTS);
+            SCLogWarning("only %d Teredo ports can be defined", TEREDO_MAX_PORTS);
             break;
         }
         g_teredo_ports[g_teredo_ports_cnt++] = (int)p->port;

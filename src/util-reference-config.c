@@ -63,9 +63,8 @@ void SCReferenceConfInit(void)
     if (regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogWarning(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogWarning("pcre2 compile of \"%s\" failed at "
+                     "offset %d: %s",
                 SC_RCONF_REGEX, (int)eo, errbuffer);
         return;
     }
@@ -109,7 +108,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
                                               SCRConfReferenceHashCompareFunc,
                                               SCRConfReferenceHashFree);
     if (de_ctx->reference_conf_ht == NULL) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
+        SCLogError("Error initializing the hash "
                    "table");
         return NULL;
     }
@@ -126,8 +125,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
                 return NULL; // silently fail
             }
 #endif
-            SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename,
-                       strerror(errno));
+            SCLogError("Error opening file: \"%s\": %s", filename, strerror(errno));
             return NULL;
         }
     }
@@ -239,7 +237,7 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     ret = pcre2_match(regex, (PCRE2_SPTR8)line, strlen(line), 0, 0, regex_match, NULL);
     if (ret < 0) {
-        SCLogError(SC_ERR_REFERENCE_CONFIG, "Invalid Reference Config in "
+        SCLogError("Invalid Reference Config in "
                    "reference.config file");
         goto error;
     }
@@ -248,7 +246,7 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
     size_t copylen = sizeof(system);
     ret = pcre2_substring_copy_bynumber(regex_match, 1, (PCRE2_UCHAR8 *)system, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber() failed");
+        SCLogError("pcre2_substring_copy_bynumber() failed");
         goto error;
     }
 
@@ -256,7 +254,7 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
     copylen = sizeof(url);
     ret = pcre2_substring_copy_bynumber(regex_match, 2, (PCRE2_UCHAR8 *)url, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber() failed");
+        SCLogError("pcre2_substring_copy_bynumber() failed");
         goto error;
     }
 
@@ -360,7 +358,7 @@ SCRConfReference *SCRConfAllocSCRConfReference(const char *system,
     SCRConfReference *ref = NULL;
 
     if (system == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arguments.  system NULL");
+        SCLogError("Invalid arguments.  system NULL");
         return NULL;
     }
 
@@ -502,8 +500,8 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
             return -1;
         }
 #endif
-        SCLogError(SC_ERR_OPENING_FILE, "please check the \"reference-config-file\" "
-                "option in your suricata.yaml file");
+        SCLogError("please check the \"reference-config-file\" "
+                   "option in your suricata.yaml file");
         return -1;
     }
 

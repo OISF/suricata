@@ -115,7 +115,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
 
     ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0);
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
     }
 
@@ -128,7 +128,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
         pcre2len = sizeof(copy_str);
         res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
 
@@ -143,7 +143,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 2, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
             }
 

@@ -154,7 +154,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
 
     ret = DetectParsePcreExec(&parse_regex, rpcstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, rpcstr);
+        SCLogError("parse error, ret %" PRId32 ", string %s", ret, rpcstr);
         goto error;
     }
 
@@ -163,7 +163,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -172,7 +172,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
             res = pcre2_substring_get_bynumber(
                     parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
@@ -181,7 +181,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
             res = pcre2_substring_get_bynumber(
                     parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -202,7 +202,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
             switch (i) {
                 case 0:
                     if (StringParseUint32(&rd->program, 10, strlen(args[i]), args[i]) <= 0) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc program:\"%s\"", args[i]);
+                        SCLogError("Invalid size specified for the rpc program:\"%s\"", args[i]);
                         goto error;
                     }
                     rd->flags |= DETECT_RPC_CHECK_PROGRAM;
@@ -210,7 +210,8 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                 case 1:
                     if (args[i][0] != '*') {
                         if (StringParseUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <= 0) {
-                            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc version:\"%s\"", args[i]);
+                            SCLogError(
+                                    "Invalid size specified for the rpc version:\"%s\"", args[i]);
                             goto error;
                         }
                         rd->flags |= DETECT_RPC_CHECK_VERSION;
@@ -219,7 +220,8 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                 case 2:
                     if (args[i][0] != '*') {
                         if (StringParseUint32(&rd->procedure, 10, strlen(args[i]), args[i]) <= 0) {
-                            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc procedure:\"%s\"", args[i]);
+                            SCLogError(
+                                    "Invalid size specified for the rpc procedure:\"%s\"", args[i]);
                             goto error;
                         }
                         rd->flags |= DETECT_RPC_CHECK_PROCEDURE;
@@ -227,7 +229,7 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                 break;
             }
         } else {
-            SCLogError(SC_EINVAL, "invalid rpc option %s", rpcstr);
+            SCLogError("invalid rpc option %s", rpcstr);
             goto error;
         }
     }

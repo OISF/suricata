@@ -113,8 +113,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                 bin_count++;
                 if (bin) {
                     if (binpos > 0) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                                "Incomplete hex code in content - %s. Invalidating signature.",
+                        SCLogError("Incomplete hex code in content - %s. Invalidating signature.",
                                 contentstr);
                         goto error;
                     }
@@ -150,8 +149,9 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                         // SCLogDebug("space as part of binary string");
                     }
                     else if (str[i] != ',') {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code in "
-                                    "content - %s, hex %c. Invalidating signature.", str, str[i]);
+                        SCLogError("Invalid hex code in "
+                                   "content - %s, hex %c. Invalidating signature.",
+                                str, str[i]);
                         goto error;
                     }
                 } else if (escape) {
@@ -163,13 +163,13 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                         str[x] = str[i];
                         x++;
                     } else {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "'%c' has to be escaped", str[i-1]);
+                        SCLogError("'%c' has to be escaped", str[i - 1]);
                         goto error;
                     }
                     escape = 0;
                     converted = 1;
                 } else if (str[i] == '"') {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid unescaped double quote within content section.");
+                    SCLogError("Invalid unescaped double quote within content section.");
                     goto error;
                 } else {
                     str[x] = str[i];
@@ -179,8 +179,9 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
         }
 
         if (bin_count % 2 != 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code assembly in "
-                       "%s - %s.  Invalidating signature.", keyword, contentstr);
+            SCLogError("Invalid hex code assembly in "
+                       "%s - %s.  Invalidating signature.",
+                    keyword, contentstr);
             goto error;
         }
 
@@ -350,9 +351,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
         const char *tstr;
         if (!DetectEngineBufferTypeValidateTransform(
                     de_ctx, sm_list, cd->content, cd->content_len, &tstr)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "content string \"%s\" incompatible with %s transform",
-                    contentstr, tstr);
+            SCLogError("content string \"%s\" incompatible with %s transform", contentstr, tstr);
             goto error;
         }
     }
@@ -480,8 +479,7 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
     if (min_dsize_required >= 0) {
         SCLogDebug("min_dsize %d; max_right_edge %d", min_dsize_required, max_right_edge);
         if ((uint32_t)min_dsize_required > max_right_edge) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as required content length %d exceeds dsize value %d",
+            SCLogError("signature can't match as required content length %d exceeds dsize value %d",
                     min_dsize_required, max_right_edge);
             return false;
         }

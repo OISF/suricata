@@ -288,7 +288,7 @@ LiveDevice *LiveGetDevice(const char *name)
     LiveDevice *pd;
 
     if (name == NULL) {
-        SCLogWarning(SC_EINVAL, "Name of device should not be null");
+        SCLogWarning("Name of device should not be null");
         return NULL;
     }
 
@@ -509,7 +509,7 @@ int LiveDevUseBypass(LiveDevice *dev)
 {
     BypassInfo *bpinfo = SCCalloc(1, sizeof(*bpinfo));
     if (bpinfo == NULL) {
-        SCLogError(SC_ENOMEM, "Can't allocate bypass info structure");
+        SCLogError("Can't allocate bypass info structure");
         return -1;
     }
 

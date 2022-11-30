@@ -67,7 +67,7 @@
 
 static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
 {
-    SCLogError(SC_ERR_NO_LUA_SUPPORT, "no Lua support built in, needed for lua/luajit keyword");
+    SCLogError("no Lua support built in, needed for lua/luajit keyword");
     return -1;
 }
 
@@ -268,9 +268,8 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                 if (strcmp(k, "retval") == 0) {
                     int val;
                     if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
-                        SCLogError(SC_EINVAL,
-                                "Invalid value "
-                                "for \"retval\" from LUA return table: '%s'",
+                        SCLogError("Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
                     }
@@ -425,9 +424,8 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                     int val;
                     if (StringParseInt32(&val, 10, 0,
                                          (const char *)v) < 0) {
-                        SCLogError(SC_EINVAL,
-                                "Invalid value "
-                                "for \"retval\" from LUA return table: '%s'",
+                        SCLogError("Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
                     }
@@ -536,9 +534,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
                     int val;
                     if (StringParseInt32(&val, 10, 0,
                                          (const char *)v) < 0) {
-                        SCLogError(SC_EINVAL,
-                                "Invalid value "
-                                "for \"retval\" from LUA return table: '%s'",
+                        SCLogError("Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
                     }
@@ -601,7 +598,7 @@ static void *DetectLuaThreadInit(void *data)
 
     DetectLuaThreadData *t = SCMalloc(sizeof(DetectLuaThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't alloc ctx memory");
+        SCLogError("couldn't alloc ctx memory");
         return NULL;
     }
     memset(t, 0x00, sizeof(DetectLuaThreadData));
@@ -611,7 +608,7 @@ static void *DetectLuaThreadInit(void *data)
 
     t->luastate = LuaGetState();
     if (t->luastate == NULL) {
-        SCLogError(SC_ERR_LUA_ERROR, "luastate pool depleted");
+        SCLogError("luastate pool depleted");
         goto error;
     }
 
@@ -631,14 +628,14 @@ static void *DetectLuaThreadInit(void *data)
     if (ut_script != NULL) {
         status = luaL_loadbuffer(t->luastate, ut_script, strlen(ut_script), "unittest");
         if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            SCLogError("couldn't load file: %s", lua_tostring(t->luastate, -1));
             goto error;
         }
     } else {
 #endif
         status = luaL_loadfile(t->luastate, lua->filename);
         if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            SCLogError("couldn't load file: %s", lua_tostring(t->luastate, -1));
             goto error;
         }
 #ifdef UNITTESTS
@@ -647,7 +644,7 @@ static void *DetectLuaThreadInit(void *data)
 
     /* prime the script (or something) */
     if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(t->luastate, -1));
+        SCLogError("couldn't prime file: %s", lua_tostring(t->luastate, -1));
         goto error;
     }
 
@@ -723,14 +720,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     if (ut_script != NULL) {
         status = luaL_loadbuffer(luastate, ut_script, strlen(ut_script), "unittest");
         if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            SCLogError("couldn't load file: %s", lua_tostring(luastate, -1));
             goto error;
         }
     } else {
 #endif
         status = luaL_loadfile(luastate, ld->filename);
         if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            SCLogError("couldn't load file: %s", lua_tostring(luastate, -1));
             goto error;
         }
 #ifdef UNITTESTS
@@ -739,19 +736,19 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
     /* prime the script (or something) */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't prime file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     lua_getglobal(luastate, "init");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no init function in script");
+        SCLogError("no init function in script");
         goto error;
     }
 
     lua_newtable(luastate); /* stack at -1 */
     if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUA_ERROR, "no table setup");
+        SCLogError("no table setup");
         goto error;
     }
 
@@ -760,17 +757,17 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     /* process returns from script */
     if (lua_gettop(luastate) == 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, nothing returned");
+        SCLogError("init function in script should return table, nothing returned");
         goto error;
     }
     if (lua_type(luastate, 1) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, returned is not table");
+        SCLogError("init function in script should return table, returned is not table");
         goto error;
     }
 
@@ -793,7 +790,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     lua_pop(luastate, 1);
 
                     if (ld->flowvars == DETECT_LUAJIT_MAX_FLOWVARS) {
-                        SCLogError(SC_ERR_LUA_ERROR, "too many flowvars registered");
+                        SCLogError("too many flowvars registered");
                         goto error;
                     }
 
@@ -815,7 +812,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     lua_pop(luastate, 1);
 
                     if (ld->flowints == DETECT_LUAJIT_MAX_FLOWINTS) {
-                        SCLogError(SC_ERR_LUA_ERROR, "too many flowints registered");
+                        SCLogError("too many flowints registered");
                         goto error;
                     }
 
@@ -837,15 +834,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     lua_pop(luastate, 1);
 
                     if (ld->bytevars == DETECT_LUAJIT_MAX_BYTEVARS) {
-                        SCLogError(SC_ERR_LUA_ERROR, "too many bytevars registered");
+                        SCLogError("too many bytevars registered");
                         goto error;
                     }
 
                     DetectByteIndexType idx;
                     if (!DetectByteRetrieveSMVar(value, s, &idx)) {
-                        SCLogError(SC_ERR_LUA_ERROR,
-                                "Unknown byte_extract or byte_math var "
-                                "requested by lua script - %s",
+                        SCLogError("Unknown byte_extract or byte_math var "
+                                   "requested by lua script - %s",
                                 value);
                         goto error;
                     }
@@ -872,7 +868,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
             ld->buffername = SCStrdup("buffer");
             if (ld->buffername == NULL) {
-                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                SCLogError("alloc error");
                 goto error;
             }
         } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
@@ -880,17 +876,18 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
             ld->buffername = SCStrdup("stream");
             if (ld->buffername == NULL) {
-                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                SCLogError("alloc error");
                 goto error;
             }
 
         } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
             if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP1) {
-                SCLogError(SC_ERR_LUA_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
+                SCLogError(
+                        "can just inspect script against one app layer proto like HTTP at a time");
                 goto error;
             }
             if (ld->flags != 0) {
-                SCLogError(SC_ERR_LUA_ERROR, "when inspecting HTTP buffers only a single buffer can be inspected");
+                SCLogError("when inspecting HTTP buffers only a single buffer can be inspected");
                 goto error;
             }
 
@@ -934,13 +931,13 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
 
             else {
-                SCLogError(SC_ERR_LUA_ERROR, "unsupported http data type %s", k);
+                SCLogError("unsupported http data type %s", k);
                 goto error;
             }
 
             ld->buffername = SCStrdup(k);
             if (ld->buffername == NULL) {
-                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                SCLogError("alloc error");
                 goto error;
             }
         } else if (strncmp(k, "dns", 3) == 0 && strcmp(v, "true") == 0) {
@@ -955,12 +952,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 ld->flags |= DATATYPE_DNS_RESPONSE;
 
             else {
-                SCLogError(SC_ERR_LUA_ERROR, "unsupported dns data type %s", k);
+                SCLogError("unsupported dns data type %s", k);
                 goto error;
             }
             ld->buffername = SCStrdup(k);
             if (ld->buffername == NULL) {
-                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                SCLogError("alloc error");
                 goto error;
             }
         } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
@@ -988,7 +985,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             ld->flags |= DATATYPE_DNP3;
 
         } else {
-            SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
+            SCLogError("unsupported data type %s", k);
             goto error;
         }
     }
@@ -1057,7 +1054,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
                 if (DetectBufferGetActiveList(de_ctx, s) != -1) {
                     list = s->init_data->list;
                 } else {
-                    SCLogError(SC_ERR_LUA_ERROR, "Lua and sticky buffer failure");
+                    SCLogError("Lua and sticky buffer failure");
                     goto error;
                 }
             } else
@@ -1103,14 +1100,12 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     } else if (lua->alproto == ALPROTO_DNP3) {
         list = DetectBufferTypeGetByName("dnp3");
     } else {
-        SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
-                   AppLayerGetProtoName(lua->alproto));
+        SCLogError("lua can't be used with protocol %s", AppLayerGetProtoName(lua->alproto));
         goto error;
     }
 
     if (list == -1) {
-        SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
-                   AppLayerGetProtoName(lua->alproto));
+        SCLogError("lua can't be used with protocol %s", AppLayerGetProtoName(lua->alproto));
         goto error;
     }
 

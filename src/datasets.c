@@ -112,7 +112,7 @@ static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
         if (value >= 0 && value <= 255)
             hash[x] = (uint8_t)value;
         else {
-            SCLogError(SC_ERR_INVALID_HASH, "hash byte out of range %ld", value);
+            SCLogError("hash byte out of range %ld", value);
             return -1;
         }
     }
@@ -156,8 +156,7 @@ static int ParseRepLine(const char *in, size_t ins, DataRepType *rep_out)
     uint16_t v = 0;
     int r = StringParseU16RangeCheck(&v, 10, strlen(ptrs[0]), ptrs[0], 0, USHRT_MAX);
     if (r != (int)strlen(ptrs[0])) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
-                "'%s' is not a valid reputation value (0-65535)", ptrs[0]);
+        SCLogError("'%s' is not a valid reputation value (0-65535)", ptrs[0]);
         return -1;
     }
     SCLogDebug("v %"PRIu16" raw %s", v, ptrs[0]);
@@ -179,7 +178,7 @@ static int DatasetLoadIPv4(Dataset *set)
 
     FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s", set->load, strerror(errno));
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
         return -1;
     }
 
@@ -193,14 +192,12 @@ static int DatasetLoadIPv4(Dataset *set)
 
             struct in_addr in;
             if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit(SC_ERR_DATASET, "dataset data parse failed %s/%s: %s", set->name,
-                        set->load, line);
+                FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
                 continue;
             }
 
             if (DatasetAdd(set, (const uint8_t *)&in.s_addr, 4) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -214,8 +211,7 @@ static int DatasetLoadIPv4(Dataset *set)
 
             struct in_addr in;
             if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit(SC_ERR_DATASET, "dataset data parse failed %s/%s: %s", set->name,
-                        set->load, line);
+                FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
                 continue;
             }
 
@@ -223,14 +219,13 @@ static int DatasetLoadIPv4(Dataset *set)
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad rep for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             SCLogDebug("rep v:%u", rep.value);
             if (DatasetAddwRep(set, (const uint8_t *)&in.s_addr, 4, &rep) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
 
@@ -251,8 +246,7 @@ static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
     if (got_colon) {
         uint32_t ip6addr[4];
         if (inet_pton(AF_INET6, line, in6) != 1) {
-            FatalErrorOnInit(SC_ERR_DATASET, "dataset data parse failed %s/%s: %s", set->name,
-                    set->load, line);
+            FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
             return -1;
         }
         memcpy(&ip6addr, in6->s6_addr, sizeof(ip6addr));
@@ -267,8 +261,7 @@ static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
         /* IPv4 case */
         struct in_addr in;
         if (inet_pton(AF_INET, line, &in) != 1) {
-            FatalErrorOnInit(SC_ERR_DATASET, "dataset data parse failed %s/%s: %s", set->name,
-                    set->load, line);
+            FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
             return -1;
         }
         memset(in6, 0, sizeof(struct in6_addr));
@@ -290,7 +283,7 @@ static int DatasetLoadIPv6(Dataset *set)
 
     FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s", set->load, strerror(errno));
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
         return -1;
     }
 
@@ -305,13 +298,12 @@ static int DatasetLoadIPv6(Dataset *set)
             struct in6_addr in6;
             int ret = ParseIpv6String(set, line, &in6);
             if (ret < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "unable to parse IP address");
+                FatalErrorOnInit("unable to parse IP address");
                 continue;
             }
 
             if (DatasetAdd(set, (const uint8_t *)&in6.s6_addr, 16) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -326,7 +318,7 @@ static int DatasetLoadIPv6(Dataset *set)
             struct in6_addr in6;
             int ret = ParseIpv6String(set, line, &in6);
             if (ret < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "unable to parse IP address");
+                FatalErrorOnInit("unable to parse IP address");
                 continue;
             }
 
@@ -334,14 +326,13 @@ static int DatasetLoadIPv6(Dataset *set)
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad rep for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             SCLogDebug("rep v:%u", rep.value);
             if (DatasetAddwRep(set, (const uint8_t *)&in6.s6_addr, 16, &rep) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
 
@@ -368,8 +359,7 @@ static int DatasetLoadMd5(Dataset *set)
 
     FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
-                set->load, strerror(errno));
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
         return -1;
     }
 
@@ -383,14 +373,12 @@ static int DatasetLoadMd5(Dataset *set)
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "bad hash for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             if (DatasetAdd(set, (const uint8_t *)hash, 16) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -402,29 +390,26 @@ static int DatasetLoadMd5(Dataset *set)
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "bad hash for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             DataRepType rep = { .value = 0};
             if (ParseRepLine(line + 33, strlen(line) - 33, &rep) < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad rep for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             SCLogDebug("rep v:%u", rep.value);
             if (DatasetAddwRep(set, hash, 16, &rep) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
 
             cnt++;
         }
         else {
-            FatalErrorOnInit(
-                    SC_ERR_DATASET, "MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
+            FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
             continue;
         }
     }
@@ -448,8 +433,7 @@ static int DatasetLoadSha256(Dataset *set)
 
     FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
-                set->load, strerror(errno));
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
         return -1;
     }
 
@@ -463,14 +447,12 @@ static int DatasetLoadSha256(Dataset *set)
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "bad hash for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             if (DatasetAdd(set, (const uint8_t *)hash, (uint32_t)32) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -482,22 +464,20 @@ static int DatasetLoadSha256(Dataset *set)
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "bad hash for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(line + 65, strlen(line) - 65, &rep) < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad rep for dataset %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             SCLogDebug("rep %u", rep.value);
 
             if (DatasetAddwRep(set, hash, 32, &rep) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -523,8 +503,7 @@ static int DatasetLoadString(Dataset *set)
 
     FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
-                set->load, strerror(errno));
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
         return -1;
     }
 
@@ -545,13 +524,12 @@ static int DatasetLoadString(Dataset *set)
             Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
                     strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
             if (code == BASE64_ECODE_ERR) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad base64 encoding %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
 
             if (DatasetAdd(set, (const uint8_t *)decoded, num_decoded) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -567,7 +545,7 @@ static int DatasetLoadString(Dataset *set)
             Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
                     strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
             if (code == BASE64_ECODE_ERR) {
-                FatalErrorOnInit(SC_ERR_DATASET, "bad base64 encoding %s/%s", set->name, set->load);
+                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
 
@@ -576,14 +554,13 @@ static int DatasetLoadString(Dataset *set)
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit(SC_ERR_DATASET, "die: bad rep");
+                FatalErrorOnInit("die: bad rep");
                 continue;
             }
             SCLogDebug("rep %u", rep.value);
 
             if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0) {
-                FatalErrorOnInit(
-                        SC_ERR_DATASET, "dataset data add failed %s/%s", set->name, set->load);
+                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
                 continue;
             }
             cnt++;
@@ -665,9 +642,9 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
-            SCLogError(SC_ERR_DATASET, "dataset %s already "
-                    "exists and is of type %u",
-                set->name, set->type);
+            SCLogError("dataset %s already "
+                       "exists and is of type %u",
+                    set->name, set->type);
             SCMutexUnlock(&sets_lock);
             return NULL;
         }
@@ -679,15 +656,13 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         } else {
             if ((save == NULL && strlen(set->save) > 0) ||
                     (save != NULL && strcmp(set->save, save) != 0)) {
-                SCLogError(SC_ERR_DATASET, "dataset %s save mismatch: %s != %s",
-                        set->name, set->save, save);
+                SCLogError("dataset %s save mismatch: %s != %s", set->name, set->save, save);
                 SCMutexUnlock(&sets_lock);
                 return NULL;
             }
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
-                SCLogError(SC_ERR_DATASET, "dataset %s load mismatch: %s != %s",
-                        set->name, set->load, load);
+                SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
                 SCMutexUnlock(&sets_lock);
                 return NULL;
             }
@@ -697,7 +672,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         return set;
     } else {
         if (type == DATASET_TYPE_NOTSET) {
-            SCLogError(SC_ERR_DATASET, "dataset %s not defined", name);
+            SCLogError("dataset %s not defined", name);
             goto out_err;
         }
     }
@@ -855,18 +830,16 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
     const char *str = NULL;
     if (ConfGet("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
-            SCLogWarning(SC_EINVAL,
-                    "memcap value cannot be deduced: %s,"
-                    " resetting to default",
+            SCLogWarning("memcap value cannot be deduced: %s,"
+                         " resetting to default",
                     str);
             *memcap = 0;
         }
     }
     if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
-            SCLogWarning(SC_EINVAL,
-                    "hashsize value cannot be deduced: %s,"
-                    " resetting to default",
+            SCLogWarning("hashsize value cannot be deduced: %s,"
+                         " resetting to default",
                     str);
             *hashsize = 0;
         }
@@ -897,8 +870,8 @@ int DatasetsInit(void)
 
             const char *set_name = iter->name;
             if (strlen(set_name) > DATASET_NAME_MAX_LEN) {
-                FatalErrorOnInit(SC_ERR_CONF_NAME_TOO_LONG, "set name '%s' too long, max %d chars",
-                        set_name, DATASET_NAME_MAX_LEN);
+                FatalErrorOnInit(
+                        "set name '%s' too long, max %d chars", set_name, DATASET_NAME_MAX_LEN);
                 continue;
             }
 
@@ -925,9 +898,8 @@ int DatasetsInit(void)
             ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
             if (set_memcap) {
                 if (ParseSizeStringU64(set_memcap->val, &memcap) < 0) {
-                    SCLogWarning(SC_EINVAL,
-                            "memcap value cannot be"
-                            " deduced: %s, resetting to default",
+                    SCLogWarning("memcap value cannot be"
+                                 " deduced: %s, resetting to default",
                             set_memcap->val);
                     memcap = 0;
                 }
@@ -935,9 +907,8 @@ int DatasetsInit(void)
             ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
             if (set_hashsize) {
                 if (ParseSizeStringU32(set_hashsize->val, &hashsize) < 0) {
-                    SCLogWarning(SC_EINVAL,
-                            "hashsize value cannot be"
-                            " deduced: %s, resetting to default",
+                    SCLogWarning("hashsize value cannot be"
+                                 " deduced: %s, resetting to default",
                             set_hashsize->val);
                     hashsize = 0;
                 }
@@ -952,7 +923,7 @@ int DatasetsInit(void)
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL) {
-                    FatalErrorOnInit(SC_ERR_DATASET, "failed to setup dataset for %s", set_name);
+                    FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -964,7 +935,7 @@ int DatasetsInit(void)
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL) {
-                    FatalErrorOnInit(SC_ERR_DATASET, "failed to setup dataset for %s", set_name);
+                    FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -976,7 +947,7 @@ int DatasetsInit(void)
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL) {
-                    FatalErrorOnInit(SC_ERR_DATASET, "failed to setup dataset for %s", set_name);
+                    FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);

@@ -48,26 +48,25 @@ int SCPidfileCreate(const char *pidfile)
 
     size_t len = snprintf(val, sizeof(val), "%"PRIuMAX"\n", (uintmax_t)getpid());
     if (len <= 0) {
-        SCLogError(SC_ERR_PIDFILE_SNPRINTF, "Pid error (%s)", strerror(errno));
+        SCLogError("Pid error (%s)", strerror(errno));
         SCReturnInt(-1);
     }
 
     pidfd = open(pidfile, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
     if (pidfd < 0) {
-        SCLogError(SC_ERR_PIDFILE_OPEN, "unable to set pidfile '%s': %s",
-                   pidfile,
-                   strerror(errno));
+        SCLogError("unable to set pidfile '%s': %s", pidfile, strerror(errno));
         SCReturnInt(-1);
     }
 
     ssize_t r = write(pidfd, val, (unsigned int)len);
     if (r == -1) {
-        SCLogError(SC_ERR_PIDFILE_WRITE, "unable to write pidfile: %s", strerror(errno));
+        SCLogError("unable to write pidfile: %s", strerror(errno));
         close(pidfd);
         SCReturnInt(-1);
     } else if ((size_t)r != len) {
-        SCLogError(SC_ERR_PIDFILE_WRITE, "unable to write pidfile: wrote"
-                " %"PRIdMAX" of %"PRIuMAX" bytes.", (intmax_t)r, (uintmax_t)len);
+        SCLogError("unable to write pidfile: wrote"
+                   " %" PRIdMAX " of %" PRIuMAX " bytes.",
+                (intmax_t)r, (uintmax_t)len);
         close(pidfd);
         SCReturnInt(-1);
     }
@@ -111,8 +110,7 @@ int SCPidfileTestRunning(const char *pid_filename)
     pf = fopen(pid_filename, "r");
     if (pf == NULL) {
         if (access(pid_filename, F_OK) == 0) {
-            SCLogError(SC_ERR_INITIALIZATION, "pid file '%s' exists and can not be read. Aborting!",
-                    pid_filename);
+            SCLogError("pid file '%s' exists and can not be read. Aborting!", pid_filename);
             return -1;
         } else {
             return 0;
@@ -122,17 +120,15 @@ int SCPidfileTestRunning(const char *pid_filename)
 #ifndef OS_WIN32
     pid_t pidv;
     if (fscanf(pf, "%d", &pidv) == 1 && kill(pidv, 0) == 0) {
-        SCLogError(SC_ERR_INITIALIZATION,
-                "pid file '%s' exists and Suricata appears to be running. "
-                "Aborting!",
+        SCLogError("pid file '%s' exists and Suricata appears to be running. "
+                   "Aborting!",
                 pid_filename);
     } else
 #endif
     {
-        SCLogError(SC_ERR_INITIALIZATION,
-                "pid file '%s' exists but appears stale. "
-                "Make sure Suricata is not running and then remove %s. "
-                "Aborting!",
+        SCLogError("pid file '%s' exists but appears stale. "
+                   "Make sure Suricata is not running and then remove %s. "
+                   "Aborting!",
                 pid_filename, pid_filename);
     }
 

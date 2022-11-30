@@ -51,9 +51,9 @@ void HTPParseMemcap()
     if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing http.memcap "
+            SCLogError("Error parsing http.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(htp_config_memcap, memcap);

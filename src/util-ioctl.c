@@ -101,9 +101,8 @@ int GetIfaceMTU(const char *pcap_dev)
     }
 
     if (ioctl(fd, SIOCGIFMTU, (char *)&ifr) < 0) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when trying to get MTU via ioctl for '%s': %s (%d)",
-                pcap_dev, strerror(errno), errno);
+        SCLogWarning("Failure when trying to get MTU via ioctl for '%s': %s (%d)", pcap_dev,
+                strerror(errno), errno);
         close(fd);
         return -1;
     }
@@ -166,9 +165,7 @@ int GetIfaceFlags(const char *ifname)
     strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
     if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1) {
-        SCLogError(SC_ERR_SYSCALL,
-                   "Unable to get flags for iface \"%s\": %s",
-                   ifname, strerror(errno));
+        SCLogError("Unable to get flags for iface \"%s\": %s", ifname, strerror(errno));
         close(fd);
         return -1;
     }
@@ -209,9 +206,7 @@ int SetIfaceFlags(const char *ifname, int flags)
 #endif
 
     if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1) {
-        SCLogError(SC_ERR_SYSCALL,
-                   "Unable to set flags for iface \"%s\": %s",
-                   ifname, strerror(errno));
+        SCLogError("Unable to set flags for iface \"%s\": %s", ifname, strerror(errno));
         close(fd);
         return -1;
     }
@@ -235,9 +230,7 @@ int GetIfaceCaps(const char *ifname)
     strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
     if (ioctl(fd, SIOCGIFCAP, &ifr) == -1) {
-        SCLogError(SC_ERR_SYSCALL,
-                   "Unable to get caps for iface \"%s\": %s",
-                   ifname, strerror(errno));
+        SCLogError("Unable to get caps for iface \"%s\": %s", ifname, strerror(errno));
         close(fd);
         return -1;
     }
@@ -261,9 +254,7 @@ int SetIfaceCaps(const char *ifname, int caps)
     ifr.ifr_reqcap = caps;
 
     if (ioctl(fd, SIOCSIFCAP, &ifr) == -1) {
-        SCLogError(SC_ERR_SYSCALL,
-                   "Unable to set caps for iface \"%s\": %s",
-                   ifname, strerror(errno));
+        SCLogError("Unable to set caps for iface \"%s\": %s", ifname, strerror(errno));
         close(fd);
         return -1;
     }
@@ -290,9 +281,8 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     ethv.cmd = cmd;
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
-                  dev, strerror(errno), errno);
+        SCLogWarning("Failure when trying to get feature via ioctl for '%s': %s (%d)", dev,
+                strerror(errno), errno);
         close(fd);
         return -1;
     }
@@ -318,9 +308,8 @@ static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
     ethv.data = value;
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to set feature via ioctl for '%s': %s (%d)",
-                  dev, strerror(errno), errno);
+        SCLogWarning("Failure when trying to set feature via ioctl for '%s': %s (%d)", dev,
+                strerror(errno), errno);
         close(fd);
         return -1;
     }
@@ -352,9 +341,9 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
         if (csum_ret == 0)
             SCLogPerf("NIC offloading on %s: RX %s TX %s", dev, rx, tx);
         else {
-            SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                    "NIC offloading on %s: RX %s TX %s. Run: "
-                    "ethtool -K %s rx off tx off", dev, rx, tx, dev);
+            SCLogWarning("NIC offloading on %s: RX %s TX %s. Run: "
+                         "ethtool -K %s rx off tx off",
+                    dev, rx, tx, dev);
             ret = 1;
         }
     }
@@ -399,9 +388,9 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
             SCLogPerf("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
                     "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
         } else {
-            SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
-                    " GRO: %s, LRO: %s, TSO: %s, GSO: %s. Run: "
-                    "ethtool -K %s sg off gro off lro off tso off gso off",
+            SCLogWarning("NIC offloading on %s: SG: %s, "
+                         " GRO: %s, LRO: %s, TSO: %s, GSO: %s. Run: "
+                         "ethtool -K %s sg off gro off lro off tso off gso off",
                     dev, sg, gro, lro, tso, gso, dev);
             ret = 1;
         }
@@ -545,24 +534,22 @@ static int GetIfaceOffloadingBSD(const char *ifname)
     SCLogDebug("if_caps %X", if_caps);
 
     if (if_caps & IFCAP_RXCSUM) {
-        SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                "Using %s with RXCSUM activated can lead to capture "
-                "problems. Run: ifconfig %s -rxcsum", ifname, ifname);
+        SCLogWarning("Using %s with RXCSUM activated can lead to capture "
+                     "problems. Run: ifconfig %s -rxcsum",
+                ifname, ifname);
         ret = 1;
     }
 #ifdef IFCAP_TOE
     if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
-        SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                "Using %s with TSO, TOE or LRO activated can lead to "
-                "capture problems. Run: ifconfig %s -tso -toe -lro",
+        SCLogWarning("Using %s with TSO, TOE or LRO activated can lead to "
+                     "capture problems. Run: ifconfig %s -tso -toe -lro",
                 ifname, ifname);
         ret = 1;
     }
 #else
     if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
-        SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                "Using %s with TSO or LRO activated can lead to "
-                "capture problems. Run: ifconfig %s -tso -lro",
+        SCLogWarning("Using %s with TSO or LRO activated can lead to "
+                     "capture problems. Run: ifconfig %s -tso -lro",
                 ifname, ifname);
         ret = 1;
     }
@@ -743,9 +730,7 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when opening socket for ioctl: %s (%d)",
-                strerror(errno), errno);
+        SCLogWarning("Failure when opening socket for ioctl: %s (%d)", strerror(errno), errno);
         return -1;
     }
 
@@ -754,9 +739,8 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
 
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         if (errno != ENOTSUP) {
-            SCLogWarning(SC_ERR_SYSCALL,
-                         "Failure when trying to get number of RSS queue ioctl for '%s': %s (%d)",
-                         pcap_dev, strerror(errno), errno);
+            SCLogWarning("Failure when trying to get number of RSS queue ioctl for '%s': %s (%d)",
+                    pcap_dev, strerror(errno), errno);
         }
         close(fd);
         return 0;
