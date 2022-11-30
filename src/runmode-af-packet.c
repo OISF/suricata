@@ -622,20 +622,20 @@ finalize:
         /* for cluster_flow use core count */
         if (cluster_type == PACKET_FANOUT_HASH) {
             aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
-            SCLogPerf("%u cores, so using %u threads", aconf->threads, aconf->threads);
+            SCLogPerf("cluster_flow: %u cores, using %u threads", aconf->threads, aconf->threads);
 
-        /* for cluster_qm use RSS queue count */
+            /* for cluster_qm use RSS queue count */
         } else if (cluster_type == PACKET_FANOUT_QM) {
             int rss_queues = GetIfaceRSSQueuesNum(iface);
             if (rss_queues > 0) {
                 aconf->threads = rss_queues;
-                SCLogPerf("%d RSS queues, so using %u threads", rss_queues, aconf->threads);
+                SCLogPerf(
+                        "cluster_qm: %d RSS queues, using %u threads", rss_queues, aconf->threads);
             }
         }
 
         if (aconf->threads) {
-            SCLogPerf("Using %d AF_PACKET threads for interface %s",
-                    aconf->threads, iface);
+            SCLogDebug("using %d threads for interface %s", aconf->threads, iface);
         }
     }
     if (aconf->threads <= 0) {

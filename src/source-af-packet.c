@@ -1570,9 +1570,9 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     ptv->req.v2.tp_block_nr = ptv->req.v2.tp_frame_nr / frames_per_block + 1;
     /* exact division */
     ptv->req.v2.tp_frame_nr = ptv->req.v2.tp_block_nr * frames_per_block;
-    SCLogPerf("AF_PACKET RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
-              ptv->req.v2.tp_block_size, ptv->req.v2.tp_block_nr,
-              ptv->req.v2.tp_frame_size, ptv->req.v2.tp_frame_nr);
+    SCLogPerf("rx ring: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
+            ptv->req.v2.tp_block_size, ptv->req.v2.tp_block_nr, ptv->req.v2.tp_frame_size,
+            ptv->req.v2.tp_frame_nr);
     return 1;
 }
 
