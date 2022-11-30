@@ -157,7 +157,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     SCEnter();
 
     if(unlikely(data == NULL)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "pcap file reader thread failed to initialize");
+        SCLogError("pcap file reader thread failed to initialize");
 
         PcapFileExit(TM_ECODE_FAILED, NULL);
 
@@ -200,7 +200,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     const char *tmp_bpf_string = NULL;
 
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
+        SCLogError("error: initdata == NULL");
 
         SCReturnInt(TM_ECODE_OK);
     }
@@ -218,7 +218,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             ptv->shared.tenant_id = (uint32_t)tenant;
             SCLogInfo("tenant %u", ptv->shared.tenant_id);
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant out of range");
+            SCLogError("tenant out of range");
         }
     }
 
@@ -227,7 +227,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     } else {
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
         if (unlikely(ptv->shared.bpf_string == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate bpf_string");
+            SCLogError("Failed to allocate bpf_string");
 
             CleanupPcapFileThreadVars(ptv);
 
@@ -252,7 +252,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCLogDebug("argument %s was a file", (char *)initdata);
         PcapFileFileVars *pv = SCMalloc(sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate file vars");
+            SCLogError("Failed to allocate file vars");
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
@@ -260,7 +260,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->filename = SCStrdup((char *)initdata);
         if (unlikely(pv->filename == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate filename");
+            SCLogError("Failed to allocate filename");
             CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -272,8 +272,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             ptv->is_directory = 0;
             ptv->behavior.file = pv;
         } else {
-            SCLogWarning(SC_ERR_PCAP_DISPATCH,
-                         "Failed to init pcap file %s, skipping", pv->filename);
+            SCLogWarning("Failed to init pcap file %s, skipping", pv->filename);
             CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -282,7 +281,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCLogInfo("Argument %s was a directory", (char *)initdata);
         PcapFileDirectoryVars *pv = SCMalloc(sizeof(PcapFileDirectoryVars));
         if (unlikely(pv == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate directory vars");
+            SCLogError("Failed to allocate directory vars");
             closedir(directory);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -291,7 +290,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->filename = SCStrdup((char*)initdata);
         if (unlikely(pv->filename == NULL)) {
-            SCLogError(SC_ENOMEM, "Failed to allocate filename");
+            SCLogError("Failed to allocate filename");
             CleanupPcapFileDirectoryVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -311,8 +310,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
 
         if (pv->should_recurse == true && pv->should_loop == true) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous and --pcap-file-recursive "
-                                                "cannot be used together.");
+            SCLogError("Error, --pcap-file-continuous and --pcap-file-recursive "
+                       "cannot be used together.");
             CleanupPcapFileDirectoryVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
@@ -325,7 +324,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
                 pv->delay = (time_t)delay;
                 SCLogDebug("delay %lu", pv->delay);
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "delay out of range");
+                SCLogError("delay out of range");
             }
         }
 
@@ -336,7 +335,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
                 pv->poll_interval = (time_t)poll_interval;
                 SCLogDebug("poll-interval %lu", pv->delay);
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "poll-interval out of range");
+                SCLogError("poll-interval out of range");
             }
         }
 
@@ -378,11 +377,10 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
             SC_ATOMIC_GET(pcap_g.invalid_checksums)) {
             uint64_t chrate = pcap_g.cnt / SC_ATOMIC_GET(pcap_g.invalid_checksums);
             if (chrate < CHECKSUM_INVALID_RATIO)
-                SCLogWarning(SC_ERR_INVALID_CHECKSUM,
-                         "1/%" PRIu64 "th of packets have an invalid checksum,"
-                                 " consider setting pcap-file.checksum-checks variable to no"
-                                 " or use '-k none' option on command line.",
-                         chrate);
+                SCLogWarning("1/%" PRIu64 "th of packets have an invalid checksum,"
+                             " consider setting pcap-file.checksum-checks variable to no"
+                             " or use '-k none' option on command line.",
+                        chrate);
             else
                 SCLogInfo("1/%" PRIu64 "th of packets have an invalid checksum",
                       chrate);

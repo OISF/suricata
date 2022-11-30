@@ -122,7 +122,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *sm = NULL;
 
     if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
+        SCLogError("Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
         goto error;
     }
@@ -131,7 +131,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 
     dd = DetectU16Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 
@@ -139,7 +139,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
      * and put it in the Signature. */
     sm = SigMatchAlloc();
     if (sm == NULL){
-        SCLogError(SC_ENOMEM, "Failed to allocate memory for SigMatch");
+        SCLogError("Failed to allocate memory for SigMatch");
         rs_detect_u16_free(dd);
         goto error;
     }

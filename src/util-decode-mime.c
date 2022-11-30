@@ -133,7 +133,7 @@ void MimeDecSetConfig(MimeDecConfig *config)
             mime_dec_config.header_value_depth = MAX_HEADER_VALUE;
         }
     } else {
-        SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM, "Invalid null configuration parameters");
+        SCLogWarning("Invalid null configuration parameters");
     }
 }
 

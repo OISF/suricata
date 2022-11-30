@@ -131,7 +131,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -147,7 +147,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -178,7 +178,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     }
 
     if (df->count == 0 || df->seconds == 0) {
-        SCLogError(SC_EINVAL, "found an invalid value");
+        SCLogError("found an invalid value");
         goto error;
     }
 
@@ -220,13 +220,13 @@ static int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, co
     /* checks if there's a previous instance of threshold */
     tmpm = DetectGetLastSMFromLists(s, DETECT_THRESHOLD, -1);
     if (tmpm != NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and \"threshold\" are not allowed in the same rule");
+        SCLogError("\"detection_filter\" and \"threshold\" are not allowed in the same rule");
         SCReturnInt(-1);
     }
     /* checks there's no previous instance of detection_filter */
     tmpm = DetectGetLastSMFromLists(s, DETECT_DETECTION_FILTER, -1);
     if (tmpm != NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "At most one \"detection_filter\" is allowed per rule");
+        SCLogError("At most one \"detection_filter\" is allowed per rule");
         SCReturnInt(-1);
     }
 

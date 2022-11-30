@@ -757,7 +757,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     /** parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT," failed to parse port \"%s\"",s);
+        SCLogError(" failed to parse port \"%s\"", s);
         return -1;
     }
 
@@ -803,7 +803,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     return 0;
 
 error:
-    SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING,"DetectPortParseInsertString error");
+    SCLogError("DetectPortParseInsertString error");
     if (ad != NULL)
         DetectPortCleanupList(de_ctx, ad);
     if (ad_any != NULL)
@@ -849,8 +849,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     int r = 0;
 
     if (recur++ > 64) {
-        SCLogError(SC_ERR_PORT_ENGINE_GENERIC, "port block recursion "
-                "limit reached (max 64)");
+        SCLogError("port block recursion "
+                   "limit reached (max 64)");
         goto error;
     }
 
@@ -864,7 +864,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             range = 1;
 
         if (range == 1 && s[u] == '!') {
-            SCLogError(SC_ERR_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
+            SCLogError("Can't have a negated value in a range.");
             return -1;
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
@@ -905,10 +905,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 if (rule_var_port == NULL)
                     goto error;
                 if (strlen(rule_var_port) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated port needs to be quoted, "
-                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated port needs to be quoted, "
+                               "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.",
+                            s);
                     goto error;
                 }
                 if (negate == 1 || n_set == 1) {
@@ -960,8 +961,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             SCLogDebug("%s", address);
 
             if (AddVariableToResolveList(var_list, address) == -1) {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a port "
-                   "groups declaration. This is likely a misconfiguration.");
+                SCLogError("Found a loop in a port "
+                           "groups declaration. This is likely a misconfiguration.");
                 goto error;
             }
 
@@ -975,10 +976,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 if (rule_var_port == NULL)
                     goto error;
                 if (strlen(rule_var_port) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated port needs to be quoted, "
-                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated port needs to be quoted, "
+                               "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.",
+                            s);
                     goto error;
                 }
                 if ((negate + n_set) % 2) {
@@ -1016,14 +1018,16 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     }
 
     if (depth > 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
-                "properly closed in \"%s\", %d missing closing brackets (]). "
-                "Note: problem might be in a variable.", s, depth);
+        SCLogError("not every port block was "
+                   "properly closed in \"%s\", %d missing closing brackets (]). "
+                   "Note: problem might be in a variable.",
+                s, depth);
         goto error;
     } else if (depth < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
-                "properly opened in \"%s\", %d missing opening brackets ([). "
-                "Note: problem might be in a variable.", s, depth*-1);
+        SCLogError("not every port block was "
+                   "properly opened in \"%s\", %d missing opening brackets ([). "
+                   "Note: problem might be in a variable.",
+                s, depth * -1);
         goto error;
     }
 
@@ -1086,7 +1090,7 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
 
     /** check if the full port space is negated */
     if (DetectPortIsCompletePortSpace(*nhead) == 1) {
-        SCLogError(SC_ERR_COMPLETE_PORT_SPACE_NEGATED,"Complete port space is negated");
+        SCLogError("Complete port space is negated");
         goto error;
     }
 
@@ -1155,7 +1159,7 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
     }
 
     if (*head == NULL) {
-        SCLogError(SC_ERR_NO_PORTS_LEFT_AFTER_MERGE,"no ports left after merging ports with negated ports");
+        SCLogError("no ports left after merging ports with negated ports");
         goto error;
     }
 
@@ -1188,10 +1192,10 @@ int DetectPortTestConfVars(void)
         DetectPort *ghn = NULL;
 
         if (seq_node->val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                       "Port var \"%s\" probably has a sequence(something "
+            SCLogError("Port var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
-                       "quote it using \"..\".", seq_node->name);
+                       "quote it using \"..\".",
+                    seq_node->name);
             DetectPortCleanupList(NULL, gh);
             goto error;
         }
@@ -1203,19 +1207,17 @@ int DetectPortTestConfVars(void)
 
         if (r < 0) {
             DetectPortCleanupList(NULL, gh);
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "failed to parse port var \"%s\" with value \"%s\". "
-                    "Please check its syntax",
+            SCLogError("failed to parse port var \"%s\" with value \"%s\". "
+                       "Please check its syntax",
                     seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectPortIsCompletePortSpace(ghn)) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "Port var - \"%s\" has the complete Port range negated "
-                    "with its value \"%s\".  Port space range is NIL. "
-                    "Probably have a !any or a port range that supplies "
-                    "a NULL address range",
+            SCLogError("Port var - \"%s\" has the complete Port range negated "
+                       "with its value \"%s\".  Port space range is NIL. "
+                       "Probably have a !any or a port range that supplies "
+                       "a NULL address range",
                     seq_node->name, seq_node->val);
             DetectPortCleanupList(NULL, gh);
             DetectPortCleanupList(NULL, ghn);

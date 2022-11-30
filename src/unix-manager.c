@@ -143,9 +143,7 @@ static int UnixNew(UnixCommand * this)
             if (ret != 0) {
                 int err = errno;
                 if (err != EEXIST) {
-                    SCLogError(SC_ERR_INITIALIZATION,
-                            "Cannot create socket directory %s: %s",
-                            SOCKET_PATH, strerror(err));
+                    SCLogError("Cannot create socket directory %s: %s", SOCKET_PATH, strerror(err));
                     return 0;
                 }
             } else {
@@ -167,9 +165,8 @@ static int UnixNew(UnixCommand * this)
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
     if (this->socket == -1) {
-        SCLogWarning(SC_ERR_OPENING_FILE,
-                     "Unix Socket: unable to create UNIX socket %s: %s",
-                     addr.sun_path, strerror(errno));
+        SCLogWarning(
+                "Unix Socket: unable to create UNIX socket %s: %s", addr.sun_path, strerror(errno));
         return 0;
     }
     this->select_max = this->socket + 1;
@@ -178,16 +175,13 @@ static int UnixNew(UnixCommand * this)
     ret = setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR,
                      (char *) &on, sizeof(on));
     if ( ret != 0 ) {
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Cannot set sockets options: %s.",  strerror(errno));
+        SCLogWarning("Cannot set sockets options: %s.", strerror(errno));
     }
 
     /* bind socket */
     ret = bind(this->socket, (struct sockaddr *) &addr, len);
     if (ret == -1) {
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Unix socket: UNIX socket bind(%s) error: %s",
-                     sockettarget, strerror(errno));
+        SCLogWarning("Unix socket: UNIX socket bind(%s) error: %s", sockettarget, strerror(errno));
         return 0;
     }
 
@@ -198,18 +192,13 @@ static int UnixNew(UnixCommand * this)
     ret = chmod(sockettarget, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
     if (ret == -1) {
         int err = errno;
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Unable to change permission on socket: %s (%d)",
-                     strerror(err),
-                     err);
+        SCLogWarning("Unable to change permission on socket: %s (%d)", strerror(err), err);
     }
 #endif
 
     /* listen */
     if (listen(this->socket, 1) == -1) {
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Command server: UNIX socket listen() error: %s",
-                     strerror(errno));
+        SCLogWarning("Command server: UNIX socket listen() error: %s", strerror(errno));
         return 0;
     }
     return 1;
@@ -220,7 +209,7 @@ static void UnixCommandSetMaxFD(UnixCommand *this)
     UnixClient *item;
 
     if (this == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Unix command is NULL, warn devel");
+        SCLogError("Unix command is NULL, warn devel");
         return;
     }
 
@@ -236,12 +225,12 @@ static UnixClient *UnixClientAlloc(void)
 {
     UnixClient *uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ENOMEM, "Can't allocate new client");
+        SCLogError("Can't allocate new client");
         return NULL;
     }
     uclient->mbuf = MemBufferCreateNew(CLIENT_BUFFER_SIZE);
     if (uclient->mbuf == NULL) {
-        SCLogError(sc_errno, "Can't allocate new client send buffer");
+        SCLogError("Can't allocate new client send buffer");
         SCFree(uclient);
         return NULL;
     }
@@ -272,7 +261,7 @@ static void UnixCommandClose(UnixCommand  *this, int fd)
     }
 
     if (found == 0) {
-        SCLogError(SC_EINVAL, "No fd found in client list");
+        SCLogError("No fd found in client list");
         return;
     }
 
@@ -302,7 +291,7 @@ static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
             JSON_ESCAPE_SLASH);
     if (r != 0) {
-        SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
+        SCLogWarning("unable to serialize JSON object");
         return -1;
     }
 
@@ -316,9 +305,9 @@ static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
     if (send(client->fd, (const char *)MEMBUFFER_BUFFER(client->mbuf),
                 MEMBUFFER_OFFSET(client->mbuf), MSG_NOSIGNAL) == -1)
     {
-        SCLogWarning(SC_ERR_SOCKET, "unable to send block of size "
-                "%"PRIuMAX": %s", (uintmax_t)MEMBUFFER_OFFSET(client->mbuf),
-                strerror(errno));
+        SCLogWarning("unable to send block of size "
+                     "%" PRIuMAX ": %s",
+                (uintmax_t)MEMBUFFER_OFFSET(client->mbuf), strerror(errno));
         return -1;
     }
 
@@ -427,7 +416,7 @@ static int UnixCommandAccept(UnixCommand *this)
     uclient->version = client_version;
 
     if (UnixCommandSendJSONToClient(uclient, server_msg) != 0) {
-        SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+        SCLogWarning("Unable to send command");
 
         UnixClientFree(uclient);
         json_decref(server_msg);
@@ -554,15 +543,14 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
             if (ret == 0) {
                 SCLogDebug("Unix socket: lost connection with client");
             } else {
-                SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
-                        strerror(errno));
+                SCLogError("Unix socket: error on recv() from client: %s", strerror(errno));
             }
             UnixCommandClose(this, client->fd);
             return;
         }
         if (ret >= (int)(sizeof(buffer)-1)) {
-            SCLogError(SC_ERR_SOCKET, "Command server: client command is too long, "
-                    "disconnect him.");
+            SCLogError("Command server: client command is too long, "
+                       "disconnect him.");
             UnixCommandClose(this, client->fd);
         }
         buffer[ret] = 0;
@@ -576,8 +564,7 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
                 if (ret == 0) {
                     SCLogDebug("Unix socket: lost connection with client");
                 } else {
-                    SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
-                            strerror(errno));
+                    SCLogError("Unix socket: error on recv() from client: %s", strerror(errno));
                 }
                 UnixCommandClose(this, client->fd);
                 return;
@@ -657,7 +644,7 @@ static int UnixMain(UnixCommand * this)
         if (errno == EINTR) {
             return 1;
         }
-        SCLogError(SC_ERR_SOCKET, "Command server: select() fatal error: %s", strerror(errno));
+        SCLogError("Command server: select() fatal error: %s", strerror(errno));
         return 0;
     }
 
@@ -967,30 +954,30 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
     Command *lcmd = NULL;
 
     if (Func == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
+        SCLogError("Null function");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (keyword == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+        SCLogError("Null keyword");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     TAILQ_FOREACH(lcmd, &command.commands, next) {
         if (!strcmp(keyword, lcmd->name)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "%s already registered", keyword);
+            SCLogError("%s already registered", keyword);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
 
     cmd = SCMalloc(sizeof(Command));
     if (unlikely(cmd == NULL)) {
-        SCLogError(SC_ENOMEM, "Can't alloc cmd");
+        SCLogError("Can't alloc cmd");
         SCReturnInt(TM_ECODE_FAILED);
     }
     cmd->name = SCStrdup(keyword);
     if (unlikely(cmd->name == NULL)) {
-        SCLogError(SC_ENOMEM, "Can't alloc cmd name");
+        SCLogError("Can't alloc cmd name");
         SCFree(cmd);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1020,13 +1007,13 @@ TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
     Task *task = NULL;
 
     if (Func == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
+        SCLogError("Null function");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     task = SCMalloc(sizeof(Task));
     if (unlikely(task == NULL)) {
-        SCLogError(SC_ENOMEM, "Can't alloc task");
+        SCLogError("Can't alloc task");
         SCReturnInt(TM_ECODE_FAILED);
     }
     task->Func = Func;
@@ -1045,11 +1032,9 @@ int UnixManagerInit(void)
             SCLogDebug("ConfGetBool could not load the value.");
         }
         if (failure_fatal) {
-                    FatalError(SC_ERR_FATAL,
-                               "Unable to create unix command socket");
+            FatalError("Unable to create unix command socket");
         } else {
-            SCLogWarning(SC_ERR_INITIALIZATION,
-                    "Unable to create unix command socket");
+            SCLogWarning("Unable to create unix command socket");
             return -1;
         }
     }
@@ -1134,7 +1119,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     while (1) {
         ret = UnixMain(&command);
         if (ret == 0) {
-            SCLogError(SC_ERR_FATAL, "Fatal error on unix socket");
+            SCLogError("Fatal error on unix socket");
         }
 
         if ((ret == 0) || (TmThreadsCheckFlag(th_v, THV_KILL))) {
@@ -1169,14 +1154,14 @@ void UnixManagerThreadSpawn(int mode)
                                           "UnixManager", 0);
 
     if (tv_unixmgr == NULL) {
-        FatalError(SC_ERR_FATAL, "TmThreadsCreate failed");
+        FatalError("TmThreadsCreate failed");
     }
     if (TmThreadSpawn(tv_unixmgr) != TM_ECODE_OK) {
-        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed");
+        FatalError("TmThreadSpawn failed");
     }
     if (mode == 1) {
         if (TmThreadsCheckFlag(tv_unixmgr, THV_RUNNING_DONE)) {
-            FatalError(SC_ERR_FATAL, "Unix socket init failed");
+            FatalError("Unix socket init failed");
         }
     }
     return;
@@ -1250,7 +1235,7 @@ again:
 
 void UnixManagerThreadSpawn(int mode)
 {
-    SCLogError(SC_ERR_UNIMPLEMENTED, "Unix socket is not compiled");
+    SCLogError("Unix socket is not compiled");
     return;
 }
 

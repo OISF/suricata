@@ -154,7 +154,7 @@ static char *AllocArgument(size_t arg_len)
     arg_len += 1; // null character
     ptr = (char *)SCCalloc(arg_len, sizeof(char));
     if (ptr == NULL)
-        FatalError(SC_ENOMEM, "Could not allocate memory for an argument");
+        FatalError("Could not allocate memory for an argument");
 
     SCReturnPtr(ptr, "char *");
 }
@@ -168,7 +168,7 @@ static char *AllocAndSetArgument(const char *arg)
 {
     SCEnter();
     if (arg == NULL)
-        FatalError(SC_ERR_DPDK_CONF, "Passed argument is NULL in DPDK config initialization");
+        FatalError("Passed argument is NULL in DPDK config initialization");
 
     char *ptr;
     size_t arg_len = strlen(arg);
@@ -182,7 +182,7 @@ static char *AllocAndSetOption(const char *arg)
 {
     SCEnter();
     if (arg == NULL)
-        FatalError(SC_ERR_DPDK_CONF, "Passed option is NULL in DPDK config initialization");
+        FatalError("Passed option is NULL in DPDK config initialization");
 
     char *ptr = NULL;
     size_t arg_len = strlen(arg);
@@ -201,7 +201,7 @@ static void ArgumentsInit(struct Arguments *args, unsigned capacity)
     SCEnter();
     args->argv = SCCalloc(capacity, sizeof(args->argv));
     if (args->argv == NULL)
-        FatalError(SC_ENOMEM, "Could not allocate memory for Arguments structure");
+        FatalError("Could not allocate memory for Arguments structure");
 
     args->capacity = capacity;
     args->argc = 0;
@@ -228,8 +228,7 @@ static void ArgumentsAdd(struct Arguments *args, char *value)
 {
     SCEnter();
     if (args->argc + 1 > args->capacity)
-        FatalError(SC_ERR_DPDK_EAL_INIT, "No capacity for more arguments (Max: %" PRIu32 ")",
-                EAL_ARGS);
+        FatalError("No capacity for more arguments (Max: %" PRIu32 ")", EAL_ARGS);
 
     args->argv[args->argc++] = value;
     SCReturn;
@@ -263,7 +262,7 @@ static void InitEal()
     char **eal_argv;
 
     if (eal_params == NULL) {
-        FatalError(SC_ERR_DPDK_CONF, "DPDK EAL parameters not found in the config");
+        FatalError("DPDK EAL parameters not found in the config");
     }
 
     ArgumentsInit(&args, EAL_ARGS);
@@ -276,7 +275,7 @@ static void InitEal()
     // creating a shallow copy for cleanup because rte_eal_init changes array contents
     eal_argv = SCMalloc(args.argc * sizeof(args.argv));
     if (eal_argv == NULL) {
-        FatalError(SC_ENOMEM, "Failed to allocate memory for the array of DPDK EAL arguments");
+        FatalError("Failed to allocate memory for the array of DPDK EAL arguments");
     }
     memcpy(eal_argv, args.argv, args.argc * sizeof(*args.argv));
 
@@ -314,7 +313,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     DPDKIfaceConfig *ptr = NULL;
     ptr = SCCalloc(1, sizeof(DPDKIfaceConfig));
     if (ptr == NULL)
-        FatalError(SC_ERR_DPDK_CONF, "Could not allocate memory for DPDKIfaceConfig");
+        FatalError("Could not allocate memory for DPDKIfaceConfig");
 
     ptr->pkt_mempool = NULL;
     ptr->out_port_id = -1; // make sure no port is set
@@ -333,11 +332,11 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
     int retval;
 
     if (entry_str == NULL || entry_str[0] == '\0')
-        FatalError(SC_EINVAL, "Interface name in DPDK config is NULL or empty");
+        FatalError("Interface name in DPDK config is NULL or empty");
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->port_id);
     if (retval < 0)
-        FatalError(SC_ERR_DPDK_CONF, "Interface \"%s\": %s", entry_str, rte_strerror(-retval));
+        FatalError("Interface \"%s\": %s", entry_str, rte_strerror(-retval));
 
     strlcpy(iconf->iface, entry_str, sizeof(iconf->iface));
     SCReturn;
@@ -354,7 +353,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (entry_str == NULL) {
-        SCLogError(SC_EINVAL, "Number of threads for interface \"%s\" not specified", iconf->iface);
+        SCLogError("Number of threads for interface \"%s\" not specified", iconf->iface);
         SCReturnInt(-EINVAL);
     }
 
@@ -365,14 +364,13 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (StringParseInt32(&iconf->threads, 10, 0, entry_str) < 0) {
-        SCLogError(SC_EINVAL,
-                "Threads entry for interface %s contain non-numerical characters - \"%s\"",
+        SCLogError("Threads entry for interface %s contain non-numerical characters - \"%s\"",
                 iconf->iface, entry_str);
         SCReturnInt(-EINVAL);
     }
 
     if (iconf->threads < 0) {
-        SCLogError(SC_EINVAL, "Interface %s has a negative number of threads", iconf->iface);
+        SCLogError("Interface %s has a negative number of threads", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -384,8 +382,7 @@ static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
     SCEnter();
     iconf->nb_rx_queues = nb_queues;
     if (iconf->nb_rx_queues < 1) {
-        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of RX queues",
-                iconf->iface);
+        SCLogError("Interface %s requires to have positive number of RX queues", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -397,8 +394,7 @@ static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
     SCEnter();
     iconf->nb_tx_queues = nb_queues;
     if (iconf->nb_tx_queues < 1) {
-        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of TX queues",
-                iconf->iface);
+        SCLogError("Interface %s requires to have positive number of TX queues", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -427,7 +423,7 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
         //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
         // and at the same time "mempool-size modulo cache_size == 0".
         if (iconf->mempool_size == 0) {
-            SCLogError(SC_EINVAL, "Cannot calculate mempool cache size of a mempool with size %d",
+            SCLogError("Cannot calculate mempool cache size of a mempool with size %d",
                     iconf->mempool_size);
             SCReturnInt(-EINVAL);
         }
@@ -438,15 +434,14 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     }
 
     if (StringParseUint32(&iconf->mempool_cache_size, 10, 0, entry_str) < 0) {
-        SCLogError(SC_EINVAL,
-                "Mempool cache size entry for interface %s contain non-numerical "
-                "characters - \"%s\"",
+        SCLogError("Mempool cache size entry for interface %s contain non-numerical "
+                   "characters - \"%s\"",
                 iconf->iface, entry_str);
         SCReturnInt(-EINVAL);
     }
 
     if (iconf->mempool_cache_size <= 0 || iconf->mempool_cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE) {
-        SCLogError(SC_EINVAL,
+        SCLogError(
                 "Interface %s requires to have mempool cache size set to a positive number smaller "
                 "than %" PRIu32,
                 iconf->iface, RTE_MEMPOOL_CACHE_MAX_SIZE);
@@ -460,8 +455,7 @@ static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int <= 0) {
-        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of RX descriptors",
-                iconf->iface);
+        SCLogError("Interface %s requires to have positive number of RX descriptors", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -473,8 +467,7 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int <= 0) {
-        SCLogError(SC_EINVAL, "Interface %s requires to have positive number of TX descriptors",
-                iconf->iface);
+        SCLogError("Interface %s requires to have positive number of TX descriptors", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -491,9 +484,8 @@ static int ConfigSetRSSHashFunctions(DPDKIfaceConfig *iconf, const char *entry_s
     }
 
     if (StringParseUint64(&iconf->rss_hf, 0, 0, entry_str) < 0) {
-        SCLogError(SC_EINVAL,
-                "RSS hash functions entry for interface %s contain non-numerical "
-                "characters - \"%s\"",
+        SCLogError("RSS hash functions entry for interface %s contain non-numerical "
+                   "characters - \"%s\"",
                 iconf->iface, entry_str);
         SCReturnInt(-EINVAL);
     }
@@ -505,8 +497,7 @@ static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
     if (entry_int < RTE_ETHER_MIN_MTU || entry_int > RTE_ETHER_MAX_JUMBO_FRAME_LEN) {
-        SCLogError(SC_EINVAL,
-                "Interface %s requires to have size of MTU between %" PRIu32 " and %" PRIu32,
+        SCLogError("Interface %s requires to have size of MTU between %" PRIu32 " and %" PRIu32,
                 iconf->iface, RTE_ETHER_MIN_MTU, RTE_ETHER_MAX_JUMBO_FRAME_LEN);
         SCReturnInt(-ERANGE);
     }
@@ -563,7 +554,7 @@ static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->out_port_id);
     if (retval < 0) {
-        SCLogWarning(SC_ERR_DPDK_CONF,
+        SCLogWarning(
                 "Name of the copy interface (%s) for the interface %s is not valid, changing to %s",
                 entry_str, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_INTERFACE);
         iconf->out_iface = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
@@ -577,14 +568,14 @@ static int ConfigSetCopyMode(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
     if (entry_str == NULL) {
-        SCLogWarning(SC_EINVAL, "Interface %s has no copy mode specified, changing to %s ",
-                iconf->iface, DPDK_CONFIG_DEFAULT_COPY_MODE);
+        SCLogWarning("Interface %s has no copy mode specified, changing to %s ", iconf->iface,
+                DPDK_CONFIG_DEFAULT_COPY_MODE);
         entry_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
     }
 
     if (strcmp(entry_str, "none") != 0 && strcmp(entry_str, "tap") != 0 &&
             strcmp(entry_str, "ips") != 0) {
-        SCLogWarning(SC_EINVAL,
+        SCLogWarning(
                 "Copy mode \"%s\" is not one of the possible values (none|tap|ips) for interface "
                 "%s. Changing to %s",
                 entry_str, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_MODE);
@@ -622,7 +613,7 @@ static int ConfigSetCopyIfaceSettings(DPDKIfaceConfig *iconf, const char *iface,
     }
 
     if (iconf->out_iface == NULL || strlen(iconf->out_iface) <= 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "Copy mode enabled but interface not set");
+        SCLogError("Copy mode enabled but interface not set");
         SCReturnInt(-EINVAL);
     }
 
@@ -650,8 +641,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
 
     retval = ConfSetRootAndDefaultNodes("dpdk.interfaces", iconf->iface, &if_root, &if_default);
     if (retval < 0) {
-        FatalError(SC_ERR_DPDK_CONF, "failed to find DPDK configuration for the interface %s",
-                iconf->iface);
+        FatalError("failed to find DPDK configuration for the interface %s", iconf->iface);
     }
 
     retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.threads, &entry_str) != 1
@@ -759,7 +749,7 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
     int retval;
     DPDKIfaceConfig *iconf = NULL;
     if (iface == NULL)
-        FatalError(SC_ERR_DPDK_CONF, "DPDK interface is NULL");
+        FatalError("DPDK interface is NULL");
 
     ConfigInit(&iconf);
     retval = ConfigLoad(iconf, iface);
@@ -922,9 +912,8 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
 {
     if (iconf->mtu > dev_info->max_mtu || iconf->mtu < dev_info->min_mtu) {
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Loaded MTU of \"%s\" is out of bounds. "
-                "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
+        SCLogError("Loaded MTU of \"%s\" is out of bounds. "
+                   "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
                 iconf->iface, dev_info->min_mtu, dev_info->max_mtu);
         SCReturnInt(-ERANGE);
     }
@@ -933,8 +922,7 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
     // check if jumbo frames are set and are available
     if (iconf->mtu > RTE_ETHER_MAX_LEN &&
             !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError(SC_ERR_DPDK_CONF, "Jumbo frames not supported, set MTU of \"%s\" to 1500B",
-                iconf->iface);
+        SCLogError("Jumbo frames not supported, set MTU of \"%s\" to 1500B", iconf->iface);
         SCReturnInt(-EINVAL);
     }
 #endif
@@ -985,9 +973,8 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             if (port_conf->rx_adv_conf.rss_conf.rss_hf != rss_hf_tmp) {
                 DumpRSSFlags(port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
 
-                SCLogWarning(SC_WARN_DPDK_CONF,
-                        "Interface %s modified RSS hash function based on hardware support, "
-                        "requested:%#" PRIx64 " configured:%#" PRIx64,
+                SCLogWarning("Interface %s modified RSS hash function based on hardware support, "
+                             "requested:%#" PRIx64 " configured:%#" PRIx64,
                         iconf->iface, port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
                 port_conf->rx_adv_conf.rss_conf.rss_hf = rss_hf_tmp;
             }
@@ -1046,8 +1033,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
             iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
     if (iconf->pkt_mempool == NULL) {
         retval = -rte_errno;
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Error (err=%d) during rte_pktmbuf_pool_create (mempool: %s) - %s", rte_errno,
+        SCLogError("Error (err=%d) during rte_pktmbuf_pool_create (mempool: %s) - %s", rte_errno,
                 mempool_name, rte_strerror(rte_errno));
         SCReturnInt(retval);
     }
@@ -1071,8 +1057,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError(SC_ERR_DPDK_INIT,
-                    "Error (err=%d) during initialization of device queue %u of port %u", retval,
+            SCLogError("Error (err=%d) during initialization of device queue %u of port %u", retval,
                     queue_id, iconf->port_id);
             SCReturnInt(retval);
         }
@@ -1086,8 +1071,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError(SC_ERR_DPDK_INIT,
-                    "Error (err=%d) during initialization of device queue %u of port %u", retval,
+            SCLogError("Error (err=%d) during initialization of device queue %u of port %u", retval,
                     queue_id, iconf->port_id);
             SCReturnInt(retval);
         }
@@ -1109,35 +1093,32 @@ static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
 
     retval = ConfigLoad(out_iconf, iconf->out_iface);
     if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "Fail to load config of interface %s", iconf->out_iface);
+        SCLogError("Fail to load config of interface %s", iconf->out_iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     }
 
     if (iconf->nb_rx_queues != out_iconf->nb_tx_queues) {
         // the other direction is validated when the copy interface is configured
-        SCLogError(SC_ERR_DPDK_CONF,
-                "Interface %s has configured %d RX queues but copy interface %s has %d TX queues"
-                " - number of queues must be equal",
+        SCLogError("Interface %s has configured %d RX queues but copy interface %s has %d TX queues"
+                   " - number of queues must be equal",
                 iconf->iface, iconf->nb_rx_queues, out_iconf->iface, out_iconf->nb_tx_queues);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (iconf->mtu != out_iconf->mtu) {
-        SCLogError(SC_ERR_DPDK_CONF,
-                "Interface %s has configured MTU of %dB but copy interface %s has MTU set to %dB"
-                " - MTU must be equal",
+        SCLogError("Interface %s has configured MTU of %dB but copy interface %s has MTU set to %dB"
+                   " - MTU must be equal",
                 iconf->iface, iconf->mtu, out_iconf->iface, out_iconf->mtu);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (iconf->copy_mode != out_iconf->copy_mode) {
-        SCLogError(SC_ERR_DPDK_CONF, "Copy modes of interfaces %s and %s are not equal",
-                iconf->iface, out_iconf->iface);
+        SCLogError(
+                "Copy modes of interfaces %s and %s are not equal", iconf->iface, out_iconf->iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (strcmp(iconf->iface, out_iconf->out_iface) != 0) {
         // check if the other iface has the current iface set as a copy iface
-        SCLogError(SC_ERR_DPDK_CONF, "Copy interface of %s is not set to %s", out_iconf->iface,
-                iconf->iface);
+        SCLogError("Copy interface of %s is not set to %s", out_iconf->iface, iconf->iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     }
@@ -1154,14 +1135,12 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     if (iconf->out_iface != NULL) {
         retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during obtaining port id of %s", retval,
-                    iconf->out_iface);
+            SCLogError("Error (err=%d) during obtaining port id of %s", retval, iconf->out_iface);
             SCReturnInt(retval);
         }
 
         if (rte_eth_dev_socket_id(iconf->port_id) != rte_eth_dev_socket_id(iconf->out_port_id)) {
-            SCLogWarning(SC_WARN_DPDK_CONF, "%s and %s are not on the same NUMA node", iconf->iface,
-                    iconf->out_iface);
+            SCLogWarning("%s and %s are not on the same NUMA node", iconf->iface, iconf->out_iface);
         }
 
         retval = DeviceValidateOutIfaceConfig(iconf);
@@ -1183,20 +1162,19 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
     if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when getting port id of %s Is device enabled?",
-                retval, iconf->iface);
+        SCLogError("Error (err=%d) when getting port id of %s Is device enabled?", retval,
+                iconf->iface);
         SCReturnInt(retval);
     }
 
     if (!rte_eth_dev_is_valid_port(iconf->port_id)) {
-        SCLogError(SC_ERR_DPDK_INIT, "Specified port %d is invalid", iconf->port_id);
+        SCLogError("Specified port %d is invalid", iconf->port_id);
         SCReturnInt(retval);
     }
 
     retval = rte_eth_dev_socket_id(iconf->port_id);
     if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) invalid socket id (port %s)", retval,
-                iconf->iface);
+        SCLogError("Error (err=%d) invalid socket id (port %s)", retval, iconf->iface);
         SCReturnInt(retval);
     } else {
         iconf->socket_id = retval;
@@ -1204,21 +1182,20 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
     if (retval != 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during getting device info (port %s)", retval,
-                iconf->iface);
+        SCLogError("Error (err=%d) during getting device info (port %s)", retval, iconf->iface);
         SCReturnInt(retval);
     }
 
     if (iconf->nb_rx_queues > dev_info.max_rx_queues) {
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Number of configured RX queues of %s is higher than maximum allowed (%" PRIu16 ")",
+        SCLogError("Number of configured RX queues of %s is higher than maximum allowed (%" PRIu16
+                   ")",
                 iconf->iface, dev_info.max_rx_queues);
         SCReturnInt(-ERANGE);
     }
 
     if (iconf->nb_tx_queues > dev_info.max_tx_queues) {
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Number of configured TX queues of %s is higher than maximum allowed (%" PRIu16 ")",
+        SCLogError("Number of configured TX queues of %s is higher than maximum allowed (%" PRIu16
+                   ")",
                 iconf->iface, dev_info.max_tx_queues);
         SCReturnInt(-ERANGE);
     }
@@ -1236,17 +1213,16 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     retval = rte_eth_dev_configure(
             iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, &port_conf);
     if (retval != 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during configuring the device (port %u)",
-                retval, iconf->port_id);
+        SCLogError(
+                "Error (err=%d) during configuring the device (port %u)", retval, iconf->port_id);
         SCReturnInt(retval);
     }
 
     retval = rte_eth_dev_adjust_nb_rx_tx_desc(
             iconf->port_id, &iconf->nb_rx_desc, &iconf->nb_tx_desc);
     if (retval != 0) {
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Error (err=%d) during adjustment of device queues descriptors (port %u)", retval,
-                iconf->port_id);
+        SCLogError("Error (err=%d) during adjustment of device queues descriptors (port %u)",
+                retval, iconf->port_id);
         SCReturnInt(retval);
     }
 
@@ -1257,24 +1233,22 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         // when multicast is enabled but set to disable or vice versa
         if ((retval == 1 && !(iconf->flags & DPDK_MULTICAST)) ||
                 (retval == 0 && (iconf->flags & DPDK_MULTICAST))) {
-            SCLogError(SC_ERR_DPDK_CONF,
-                    "Allmulticast setting of port (%" PRIu16
-                    ") can not be configured. Set it to %s",
+            SCLogError("Allmulticast setting of port (%" PRIu16
+                       ") can not be configured. Set it to %s",
                     iconf->port_id, retval == 1 ? "true" : "false");
         } else if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) Unable to get multicast mode on port %u",
-                    retval, iconf->port_id);
+            SCLogError("Error (err=%d) Unable to get multicast mode on port %u", retval,
+                    iconf->port_id);
             SCReturnInt(retval);
         }
 
         if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) Unable to get multicast mode on port %u",
-                    retval, iconf->port_id);
+            SCLogError("Error (err=%d) Unable to get multicast mode on port %u", retval,
+                    iconf->port_id);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when en/disabling multicast on port %u",
-                retval, iconf->port_id);
+        SCLogError("Error (err=%d) when en/disabling multicast on port %u", retval, iconf->port_id);
         SCReturnInt(retval);
     }
 
@@ -1284,18 +1258,18 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         retval = rte_eth_promiscuous_get(iconf->port_id);
         if ((retval == 1 && !(iconf->flags & DPDK_PROMISC)) ||
                 (retval == 0 && (iconf->flags & DPDK_PROMISC))) {
-            SCLogError(SC_ERR_DPDK_CONF,
-                    "Promiscuous setting of port (%" PRIu16 ") can not be configured. Set it to %s",
+            SCLogError("Promiscuous setting of port (%" PRIu16
+                       ") can not be configured. Set it to %s",
                     iconf->port_id, retval == 1 ? "true" : "false");
             SCReturnInt(TM_ECODE_FAILED);
         } else if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) Unable to get promiscuous mode on port %u",
-                    retval, iconf->port_id);
+            SCLogError("Error (err=%d) Unable to get promiscuous mode on port %u", retval,
+                    iconf->port_id);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when enabling promiscuous mode on port %u",
-                retval, iconf->port_id);
+        SCLogError(
+                "Error (err=%d) when enabling promiscuous mode on port %u", retval, iconf->port_id);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -1303,19 +1277,18 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCLogConfig("Setting MTU of %s to %dB", iconf->iface, iconf->mtu);
     retval = rte_eth_dev_set_mtu(iconf->port_id, iconf->mtu);
     if (retval == -ENOTSUP) {
-        SCLogWarning(SC_WARN_DPDK_CONF,
-                "Changing MTU on port %u is not supported, ignoring the setting...",
+        SCLogWarning("Changing MTU on port %u is not supported, ignoring the setting...",
                 iconf->port_id);
         // if it is not possible to set the MTU, retrieve it
         retval = rte_eth_dev_get_mtu(iconf->port_id, &iconf->mtu);
         if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) Unable to retrieve MTU from port %u",
-                    retval, iconf->port_id);
+            SCLogError(
+                    "Error (err=%d) Unable to retrieve MTU from port %u", retval, iconf->port_id);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when setting MTU to %u on port %u", retval,
-                iconf->mtu, iconf->port_id);
+        SCLogError("Error (err=%d) when setting MTU to %u on port %u", retval, iconf->mtu,
+                iconf->port_id);
         SCReturnInt(retval);
     }
 
@@ -1337,16 +1310,16 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     int retval;
     DPDKIfaceConfig *iconf = ConfigParse(iface);
     if (iconf == NULL) {
-        FatalError(SC_ERR_DPDK_CONF, "DPDK configuration could not be parsed");
+        FatalError("DPDK configuration could not be parsed");
     }
 
     if (DeviceConfigure(iconf) != 0) {
         iconf->DerefFunc(iconf);
         retval = rte_eal_cleanup();
         if (retval != 0)
-            FatalError(SC_ERR_DPDK_EAL_INIT, "EAL cleanup failed: %s", strerror(-retval));
+            FatalError("EAL cleanup failed: %s", strerror(-retval));
 
-        FatalError(SC_ERR_DPDK_CONF, "Device %s fails to configure", iface);
+        FatalError("Device %s fails to configure", iface);
     }
 
     SC_ATOMIC_RESET(iconf->ref);
@@ -1372,7 +1345,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
 static int DPDKConfigGetThreadsCount(void *conf)
 {
     if (conf == NULL)
-        FatalError(SC_ERR_DPDK_CONF, "Configuration file is NULL");
+        FatalError("Configuration file is NULL");
 
     DPDKIfaceConfig *dpdk_conf = (DPDKIfaceConfig *)conf;
     return dpdk_conf->threads;
@@ -1412,7 +1385,7 @@ int RunModeIdsDpdkWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKConfigGetThreadsCount,
             "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsDpdkWorkers initialised");

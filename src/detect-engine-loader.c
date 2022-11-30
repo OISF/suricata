@@ -65,7 +65,7 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
     char varname[128];
 
     if (sig_file == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS,"invalid sig_file argument - NULL");
+        SCLogError("invalid sig_file argument - NULL");
         return NULL;
     }
 
@@ -135,8 +135,9 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening rule file %s:"
-                   " %s.", sig_file, strerror(errno));
+        SCLogError("opening rule file %s:"
+                   " %s.",
+                sig_file, strerror(errno));
         return -1;
     }
 
@@ -188,13 +189,13 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             good++;
         } else {
             if (!de_ctx->sigerror_silent) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
-                        "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+                SCLogError("error parsing signature \"%s\" from "
+                           "file %s at line %" PRId32 "",
+                        line, sig_file, lineno - multiline);
 
                 if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
-                    SCLogError(SC_ENOMEM,
-                            "Error adding sig \"%s\" from "
-                            "file %s at line %" PRId32 "",
+                    SCLogError("Error adding sig \"%s\" from "
+                               "file %s at line %" PRId32 "",
                             line, sig_file, lineno - multiline);
                 }
                 if (de_ctx->sigerror) {
@@ -229,7 +230,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     int r = 0;
 
     if (pattern == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule file null");
+        SCLogError("opening rule file null");
         return -1;
     }
 
@@ -238,13 +239,12 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     r = glob(pattern, 0, NULL, &files);
 
     if (r == GLOB_NOMATCH) {
-        SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
+        SCLogWarning("No rule files match the pattern %s", pattern);
         ++(st->bad_files);
         ++(st->total_files);
         return -1;
     } else if (r != 0) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s",
-                 pattern, strerror(errno));
+        SCLogError("error expanding template %s: %s", pattern, strerror(errno));
         return -1;
     }
 
@@ -310,9 +310,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
             if (!ConfNodeIsSequence(rule_files)) {
-                SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                    "Invalid rule-files configuration section: "
-                    "expected a list of filenames.");
+                SCLogWarning("Invalid rule-files configuration section: "
+                             "expected a list of filenames.");
             }
             else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
@@ -353,7 +352,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     /* now we should have signatures to work with */
     if (sig_stat->good_sigs_total <= 0) {
         if (sig_stat->total_files > 0) {
-           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rules were loaded!", sig_stat->total_files);
+            SCLogWarning(
+                    "%d rule files specified, but no rules were loaded!", sig_stat->total_files);
         } else {
             SCLogInfo("No signatures supplied.");
             goto end;
@@ -464,7 +464,7 @@ int DetectLoadersSync(void)
 
     }
     if (errors) {
-        SCLogError(SC_ERR_INITIALIZATION, "%d loaders reported errors", errors);
+        SCLogError("%d loaders reported errors", errors);
         return -1;
     }
     SCLogDebug("done");
@@ -484,8 +484,7 @@ void DetectLoadersInit(void)
     (void)ConfGetInt("multi-detect.loaders", &setting);
 
     if (setting < 1 || setting > 1024) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS,
-                "invalid multi-detect.loaders setting %"PRIdMAX, setting);
+        SCLogError("invalid multi-detect.loaders setting %" PRIdMAX, setting);
         exit(EXIT_FAILURE);
     }
     num_loaders = (int32_t)setting;

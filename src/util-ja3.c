@@ -83,7 +83,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
         buffer->size *= 2;
         char *tmp = SCRealloc(buffer->data, buffer->size);
         if (tmp == NULL) {
-            SCLogError(SC_ENOMEM, "Error resizing JA3 buffer");
+            SCLogError("Error resizing JA3 buffer");
             return -1;
         }
         buffer->data = tmp;
@@ -106,7 +106,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
 int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
 {
     if (*buffer1 == NULL || *buffer2 == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffers should not be NULL");
+        SCLogError("Buffers should not be NULL");
         return -1;
     }
 
@@ -170,14 +170,14 @@ static uint32_t NumberOfDigits(uint32_t num)
 int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 {
     if (*buffer == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
+        SCLogError("Buffer should not be NULL");
         return -1;
     }
 
     if ((*buffer)->data == NULL) {
         (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE);
         if ((*buffer)->data == NULL) {
-            SCLogError(SC_ENOMEM, "Error allocating memory for JA3 data");
+            SCLogError("Error allocating memory for JA3 data");
             Ja3BufferFree(buffer);
             return -1;
         }
@@ -214,18 +214,18 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 char *Ja3GenerateHash(JA3Buffer *buffer)
 {
     if (buffer == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
+        SCLogError("Buffer should not be NULL");
         return NULL;
     }
 
     if (buffer->data == NULL) {
-        SCLogError(SC_EINVAL, "Buffer data should not be NULL");
+        SCLogError("Buffer data should not be NULL");
         return NULL;
     }
 
     char *ja3_hash = SCMalloc(SC_MD5_HEX_LEN + 1);
     if (ja3_hash == NULL) {
-        SCLogError(SC_ENOMEM, "Error allocating memory for JA3 hash");
+        SCLogError("Error allocating memory for JA3 hash");
         return NULL;
     }
 
@@ -248,8 +248,7 @@ int Ja3IsDisabled(const char *type)
     bool is_enabled = SSLJA3IsEnabled();
     if (is_enabled == 0) {
         if (strcmp(type, "rule") != 0) {
-            SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
-                    type);
+            SCLogWarning("JA3 is disabled, skipping %s", type);
         }
         return 1;
     }

@@ -157,8 +157,7 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
         fp = fopen(profiling_file_name, profiling_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_file_name, strerror(errno));
             return;
         }
     } else {
@@ -216,8 +215,7 @@ static SCProfilePrefilterDetectCtx *SCProfilingPrefilterInitCtx(void)
         memset(ctx, 0x00, sizeof(SCProfilePrefilterDetectCtx));
 
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
-                    FatalError(SC_ERR_FATAL,
-                               "Failed to initialize hash table mutex.");
+            FatalError("Failed to initialize hash table mutex.");
         }
     }
 

@@ -448,7 +448,7 @@ GrowToSize(StreamingBuffer *sb, uint32_t size)
     DEBUG_VALIDATE_BUG_ON(sb->buf_size > BIT_U32(30));
     if (size > BIT_U32(30)) { // 1GiB
         if (!g2s_warn_once) {
-            SCLogWarning(SC_ERR_MEM_ALLOC,
+            SCLogWarning(
                     "StreamingBuffer::GrowToSize() tried to alloc %u bytes, exceeds limit of %lu",
                     size, BIT_U32(30));
             g2s_warn_once = true;
@@ -495,9 +495,8 @@ static int WARN_UNUSED Grow(StreamingBuffer *sb)
     uint32_t grow = sb->buf_size * 2;
     if (grow > BIT_U32(30)) { // 1GiB
         if (!grow_warn_once) {
-            SCLogWarning(SC_ERR_MEM_ALLOC,
-                    "StreamingBuffer::Grow() tried to alloc %u bytes, exceeds limit of %lu", grow,
-                    BIT_U32(30));
+            SCLogWarning("StreamingBuffer::Grow() tried to alloc %u bytes, exceeds limit of %lu",
+                    grow, BIT_U32(30));
             grow_warn_once = true;
         }
         return -1;

@@ -166,8 +166,9 @@ static int TemplateStateGetEventInfo(const char *event_name, int *event_id,
 {
     *event_id = SCMapEnumNameToValue(event_name, template_decoder_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "template enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "template enum map table.",
+                event_name);
         /* This should be treated as fatal. */
         return -1;
     }
@@ -182,8 +183,9 @@ static int TemplateStateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, template_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
-                   "template enum map table.",  event_id);
+        SCLogError("event \"%d\" not present in "
+                   "template enum map table.",
+                event_id);
         /* This should be treated as fatal. */
         return -1;
     }

@@ -130,7 +130,7 @@ static bool *DetectMQTTConnackSessionPresentParse(const char *rawstr)
     } else if (strcmp(rawstr, "false") == 0) {
         *de = false;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid session_present flag definition: %s", rawstr);
+        SCLogError("invalid session_present flag definition: %s", rawstr);
         goto error;
     }
 

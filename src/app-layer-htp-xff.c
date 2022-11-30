@@ -218,11 +218,11 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             result->flags |= XFF_OVERWRITE;
         } else {
             if (xff_mode == NULL) {
-                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The XFF mode hasn't been defined, falling back to extra-data mode");
+                SCLogWarning("The XFF mode hasn't been defined, falling back to extra-data mode");
             }
             else if (strcasecmp(xff_mode, "extra-data") != 0) {
-                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The XFF mode %s is invalid, falling back to extra-data mode",
-                        xff_mode);
+                SCLogWarning(
+                        "The XFF mode %s is invalid, falling back to extra-data mode", xff_mode);
             }
             result->flags |= XFF_EXTRADATA;
         }
@@ -233,10 +233,11 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             result->flags |= XFF_FORWARD;
         } else {
             if (xff_deployment == NULL) {
-                SCLogWarning(SC_WARN_XFF_INVALID_DEPLOYMENT, "The XFF deployment hasn't been defined, falling back to reverse proxy deployment");
+                SCLogWarning("The XFF deployment hasn't been defined, falling back to reverse "
+                             "proxy deployment");
             }
             else if (strcasecmp(xff_deployment, "reverse") != 0) {
-                SCLogWarning(SC_WARN_XFF_INVALID_DEPLOYMENT, "The XFF mode %s is invalid, falling back to reverse proxy deployment",
+                SCLogWarning("The XFF mode %s is invalid, falling back to reverse proxy deployment",
                         xff_deployment);
             }
             result->flags |= XFF_REVERSE;
@@ -247,8 +248,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
         if (xff_header != NULL) {
             result->header = (char *) xff_header;
         } else {
-            SCLogWarning(SC_WARN_XFF_INVALID_HEADER, "The XFF header hasn't been defined, using the default %s",
-                    XFF_DEFAULT);
+            SCLogWarning("The XFF header hasn't been defined, using the default %s", XFF_DEFAULT);
             result->header = XFF_DEFAULT;
         }
     }

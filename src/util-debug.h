@@ -204,8 +204,8 @@ extern int sc_log_module_cleaned;
 
 void SCLog(int x, const char *file, const char *func, const int line,
         const char *fmt, ...) ATTR_FMT_PRINTF(5,6);
-void SCLogErr(int x, const char *file, const char *func, const int line,
-        const int err, const char *fmt, ...) ATTR_FMT_PRINTF(6,7);
+void SCLogErr(int x, const char *file, const char *func, const int line, const char *fmt, ...)
+        ATTR_FMT_PRINTF(5, 6);
 
 /**
  * \brief Macro used to log INFORMATIONAL messages.
@@ -239,11 +239,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *                  warning message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCLogWarning(err_code, ...) SCLogErr(SC_LOG_WARNING, \
-        __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
-#define SCLogWarningRaw(err_code, file, func, line, ...) \
-    SCLogErr(SC_LOG_WARNING, (file), (func), (line), err_code, __VA_ARGS__)
+#define SCLogWarning(...) SCLogErr(SC_LOG_WARNING, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define SCLogWarningRaw(file, func, line, ...)                                                     \
+    SCLogErr(SC_LOG_WARNING, (file), (func), (line), __VA_ARGS__)
 
 /**
  * \brief Macro used to log ERROR messages.
@@ -252,11 +250,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *                  error message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCLogError(err_code, ...) SCLogErr(SC_LOG_ERROR, \
-        __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
-#define SCLogErrorRaw(err_code, file, func, line, ...) SCLogErr(SC_LOG_ERROR, \
-        (file), (func), (line), err_code, __VA_ARGS__)
+#define SCLogError(...) SCLogErr(SC_LOG_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define SCLogErrorRaw(file, func, line, ...)                                                       \
+    SCLogErr(SC_LOG_ERROR, (file), (func), (line), __VA_ARGS__)
 
 /**
  * \brief Macro used to log CRITICAL messages.
@@ -265,9 +261,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *                  critical message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCLogCritical(err_code, ...) SCLogErr(SC_LOG_CRITICAL, \
-        __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
+#define SCLogCritical(...) SCLogErr(SC_LOG_CRITICAL, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 /**
  * \brief Macro used to log ALERT messages.
  *
@@ -275,9 +269,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *                  alert message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCLogAlert(err_code, ...) SCLogErr(SC_LOG_ALERT, \
-        __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
+#define SCLogAlert(...) SCLogErr(SC_LOG_ALERT, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 /**
  * \brief Macro used to log EMERGENCY messages.
  *
@@ -285,10 +277,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *                  emergency message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCLogEmerg(err_code, ...) SCLogErr(SC_LOG_EMERGENCY, \
-        __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
-
+#define SCLogEmerg(...) SCLogErr(SC_LOG_EMERGENCY, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
@@ -527,28 +516,29 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 #endif /* DEBUG */
 
-#define FatalError(x, ...) do {                                             \
-    SCLogError(x, __VA_ARGS__);                                             \
-    exit(EXIT_FAILURE);                                                     \
-} while(0)
+#define FatalError(...)                                                                            \
+    do {                                                                                           \
+        SCLogError(__VA_ARGS__);                                                                   \
+        exit(EXIT_FAILURE);                                                                        \
+    } while (0)
 
 /** \brief Fatal error IF we're starting up, and configured to consider
  *         errors to be fatal errors */
 #if !defined(__clang_analyzer__)
-#define FatalErrorOnInit(x, ...)                                                                   \
+#define FatalErrorOnInit(...)                                                                      \
     do {                                                                                           \
         SC_ATOMIC_EXTERN(unsigned int, engine_stage);                                              \
         int init_errors_fatal = 0;                                                                 \
         (void)ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);                        \
         if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT)) {                 \
-            SCLogError(x, __VA_ARGS__);                                                            \
+            SCLogError(__VA_ARGS__);                                                               \
             exit(EXIT_FAILURE);                                                                    \
         }                                                                                          \
-        SCLogWarning(x, __VA_ARGS__);                                                              \
+        SCLogWarning(__VA_ARGS__);                                                                 \
     } while (0)
 /* make it simpler for scan-build */
 #else
-#define FatalErrorOnInit(x, ...) FatalError(x, __VA_ARGS__)
+#define FatalErrorOnInit(...) FatalError(__VA_ARGS__)
 #endif
 
 #define BOOL2STR(b) (b) ? "true" : "false"
@@ -564,8 +554,8 @@ void SCLogInitLogModule(SCLogInitData *);
 
 void SCLogDeInitLogModule(void);
 
-SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int,
-                     const char *, const SCError, const char *message);
+SCError SCLogMessage(
+        const SCLogLevel, const char *, const unsigned int, const char *, const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 

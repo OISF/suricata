@@ -120,7 +120,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         while (t->next)
             t = t->next;
         if (t->id * 2 > UINT32_MAX) {
-            FatalError(SC_ERR_FATAL, "Too many loggers registered.");
+            FatalError("Too many loggers registered.");
         }
         op->id = t->id * 2;
         t->next = op;
@@ -577,12 +577,12 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void
 
     if (g_file_logger_enabled) {
         if (OutputFileLogThreadInit(tv, &td->file) != TM_ECODE_OK) {
-            FatalError(SC_ERR_FATAL, "failed to set up file thread data");
+            FatalError("failed to set up file thread data");
         }
     }
     if (g_filedata_logger_enabled) {
         if (OutputFiledataLogThreadInit(tv, &td->filedata) != TM_ECODE_OK) {
-            FatalError(SC_ERR_FATAL, "failed to set up filedata thread data");
+            FatalError("failed to set up filedata thread data");
         }
     }
 

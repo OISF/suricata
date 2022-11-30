@@ -257,7 +257,7 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
         case DETECT_XBITS_CMD_TOGGLE:
             return DetectHostbitMatchToggle(p,xd);
         default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
+            SCLogError("unknown cmd %" PRIu32 "", xd->cmd);
             return 0;
     }
 
@@ -288,15 +288,14 @@ static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
 
     count = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (count != 2 && count != 3 && count != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH,
-            "\"%s\" is not a valid setting for hostbits.", str);
+        SCLogError("\"%s\" is not a valid setting for hostbits.", str);
         return 0;
     }
 
     pcre2len = cmd_len;
     rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
     if (rc < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return 0;
     }
 
@@ -304,7 +303,7 @@ static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
         pcre2len = name_len;
         rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
         if (rc < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             return 0;
         }
         if (count >= 4) {
@@ -312,7 +311,7 @@ static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
             rc = pcre2_substring_copy_bynumber(
                     parse_regex.match, 3, (PCRE2_UCHAR8 *)dir, &pcre2len);
             if (rc < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 return 0;
             }
         }
@@ -342,7 +341,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             hb_dir = DETECT_XBITS_TRACK_IPDST;
         else if (strcmp(hb_dir_str, "both") == 0) {
             //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
-            SCLogError(SC_ERR_UNIMPLEMENTED, "'both' not implemented");
+            SCLogError("'both' not implemented");
             goto error;
         } else {
             // TODO
@@ -363,7 +362,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_XBITS_CMD_TOGGLE;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
+        SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
     }
 

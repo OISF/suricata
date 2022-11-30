@@ -114,7 +114,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     {
         if (i > 2) //for now only need 3 parameters
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "too many parameters");
+            SCLogError("too many parameters");
             goto error;
         }
 
@@ -122,7 +122,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
         {
             if (!isdigit((int) *token))
             {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "parameter error %s", token);
+                SCLogError("parameter error %s", token);
                 goto error;
             }
         } else //if on attribute
@@ -136,7 +136,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
 
             if (!isdigit((int) *token))
             {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "attribute error  %s", token);
+                SCLogError("attribute error  %s", token);
                 goto error;
             }
 
@@ -145,15 +145,15 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
         unsigned long num = atol(token);
         if ((num > MAX_CIP_SERVICE) && (i == 0))//if service greater than 7 bit
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP service %lu", num);
+            SCLogError("invalid CIP service %lu", num);
             goto error;
         } else if ((num > MAX_CIP_CLASS) && (i == 1))//if service greater than 16 bit
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP class %lu", num);
+            SCLogError("invalid CIP class %lu", num);
             goto error;
         } else if ((num > MAX_CIP_ATTRIBUTE) && (i == 2))//if service greater than 16 bit
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP attribute %lu", num);
+            SCLogError("invalid CIP attribute %lu", num);
             goto error;
         }
 
@@ -164,7 +164,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     }
 
     if (i == 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "no tokens found");
+        SCLogError("no tokens found");
         goto error;
     }
 
@@ -342,14 +342,15 @@ static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
         goto error;
 
     if (!(isdigit((int) *rulestr))) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %s", rulestr);
+        SCLogError("invalid ENIP command %s", rulestr);
         goto error;
     }
 
     uint16_t cmd;
     if (StringParseUint16(&cmd, 10, 0, rulestr) < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command"
-                   ": \"%s\"", rulestr);
+        SCLogError("invalid ENIP command"
+                   ": \"%s\"",
+                rulestr);
         goto error;
     }
 

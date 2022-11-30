@@ -74,7 +74,7 @@ static void SCAtExitHandler(void)
 
     /* mark service as stopped */
     if (!SetServiceStatus(service_status_handle, &status)) {
-        SCLogWarning(SC_ERR_SVC, "Can't set service status: %d", (int)GetLastError());
+        SCLogWarning("Can't set service status: %d", (int)GetLastError());
     } else {
         SCLogInfo("Service status set to: SERVICE_STOPPED");
     }
@@ -101,7 +101,7 @@ static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata
 
         /* mark service as stop pending */
         if (!SetServiceStatus(service_status_handle, &status)) {
-            SCLogWarning(SC_ERR_SVC, "Can't set service status: %d", (int)GetLastError());
+            SCLogWarning("Can't set service status: %d", (int)GetLastError());
         } else {
             SCLogInfo("Service status set to: SERVICE_STOP_PENDING");
         }
@@ -131,18 +131,18 @@ static void WINAPI SCServiceMain(uint32_t argc, char** argv)
     };
 
     if ((service_status_handle = RegisterServiceCtrlHandlerEx((char *)PROG_NAME, SCServiceCtrlHandlerEx, NULL)) == (SERVICE_STATUS_HANDLE)0) {
-        SCLogError(SC_ERR_SVC, "Can't register service control handler: %d", (int)GetLastError());
+        SCLogError("Can't register service control handler: %d", (int)GetLastError());
         return;
     }
 
     /* register exit handler */
     if (atexit(SCAtExitHandler)) {
-        SCLogWarning(SC_ERR_SVC, "Can't register exit handler: %d", (int)GetLastError());
+        SCLogWarning("Can't register exit handler: %d", (int)GetLastError());
     }
 
     /* mark service as running immediately */
     if (!SetServiceStatus(service_status_handle, &status)) {
-        SCLogWarning(SC_ERR_SVC, "Can't set service status: %d", (int)GetLastError());
+        SCLogWarning("Can't set service status: %d", (int)GetLastError());
     } else {
         SCLogInfo("Service status set to: SERVICE_RUNNING");
     }
@@ -158,7 +158,7 @@ static void WINAPI SCServiceMain(uint32_t argc, char** argv)
     status.dwCurrentState = SERVICE_STOPPED;
 
     if (!SetServiceStatus(service_status_handle, &status)) {
-        SCLogWarning(SC_ERR_SVC, "Can't set service status: %d", (int)GetLastError());
+        SCLogWarning("Can't set service status: %d", (int)GetLastError());
     } else {
         SCLogInfo("Service status set to: SERVICE_STOPPED");
     }
@@ -179,7 +179,7 @@ int SCServiceInit(int argc, char **argv)
 
     /* continue with suricata initialization */
     if (service_initialized) {
-        SCLogWarning(SC_ERR_SVC, "Service is already initialized.");
+        SCLogWarning("Service is already initialized.");
         return 0;
     }
 
@@ -220,7 +220,7 @@ int SCServiceInstall(int argc, char **argv)
         memset(path, 0, sizeof(path));
 
         if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
-            SCLogError(SC_ERR_SVC, "Can't get path to service binary: %d", (int)GetLastError());
+            SCLogError("Can't get path to service binary: %d", (int)GetLastError());
             break;
         }
 
@@ -234,7 +234,7 @@ int SCServiceInstall(int argc, char **argv)
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't open SCM: %d", (int)GetLastError());
+            SCLogError("Can't open SCM: %d", (int)GetLastError());
             break;
         }
 
@@ -254,7 +254,7 @@ int SCServiceInstall(int argc, char **argv)
                 NULL);
 
         if (service == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't create service: %d", (int)GetLastError());
+            SCLogError("Can't create service: %d", (int)GetLastError());
             break;
         }
 
@@ -288,27 +288,27 @@ int SCServiceRemove(int argc, char **argv)
 
     do {
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't open SCM: %d", (int)GetLastError());
+            SCLogError("Can't open SCM: %d", (int)GetLastError());
             break;
         }
 
         if ((service = OpenService(scm, PROG_NAME, SERVICE_ALL_ACCESS)) == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't open service: %d", (int)GetLastError());
+            SCLogError("Can't open service: %d", (int)GetLastError());
             break;
         }
 
         if (!QueryServiceStatus(service, &status)) {
-            SCLogError(SC_ERR_SVC, "Can't query service status: %d", (int)GetLastError());
+            SCLogError("Can't query service status: %d", (int)GetLastError());
             break;
         }
 
         if (status.dwCurrentState != SERVICE_STOPPED) {
-            SCLogError(SC_ERR_SVC, "Service isn't in stopped state: %d", (int)GetLastError());
+            SCLogError("Service isn't in stopped state: %d", (int)GetLastError());
             break;
         }
 
         if (!DeleteService(service)) {
-            SCLogError(SC_ERR_SVC, "Can't delete service: %d", (int)GetLastError());
+            SCLogError("Can't delete service: %d", (int)GetLastError());
             break;
         }
 
@@ -345,7 +345,7 @@ int SCServiceChangeParams(int argc, char **argv)
         memset(path, 0, sizeof(path));
 
         if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
-            SCLogError(SC_ERR_SVC, "Can't get path to service binary: %d", (int)GetLastError());
+            SCLogError("Can't get path to service binary: %d", (int)GetLastError());
             break;
         }
 
@@ -359,12 +359,12 @@ int SCServiceChangeParams(int argc, char **argv)
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't open SCM: %d", (int)GetLastError());
+            SCLogError("Can't open SCM: %d", (int)GetLastError());
             break;
         }
 
         if ((service = OpenService(scm, PROG_NAME, SERVICE_ALL_ACCESS)) == NULL) {
-            SCLogError(SC_ERR_SVC, "Can't open service: %d", (int)GetLastError());
+            SCLogError("Can't open service: %d", (int)GetLastError());
             break;
         }
 
@@ -381,7 +381,7 @@ int SCServiceChangeParams(int argc, char **argv)
                     NULL,
                     PROG_NAME))
         {
-            SCLogError(SC_ERR_SVC, "Can't change service configuration: %d", (int)GetLastError());
+            SCLogError("Can't change service configuration: %d", (int)GetLastError());
             break;
         }
 

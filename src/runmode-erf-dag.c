@@ -84,7 +84,7 @@ int RunModeIdsErfDagSingle(void)
         thread_name_single,
         NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "DAG single runmode failed to start");
+        FatalError("DAG single runmode failed to start");
     }
 
     SCLogInfo("RunModeIdsDagSingle initialised");
@@ -109,7 +109,7 @@ int RunModeIdsErfDagAutoFp(void)
         thread_name_autofp,
         NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "DAG autofp runmode failed to start");
+        FatalError("DAG autofp runmode failed to start");
     }
 
     SCLogInfo("RunModeIdsDagAutoFp initialised");
@@ -134,7 +134,7 @@ int RunModeIdsErfDagWorkers(void)
         thread_name_workers,
         NULL);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "DAG workers runmode failed to start");
+        FatalError("DAG workers runmode failed to start");
     }
 
     SCLogInfo("RunModeIdsErfDagWorkers initialised");

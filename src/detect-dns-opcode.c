@@ -37,8 +37,7 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     void *detect = rs_detect_dns_opcode_parse(str);
     if (detect == NULL) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                "failed to parse dns.opcode: %s", str);
+        SCLogError("failed to parse dns.opcode: %s", str);
         return -1;
     }
 

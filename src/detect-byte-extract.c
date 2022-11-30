@@ -220,10 +220,10 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     if (ret < 3 || ret > 19) {
-        SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
-                   ", string \"%s\"", ret, arg);
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg to byte_extract : %s "
-                   "for byte_extract", arg);
+        SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, arg);
+        SCLogError("Invalid arg to byte_extract : %s "
+                   "for byte_extract",
+                arg);
         goto error;
     }
 
@@ -238,14 +238,15 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 1, (PCRE2_UCHAR8 *)nbytes_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                              "for arg 1 for byte_extract");
+        SCLogError("pcre2_substring_copy_bynumber failed "
+                   "for arg 1 for byte_extract");
         goto error;
     }
     if (StringParseUint8(&bed->nbytes, 10, 0,
                                (const char *)nbytes_str) < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for number of bytes"
-                   " to be extracted: \"%s\".", nbytes_str);
+        SCLogError("Invalid value for number of bytes"
+                   " to be extracted: \"%s\".",
+                nbytes_str);
         goto error;
     }
 
@@ -255,13 +256,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 2, (PCRE2_UCHAR8 *)offset_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                              "for arg 2 for byte_extract");
+        SCLogError("pcre2_substring_copy_bynumber failed "
+                   "for arg 2 for byte_extract");
         goto error;
     }
     int32_t offset;
     if (StringParseI32RangeCheck(&offset, 10, 0, (const char *)offset_str, -65535, 65535) < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for offset: \"%s\".", offset_str);
+        SCLogError("Invalid value for offset: \"%s\".", offset_str);
         goto error;
     }
     bed->offset = offset;
@@ -272,8 +273,8 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 3, (PCRE2_UCHAR8 *)varname_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                              "for arg 3 for byte_extract");
+        SCLogError("pcre2_substring_copy_bynumber failed "
+                   "for arg 3 for byte_extract");
         goto error;
     }
     bed->name = SCStrdup(varname_str);
@@ -286,23 +287,22 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
         pcre2len = sizeof(opt_str);
         res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
-                    "pcre2_substring_copy_bynumber failed "
-                    "for arg %d for byte_extract with %d",
+            SCLogError("pcre2_substring_copy_bynumber failed "
+                       "for arg %d for byte_extract with %d",
                     i, res);
             goto error;
         }
 
         if (strcmp("relative", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "relative specified more "
+                SCLogError("relative specified more "
                            "than once for byte_extract");
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_RELATIVE;
         } else if (strcmp("multiplier", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "multiplier specified more "
+                SCLogError("multiplier specified more "
                            "than once for byte_extract");
                 goto error;
             }
@@ -314,9 +314,8 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, i, (PCRE2_UCHAR8 *)multiplier_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
-                        "pcre2_substring_copy_bynumber failed "
-                        "for arg %d for byte_extract",
+                SCLogError("pcre2_substring_copy_bynumber failed "
+                           "for arg %d for byte_extract",
                         i);
                 goto error;
             }
@@ -324,14 +323,15 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             if (StringParseU16RangeCheck(&multiplier, 10, 0, (const char *)multiplier_str,
                         DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
                         DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for"
-                        "multiplier: \"%s\".", multiplier_str);
+                SCLogError("Invalid value for"
+                           "multiplier: \"%s\".",
+                        multiplier_str);
                 goto error;
             }
             bed->multiplier_value = multiplier;
         } else if (strcmp("big", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
+                SCLogError("endian option specified "
                            "more than once for byte_extract");
                 goto error;
             }
@@ -339,7 +339,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_BIG;
         } else if (strcmp("little", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
+                SCLogError("endian option specified "
                            "more than once for byte_extract");
                 goto error;
             }
@@ -347,7 +347,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_LITTLE;
         } else if (strcmp("dce", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
+                SCLogError("endian option specified "
                            "more than once for byte_extract");
                 goto error;
             }
@@ -355,12 +355,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_DCE;
         } else if (strcmp("string", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "string specified more "
+                SCLogError("string specified more "
                            "than once for byte_extract");
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "The right way to specify "
+                SCLogError("The right way to specify "
                            "base is (string, base) and not (base, string) "
                            "for byte_extract");
                 goto error;
@@ -368,46 +368,46 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_STRING;
         } else if (strcmp("hex", opt_str) == 0) {
             if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(hex) specified "
+                SCLogError("Base(hex) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
+                SCLogError("More than one base "
                            "specified for byte_extract");
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_HEX;
         } else if (strcmp("oct", opt_str) == 0) {
             if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(oct) specified "
+                SCLogError("Base(oct) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
+                SCLogError("More than one base "
                            "specified for byte_extract");
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_OCT;
         } else if (strcmp("dec", opt_str) == 0) {
             if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(dec) specified "
+                SCLogError("Base(dec) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
+                SCLogError("More than one base "
                            "specified for byte_extract");
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
         } else if (strcmp("align", opt_str) == 0) {
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ALIGN) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Align specified more "
+                SCLogError("Align specified more "
                            "than once for byte_extract");
                 goto error;
             }
@@ -419,28 +419,30 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, i, (PCRE2_UCHAR8 *)align_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
-                        "pcre2_substring_copy_bynumber failed "
-                        "for arg %d in byte_extract",
+                SCLogError("pcre2_substring_copy_bynumber failed "
+                           "for arg %d in byte_extract",
                         i);
                 goto error;
             }
             if (StringParseUint8(&bed->align_value, 10, 0,
                                        (const char *)align_str) < 0) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid align_value: "
-                           "\"%s\".", align_str);
+                SCLogError("Invalid align_value: "
+                           "\"%s\".",
+                        align_str);
                 goto error;
             }
             if (!(bed->align_value == 2 || bed->align_value == 4)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid align_value for "
-                           "byte_extract - \"%d\"", bed->align_value);
+                SCLogError("Invalid align_value for "
+                           "byte_extract - \"%d\"",
+                        bed->align_value);
                 goto error;
             }
         } else if (strcmp("", opt_str) == 0) {
             ;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid option - \"%s\" "
-                       "specified in byte_extract", opt_str);
+            SCLogError("Invalid option - \"%s\" "
+                       "specified in byte_extract",
+                    opt_str);
             goto error;
         }
     } /* for (i = 4; i < ret; i++) */
@@ -457,7 +459,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
         }
         if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't have "
+            SCLogError("byte_extract can't have "
                        "endian \"big\" or \"little\" specified along with "
                        "\"string\"");
             goto error;
@@ -466,27 +468,27 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             /* if are dealing with octal nos, the max no that can fit in a 8
              * byte value is 01777777777777777777777 */
             if (bed->nbytes > STRING_MAX_BYTES_TO_EXTRACT_FOR_OCT) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't process "
+                SCLogError("byte_extract can't process "
                            "more than %d bytes in \"string\" extraction",
-                           STRING_MAX_BYTES_TO_EXTRACT_FOR_OCT);
+                        STRING_MAX_BYTES_TO_EXTRACT_FOR_OCT);
                 goto error;
             }
         } else if (bed->base == DETECT_BYTE_EXTRACT_BASE_DEC) {
             /* if are dealing with decimal nos, the max no that can fit in a 8
              * byte value is 18446744073709551615 */
             if (bed->nbytes > STRING_MAX_BYTES_TO_EXTRACT_FOR_DEC) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't process "
+                SCLogError("byte_extract can't process "
                            "more than %d bytes in \"string\" extraction",
-                           STRING_MAX_BYTES_TO_EXTRACT_FOR_DEC);
+                        STRING_MAX_BYTES_TO_EXTRACT_FOR_DEC);
                 goto error;
             }
         } else if (bed->base == DETECT_BYTE_EXTRACT_BASE_HEX) {
             /* if are dealing with hex nos, the max no that can fit in a 8
              * byte value is 0xFFFFFFFFFFFFFFFF */
             if (bed->nbytes > STRING_MAX_BYTES_TO_EXTRACT_FOR_HEX) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't process "
+                SCLogError("byte_extract can't process "
                            "more than %d bytes in \"string\" extraction",
-                           STRING_MAX_BYTES_TO_EXTRACT_FOR_HEX);
+                        STRING_MAX_BYTES_TO_EXTRACT_FOR_HEX);
                 goto error;
             }
         } else {
@@ -494,9 +496,9 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
         }
     } else {
         if (bed->nbytes > NO_STRING_MAX_BYTES_TO_EXTRACT) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't process "
+            SCLogError("byte_extract can't process "
                        "more than %d bytes in \"non-string\" extraction",
-                       NO_STRING_MAX_BYTES_TO_EXTRACT);
+                    NO_STRING_MAX_BYTES_TO_EXTRACT);
             goto error;
         }
         /* if string has not been specified and no endian option has been
@@ -590,7 +592,7 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             (data->base == DETECT_BYTE_EXTRACT_BASE_DEC) ||
             (data->base == DETECT_BYTE_EXTRACT_BASE_HEX) ||
             (data->base == DETECT_BYTE_EXTRACT_BASE_OCT) ) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+            SCLogError("Invalid option. "
                        "A byte_jump keyword with dce holds other invalid modifiers.");
             goto error;
         }

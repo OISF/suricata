@@ -81,7 +81,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8
 {
     SReputation *user_data = NULL;
     if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        FatalError("Error allocating memory. Exiting");
     }
     memset(user_data, 0x00, sizeof(SReputation));
 
@@ -100,7 +100,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8
 
         SCLogDebug("adding ipv6 host %s", ip);
         if (SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data) == NULL) {
-            SCLogWarning(SC_EINVAL, "failed to add ipv6 host %s", ip);
+            SCLogWarning("failed to add ipv6 host %s", ip);
         }
 
     } else {
@@ -115,7 +115,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8
 
         SCLogDebug("adding ipv4 host %s", ip);
         if (SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data) == NULL) {
-            SCLogWarning(SC_EINVAL, "failed to add ipv4 host %s", ip);
+            SCLogWarning("failed to add ipv4 host %s", ip);
         }
     }
 }
@@ -353,7 +353,7 @@ static int SRepLoadCatFile(const char *filename)
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
+        SCLogError("opening ip rep file %s: %s", filename, strerror(errno));
         return -1;
     }
 
@@ -399,7 +399,7 @@ int SRepLoadCatFileFromFD(FILE *fp)
         if (SRepCatSplitLine(line, &cat, shortname, sizeof(shortname)) == 0) {
             strlcpy(srep_cat_table[cat], shortname, SREP_SHORTNAME_LEN);
         } else {
-            SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
+            SCLogError("bad line \"%s\"", line);
         }
     }
 
@@ -419,7 +419,7 @@ static int SRepLoadFile(SRepCIDRTree *cidr_ctx, char *filename)
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
+        SCLogError("opening ip rep file %s: %s", filename, strerror(errno));
         return -1;
     }
 
@@ -462,7 +462,7 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
         uint8_t cat = 0, value = 0;
         int r = SRepSplitLine(cidr_ctx, line, &a, &cat, &value);
         if (r < 0) {
-            SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
+            SCLogError("bad line \"%s\"", line);
         } else if (r == 0) {
             if (a.family == AF_INET) {
                 char ipstr[16];
@@ -476,7 +476,7 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
 
             Host *h = HostGetHostFromHash(&a);
             if (h == NULL) {
-                SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
+                SCLogError("failed to get a host, increase host.memcap");
                 break;
             } else {
                 //SCLogInfo("host %p", h);
@@ -609,21 +609,22 @@ int SRepInit(DetectEngineCtx *de_ctx)
     }
 
     if (files == NULL) {
-        SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-files\" not set");
+        SCLogError("\"reputation-files\" not set");
         return -1;
     }
 
     if (init) {
         if (filename == NULL) {
-            SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-categories-file\" not set");
+            SCLogError("\"reputation-categories-file\" not set");
             return -1;
         }
 
         /* init even if we have reputation files, so that when we
          * have a live reload, we have inited the cats */
         if (SRepLoadCatFile(filename) < 0) {
-            SCLogError(SC_ERR_NO_REPUTATION, "failed to load reputation "
-                    "categories file %s", filename);
+            SCLogError("failed to load reputation "
+                       "categories file %s",
+                    filename);
             return -1;
         }
     }

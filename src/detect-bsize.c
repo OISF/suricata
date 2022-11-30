@@ -79,14 +79,13 @@ bool DetectBsizeValidateContentCallback(Signature *s, int list)
     return true;
 value_error:
     if (bsz->mode == DETECT_UINT_RA) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "signature can't match as required content length %" PRIu64
-                " exceeds bsize range: %" PRIu64 "-%" PRIu64,
+        SCLogError("signature can't match as required content length %" PRIu64
+                   " exceeds bsize range: %" PRIu64 "-%" PRIu64,
                 needed, bsz->arg1, bsz->arg2);
     } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "signature can't match as required content length %" PRIu64 " exceeds bsize value: "
-                "%" PRIu64,
+        SCLogError("signature can't match as required content length %" PRIu64
+                   " exceeds bsize value: "
+                   "%" PRIu64,
                 needed, bsz->arg1);
     }
     return false;

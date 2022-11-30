@@ -64,11 +64,11 @@ typedef struct ROHashTableOffsets_ {
 ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size)
 {
     if (item_size % 4 != 0 || item_size == 0) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "data size must be multiple of 4");
+        SCLogError("data size must be multiple of 4");
         return NULL;
     }
     if (hash_bits < 4 || hash_bits > 31) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "invalid hash_bits setting, valid range is 4-31");
+        SCLogError("invalid hash_bits setting, valid range is 4-31");
         return NULL;
     }
 
@@ -76,7 +76,7 @@ ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size)
 
     ROHashTable *table = SCMalloc(sizeof(ROHashTable) + size);
     if (unlikely(table == NULL)) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "failed to alloc memory");
+        SCLogError("failed to alloc memory");
         return NULL;
     }
     memset(table, 0, sizeof(ROHashTable) + size);
@@ -153,11 +153,11 @@ void *ROHashLookup(ROHashTable *table, void *data, uint16_t size)
 int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size)
 {
     if (table->locked) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "can't add value to locked table");
+        SCLogError("can't add value to locked table");
         return 0;
     }
     if (table->item_size != size) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "wrong size for data %u != %u", size, table->item_size);
+        SCLogError("wrong size for data %u != %u", size, table->item_size);
         return 0;
     }
 
@@ -184,7 +184,7 @@ int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size)
 int ROHashInitFinalize(ROHashTable *table)
 {
     if (table->locked) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "table already locked");
+        SCLogError("table already locked");
         return 0;
     }
 
@@ -202,7 +202,7 @@ int ROHashInitFinalize(ROHashTable *table)
     }
 
     if (table->items == 0) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "no items");
+        SCLogError("no items");
         return 0;
     }
 
@@ -210,7 +210,7 @@ int ROHashInitFinalize(ROHashTable *table)
     uint32_t newsize = table->items * table->item_size;
     table->data = SCMalloc(newsize);
     if (table->data == NULL) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "failed to alloc memory");
+        SCLogError("failed to alloc memory");
         return 0;
     }
     memset(table->data, 0x00, newsize);

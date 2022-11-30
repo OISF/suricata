@@ -76,7 +76,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     /* retrieve the sm to apply the distance against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "distance needs "
+        SCLogError("distance needs "
                    "preceding content, uricontent option, http_client_body, "
                    "http_server_body, http_header option, http_raw_header option, "
                    "http_method option, http_cookie, http_raw_uri, "
@@ -88,39 +88,39 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd->flags & DETECT_CONTENT_DISTANCE) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple distances for the same content.");
+        SCLogError("can't use multiple distances for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+        SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
-                   "content." );
+                   "content.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "negated keyword set along with a fast_pattern");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "keyword set along with a fast_pattern:only;");
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(str, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
-                       "seen in distance - %s\n", str);
+            SCLogError("unknown byte_ keyword var "
+                       "seen in distance - %s\n",
+                    str);
             goto end;
         }
         cd->distance = index;
         cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
         if (StringParseInt32(&cd->distance, 0, 0, str) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                      "invalid value for distance: %s", str);
+            SCLogError("invalid value for distance: %s", str);
             goto end;
         }
     }
@@ -135,7 +135,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *prev_cd = (DetectContentData *)prev_pm->ctx;
         if (prev_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
+            SCLogError("previous keyword "
                        "has a fast_pattern:only; set. Can't "
                        "have relative keywords around a fast_pattern "
                        "only content");

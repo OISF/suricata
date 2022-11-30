@@ -160,8 +160,8 @@ void FlowDisableFlowManagerThread(void)
 again:
     gettimeofday(&cur_ts, NULL);
     if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
-        FatalError(SC_ERR_SHUTDOWN, "unable to get all flow manager "
-                "threads to shutdown in time");
+        FatalError("unable to get all flow manager "
+                   "threads to shutdown in time");
     }
 
     SCMutexLock(&tv_root_lock);
@@ -957,8 +957,7 @@ void FlowManagerThreadSpawn()
     (void)ConfGetInt("flow.managers", &setting);
 
     if (setting < 1 || setting > 1024) {
-        FatalError(SC_ERR_INVALID_ARGUMENTS,
-                "invalid flow.managers setting %"PRIdMAX, setting);
+        FatalError("invalid flow.managers setting %" PRIdMAX, setting);
     }
     flowmgr_number = (uint32_t)setting;
 
@@ -977,10 +976,10 @@ void FlowManagerThreadSpawn()
         BUG_ON(tv_flowmgr == NULL);
 
         if (tv_flowmgr == NULL) {
-            FatalError(SC_ERR_FATAL, "flow manager thread creation failed");
+            FatalError("flow manager thread creation failed");
         }
         if (TmThreadSpawn(tv_flowmgr) != TM_ECODE_OK) {
-            FatalError(SC_ERR_FATAL, "flow manager thread spawn failed");
+            FatalError("flow manager thread spawn failed");
         }
     }
     return;
@@ -1004,7 +1003,7 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
     if (ftd == NULL)
         return TM_ECODE_FAILED;
     if (OutputFlowLogThreadInit(t, NULL, &ftd->output_thread_data) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+        SCLogError("initializing flow log API for thread failed");
         SCFree(ftd);
         return TM_ECODE_FAILED;
     }
@@ -1153,8 +1152,7 @@ void FlowRecyclerThreadSpawn()
     (void)ConfGetInt("flow.recyclers", &setting);
 
     if (setting < 1 || setting > 1024) {
-        FatalError(SC_ERR_INVALID_ARGUMENTS,
-                "invalid flow.recyclers setting %"PRIdMAX, setting);
+        FatalError("invalid flow.recyclers setting %" PRIdMAX, setting);
     }
     flowrec_number = (uint32_t)setting;
 
@@ -1171,10 +1169,10 @@ void FlowRecyclerThreadSpawn()
                 "FlowRecycler", 0);
 
         if (tv_flowrec == NULL) {
-            FatalError(SC_ERR_FATAL, "flow recycler thread creation failed");
+            FatalError("flow recycler thread creation failed");
         }
         if (TmThreadSpawn(tv_flowrec) != TM_ECODE_OK) {
-            FatalError(SC_ERR_FATAL, "flow recycler thread spawn failed");
+            FatalError("flow recycler thread spawn failed");
         }
     }
     return;
@@ -1225,8 +1223,8 @@ void FlowDisableFlowRecyclerThread(void)
 again:
     gettimeofday(&cur_ts, NULL);
     if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
-        FatalError(SC_ERR_SHUTDOWN, "unable to get all flow recycler "
-                "threads to shutdown in time");
+        FatalError("unable to get all flow recycler "
+                   "threads to shutdown in time");
     }
 
     SCMutexLock(&tv_root_lock);

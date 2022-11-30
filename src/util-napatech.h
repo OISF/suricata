@@ -68,23 +68,19 @@ extern void NapatechStartStats(void);
     SCLogError((err_type), "Napatech Error: %s", errorBuffer);   \
     }
 
-#define NAPATECH_NTPL_ERROR(ntpl_cmd, ntpl_info, status) { \
-    char errorBuffer[1024]; \
-    NT_ExplainError(status, errorBuffer, sizeof (errorBuffer) - 1); \
-    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
-               "     NTPL failed: %s", errorBuffer); \
-    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
-               "         cmd: %s", ntpl_cmd); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[0], "", 256) != 0) \
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
-                   "         %s", ntpl_info.u.errorData.errBuffer[0]); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[1], "", 256) != 0) \
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
-                   "         %s", ntpl_info.u.errorData.errBuffer[1]); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[2], "", 256) != 0) \
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
-                   "         %s", ntpl_info.u.errorData.errBuffer[2]); \
-}
+#define NAPATECH_NTPL_ERROR(ntpl_cmd, ntpl_info, status)                                           \
+    {                                                                                              \
+        char errorBuffer[1024];                                                                    \
+        NT_ExplainError(status, errorBuffer, sizeof(errorBuffer) - 1);                             \
+        SCLogError("     NTPL failed: %s", errorBuffer);                                           \
+        SCLogError("         cmd: %s", ntpl_cmd);                                                  \
+        if (strncmp(ntpl_info.u.errorData.errBuffer[0], "", 256) != 0)                             \
+            SCLogError("         %s", ntpl_info.u.errorData.errBuffer[0]);                         \
+        if (strncmp(ntpl_info.u.errorData.errBuffer[1], "", 256) != 0)                             \
+            SCLogError("         %s", ntpl_info.u.errorData.errBuffer[1]);                         \
+        if (strncmp(ntpl_info.u.errorData.errBuffer[2], "", 256) != 0)                             \
+            SCLogError("         %s", ntpl_info.u.errorData.errBuffer[2]);                         \
+    }
 
 // #define ENABLE_NT_DEBUG
 #ifdef ENABLE_NT_DEBUG

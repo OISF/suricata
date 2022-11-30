@@ -349,9 +349,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".enabled");
     if (r < 0) {
-        FatalError(SC_ERR_FATAL, "snprintf failure.");
+        FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        FatalError("buffer not big enough to write param.");
     }
 
     node = ConfGetNode(param);
@@ -360,9 +360,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto_name, ".", ipproto, ".enabled");
         if (r < 0) {
-            FatalError(SC_ERR_FATAL, "snprintf failure.");
+            FatalError("snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            FatalError("buffer not big enough to write param.");
         }
 
         node = ConfGetNode(param);
@@ -379,7 +379,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
     } else if (strcasecmp(node->val, "detection-only") == 0) {
         goto disabled;
     } else {
-        SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+        SCLogError("Invalid value found for %s.", param);
         exit(EXIT_FAILURE);
     }
 

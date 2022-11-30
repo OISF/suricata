@@ -154,8 +154,7 @@ SCProfilingInit(void)
             profiling_packets_enabled = 1;
 
             if (pthread_mutex_init(&packet_profile_lock, NULL) != 0) {
-                        FatalError(SC_ERR_FATAL,
-                                   "Failed to initialize packet profiling mutex.");
+                FatalError("Failed to initialize packet profiling mutex.");
             }
             memset(&packet_profile_data4, 0, sizeof(packet_profile_data4));
             memset(&packet_profile_data6, 0, sizeof(packet_profile_data6));
@@ -202,7 +201,7 @@ SCProfilingInit(void)
 
                 profiling_csv_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_csv_file_name == NULL)) {
-                    FatalError(SC_ERR_FATAL, "out of memory");
+                    FatalError("out of memory");
                 }
                 snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
@@ -224,7 +223,8 @@ SCProfilingInit(void)
     if (conf != NULL) {
         if (ConfNodeChildValueIsTrue(conf, "enabled")) {
 #ifndef PROFILE_LOCKING
-            SCLogWarning(SC_WARN_PROFILE, "lock profiling not compiled in. Add --enable-profiling-locks to configure.");
+            SCLogWarning(
+                    "lock profiling not compiled in. Add --enable-profiling-locks to configure.");
 #else
             profiling_locks_enabled = 1;
 
@@ -236,7 +236,7 @@ SCProfilingInit(void)
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_locks_file_name == NULL)) {
-                    FatalError(SC_ERR_FATAL, "can't duplicate file name");
+                    FatalError("can't duplicate file name");
                 }
 
                 snprintf(profiling_locks_file_name, PATH_MAX, "%s/%s", log_dir, filename);
@@ -354,8 +354,7 @@ void SCProfilingDumpPacketStats(void)
         fp = fopen(profiling_packets_file_name, profiling_packets_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
-                    profiling_packets_file_name, strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_packets_file_name, strerror(errno));
             return;
         }
     } else {

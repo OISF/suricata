@@ -91,8 +91,9 @@ TmModule *TmModuleGetById(int id)
 {
 
     if (id < 0 || id >= TMM_SIZE) {
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Threading module with the id "
-                   "\"%d\" doesn't exist", id);
+        SCLogError("Threading module with the id "
+                   "\"%d\" doesn't exist",
+                id);
         return NULL;
     }
 
@@ -179,8 +180,9 @@ void TmModuleRegisterTests(void)
 
         if (t->RegisterTests == NULL) {
             if (coverage_unittests)
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "threading module %s has no unittest "
-                        "registration function.", t->name);
+                SCLogWarning("threading module %s has no unittest "
+                             "registration function.",
+                        t->name);
         } else {
             t->RegisterTests();
             g_ut_covered++;

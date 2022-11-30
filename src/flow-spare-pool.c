@@ -248,7 +248,7 @@ void FlowSparePoolInit(void)
     for (uint32_t cnt = 0; cnt < flow_config.prealloc; ) {
         FlowSparePool *p = FlowSpareGetPool();
         if (p == NULL) {
-            FatalError(SC_ERR_FLOW_INIT, "failed to initialize flow pool");
+            FatalError("failed to initialize flow pool");
         }
         FlowSparePoolUpdateBlock(p);
         cnt += p->queue.len;

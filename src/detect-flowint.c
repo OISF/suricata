@@ -238,21 +238,21 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
+        SCLogError("\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
         return NULL;
     }
 
     /* Get our flowint varname */
     res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
     varname = (char *)str_ptr;
 
     res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
     modstr = (char *)str_ptr;
@@ -283,7 +283,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         modifier = FLOWINT_MODIFIER_NOTSET;
 
     if (modifier == FLOWINT_MODIFIER_UNKNOWN) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown modifier");
+        SCLogError("Unknown modifier");
         goto error;
     }
 
@@ -300,7 +300,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
                 parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         varval = (char *)str_ptr;
         if (res < 0 || varval == NULL || strcmp(varval, "") == 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -317,7 +317,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
             sfd->targettype = FLOWINT_TARGET_VAR;
             sfd->target.tvar.name = SCStrdup(varval);
             if (unlikely(sfd->target.tvar.name == NULL)) {
-                SCLogError(SC_ENOMEM, "malloc from strdup failed");
+                SCLogError("malloc from strdup failed");
                 goto error;
             }
         }
@@ -328,7 +328,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     /* Set the name of the origin var to modify/compared with the target */
     sfd->name = SCStrdup(varname);
     if (unlikely(sfd->name == NULL)) {
-        SCLogError(SC_ENOMEM, "malloc from strdup failed");
+        SCLogError("malloc from strdup failed");
         goto error;
     }
     sfd->idx = VarNameStoreSetupAdd(varname, VAR_TYPE_FLOW_INT);

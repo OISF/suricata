@@ -82,13 +82,11 @@ void ThresholdInit(void)
 {
     host_threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (host_threshold_id.id == -1) {
-        FatalError(SC_ERR_FATAL,
-                   "Can't initiate host storage for thresholding");
+        FatalError("Can't initiate host storage for thresholding");
     }
     ippair_threshold_id = IPPairStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (ippair_threshold_id.id == -1) {
-        FatalError(SC_ERR_FATAL,
-                   "Can't initiate IP pair storage for thresholding");
+        FatalError("Can't initiate IP pair storage for thresholding");
     }
 }
 
@@ -281,7 +279,7 @@ static int ThresholdHandlePacketSuppress(Packet *p,
             break;
         case TRACK_RULE:
         default:
-            SCLogError(SC_EINVAL, "track mode %d is not supported", td->track);
+            SCLogError("track mode %d is not supported", td->track);
             break;
     }
     if (m == NULL)
@@ -528,7 +526,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
         }
         /* case TYPE_SUPPRESS: is not handled here */
         default:
-            SCLogError(SC_EINVAL, "type %d is not supported", td->type);
+            SCLogError("type %d is not supported", td->type);
     }
     return ret;
 }
@@ -650,8 +648,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 void ThresholdHashInit(DetectEngineCtx *de_ctx)
 {
     if (SCMutexInit(&de_ctx->ths_ctx.threshold_table_lock, NULL) != 0) {
-                FatalError(SC_ERR_FATAL,
-                           "Threshold: Failed to initialize hash table mutex.");
+        FatalError("Threshold: Failed to initialize hash table mutex.");
     }
 }
 
@@ -716,10 +713,9 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
     de_ctx->ths_ctx.th_size = highest_signum + 1;
     de_ctx->ths_ctx.th_entry = SCCalloc(de_ctx->ths_ctx.th_size, sizeof(DetectThresholdEntry *));
     if (de_ctx->ths_ctx.th_entry == NULL) {
-        FatalError(SC_ENOMEM,
-                "Error allocating memory for rule "
-                "thresholds (tried to allocate %" PRIu32 " th_entrys for "
-                "rule tracking)",
+        FatalError("Error allocating memory for rule "
+                   "thresholds (tried to allocate %" PRIu32 " th_entrys for "
+                   "rule tracking)",
                 de_ctx->ths_ctx.th_size);
     }
 }

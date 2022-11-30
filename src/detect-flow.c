@@ -179,7 +179,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
 
     ret = DetectParsePcreExec(&parse_regex, flowstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, flowstr);
+        SCLogError("parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;
     }
 
@@ -187,7 +187,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
         pcre2len = sizeof(str1);
         res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         args[0] = (char *)str1;
@@ -197,7 +197,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             args[1] = (char *)str2;
@@ -207,7 +207,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 3, (PCRE2_UCHAR8 *)str3, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             args[2] = (char *)str3;
@@ -226,87 +226,91 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
             /* inspect our options and set the flags */
             if (strcasecmp(args[i], "established") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "DETECT_FLOW_FLAG_ESTABLISHED flag is already set");
+                    SCLogError("DETECT_FLOW_FLAG_ESTABLISHED flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_STATELESS) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "DETECT_FLOW_FLAG_STATELESS already set");
+                    SCLogError("DETECT_FLOW_FLAG_STATELESS already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_ESTABLISHED;
             } else if (strcasecmp(args[i], "not_established") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "DETECT_FLOW_FLAG_NOT_ESTABLISHED flag is already set");
+                    SCLogError("DETECT_FLOW_FLAG_NOT_ESTABLISHED flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set DETECT_FLOW_FLAG_NOT_ESTABLISHED, DETECT_FLOW_FLAG_ESTABLISHED already set");
+                    SCLogError("cannot set DETECT_FLOW_FLAG_NOT_ESTABLISHED, "
+                               "DETECT_FLOW_FLAG_ESTABLISHED already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_NOT_ESTABLISHED;
             } else if (strcasecmp(args[i], "stateless") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_STATELESS) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "DETECT_FLOW_FLAG_STATELESS flag is already set");
+                    SCLogError("DETECT_FLOW_FLAG_STATELESS flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set DETECT_FLOW_FLAG_STATELESS, DETECT_FLOW_FLAG_ESTABLISHED already set");
+                    SCLogError("cannot set DETECT_FLOW_FLAG_STATELESS, "
+                               "DETECT_FLOW_FLAG_ESTABLISHED already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_STATELESS;
             } else if (strcasecmp(args[i], "to_client") == 0 || strcasecmp(args[i], "from_server") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_TOCLIENT) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set DETECT_FLOW_FLAG_TOCLIENT flag is already set");
+                    SCLogError("cannot set DETECT_FLOW_FLAG_TOCLIENT flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set to_client, DETECT_FLOW_FLAG_TOSERVER already set");
+                    SCLogError("cannot set to_client, DETECT_FLOW_FLAG_TOSERVER already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_TOCLIENT;
             } else if (strcasecmp(args[i], "to_server") == 0 || strcasecmp(args[i], "from_client") == 0){
                 if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set DETECT_FLOW_FLAG_TOSERVER flag is already set");
+                    SCLogError("cannot set DETECT_FLOW_FLAG_TOSERVER flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_TOCLIENT) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set to_server, DETECT_FLOW_FLAG_TO_CLIENT flag already set");
+                    SCLogError("cannot set to_server, DETECT_FLOW_FLAG_TO_CLIENT flag already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_TOSERVER;
             } else if (strcasecmp(args[i], "only_stream") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_ONLYSTREAM) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_stream flag is already set");
+                    SCLogError("cannot set only_stream flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_stream flag, DETECT_FLOW_FLAG_NOSTREAM already set");
+                    SCLogError(
+                            "cannot set only_stream flag, DETECT_FLOW_FLAG_NOSTREAM already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_ONLYSTREAM;
             } else if (strcasecmp(args[i], "no_stream") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag is already set");
+                    SCLogError("cannot set no_stream flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_ONLYSTREAM) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag, DETECT_FLOW_FLAG_ONLYSTREAM already set");
+                    SCLogError(
+                            "cannot set no_stream flag, DETECT_FLOW_FLAG_ONLYSTREAM already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_NOSTREAM;
             } else if (strcasecmp(args[i], "no_frag") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_NO_FRAG) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_frag flag is already set");
+                    SCLogError("cannot set no_frag flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_frag flag, only_frag already set");
+                    SCLogError("cannot set no_frag flag, only_frag already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_NO_FRAG;
             } else if (strcasecmp(args[i], "only_frag") == 0) {
                 if (fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_frag flag is already set");
+                    SCLogError("cannot set only_frag flag is already set");
                     goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_NO_FRAG) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_frag flag, no_frag already set");
+                    SCLogError("cannot set only_frag flag, no_frag already set");
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_ONLY_FRAG;
             } else {
-                SCLogError(SC_EINVAL, "invalid flow option \"%s\"", args[i]);
+                SCLogError("invalid flow option \"%s\"", args[i]);
                 goto error;
             }
 
@@ -368,7 +372,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 {
     /* ensure only one flow option */
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
-        SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
+        SCLogError("A signature may have only one flow option.");
         return -1;
     }
 

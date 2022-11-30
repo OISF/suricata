@@ -114,41 +114,27 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
             char *end;
             a = strtoul(lnode->val, &end, 10);
             if (end != sep) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "%s: invalid cpu range (start invalid): \"%s\"",
-                        name,
-                        lnode->val);
+                SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
             b = strtol(sep + 1, &end, 10);
             if (end != sep + strlen(sep)) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "%s: invalid cpu range (end invalid): \"%s\"",
-                        name,
-                        lnode->val);
+                SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
             if (a > b) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "%s: invalid cpu range (bad order): \"%s\"",
-                        name,
-                        lnode->val);
+                SCLogError("%s: invalid cpu range (bad order): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
             if (b > max) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "%s: upper bound (%ld) of cpu set is too high, only %d cpu(s)",
-                           name,
-                           b, max + 1);
+                SCLogError("%s: upper bound (%ld) of cpu set is too high, only %d cpu(s)", name, b,
+                        max + 1);
             }
         } else {
             char *end;
             a = strtoul(lnode->val, &end, 10);
             if (end != lnode->val + strlen(lnode->val)) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "%s: invalid cpu range (not an integer): \"%s\"",
-                        name,
-                        lnode->val);
+                SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
             b = a;
@@ -210,7 +196,7 @@ void AffinitySetupLoadFromConfig()
         ConfNode *nprio = NULL;
 
         if (taf == NULL) {
-            FatalError(SC_ERR_FATAL, "unknown cpu-affinity type");
+            FatalError("unknown cpu-affinity type");
         } else {
             SCLogConfig("Found affinity definition for \"%s\"", setname);
         }
@@ -257,7 +243,7 @@ void AffinitySetupLoadFromConfig()
                 } else if (!strcmp(node->val, "high")) {
                     taf->prio = PRIO_HIGH;
                 } else {
-                    FatalError(SC_ERR_FATAL, "unknown cpu_affinity prio");
+                    FatalError("unknown cpu_affinity prio");
                 }
                 SCLogConfig("Using default prio '%s' for set '%s'",
                         node->val, setname);
@@ -271,18 +257,19 @@ void AffinitySetupLoadFromConfig()
             } else if (!strcmp(node->val, "balanced")) {
                 taf->mode_flag = BALANCED_AFFINITY;
             } else {
-                FatalError(SC_ERR_FATAL, "unknown cpu_affinity node");
+                FatalError("unknown cpu_affinity node");
             }
         }
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
         if (node != NULL) {
             if (StringParseUint32(&taf->nb_threads, 10, 0, (const char *)node->val) < 0) {
-                FatalError(SC_ERR_INVALID_ARGUMENT, "invalid value for threads "
-                           "count: '%s'", node->val);
+                FatalError("invalid value for threads "
+                           "count: '%s'",
+                        node->val);
             }
             if (! taf->nb_threads) {
-                FatalError(SC_ERR_FATAL, "bad value for threads count");
+                FatalError("bad value for threads count");
             }
         }
     }
@@ -308,8 +295,8 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
         }
     }
     if (iter == 2) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contain "
-                "available cpus, cpu affinity conf is invalid");
+        SCLogError("cpu_set does not contain "
+                   "available cpus, cpu affinity conf is invalid");
     }
     taf->lcpu = ncpu + 1;
     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())

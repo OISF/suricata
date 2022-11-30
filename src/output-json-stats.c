@@ -389,9 +389,9 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     OutputJsonCtx *ajt = parent_ctx->data;
 
     if (!StatsEnabled()) {
-        SCLogError(SC_ERR_STATS_LOG_GENERIC,
-                "eve.stats: stats are disabled globally: set stats.enabled to true. "
-                "See %s/configuration/suricata-yaml.html#stats", GetDocURL());
+        SCLogError("eve.stats: stats are disabled globally: set stats.enabled to true. "
+                   "See %s/configuration/suricata-yaml.html#stats",
+                GetDocURL());
         return result;
     }
 
@@ -401,10 +401,9 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
 
     if (stats_decoder_events &&
             strcmp(stats_decoder_events_prefix, "decoder") == 0) {
-        SCLogWarning(SC_WARN_EVE_MISSING_EVENTS,
-                "eve.stats will not display "
-                "all decoder events correctly. See ticket #2225. Set a prefix in "
-                "stats.decoder-events-prefix.");
+        SCLogWarning("eve.stats will not display "
+                     "all decoder events correctly. See ticket #2225. Set a prefix in "
+                     "stats.decoder-events-prefix.");
     }
 
     stats_ctx->flags = JSON_STATS_TOTALS;
@@ -418,8 +417,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         if ((totals != NULL && ConfValIsFalse(totals)) &&
                 (threads != NULL && ConfValIsFalse(threads))) {
             SCFree(stats_ctx);
-            SCLogError(SC_ERR_JSON_STATS_LOG_NEGATED,
-                    "Cannot disable both totals and threads in stats logging");
+            SCLogError("Cannot disable both totals and threads in stats logging");
             return result;
         }
 

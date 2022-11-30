@@ -58,15 +58,26 @@ typedef struct OutputFilestoreLogThread_ {
     uint16_t fs_error_counter;
 } OutputFilestoreLogThread;
 
+enum WarnOnceTypes {
+    WOT_OPEN,
+    WOT_WRITE,
+    WOT_UNLINK,
+    WOT_RENAME,
+    WOT_SNPRINTF,
+
+    WOT_MAX,
+};
+
 /* For WARN_ONCE, a record of warnings that have already been
  * issued. */
-static thread_local bool once_errs[SC_ERR_MAX];
+static thread_local bool once_errs[WOT_MAX];
 
-#define WARN_ONCE(err_code, ...)  do {                   \
-        if (!once_errs[err_code]) {                      \
-            once_errs[err_code] = true;                  \
-            SCLogWarning(err_code, __VA_ARGS__);         \
-        }                                                \
+#define WARN_ONCE(wot_type, ...)                                                                   \
+    do {                                                                                           \
+        if (!once_errs[wot_type]) {                                                                \
+            once_errs[wot_type] = true;                                                            \
+            SCLogWarning(__VA_ARGS__);                                                             \
+        }                                                                                          \
     } while (0)
 
 static uint64_t OutputFilestoreOpenFilesCounter(void)
@@ -133,14 +144,13 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
         OutputFilestoreUpdateFileTime(tmp_filename, final_filename);
         if (unlink(tmp_filename) != 0) {
             StatsIncr(tv, oft->fs_error_counter);
-            WARN_ONCE(SC_WARN_REMOVE_FILE,
-                    "Failed to remove temporary file %s: %s", tmp_filename,
+            WARN_ONCE(WOT_UNLINK, "Failed to remove temporary file %s: %s", tmp_filename,
                     strerror(errno));
         }
     } else if (rename(tmp_filename, final_filename) != 0) {
         StatsIncr(tv, oft->fs_error_counter);
-        WARN_ONCE(SC_WARN_RENAMING_FILE, "Failed to rename %s to %s: %s",
-                tmp_filename, final_filename, strerror(errno));
+        WARN_ONCE(WOT_RENAME, "Failed to rename %s to %s: %s", tmp_filename, final_filename,
+                strerror(errno));
         if (unlink(tmp_filename) != 0) {
             /* Just increment, don't log as has_fs_errors would
              * already be set above. */
@@ -155,8 +165,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
                         "%s.%"PRIuMAX".%u.json", final_filename,
                         (uintmax_t)p->ts.tv_sec, ff->file_store_id)
                 == (int)sizeof(js_metadata_filename)) {
-            WARN_ONCE(SC_ERR_SPRINTF,
-                "Failed to write file info record. Output filename truncated.");
+            WARN_ONCE(WOT_SNPRINTF, "Failed to write file info record. Output filename truncated.");
         } else {
             JsonBuilder *js_fileinfo =
                     JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
@@ -196,9 +205,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
                 0644);
         if (file_fd == -1) {
             StatsIncr(tv, aft->fs_error_counter);
-            SCLogWarning(SC_ERR_OPENING_FILE,
-                    "Filestore (v2) failed to create %s: %s", filename,
-                    strerror(errno));
+            SCLogWarning("Filestore (v2) failed to create %s: %s", filename, strerror(errno));
             return -1;
         }
 
@@ -217,9 +224,8 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
             if (file_fd == -1) {
                 StatsIncr(tv, aft->fs_error_counter);
-                WARN_ONCE(SC_ERR_OPENING_FILE,
-                        "Filestore (v2) failed to open file %s: %s",
-                        filename, strerror(errno));
+                WARN_ONCE(WOT_OPEN, "Filestore (v2) failed to open file %s: %s", filename,
+                        strerror(errno));
                 return -1;
             }
         } else {
@@ -231,9 +237,8 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
             StatsIncr(tv, aft->fs_error_counter);
-            WARN_ONCE(SC_ERR_FWRITE,
-                    "Filestore (v2) failed to write to %s: %s",
-                    filename, strerror(errno));
+            WARN_ONCE(WOT_WRITE, "Filestore (v2) failed to write to %s: %s", filename,
+                    strerror(errno));
             if (ff->fd != -1) {
                 SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
             }
@@ -331,9 +336,7 @@ static bool InitFilestoreDirectory(const char *dir)
     if (!SCPathExists(dir)) {
         SCLogInfo("Filestore (v2) creating directory %s", dir);
         if (SCCreateDirectoryTree(dir, true) != 0) {
-            SCLogError(SC_ERR_CREATE_DIRECTORY,
-                    "Filestore (v2) failed to create directory %s: %s", dir,
-                    strerror(errno));
+            SCLogError("Filestore (v2) failed to create directory %s: %s", dir, strerror(errno));
             return false;
         }
     }
@@ -342,17 +345,15 @@ static bool InitFilestoreDirectory(const char *dir)
         char leaf[PATH_MAX];
         int n = snprintf(leaf, sizeof(leaf), "%s/%02x", dir, i);
         if (n < 0 || n >= PATH_MAX) {
-            SCLogError(SC_ERR_CREATE_DIRECTORY,
-                    "Filestore (v2) failed to create leaf directory: "
-                    "path too long");
+            SCLogError("Filestore (v2) failed to create leaf directory: "
+                       "path too long");
             return false;
         }
         if (!SCPathExists(leaf)) {
             SCLogInfo("Filestore (v2) creating directory %s", leaf);
             if (SCDefaultMkDir(leaf) != 0) {
-                SCLogError(SC_ERR_CREATE_DIRECTORY,
-                        "Filestore (v2) failed to create directory %s: %s",
-                        leaf, strerror(errno));
+                SCLogError(
+                        "Filestore (v2) failed to create directory %s: %s", leaf, strerror(errno));
                 return false;
             }
         }
@@ -362,16 +363,13 @@ static bool InitFilestoreDirectory(const char *dir)
     char tmpdir[PATH_MAX];
     int n = snprintf(tmpdir, sizeof(tmpdir), "%s/tmp", dir);
     if (n < 0 || n >= PATH_MAX) {
-        SCLogError(SC_ERR_CREATE_DIRECTORY,
-                "Filestore (v2) failed to create tmp directory: path too long");
+        SCLogError("Filestore (v2) failed to create tmp directory: path too long");
         return false;
     }
     if (!SCPathExists(tmpdir)) {
         SCLogInfo("Filestore (v2) creating directory %s", tmpdir);
         if (SCDefaultMkDir(tmpdir) != 0) {
-            SCLogError(SC_ERR_CREATE_DIRECTORY,
-                    "Filestore (v2) failed to create directory %s: %s", tmpdir,
-                    strerror(errno));
+            SCLogError("Filestore (v2) failed to create directory %s: %s", tmpdir, strerror(errno));
             return false;
         }
     }
@@ -389,15 +387,13 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     intmax_t version = 0;
     if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
-        SCLogWarning(SC_WARN_DEPRECATED,
-                "File-store v1 has been removed. Please update to file-store v2.");
+        SCLogWarning("File-store v1 has been removed. Please update to file-store v2.");
         return result;
     }
 
     if (RunModeOutputFiledataEnabled()) {
-        SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                "A file data logger is already enabled. Filestore (v2) "
-                "will not be enabled.");
+        SCLogWarning("A file data logger is already enabled. Filestore (v2) "
+                     "will not be enabled.");
         return result;
     }
 
@@ -416,7 +412,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     int written = snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp",
             log_directory);
     if (written == sizeof(ctx->tmpdir)) {
-        SCLogError(SC_ERR_SPRINTF, "File-store output directory overflow.");
+        SCLogError("File-store output directory overflow.");
         SCFree(ctx);
         return result;
     }
@@ -468,18 +464,18 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         uint32_t stream_depth = 0;
         if (ParseSizeStringU32(stream_depth_str,
                                &stream_depth) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "file-store.stream-depth "
                        "from conf file - %s.  Killing engine",
-                       stream_depth_str);
+                    stream_depth_str);
             exit(EXIT_FAILURE);
         }
         if (stream_depth) {
             if (stream_depth <= stream_config.reassembly_depth) {
-                SCLogWarning(SC_WARN_FILESTORE_CONFIG,
-                           "file-store.stream-depth value %" PRIu32 " has "
-                           "no effect since it's less than stream.reassembly.depth "
-                           "value.", stream_depth);
+                SCLogWarning("file-store.stream-depth value %" PRIu32 " has "
+                             "no effect since it's less than stream.reassembly.depth "
+                             "value.",
+                        stream_depth);
             } else {
                 FileReassemblyDepthEnable(stream_depth);
             }
@@ -492,10 +488,10 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         uint32_t file_count = 0;
         if (ParseSizeStringU32(file_count_str,
                                &file_count) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+            SCLogError("Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
-                       file_count_str);
+                    file_count_str);
             exit(EXIT_FAILURE);
         } else {
             if (file_count != 0) {

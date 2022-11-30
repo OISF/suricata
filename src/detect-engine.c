@@ -141,21 +141,19 @@ void DetectPktInspectEngineRegister(const char *name,
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-            "failed to register inspect engine %s", name);
+        FatalError("failed to register inspect engine %s", name);
     }
 
     if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
         (Callback == NULL))
     {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        SCLogError("Invalid arguments");
         BUG_ON(1);
     }
 
     DetectEnginePktInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
     if (unlikely(new_engine == NULL)) {
-        FatalError(SC_ERR_INITIALIZATION,
-            "failed to register inspect engine %s: %s", name, strerror(errno));
+        FatalError("failed to register inspect engine %s: %s", name, strerror(errno));
     }
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
@@ -183,11 +181,11 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s", name);
+        FatalError("failed to register inspect engine %s", name);
     }
 
     if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        SCLogError("Invalid arguments");
         BUG_ON(1);
     }
 
@@ -200,8 +198,7 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
 
     DetectEngineFrameInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
     if (unlikely(new_engine == NULL)) {
-        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
-                strerror(errno));
+        FatalError("failed to register inspect engine %s: %s", name, strerror(errno));
     }
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
@@ -235,8 +232,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-            "failed to register inspect engine %s", name);
+        FatalError("failed to register inspect engine %s", name);
     }
 
     if ((alproto >= ALPROTO_FAILED) ||
@@ -245,11 +241,11 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         (progress < 0 || progress >= SHRT_MAX) ||
         (Callback2 == NULL))
     {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback2 == DetectEngineInspectBufferGeneric && GetData == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments: must register "
-                "GetData with DetectEngineInspectBufferGeneric");
+        SCLogError("Invalid arguments: must register "
+                   "GetData with DetectEngineInspectBufferGeneric");
         BUG_ON(1);
     }
 
@@ -423,11 +419,11 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
 {
     const int sm_list = DetectEngineBufferTypeRegister(de_ctx, name);
     if (sm_list < 0) {
-        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s", name);
+        FatalError("failed to register inspect engine %s", name);
     }
 
     if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        SCLogError("Invalid arguments");
         BUG_ON(1);
     }
 
@@ -440,8 +436,7 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
 
     DetectEngineFrameInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
     if (unlikely(new_engine == NULL)) {
-        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
-                strerror(errno));
+        FatalError("failed to register inspect engine %s: %s", name, strerror(errno));
     }
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
@@ -971,9 +966,8 @@ static void DetectBufferTypeFreeFunc(void *data)
         if (map->transforms.transforms[i].options == NULL)
             continue;
         if (sigmatch_table[map->transforms.transforms[i].transform].Free == NULL) {
-            SCLogError(SC_ERR_UNIMPLEMENTED,
-                       "%s allocates transform option memory but has no free routine",
-                       sigmatch_table[map->transforms.transforms[i].transform].name);
+            SCLogError("%s allocates transform option memory but has no free routine",
+                    sigmatch_table[map->transforms.transforms[i].transform].name);
             continue;
         }
         sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
@@ -1317,9 +1311,9 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->list && s->init_data->transforms.cnt) {
         if (s->init_data->list == DETECT_SM_LIST_NOTSET ||
             s->init_data->list < DETECT_SM_LIST_DYNAMIC_START) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed "
-                    "(list: %u, transform_cnt %u)", s->init_data->list,
-                    s->init_data->transforms.cnt);
+            SCLogError("previous transforms not consumed "
+                       "(list: %u, transform_cnt %u)",
+                    s->init_data->list, s->init_data->transforms.cnt);
             SCReturnInt(-1);
         }
 
@@ -1670,8 +1664,7 @@ int DetectEngineBufferTypeGetByIdTransforms(
         return -1;
     }
     if (!base_map->supports_transforms) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "buffer '%s' does not support transformations",
-                base_map->name);
+        SCLogError("buffer '%s' does not support transformations", base_map->name);
         return -1;
     }
 
@@ -2221,7 +2214,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
             new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx, 1);
             if (new_det_ctx[i] == NULL) {
-                SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
+                SCLogError("Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
                 SCMutexUnlock(&tv_root_lock);
                 goto error;
@@ -2564,9 +2557,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         } else if (strcmp(de_ctx_profile, "custom") == 0) {
             profile = ENGINE_PROFILE_CUSTOM;
         } else {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "invalid value for detect.profile: '%s'. "
-                    "Valid options: low, medium, high and custom.",
+            SCLogError("invalid value for detect.profile: '%s'. "
+                       "Valid options: low, medium, high and custom.",
                     de_ctx_profile);
             return -1;
         }
@@ -2596,10 +2588,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
             de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
-           SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
-                      "invalid conf value for detect-engine.sgh-mpm-context-"
-                      "%s", sgh_mpm_context);
-           exit(EXIT_FAILURE);
+            SCLogError("You have supplied an "
+                       "invalid conf value for detect-engine.sgh-mpm-context-"
+                       "%s",
+                    sgh_mpm_context);
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -2654,10 +2647,9 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                             (const char *)max_uniq_toclient_groups_str) <= 0) {
                     de_ctx->max_uniq_toclient_groups = 20;
 
-                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
-                            "toclient-groups failed, using %u",
-                            max_uniq_toclient_groups_str,
-                            de_ctx->max_uniq_toclient_groups);
+                    SCLogWarning("parsing '%s' for "
+                                 "toclient-groups failed, using %u",
+                            max_uniq_toclient_groups_str, de_ctx->max_uniq_toclient_groups);
                 }
             } else {
                 de_ctx->max_uniq_toclient_groups = 20;
@@ -2670,10 +2662,9 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                             (const char *)max_uniq_toserver_groups_str) <= 0) {
                     de_ctx->max_uniq_toserver_groups = 40;
 
-                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
-                            "toserver-groups failed, using %u",
-                            max_uniq_toserver_groups_str,
-                            de_ctx->max_uniq_toserver_groups);
+                    SCLogWarning("parsing '%s' for "
+                                 "toserver-groups failed, using %u",
+                            max_uniq_toserver_groups_str, de_ctx->max_uniq_toserver_groups);
                 }
             } else {
                 de_ctx->max_uniq_toserver_groups = 40;
@@ -2710,8 +2701,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
                 insp_recursion_limit_node = ConfNodeLookupChild(opt, opt->val);
                 if (insp_recursion_limit_node == NULL) {
-                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Error retrieving conf "
-                            "entry for detect-engine:inspection-recursion-limit");
+                    SCLogError("Error retrieving conf "
+                               "entry for detect-engine:inspection-recursion-limit");
                     break;
                 }
                 insp_recursion_limit = insp_recursion_limit_node->val;
@@ -2723,10 +2714,9 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             if (insp_recursion_limit != NULL) {
                 if (StringParseInt32(&de_ctx->inspection_recursion_limit, 10,
                                      0, (const char *)insp_recursion_limit) < 0) {
-                    SCLogWarning(SC_EINVAL,
-                            "Invalid value for "
-                            "detect-engine.inspection-recursion-limit: %s "
-                            "resetting to %d",
+                    SCLogWarning("Invalid value for "
+                                 "detect-engine.inspection-recursion-limit: %s "
+                                 "resetting to %d",
                             insp_recursion_limit, DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
                     de_ctx->inspection_recursion_limit =
                         DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
@@ -2756,14 +2746,16 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     }
     if (DetectPortParse(de_ctx, &de_ctx->tcp_whitelist, ports) != 0) {
-        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
-                "for detect.grouping.tcp-whitelist", ports);
+        SCLogWarning("'%s' is not a valid value "
+                     "for detect.grouping.tcp-whitelist",
+                ports);
     }
     DetectPort *x = de_ctx->tcp_whitelist;
     for ( ; x != NULL;  x = x->next) {
         if (x->port != x->port2) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
-                "for detect.grouping.tcp-whitelist: only single ports allowed", ports);
+            SCLogWarning("'%s' is not a valid value "
+                         "for detect.grouping.tcp-whitelist: only single ports allowed",
+                    ports);
             DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
             de_ctx->tcp_whitelist = NULL;
             break;
@@ -2780,15 +2772,15 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     }
     if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {
-        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "'%s' is not a valid value "
-                "for detect.grouping.udp-whitelist",
+        SCLogWarning("'%s' is not a valid value "
+                     "for detect.grouping.udp-whitelist",
                 ports);
     }
     for (x = de_ctx->udp_whitelist; x != NULL;  x = x->next) {
         if (x->port != x->port2) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
-                "for detect.grouping.udp-whitelist: only single ports allowed", ports);
+            SCLogWarning("'%s' is not a valid value "
+                         "for detect.grouping.udp-whitelist: only single ports allowed",
+                    ports);
             DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
             de_ctx->udp_whitelist = NULL;
             break;
@@ -2838,7 +2830,7 @@ static int DetectEngineThreadCtxInitGlobalKeywords(DetectEngineThreadCtx *det_ct
         // coverity[suspicious_sizeof : FALSE]
         det_ctx->global_keyword_ctxs_array = (void **)SCCalloc(master->keyword_id, sizeof(void *));
         if (det_ctx->global_keyword_ctxs_array == NULL) {
-            SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx");
+            SCLogError("setting up thread local detect ctx");
             return TM_ECODE_FAILED;
         }
         det_ctx->global_keyword_ctxs_size = master->keyword_id;
@@ -2847,8 +2839,9 @@ static int DetectEngineThreadCtxInitGlobalKeywords(DetectEngineThreadCtx *det_ct
         while (item) {
             det_ctx->global_keyword_ctxs_array[item->id] = item->InitFunc(item->data);
             if (det_ctx->global_keyword_ctxs_array[item->id] == NULL) {
-                SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
-                        "for keyword \"%s\" failed", item->name);
+                SCLogError("setting up thread local detect ctx "
+                           "for keyword \"%s\" failed",
+                        item->name);
                 return TM_ECODE_FAILED;
             }
             item = item->next;
@@ -2885,7 +2878,7 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
         // coverity[suspicious_sizeof : FALSE]
         det_ctx->keyword_ctxs_array = SCMalloc(de_ctx->keyword_id * sizeof(void *));
         if (det_ctx->keyword_ctxs_array == NULL) {
-            SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx");
+            SCLogError("setting up thread local detect ctx");
             return TM_ECODE_FAILED;
         }
 
@@ -2899,8 +2892,9 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
 
             det_ctx->keyword_ctxs_array[item->id] = item->InitFunc(item->data);
             if (det_ctx->keyword_ctxs_array[item->id] == NULL) {
-                SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
-                        "for keyword \"%s\" failed", item->name);
+                SCLogError("setting up thread local detect ctx "
+                           "for keyword \"%s\" failed",
+                        item->name);
                 return TM_ECODE_FAILED;
             }
         }
@@ -2936,8 +2930,8 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     HashTable *mt_det_ctxs_hash = NULL;
 
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
-        SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
-                                          "set using multi-detect.selector");
+        SCLogError("no tenant selector set: "
+                   "set using multi-detect.selector");
         return TM_ECODE_FAILED;
     }
 
@@ -3371,7 +3365,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
 
     if (det_ctx == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
+        SCLogWarning("argument \"data\" NULL");
         return TM_ECODE_OK;
     }
 
@@ -3671,28 +3665,27 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
     struct stat st;
     if(stat(filename, &st) != 0) {
 #endif /* OS_WIN32 */
-        SCLogError(SC_ERR_FOPEN, "failed to stat file %s", filename);
+        SCLogError("failed to stat file %s", filename);
         goto error;
     }
 
     de_ctx = DetectEngineGetByTenantId(tenant_id);
     if (de_ctx != NULL) {
-        SCLogError(SC_ERR_MT_DUPLICATE_TENANT, "tenant %u already registered",
-                tenant_id);
+        SCLogError("tenant %u already registered", tenant_id);
         DetectEngineDeReference(&de_ctx);
         goto error;
     }
 
     ConfNode *node = ConfGetNode(prefix);
     if (node == NULL) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        SCLogError("failed to properly setup yaml %s", filename);
         goto error;
     }
 
     de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-                "context failed.");
+        SCLogError("initializing detection engine "
+                   "context failed.");
         goto error;
     }
     SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
@@ -3702,7 +3695,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
     de_ctx->loader_id = loader_id;
 
     if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
-        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        SCLogError("Loading signatures failed.");
         goto error;
     }
 
@@ -3721,7 +3714,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
 {
     DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
     if (old_de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "tenant detect engine not found");
+        SCLogError("tenant detect engine not found");
         return -1;
     }
 
@@ -3731,20 +3724,20 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     SCLogDebug("prefix %s", prefix);
 
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION,"failed to load yaml");
+        SCLogError("failed to load yaml");
         goto error;
     }
 
     ConfNode *node = ConfGetNode(prefix);
     if (node == NULL) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        SCLogError("failed to properly setup yaml %s", filename);
         goto error;
     }
 
     DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-                "context failed.");
+        SCLogError("initializing detection engine "
+                   "context failed.");
         goto error;
     }
     SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
@@ -3754,7 +3747,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     new_de_ctx->loader_id = old_de_ctx->loader_id;
 
     if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
-        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        SCLogError("Loading signatures failed.");
         goto error;
     }
 
@@ -3879,21 +3872,21 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappi
             uint32_t tenant_id = 0;
             if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
                         tenant_id_node->val) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
-                        "of %s is invalid", tenant_id_node->val);
+                SCLogError("tenant-id  "
+                           "of %s is invalid",
+                        tenant_id_node->val);
                 goto bad_mapping;
             }
 
             const char *dev = device_node->val;
             LiveDevice *ld = LiveGetDevice(dev);
             if (ld == NULL) {
-                SCLogWarning(SC_ERR_MT_NO_MAPPING, "device %s not found", dev);
+                SCLogWarning("device %s not found", dev);
                 goto bad_mapping;
             }
 
             if (ld->tenant_id_set) {
-                SCLogWarning(SC_ERR_MT_NO_MAPPING, "device %s already mapped to tenant-id %u",
-                        dev, ld->tenant_id);
+                SCLogWarning("device %s already mapped to tenant-id %u", dev, ld->tenant_id);
                 goto bad_mapping;
             }
 
@@ -3938,21 +3931,24 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
             uint32_t tenant_id = 0;
             if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
                         tenant_id_node->val) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
-                        "of %s is invalid", tenant_id_node->val);
+                SCLogError("tenant-id  "
+                           "of %s is invalid",
+                        tenant_id_node->val);
                 goto bad_mapping;
             }
 
             uint16_t vlan_id = 0;
             if (StringParseUint16(
                         &vlan_id, 10, (uint16_t)strlen(vlan_id_node->val), vlan_id_node->val) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                        "of %s is invalid", vlan_id_node->val);
+                SCLogError("vlan-id  "
+                           "of %s is invalid",
+                        vlan_id_node->val);
                 goto bad_mapping;
             }
             if (vlan_id == 0 || vlan_id >= 4095) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                        "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
+                SCLogError("vlan-id  "
+                           "of %s is invalid. Valid range 1-4094.",
+                        vlan_id_node->val);
                 goto bad_mapping;
             }
 
@@ -4011,8 +4007,8 @@ int DetectEngineMultiTenantSetup(void)
 
                 int vlanbool = 0;
                 if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-                    SCLogError(SC_EINVAL, "vlan tracking is disabled, "
-                                          "can't use multi-detect selector 'vlan'");
+                    SCLogError("vlan tracking is disabled, "
+                               "can't use multi-detect selector 'vlan'");
                     SCMutexUnlock(&master->lock);
                     goto error;
                 }
@@ -4022,16 +4018,14 @@ int DetectEngineMultiTenantSetup(void)
             } else if (strcmp(handler, "device") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_LIVEDEV;
                 if (EngineModeIsIPS()) {
-                    SCLogWarning(SC_ERR_MT_NO_MAPPING,
-                            "multi-tenant 'device' mode not supported for IPS");
+                    SCLogWarning("multi-tenant 'device' mode not supported for IPS");
                     SCMutexUnlock(&master->lock);
                     goto error;
                 }
 
             } else {
-                SCLogError(SC_EINVAL,
-                        "unknown value %s "
-                        "multi-detect.selector",
+                SCLogError("unknown value %s "
+                           "multi-detect.selector",
                         handler);
                 SCMutexUnlock(&master->lock);
                 goto error;
@@ -4056,10 +4050,10 @@ int DetectEngineMultiTenantSetup(void)
                             "tenants won't be used until mappings are added");
                 } else {
                     if (failure_fatal) {
-                        SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                        SCLogError("no multi-detect mappings defined");
                         goto error;
                     } else {
-                        SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                        SCLogWarning("no multi-detect mappings defined");
                     }
                 }
             }
@@ -4068,10 +4062,10 @@ int DetectEngineMultiTenantSetup(void)
                     failure_fatal);
             if (mapping_cnt == 0) {
                 if (failure_fatal) {
-                    SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                    SCLogError("no multi-detect mappings defined");
                     goto error;
                 } else {
-                    SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                    SCLogWarning("no multi-detect mappings defined");
                 }
             }
         }
@@ -4094,8 +4088,9 @@ int DetectEngineMultiTenantSetup(void)
                 uint32_t tenant_id = 0;
                 if (StringParseUint32(
                             &tenant_id, 10, (uint16_t)strlen(id_node->val), id_node->val) < 0) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant_id  "
-                            "of %s is invalid", id_node->val);
+                    SCLogError("tenant_id  "
+                               "of %s is invalid",
+                            id_node->val);
                     goto bad_tenant;
                 }
                 SCLogDebug("tenant id: %u, %s", tenant_id, yaml_node->val);
@@ -4105,7 +4100,7 @@ int DetectEngineMultiTenantSetup(void)
                 char prefix[64];
                 snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
                 if (ConfYamlLoadFileWithPrefix(yaml_node->val, prefix) != 0) {
-                    SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", yaml_node->val);
+                    SCLogError("failed to load yaml %s", yaml_node->val);
                     goto bad_tenant;
                 }
 
@@ -4451,15 +4446,13 @@ int DetectEngineReload(const SCInstance *suri)
     if (suri->conf_filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
         if (ConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s",
-                    suri->conf_filename);
+            SCLogError("failed to load yaml %s", suri->conf_filename);
             return -1;
         }
 
         ConfNode *node = ConfGetNode(prefix);
         if (node == NULL) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s",
-                    suri->conf_filename);
+            SCLogError("failed to properly setup yaml %s", suri->conf_filename);
             return -1;
         }
 #if 0
@@ -4486,8 +4479,8 @@ int DetectEngineReload(const SCInstance *suri)
     /* get new detection engine */
     new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-                "context failed.");
+        SCLogError("initializing detection engine "
+                   "context failed.");
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
@@ -4657,8 +4650,9 @@ int DetectEngineGetEventInfo(const char *event_name, int *event_id,
 {
     *event_id = SCMapEnumNameToValue(event_name, det_ctx_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "det_ctx's enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "det_ctx's enum map table.",
+                event_name);
         /* this should be treated as fatal */
         return -1;
     }

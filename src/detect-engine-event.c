@@ -127,8 +127,7 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32
-                ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -137,7 +136,7 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     res = pcre2_substring_copy_bynumber(parse_regex.match, 0, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
 
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -149,8 +148,7 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     }
 
     if (found == 0) {
-        SCLogError(SC_ERR_UNKNOWN_DECODE_EVENT, "unknown decode event \"%s\"",
-                copy_str);
+        SCLogError("unknown decode event \"%s\"", copy_str);
         goto error;
     }
 

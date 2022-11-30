@@ -67,7 +67,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     const bool is_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
     const bool is_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
     if (!(is_tcp || is_udp)) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "'frame' keyword only supported for TCP and UDP");
+        SCLogError("'frame' keyword only supported for TCP and UDP");
         return -1;
     }
 
@@ -93,15 +93,13 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     }
 
     if (is_short && rule_alproto == ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                "rule protocol unknown, can't use shorthand notation for frame '%s'", str);
+        SCLogError("rule protocol unknown, can't use shorthand notation for frame '%s'", str);
         return -1;
     } else if (rule_alproto == ALPROTO_UNKNOWN) {
         if (DetectSignatureSetAppProto(s, keyword_alproto) < 0)
             return -1;
     } else if (!AppProtoEquals(rule_alproto, keyword_alproto)) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
-                "frame '%s' protocol '%s' mismatch with rule protocol '%s'", str,
+        SCLogError("frame '%s' protocol '%s' mismatch with rule protocol '%s'", str,
                 AppProtoToString(keyword_alproto), AppProtoToString(s->alproto));
         return -1;
     }
@@ -113,8 +111,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     if (is_udp && raw_frame_type < 0)
         raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, keyword_alproto, frame_str);
     if (raw_frame_type < 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'", frame_str,
-                proto);
+        SCLogError("unknown frame '%s' for protocol '%s'", frame_str, proto);
         return -1;
     }
     BUG_ON(raw_frame_type >= UINT8_MAX);
