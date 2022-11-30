@@ -232,6 +232,19 @@ static int GetNumaNode(void)
     return node;
 }
 
+static int GetCPU(void)
+{
+    int cpu = -1;
+
+#if defined(__linux__)
+    cpu = sched_getcpu();
+#else
+    SCLogWarning(SC_ERR_TM_THREADS_ERROR, "CPU id retrieval is not supported on this OS.");
+#endif
+
+    return cpu;
+}
+
 /**
  * \brief Registration Function for ReceiveDPDK.
  * \todo Unit tests are needed for this module.
@@ -451,11 +464,19 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->threads = dpdk_config->threads;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
-    uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
-    ptv->queue_id = queue_id;
     // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
     ptv->pkt_mempool = dpdk_config->pkt_mempool;
     dpdk_config->pkt_mempool = NULL;
+
+    thread_numa = GetNumaNode();
+    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
+        SC_ATOMIC_ADD(dpdk_config->inconsitent_numa_cnt, 1);
+        SCLogInfo("NIC on NUMA %d but thread id %d on NUMA %d. Decreased performance expected",
+                rte_eth_dev_socket_id(ptv->port_id), GetCPU(), thread_numa);
+    }
+
+    uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
+    ptv->queue_id = queue_id;
 
     // the last thread starts the device
     if (queue_id == dpdk_config->threads - 1) {
@@ -476,13 +497,15 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
 
         // some PMDs requires additional actions only after the device has started
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
-    }
 
-    thread_numa = GetNumaNode();
-    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
-        SCLogWarning(SC_WARN_DPDK_CONF,
-                "NIC on NUMA %d but thread on NUMA %d. Decreased performance expected",
-                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+        uint16_t inconsist_numa_map = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
+        if (inconsist_numa_map > 0) {
+            SCLogWarning(SC_WARN_DPDK_CONF,
+                    "Expect decreased performance due to interface (%s) being on NUMA node %d "
+                    "but is used by %d threads on distinct NUMA nodes. "
+                    "Run with verbose logging to determine individual thread ids",
+                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_map);
+        }
     }
 
     *data = (void *)ptv;
