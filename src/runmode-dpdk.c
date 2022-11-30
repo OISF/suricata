@@ -1358,6 +1358,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     (void)SC_ATOMIC_ADD(iconf->ref, iconf->threads);
     // This counter is increased by worker threads that individually pick queue IDs.
     SC_ATOMIC_RESET(iconf->queue_id);
+    SC_ATOMIC_RESET(iconf->inconsitent_numa_cnt);
     return iconf;
 }
 
