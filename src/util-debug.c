@@ -313,6 +313,9 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     } else if (strncmp("source-", module_name, 7) == 0) {
         *dn_len = strlen(module_name) - 7;
         return module_name + 7;
+    } else if (strncmp("runmode-", module_name, 8) == 0) {
+        *dn_len = strlen(module_name) - 8;
+        return module_name + 8;
     } else if (strncmp("app-layer-", module_name, 10) == 0) {
         *dn_len = strlen(module_name);
         return module_name;
