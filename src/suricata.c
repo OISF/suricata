@@ -1139,8 +1139,7 @@ static TmEcode PrintVersion(void)
 static TmEcode LogVersion(SCInstance *suri)
 {
     const char *mode = suri->system ? "SYSTEM" : "USER";
-    SCLogNotice("This is %s version %s running in %s mode",
-            PROG_NAME, GetProgramVersion(), mode);
+    SCLogNotice("%s %s running in %s mode", PROG_NAME, GetProgramVersion(), mode);
     return TM_ECODE_OK;
 }
 
