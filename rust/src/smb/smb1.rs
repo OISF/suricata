@@ -897,7 +897,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 None => b"<unknown>".to_vec(),
             };
             let mut set_event_fileoverlap = false;
-            let found = match state.get_file_tx_by_fuid(&file_fid, STREAM_TOSERVER) {
+            let found = match state.get_file_tx_by_fuid_with_open_file(&file_fid, STREAM_TOSERVER) {
                 Some((tx, files, flags)) => {
                     let file_id : u32 = tx.id as u32;
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -990,7 +990,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                         None => Vec::new(),
                     };
                     let mut set_event_fileoverlap = false;
-                    let found = match state.get_file_tx_by_fuid(&file_fid, STREAM_TOCLIENT) {
+                    let found = match state.get_file_tx_by_fuid_with_open_file(&file_fid, STREAM_TOCLIENT) {
                         Some((tx, files, flags)) => {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                 let file_id : u32 = tx.id as u32;

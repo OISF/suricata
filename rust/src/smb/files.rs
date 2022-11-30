@@ -117,7 +117,32 @@ impl SMBState {
         return (tx_ref.unwrap(), files, flags)
     }
 
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: u8)
+    /// get file tx for a open file. Returns None if a file for the fuid exists,
+    /// but has already been closed.
+    pub fn get_file_tx_by_fuid_with_open_file(&mut self, fuid: &[u8], direction: u8)
+        -> Option<(&mut SMBTransaction, &mut FileContainer, u16)>
+    {
+        let f = fuid.to_vec();
+        for tx in &mut self.transactions {
+            let found = match tx.type_data {
+                Some(SMBTransactionTypeData::FILE(ref mut d)) => {
+                    direction == d.direction && f == d.fuid && !d.file_tracker.is_done()
+                },
+                _ => { false },
+            };
+
+            if found {
+                SCLogDebug!("SMB: Found SMB file TX with ID {}", tx.id);
+                let (files, flags) = self.files.get(direction);
+                return Some((tx, files, flags));
+            }
+        }
+        SCLogDebug!("SMB: Failed to find SMB TX with FUID {:?}", fuid);
+        return None;
+    }
+
+    /// get file tx for a fuid. File may already have been closed.
+    pub fn get_file_tx_by_fuid(&mut self, fuid: &[u8], direction: u8)
         -> Option<(&mut SMBTransaction, &mut FileContainer, u16)>
     {
         let f = fuid.to_vec();
