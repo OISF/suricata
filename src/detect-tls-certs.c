@@ -323,8 +323,7 @@ static int DetectTLSCertChainLenSetup(DetectEngineCtx *de_ctx, Signature *s, con
 
     DetectU32Data *dd = DetectU32Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Parsing \'%s\' failed for %s", rawstr,
-                sigmatch_table[KEYWORD_ID].name);
+        SCLogError("Parsing \'%s\' failed for %s", rawstr, sigmatch_table[KEYWORD_ID].name);
         return -1;
     }
 

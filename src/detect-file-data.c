@@ -205,14 +205,14 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
                     s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_FTP &&
                     s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP &&
                     s->alproto != ALPROTO_NFS)) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError("rule contains conflicting keywords.");
         return -1;
     }
 
     if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
-                "flow:to_client or flow:from_server with smtp.");
+        SCLogError("Can't use file_data with "
+                   "flow:to_client or flow:from_server with smtp.");
         return -1;
     }
 

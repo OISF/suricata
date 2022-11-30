@@ -1065,13 +1065,12 @@ static const char *StreamTcpParseOSPolicy(char *conf_var_name)
 
     if (snprintf(conf_var_full_name, strlen(conf_var_type_name) + strlen(conf_var_name) + 2,
                 "%s.%s", conf_var_type_name, conf_var_name) < 0) {
-        SCLogError(SC_EINVAL, "Error in making the conf full name");
+        SCLogError("Error in making the conf full name");
         goto end;
     }
 
     if (ConfGet(conf_var_full_name, &conf_var_value) != 1) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "Error in getting conf value for conf name %s",
-                conf_var_full_name);
+        SCLogError("Error in getting conf value for conf name %s", conf_var_full_name);
         goto end;
     }
 

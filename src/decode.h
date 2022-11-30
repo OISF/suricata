@@ -1147,8 +1147,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeCHDLC(tv, dtv, p, data, len);
             break;
         default:
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "datalink type "
-                    "%"PRId32" not yet supported", datalink);
+            SCLogError("datalink type "
+                       "%" PRId32 " not yet supported",
+                    datalink);
             break;
     }
 }

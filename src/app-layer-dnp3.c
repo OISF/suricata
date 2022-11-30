@@ -471,7 +471,7 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
         dnp3->events++;
     }
     else {
-        SCLogWarning(SC_ERR_ALPARSER, "Failed to set event, state or tx pointer was NULL.");
+        SCLogWarning("Failed to set event, state or tx pointer was NULL.");
     }
 }
 
@@ -1460,8 +1460,9 @@ static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
 {
     *event_id = SCMapEnumNameToValue(event_name, dnp3_decoder_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "Event \"%s\" not present in "
-            "the DNP3 enum event map table.", event_name);
+        SCLogError("Event \"%s\" not present in "
+                   "the DNP3 enum event map table.",
+                event_name);
         return -1;
     }
 
@@ -1478,8 +1479,9 @@ static int DNP3StateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, dnp3_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "Event \"%d\" not present in "
-            "the DNP3 enum event map table.", event_id);
+        SCLogError("Event \"%d\" not present in "
+                   "the DNP3 enum event map table.",
+                event_id);
         return -1;
     }
 

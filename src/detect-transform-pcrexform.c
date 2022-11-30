@@ -104,9 +104,8 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (pxd->regex == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(en, buffer, sizeof(buffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 regexstr, (int)eo, buffer);
         pcre2_match_context_free(pxd->context);
         SCFree(pxd);
@@ -115,13 +114,12 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     // check pcd->regex has exactly one capture expression
     uint32_t nb;
     if (pcre2_pattern_info(pxd->regex, PCRE2_INFO_CAPTURECOUNT, &nb) < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "pcrexform failed getting info about capturecount");
+        SCLogError("pcrexform failed getting info about capturecount");
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
     if (nb != 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "pcrexform needs exactly one substring capture, found %" PRIu32, nb);
+        SCLogError("pcrexform needs exactly one substring capture, found %" PRIu32, nb);
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }

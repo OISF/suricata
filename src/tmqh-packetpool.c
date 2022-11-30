@@ -304,8 +304,7 @@ void PacketPoolInit(void)
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
         if (unlikely(p == NULL)) {
-            FatalError(SC_ERR_FATAL,
-                       "Fatal error encountered while allocating a packet. Exiting...");
+            FatalError("Fatal error encountered while allocating a packet. Exiting...");
         }
         PacketPoolStorePacket(p);
     }
@@ -501,8 +500,9 @@ void PacketPoolPostRunmodes(void)
     extern intmax_t max_pending_packets;
     intmax_t pending_packets = max_pending_packets;
     if (pending_packets < RESERVED_PACKETS) {
-        FatalError(SC_ERR_INVALID_ARGUMENT, "'max-pending-packets' setting "
-                "must be at least %d", RESERVED_PACKETS);
+        FatalError("'max-pending-packets' setting "
+                   "must be at least %d",
+                RESERVED_PACKETS);
     }
     uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
     if (threads == 0)

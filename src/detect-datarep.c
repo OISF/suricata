@@ -176,18 +176,16 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
             }
             if (strcmp(key, "memcap") == 0) {
                 if (ParseSizeStringU64(val, memcap) < 0) {
-                    SCLogWarning(SC_EINVAL,
-                            "invalid value for memcap: %s,"
-                            " resetting to default",
+                    SCLogWarning("invalid value for memcap: %s,"
+                                 " resetting to default",
                             val);
                     *memcap = 0;
                 }
             }
             if (strcmp(key, "hashsize") == 0) {
                 if (ParseSizeStringU32(val, hashsize) < 0) {
-                    SCLogWarning(SC_EINVAL,
-                            "invalid value for hashsize: %s,"
-                            " resetting to default",
+                    SCLogWarning("invalid value for hashsize: %s,"
+                                 " resetting to default",
                             val);
                     *hashsize = 0;
                 }
@@ -201,14 +199,12 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
     }
 
     if (strlen(load) > 0 && *type == DATASET_TYPE_NOTSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "if load is used type must be set as well");
+        SCLogError("if load is used type must be set as well");
         return 0;
     }
 
     if (!name_set || !cmd_set || !value_set) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "missing values");
+        SCLogError("missing values");
         return 0;
     }
 
@@ -220,8 +216,7 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
     /* Validate name, spaces are not allowed. */
     for (size_t i = 0; i < strlen(name); i++) {
         if (isblank(name[i])) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "spaces not allowed in dataset names");
+            SCLogError("spaces not allowed in dataset names");
             return 0;
         }
     }
@@ -306,15 +301,13 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     uint32_t hashsize = 0;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "datarep is only supported for sticky buffers");
+        SCLogError("datarep is only supported for sticky buffers");
         SCReturnInt(-1);
     }
 
     int list = s->init_data->list;
     if (list == DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "datarep is only supported for sticky buffers");
+        SCLogError("datarep is only supported for sticky buffers");
         SCReturnInt(-1);
     }
 
@@ -336,15 +329,13 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     } else if (strcmp(cmd_str,"==") == 0) {
         op = DATAREP_OP_EQ;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE,
-                "datarep operation \"%s\" is not supported.", cmd_str);
+        SCLogError("datarep operation \"%s\" is not supported.", cmd_str);
         return -1;
     }
 
     Dataset *set = DatasetGet(name, type, /* no save */ NULL, load, memcap, hashsize);
     if (set == NULL) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE,
-                "failed to set up datarep set '%s'.", name);
+        SCLogError("failed to set up datarep set '%s'.", name);
         return -1;
     }
 

@@ -81,8 +81,9 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
     hs_error_t err = hs_compile(expr, flags, HS_MODE_BLOCK, NULL, &db,
                                 &compile_err);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "Unable to compile '%s' with Hyperscan, "
-                                 "returned %d.", expr, err);
+        SCLogError("Unable to compile '%s' with Hyperscan, "
+                   "returned %d.",
+                expr, err);
         exit(EXIT_FAILURE);
     }
 
@@ -94,8 +95,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
     if (err != HS_SUCCESS) {
         /* If scratch allocation failed, this is not recoverable:  other SPM
          * contexts may need this scratch space. */
-        SCLogError(SC_ERR_FATAL,
-                   "Unable to alloc scratch for Hyperscan, returned %d.", err);
+        SCLogError("Unable to alloc scratch for Hyperscan, returned %d.", err);
         exit(EXIT_FAILURE);
     }
     global_thread_ctx->ctx = scratch;
@@ -152,7 +152,7 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
         /* An error value (other than HS_SCAN_TERMINATED) from hs_scan()
          * indicates that it was passed an invalid database or scratch region,
          * which is not something we can recover from at scan time. */
-        SCLogError(SC_ERR_FATAL, "Hyperscan returned fatal error %d.", err);
+        SCLogError("Hyperscan returned fatal error %d.", err);
         exit(EXIT_FAILURE);
     }
 
@@ -215,8 +215,7 @@ static SpmThreadCtx *HSMakeThreadCtx(const SpmGlobalThreadCtx *global_thread_ctx
         hs_scratch_t *scratch = NULL;
         hs_error_t err = hs_clone_scratch(global_thread_ctx->ctx, &scratch);
         if (err != HS_SUCCESS) {
-            SCLogError(SC_ERR_FATAL, "Unable to clone scratch (error %d).",
-                       err);
+            SCLogError("Unable to clone scratch (error %d).", err);
             exit(EXIT_FAILURE);
         }
         thread_ctx->ctx = scratch;

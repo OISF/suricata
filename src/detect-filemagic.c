@@ -61,7 +61,7 @@
 
 static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    SCLogError(SC_ERR_NO_MAGIC_SUPPORT, "no libmagic support built in, needed for filemagic keyword");
+    SCLogError("no libmagic support built in, needed for filemagic keyword");
     return -1;
 }
 
@@ -325,7 +325,7 @@ static void *DetectFilemagicThreadInit(void *data /*@unused@*/)
 {
     DetectFilemagicThreadData *t = SCCalloc(1, sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ENOMEM, "couldn't alloc ctx memory");
+        SCLogError("couldn't alloc ctx memory");
         return NULL;
     }
 

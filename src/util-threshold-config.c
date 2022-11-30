@@ -115,9 +115,8 @@ void SCThresholdConfGlobalInit(void)
             (PCRE2_SPTR8)DETECT_BASE_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_base == NULL) {
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        FatalError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        FatalError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 DETECT_BASE_REGEX, (int)eo, errbuffer);
     }
     regex_base_match = pcre2_match_data_create_from_pattern(regex_base, NULL);
@@ -126,9 +125,8 @@ void SCThresholdConfGlobalInit(void)
             (PCRE2_SPTR8)DETECT_THRESHOLD_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_threshold == NULL) {
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        FatalError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        FatalError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 DETECT_THRESHOLD_REGEX, (int)eo, errbuffer);
     }
     regex_threshold_match = pcre2_match_data_create_from_pattern(regex_threshold, NULL);
@@ -137,9 +135,8 @@ void SCThresholdConfGlobalInit(void)
             (PCRE2_SPTR8)DETECT_RATE_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_rate == NULL) {
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        FatalError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        FatalError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 DETECT_RATE_REGEX, (int)eo, errbuffer);
     }
     regex_rate_match = pcre2_match_data_create_from_pattern(regex_rate, NULL);
@@ -148,9 +145,8 @@ void SCThresholdConfGlobalInit(void)
             (PCRE2_SPTR8)DETECT_SUPPRESS_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_suppress == NULL) {
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        FatalError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        FatalError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 DETECT_SUPPRESS_REGEX, (int)eo, errbuffer);
     }
     regex_suppress_match = pcre2_match_data_create_from_pattern(regex_suppress, NULL);
@@ -254,7 +250,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #endif
         filename = SCThresholdConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+            SCLogWarning("Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
         }
 #ifdef UNITTESTS
@@ -262,8 +258,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #endif
 
     if (SCThresholdConfParseFile(de_ctx, fd) < 0) {
-        SCLogWarning(
-                SC_WARN_THRESH_CONFIG, "Error loading threshold configuration from %s", filename);
+        SCLogWarning("Error loading threshold configuration from %s", filename);
         /* maintain legacy behavior so no errors unless config testing */
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
             ret = -1;
@@ -327,7 +322,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         orig_de->timeout = parsed_timeout;
         if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &orig_de->addrs, (char *)th_ip) <
                 0) {
-            SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
+            SCLogError("failed to parse %s", th_ip);
             goto error;
         }
     }
@@ -335,7 +330,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
     /* Install it */
     if (id == 0 && gid == 0) {
         if (parsed_track == TRACK_RULE) {
-            SCLogWarning(SC_ERR_EVENT_ENGINE, "suppressing all rules");
+            SCLogWarning("suppressing all rules");
         }
 
         /* update each sig with our suppress info */
@@ -352,7 +347,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                SCLogError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -362,7 +357,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         }
     } else if (id == 0 && gid > 0)    {
         if (parsed_track == TRACK_RULE) {
-            SCLogWarning(SC_ERR_EVENT_ENGINE, "suppressing all rules with gid %"PRIu32, gid);
+            SCLogWarning("suppressing all rules with gid %" PRIu32, gid);
         }
         /* set up suppression for each signature with a matching gid */
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
@@ -381,7 +376,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                SCLogError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -391,15 +386,16 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
         }
     } else if (id > 0 && gid == 0) {
-        SCLogError(SC_EINVAL, "Can't use a event config that has "
-                              "sid > 0 and gid == 0. Please fix this "
-                              "in your threshold.config file");
+        SCLogError("Can't use a event config that has "
+                   "sid > 0 and gid == 0. Please fix this "
+                   "in your threshold.config file");
         goto error;
     } else {
         s = SigFindSignatureBySidGid(de_ctx, id, gid);
         if (s == NULL) {
-            SCLogWarning(SC_ERR_EVENT_ENGINE, "can't suppress sid "
-                    "%"PRIu32", gid %"PRIu32": unknown rule", id, gid);
+            SCLogWarning("can't suppress sid "
+                         "%" PRIu32 ", gid %" PRIu32 ": unknown rule",
+                    id, gid);
         } else {
             if (parsed_track == TRACK_RULE) {
                 s->flags |= SIG_FLAG_NOALERT;
@@ -412,7 +408,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                SCLogError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -463,20 +459,22 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             sm = DetectGetLastSMByListId(s,
                     DETECT_SM_LIST_THRESHOLD, DETECT_THRESHOLD, -1);
             if (sm != NULL) {
-                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                        "an event var set.  The signature event var is "
-                        "given precedence over the threshold.conf one.  "
-                        "We'll change this in the future though.", s->id);
+                SCLogWarning("signature sid:%" PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.",
+                        s->id);
                 continue;
             }
 
             sm = DetectGetLastSMByListId(s,
                     DETECT_SM_LIST_THRESHOLD, DETECT_DETECTION_FILTER, -1);
             if (sm != NULL) {
-                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                        "an event var set.  The signature event var is "
-                        "given precedence over the threshold.conf one.  "
-                        "We'll change this in the future though.", s->id);
+                SCLogWarning("signature sid:%" PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.",
+                        s->id);
                 continue;
             }
 
@@ -494,7 +492,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                SCLogError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -513,10 +511,11 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
                         DETECT_THRESHOLD, DETECT_DETECTION_FILTER, -1);
                 if (sm != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "an event var set.  The signature event var is "
-                            "given precedence over the threshold.conf one.  "
-                            "We'll change this in the future though.", id);
+                    SCLogWarning("signature sid:%" PRIu32 " has "
+                                 "an event var set.  The signature event var is "
+                                 "given precedence over the threshold.conf one.  "
+                                 "We'll change this in the future though.",
+                            id);
                     continue;
                 }
 
@@ -534,7 +533,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
                 sm = SigMatchAlloc();
                 if (sm == NULL) {
-                    SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                    SCLogError("Error allocating SigMatch");
                     goto error;
                 }
 
@@ -548,14 +547,15 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             }
         }
     } else if (id > 0 && gid == 0) {
-        SCLogError(SC_EINVAL, "Can't use a event config that has "
-                              "sid > 0 and gid == 0. Please fix this "
-                              "in your threshold.conf file");
+        SCLogError("Can't use a event config that has "
+                   "sid > 0 and gid == 0. Please fix this "
+                   "in your threshold.conf file");
     } else {
         s = SigFindSignatureBySidGid(de_ctx, id, gid);
         if (s == NULL) {
-            SCLogWarning(SC_ERR_EVENT_ENGINE, "can't suppress sid "
-                    "%"PRIu32", gid %"PRIu32": unknown rule", id, gid);
+            SCLogWarning("can't suppress sid "
+                         "%" PRIu32 ", gid %" PRIu32 ": unknown rule",
+                    id, gid);
         } else {
             if (parsed_type != TYPE_SUPPRESS && parsed_type != TYPE_THRESHOLD &&
                 parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
@@ -563,20 +563,22 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm = DetectGetLastSMByListId(s,
                         DETECT_SM_LIST_THRESHOLD, DETECT_THRESHOLD, -1);
                 if (sm != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "a threshold set. The signature event var is "
-                            "given precedence over the threshold.conf one. "
-                            "Bug #425.", s->id);
+                    SCLogWarning("signature sid:%" PRIu32 " has "
+                                 "a threshold set. The signature event var is "
+                                 "given precedence over the threshold.conf one. "
+                                 "Bug #425.",
+                            s->id);
                     goto end;
                 }
 
                 sm = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
                         DETECT_DETECTION_FILTER, -1);
                 if (sm != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "a detection_filter set. The signature event var is "
-                            "given precedence over the threshold.conf one. "
-                            "Bug #425.", s->id);
+                    SCLogWarning("signature sid:%" PRIu32 " has "
+                                 "a detection_filter set. The signature event var is "
+                                 "given precedence over the threshold.conf one. "
+                                 "Bug #425.",
+                            s->id);
                     goto end;
                 }
 
@@ -605,7 +607,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ENOMEM, "Error allocating SigMatch");
+                SCLogError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -662,8 +664,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     ret = pcre2_match(
             regex_base, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_base_match, NULL);
     if (ret < 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
-                rawstr);
+        SCLogError("pcre2_match parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -672,7 +673,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     ret = pcre2_substring_copy_bynumber(
             regex_base_match, 1, (PCRE2_UCHAR8 *)th_rule_type, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -680,14 +681,14 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     copylen = sizeof(th_gid);
     ret = pcre2_substring_copy_bynumber(regex_base_match, 2, (PCRE2_UCHAR8 *)th_gid, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     copylen = sizeof(th_sid);
     ret = pcre2_substring_copy_bynumber(regex_base_match, 3, (PCRE2_UCHAR8 *)th_sid, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -695,7 +696,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     ret = pcre2_substring_get_bynumber(
             regex_base_match, 4, (PCRE2_UCHAR8 **)&rule_extend, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -709,7 +710,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     } else if (strcasecmp(th_rule_type,"suppress") == 0) {
         rule_type = THRESHOLD_TYPE_SUPPRESS;
     } else {
-        SCLogError(SC_EINVAL, "rule type %s is unknown", th_rule_type);
+        SCLogError("rule type %s is unknown", th_rule_type);
         goto error;
     }
 
@@ -721,8 +722,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_match(regex_threshold, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0,
                         0, regex_threshold_match, NULL);
                 if (ret < 4) {
-                    SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                    SCLogError("pcre2_match parse error, ret %" PRId32 ", string %s", ret,
                             rule_extend);
                     goto error;
                 }
@@ -731,7 +731,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_threshold_match, 1, (PCRE2_UCHAR8 *)th_type, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -739,7 +739,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_threshold_match, 2, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -747,7 +747,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_threshold_match, 3, (PCRE2_UCHAR8 *)th_count, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -755,7 +755,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_threshold_match, 4, (PCRE2_UCHAR8 *)th_seconds, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -766,11 +766,11 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 else if (strcasecmp(th_type,"threshold") == 0)
                     parsed_type = TYPE_THRESHOLD;
                 else {
-                    SCLogError(SC_ERR_INVALID_ARGUMENTS, "limit type not supported: %s", th_type);
+                    SCLogError("limit type not supported: %s", th_type);
                     goto error;
                 }
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENTS, "rule invalid: %s", rawstr);
+                SCLogError("rule invalid: %s", rawstr);
                 goto error;
             }
             break;
@@ -779,8 +779,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_match(regex_suppress, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0,
                         0, regex_suppress_match, NULL);
                 if (ret < 2) {
-                    SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                    SCLogError("pcre2_match parse error, ret %" PRId32 ", string %s", ret,
                             rule_extend);
                     goto error;
                 }
@@ -789,14 +788,14 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_suppress_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
                 /* retrieve the IP; use "get" for heap allocation */
                 ret = pcre2_substring_get_bynumber(
                         regex_suppress_match, 2, (PCRE2_UCHAR8 **)&th_ip, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                    SCLogError("pcre2_substring_get_bynumber failed");
                     goto error;
                 }
             } else {
@@ -809,8 +808,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_match(regex_rate, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0, 0,
                         regex_rate_match, NULL);
                 if (ret < 5) {
-                    SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                    SCLogError("pcre2_match parse error, ret %" PRId32 ", string %s", ret,
                             rule_extend);
                     goto error;
                 }
@@ -819,7 +817,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -827,7 +825,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 2, (PCRE2_UCHAR8 *)th_count, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -835,7 +833,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 3, (PCRE2_UCHAR8 *)th_seconds, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -843,7 +841,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 4, (PCRE2_UCHAR8 *)th_new_action, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -851,7 +849,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 5, (PCRE2_UCHAR8 *)th_timeout, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -880,7 +878,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 }
                 parsed_type = TYPE_RATE;
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENTS, "rule invalid: %s", rawstr);
+                SCLogError("rule invalid: %s", rawstr);
                 goto error;
             }
             break;
@@ -901,7 +899,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
             else if (strcasecmp(th_track,"by_rule") == 0)
                 parsed_track = TRACK_RULE;
             else {
-                SCLogError(SC_EINVAL, "Invalid track parameter %s in %s", th_track, rawstr);
+                SCLogError("Invalid track parameter %s in %s", th_track, rawstr);
                 goto error;
             }
 
@@ -909,7 +907,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                 goto error;
             }
             if (parsed_count == 0) {
-                SCLogError(SC_EINVAL, "rate filter count should be > 0");
+                SCLogError("rate filter count should be > 0");
                 goto error;
             }
 
@@ -929,8 +927,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
                     parsed_track = TRACK_EITHER;
                 }
                 else {
-                    SCLogError(
-                            SC_EINVAL, "Invalid track parameter %s in %s", th_track, rule_extend);
+                    SCLogError("Invalid track parameter %s in %s", th_track, rule_extend);
                     goto error;
                 }
             }

@@ -460,7 +460,7 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                 /* validate netmask */
                 int cidr = CIDRFromMask(netmask);
                 if (cidr < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    SCLogError(
                             "netmask \"%s\" is not usable. Only netmasks that are compatible with "
                             "CIDR notation are supported. See ticket #5168.",
                             mask);
@@ -650,8 +650,7 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
     /* parse the address */
     DetectAddress *ad = DetectAddressParseSingle(s);
     if (ad == NULL) {
-        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
-                "failed to parse address \"%s\"", s);
+        SCLogError("failed to parse address \"%s\"", s);
         return -1;
     }
 
@@ -725,8 +724,8 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
     char *temp_rule_var_address = NULL;
 
     if (++recur > 64) {
-        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "address block recursion "
-                "limit reached (max 64)");
+        SCLogError("address block recursion "
+                   "limit reached (max 64)");
         goto error;
     }
 
@@ -735,10 +734,9 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
     size_t size = strlen(s);
     for (u = 0, x = 0; u < size && x < address_length; u++) {
         if (x == (address_length - 1)) {
-            SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
-                    "Hit the address buffer"
-                    " limit for the supplied address.  Invalidating sig.  "
-                    "Please file a bug report on this.");
+            SCLogError("Hit the address buffer"
+                       " limit for the supplied address.  Invalidating sig.  "
+                       "Please file a bug report on this.");
             goto error;
         }
         address[x] = s[u];
@@ -853,10 +851,11 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
                     goto error;
 
                 if (strlen(rule_var_address) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated address needs to be quoted, "
-                            "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated address needs to be quoted, "
+                               "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.",
+                            s);
                     goto error;
                 }
 
@@ -908,8 +907,8 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
             x = 0;
 
             if (AddVariableToResolveList(var_list, address) == -1) {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a address "
-                    "groups declaration. This is likely a misconfiguration.");
+                SCLogError("Found a loop in a address "
+                           "groups declaration. This is likely a misconfiguration.");
                 goto error;
             }
 
@@ -920,10 +919,11 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
                     goto error;
 
                 if (strlen(rule_var_address) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated address needs to be quoted, "
-                            "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated address needs to be quoted, "
+                               "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.",
+                            s);
                     goto error;
                 }
 
@@ -968,14 +968,16 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
         }
     }
     if (depth > 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
-                "properly closed in \"%s\", %d missing closing brackets (]). "
-                "Note: problem might be in a variable.", s, depth);
+        SCLogError("not every address block was "
+                   "properly closed in \"%s\", %d missing closing brackets (]). "
+                   "Note: problem might be in a variable.",
+                s, depth);
         goto error;
     } else if (depth < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
-                "properly opened in \"%s\", %d missing opening brackets ([). "
-                "Note: problem might be in a variable.", s, depth*-1);
+        SCLogError("not every address block was "
+                   "properly opened in \"%s\", %d missing opening brackets ([). "
+                   "Note: problem might be in a variable.",
+                s, depth * -1);
         goto error;
     }
 
@@ -1003,8 +1005,8 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx, DetectAddressHead 
     if (address_length > (MAX_ADDRESS_LENGTH - 1)) {
         char *address = SCCalloc(1, address_length);
         if (address == NULL) {
-            SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "Unable to allocate"
-                                                      " memory for address parsing.");
+            SCLogError("Unable to allocate"
+                       " memory for address parsing.");
             return -1;
         }
         rc = DetectAddressParseInternal(
@@ -1060,7 +1062,7 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
     /* check if the negated list covers the entire ip space. If so
      * the user screwed up the rules/vars. */
     if (DetectAddressIsCompleteIPSpace(ghn) == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Complete IP space negated. "
+        SCLogError("Complete IP space negated. "
                    "Rule address range is NIL. Probably have a !any or "
                    "an address range that supplies a NULL address range");
         goto error;
@@ -1203,8 +1205,9 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
             cnt++;
 
         if (ipv4_applied != cnt) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "not all IPv4 negations "
-                    "could be applied: %d != %d", cnt, ipv4_applied);
+            SCLogError("not all IPv4 negations "
+                       "could be applied: %d != %d",
+                    cnt, ipv4_applied);
             goto error;
         }
 
@@ -1213,16 +1216,17 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
             cnt++;
 
         if (ipv6_applied != cnt) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "not all IPv6 negations "
-                    "could be applied: %d != %d", cnt, ipv6_applied);
+            SCLogError("not all IPv6 negations "
+                       "could be applied: %d != %d",
+                    cnt, ipv6_applied);
             goto error;
         }
     }
 
     /* if the result is that we have no addresses we return error */
     if (gh->ipv4_head == NULL && gh->ipv6_head == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "no addresses left after "
-                "merging addresses and negated addresses");
+        SCLogError("no addresses left after "
+                   "merging addresses and negated addresses");
         goto error;
     }
 
@@ -1260,10 +1264,10 @@ int DetectAddressTestConfVars(void)
         }
 
         if (seq_node->val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                       "Address var \"%s\" probably has a sequence(something "
+            SCLogError("Address var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
-                       "quote it using \"..\".", seq_node->name);
+                       "quote it using \"..\".",
+                    seq_node->name);
             goto error;
         }
 
@@ -1273,19 +1277,17 @@ int DetectAddressTestConfVars(void)
         CleanVariableResolveList(&var_list);
 
         if (r < 0) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "failed to parse address var \"%s\" with value \"%s\". "
-                    "Please check its syntax",
+            SCLogError("failed to parse address var \"%s\" with value \"%s\". "
+                       "Please check its syntax",
                     seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "address var - \"%s\" has the complete IP space negated "
-                    "with its value \"%s\".  Rule address range is NIL. "
-                    "Probably have a !any or an address range that supplies "
-                    "a NULL address range",
+            SCLogError("address var - \"%s\" has the complete IP space negated "
+                       "with its value \"%s\".  Rule address range is NIL. "
+                       "Probably have a !any or an address range that supplies "
+                       "a NULL address range",
                     seq_node->name, seq_node->val);
             goto error;
         }

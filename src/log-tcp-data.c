@@ -218,7 +218,7 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
 
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_TCPDATA_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError("couldn't create new file_ctx");
         return result;
     }
 
@@ -299,7 +299,7 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
 parsererror:
     LogFileFreeCtx(file_ctx);
     SCFree(tcpdatalog_ctx);
-    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
+    SCLogError("Syntax error in custom http log format string.");
     return result;
 
 }

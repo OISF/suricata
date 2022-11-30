@@ -103,10 +103,9 @@ void TmModuleDecodeAFXDPRegister(void)
  */
 TmEcode NoAFXDPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    SCLogError(SC_ERR_NO_AF_XDP,
-            "Error creating thread %s: you do not have "
-            "support for AF_XDP enabled, on Linux host please recompile "
-            "with --enable-af-xdp",
+    SCLogError("Error creating thread %s: you do not have "
+               "support for AF_XDP enabled, on Linux host please recompile "
+               "with --enable-af-xdp",
             tv->name);
     exit(EXIT_FAILURE);
 }
@@ -312,7 +311,7 @@ static TmEcode AcquireBuffer(AFXDPThreadVars *ptv)
     ptv->umem.buf = mmap(NULL, MEM_BYTES, PROT_READ | PROT_WRITE, mmap_flags, -1, 0);
 
     if (ptv->umem.buf == MAP_FAILED) {
-        SCLogError(SC_ERR_MEM_ALLOC, "mmap: failed to acquire memory");
+        SCLogError("mmap: failed to acquire memory");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -323,7 +322,7 @@ static TmEcode ConfigureXSKUmem(AFXDPThreadVars *ptv)
 {
     if (xsk_umem__create(&ptv->umem.umem, ptv->umem.buf, MEM_BYTES, &ptv->umem.fq, &ptv->umem.cq,
                 &ptv->umem.cfg)) {
-        SCLogError(SC_ERR_AFXDP_CREATE, "failed to create umem: %s", strerror(errno));
+        SCLogError("failed to create umem: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -336,7 +335,7 @@ static TmEcode InitFillRing(AFXDPThreadVars *ptv, const uint32_t cnt)
 
     uint32_t ret = xsk_ring_prod__reserve(&ptv->umem.fq, cnt, &idx_fq);
     if (ret != cnt) {
-        SCLogError(SC_ERR_AFXDP_INIT, "Failed to initialise the fill ring.");
+        SCLogError("Failed to initialise the fill ring.");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -391,9 +390,8 @@ static TmEcode ConfigureBusyPolling(AFXDPThreadVars *ptv)
      * see linux commit: 7fd3253a7de6a317a0683f83739479fb880bffc8
      */
     if (!SCKernelVersionIsAtLeast(5, 11)) {
-        SCLogWarning(SC_WARN_AFXDP_CONF,
-                "Kernel version older than required: v5.11,"
-                " upgrade kernel version to use 'enable-busy-poll' option.");
+        SCLogWarning("Kernel version older than required: v5.11,"
+                     " upgrade kernel version to use 'enable-busy-poll' option.");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -430,13 +428,13 @@ static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)
     SCMutexLock(&xsk_protect.queue_protect);
 
     if (AFXDPAssignQueueID(ptv) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_SOCKET, "Failed to assign queue ID");
+        SCLogError("Failed to assign queue ID");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     if ((ret = xsk_socket__create(&ptv->xsk.xsk, ptv->livedev->dev, ptv->xsk.queue.queue_num,
                  ptv->umem.umem, &ptv->xsk.rx, &ptv->xsk.tx, &ptv->xsk.cfg))) {
-        SCLogError(SC_ERR_SOCKET, "Failed to create socket: %s", strerror(-ret));
+        SCLogError("Failed to create socket: %s", strerror(-ret));
         SCReturnInt(TM_ECODE_FAILED);
     }
     SCLogDebug("bind to %s on queue %u", ptv->iface, ptv->xsk.queue.queue_num);
@@ -484,13 +482,13 @@ static TmEcode AFXDPSocketCreation(AFXDPThreadVars *ptv)
     }
 
     if (ConfigureBusyPolling(ptv) != TM_ECODE_OK) {
-        SCLogWarning(SC_WARN_AFXDP_CONF, "Failed to configure busy polling"
-                                         " performance may be reduced.");
+        SCLogWarning("Failed to configure busy polling"
+                     " performance may be reduced.");
     }
 
     /* Has the eBPF program successfully bound? */
     if (bpf_get_link_xdp_id(ptv->ifindex, &ptv->prog_id, ptv->xsk.cfg.xdp_flags)) {
-        SCLogError(SC_ERR_BPF, "Failed to attach eBPF program to interface: %s", ptv->livedev->dev);
+        SCLogError("Failed to attach eBPF program to interface: %s", ptv->livedev->dev);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -587,7 +585,7 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     AFXDPIfaceConfig *afxdpconfig = (AFXDPIfaceConfig *)initdata;
 
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        SCLogError("initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -606,7 +604,7 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
 
     ptv->livedev = LiveGetDevice(ptv->iface);
     if (ptv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCLogError("Unable to find Live device");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -615,8 +613,7 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
         if (SetIfaceFlags(ptv->iface, IFF_PROMISC | IFF_UP) != 0) {
-            SCLogError(SC_ERR_AFXDP_CREATE,
-                    "Failed to switch interface (%s) to promiscuous, error %s", ptv->iface,
+            SCLogError("Failed to switch interface (%s) to promiscuous, error %s", ptv->iface,
                     strerror(errno));
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -730,7 +727,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
                     StatsIncr(ptv->tv, ptv->capture_afxdp_poll_timeout);
                 } else if (r < 0) {
                     StatsIncr(ptv->tv, ptv->capture_afxdp_poll_failed);
-                    SCLogWarning(SC_ERR_AFXDP_READ, "poll failed with retval %d", r);
+                    SCLogWarning("poll failed with retval %d", r);
                     AFXDPSwitchState(ptv, AFXDP_STATE_DOWN);
                 }
 
@@ -744,7 +741,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
             StatsIncr(ptv->tv, ptv->capture_afxdp_empty_reads);
             ssize_t ret = WakeupSocket(ptv);
             if (ret < 0) {
-                SCLogWarning(SC_ERR_AFXDP_READ, "recv failed with retval %ld", ret);
+                SCLogWarning("recv failed with retval %ld", ret);
                 AFXDPSwitchState(ptv, AFXDP_STATE_DOWN);
             }
             DumpStatsEverySecond(ptv, &last_dump);
@@ -756,7 +753,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
             StatsIncr(ptv->tv, ptv->capture_afxdp_failed_reads);
             ssize_t ret = WakeupSocket(ptv);
             if (ret < 0) {
-                SCLogWarning(SC_ERR_AFXDP_READ, "recv failed with retval %ld", ret);
+                SCLogWarning("recv failed with retval %ld", ret);
                 AFXDPSwitchState(ptv, AFXDP_STATE_DOWN);
                 continue;
             }

@@ -197,12 +197,10 @@ DefragContextNew(void)
         sizeof(Frag),
         NULL, DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize fragment pool.");
+        FatalError("Defrag: Failed to initialize fragment pool.");
     }
     if (SCMutexInit(&dc->frag_pool_lock, NULL) != 0) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize frag pool mutex.");
+        FatalError("Defrag: Failed to initialize frag pool mutex.");
     }
 
     /* Set the default timeout. */
@@ -212,12 +210,10 @@ DefragContextNew(void)
     }
     else {
         if (timeout < TIMEOUT_MIN) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Timeout less than minimum allowed value.");
+            FatalError("defrag: Timeout less than minimum allowed value.");
         }
         else if (timeout > TIMEOUT_MAX) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Tiemout greater than maximum allowed value.");
+            FatalError("defrag: Tiemout greater than maximum allowed value.");
         }
         dc->timeout = timeout;
     }
@@ -1068,8 +1064,7 @@ DefragInit(void)
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
     if (defrag_context == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Failed to allocate memory for the Defrag module.");
+        FatalError("Failed to allocate memory for the Defrag module.");
     }
 
     DefragSetDefaultTimeout(defrag_context->timeout);

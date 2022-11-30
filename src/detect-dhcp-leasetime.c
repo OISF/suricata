@@ -86,7 +86,7 @@ static int DetectDHCPLeaseTimeSetup(DetectEngineCtx *de_ctx, Signature *s, const
 
     DetectU64Data *dd = DetectU64Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Parsing \'%s\' failed for %s", rawstr,
+        SCLogError("Parsing \'%s\' failed for %s", rawstr,
                 sigmatch_table[DETECT_AL_DHCP_LEASETIME].name);
         return -1;
     }

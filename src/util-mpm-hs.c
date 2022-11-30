@@ -108,7 +108,7 @@ static void SCHSSetAllocators(void)
 {
     hs_error_t err = hs_set_allocator(SCHSMalloc, SCHSFree);
     if (err != HS_SUCCESS) {
-        FatalError(SC_ERR_FATAL, "Failed to set Hyperscan allocator.");
+        FatalError("Failed to set Hyperscan allocator.");
     }
 }
 
@@ -281,7 +281,7 @@ static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     }
 
     if (patlen == 0) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "pattern length 0");
+        SCLogWarning("pattern length 0");
         return 0;
     }
 
@@ -692,9 +692,9 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
                                &compile_err);
 
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "failed to compile hyperscan database");
+        SCLogError("failed to compile hyperscan database");
         if (compile_err) {
-            SCLogError(SC_ERR_FATAL, "compile error: %s", compile_err->message);
+            SCLogError("compile error: %s", compile_err->message);
         }
         hs_free_compile_error(compile_err);
         SCMutexUnlock(&g_db_table_mutex);
@@ -707,14 +707,14 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     err = hs_alloc_scratch(pd->hs_db, &g_scratch_proto);
     SCMutexUnlock(&g_scratch_proto_mutex);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "failed to allocate scratch");
+        SCLogError("failed to allocate scratch");
         SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
 
     err = hs_database_size(pd->hs_db, &ctx->hs_db_size);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "failed to query database size");
+        SCLogError("failed to query database size");
         SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
@@ -784,12 +784,12 @@ void SCHSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
     SCMutexUnlock(&g_scratch_proto_mutex);
 
     if (err != HS_SUCCESS) {
-        FatalError(SC_ERR_FATAL, "Unable to clone scratch prototype");
+        FatalError("Unable to clone scratch prototype");
     }
 
     err = hs_scratch_size(ctx->scratch, &ctx->scratch_size);
     if (err != HS_SUCCESS) {
-        FatalError(SC_ERR_FATAL, "Unable to query scratch size");
+        FatalError("Unable to query scratch size");
     }
 
     mpm_thread_ctx->memory_cnt++;
@@ -950,7 +950,7 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         /* An error value (other than HS_SCAN_TERMINATED) from hs_scan()
          * indicates that it was passed an invalid database or scratch region,
          * which is not something we can recover from at scan time. */
-        SCLogError(SC_ERR_FATAL, "Hyperscan returned error %d", err);
+        SCLogError("Hyperscan returned error %d", err);
         exit(EXIT_FAILURE);
     } else {
         ret = cctx.match_count;

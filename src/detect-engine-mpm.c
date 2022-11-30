@@ -108,8 +108,7 @@ void DetectAppLayerMpmRegister2(const char *name,
     DetectBufferTypeSupportsTransformations(name);
     int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-                "MPM engine registration for %s failed", name);
+        FatalError("MPM engine registration for %s failed", name);
     }
 
     DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
@@ -299,7 +298,7 @@ void DetectFrameMpmRegister(const char *name, int direction, int priority,
     DetectBufferTypeSupportsTransformations(name);
     int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list < 0 || sm_list > UINT16_MAX) {
-        FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
+        FatalError("MPM engine registration for %s failed", name);
     }
 
     DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
@@ -384,7 +383,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
 
     const int sm_list = DetectEngineBufferTypeRegister(de_ctx, name);
     if (sm_list < 0 || sm_list > UINT16_MAX) {
-        FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
+        FatalError("MPM engine registration for %s failed", name);
     }
 
     DetectEngineBufferTypeSupportsMpm(de_ctx, name);
@@ -533,8 +532,7 @@ void DetectPktMpmRegister(const char *name,
     DetectBufferTypeSupportsTransformations(name);
     int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-                "MPM engine registration for %s failed", name);
+        FatalError("MPM engine registration for %s failed", name);
     }
 
     DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
@@ -851,7 +849,7 @@ uint8_t PatternMatchDefaultMatcher(void)
         if (mpm_algo != NULL) {
 #if __BYTE_ORDER == __BIG_ENDIAN
             if (strcmp(mpm_algo, "ac-ks") == 0) {
-                FatalError(SC_ERR_FATAL, "ac-ks does "
+                FatalError("ac-ks does "
                            "not work on big endian systems at this time.");
             }
 #endif
@@ -870,13 +868,14 @@ uint8_t PatternMatchDefaultMatcher(void)
 
 #ifndef BUILD_HYPERSCAN
             if ((strcmp(mpm_algo, "hs") == 0)) {
-                FatalError(SC_EINVAL, "Hyperscan (hs) support for mpm-algo is "
-                                      "not compiled into Suricata.");
+                FatalError("Hyperscan (hs) support for mpm-algo is "
+                           "not compiled into Suricata.");
             }
 #endif
         }
-        FatalError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid mpm algo supplied "
-                "in the yaml conf file: \"%s\"", mpm_algo);
+        FatalError("Invalid mpm algo supplied "
+                   "in the yaml conf file: \"%s\"",
+                mpm_algo);
     }
 
  done:

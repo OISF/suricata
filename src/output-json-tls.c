@@ -575,7 +575,7 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
                 }
             }
             if (!valid) {
-                SCLogWarning(SC_ERR_LOG_OUTPUT, "eve.tls: unknown 'custom' field '%s'", field->val);
+                SCLogWarning("eve.tls: unknown 'custom' field '%s'", field->val);
             }
         }
     }
@@ -594,17 +594,15 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
-        SCLogWarning(SC_WARN_DUPLICATE_OUTPUT,
-                     "Both 'certificate' and 'chain' contains the top "
+        SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
     }
     if ((tls_ctx->fields & LOG_TLS_FIELD_CLIENT_CERT) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CLIENT_CHAIN)) {
-        SCLogWarning(SC_WARN_DUPLICATE_OUTPUT,
-                "Both 'client_certificate' and 'client_chain' contains the top "
-                "certificate, so only one of them should be enabled "
-                "at a time");
+        SCLogWarning("Both 'client_certificate' and 'client_chain' contains the top "
+                     "certificate, so only one of them should be enabled "
+                     "at a time");
     }
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CLIENT) == 0) {
@@ -647,8 +645,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
-        SCLogWarning(SC_WARN_DUPLICATE_OUTPUT,
-                     "Both 'certificate' and 'chain' contains the top "
+        SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
     }

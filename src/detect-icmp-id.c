@@ -166,7 +166,7 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
 
     ret = DetectParsePcreExec(&parse_regex, icmpidstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", icmpidstr);
+        SCLogError("Parse error %s", icmpidstr);
         goto error;
     }
 
@@ -175,7 +175,7 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
     for (i = 1; i < ret; i++) {
         res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;
@@ -188,20 +188,21 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
 
     if (substr[0]!= NULL && strlen(substr[0]) != 0) {
         if (substr[2] == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Missing close quote in input");
+            SCLogError("Missing close quote in input");
             goto error;
         }
     } else {
         if (substr[2] != NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Missing open quote in input");
+            SCLogError("Missing open quote in input");
             goto error;
         }
     }
 
     uint16_t id = 0;
     if (StringParseUint16(&id, 10, 0, substr[1]) < 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp id %s is not "
-                                        "valid", substr[1]);
+        SCLogError("specified icmp id %s is not "
+                   "valid",
+                substr[1]);
         goto error;
     }
     iid->id = htons(id);

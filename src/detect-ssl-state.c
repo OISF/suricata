@@ -150,15 +150,16 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
 
     ret = DetectParsePcreExec(&parse_regex1, arg, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
-                   "ssl_state keyword.", arg);
+        SCLogError("Invalid arg \"%s\" supplied to "
+                   "ssl_state keyword.",
+                arg);
         goto error;
     }
 
     pcre2len = sizeof(str1);
     res = pcre2_substring_copy_bynumber(parse_regex1.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     negate = !strcmp("!", str1);
@@ -166,7 +167,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     pcre2len = sizeof(str1);
     res = pcre2_substring_copy_bynumber(parse_regex1.match, 2, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -191,29 +192,31 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         if (negate)
             mask |= DETECT_SSL_STATE_UNKNOWN;
     } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Found invalid option \"%s\" "
-                   "in ssl_state keyword.", str1);
+        SCLogError("Found invalid option \"%s\" "
+                   "in ssl_state keyword.",
+                str1);
         goto error;
     }
 
     pcre2len = sizeof(str1);
     res = pcre2_substring_copy_bynumber(parse_regex1.match, 3, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     while (res >= 0 && strlen(str1) > 0) {
         ret = DetectParsePcreExec(&parse_regex2, str1, 0, 0);
         if (ret < 1) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
-                       "ssl_state keyword.", arg);
+            SCLogError("Invalid arg \"%s\" supplied to "
+                       "ssl_state keyword.",
+                    arg);
             goto error;
         }
 
         pcre2len = sizeof(str2);
         res = pcre2_substring_copy_bynumber(parse_regex2.match, 1, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         negate = !strcmp("!", str2);
@@ -221,7 +224,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         pcre2len = sizeof(str2);
         res = pcre2_substring_copy_bynumber(parse_regex2.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         if (strcmp("client_hello", str2) == 0) {
@@ -245,15 +248,16 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             if (negate)
                 mask |= DETECT_SSL_STATE_UNKNOWN;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Found invalid option \"%s\" "
-                       "in ssl_state keyword.", str2);
+            SCLogError("Found invalid option \"%s\" "
+                       "in ssl_state keyword.",
+                    str2);
             goto error;
         }
 
         pcre2len = sizeof(str2);
         res = pcre2_substring_copy_bynumber(parse_regex2.match, 3, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
 

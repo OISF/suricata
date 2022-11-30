@@ -423,25 +423,25 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
 
     int status = luaL_loadfile(luastate, filename);
     if (status) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't load file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     /* prime the script (or something) */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't prime file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     lua_getglobal(luastate, "init");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no init function in script");
+        SCLogError("no init function in script");
         goto error;
     }
 
     lua_newtable(luastate); /* stack at -1 */
     if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUA_ERROR, "no table setup");
+        SCLogError("no table setup");
         goto error;
     }
 
@@ -450,17 +450,17 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     /* process returns from script */
     if (lua_gettop(luastate) == 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, nothing returned");
+        SCLogError("init function in script should return table, nothing returned");
         goto error;
     }
     if (lua_type(luastate, 1) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, returned is not table");
+        SCLogError("init function in script should return table, returned is not table");
         goto error;
     }
 
@@ -507,25 +507,25 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     }
 
     if (((options->alproto != ALPROTO_UNKNOWN)) + options->packet + options->file > 1) {
-        SCLogError(SC_ERR_LUA_ERROR, "invalid combination of 'needs' in the script");
+        SCLogError("invalid combination of 'needs' in the script");
         goto error;
     }
 
     lua_getglobal(luastate, "setup");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no setup function in script");
+        SCLogError("no setup function in script");
         goto error;
     }
 
     lua_getglobal(luastate, "log");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no log function in script");
+        SCLogError("no log function in script");
         goto error;
     }
 
     lua_getglobal(luastate, "deinit");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no deinit function in script");
+        SCLogError("no deinit function in script");
         goto error;
     }
 
@@ -547,7 +547,7 @@ static lua_State *LuaScriptSetup(const char *filename)
 {
     lua_State *luastate = LuaGetState();
     if (luastate == NULL) {
-        SCLogError(SC_ERR_LUA_ERROR, "luaL_newstate failed");
+        SCLogError("luaL_newstate failed");
         goto error;
     }
 
@@ -555,13 +555,13 @@ static lua_State *LuaScriptSetup(const char *filename)
 
     int status = luaL_loadfile(luastate, filename);
     if (status) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't load file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     /* prime the script */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't prime file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
@@ -580,7 +580,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     LuaRegisterSmtpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
@@ -630,7 +630,7 @@ static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     char path[PATH_MAX] = "";
     int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
     if (ret < 0 || ret == sizeof(path)) {
-        SCLogError(SC_ERR_SPRINTF,"failed to construct lua script path");
+        SCLogError("failed to construct lua script path");
         goto error;
     }
     SCLogDebug("script full path %s", path);
@@ -717,7 +717,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 
         int r = LuaScriptInit(path, &opts);
         if (r != 0) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't initialize script");
+            SCLogError("couldn't initialize script");
             goto error;
         }
 
@@ -725,7 +725,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
          * on it's needs. */
         OutputModule *om = SCCalloc(1, sizeof(*om));
         if (om == NULL) {
-            SCLogError(SC_ENOMEM, "calloc() failed");
+            SCLogError("calloc() failed");
             goto error;
         }
 
@@ -788,7 +788,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
         } else if (opts.stats) {
             om->StatsLogFunc = LuaStatsLogger;
         } else {
-            SCLogError(SC_ERR_LUA_ERROR, "failed to setup thread module");
+            SCLogError("failed to setup thread module");
             SCFree(om);
             goto error;
         }
@@ -809,9 +809,8 @@ error:
         SCLogDebug("ConfGetBool could not load the value.");
     }
     if (failure_fatal) {
-                   FatalError(SC_ERR_FATAL,
-                              "Error during setup of lua output. Details should be "
-                              "described in previous error messages. Shutting down...");
+        FatalError("Error during setup of lua output. Details should be "
+                   "described in previous error messages. Shutting down...");
     }
 
     return result;
@@ -826,13 +825,13 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
 
     lua_getglobal(luastate, "deinit");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUA_ERROR, "no deinit function in script");
+        SCLogError("no deinit function in script");
         return;
     }
     //LuaPrintStack(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'deinit' function: %s", lua_tostring(luastate, -1));
+        SCLogError("couldn't run script 'deinit' function: %s", lua_tostring(luastate, -1));
         return;
     }
     LuaReturnState(luastate);

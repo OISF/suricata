@@ -105,8 +105,9 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
     } else {
         alproto = AppLayerGetProtoByName((char *)arg);
         if (alproto == ALPROTO_UNKNOWN) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol "
-                    "keyword supplied with unknown protocol \"%s\"", arg);
+            SCLogError("app-layer-protocol "
+                       "keyword supplied with unknown protocol \"%s\"",
+                    arg);
             return NULL;
         }
     }
@@ -144,7 +145,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     SigMatch *sm = NULL;
 
     if (s->alproto != ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Either we already "
+        SCLogError("Either we already "
                    "have the rule match on an app layer protocol set through "
                    "other keywords that match on this protocol, or have "
                    "already seen a non-negated app-layer-protocol.");
@@ -161,9 +162,9 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
             const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;
 
             if (HasConflicts(data, them)) {
-                SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "can't mix "
-                        "positive app-layer-protocol match with negated "
-                        "match or match for 'failed'.");
+                SCLogError("can't mix "
+                           "positive app-layer-protocol match with negated "
+                           "match or match for 'failed'.");
                 goto error;
             }
         }

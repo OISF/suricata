@@ -48,8 +48,7 @@ int ReadHashString(uint8_t *hash, const char *string, const char *filename, int 
         uint16_t expected_len)
 {
     if (strlen(string) != expected_len) {
-        SCLogError(SC_ERR_INVALID_HASH, "%s:%d hash string not %d characters",
-                filename, line_no, expected_len);
+        SCLogError("%s:%d hash string not %d characters", filename, line_no, expected_len);
         return -1;
     }
 
@@ -63,8 +62,7 @@ int ReadHashString(uint8_t *hash, const char *string, const char *filename, int 
         if (value >= 0 && value <= 255)
             hash[x] = (uint8_t)value;
         else {
-            SCLogError(SC_ERR_INVALID_HASH, "%s:%d hash byte out of range %ld",
-                    filename, line_no, value);
+            SCLogError("%s:%d hash byte out of range %ld", filename, line_no, value);
             return -1;
         }
     }
@@ -250,15 +248,14 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
                 snprintf(path, sizeof(path), "%s/%s", dir, str);
                 fp = fopen(path, "r");
                 if (fp == NULL) {
-                    SCLogError(SC_ERR_OPENING_RULE_FILE,
-                            "opening hash file %s: %s", path, strerror(errno));
+                    SCLogError("opening hash file %s: %s", path, strerror(errno));
                     goto error;
                 }
             }
         }
         if (fp == NULL) {
 #endif
-            SCLogError(SC_ERR_OPENING_RULE_FILE, "opening hash file %s: %s", filename, strerror(errno));
+            SCLogError("opening hash file %s: %s", filename, strerror(errno));
             goto error;
 #ifdef HAVE_LIBGEN_H
         }

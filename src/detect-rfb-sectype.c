@@ -121,7 +121,7 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     DetectU32Data *dd = DetectRfbSectypeParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 

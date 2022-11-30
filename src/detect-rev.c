@@ -45,20 +45,20 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
     char *endptr = NULL;
     rev = strtoul(rawstr, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
+        SCLogError("invalid character as arg "
                    "to rev keyword");
         goto error;
     }
     if (rev >= UINT_MAX) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "rev value to high, max %u", UINT_MAX);
+        SCLogError("rev value to high, max %u", UINT_MAX);
         goto error;
     }
     if (rev == 0) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "rev value 0 is invalid");
+        SCLogError("rev value 0 is invalid");
         goto error;
     }
     if (s->rev > 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "duplicated 'rev' keyword detected");
+        SCLogError("duplicated 'rev' keyword detected");
         goto error;
     }
 

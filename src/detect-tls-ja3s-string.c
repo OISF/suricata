@@ -109,7 +109,7 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
         return -1;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting protocols.");
+        SCLogError("rule contains conflicting protocols.");
         return -1;
     }
 
@@ -119,7 +119,7 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
         if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3S_STRING)) {
-            SCLogError(SC_WARN_JA3_DISABLED, "ja3(s) support is not enabled");
+            SCLogError("ja3(s) support is not enabled");
         }
         return -2;
     }

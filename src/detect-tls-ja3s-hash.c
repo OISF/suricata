@@ -118,7 +118,7 @@ static int DetectTlsJa3SHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         return -1;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting protocols.");
+        SCLogError("rule contains conflicting protocols.");
         return -1;
     }
 
@@ -128,7 +128,7 @@ static int DetectTlsJa3SHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
         if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3S_HASH)) {
-            SCLogError(SC_WARN_JA3_DISABLED, "ja3(s) support is not enabled");
+            SCLogError("ja3(s) support is not enabled");
         }
         return -2;
     }
@@ -174,7 +174,7 @@ static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
             *sigerror = "ja3s.hash should not be used together with "
                         "nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
         }
 
         if (cd->content_len == SC_MD5_HEX_LEN)
@@ -183,7 +183,7 @@ static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
         *sigerror = "Invalid length of the specified JA3S hash (should "
                     "be 32 characters long). This rule will therefore "
                     "never match.";
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,  "rule %u: %s", s->id, *sigerror);
+        SCLogError("rule %u: %s", s->id, *sigerror);
         return false;
     }
 

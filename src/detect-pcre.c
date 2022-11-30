@@ -138,14 +138,14 @@ void DetectPcreRegister (void)
 
     parse_regex = DetectSetupPCRE2(PARSE_REGEX, 0);
     if (parse_regex == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre2 compile failed for parse_regex");
+        FatalError("pcre2 compile failed for parse_regex");
     }
 
     /* setup the capture regex, as it needs PCRE2_UNGREEDY we do it manually */
     /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
     parse_capture_regex = DetectSetupPCRE2(PARSE_CAPTURE_REGEX, PCRE2_UNGREEDY);
     if (parse_capture_regex == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre2 compile failed for parse_capture_regex");
+        FatalError("pcre2 compile failed for parse_capture_regex");
     }
 
 #ifdef PCRE2_HAVE_JIT
@@ -307,7 +307,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 static int DetectPcreSetList(int list, int set)
 {
     if (list != DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "only one pcre option to specify a buffer type is allowed");
+        SCLogError("only one pcre option to specify a buffer type is allowed");
         return -1;
     }
     return set;
@@ -406,13 +406,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     ret = pcre2_match(
             parse_regex->regex, (PCRE2_SPTR8)regexstr, slen, 0, 0, parse_regex->match, NULL);
     if (ret <= 0) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
+        SCLogError("pcre parse error: %s", regexstr);
         goto error;
     }
 
     res = pcre2_substring_copy_bynumber(parse_regex->match, 1, (PCRE2_UCHAR8 *)re, &slen);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return NULL;
     }
 
@@ -421,7 +421,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(
                 parse_regex->match, 2, (PCRE2_UCHAR8 *)op_str, &copylen);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             return NULL;
         }
         op = op_str;
@@ -470,7 +470,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
                 case 'B': /* snort's option */
                     if (*sm_list != DETECT_SM_LIST_NOTSET) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with chosen buffer");
+                        SCLogError("regex modifier 'B' inconsistent with chosen buffer");
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_RAWBYTES;
@@ -483,7 +483,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
                 case 'U': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'B'");
+                        SCLogError("regex modifier 'U' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_uri");
@@ -493,7 +493,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'V': {
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'V' inconsistent with 'B'");
+                        SCLogError("regex modifier 'V' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_user_agent");
@@ -503,7 +503,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'W': {
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'W' inconsistent with 'B'");
+                        SCLogError("regex modifier 'W' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_host");
@@ -514,7 +514,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'Z': {
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'Z' inconsistent with 'B'");
+                        SCLogError("regex modifier 'Z' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_raw_host");
@@ -524,7 +524,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'H': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'B'");
+                        SCLogError("regex modifier 'H' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_header");
@@ -533,7 +533,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     break;
                 } case 'I': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'B'");
+                        SCLogError("regex modifier 'I' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_raw_uri");
@@ -549,7 +549,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'M': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
+                        SCLogError("regex modifier 'M' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_method");
@@ -559,7 +559,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 }
                 case 'C': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'C' inconsistent with 'B'");
+                        SCLogError("regex modifier 'C' inconsistent with 'B'");
                         goto error;
                     }
                     int list = DetectBufferTypeGetByName("http_cookie");
@@ -596,7 +596,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     break;
                 }
                 default:
-                    SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
+                    SCLogError("unknown regex modifier '%c'", *op);
                     goto error;
             }
             op++;
@@ -610,18 +610,18 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     /* host header */
     if (check_host_header) {
         if (pd->flags & DETECT_PCRE_CASELESS) {
-            SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http host pcre(\"W\") "
+            SCLogWarning("http host pcre(\"W\") "
                          "specified along with \"i(caseless)\" modifier.  "
                          "Since the hostname buffer we match against "
                          "is actually lowercase, having a "
                          "nocase is redundant.");
         }
         else if (DetectPcreHasUpperCase(re)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre host(\"W\") "
-                "specified has an uppercase char.  "
-                "Since the hostname buffer we match against "
-                "is actually lowercase, please specify an "
-                "all lowercase based pcre.");
+            SCLogError("pcre host(\"W\") "
+                       "specified has an uppercase char.  "
+                       "Since the hostname buffer we match against "
+                       "is actually lowercase, please specify an "
+                       "all lowercase based pcre.");
             goto error;
         }
     }
@@ -644,9 +644,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     if (pd->parse_regex.regex == NULL)  {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 regexstr, (int)eo2, errbuffer);
         goto error;
     }
@@ -667,7 +666,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
     pd->parse_regex.context = pcre2_match_context_create(NULL);
     if (pd->parse_regex.context == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre2 could not create match context");
+        SCLogError("pcre2 could not create match context");
         goto error;
     }
     pd->parse_regex.match = pcre2_match_data_create_from_pattern(pd->parse_regex.regex, NULL);
@@ -715,8 +714,8 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         char *ptr = NULL;
         while ((name_array[name_idx] = strtok_r(name_idx == 0 ? capture_names : NULL, " ,", &ptr))){
             if (name_idx > (capture_cnt - 1)) {
-                SCLogError(SC_ERR_VAR_LIMIT, "more pkt/flow "
-                        "var capture names than capturing substrings");
+                SCLogError("more pkt/flow "
+                           "var capture names than capturing substrings");
                 return -1;
             }
             SCLogDebug("name '%s'", name_array[name_idx]);
@@ -751,8 +750,8 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
                 pd->idx++;
 
             } else {
-                SCLogError(SC_ERR_VAR_LIMIT, " pkt/flow "
-                        "var capture names must start with 'pkt:' or 'flow:'");
+                SCLogError(" pkt/flow "
+                           "var capture names must start with 'pkt:' or 'flow:'");
                 return -1;
             }
 
@@ -783,14 +782,14 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(
                 parse_capture_regex->match, 1, (PCRE2_UCHAR8 *)type_str, &copylen);
         if (res != 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         cap_buffer_len = strlen(regexstr) + 1;
         res = pcre2_substring_copy_bynumber(
                 parse_capture_regex->match, 2, (PCRE2_UCHAR8 *)capture_str, &cap_buffer_len);
         if (res != 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         if (strlen(capture_str) == 0 || strlen(type_str) == 0) {
@@ -801,8 +800,9 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         SCLogDebug("capture \'%s\'", capture_str);
 
         if (pd->idx >= DETECT_PCRE_CAPTURE_MAX) {
-            SCLogError(SC_ERR_VAR_LIMIT, "rule can have maximally %d pkt/flow "
-                    "var captures", DETECT_PCRE_CAPTURE_MAX);
+            SCLogError("rule can have maximally %d pkt/flow "
+                       "var captures",
+                    DETECT_PCRE_CAPTURE_MAX);
             return -1;
         }
 
@@ -870,9 +870,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     int sm_list = -1;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         if (parsed_sm_list != DETECT_SM_LIST_NOTSET && parsed_sm_list != s->init_data->list) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "Expression seen with a sticky buffer still set; either (1) reset sticky "
-                    "buffer with pkt_data or (2) use a sticky buffer providing \"%s\".",
+            SCLogError("Expression seen with a sticky buffer still set; either (1) reset sticky "
+                       "buffer with pkt_data or (2) use a sticky buffer providing \"%s\".",
                     DetectEngineBufferTypeGetDescriptionById(de_ctx, parsed_sm_list));
             goto error;
         }
@@ -924,8 +923,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     SigMatch *prev_pm = DetectGetLastSMByListPtr(s, sm->prev,
             DETECT_CONTENT, DETECT_PCRE, -1);
     if (s->init_data->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre with /R (relative) needs "
-                "preceding match in the same buffer");
+        SCLogError("pcre with /R (relative) needs "
+                   "preceding match in the same buffer");
         goto error_nofree;
     /* null is allowed when we use a sticky buffer */
     } else if (prev_pm == NULL) {

@@ -381,14 +381,14 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "packethdr", LOG_JSON_PACKETHDR, &flags);
     }
     if (((flags & (LOG_JSON_DECODE_TYPE | LOG_JSON_PACKETHDR)) == LOG_JSON_PACKETHDR) && !warn_no_packet) {
-        SCLogWarning(SC_WARN_ANOMALY_CONFIG, "Anomaly logging configured to include packet headers, however decode "
+        SCLogWarning("Anomaly logging configured to include packet headers, however decode "
                      "type logging has not been selected. Packet headers will not be logged.");
         warn_no_packet = true;
         flags &= ~LOG_JSON_PACKETHDR;
     }
 
     if (flags == 0 && !warn_no_flags) {
-        SCLogWarning(SC_WARN_ANOMALY_CONFIG, "Anomaly logging has been configured; however, no logging types "
+        SCLogWarning("Anomaly logging has been configured; however, no logging types "
                      "have been selected. Select one or more logging types.");
         warn_no_flags = true;
     }
@@ -436,8 +436,8 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
 
     if (!OutputAnomalyLoggerEnable()) {
         OutputInitResult result = { NULL, false };
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'anomaly' logger "
-                "can be enabled");
+        SCLogError("only one 'anomaly' logger "
+                   "can be enabled");
         return result;
     }
 

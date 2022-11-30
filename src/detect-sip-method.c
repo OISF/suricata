@@ -80,19 +80,19 @@ static bool DetectSipMethodValidateCallback(const Signature *s, const char **sig
         if (cd->content && cd->content_len) {
             if (cd->content[cd->content_len-1] == 0x20) {
                 *sigerror = "sip.method pattern with trailing space";
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+                SCLogError("%s", *sigerror);
                 return true;
             } else if (cd->content[0] == 0x20) {
                 *sigerror = "sip.method pattern with leading space";
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+                SCLogError("%s", *sigerror);
                 return true;
             } else if (cd->content[cd->content_len-1] == 0x09) {
                 *sigerror = "sip.method pattern with trailing tab";
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+                SCLogError("%s", *sigerror);
                 return true;
             } else if (cd->content[0] == 0x09) {
                 *sigerror = "sip.method pattern with leading tab";
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+                SCLogError("%s", *sigerror);
                 return true;
             }
         }

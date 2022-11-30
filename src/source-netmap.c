@@ -66,9 +66,8 @@
 */
 static TmEcode NoNetmapSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    FatalError(SC_ERR_NO_NETMAP,
-            "Error creating thread %s: Netmap is not enabled. "
-            "Make sure to pass --enable-netmap to configure when building.",
+    FatalError("Error creating thread %s: Netmap is not enabled. "
+               "Make sure to pass --enable-netmap to configure when building.",
             tv->name);
 }
 
@@ -185,9 +184,7 @@ int NetmapGetRSSCount(const char *ifname)
     /* open netmap device */
     int fd = open("/dev/netmap", O_RDWR);
     if (fd == -1) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                "Couldn't open netmap device, error %s",
-                strerror(errno));
+        SCLogError("Couldn't open netmap device, error %s", strerror(errno));
         goto error_open;
     }
 
@@ -200,8 +197,7 @@ int NetmapGetRSSCount(const char *ifname)
     strlcpy(hdr.nr_name, base_name, sizeof(hdr.nr_name));
 
     if (ioctl(fd, NIOCCTRL, &hdr) != 0) {
-        SCLogError(SC_ERR_NETMAP_CREATE, "Couldn't query netmap for info about %s, error %s",
-                ifname, strerror(errno));
+        SCLogError("Couldn't query netmap for info about %s, error %s", ifname, strerror(errno));
         goto error_fd;
     };
 
@@ -297,15 +293,14 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
         int if_flags = GetIfaceFlags(base_name);
         if (if_flags == -1) {
             if (verbose) {
-                SCLogError(SC_ERR_NETMAP_CREATE, "Cannot access network interface '%s' (%s)",
-                        base_name, ns->iface);
+                SCLogError("Cannot access network interface '%s' (%s)", base_name, ns->iface);
             }
             goto error;
         }
 
         /* bring iface up if it is down */
         if ((if_flags & IFF_UP) == 0) {
-            SCLogError(SC_ERR_NETMAP_CREATE, "interface '%s' (%s) is down", base_name, ns->iface);
+            SCLogError("interface '%s' (%s) is down", base_name, ns->iface);
             goto error;
         }
         /* if needed, try to set iface in promisc mode */
@@ -318,7 +313,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
     NetmapDevice *pdev = NULL, *spdev = NULL;
     pdev = SCCalloc(1, sizeof(*pdev));
     if (unlikely(pdev == NULL)) {
-        SCLogError(SC_ENOMEM, "Memory allocation failed");
+        SCLogError("Memory allocation failed");
         goto error;
     }
     SC_ATOMIC_INIT(pdev->threads_run);
@@ -456,7 +451,7 @@ retry:
         }
 
         NetmapCloseAll();
-        FatalError(SC_ERR_FATAL, "opening devname %s failed: %s", devname, strerror(errno));
+        FatalError("opening devname %s failed: %s", devname, strerror(errno));
     }
 
     /* Work around bug in libnetmap library where "cur_{r,t}x_ring" values not initialized */
@@ -506,19 +501,19 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
 
     NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)initdata;
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        SCLogError("initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     NetmapThreadVars *ntv = SCCalloc(1, sizeof(*ntv));
     if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ENOMEM, "Memory allocation failed");
+        SCLogError("Memory allocation failed");
         goto error;
     }
 
     ntv->livedev = LiveGetDevice(aconf->iface_name);
     if (ntv->livedev == NULL) {
-        SCLogError(SC_EINVAL, "Unable to find Live device");
+        SCLogError("Unable to find Live device");
         goto error_ntv;
     }
 
@@ -568,9 +563,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
                     errbuf,
                     sizeof(errbuf)) == -1)
         {
-            SCLogError(SC_ERR_NETMAP_CREATE, "Failed to compile BPF \"%s\": %s",
-                   aconf->in.bpf_filter,
-                   errbuf);
+            SCLogError("Failed to compile BPF \"%s\": %s", aconf->in.bpf_filter, errbuf);
             goto error_dst;
         }
     }
@@ -808,8 +801,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
         if (r < 0) {
             /* error */
             if (errno != EINTR)
-                SCLogError(SC_ERR_NETMAP_READ,
-                        "Error polling netmap from iface '%s': (%d" PRIu32 ") %s",
+                SCLogError("Error polling netmap from iface '%s': (%d" PRIu32 ") %s",
                         ntv->ifsrc->ifname, errno, strerror(errno));
             continue;
 
@@ -826,11 +818,11 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
 
         if (unlikely(fds.revents & POLL_EVENTS)) {
             if (fds.revents & POLLERR) {
-                SCLogError(SC_ERR_NETMAP_READ,
-                        "Error reading netmap data via polling from iface '%s': (%d" PRIu32 ") %s",
+                SCLogError("Error reading netmap data via polling from iface '%s': (%d" PRIu32
+                           ") %s",
                         ntv->ifsrc->ifname, errno, strerror(errno));
             } else if (fds.revents & POLLNVAL) {
-                SCLogError(SC_ERR_NETMAP_READ, "Invalid polling request");
+                SCLogError("Invalid polling request");
             }
             continue;
         }

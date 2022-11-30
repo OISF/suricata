@@ -67,9 +67,9 @@ void TmqhFlowRegister(void)
         } else if (strcasecmp(scheduler, "ippair") == 0) {
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowIPPair;
         } else {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry \"%s\" "
+            SCLogError("Invalid entry \"%s\" "
                        "for autofp-scheduler in conf.  Killing engine.",
-                       scheduler);
+                    scheduler);
             exit(EXIT_FAILURE);
         }
     } else {

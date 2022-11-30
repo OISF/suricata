@@ -159,9 +159,10 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     int event_id = 0;
     int r = AppLayerGetPktEventInfo(arg, &event_id);
     if (r < 0 || r > UINT8_MAX) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
+        SCLogError("app-layer-event keyword "
                    "supplied with packet based event - \"%s\" that isn't "
-                   "supported yet.", arg);
+                   "supported yet.",
+                arg);
         return NULL;
     }
 
@@ -199,19 +200,17 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
 
     if (OutdatedEvent(data->arg)) {
         if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            SCLogError("app-layer-event keyword no longer supports event \"%s\"", data->arg);
             return -1;
         } else {
-            SCLogWarning(SC_ERR_INVALID_SIGNATURE,
-                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            SCLogWarning("app-layer-event keyword no longer supports event \"%s\"", data->arg);
             return -3;
         }
     }
 
     const char *p_idx = strchr(data->arg, '.');
     if (strlen(data->arg) > MAX_ALPROTO_NAME) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
+        SCLogError("app-layer-event keyword is too long or malformed");
         return -1;
     }
     strlcpy(alproto_name, data->arg, p_idx - data->arg + 1);
@@ -221,7 +220,7 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     } else if (ipproto_bitarray[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8)) {
         ipproto = IPPROTO_UDP;
     } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "protocol %s is disabled", alproto_name);
+        SCLogError("protocol %s is disabled", alproto_name);
         return -1;
     }
 
@@ -233,19 +232,19 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     }
     if (r < 0) {
         if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
-                    "protocol \"%s\" doesn't have event \"%s\" registered",
+            SCLogError("app-layer-event keyword's "
+                       "protocol \"%s\" doesn't have event \"%s\" registered",
                     alproto_name, p_idx + 1);
             return -1;
         } else {
-            SCLogWarning(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
-                    "protocol \"%s\" doesn't have event \"%s\" registered",
+            SCLogWarning("app-layer-event keyword's "
+                         "protocol \"%s\" doesn't have event \"%s\" registered",
                     alproto_name, p_idx + 1);
             return -3;
         }
     }
     if (event_id > UINT8_MAX) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's id has invalid value");
+        SCLogWarning("app-layer-event keyword's id has invalid value");
         return -4;
     }
     data->event_id = (uint8_t)event_id;
@@ -271,7 +270,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 
     const char *p_idx = strchr(arg, '.');
     if (strlen(arg) > MAX_ALPROTO_NAME) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
+        SCLogError("app-layer-event keyword is too long or malformed");
         return NULL;
     }
     /* + 1 for trailing \0 */
@@ -282,9 +281,9 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
         if (!strcmp(alproto_name, "file")) {
             needs_detctx = true;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
+            SCLogError("app-layer-event keyword "
                        "supplied with unknown protocol \"%s\"",
-                       alproto_name);
+                    alproto_name);
             return NULL;
         }
     }
@@ -309,7 +308,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
     *event_type = 0;
 
     if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
+        SCLogError("app-layer-event keyword supplied "
                    "with no arguments.  This keyword needs an argument.");
         return NULL;
     }
@@ -455,8 +454,9 @@ static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
 {
     *event_id = SCMapEnumNameToValue(event_name, app_layer_event_test_map);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "app-layer-event's test enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "app-layer-event's test enum map table.",
+                event_name);
         /* this should be treated as fatal */
         return -1;
     }

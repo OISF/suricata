@@ -161,8 +161,7 @@ void OutputRegisterModule(const char *name, const char *conf_name,
     return;
 
 error:
-    FatalError(SC_ERR_FATAL,
-               "Fatal error encountered in OutputRegisterModule. Exiting...");
+    FatalError("Fatal error encountered in OutputRegisterModule. Exiting...");
 }
 
 /**
@@ -202,7 +201,7 @@ void OutputRegisterPacketModule(LoggerId id, const char *name,
     SCLogDebug("Packet logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -243,7 +242,7 @@ void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Packet logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -287,7 +286,7 @@ static void OutputRegisterTxModuleWrapper(LoggerId id, const char *name,
     SCLogDebug("Tx logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name,
@@ -324,7 +323,7 @@ static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_nam
     SCLogDebug("Tx logger for alproto %d \"%s\" registered.", alproto, name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -454,7 +453,7 @@ void OutputRegisterFileModule(LoggerId id, const char *name,
     SCLogDebug("File logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -494,7 +493,7 @@ void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("File logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -533,7 +532,7 @@ void OutputRegisterFiledataModule(LoggerId id, const char *name,
     SCLogDebug("Filedata logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -573,7 +572,7 @@ void OutputRegisterFiledataSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Filedata logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -613,7 +612,7 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Flow logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -654,7 +653,7 @@ void OutputRegisterStreamingModule(LoggerId id, const char *name,
     SCLogDebug("Streaming logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -695,7 +694,7 @@ void OutputRegisterStreamingSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Streaming logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -733,7 +732,7 @@ void OutputRegisterStatsModule(LoggerId id, const char *name,
     SCLogDebug("Stats logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -773,7 +772,7 @@ void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Stats logger \"%s\" registered.", name);
     return;
 error:
-    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    FatalError("Fatal error encountered. Exiting...");
 }
 
 /**
@@ -833,7 +832,7 @@ void OutputRegisterFileRotationFlag(int *flag)
 {
     OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
     if (unlikely(flag_entry == NULL)) {
-        SCLogError(SC_ENOMEM, "Failed to allocate memory to register file rotation flag");
+        SCLogError("Failed to allocate memory to register file rotation flag");
         return;
     }
     flag_entry->flag = flag;
@@ -968,7 +967,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
 
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
-        FatalError(SC_ENOMEM, "failed to alloc root logger");
+        FatalError("failed to alloc root logger");
     }
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
@@ -982,7 +981,7 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
 {
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
-        FatalError(SC_ENOMEM, "failed to alloc root logger");
+        FatalError("failed to alloc root logger");
     }
     logger->ThreadInit = reg->ThreadInit;
     logger->ThreadDeinit = reg->ThreadDeinit;

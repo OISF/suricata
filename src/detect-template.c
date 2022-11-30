@@ -133,14 +133,14 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
 
     int ret = DetectParsePcreExec(&parse_regex, templatestr, 0, 0);
     if (ret != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
+        SCLogError("parse error, ret %" PRId32 "", ret);
         return NULL;
     }
 
     pcre2len = sizeof(arg1);
     ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
@@ -148,7 +148,7 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
     pcre2len = sizeof(arg2);
     ret = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     SCLogDebug("Arg2 \"%s\"", arg2);

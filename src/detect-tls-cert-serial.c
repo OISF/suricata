@@ -161,7 +161,7 @@ static bool DetectTlsSerialValidateCallback(const Signature *s,
             *sigerror = "tls.cert_serial should not be used together "
                         "with nocase, since the rule is automatically "
                         "uppercased anyway which makes nocase redundant.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
         }
 
         /* no need to worry about this if the content is short enough */
@@ -176,7 +176,7 @@ static bool DetectTlsSerialValidateCallback(const Signature *s,
         *sigerror = "No colon delimiters ':' detected in content after "
                     "tls.cert_serial. This rule will therefore never "
                     "match.";
-        SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        SCLogWarning("rule %u: %s", s->id, *sigerror);
 
         return false;
     }

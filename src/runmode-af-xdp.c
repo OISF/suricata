@@ -108,8 +108,7 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
     }
 
     if (entry_str == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Number of threads for interface \"%s\" not specified",
-                aconf->iface);
+        SCLogError("Number of threads for interface \"%s\" not specified", aconf->iface);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -128,20 +127,18 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
     }
 
     if (StringParseInt32(&aconf->threads, 10, 0, entry_str) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                "Threads entry for interface %s contain non-numerical characters - \"%s\"",
+        SCLogError("Threads entry for interface %s contain non-numerical characters - \"%s\"",
                 aconf->iface, entry_str);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (aconf->threads < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Interface %s has a negative number of threads",
-                aconf->iface);
+        SCLogError("Interface %s has a negative number of threads", aconf->iface);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (aconf->threads > nr_queues) {
-        SCLogWarning(SC_WARN_AFXDP_CONF,
+        SCLogWarning(
                 "Selected threads greater than configured queues, using: %d thread(s)", nr_queues);
         aconf->threads = nr_queues;
     }
@@ -241,8 +238,7 @@ static void *ParseAFXDPConfig(const char *iface)
             aconf->mode |= XDP_FLAGS_SKB_MODE;
         } else if (strncasecmp(confstr, "none", 4) == 0) {
         } else {
-            SCLogWarning(SC_WARN_AFXDP_CONF,
-                    "Incorrect af-xdp xdp-mode setting, default (none) shall be applied");
+            SCLogWarning("Incorrect af-xdp xdp-mode setting, default (none) shall be applied");
         }
     }
 
@@ -254,8 +250,7 @@ static void *ParseAFXDPConfig(const char *iface)
             aconf->bind_flags |= XDP_COPY;
         } else if (strncasecmp(confstr, "none", 4) == 0) {
         } else {
-            SCLogWarning(SC_WARN_AFXDP_CONF,
-                    "Incorrect af-xdp copy-mode setting, default (none) shall be applied");
+            SCLogWarning("Incorrect af-xdp copy-mode setting, default (none) shall be applied");
         }
     }
 
@@ -304,8 +299,7 @@ static void *ParseAFXDPConfig(const char *iface)
 finalize:
     if (LiveGetOffload() == 0) {
         if (GetIfaceOffloading(iface, 0, 1) == 1) {
-            SCLogWarning(SC_ERR_NIC_OFFLOADING,
-                    "Using AF_XDP with offloading activated leads to capture problems");
+            SCLogWarning("Using AF_XDP with offloading activated leads to capture problems");
         }
     } else {
         DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
@@ -317,7 +311,7 @@ finalize:
 static int AFXDPConfigGetThreadsCount(void *conf)
 {
     if (conf == NULL)
-        FatalError(SC_ERR_AFXDP_CONF, "Configuration file is NULL");
+        FatalError("Configuration file is NULL");
 
     AFXDPIfaceConfig *afxdp_conf = (AFXDPIfaceConfig *)conf;
     return afxdp_conf->threads;
@@ -342,13 +336,13 @@ int RunModeIdsAFXDPSingle(void)
     (void)ConfGet("af-xdp.live-interface", &live_dev);
 
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
-        FatalError(SC_ERR_FATAL, "Unable to init AF_XDP queue protection.");
+        FatalError("Unable to init AF_XDP queue protection.");
     }
 
     ret = RunModeSetLiveCaptureSingle(ParseAFXDPConfig, AFXDPConfigGetThreadsCount, "ReceiveAFXDP",
             "DecodeAFXDP", thread_name_single, live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsAFXDPSingle initialised");
@@ -377,13 +371,13 @@ int RunModeIdsAFXDPWorkers(void)
     (void)ConfGet("af-xdp.live-interface", &live_dev);
 
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
-        FatalError(SC_ERR_FATAL, "Unable to init AF_XDP queue protection.");
+        FatalError("Unable to init AF_XDP queue protection.");
     }
 
     ret = RunModeSetLiveCaptureWorkers(ParseAFXDPConfig, AFXDPConfigGetThreadsCount, "ReceiveAFXDP",
             "DecodeAFXDP", thread_name_workers, live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsAFXDPWorkers initialised");
