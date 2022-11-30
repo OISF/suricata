@@ -178,14 +178,14 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
     for (i = 0; i < (ret - 1); i++) {
         res = SC_Pcre2SubstringGet(parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed %d", res);
+            SCLogError("pcre2_substring_get_bynumber failed %d", res);
             goto error;
         }
 
@@ -193,7 +193,7 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
     }
 
     if (args[1] == NULL) {
-        SCLogError(SC_EINVAL, "invalid value");
+        SCLogError("invalid value");
         goto error;
     }
 

@@ -301,7 +301,7 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
     if (OutputFlowLogThreadInit(tv, NULL, &fw->output_thread_flow) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+        SCLogError("initializing flow log API for thread failed");
         FlowWorkerThreadDeinit(tv, fw);
         return TM_ECODE_FAILED;
     }

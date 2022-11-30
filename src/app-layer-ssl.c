@@ -2781,8 +2781,9 @@ static int SSLStateGetEventInfo(const char *event_name,
 {
     *event_id = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "ssl's enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "ssl's enum map table.",
+                event_name);
         /* yes this is fatal */
         return -1;
     }
@@ -2797,8 +2798,9 @@ static int SSLStateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, tls_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
-                   "ssl's enum map table.",  event_id);
+        SCLogError("event \"%d\" not present in "
+                   "ssl's enum map table.",
+                event_id);
         /* yes this is fatal */
         return -1;
     }
@@ -3068,8 +3070,7 @@ void RegisterSSLParsers(void)
 
         if (g_disable_hashing) {
             if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
-                SCLogWarning(
-                        SC_WARN_NO_JA3_SUPPORT, "MD5 calculation has been disabled, disabling JA3");
+                SCLogWarning("MD5 calculation has been disabled, disabling JA3");
                 SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
             }
         } else {

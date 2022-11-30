@@ -302,16 +302,16 @@ static void SMTPConfigure(void) {
                 /* new_val_len: scheme value from config e.g. 'http' + '://' + null terminator */
                 size_t new_val_len = strlen(scheme->val) + 3 + 1;
                 if (new_val_len > UINT16_MAX) {
-                    FatalError(SC_ERR_FATAL, "Too long value for extract-urls-schemes");
+                    FatalError("Too long value for extract-urls-schemes");
                 }
                 char *new_val = SCMalloc(new_val_len);
                 if (unlikely(new_val == NULL)) {
-                    FatalError(SC_ERR_FATAL, "SCMalloc failure.");
+                    FatalError("SCMalloc failure.");
                 }
 
                 int r = snprintf(new_val, new_val_len, "%s://", scheme->val);
                 if (r < 0 || r >= (int)new_val_len) {
-                    FatalError(SC_ERR_FATAL, "snprintf failure.");
+                    FatalError("snprintf failure.");
                 }
 
                 /* replace existing scheme value stored on the linked list with new value including
@@ -326,20 +326,20 @@ static void SMTPConfigure(void) {
              * extract-urls-schemes wasn't found in the config */
             ConfNode *seq_node = ConfNodeNew();
             if (unlikely(seq_node == NULL)) {
-                FatalError(SC_ERR_FATAL, "ConfNodeNew failure.");
+                FatalError("ConfNodeNew failure.");
             }
             ConfNode *scheme = ConfNodeNew();
             if (unlikely(scheme == NULL)) {
-                FatalError(SC_ERR_FATAL, "ConfNodeNew failure.");
+                FatalError("ConfNodeNew failure.");
             }
 
             seq_node->name = SCStrdup("extract-urls-schemes");
             if (unlikely(seq_node->name == NULL)) {
-                FatalError(SC_ERR_FATAL, "SCStrdup failure.");
+                FatalError("SCStrdup failure.");
             }
             scheme->val = SCStrdup("http://");
             if (unlikely(scheme->val == NULL)) {
-                FatalError(SC_ERR_FATAL, "SCStrdup failure.");
+                FatalError("SCStrdup failure.");
             }
 
             seq_node->is_seq = 1;
@@ -374,8 +374,7 @@ static void SMTPConfigure(void) {
         TAILQ_FOREACH(p, &t->head, next) {
             if (strcasecmp("content-limit", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_limit) < 0) {
-                    SCLogWarning(SC_ERR_SIZE_PARSE,
-                            "parsing content-limit %s failed", p->val);
+                    SCLogWarning("parsing content-limit %s failed", p->val);
                     content_limit = FILEDATA_CONTENT_LIMIT;
                 }
                 smtp_config.content_limit = content_limit;
@@ -383,8 +382,7 @@ static void SMTPConfigure(void) {
 
             if (strcasecmp("content-inspect-min-size", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_inspect_min_size) < 0) {
-                    SCLogWarning(SC_ERR_SIZE_PARSE,
-                            "parsing content-inspect-min-size %s failed", p->val);
+                    SCLogWarning("parsing content-inspect-min-size %s failed", p->val);
                     content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
                 }
                 smtp_config.content_inspect_min_size = content_inspect_min_size;
@@ -392,8 +390,7 @@ static void SMTPConfigure(void) {
 
             if (strcasecmp("content-inspect-window", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_inspect_window) < 0) {
-                    SCLogWarning(SC_ERR_SIZE_PARSE,
-                            "parsing content-inspect-window %s failed", p->val);
+                    SCLogWarning("parsing content-inspect-window %s failed", p->val);
                     content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
                 }
                 smtp_config.content_inspect_window = content_inspect_window;
@@ -408,10 +405,9 @@ static void SMTPConfigure(void) {
         smtp_config.raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE;
     }
     if (smtp_config.raw_extraction && smtp_config.decode_mime) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR,
-                "\"decode-mime\" and \"raw-extraction\" "
-                "options can't be enabled at the same time, "
-                "disabling raw extraction");
+        SCLogError("\"decode-mime\" and \"raw-extraction\" "
+                   "options can't be enabled at the same time, "
+                   "disabling raw extraction");
         smtp_config.raw_extraction = 0;
     }
 
@@ -1587,8 +1583,9 @@ static int SMTPStateGetEventInfo(const char *event_name,
 {
     *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "smtp's enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "smtp's enum map table.",
+                event_name);
         /* yes this is fatal */
         return -1;
     }
@@ -1603,8 +1600,9 @@ static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, smtp_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
-                   "smtp's enum map table.",  event_id);
+        SCLogError("event \"%d\" not present in "
+                   "smtp's enum map table.",
+                event_id);
         /* yes this is fatal */
         return -1;
     }

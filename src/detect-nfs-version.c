@@ -146,7 +146,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     DetectU32Data *dd = DetectNfsVersionParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         return -1;
     }
 

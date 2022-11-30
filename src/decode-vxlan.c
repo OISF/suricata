@@ -86,8 +86,7 @@ static void DecodeVXLANConfigPorts(const char *pstr)
     g_vxlan_ports_idx = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
         if (g_vxlan_ports_idx >= VXLAN_MAX_PORTS) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "more than %d VXLAN ports defined",
-                    VXLAN_MAX_PORTS);
+            SCLogWarning("more than %d VXLAN ports defined", VXLAN_MAX_PORTS);
             break;
         }
         g_vxlan_ports[g_vxlan_ports_idx++] = (int)p->port;

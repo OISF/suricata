@@ -33,11 +33,11 @@
                  etc.
  * \param value Default value to be printed.
  */
-#define WarnInvalidConfEntry(param_name, format, value) do {            \
-        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,                    \
-                     "Invalid conf entry found for "                    \
-                     "\"%s\".  Using default value of \"" format "\".", \
-                     param_name, value);                                \
+#define WarnInvalidConfEntry(param_name, format, value)                                            \
+    do {                                                                                           \
+        SCLogWarning("Invalid conf entry found for "                                               \
+                     "\"%s\".  Using default value of \"" format "\".",                            \
+                param_name, value);                                                                \
     } while (0)
 
 /* size string parsing API */

@@ -162,7 +162,7 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -174,7 +174,7 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
     }
 
     if(found == 0) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown secresult value %s", rawstr);
+        SCLogError("unknown secresult value %s", rawstr);
         goto error;
     }
 

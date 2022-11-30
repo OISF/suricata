@@ -243,7 +243,7 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     uint16_t patlen = fp_cd->content_len;
     uint8_t *pat = SCMalloc(fp_cd->content_len + 1);
     if (unlikely(pat == NULL)) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memcpy(pat, fp_cd->content, fp_cd->content_len);
     pat[fp_cd->content_len] = '\0';
@@ -303,8 +303,7 @@ int SetupFPAnalyzer(void)
 
     fp_engine_analysis_FD = fopen(log_path, "w");
     if (fp_engine_analysis_FD == NULL) {
-        SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path,
-                   strerror(errno));
+        SCLogError("failed to open %s: %s", log_path, strerror(errno));
         return 0;
     }
 
@@ -352,7 +351,7 @@ int SetupRuleAnalyzer(void)
             snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, "rules_analysis.txt");
             rule_engine_analysis_FD = fopen(log_path, "w");
             if (rule_engine_analysis_FD == NULL) {
-                SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path, strerror(errno));
+                SCLogError("failed to open %s: %s", log_path, strerror(errno));
                 return 0;
             }
 
@@ -444,8 +443,8 @@ int PerCentEncodingSetup ()
     if (percent_re == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %d: %s",
-                DETECT_PERCENT_ENCODING_REGEX, (int)eo, errbuffer);
+        SCLogError("Compile of \"%s\" failed at offset %d: %s", DETECT_PERCENT_ENCODING_REGEX,
+                (int)eo, errbuffer);
         return 0;
     }
 
@@ -469,7 +468,7 @@ static int PerCentEncodingMatch(uint8_t *content, uint16_t content_len)
         return 0;
     }
     else if (ret < -1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Error parsing content - %s; error code is %d", content, ret);
+        SCLogError("Error parsing content - %s; error code is %d", content, ret);
         return -1;
     }
     return ret;
@@ -492,7 +491,7 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     uint16_t patlen = fp_cd->content_len;
     uint8_t *pat = SCMalloc(fp_cd->content_len + 1);
     if (unlikely(pat == NULL)) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memcpy(pat, fp_cd->content, fp_cd->content_len);
     pat[fp_cd->content_len] = '\0';
@@ -1081,9 +1080,9 @@ static void EngineAnalysisItemsInit(void)
         analyzer_item->item_id = (uint16_t)item_id;
         if (analyzer_item->item_id == -1) {
             /* Mismatch between the analyzer_items array and what's supported */
-            FatalError(SC_ERR_INITIALIZATION,
-                       "unable to initialize engine-analysis table: detect buffer \"%s\" not recognized.",
-                       analyzer_item->item_name);
+            FatalError("unable to initialize engine-analysis table: detect buffer \"%s\" not "
+                       "recognized.",
+                    analyzer_item->item_name);
         }
         analyzer_item->item_seen = false;
 

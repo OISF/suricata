@@ -85,9 +85,8 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
 
 err:
     if (log_err)
-        SCLogWarning(SC_ERR_SOCKET,
-            "Error connecting to socket \"%s\": %s (will keep trying)",
-            path, strerror(errno));
+        SCLogWarning(
+                "Error connecting to socket \"%s\": %s (will keep trying)", path, strerror(errno));
 
     if (s >= 0)
         close(s);
@@ -103,9 +102,8 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
 {
     int disconnected = 0;
     if (log_ctx->fp) {
-        SCLogWarning(SC_ERR_SOCKET,
-            "Write error on Unix socket \"%s\": %s; reconnecting...",
-            log_ctx->filename, strerror(errno));
+        SCLogWarning("Write error on Unix socket \"%s\": %s; reconnecting...", log_ctx->filename,
+                strerror(errno));
         fclose(log_ctx->fp);
         log_ctx->fp = NULL;
         log_ctx->reconn_timer = 0;
@@ -129,8 +127,7 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
         /* Connected at last (or reconnected) */
         SCLogNotice("Reconnected socket \"%s\"", log_ctx->filename);
     } else if (disconnected) {
-        SCLogWarning(SC_ERR_SOCKET, "Reconnect failed: %s (will keep trying)",
-            strerror(errno));
+        SCLogWarning("Reconnect failed: %s (will keep trying)", strerror(errno));
     }
 
     return log_ctx->fp ? 1 : 0;
@@ -221,7 +218,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
         if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
             /* Only the first error is logged */
             if (!log_ctx->output_errors) {
-                SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                SCLogError("%s error while writing to %s",
                         SCFerrorUnlocked(log_ctx->fp) ? strerror(errno) : "unknown error",
                         log_ctx->filename);
             }
@@ -270,7 +267,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
             if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
                 /* Only the first error is logged */
                 if (!log_ctx->output_errors) {
-                    SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                    SCLogError("%s error while writing to %s",
                             ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
                             log_ctx->filename);
                 }
@@ -314,8 +311,8 @@ static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
         fclose(log_ctx->fp);
 
     if (log_ctx->output_errors) {
-        SCLogError(SC_ERR_LOG_OUTPUT, "There were %" PRIu64 " output errors to %s",
-                log_ctx->output_errors, log_ctx->filename);
+        SCLogError("There were %" PRIu64 " output errors to %s", log_ctx->output_errors,
+                log_ctx->filename);
     }
 }
 
@@ -331,20 +328,20 @@ bool SCLogOpenThreadedFile(
 {
         parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
         if (!parent_ctx->threads) {
-            SCLogError(SC_ENOMEM, "Unable to allocate threads container");
+            SCLogError("Unable to allocate threads container");
             return false;
         }
 
         parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
         if (!parent_ctx->threads->append) {
-            SCLogError(SC_ENOMEM, "Unable to allocate threads append setting");
+            SCLogError("Unable to allocate threads append setting");
             goto error_exit;
         }
 
         parent_ctx->threads->slot_count = slot_count;
         parent_ctx->threads->lf_slots = SCCalloc(slot_count, sizeof(LogFileCtx *));
         if (!parent_ctx->threads->lf_slots) {
-            SCLogError(SC_ENOMEM, "Unable to allocate thread slots");
+            SCLogError("Unable to allocate thread slots");
             goto error_exit;
         }
         SCLogDebug("Allocated %d file context pointers for threaded array",
@@ -401,8 +398,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
     }
 
     if (ret == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
-                   filename, strerror(errno));
+        SCLogError("Error opening file: \"%s\": %s", filename, strerror(errno));
     } else {
         if (mode != 0) {
 #ifdef OS_WIN32
@@ -411,8 +407,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
             int r = fchmod(fileno(ret), (mode_t)mode);
 #endif
             if (r < 0) {
-                SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
-                             filename, mode, strerror(errno));
+                SCLogWarning("Could not chmod %s to %o: %s", filename, mode, strerror(errno));
             }
         }
     }
@@ -441,15 +436,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     // Arg check
     if (conf == NULL || log_ctx == NULL || default_filename == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "SCConfLogOpenGeneric(conf %p, ctx %p, default %p) "
+        SCLogError("SCConfLogOpenGeneric(conf %p, ctx %p, default %p) "
                    "missing an argument",
-                   conf, log_ctx, default_filename);
+                conf, log_ctx, default_filename);
         return -1;
     }
     if (log_ctx->fp != NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "SCConfLogOpenGeneric: previously initialized Log CTX "
+        SCLogError("SCConfLogOpenGeneric: previously initialized Log CTX "
                    "encountered");
         return -1;
     }
@@ -489,8 +482,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
         else {
             log_ctx->rotate_interval = SCParseTimeSizeString(rotate_int);
             if (log_ctx->rotate_interval == 0) {
-                           FatalError(SC_ERR_FATAL,
-                                      "invalid rotate-interval value");
+                FatalError("invalid rotate-interval value");
             }
             log_ctx->rotate_time = now + log_ctx->rotate_interval;
         }
@@ -540,7 +532,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 #ifdef BUILD_WITH_UNIXSOCKET
     if (log_ctx->threaded) {
         if (strcasecmp(filetype, "unix_stream") == 0 || strcasecmp(filetype, "unix_dgram") == 0) {
-            FatalError(SC_ERR_FATAL, "Socket file types do not support threaded output");
+            FatalError("Socket file types do not support threaded output");
         }
     }
 #endif
@@ -579,14 +571,14 @@ SCConfLogOpenGeneric(ConfNode *conf,
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
     } else {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+        SCLogError("Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
                    "or \"unix_dgram\"",
-                   conf->name);
+                conf->name);
     }
     log_ctx->filename = SCStrdup(log_path);
     if (unlikely(log_ctx->filename == NULL)) {
-        SCLogError(SC_ENOMEM, "Failed to allocate memory for filename");
+        SCLogError("Failed to allocate memory for filename");
         return -1;
     }
 
@@ -618,8 +610,7 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     }
 
     if (log_ctx->filename == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-            "Can't re-open LogFileCtx without a filename.");
+        SCLogWarning("Can't re-open LogFileCtx without a filename.");
         return -1;
     }
 
@@ -695,7 +686,7 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
 
     if (new_array == NULL) {
         SCMutexUnlock(&parent_ctx->threads->mutex);
-        SCLogError(SC_ENOMEM, "Unable to increase file context array size to %d", new_size);
+        SCLogError("Unable to increase file context array size to %d", new_size);
         return NULL;
     }
 
@@ -727,9 +718,8 @@ static bool LogFileThreadedName(
 
     const char *base = SCBasename(original_name);
     if (!base) {
-        FatalError(SC_ERR_FATAL,
-                "Invalid filename for threaded mode \"%s\"; "
-                "no basename found.",
+        FatalError("Invalid filename for threaded mode \"%s\"; "
+                   "no basename found.",
                 original_name);
     }
 
@@ -752,9 +742,8 @@ static bool LogFileThreadedName(
         if (strlen(tname) && strlen(ext)) {
             snprintf(threaded_name, len, "%s.%u.%s", tname, unique_id, ext);
         } else {
-            FatalError(SC_ERR_FATAL,
-                    "Invalid filename for threaded mode \"%s\"; "
-                    "filenames must include an extension, e.g: \"name.ext\"",
+            FatalError("Invalid filename for threaded mode \"%s\"; "
+                       "filenames must include an extension, e.g: \"name.ext\"",
                     original_name);
         }
         SCFree(tname);
@@ -774,7 +763,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 {
     LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
     if (!thread) {
-        SCLogError(SC_ENOMEM, "Unable to allocate thread file context slot %d", thread_id);
+        SCLogError("Unable to allocate thread file context slot %d", thread_id);
         return false;
     }
 
@@ -782,7 +771,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     if (parent_ctx->type == LOGFILE_TYPE_FILE) {
         char fname[LOGFILE_NAME_MAX];
         if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
-            SCLogError(sc_errno, "Unable to create threaded filename for log");
+            SCLogError("Unable to create threaded filename for log");
             goto error;
         }
         SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
@@ -792,7 +781,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         }
         thread->filename = SCStrdup(fname);
         if (!thread->filename) {
-            SCLogError(SC_ENOMEM, "Unable to duplicate filename for context slot %d", thread_id);
+            SCLogError("Unable to duplicate filename for context slot %d", thread_id);
             goto error;
         }
         thread->is_regular = true;

@@ -62,8 +62,9 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
 	long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_CONF);
     if (nprocs < 1) {
-        SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
-                   "configured (%s)", strerror(errno));
+        SCLogError("Couldn't retrieve the number of cpus "
+                   "configured (%s)",
+                strerror(errno));
         return 0;
     }
 
@@ -80,21 +81,20 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
     const char* envvar = getenv("NUMBER_OF_PROCESSORS");
     if (envvar != NULL) {
         if (StringParseInt64(&nprocs, 10, 0, envvar) < 0) {
-            SCLogWarning(SC_EINVAL,
-                    "Invalid value for number of "
-                    "processors: %s",
+            SCLogWarning("Invalid value for number of "
+                         "processors: %s",
                     envvar);
             return 0;
         }
     }
     if (nprocs < 1) {
-        SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
+        SCLogError("Couldn't retrieve the number of cpus "
                    "configured from the NUMBER_OF_PROCESSORS environment variable");
         return 0;
     }
     return (uint16_t)nprocs;
 #else
-    SCLogError(SC_ERR_SYSCONF, "Couldn't retrieve the number of cpus "
+    SCLogError("Couldn't retrieve the number of cpus "
                "configured, sysconf macro unavailable");
     return 0;
 #endif
@@ -111,8 +111,9 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
     long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_ONLN);
     if (nprocs < 1) {
-        SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
-                   "online (%s)", strerror(errno));
+        SCLogError("Couldn't retrieve the number of cpus "
+                   "online (%s)",
+                strerror(errno));
         return 0;
     }
 
@@ -127,7 +128,7 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
 #elif OS_WIN32
 	return UtilCpuGetNumProcessorsConfigured();
 #else
-    SCLogError(SC_ERR_SYSCONF, "Couldn't retrieve the number of cpus online, "
+    SCLogError("Couldn't retrieve the number of cpus online, "
                "synconf macro unavailable");
     return 0;
 #endif
@@ -146,8 +147,9 @@ uint16_t UtilCpuGetNumProcessorsMax(void)
     long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_MAX);
     if (nprocs < 1) {
-        SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the maximum number of cpus "
-                   "allowed by the system (%s)", strerror(errno));
+        SCLogError("Couldn't retrieve the maximum number of cpus "
+                   "allowed by the system (%s)",
+                strerror(errno));
         return 0;
     }
 
@@ -159,7 +161,7 @@ uint16_t UtilCpuGetNumProcessorsMax(void)
 
     return (uint16_t)nprocs;
 #else
-    SCLogError(SC_ERR_SYSCONF, "Couldn't retrieve the maximum number of cpus allowed by "
+    SCLogError("Couldn't retrieve the maximum number of cpus allowed by "
                "the system, synconf macro unavailable");
     return 0;
 #endif

@@ -173,7 +173,7 @@ static bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char *
                 "inspecting request headers or flow:to_client for "
                 "inspecting response headers.";
 
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+        SCLogError("%s", *sigerror);
         SCReturnInt(false);
     }
     return true;

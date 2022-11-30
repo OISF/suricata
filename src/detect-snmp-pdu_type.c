@@ -129,14 +129,14 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
+        SCLogError("Parse error %s", rawstr);
         goto error;
     }
 
     pcre2len = sizeof(value1);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -147,7 +147,7 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
     /* set the value */
     dd->pdu_type = strtoul(value1, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
+        SCLogError("invalid character as arg "
                    "to snmp.pdu_type keyword");
         goto error;
     }
@@ -182,7 +182,7 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     dd = DetectSNMPPduTypeParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 

@@ -197,9 +197,9 @@ void IPPairInitConfig(bool quiet)
     if ((ConfGet("ippair.memcap", &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &ippair_memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ippair.memcap "
+            SCLogError("Error parsing ippair.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(ippair_config.memcap, ippair_memcap);
@@ -229,18 +229,17 @@ void IPPairInitConfig(bool quiet)
     /* alloc hash memory */
     uint64_t hash_size = ippair_config.hash_size * sizeof(IPPairHashRow);
     if (!(IPPAIR_CHECK_MEMCAP(hash_size))) {
-        SCLogError(SC_ERR_IPPAIR_INIT, "allocating ippair hash failed: "
-                "max ippair memcap is smaller than projected hash size. "
-                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
-                "total hash size by multiplying \"ippair.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", SC_ATOMIC_GET(ippair_config.memcap), hash_size,
-                (uintmax_t)sizeof(IPPairHashRow));
+        SCLogError("allocating ippair hash failed: "
+                   "max ippair memcap is smaller than projected hash size. "
+                   "Memcap: %" PRIu64 ", Hash table size %" PRIu64 ". Calculate "
+                   "total hash size by multiplying \"ippair.hash-size\" with %" PRIuMAX ", "
+                   "which is the hash bucket size.",
+                SC_ATOMIC_GET(ippair_config.memcap), hash_size, (uintmax_t)sizeof(IPPairHashRow));
         exit(EXIT_FAILURE);
     }
     ippair_hash = SCMallocAligned(ippair_config.hash_size * sizeof(IPPairHashRow), CLS);
     if (unlikely(ippair_hash == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in IPPairInitConfig. Exiting...");
+        FatalError("Fatal error encountered in IPPairInitConfig. Exiting...");
     }
     memset(ippair_hash, 0, ippair_config.hash_size * sizeof(IPPairHashRow));
 
@@ -260,16 +259,17 @@ void IPPairInitConfig(bool quiet)
     /* pre allocate ippairs */
     for (i = 0; i < ippair_config.prealloc; i++) {
         if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
-            SCLogError(SC_ERR_IPPAIR_INIT, "preallocating ippairs failed: "
-                    "max ippair memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", SC_ATOMIC_GET(ippair_config.memcap),
+            SCLogError("preallocating ippairs failed: "
+                       "max ippair memcap reached. Memcap %" PRIu64 ", "
+                       "Memuse %" PRIu64 ".",
+                    SC_ATOMIC_GET(ippair_config.memcap),
                     ((uint64_t)SC_ATOMIC_GET(ippair_memuse) + g_ippair_size));
             exit(EXIT_FAILURE);
         }
 
         IPPair *h = IPPairAlloc();
         if (h == NULL) {
-            SCLogError(SC_ERR_IPPAIR_INIT, "preallocating ippair failed: %s", strerror(errno));
+            SCLogError("preallocating ippair failed: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
         IPPairEnqueue(&ippair_spare_q,h);

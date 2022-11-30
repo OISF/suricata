@@ -57,7 +57,7 @@ THashDataQueue *THashDataQueueNew(void)
 {
     THashDataQueue *q = (THashDataQueue *)SCMalloc(sizeof(THashDataQueue));
     if (q == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in THashDataQueueNew. Exiting...");
+        SCLogError("Fatal error encountered in THashDataQueueNew. Exiting...");
         exit(EXIT_SUCCESS);
     }
     q = THashDataQueueInit(q);
@@ -222,9 +222,9 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     if ((ConfGet(varname, &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &ctx->config.memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing %s "
+            SCLogError("Error parsing %s "
                        "from conf file - %s.  Killing engine",
-                       varname, conf_val);
+                    varname, conf_val);
             return -1;
         }
     }
@@ -249,17 +249,17 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     /* alloc hash memory */
     uint64_t hash_size = ctx->config.hash_size * sizeof(THashHashRow);
     if (!(THASH_CHECK_MEMCAP(ctx, hash_size))) {
-        SCLogError(SC_ERR_THASH_INIT, "allocating hash failed: "
-                "max hash memcap is smaller than projected hash size. "
-                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
-                "total hash size by multiplying \"hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", ctx->config.memcap, hash_size,
-                (uintmax_t)sizeof(THashHashRow));
+        SCLogError("allocating hash failed: "
+                   "max hash memcap is smaller than projected hash size. "
+                   "Memcap: %" PRIu64 ", Hash table size %" PRIu64 ". Calculate "
+                   "total hash size by multiplying \"hash-size\" with %" PRIuMAX ", "
+                   "which is the hash bucket size.",
+                ctx->config.memcap, hash_size, (uintmax_t)sizeof(THashHashRow));
         return -1;
     }
     ctx->array = SCMallocAligned(ctx->config.hash_size * sizeof(THashHashRow), CLS);
     if (unlikely(ctx->array == NULL)) {
-        SCLogError(SC_ERR_THASH_INIT, "Fatal error encountered in THashInitConfig. Exiting...");
+        SCLogError("Fatal error encountered in THashInitConfig. Exiting...");
         return -1;
     }
     memset(ctx->array, 0, ctx->config.hash_size * sizeof(THashHashRow));
@@ -273,16 +273,17 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     /* pre allocate prealloc */
     for (i = 0; i < ctx->config.prealloc; i++) {
         if (!(THASH_CHECK_MEMCAP(ctx, THASH_DATA_SIZE(ctx)))) {
-            SCLogError(SC_ERR_THASH_INIT, "preallocating data failed: "
-                    "max thash memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", ctx->config.memcap,
+            SCLogError("preallocating data failed: "
+                       "max thash memcap reached. Memcap %" PRIu64 ", "
+                       "Memuse %" PRIu64 ".",
+                    ctx->config.memcap,
                     ((uint64_t)SC_ATOMIC_GET(ctx->memuse) + THASH_DATA_SIZE(ctx)));
             return -1;
         }
 
         THashData *h = THashDataAlloc(ctx);
         if (h == NULL) {
-            SCLogError(SC_ERR_THASH_INIT, "preallocating data failed: %s", strerror(errno));
+            SCLogError("preallocating data failed: %s", strerror(errno));
             return -1;
         }
         THashDataEnqueue(&ctx->spare_q,h);

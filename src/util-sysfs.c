@@ -34,8 +34,7 @@ TmEcode SysFsWriteValue(const char *path, int64_t value)
     char sentence[64];
 
     if (!path || strlen(path) > SYSFS_MAX_FILENAME_SIZE) {
-        SCLogWarning(SC_ERR_ARG_LEN_LONG, "File path too long, max allowed: %d",
-                SYSFS_MAX_FILENAME_SIZE);
+        SCLogWarning("File path too long, max allowed: %d", SYSFS_MAX_FILENAME_SIZE);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -44,7 +43,7 @@ TmEcode SysFsWriteValue(const char *path, int64_t value)
     /* File must be present and process have correct capabilities to open */
     int fd = open(fname, O_WRONLY);
     if (fd < 0) {
-        SCLogError(SC_ERR_FOPEN, "Could not open file: %s", fname);
+        SCLogError("Could not open file: %s", fname);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -52,7 +51,7 @@ TmEcode SysFsWriteValue(const char *path, int64_t value)
     ssize_t len = strlen(sentence);
 
     if (write(fd, sentence, len) != len) {
-        SCLogError(SC_ERR_FWRITE, "Could not write to file: %s", fname);
+        SCLogError("Could not write to file: %s", fname);
         close(fd);
         SCReturnInt(TM_ECODE_FAILED);
     }

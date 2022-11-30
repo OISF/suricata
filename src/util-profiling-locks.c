@@ -163,8 +163,7 @@ static void SCProfilingListLocks(void)
         fp = fopen(profiling_locks_file_name, profiling_locks_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
-                    profiling_locks_file_name, strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_locks_file_name, strerror(errno));
             return;
         }
     } else {

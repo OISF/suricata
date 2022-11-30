@@ -201,13 +201,13 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 {
     DetectByteMathData *bmd;
     if ((bmd = ScByteMathParse(arg)) == NULL) {
-        SCLogError(SC_ERR_PCRE_PARSE, "invalid bytemath values");
+        SCLogError("invalid bytemath values");
         return NULL;
     }
 
     if (bmd->rvalue_str) {
         if (rvalue == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math supplied with "
+            SCLogError("byte_math supplied with "
                        "var name for rvalue. \"rvalue\" argument supplied to "
                        "this function must be non-NULL");
             goto error;
@@ -269,7 +269,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
             if (!prev_pm) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "relative specified without "
+                SCLogError("relative specified without "
                            "previous pattern match");
                 goto error;
             }
@@ -321,7 +321,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
         if ((data->flags & DETECT_BYTEMATH_FLAG_STRING) || (data->base == BaseDec) ||
                 (data->base == BaseHex) || (data->base == BaseOct)) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+            SCLogError("Invalid option. "
                        "A bytemath keyword with dce holds other invalid modifiers.");
             goto error;
         }
@@ -330,8 +330,9 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (rvalue != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(rvalue, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
-                       "seen in byte_math - %s\n", rvalue);
+            SCLogError("unknown byte_ keyword var "
+                       "seen in byte_math - %s\n",
+                    rvalue);
             goto error;
         }
         data->rvalue = index;

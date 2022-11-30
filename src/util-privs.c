@@ -86,7 +86,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
             CAPNG_CLEAR_BOUNDING) < 0)
     {
-        FatalError(SC_ERR_FATAL, "capng_change_id for main thread"
+        FatalError("capng_change_id for main thread"
                    " failed");
     }
 
@@ -156,17 +156,17 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
     /* Get the user ID */
     if (isdigit((unsigned char)user_name[0]) != 0) {
         if (ByteExtractStringUint32(&userid, 10, 0, (const char *)user_name) < 0) {
-            FatalError(SC_ERR_UID_FAILED, "invalid user id value: '%s'", user_name);
+            FatalError("invalid user id value: '%s'", user_name);
         }
         pw = getpwuid(userid);
        if (pw == NULL) {
-            FatalError(SC_ERR_FATAL, "unable to get the user ID, "
-                       "check if user exist!!");
+           FatalError("unable to get the user ID, "
+                      "check if user exist!!");
         }
     } else {
         pw = getpwnam(user_name);
         if (pw == NULL) {
-            FatalError(SC_ERR_FATAL, "unable to get the user ID, "
+            FatalError("unable to get the user ID, "
                        "check if user exist!!");
         }
         userid = pw->pw_uid;
@@ -178,12 +178,12 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
 
         if (isdigit((unsigned char)group_name[0]) != 0) {
             if (ByteExtractStringUint32(&groupid, 10, 0, (const char *)group_name) < 0) {
-                FatalError(SC_ERR_GID_FAILED, "invalid group id: '%s'", group_name);
+                FatalError("invalid group id: '%s'", group_name);
             }
         } else {
             gp = getgrnam(group_name);
             if (gp == NULL) {
-                FatalError(SC_ERR_FATAL, "unable to get the group"
+                FatalError("unable to get the group"
                            " ID, check if group exist!!");
             }
             groupid = gp->gr_gid;
@@ -219,12 +219,12 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
     /* Get the group ID */
     if (isdigit((unsigned char)group_name[0]) != 0) {
         if (ByteExtractStringUint32(&grpid, 10, 0, (const char *)group_name) < 0) {
-            FatalError(SC_ERR_GID_FAILED, "invalid group id: '%s'", group_name);
+            FatalError("invalid group id: '%s'", group_name);
         }
     } else {
         gp = getgrnam(group_name);
         if (gp == NULL) {
-            FatalError(SC_ERR_FATAL, "unable to get the group ID,"
+            FatalError("unable to get the group ID,"
                        " check if group exist!!");
         }
         grpid = gp->gr_gid;
@@ -244,8 +244,9 @@ int SCPledge(void)
     int ret = pledge("stdio rpath wpath cpath fattr unix dns bpf", NULL);
 
     if (ret != 0) {
-        SCLogError(SC_ERR_PLEDGE_FAILED, "unable to pledge,"
-                " check permissions!! ret=%i errno=%i", ret, errno);
+        SCLogError("unable to pledge,"
+                   " check permissions!! ret=%i errno=%i",
+                ret, errno);
         exit(EXIT_FAILURE);
     }
 

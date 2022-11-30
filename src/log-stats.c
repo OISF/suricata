@@ -214,7 +214,7 @@ static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
     OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
-        SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError("couldn't create new file_ctx");
         return result;
     }
 
@@ -242,8 +242,7 @@ static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
                 (threads != NULL && ConfValIsFalse(threads))) {
             LogFileFreeCtx(file_ctx);
             SCFree(statslog_ctx);
-            SCLogError(SC_ERR_STATS_LOG_NEGATED,
-                    "Cannot disable both totals and threads in stats logging");
+            SCLogError("Cannot disable both totals and threads in stats logging");
             return result;
         }
 

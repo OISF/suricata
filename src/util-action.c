@@ -116,27 +116,30 @@ int ActionInitConfig()
             SCLogDebug("Loading action order : %s", action->val);
             action_flag = ActionAsciiToFlag(action->val);
             if (action_flag == 0) {
-                SCLogError(SC_ERR_ACTION_ORDER, "action-order, invalid action: \"%s\". Please, use"
-                       " \"pass\",\"drop\",\"alert\",\"reject\". You have"
-                       " to specify all of them, without quotes and without"
-                       " capital letters", action->val);
+                SCLogError("action-order, invalid action: \"%s\". Please, use"
+                           " \"pass\",\"drop\",\"alert\",\"reject\". You have"
+                           " to specify all of them, without quotes and without"
+                           " capital letters",
+                        action->val);
                 goto error;
             }
 
             if (actions_used & action_flag) {
-                SCLogError(SC_ERR_ACTION_ORDER, "action-order, action already set: \"%s\". Please,"
-                       " use \"pass\",\"drop\",\"alert\",\"reject\". You"
-                       " have to specify all of them, without quotes and"
-                       " without capital letters", action->val);
+                SCLogError("action-order, action already set: \"%s\". Please,"
+                           " use \"pass\",\"drop\",\"alert\",\"reject\". You"
+                           " have to specify all of them, without quotes and"
+                           " without capital letters",
+                        action->val);
                 goto error;
             }
 
             if (order >= 4) {
-                SCLogError(SC_ERR_ACTION_ORDER, "action-order, you have already specified all the "
-                       "possible actions plus \"%s\". Please, use \"pass\","
-                       "\"drop\",\"alert\",\"reject\". You have to specify"
-                       " all of them, without quotes and without capital"
-                       " letters", action->val);
+                SCLogError("action-order, you have already specified all the "
+                           "possible actions plus \"%s\". Please, use \"pass\","
+                           "\"drop\",\"alert\",\"reject\". You have to specify"
+                           " all of them, without quotes and without capital"
+                           " letters",
+                        action->val);
                 goto error;
             }
             actions_used |= action_flag;
@@ -144,10 +147,10 @@ int ActionInitConfig()
         }
     }
     if (order < 4) {
-        SCLogError(SC_ERR_ACTION_ORDER, "action-order, the config didn't specify all of the "
-               "actions. Please, use \"pass\",\"drop\",\"alert\","
-               "\"reject\". You have to specify all of them, without"
-               " quotes and without capital letters");
+        SCLogError("action-order, the config didn't specify all of the "
+                   "actions. Please, use \"pass\",\"drop\",\"alert\","
+                   "\"reject\". You have to specify all of them, without"
+                   " quotes and without capital letters");
         goto error;
     }
 

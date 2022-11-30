@@ -149,7 +149,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -165,7 +165,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
                 parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
 
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -242,11 +242,11 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     tmpm = DetectGetLastSMFromLists(s, DETECT_THRESHOLD, DETECT_DETECTION_FILTER, -1);
     if (tmpm != NULL) {
         if (tmpm->type == DETECT_DETECTION_FILTER) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and "
-                    "\"threshold\" are not allowed in the same rule");
+            SCLogError("\"detection_filter\" and "
+                       "\"threshold\" are not allowed in the same rule");
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "multiple \"threshold\" "
-                    "options are not allowed in the same rule");
+            SCLogError("multiple \"threshold\" "
+                       "options are not allowed in the same rule");
         }
         SCReturnInt(-1);
     }

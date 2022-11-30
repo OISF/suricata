@@ -222,8 +222,9 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 
         if (cd->depth && cd->depth < cd->content_len) {
             *sigerror = "depth or urilen smaller than content len";
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth or urilen %u smaller "
-                    "than content len %u", cd->depth, cd->content_len);
+            SCLogError("depth or urilen %u smaller "
+                       "than content len %u",
+                    cd->depth, cd->content_len);
             return false;
         }
     }

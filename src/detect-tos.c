@@ -116,9 +116,10 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid tos option - %s. "
+        SCLogError("invalid tos option - %s. "
                    "The tos option value must be in the range "
-                   "%u - %u", arg, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
+                   "%u - %u",
+                arg, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
         goto error;
     }
 
@@ -128,7 +129,7 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 1, (PCRE2_UCHAR8 *)tosbytes_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -145,9 +146,10 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     }
 
     if (!(tos >= DETECT_IPTOS_MIN && tos <= DETECT_IPTOS_MAX)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid tos argument - "
+        SCLogError("Invalid tos argument - "
                    "%s.  The tos option value must be in the range "
-                   "%u - %u", tosbytes_str, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
+                   "%u - %u",
+                tosbytes_str, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
         goto error;
     }
 

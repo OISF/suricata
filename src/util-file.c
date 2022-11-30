@@ -176,8 +176,8 @@ void FileForceHashParseCfg(ConfNode *conf)
     /* legacy option */
     const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
     if (force_md5 != NULL) {
-        SCLogWarning(SC_ERR_DEPRECATED_CONF, "deprecated 'force-md5' option "
-                "found. Please use 'force-hash: [md5]' instead");
+        SCLogWarning("deprecated 'force-md5' option "
+                     "found. Please use 'force-hash: [md5]' instead");
 
         if (ConfValIsTrue(force_md5)) {
             if (g_disable_hashing) {
@@ -491,7 +491,7 @@ FileContainer *FileContainerAlloc(void)
 {
     FileContainer *new = SCMalloc(sizeof(FileContainer));
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ENOMEM, "Error allocating mem");
+        SCLogError("Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(FileContainer));
@@ -552,7 +552,7 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 {
     File *new = SCMalloc(sizeof(File));
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ENOMEM, "Error allocating mem");
+        SCLogError("Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(File));

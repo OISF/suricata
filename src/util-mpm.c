@@ -63,7 +63,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     if (de_ctx->mpm_ctx_factory_container == NULL) {
         de_ctx->mpm_ctx_factory_container = SCCalloc(1, sizeof(MpmCtxFactoryContainer));
         if (de_ctx->mpm_ctx_factory_container == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         de_ctx->mpm_ctx_factory_container->max_id = ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE;
     }
@@ -80,7 +80,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
 
     MpmCtxFactoryItem *nitem = SCCalloc(1, sizeof(MpmCtxFactoryItem));
     if (unlikely(nitem == NULL)) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     nitem->name = name;
     nitem->sm_list = sm_list;
@@ -89,14 +89,14 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     /* toserver */
     nitem->mpm_ctx_ts = SCCalloc(1, sizeof(MpmCtx));
     if (nitem->mpm_ctx_ts == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     nitem->mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
 
     /* toclient */
     nitem->mpm_ctx_tc = SCCalloc(1, sizeof(MpmCtx));
     if (nitem->mpm_ctx_tc == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     nitem->mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
@@ -132,12 +132,12 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id,
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
         if (unlikely(mpm_ctx == NULL)) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(mpm_ctx, 0, sizeof(MpmCtx));
         return mpm_ctx;
     } else if (id < -1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument - %d\n", id);
+        SCLogError("Invalid argument - %d\n", id);
         return NULL;
     } else if (id >= de_ctx->mpm_ctx_factory_container->max_id) {
         /* this id does not exist */
@@ -432,7 +432,7 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                mpm_ctx, patlen, pid);
 
     if (patlen == 0) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "pattern length 0");
+        SCLogWarning("pattern length 0");
         return 0;
     }
 
@@ -576,8 +576,9 @@ void MpmRegisterTests(void)
             mpm_table[i].RegisterUnittests();
         } else {
             if (coverage_unittests)
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "mpm module %s has no "
-                        "unittest registration function.", mpm_table[i].name);
+                SCLogWarning("mpm module %s has no "
+                             "unittest registration function.",
+                        mpm_table[i].name);
         }
     }
 

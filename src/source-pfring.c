@@ -95,8 +95,9 @@ void TmModuleDecodePfringRegister (void)
  */
 TmEcode NoPfringSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    SCLogError(SC_ERR_NO_PF_RING,"Error creating thread %s: you do not have support for pfring "
-               "enabled please recompile with --enable-pfring", tv->name);
+    SCLogError("Error creating thread %s: you do not have support for pfring "
+               "enabled please recompile with --enable-pfring",
+            tv->name);
     exit(EXIT_FAILURE);
 }
 
@@ -261,8 +262,8 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
         p->vlan_idx = 1;
 
         if (!ptv->vlan_hdr_warned) {
-            SCLogWarning(SC_ERR_PF_RING_VLAN, "no VLAN header in the raw "
-                                              "packet. See ticket #2355.");
+            SCLogWarning("no VLAN header in the raw "
+                         "packet. See ticket #2355.");
             ptv->vlan_hdr_warned = true;
         }
     }
@@ -357,7 +358,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
      * the threads have called pfring_set_cluster(). */
     int rc = pfring_enable_ring(ptv->pd);
     if (rc != 0) {
-        SCLogError(SC_ERR_PF_RING_OPEN, "pfring_enable_ring failed returned %d ", rc);
+        SCLogError("pfring_enable_ring failed returned %d ", rc);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -435,7 +436,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             TmThreadsCaptureHandleTimeout(tv, p);
 
         } else {
-            SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
+            SCLogError("pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -507,14 +508,14 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     ptv->interface = SCStrdup(pfconf->iface);
     if (unlikely(ptv->interface == NULL)) {
-        SCLogError(SC_ENOMEM, "Unable to allocate device string");
+        SCLogError("Unable to allocate device string");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     ptv->livedev = LiveGetDevice(pfconf->iface);
     if (ptv->livedev == NULL) {
-        SCLogError(SC_EINVAL, "Unable to find Live device");
+        SCLogError("Unable to find Live device");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -536,8 +537,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_RXONLY) {
         if (strncmp(ptv->interface, "dna", 3) == 0) {
-            SCLogWarning(SC_EINVAL, "Can't use rxonly checksum-checks on DNA interface,"
-                                    " resetting to auto");
+            SCLogWarning("Can't use rxonly checksum-checks on DNA interface,"
+                         " resetting to auto");
             ptv->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else {
             opflag |= PF_RING_LONG_HEADER;
@@ -553,10 +554,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size, opflag);
     if (ptv->pd == NULL) {
-        SCLogError(SC_ERR_PF_RING_OPEN,"Failed to open %s: pfring_open error."
-                " Check if %s exists and pf_ring module is loaded.",
-                ptv->interface,
-                ptv->interface);
+        SCLogError("Failed to open %s: pfring_open error."
+                   " Check if %s exists and pf_ring module is loaded.",
+                ptv->interface, ptv->interface);
         pfconf->DerefFunc(pfconf);
         SCFree(ptv);
         return TM_ECODE_FAILED;
@@ -579,8 +579,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 
         if (rc != 0) {
-            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
-                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            SCLogError("pfring_set_cluster "
+                       "returned %d for cluster-id: %d",
+                    rc, ptv->cluster_id);
             if (rc != PF_RING_ERROR_NOT_SUPPORTED || (pfconf->flags & PFRING_CONF_FLAGS_CLUSTER)) {
                 /* cluster is mandatory as explicitly specified in the configuration */
                 pfconf->DerefFunc(pfconf);
@@ -602,14 +603,14 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
     if (pfconf->bpf_filter) {
         ptv->bpf_filter = SCStrdup(pfconf->bpf_filter);
         if (unlikely(ptv->bpf_filter == NULL)) {
-            SCLogError(SC_ENOMEM, "Set PF_RING bpf filter failed.");
+            SCLogError("Set PF_RING bpf filter failed.");
         } else {
             SCMutexLock(&pfring_bpf_set_filter_lock);
             rc = pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
             SCMutexUnlock(&pfring_bpf_set_filter_lock);
 
             if (rc < 0) {
-                SCLogError(SC_EINVAL, "Failed to compile BPF \"%s\"", ptv->bpf_filter);
+                SCLogError("Failed to compile BPF \"%s\"", ptv->bpf_filter);
                 return TM_ECODE_FAILED;
             }
         }
@@ -640,8 +641,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, CLUSTER_FLOW_5_TUPLE);
 
         if (rc != 0) {
-            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
-                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            SCLogError("pfring_set_cluster "
+                       "returned %d for cluster-id: %d",
+                    rc, ptv->cluster_id);
             pfconf->DerefFunc(pfconf);
             return TM_ECODE_FAILED;
         }

@@ -338,7 +338,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
                        de_ctx->version);
         }
         if (!RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
-            SCLogWarning(SC_WARN_ALERT_CONFIG, "One or more rule(s) depends on the "
+            SCLogWarning("One or more rule(s) depends on the "
                          "file-store output log which is not enabled. "
                          "Enable the output \"file-store\".");
         }
@@ -354,8 +354,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
     /* filestore and bypass keywords can't work together */
     if (s->flags & SIG_FLAG_BYPASS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "filestore can't work with bypass keyword");
+        SCLogError("filestore can't work with bypass keyword");
         return -1;
     }
 
@@ -373,7 +372,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
         ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
         if (ret < 1 || ret > 4) {
-            SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, str);
+            SCLogError("parse error, ret %" PRId32 ", string %s", ret, str);
             goto error;
         }
 
@@ -382,7 +381,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 1, (PCRE2_UCHAR8 *)str_0, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             args[0] = (char *)str_0;
@@ -392,7 +391,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
                 res = pcre2_substring_copy_bynumber(
                         parse_regex.match, 2, (PCRE2_UCHAR8 *)str_1, &pcre2len);
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
                 args[1] = (char *)str_1;
@@ -402,7 +401,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
                 res = pcre2_substring_copy_bynumber(
                         parse_regex.match, 3, (PCRE2_UCHAR8 *)str_2, &pcre2len);
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
                 args[2] = (char *)str_2;

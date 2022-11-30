@@ -53,7 +53,7 @@ static int i40eDeviceEnableSymHash(
     retval = rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_HASH);
 #pragma GCC diagnostic pop
     if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "RTE_ETH_FILTER_HASH not supported on port: %s", port_name);
+        SCLogError("RTE_ETH_FILTER_HASH not supported on port: %s", port_name);
         return retval;
     }
 
@@ -71,7 +71,7 @@ static int i40eDeviceEnableSymHash(
 #pragma GCC diagnostic pop
 
     if (retval < 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "Cannot set global hash configurations on port %s", port_name);
+        SCLogError("Cannot set global hash configurations on port %s", port_name);
         return retval;
     }
 
@@ -91,7 +91,7 @@ static int i40eDeviceSetSymHash(int port_id, const char *port_name, int enable)
 #pragma GCC diagnostic pop
 
     if (ret < 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "RTE_ETH_FILTER_HASH not supported on port: %s", port_name);
+        SCLogError("RTE_ETH_FILTER_HASH not supported on port: %s", port_name);
         return ret;
     }
 
@@ -103,8 +103,7 @@ static int i40eDeviceSetSymHash(int port_id, const char *port_name, int enable)
 #pragma GCC diagnostic pop
 
     if (ret < 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "Cannot set symmetric hash enable per port on port %s",
-                port_name);
+        SCLogError("Cannot set symmetric hash enable per port on port %s", port_name);
         return ret;
     }
 
@@ -166,8 +165,8 @@ static int i40eDeviceSetRSSFlowQueues(
     rss_action_conf.key = NULL;
 
     if (nb_rx_queues < 1) {
-        FatalError(SC_ERR_DPDK_CONF, "The number of queues for RSS configuration must be "
-                                     "configured with a positive number");
+        FatalError("The number of queues for RSS configuration must be "
+                   "configured with a positive number");
     }
 
     rss_action_conf.queue_num = nb_rx_queues;
@@ -181,11 +180,10 @@ static int i40eDeviceSetRSSFlowQueues(
 
     flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
     if (flow == NULL) {
-        SCLogError(SC_ERR_DPDK_CONF, "Error when creating rte_flow rule on %s: %s", port_name,
-                flow_error.message);
+        SCLogError("Error when creating rte_flow rule on %s: %s", port_name, flow_error.message);
         int ret = rte_flow_validate(port_id, &attr, pattern, action, &flow_error);
-        SCLogError(SC_ERR_DPDK_CONF, "Error on rte_flow validation for port %s: %s errmsg: %s",
-                port_name, rte_strerror(-ret), flow_error.message);
+        SCLogError("Error on rte_flow validation for port %s: %s errmsg: %s", port_name,
+                rte_strerror(-ret), flow_error.message);
         return ret;
     } else {
         SCLogInfo("RTE_FLOW queue region created for port %s", port_name);
@@ -217,11 +215,10 @@ static int i40eDeviceCreateRSSFlow(int port_id, const char *port_name,
 
     flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
     if (flow == NULL) {
-        SCLogError(SC_ERR_DPDK_CONF, "Error when creating rte_flow rule on %s: %s", port_name,
-                flow_error.message);
+        SCLogError("Error when creating rte_flow rule on %s: %s", port_name, flow_error.message);
         int ret = rte_flow_validate(port_id, &attr, pattern, action, &flow_error);
-        SCLogError(SC_ERR_DPDK_CONF, "Error on rte_flow validation for port %s: %s errmsg: %s",
-                port_name, rte_strerror(-ret), flow_error.message);
+        SCLogError("Error on rte_flow validation for port %s: %s errmsg: %s", port_name,
+                rte_strerror(-ret), flow_error.message);
         return ret;
     } else {
         SCLogInfo("RTE_FLOW flow rule created for port %s", port_name);
@@ -328,7 +325,7 @@ static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_
 
     retval = rte_eth_dev_rss_hash_conf_get(port_id, &rss_conf);
     if (retval != 0) {
-        SCLogError(SC_ERR_DPDK_CONF, "Unable to get RSS hash configuration of port %s", port_name);
+        SCLogError("Unable to get RSS hash configuration of port %s", port_name);
         return retval;
     }
 
@@ -339,8 +336,7 @@ static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_
     if (retval != 0) {
         retval = rte_flow_flush(port_id, &flush_error);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_CONF,
-                    "Unable to flush rte_flow rules of %s: %s Flush error msg: %s", port_name,
+            SCLogError("Unable to flush rte_flow rules of %s: %s Flush error msg: %s", port_name,
                     rte_strerror(-retval), flush_error.message);
         }
         return retval;
@@ -359,7 +355,7 @@ int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
 
     retval = rte_eth_dev_get_name_by_port(port_id, port_name);
     if (unlikely(retval != 0)) {
-        SCLogError(SC_ERR_STAT, "Failed to convert port id %d to the interface name: %s", port_id,
+        SCLogError("Failed to convert port id %d to the interface name: %s", port_id,
                 strerror(-retval));
         return retval;
     }

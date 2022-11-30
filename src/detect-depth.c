@@ -70,7 +70,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     /* retrive the sm to apply the depth against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
+        SCLogError("depth needs "
                    "preceding content, uricontent option, http_client_body, "
                    "http_server_body, http_header option, http_raw_header option, "
                    "http_method option, http_cookie, http_raw_uri, "
@@ -84,31 +84,32 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectContentData *cd = (DetectContentData *)pm->ctx;
 
     if (cd->flags & DETECT_CONTENT_DEPTH) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple depths for the same content.");
+        SCLogError("can't use multiple depths for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+        SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
-                   "content." );
+                   "content.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "negated keyword set along with 'fast_pattern'.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "keyword set along with 'fast_pattern:only;'.");
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(str, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
-                       "seen in depth - %s.", str);
+            SCLogError("unknown byte_ keyword var "
+                       "seen in depth - %s.",
+                    str);
             goto end;
         }
         cd->depth = index;
@@ -116,14 +117,14 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     } else {
         if (StringParseUint16(&cd->depth, 0, 0, str) < 0)
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                      "invalid value for depth: %s.", str);
+            SCLogError("invalid value for depth: %s.", str);
             goto end;
         }
 
         if (cd->depth < cd->content_len) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth:%u smaller than "
-                   "content of len %u.", cd->depth, cd->content_len);
+            SCLogError("depth:%u smaller than "
+                       "content of len %u.",
+                    cd->depth, cd->content_len);
             return -1;
         }
         /* Now update the real limit, as depth is relative to the offset */
@@ -144,7 +145,7 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     /* retrieve the sm to apply the depth against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "startswith needs a "
+        SCLogError("startswith needs a "
                    "preceding content option.");
         goto end;
     }
@@ -153,29 +154,29 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     DetectContentData *cd = (DetectContentData *)pm->ctx;
 
     if (cd->flags & DETECT_CONTENT_DEPTH) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple "
-                "depth/startswith settings for the same content.");
+        SCLogError("can't use multiple "
+                   "depth/startswith settings for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+        SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
                    "content.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "negated keyword set along with a 'fast_pattern'.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+        SCLogError("can't have a relative "
                    "keyword set along with 'fast_pattern:only;'.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix offset "
+        SCLogError("can't mix offset "
                    "with startswith.");
         goto end;
     }

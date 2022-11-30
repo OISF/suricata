@@ -100,7 +100,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
             policy = EXCEPTION_POLICY_IGNORE;
             SCLogConfig("%s: %s", option, value_str);
         } else {
-            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+            FatalErrorOnInit(
                     "\"%s\" is not a valid exception policy value. Valid options are drop-flow, "
                     "pass-flow, bypass, drop-packet, pass-packet or ignore.",
                     value_str);
@@ -109,8 +109,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         if (!support_flow) {
             if (policy == EXCEPTION_POLICY_DROP_FLOW || policy == EXCEPTION_POLICY_PASS_FLOW ||
                     policy == EXCEPTION_POLICY_BYPASS_FLOW) {
-                SCLogWarning(SC_WARN_COMPATIBILITY,
-                        "flow actions not supported for %s, defaulting to \"ignore\"", option);
+                SCLogWarning("flow actions not supported for %s, defaulting to \"ignore\"", option);
                 policy = EXCEPTION_POLICY_IGNORE;
             }
         }

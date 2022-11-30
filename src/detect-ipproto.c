@@ -93,8 +93,9 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     /* Execute the regex and populate args with captures. */
     ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
     if (ret != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret"
-                   "%" PRId32 ", string %s", ret, optstr);
+        SCLogError("pcre_exec parse error, ret"
+                   "%" PRId32 ", string %s",
+                ret, optstr);
         goto error;
     }
 
@@ -102,7 +103,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         args[i] = (char *)str_ptr;
@@ -124,14 +125,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     if (!isdigit((unsigned char)*(args[1]))) {
         uint8_t proto;
         if (!SCGetProtoByName(args[1], &proto)) {
-            SCLogError(SC_EINVAL, "Unknown protocol name: \"%s\"", str_ptr);
+            SCLogError("Unknown protocol name: \"%s\"", str_ptr);
             goto error;
         }
         data->proto = proto;
     }
     else {
         if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
-            SCLogError(SC_EINVAL, "Malformed protocol number: %s", str_ptr);
+            SCLogError("Malformed protocol number: %s", str_ptr);
             goto error;
         }
     }
@@ -208,7 +209,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
          * not true we error out on the sig.  And hence the init_flag to
          * indicate this. */
         if (!(s->init_data->init_flags & SIG_FLAG_INIT_FIRST_IPPROTO_SEEN)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature can use "
+            SCLogError("Signature can use "
                        "ip_proto keyword only when we use alert ip, "
                        "in which case the _ANY flag is set on the sig "
                        "and the if condition should match.");
@@ -224,7 +225,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     switch (data->op) {
         case DETECT_IPPROTO_OP_EQ:
             if (eq_set || gt_set || lt_set || not_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
+                SCLogError("can't use a eq "
                            "ipproto without any operators attached to "
                            "them in the same sig");
                 goto error;
@@ -234,7 +235,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
         case DETECT_IPPROTO_OP_GT:
             if (eq_set || gt_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or gt "
+                SCLogError("can't use a eq or gt "
                            "ipproto along with a greater than ipproto in the "
                            "same sig ");
                 goto error;
@@ -255,9 +256,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 if (temp_sm != NULL) {
                   DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
-                                "both gt and lt ipprotos, with the lt being "
-                                "lower than gt value");
+                        SCLogError("can't have "
+                                   "both gt and lt ipprotos, with the lt being "
+                                   "lower than gt value");
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -290,9 +291,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 if (temp_sm != NULL) {
                     data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
-                                "both gt and lt ipprotos, with the lt being "
-                                "lower than gt value");
+                        SCLogError("can't have "
+                                   "both gt and lt ipprotos, with the lt being "
+                                   "lower than gt value");
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -309,7 +310,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
         case DETECT_IPPROTO_OP_LT:
             if (eq_set || lt_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or lt "
+                SCLogError("can't use a eq or lt "
                            "ipproto along with a less than ipproto in the "
                            "same sig ");
                 goto error;
@@ -330,9 +331,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 if (temp_sm != NULL) {
                   DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a have "
-                                "both gt and lt ipprotos, with the lt being "
-                                "lower than gt value");
+                        SCLogError("can't use a have "
+                                   "both gt and lt ipprotos, with the lt being "
+                                   "lower than gt value");
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -365,9 +366,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 if (temp_sm != NULL) {
                   data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
-                                "both gt and lt ipprotos, with the lt being "
-                                "lower than gt value");
+                        SCLogError("can't have "
+                                   "both gt and lt ipprotos, with the lt being "
+                                   "lower than gt value");
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -384,7 +385,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
         case DETECT_IPPROTO_OP_NOT:
             if (eq_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
+                SCLogError("can't use a eq "
                            "ipproto along with a not ipproto in the "
                            "same sig ");
                 goto error;

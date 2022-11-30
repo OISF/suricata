@@ -47,8 +47,7 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
             if (pfv->shared != NULL && pfv->shared->should_delete) {
                 SCLogDebug("Deleting pcap file %s", pfv->filename);
                 if (unlink(pfv->filename) != 0) {
-                    SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                                 "Failed to delete %s", pfv->filename);
+                    SCLogWarning("Failed to delete %s", pfv->filename);
                 }
             }
             SCFree(pfv->filename);
@@ -155,8 +154,8 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
         int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
         if (unlikely(r == -1)) {
-            SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s for %s",
-                       r, pcap_geterr(ptv->pcap_handle), ptv->filename);
+            SCLogError("error code %" PRId32 " %s for %s", r, pcap_geterr(ptv->pcap_handle),
+                    ptv->filename);
             if (ptv->shared->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -167,8 +166,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
             ptv->shared->files++;
             loop_result = TM_ECODE_DONE;
         } else if (ptv->shared->cb_result == TM_ECODE_FAILED) {
-            SCLogError(SC_ERR_PCAP_DISPATCH,
-                       "Pcap callback PcapFileCallbackLoop failed for %s", ptv->filename);
+            SCLogError("Pcap callback PcapFileCallbackLoop failed for %s", ptv->filename);
             loop_result = TM_ECODE_FAILED;
         }
         StatsSyncCountersIfSignalled(ptv->shared->tv);
@@ -186,8 +184,7 @@ static bool PeekFirstPacketTimestamp(PcapFileFileVars *pfv)
 {
     int r = pcap_next_ex(pfv->pcap_handle, &pfv->first_pkt_hdr, &pfv->first_pkt_data);
     if (r <= 0 || pfv->first_pkt_hdr == NULL) {
-        SCLogError(SC_ERR_PCAP_OPEN_OFFLINE,
-                "failed to get first packet timestamp. pcap_next_ex(): %d", r);
+        SCLogError("failed to get first packet timestamp. pcap_next_ex(): %d", r);
         return false;
     }
     /* timestamp in pfv->first_pkt_hdr may not be 'struct timeval' so
@@ -202,13 +199,13 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
     char errbuf[PCAP_ERRBUF_SIZE] = "";
 
     if(unlikely(pfv->filename == NULL)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Filename was null");
+        SCLogError("Filename was null");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     pfv->pcap_handle = pcap_open_offline(pfv->filename, errbuf);
     if (pfv->pcap_handle == NULL) {
-        SCLogError(SC_ERR_FOPEN, "%s", errbuf);
+        SCLogError("%s", errbuf);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -216,14 +213,14 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         SCLogInfo("using bpf-filter \"%s\"", pfv->shared->bpf_string);
 
         if (pcap_compile(pfv->pcap_handle, &pfv->filter, pfv->shared->bpf_string, 1, 0) < 0) {
-            SCLogError(SC_ERR_BPF, "bpf compilation error %s for %s",
-                       pcap_geterr(pfv->pcap_handle), pfv->filename);
+            SCLogError("bpf compilation error %s for %s", pcap_geterr(pfv->pcap_handle),
+                    pfv->filename);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
         if (pcap_setfilter(pfv->pcap_handle, &pfv->filter) < 0) {
-            SCLogError(SC_ERR_BPF,"could not set bpf filter %s for %s",
-                       pcap_geterr(pfv->pcap_handle), pfv->filename);
+            SCLogError("could not set bpf filter %s for %s", pcap_geterr(pfv->pcap_handle),
+                    pfv->filename);
             pcap_freecode(&pfv->filter);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -268,9 +265,8 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
             break;
 
         default:
-            SCLogError(SC_ERR_UNIMPLEMENTED,
-                    "datalink type %"PRId32" not (yet) supported in module PcapFile.",
-                    datalink);
+            SCLogError(
+                    "datalink type %" PRId32 " not (yet) supported in module PcapFile.", datalink);
             SCReturnInt(TM_ECODE_FAILED);
     }
 
