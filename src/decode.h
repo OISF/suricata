@@ -650,7 +650,6 @@ typedef struct Packet_
 } Packet;
 
 /** highest mtu of the interfaces we monitor */
-extern int g_default_mtu;
 #define DEFAULT_MTU 1500
 #define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
 

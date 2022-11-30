@@ -182,9 +182,6 @@ int g_detect_disabled = 0;
 /** set caps or not */
 int sc_set_caps = FALSE;
 
-/** highest mtu of the interfaces we monitor */
-int g_default_mtu = 0;
-
 bool g_system = false;
 
 /** disable randomness to get reproducible results accross runs */
@@ -2408,7 +2405,6 @@ static int ConfigGetCaptureValue(SCInstance *suri)
      * back on a sane default. */
     const char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
-        int mtu = 0;
         int lthread;
         int nlive;
         int strip_trailing_plus = 0;
@@ -2419,13 +2415,10 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 mtu = GetGlobalMTUWin32();
 
                 if (mtu > 0) {
-                    g_default_mtu = mtu;
                     /* SLL_HEADER_LEN is the longest header + 8 for VLAN */
                     default_packet_size = mtu + SLL_HEADER_LEN + 8;
                     break;
                 }
-
-                g_default_mtu = DEFAULT_MTU;
                 default_packet_size = DEFAULT_PACKET_SIZE;
                 break;
 #endif /* WINDIVERT */
@@ -2454,9 +2447,6 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                             dev[len-1] = '\0';
                         }
                     }
-                    mtu = GetIfaceMTU(dev);
-                    g_default_mtu = MAX(mtu, g_default_mtu);
-
                     unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
                     if (iface_max_packet_size > default_packet_size)
                         default_packet_size = iface_max_packet_size;
@@ -2465,7 +2455,6 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                     break;
                 /* fall through */
             default:
-                g_default_mtu = DEFAULT_MTU;
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }
     } else {
