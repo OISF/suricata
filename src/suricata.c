@@ -2504,7 +2504,7 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
         int default_tenant = 0;
         if (mt_enabled)
             (void)ConfGetBool("multi-detect.default", &default_tenant);
-        if (DetectEngineMultiTenantSetup() == -1) {
+        if (DetectEngineMultiTenantSetup(suri->unix_socket_enabled) == -1) {
             FatalError(SC_ERR_FATAL, "initializing multi-detect "
                        "detection engine contexts failed.");
         }
@@ -2937,6 +2937,10 @@ int SuricataMain(int argc, char **argv)
     /* Re-enable coredumps after privileges are dropped. */
     CoredumpEnable();
 
+    if (suricata.run_mode != RUNMODE_UNIX_SOCKET && !suricata.disabled_detect) {
+        suricata.unix_socket_enabled = ConfUnixSocketIsEnable();
+    }
+
     PreRunPostPrivsDropInit(suricata.run_mode);
 
     LandlockSandboxing(&suricata);
@@ -2956,7 +2960,7 @@ int SuricataMain(int argc, char **argv)
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
             suricata.capture_plugin_name, suricata.capture_plugin_args);
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
-        UnixManagerThreadSpawnNonRunmode();
+        UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
 
     /* Wait till all the threads have been initialized */
