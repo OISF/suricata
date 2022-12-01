@@ -38,12 +38,9 @@
 
 // clang-format off
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
-SCEnumCharMap sc_log_level_map[ ] = {
-    { "Not set",        SC_LOG_NOTSET},
+SCEnumCharMap sc_log_level_map[] = {
+    { "Not set",        SC_LOG_NOTSET },
     { "None",           SC_LOG_NONE },
-    { "Emergency",      SC_LOG_EMERGENCY },
-    { "Alert",          SC_LOG_ALERT },
-    { "Critical",       SC_LOG_CRITICAL },
     { "Error",          SC_LOG_ERROR },
     { "Warning",        SC_LOG_WARNING },
     { "Notice",         SC_LOG_NOTICE },
@@ -57,9 +54,6 @@ SCEnumCharMap sc_log_level_map[ ] = {
 SCEnumCharMap sc_log_slevel_map[] = {
     { "Not set",        SC_LOG_NOTSET },
     { "None",           SC_LOG_NONE },
-    { "E",              SC_LOG_EMERGENCY },
-    { "A",              SC_LOG_ALERT },
-    { "C",              SC_LOG_CRITICAL },
     { "E",              SC_LOG_ERROR },
     { "W",              SC_LOG_WARNING },
     { "i",              SC_LOG_NOTICE },
@@ -129,15 +123,6 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
     int syslog_log_level = 0;
 
     switch (log_level) {
-        case SC_LOG_EMERGENCY:
-            syslog_log_level = LOG_EMERG;
-            break;
-        case SC_LOG_ALERT:
-            syslog_log_level = LOG_ALERT;
-            break;
-        case SC_LOG_CRITICAL:
-            syslog_log_level = LOG_CRIT;
-            break;
         case SC_LOG_ERROR:
             syslog_log_level = LOG_ERR;
             break;
@@ -1675,8 +1660,7 @@ static int SCLogTestInit02(void)
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";
-    sc_iface_ctx = SCLogInitOPIfaceCtx("file", "%m - %d", SC_LOG_ALERT,
-                                       logfile);
+    sc_iface_ctx = SCLogInitOPIfaceCtx("file", "%m - %d", SC_LOG_WARNING, logfile);
     SCLogAppendOPIfaceCtx(sc_iface_ctx, sc_lid);
     sc_iface_ctx = SCLogInitOPIfaceCtx("console", NULL, SC_LOG_ERROR,
                                        NULL);
