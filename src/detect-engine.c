@@ -3979,13 +3979,10 @@ error:
  *  Tenants and mappings are optional, and can also dynamically be added
  *  and removed from the unix socket.
  */
-int DetectEngineMultiTenantSetup(void)
+int DetectEngineMultiTenantSetup(const bool unix_socket)
 {
     enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-
-    int unix_socket = ConfUnixSocketIsEnable();
-
     int failure_fatal = 0;
     (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
 

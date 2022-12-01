@@ -143,6 +143,7 @@ typedef struct SCInstance_ {
     bool system;
     bool set_logdir;
     bool set_datadir;
+    bool unix_socket_enabled;
 
     int delayed_detect;
     int disabled_detect;
