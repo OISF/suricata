@@ -319,6 +319,9 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     } else if (strncmp("app-layer-", module_name, 10) == 0) {
         *dn_len = strlen(module_name);
         return module_name;
+    } else if (strncmp("detect-engine", module_name, 13) == 0) {
+        *dn_len = strlen("detect");
+        return "detect";
     }
 
     int seg_cnt = 0;
