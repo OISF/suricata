@@ -36,6 +36,7 @@
 #include "util-syslog.h"
 #include "util-time.h"
 
+// clang-format off
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
 SCEnumCharMap sc_log_level_map[ ] = {
     { "Not set",        SC_LOG_NOTSET},
@@ -53,6 +54,22 @@ SCEnumCharMap sc_log_level_map[ ] = {
     { NULL,             -1 }
 };
 
+SCEnumCharMap sc_log_slevel_map[] = {
+    { "Not set",        SC_LOG_NOTSET },
+    { "None",           SC_LOG_NONE },
+    { "E",              SC_LOG_EMERGENCY },
+    { "A",              SC_LOG_ALERT },
+    { "C",              SC_LOG_CRITICAL },
+    { "E",              SC_LOG_ERROR },
+    { "W",              SC_LOG_WARNING },
+    { "i",              SC_LOG_NOTICE },
+    { "i",              SC_LOG_INFO },
+    { "i",              SC_LOG_PERF },
+    { "i",              SC_LOG_CONFIG },
+    { "d",              SC_LOG_DEBUG },
+    { NULL,             -1 }
+};
+
 /* holds the string-enum mapping for the enums held in the table SCLogOPIface */
 SCEnumCharMap sc_log_op_iface_map[ ] = {
     { "Console",        SC_LOG_OP_IFACE_CONSOLE },
@@ -60,6 +77,7 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
     { "Syslog",         SC_LOG_OP_IFACE_SYSLOG },
     { NULL,             -1 }
 };
+// clang-format on
 
 #if defined (OS_WIN32)
 /**
@@ -443,6 +461,34 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                     else if (log_level == SC_LOG_NOTICE)
                         cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                                   "%s%s%s%s", substr, yellowb, s, reset);
+                    else
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s",
+                                substr, yellow, s, reset);
+                } else {
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s", substr,
+                            "INVALID");
+                }
+                if (cw < 0)
+                    return -1;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
+            case SC_LOG_FMT_LOG_SLEVEL:
+                temp_fmt[0] = '\0';
+                s = SCMapEnumValueToName(log_level, sc_log_slevel_map);
+                if (s != NULL) {
+                    if (log_level <= SC_LOG_ERROR)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s",
+                                substr, redb, s, reset);
+                    else if (log_level == SC_LOG_WARNING)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s",
+                                substr, red, s, reset);
+                    else if (log_level == SC_LOG_NOTICE)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s",
+                                substr, yellowb, s, reset);
                     else
                         cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                                   "%s%s%s%s", substr, yellow, s, reset);

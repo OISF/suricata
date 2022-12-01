@@ -193,6 +193,7 @@ typedef struct SCLogConfig_ {
 #define SC_LOG_FMT_TID              'i' /* Thread ID */
 #define SC_LOG_FMT_TM               'm' /* Thread module name */
 #define SC_LOG_FMT_LOG_LEVEL        'd' /* Log level */
+#define SC_LOG_FMT_LOG_SLEVEL       'D' /* Log level */
 #define SC_LOG_FMT_FILE_NAME        'f' /* File name */
 #define SC_LOG_FMT_LINE             'l' /* Line number */
 #define SC_LOG_FMT_FUNCTION         'n' /* Function */
