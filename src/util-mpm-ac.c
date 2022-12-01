@@ -395,9 +395,7 @@ static inline void SCACEnqueue(StateQueue *q, int32_t state)
         q->top = 0;
 
     if (q->top == q->bot) {
-        SCLogCritical("Just ran out of space in the queue.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("Just ran out of space in the queue. Please file a bug report on this");
     }
 
     return;
@@ -409,9 +407,7 @@ static inline int32_t SCACDequeue(StateQueue *q)
         q->bot = 0;
 
     if (q->bot == q->top) {
-        SCLogCritical("StateQueue behaving weirdly.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("StateQueue behaving weirdly. Please file a bug report on this");
     }
 
     return q->store[q->bot++];
@@ -434,9 +430,9 @@ static inline int32_t SCACDequeue(StateQueue *q)
                                       (q)->top = 0;                     \
                                                                         \
                                   if ((q)->top == (q)->bot) {           \
-                                  SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  " \
-                                                "Fatal Error.  Exiting.  Please file a bug report on this"); \
-                                  exit(EXIT_FAILURE);                   \
+                                  FatalError("Just ran out of space in the queue.  " \
+                                                "Fatal Error.  Exiting.  Please file a bug report on
+this"); \
                                   }                                     \
                               } while (0)
 
