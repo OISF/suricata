@@ -1743,9 +1743,8 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
 {
     BUG_ON(de_ctx == NULL);
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogDebug("cleaning up signature grouping structure...");
-    }
+    SCLogDebug("cleaning up signature grouping structure...");
+
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
@@ -1777,9 +1776,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
 
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("cleaning up signature grouping structure... complete");
-    }
+    SCLogDebug("cleaning up signature grouping structure... complete");
     return 0;
 }
 
