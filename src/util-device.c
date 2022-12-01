@@ -353,7 +353,7 @@ int LiveDeviceListClean()
 
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
-            SCLogNotice("Stats for '%s':  pkts: %" PRIu64 ", drop: %" PRIu64
+            SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
                         " (%.2f%%), invalid chksum: %" PRIu64,
                     pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->drop),
                     100 * ((double)SC_ATOMIC_GET(pd->drop)) / (double)SC_ATOMIC_GET(pd->pkts),
