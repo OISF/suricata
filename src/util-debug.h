@@ -48,9 +48,6 @@
 typedef enum {
     SC_LOG_NOTSET = -1,
     SC_LOG_NONE = 0,
-    SC_LOG_EMERGENCY,
-    SC_LOG_ALERT,
-    SC_LOG_CRITICAL,
     SC_LOG_ERROR,
     SC_LOG_WARNING,
     SC_LOG_NOTICE,
@@ -264,34 +261,6 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
     SCLogErr(SC_LOG_ERROR, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 #define SCLogErrorRaw(file, func, line, ...)                                                       \
     SCLogErr(SC_LOG_ERROR, (file), (func), (line), _sc_module, __VA_ARGS__)
-
-/**
- * \brief Macro used to log CRITICAL messages.
- *
- * \retval err_code Error code that has to be logged along with the
- *                  critical message
- * \retval ...      Takes as argument(s), a printf style format message
- */
-#define SCLogCritical(...)                                                                         \
-    SCLogErr(SC_LOG_CRITICAL, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
-/**
- * \brief Macro used to log ALERT messages.
- *
- * \retval err_code Error code that has to be logged along with the
- *                  alert message
- * \retval ...      Takes as argument(s), a printf style format message
- */
-#define SCLogAlert(...)                                                                            \
-    SCLogErr(SC_LOG_ALERT, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
-/**
- * \brief Macro used to log EMERGENCY messages.
- *
- * \retval err_code Error code that has to be logged along with the
- *                  emergency message
- * \retval ...      Takes as argument(s), a printf style format message
- */
-#define SCLogEmerg(...)                                                                            \
-    SCLogErr(SC_LOG_EMERGENCY, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
