@@ -108,8 +108,7 @@ int GetIfaceMTU(const char *pcap_dev)
         return -1;
     }
     close(fd);
-    SCLogInfo("Found an MTU of %d for '%s'", ifr.ifr_mtu,
-            pcap_dev);
+    SCLogInfo("%s: MTU %d", pcap_dev, ifr.ifr_mtu);
     return ifr.ifr_mtu;
 #elif defined OS_WIN32
     return GetIfaceMTUWin32(pcap_dev);
