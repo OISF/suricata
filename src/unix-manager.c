@@ -132,7 +132,7 @@ static int UnixNew(UnixCommand * this)
         strlcpy(sockettarget, SOCKET_TARGET, sizeof(sockettarget));
         check_dir = 1;
     }
-    SCLogInfo("Using unix socket file '%s'", sockettarget);
+    SCLogInfo("unix socket '%s'", sockettarget);
 
     if (check_dir) {
         struct stat stat_buf;
@@ -1183,11 +1183,10 @@ void UnixManagerThreadSpawn(int mode)
 }
 
 // TODO can't think of a good name
-void UnixManagerThreadSpawnNonRunmode(void)
+void UnixManagerThreadSpawnNonRunmode(const bool unix_socket)
 {
     /* Spawn the unix socket manager thread */
-    int unix_socket = ConfUnixSocketIsEnable();
-    if (unix_socket == 1) {
+    if (unix_socket) {
         if (UnixManagerInit() == 0) {
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                     UNIX_CMD_TAKE_ARGS);
@@ -1259,7 +1258,7 @@ void UnixSocketKillSocketThread(void)
     return;
 }
 
-void UnixManagerThreadSpawnNonRunmode(void)
+void UnixManagerThreadSpawnNonRunmode(const bool unix_socket_enabled)
 {
     return;
 }
