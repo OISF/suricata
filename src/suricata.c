@@ -2513,8 +2513,7 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
             de_ctx = DetectEngineCtxInit();
         }
         if (de_ctx == NULL) {
-            FatalError("initializing detection engine "
-                       "context failed.");
+            FatalError("initializing detection engine failed.");
         }
 
         if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL) {
