@@ -199,7 +199,7 @@ static char *AllocAndSetOption(const char *arg)
 static void ArgumentsInit(struct Arguments *args, unsigned capacity)
 {
     SCEnter();
-    args->argv = SCCalloc(capacity, sizeof(args->argv));
+    args->argv = SCCalloc(capacity, sizeof(ptrdiff_t)); // alloc array of pointers
     if (args->argv == NULL)
         FatalError(SC_ERR_MEM_ALLOC, "Could not allocate memory for Arguments structure");
 
@@ -790,8 +790,8 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
 // Returns -1 if no bit is set
 static int GetFirstSetBitPosition(uint64_t bits)
 {
-    for (int i = 0; i < 64; i++) {
-        if (bits & (1 << i))
+    for (uint64_t i = 0; i < 64; i++) {
+        if (bits & BIT_U64(i))
             return i;
     }
     return -1;
