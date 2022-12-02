@@ -730,6 +730,7 @@ static int SetCPUAffinity(uint16_t cpuid)
 
 #else
     cpu_set_t cs;
+    memset(&cs, 0, sizeof(cs));
 
     CPU_ZERO(&cs);
     CPU_SET(cpu, &cs);
