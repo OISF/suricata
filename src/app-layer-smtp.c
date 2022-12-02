@@ -1659,8 +1659,6 @@ void SMTPParserCleanup(void)
 
 static void SMTPTestInitConfig(void)
 {
-    MimeDecSetConfig(&smtp_config.mime_config);
-
     smtp_config.content_limit = FILEDATA_CONTENT_LIMIT;
     smtp_config.content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
     smtp_config.content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
@@ -3820,9 +3818,8 @@ static int SMTPParserTest14(void)
 
     /* Enable mime decoding */
     smtp_config.decode_mime = true;
-    smtp_config.mime_config.decode_base64 = true;
-    smtp_config.mime_config.decode_quoted_printable = true;
-    MimeDecSetConfig(&smtp_config.mime_config);
+    rs_mime_smtp_config_decode_base64(1);
+    rs_mime_smtp_config_decode_quoted(1);
 
     /* DATA request */
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
