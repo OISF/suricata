@@ -252,7 +252,7 @@ fn mime_smtp_parse_line(
                 Update::update(&mut ctx.md5, &full);
             }
             if ctx.boundary.len() > 0 && i.len() >= ctx.boundary.len() {
-                if &i[..ctx.boundary.len()] == ctx.boundary {
+                if i[..ctx.boundary.len()] == ctx.boundary {
                     ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
                     let toclose = ctx.filename.len() > 0;
                     ctx.filename.clear();
@@ -285,9 +285,7 @@ fn mime_smtp_parse_line(
                     let mut c = 0;
                     while c < i.len() {
                         if i[c] == b'=' {
-                            if c == i.len() - 1 {
-                                break;
-                            } else if c + 2 > i.len() {
+                            if c == i.len() - 1 || c + 2 > i.len() {
                                 // log event ?
                                 break;
                             }
@@ -425,6 +423,7 @@ pub unsafe extern "C" fn rs_mime_smtp_config_extract_urls_scheme_add(
     let scheme: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = scheme.to_str() {
         MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.push(s);
+        return 0;
     }
     return -1;
 }

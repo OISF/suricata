@@ -26,7 +26,7 @@ use std;
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub struct MIMEHeaderTokens<'a> {
+pub struct HeaderTokens<'a> {
     pub tokens: HashMap<&'a [u8], &'a [u8]>,
 }
 
@@ -76,7 +76,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     return Ok((input, (name, value)));
 }
 
-fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
+fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens> {
     let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
     while !input.is_empty() {
@@ -97,7 +97,7 @@ fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
             }
         }
     }
-    return Ok((input, MIMEHeaderTokens { tokens }));
+    return Ok((input, HeaderTokens { tokens }));
 }
 
 pub fn mime_find_header_token<'a>(
@@ -179,16 +179,16 @@ pub unsafe extern "C" fn rs_mime_find_header_token(
 
 #[derive(Debug)]
 enum MimeParserState {
-    MimeStart = 0,
-    MimeHeader = 1,
-    MimeHeaderEnd = 2,
-    MimeChunk = 3,
-    MimeBoundaryWaitingForEol = 4,
+    Start = 0,
+    Header = 1,
+    HeaderEnd = 2,
+    Chunk = 3,
+    BoundaryWaitingForEol = 4,
 }
 
 impl Default for MimeParserState {
     fn default() -> Self {
-        MimeParserState::MimeStart
+        MimeParserState::Start
     }
 }
 
@@ -211,7 +211,7 @@ pub enum MimeParserResult {
 fn mime_parse_skip_line(input: &[u8]) -> IResult<&[u8], MimeParserState> {
     let (input, _) = take_till(|ch: u8| ch == b'\n')(input)?;
     let (input, _) = char('\n')(input)?;
-    return Ok((input, MimeParserState::MimeStart));
+    return Ok((input, MimeParserState::Start));
 }
 
 fn mime_parse_boundary_regular<'a, 'b>(
@@ -220,7 +220,7 @@ fn mime_parse_boundary_regular<'a, 'b>(
     let (input, _) = tag(boundary)(input)?;
     let (input, _) = take_till(|ch: u8| ch == b'\n')(input)?;
     let (input, _) = char('\n')(input)?;
-    return Ok((input, MimeParserState::MimeHeader));
+    return Ok((input, MimeParserState::Header));
 }
 
 // Number of characters after boundary, without end of line, before changing state to streaming
@@ -232,7 +232,7 @@ fn mime_parse_boundary_missing_eol<'a, 'b>(
 ) -> IResult<&'a [u8], MimeParserState> {
     let (input, _) = tag(boundary)(input)?;
     let (input, _) = take(MIME_BOUNDARY_MAX_BEFORE_EOL)(input)?;
-    return Ok((input, MimeParserState::MimeBoundaryWaitingForEol));
+    return Ok((input, MimeParserState::BoundaryWaitingForEol));
 }
 
 fn mime_parse_boundary<'a, 'b>(
@@ -316,7 +316,7 @@ fn mime_parse_headers<'a, 'b>(
                 let (input3, _) = tag("\r\n")(input2)?;
                 input = input3;
                 if line.len() == 0 || (line.len() == 1 && line[0] == b'\r') {
-                    return Ok((input, (MimeParserState::MimeHeaderEnd, fileopen, errored)));
+                    return Ok((input, (MimeParserState::HeaderEnd, fileopen, errored)));
                 }
             }
             _ => {
@@ -324,21 +324,17 @@ fn mime_parse_headers<'a, 'b>(
                 if input.len() > MIME_HEADER_MAX_LINE {
                     return Ok((
                         input,
-                        (
-                            MimeParserState::MimeBoundaryWaitingForEol,
-                            fileopen,
-                            errored,
-                        ),
+                        (MimeParserState::BoundaryWaitingForEol, fileopen, errored),
                     ));
                 }
                 if input.len() < i.len() {
-                    return Ok((input, (MimeParserState::MimeHeader, fileopen, errored)));
+                    return Ok((input, (MimeParserState::Header, fileopen, errored)));
                 } // else only an incomplete line, ask for more
                 return Err(Err::Error(make_error(input, ErrorKind::Eof)));
             }
         }
     }
-    return Ok((input, (MimeParserState::MimeHeader, fileopen, errored)));
+    return Ok((input, (MimeParserState::Header, fileopen, errored)));
 }
 
 fn mime_consume_chunk<'a, 'b>(boundary: &'b [u8], input: &'a [u8]) -> IResult<&'a [u8], bool> {
@@ -380,7 +376,7 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
     let mut warnings = 0;
     while !input.is_empty() {
         match ctx.state {
-            MimeParserState::MimeStart => {
+            MimeParserState::Start => {
                 if let Ok((rem, next)) = mime_parse_boundary(&ctx.boundary, input) {
                     ctx.state = next;
                     consumed += (input.len() - rem.len()) as u32;
@@ -389,10 +385,10 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
                     return (MimeParserResult::MimeNeedsMore, consumed, warnings);
                 }
             }
-            MimeParserState::MimeBoundaryWaitingForEol => {
+            MimeParserState::BoundaryWaitingForEol => {
                 if let Ok((rem, found)) = mime_consume_until_eol(input) {
                     if found {
-                        ctx.state = MimeParserState::MimeHeader;
+                        ctx.state = MimeParserState::Header;
                     }
                     consumed += (input.len() - rem.len()) as u32;
                     input = rem;
@@ -401,7 +397,7 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
                     return (MimeParserResult::MimeNeedsMore, consumed, warnings);
                 }
             }
-            MimeParserState::MimeHeader => {
+            MimeParserState::Header => {
                 if let Ok((rem, (next, fileopen, err))) = mime_parse_headers(ctx, input) {
                     ctx.state = next;
                     consumed += (input.len() - rem.len()) as u32;
@@ -416,32 +412,32 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
                     return (MimeParserResult::MimeNeedsMore, consumed, warnings);
                 }
             }
-            MimeParserState::MimeHeaderEnd => {
+            MimeParserState::HeaderEnd => {
                 // check if we start with the boundary
                 // and transition to chunk, or empty file and back to start
                 if input.len() < ctx.boundary.len() {
                     if input == &ctx.boundary[..input.len()] {
                         return (MimeParserResult::MimeNeedsMore, consumed, warnings);
                     }
-                    ctx.state = MimeParserState::MimeChunk;
+                    ctx.state = MimeParserState::Chunk;
                 } else {
-                    if &input[..ctx.boundary.len()] == ctx.boundary {
-                        ctx.state = MimeParserState::MimeStart;
+                    if input[..ctx.boundary.len()] == ctx.boundary {
+                        ctx.state = MimeParserState::Start;
                         if ctx.filename.len() > 0 {
                             warnings |= MIME_EVENT_FLAG_NO_FILEDATA;
                         }
                         ctx.filename.clear();
                         return (MimeParserResult::MimeFileClose, consumed, warnings);
                     } else {
-                        ctx.state = MimeParserState::MimeChunk;
+                        ctx.state = MimeParserState::Chunk;
                     }
                 }
             }
-            MimeParserState::MimeChunk => {
+            MimeParserState::Chunk => {
                 if let Ok((rem, eof)) = mime_consume_chunk(&ctx.boundary, input) {
                     consumed += (input.len() - rem.len()) as u32;
                     if eof {
-                        ctx.state = MimeParserState::MimeStart;
+                        ctx.state = MimeParserState::Start;
                         ctx.filename.clear();
                         return (MimeParserResult::MimeFileClose, consumed, warnings);
                     } else {
