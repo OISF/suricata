@@ -702,8 +702,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
                         /* expand the limit as long as we get file data, as the file data is bigger
                          * on the wire due to base64 */
                     } else {
-                        uint32_t depth =
-                                smtp_config.content_inspect_min_size +
+                        depth = smtp_config.content_inspect_min_size +
                                 (state->toserver_data_count - state->toserver_last_data_stamp);
                         SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %" PRIu32,
                                 depth);
