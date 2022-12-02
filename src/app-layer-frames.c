@@ -467,8 +467,9 @@ Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice
         return NULL;
     if (stream_slice->input == NULL)
         return NULL;
-#endif
+#else
     BUG_ON(stream_slice->input == NULL);
+#endif
     BUG_ON(f->proto == IPPROTO_TCP && f->protoctx == NULL);
     BUG_ON(f->alparser == NULL);
 
@@ -544,8 +545,9 @@ Frame *AppLayerFrameNewByAbsoluteOffset(Flow *f, const StreamSlice *stream_slice
         return NULL;
     if (stream_slice->input == NULL)
         return NULL;
-#endif
+#else
     BUG_ON(stream_slice->input == NULL);
+#endif
     BUG_ON(f->proto == IPPROTO_TCP && f->protoctx == NULL);
     BUG_ON(f->alparser == NULL);
     BUG_ON(frame_start < stream_slice->offset);
