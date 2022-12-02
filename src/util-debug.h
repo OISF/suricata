@@ -555,9 +555,6 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 SCLogInitData *SCLogAllocLogInitData(void);
 
-SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *, const char *, int,
-                                     const char *);
-
 void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *, SCLogInitData *);
 
 void SCLogInitLogModule(SCLogInitData *);
