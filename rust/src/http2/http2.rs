@@ -958,7 +958,7 @@ impl HTTP2State {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
                                     let mut dinput = &rem[..hlsafe];
-                                    if padded && rem.len() > 0 && usize::from(rem[0]) < hlsafe{
+                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
                                     match tx_same.decompress(
