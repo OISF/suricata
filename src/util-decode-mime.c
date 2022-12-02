@@ -1479,6 +1479,12 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         SCLogDebug("Error: Max encoded input line length exceeded %u > %u",
                 len, MAX_ENC_LINE_LEN);
     }
+    if (len == 0) {
+        memcpy(state->data_chunk + state->data_chunk_len, buf + len,
+                state->current_line_delimiter_len);
+        state->data_chunk_len += state->current_line_delimiter_len;
+        return ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+    }
 
     remaining = len;
     offset = 0;
@@ -2277,9 +2283,6 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             MimeDecConfig *mdcfg = MimeDecGetConfig();
             if (entity != NULL && mdcfg != NULL) {
                 if (mdcfg->decode_base64 && (entity->ctnt_flags & CTNT_IS_BASE64)) {
-                    SCLogDebug("skip empty line");
-                    return MIME_DEC_OK;
-                } else if (mdcfg->decode_quoted_printable && (entity->ctnt_flags & CTNT_IS_QP)) {
                     SCLogDebug("skip empty line");
                     return MIME_DEC_OK;
                 }
