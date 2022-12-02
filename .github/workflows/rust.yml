@@ -71,7 +71,8 @@ jobs:
       - run: |
           diff=$(git diff)
           if [ "${diff}" ]; then
-              echo "::warning ::Clippy --fix made changes, please fix"
+              echo "::error ::Clippy --fix made changes, please fix"
+              exit 1
           fi
       - run: cargo clippy --all-features
         working-directory: rust
