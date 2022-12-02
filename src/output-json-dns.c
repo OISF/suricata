@@ -269,6 +269,7 @@ JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
     if (queryjb == NULL) {
         return NULL;
     }
+    bool has_query = false;
 
     for (uint16_t i = 0; i < UINT16_MAX; i++) {
         JsonBuilder *js = jb_new_object();
@@ -277,8 +278,14 @@ JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
             break;
         }
         jb_close(js);
+        has_query = true;
         jb_append_object(queryjb, js);
         jb_free(js);
+    }
+
+    if (!has_query) {
+        jb_free(queryjb);
+        return NULL;
     }
 
     jb_close(queryjb);
