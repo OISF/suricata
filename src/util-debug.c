@@ -655,8 +655,6 @@ int SCLogDebugEnabled(void)
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
 {
     SCLogOPBuffer *buffer = NULL;
-    SCLogOPIfaceCtx *op_iface_ctx = NULL;
-    int i = 0;
 
     if ( (buffer = SCMalloc(sc_log_config->op_ifaces_cnt *
                           sizeof(SCLogOPBuffer))) == NULL) {
@@ -664,10 +662,8 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
                    "Fatal error encountered in SCLogAllocLogOPBuffer. Exiting...");
     }
 
-    op_iface_ctx = sc_log_config->op_ifaces;
-    for (i = 0;
-         i < sc_log_config->op_ifaces_cnt;
-         i++, op_iface_ctx = op_iface_ctx->next) {
+    SCLogOPIfaceCtx *op_iface_ctx = sc_log_config->op_ifaces;
+    for (int i = 0; i < sc_log_config->op_ifaces_cnt; i++, op_iface_ctx = op_iface_ctx->next) {
         buffer[i].log_format = op_iface_ctx->log_format;
         buffer[i].temp = buffer[i].msg;
     }
@@ -711,7 +707,6 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file, uint32_t u
         uint32_t groupid, const char *log_format, int log_level, SCLogOPType type)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
-
     if (iface_ctx == NULL) {
         FatalError(SC_ERR_FATAL,
                    "Fatal error encountered in SCLogInitFileOPIface. Exiting...");
@@ -1223,8 +1218,10 @@ void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx, SCLogInitData *sc_lid)
     return;
 }
 
-
+#ifdef UNITTESTS
+#ifndef OS_WIN32
 /**
+ * \internal
  * \brief Creates a new output interface based on the arguments sent.  The kind
  *        of output interface to be created is decided by the iface_name arg.
  *        If iface_name is "file", the arg argument will hold the filename to be
@@ -1240,18 +1237,15 @@ void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx, SCLogInitData *sc_lid)
  *
  * \retval iface_ctx Pointer to the newly created output interface
  */
-SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
-                                     const char *log_format,
-                                     int log_level, const char *arg)
+static SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(
+        const char *iface_name, const char *log_format, int log_level, const char *arg)
 {
     int iface = SCMapEnumNameToValue(iface_name, sc_log_op_iface_map);
 
     if (log_level < SC_LOG_NONE || log_level > SC_LOG_DEBUG) {
-#ifndef UNITTESTS
         printf("Warning: Supplied log_level_override for op_interface \"%s\" "
                "is invalid.  Defaulting to not specifying an override\n",
-               iface_name);
-#endif
+                iface_name);
         log_level = SC_LOG_NOTSET;
     }
 
@@ -1271,6 +1265,8 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
             return NULL;
     }
 }
+#endif
+#endif
 
 /**
  * \brief Initializes the logging module.
