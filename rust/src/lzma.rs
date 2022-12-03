@@ -36,7 +36,7 @@ impl From<Error> for LzmaStatus {
             Error::IoError(_) => LzmaStatus::LzmaIoError,
             Error::HeaderTooShort(_) => LzmaStatus::LzmaHeaderTooShortError,
             Error::LzmaError(e) => {
-                if e.to_string().contains("exceeded memory limit") {
+                if e.contains("exceeded memory limit") {
                     LzmaStatus::LzmaMemoryError
                 } else {
                     LzmaStatus::LzmaError
