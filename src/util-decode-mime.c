@@ -1275,6 +1275,24 @@ static uint8_t ProcessBase64Remainder(
     return buf_consumed;
 }
 
+static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
+        const uint8_t *buf, const uint32_t buf_len, const uint32_t offset, MimeDecParseState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(offset > buf_len);
+    if (offset > buf_len)
+        return MIME_DEC_ERR_DATA;
+
+    for (uint32_t i = offset; i < buf_len; i++) {
+        if (buf[i] != ' ') {
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
+            if (state->bvr_len >= B64_BLOCK)
+                return MIME_DEC_ERR_DATA;
+            state->bvremain[state->bvr_len++] = buf[i];
+        }
+    }
+    return MIME_DEC_OK;
+}
+
 /**
  * \brief Processes a body line by base64-decoding and passing to the data chunk
  * processing callback function when the buffer is read
@@ -1295,14 +1313,11 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
     if (len > MAX_ENC_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_ENC_LINE;
         state->msg->anomaly_flags |= ANOM_LONG_ENC_LINE;
-        SCLogDebug("Error: Max encoded input line length exceeded %u > %u",
-                len, MAX_ENC_LINE_LEN);
+        SCLogDebug("max encoded input line length exceeded %u > %u", len, MAX_ENC_LINE_LEN);
     }
 
     if (state->bvr_len + len < B64_BLOCK) {
-        memcpy(state->bvremain + state->bvr_len, buf, len);
-        state->bvr_len += len;
-        return MIME_DEC_OK;
+        return ProcessBase64BodyLineCopyRemainder(buf, len, 0, state);
     }
 
     /* First process remaining from previous line. We will consume
@@ -1318,11 +1333,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         uint32_t left = len - consumed;
         if (left < B64_BLOCK) {
             DEBUG_VALIDATE_BUG_ON(left + state->bvr_len > B64_BLOCK);
-            if (left + state->bvr_len > B64_BLOCK)
-                return MIME_DEC_ERR_PARSE;
-            memcpy(state->bvremain, buf + consumed, left);
-            state->bvr_len += left;
-            return MIME_DEC_OK;
+            return ProcessBase64BodyLineCopyRemainder(buf, len, consumed, state);
         }
 
         remaining -= consumed;
@@ -1372,23 +1383,11 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
          * size. We strip of spaces this while storing it in bvremain */
         if (consumed_bytes == 0 && leftover_bytes > B64_BLOCK) {
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            for (uint32_t i = 0; i < leftover_bytes; i++) {
-                if (buf[offset] != ' ') {
-                    DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
-                    if (state->bvr_len >= B64_BLOCK)
-                        return MIME_DEC_ERR_DATA;
-                    state->bvremain[state->bvr_len++] = buf[offset];
-                }
-                offset++;
-            }
-            return MIME_DEC_OK;
-
+            return ProcessBase64BodyLineCopyRemainder(buf, len, offset, state);
         } else if (leftover_bytes > 0 && leftover_bytes <= B64_BLOCK) {
             /* If remaining is 4 by this time, we encountered spaces during processing */
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            memcpy(state->bvremain, buf + offset + consumed_bytes, leftover_bytes);
-            state->bvr_len = (uint8_t)leftover_bytes;
-            return MIME_DEC_OK;
+            return ProcessBase64BodyLineCopyRemainder(buf, len, offset + consumed_bytes, state);
         }
 
         /* Update counts */
