@@ -1777,7 +1777,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             suri->conf_filename = optarg;
             break;
         case 'T':
-            SCLogInfo("Running suricata under test mode");
             conf_test = 1;
             if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                 fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
@@ -2921,6 +2920,9 @@ int SuricataMain(int argc, char **argv)
 
     LogVersion(&suricata);
     UtilCpuPrintSummary();
+
+    if (suricata.run_mode == RUNMODE_CONF_TEST)
+        SCLogInfo("Running suricata under test mode");
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
