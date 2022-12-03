@@ -74,11 +74,14 @@ typedef enum {
 } SCLogOPType;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_LOG_DEF_LOG_FORMAT_REL "%t [%S] - <%d> - "
+#define SC_LOG_DEF_FILE_FORMAT      "[%i - %m] %t %d: %S: "
+#define SC_LOG_DEF_LOG_FORMAT_REL   "%D: %S: "
+#define SC_LOG_DEF_LOG_FORMAT_RELV  "%d: %S: "
+#define SC_LOG_DEF_LOG_FORMAT_RELVV "[%i] %d: %S: "
 #ifdef DEBUG
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - (%f:%l) <%d> (%n) -- %E"
+#define SC_LOG_DEF_LOG_FORMAT_DEV "[%f:%l] %d: %S: "
 #else
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - <%d> -- %E"
+#define SC_LOG_DEF_LOG_FORMAT_DEV "[%f:%l] %d: %S: "
 #endif
 
 /* The maximum length of the log message */
