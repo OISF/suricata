@@ -1046,11 +1046,16 @@ SCLogLevel SCLogGetLogLevel(void)
     return sc_log_global_log_level;
 }
 
-static inline const char *SCLogGetDefaultLogFormat(void)
+static inline const char *SCLogGetDefaultLogFormat(const SCLogLevel lvl)
 {
     const char *prog_ver = GetProgramVersion();
     if (strstr(prog_ver, "RELEASE") != NULL) {
-        return SC_LOG_DEF_LOG_FORMAT_REL;
+        if (lvl <= SC_LOG_NOTICE)
+            return SC_LOG_DEF_LOG_FORMAT_REL;
+        else if (lvl <= SC_LOG_INFO)
+            return SC_LOG_DEF_LOG_FORMAT_RELV;
+        else if (lvl <= SC_LOG_PERF)
+            return SC_LOG_DEF_LOG_FORMAT_RELVV;
     }
     return SC_LOG_DEF_LOG_FORMAT_DEV;
 }
@@ -1076,7 +1081,7 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
     /* deal with the global log format to be used */
     if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
-        format = SCLogGetDefaultLogFormat();
+        format = SCLogGetDefaultLogFormat(sc_lc->log_level);
 #ifndef UNITTESTS
         if (sc_lid != NULL) {
             printf("Warning: Invalid/No global_log_format supplied by user or format "
@@ -1438,7 +1443,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
     }
 
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
-        sc_lid->global_log_format = SCLogGetDefaultLogFormat();
+        sc_lid->global_log_format = SCLogGetDefaultLogFormat(sc_lid->global_log_level);
 
     (void)ConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
@@ -1471,8 +1476,8 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         /* if available use the log format setting for this output,
          * otherwise fall back to the global setting. */
         format = ConfNodeLookupChildValue(output, "format");
-        if (format == NULL)
-            format = sc_lid->global_log_format;
+        // if (format == NULL)
+        //     format = sc_lid->global_log_format;
 
         level_s = ConfNodeLookupChildValue(output, "level");
         if (level_s != NULL) {
@@ -1491,6 +1496,10 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             op_iface_ctx = SCLogInitConsoleOPIface(format, level, type);
         }
         else if (strcmp(output->name, "file") == 0) {
+            if (format == NULL) {
+                format = "[%i - %m] %t %d: %S: ";
+            }
+
             const char *filename = ConfNodeLookupChildValue(output, "filename");
             if (filename == NULL) {
                 FatalError("Logging to file requires a filename");
@@ -1526,9 +1535,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
         }
         else {
-            SCLogWarning("Invalid logging method: %s, "
-                         "ignoring",
-                    output->name);
+            SCLogWarning("invalid logging method: %s, ignoring", output->name);
         }
         if (op_iface_ctx != NULL) {
             SCLogAppendOPIfaceCtx(op_iface_ctx, sc_lid);
@@ -1536,9 +1543,9 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
     }
 
     if (daemon && (have_logging == 0)) {
-        SCLogError("NO logging compatible with daemon mode selected,"
-                   " suricata won't be able to log. Please update "
-                   " 'logging.outputs' in the YAML.");
+        SCLogWarning("no logging compatible with daemon mode selected,"
+                     " suricata won't be able to log. Please update "
+                     " 'logging.outputs' in the YAML.");
     }
 
     /* Set the global log level to that of the max level used. */
@@ -1624,7 +1631,8 @@ static int SCLogTestInit01(void)
     FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
     FAIL_IF_NOT(sc_log_config->log_format != NULL &&
-               strcmp(SCLogGetDefaultLogFormat(), sc_log_config->log_format) == 0);
+                strcmp(SCLogGetDefaultLogFormat(sc_log_config->log_level),
+                        sc_log_config->log_format) == 0);
 
     SCLogDeInitLogModule();
 
@@ -1677,7 +1685,8 @@ static int SCLogTestInit02(void)
                sc_log_config->op_ifaces->next != NULL &&
                SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
     FAIL_IF_NOT(sc_log_config->log_format != NULL &&
-               strcmp(SCLogGetDefaultLogFormat(), sc_log_config->log_format) == 0);
+                strcmp(SCLogGetDefaultLogFormat(sc_log_config->log_level),
+                        sc_log_config->log_format) == 0);
     FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->log_format != NULL &&
                strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
