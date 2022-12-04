@@ -33,7 +33,6 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![allow(clippy::explicit_counter_loop)]
-#![allow(clippy::extra_unused_lifetimes)]
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::for_loops_over_fallibles)]
 #![allow(clippy::manual_find)]
