@@ -30,6 +30,43 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Suricata Configuration Defaults
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suricata has a non-breaking/smooth upgrading policy when introducing new default
+settings for major version upgrades.
+
+This means that when a new default is introduced in a new major version, Suricata
+will issue warnings when the configuration setting is not explicitly present in
+the suricata.yaml file, to ensure that users will know that when the next major
+update happens, the default behavior will be applied regardless of having that
+setting defined in the configurations.
+
+This also gives users who want to keep the old behavior the ability to easily
+disable the default.
+
+.. list-table:: Illustrating Upgrade Defaults Warnings
+   :widths: 10, 45, 45
+   :header-rows: 1
+
+   * - Version
+     - Behavior
+     - Warning?
+   * - 6.0.x
+     - Doesn't have X default
+     - Doesn't apply.
+   * - 7.0.x
+     - Introduces new default configuration X.
+     - Issues warning when setting not present in suricata.yaml.
+   * - 8.0.x
+     - Uses default regardless of it being explicitly defined in the
+       suricata.yaml.
+     - No warnings issued.
+
+An important implication is that if one skips a major upgrade - going from 6.0.x
+directly to 8.0.x, for instance, they may find encounter silent breaking changes,
+if they keep their old suricata.yaml.
+
 Upgrading 6.0 to 7.0
 --------------------
 
