@@ -1148,7 +1148,8 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     } else {
         if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
             SCLogDebug("state is already finished");
-            DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
+            // TODO put back the assert after deciding on the bug...
+            // DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
             SCReturnStruct(APP_LAYER_OK);
         }
         if ((direction & ftpdata_state->direction) == 0) {
