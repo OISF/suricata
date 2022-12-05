@@ -16,7 +16,7 @@
  */
 
 /*
- * TODO: Update \author in this file and in output-json-template.h.
+ * TODO: Update \author in this file and in output-json-template-rust.h.
  * TODO: Remove SCLogNotice statements, or convert to debug.
  * TODO: Implement your app-layers logging.
  */

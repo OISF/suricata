@@ -51,7 +51,6 @@ noinst_HEADERS = \
 	app-layer-snmp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
-	app-layer-template.h \
 	app-layer-template-rust.h \
 	app-layer-tftp.h \
 	autoconf.h \
@@ -322,7 +321,6 @@ noinst_HEADERS = \
 	detect-tcp-seq.h \
 	detect-tcp-window.h \
 	detect-template2.h \
-	detect-template-buffer.h \
 	detect-template.h \
 	detect-template-rust-buffer.h \
 	detect-threshold.h \
@@ -427,7 +425,6 @@ noinst_HEADERS = \
 	output-json-snmp.h \
 	output-json-ssh.h \
 	output-json-stats.h \
-	output-json-template.h \
 	output-json-template-rust.h \
 	output-json-tftp.h \
 	output-json-tls.h \
@@ -666,7 +663,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-snmp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
-	app-layer-template.c \
 	app-layer-template-rust.c \
 	app-layer-tftp.c \
 	conf.c \
@@ -934,7 +930,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tcp-seq.c \
 	detect-tcp-window.c \
 	detect-template2.c \
-	detect-template-buffer.c \
 	detect-template.c \
 	detect-template-rust-buffer.c \
 	detect-threshold.c \
@@ -1039,7 +1034,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-snmp.c \
 	output-json-ssh.c \
 	output-json-stats.c \
-	output-json-template.c \
 	output-json-template-rust.c \
 	output-json-tftp.c \
 	output-json-tls.c \
@@ -1267,7 +1261,6 @@ EXTRA_DIST = \
 	tests/detect-snmp-community.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
-	tests/detect-template-buffer.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \

@@ -16,7 +16,7 @@
  */
 
 /*
- * TODO: Update \author in this file and app-layer-templaterust.h.
+ * TODO: Update \author in this file and app-layer-template-rust.h.
  * TODO: Implement your app-layer logic with unit tests.
  * TODO: Remove SCLogNotice statements or convert to debug.
  */
