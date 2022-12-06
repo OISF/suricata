@@ -169,7 +169,7 @@ struct AppLayerParserState_ {
     AppLayerDecoderEvents *decoder_events;
 };
 
-enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_IGNORE;
+enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 
 static void AppLayerConfg(void)
 {
