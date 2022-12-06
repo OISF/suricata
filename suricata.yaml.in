@@ -1272,6 +1272,15 @@ legacy:
 # packet. Default is 15
 #packet-alert-max: 15
 
+# IPS Mode - Exception Policies
+#
+# Define a common behavior for all exception policies
+# the default is drop-packet/drop-flow. To fallback to old behavior (setting
+# each of them individually, or ignoring all), set this to false.
+# Possible values: auto (drop-packet/drop-flow), perfomance (bypass), disabled
+# (do not use the master switch)
+exception-policy-master-switch: auto
+
 # IP Reputation
 #reputation-categories-file: @e_sysconfdir@iprep/categories.txt
 #default-reputation-path: @e_sysconfdir@iprep

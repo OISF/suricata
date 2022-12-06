@@ -34,10 +34,18 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_REJECT,
 };
 
+typedef enum ExceptionPolicyMasterSwitch_ {
+    EXCEPTION_POLICY_SWITCH_DISABLED = 0,
+    EXCEPTION_POLICY_SWITCH_DEFAULT,
+    EXCEPTION_POLICY_SWITCH_PERFORMANCE,
+} ExceptionPolicyMasterSwitch;
+
 void ExceptionPolicyApply(
         Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason);
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow);
+void setMasterExceptionPolicy(void);
 
+extern ExceptionPolicyMasterSwitch g_eps_master_switch;
 #ifdef DEBUG
 extern uint64_t g_eps_applayer_error_offset_ts;
 extern uint64_t g_eps_applayer_error_offset_tc;
