@@ -945,7 +945,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             SCLogDebug("Midstream not enabled, so won't pick up a session");
             return 0;
         }
-        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_IGNORE ||
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
                     stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
                     stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
             SCLogDebug("Midstream policy not permissive, so won't pick up a session");
@@ -1118,7 +1118,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             SCLogDebug("Midstream not enabled, so won't pick up a session");
             return 0;
         }
-        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_IGNORE ||
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
                     stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
                     stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
             SCLogDebug("Midstream policy not permissive, so won't pick up a session");
