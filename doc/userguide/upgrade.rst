@@ -36,6 +36,11 @@ Upgrading 6.0 to 7.0
 Major changes
 ~~~~~~~~~~~~~
 - Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
+- Introducing the :ref:`Exception Policy's Master Switch <master-switch>`. This
+  allows to setup a single policy for all traffic exceptions. This is a breaking
+  change for the default behavior in the Exception Policies: in IPS mode, if an
+  exception policy is not set, it will fall back to the the master switch now,
+  instead of being ignored. Prevent this by disabling the master switch.
 
 Security changes
 ~~~~~~~~~~~~~~~~
