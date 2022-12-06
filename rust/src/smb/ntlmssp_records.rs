@@ -16,17 +16,17 @@
  */
 
 use crate::common::nom7::{bits, take_until_and_consume};
-use std::fmt;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
 use nom7::combinator::{cond, rest, verify};
-use nom7::number::streaming::{le_u8, le_u16, le_u32};
+use nom7::error::{make_error, ErrorKind};
+use nom7::number::streaming::{le_u16, le_u32, le_u8};
 use nom7::sequence::tuple;
-use nom7::IResult;
 use nom7::Err;
-use nom7::error::{ErrorKind, make_error};
+use nom7::IResult;
+use std::fmt;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NTLMSSPVersion {
     pub ver_major: u8,
     pub ver_minor: u8,
@@ -36,9 +36,11 @@ pub struct NTLMSSPVersion {
 
 impl fmt::Display for NTLMSSPVersion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{} build {} rev {}",
-                self.ver_major, self.ver_minor,
-                self.ver_build, self.ver_ntlm_rev)
+        write!(
+            f,
+            "{}.{} build {} rev {}",
+            self.ver_major, self.ver_minor, self.ver_build, self.ver_ntlm_rev
+        )
     }
 }
 
@@ -57,20 +59,16 @@ fn parse_ntlm_auth_version(i: &[u8]) -> IResult<&[u8], NTLMSSPVersion> {
     Ok((i, version))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NTLMSSPAuthRecord<'a> {
-    pub domain: &'a[u8],
-    pub user: &'a[u8],
-    pub host: &'a[u8],
+    pub domain: &'a [u8],
+    pub user: &'a [u8],
+    pub host: &'a [u8],
     pub version: Option<NTLMSSPVersion>,
 }
 
-fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
-    bits(tuple((
-        take_bits(6u8),
-        take_bits(1u8),
-        take_bits(25u32),
-    )))(i)
+fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u32)> {
+    bits(tuple((take_bits(6u8), take_bits(1u8), take_bits(25u32))))(i)
 }
 
 const NTLMSSP_IDTYPE_LEN: usize = 12;
@@ -116,7 +114,7 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let (i, _ssnkey_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
 
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
-    let (_, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
+    let (_, version) = cond(nego_flags.1 == 1, parse_ntlm_auth_version)(i)?;
 
     // Caller does not care about remaining input...
     let (_, domain_blob) = extract_ntlm_substring(orig_i, domain_blob_offset, domain_blob_len)?;
@@ -133,10 +131,10 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NTLMSSPRecord<'a> {
     pub msg_type: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_ntlmssp(i: &[u8]) -> IResult<&[u8], NTLMSSPRecord> {
