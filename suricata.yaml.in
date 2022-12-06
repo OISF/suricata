@@ -1129,6 +1129,18 @@ legacy:
 # packet. Default is 15
 #packet-alert-max: 15
 
+# Exception Policies
+#
+# Define a common behavior for all exception policies.
+# Default is ignore.
+# All values available for exception policies can be used, and there is one
+# extra option: auto - which means ignore (in Suricata 7.0 this changes to drop
+# in IPS mode).
+#
+# Exception policy values are: drop-packet, drop-flow, reject, bypass,
+# pass-packet, pass-flow, auto or ignore (disable).
+exception-policy: auto
+
 # IP Reputation
 #reputation-categories-file: @e_sysconfdir@iprep/categories.txt
 #default-reputation-path: @e_sysconfdir@iprep

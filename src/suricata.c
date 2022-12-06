@@ -2607,6 +2607,8 @@ int PostConfLoadedSetup(SCInstance *suri)
         EngineModeSetIDS();
     }
 
+    SetMasterExceptionPolicy();
+
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
