@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -125,6 +125,7 @@
 #include "util-device.h"
 #include "util-dpdk.h"
 #include "util-ebpf.h"
+#include "util-exception-policy.h"
 #include "util-host-os-info.h"
 #include "util-ioctl.h"
 #include "util-landlock.h"
@@ -2662,6 +2663,8 @@ int PostConfLoadedSetup(SCInstance *suri)
     RegisterFlowBypassInfo();
 
     MacSetRegisterFlowStorage();
+
+    SetMasterExceptionPolicy();
 
     AppLayerSetup();
 

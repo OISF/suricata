@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -156,7 +156,7 @@ struct AppLayerParserState_ {
     FramesContainer *frames;
 };
 
-enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_IGNORE;
+enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 
 static void AppLayerConfg(void)
 {
