@@ -27,12 +27,24 @@
 #include "stream-tcp-reassemble.h"
 #include "action-globals.h"
 
+enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
+
+void SetMasterExceptionPolicy()
+{
+    g_eps_master_switch = ExceptionPolicyParse("exception-policy", true);
+}
+
+static enum ExceptionPolicy GetMasterExceptionPolicy(const char *option)
+{
+    return g_eps_master_switch;
+}
+
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {
     SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", p->pcap_cnt, policy);
     if (EngineModeIsIPS()) {
         switch (policy) {
-            case EXCEPTION_POLICY_IGNORE:
+            case EXCEPTION_POLICY_NOT_SET:
                 break;
             case EXCEPTION_POLICY_REJECT:
                 SCLogDebug("EXCEPTION_POLICY_REJECT");
@@ -75,16 +87,16 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
 
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow)
 {
-    enum ExceptionPolicy policy = EXCEPTION_POLICY_IGNORE;
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     const char *value_str = NULL;
     if ((ConfGet(option, &value_str)) == 1 && value_str != NULL) {
-        if (strcmp(value_str, "drop-flow") == 0) {
+        if (strcmp(value_str, "drop-flow") == 0 || strcmp(value_str, "auto") == 0) {
             policy = EXCEPTION_POLICY_DROP_FLOW;
             SCLogConfig("%s: %s", option, value_str);
         } else if (strcmp(value_str, "pass-flow") == 0) {
             policy = EXCEPTION_POLICY_PASS_FLOW;
             SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "bypass") == 0) {
+        } else if (strcmp(value_str, "bypass") == 0 || strcmp(value_str, "performance") == 0) {
             policy = EXCEPTION_POLICY_BYPASS_FLOW;
             SCLogConfig("%s: %s", option, value_str);
         } else if (strcmp(value_str, "drop-packet") == 0) {
@@ -96,8 +108,9 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         } else if (strcmp(value_str, "reject") == 0) {
             policy = EXCEPTION_POLICY_REJECT;
             SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
-            policy = EXCEPTION_POLICY_IGNORE;
+        } else if (strcmp(value_str, "ignore") == 0 ||
+                   strcmp(value_str, "disabled") == 0) { // TODO name?
+            policy = EXCEPTION_POLICY_NOT_SET;
             SCLogConfig("%s: %s", option, value_str);
         } else {
             FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
@@ -111,12 +124,21 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
                     policy == EXCEPTION_POLICY_BYPASS_FLOW) {
                 SCLogWarning(SC_WARN_COMPATIBILITY,
                         "flow actions not supported for %s, defaulting to \"ignore\"", option);
-                policy = EXCEPTION_POLICY_IGNORE;
+                policy = EXCEPTION_POLICY_NOT_SET;
             }
         }
 
     } else {
-        SCLogConfig("%s: ignore", option);
+        /* Exception Policy was not defined individually */
+        enum ExceptionPolicy master_policy = GetMasterExceptionPolicy(option);
+        if (master_policy == EXCEPTION_POLICY_NOT_SET) {
+            SCLogConfig("%s: ignore", option);
+        } else {
+            /* If the master switch was set and the Exception Policy option was not
+            individually set, use the defined master Exception Policy */
+            SCLogConfig("%s: defined via Exception Policy master switch", option);
+            policy = master_policy;
+        }
     }
     return policy;
 }

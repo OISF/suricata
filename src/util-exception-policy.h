@@ -25,7 +25,7 @@
 #include "decode.h"
 
 enum ExceptionPolicy {
-    EXCEPTION_POLICY_IGNORE = 0,
+    EXCEPTION_POLICY_NOT_SET = 0,
     EXCEPTION_POLICY_PASS_PACKET,
     EXCEPTION_POLICY_PASS_FLOW,
     EXCEPTION_POLICY_BYPASS_FLOW,
@@ -34,10 +34,12 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_REJECT,
 };
 
+void SetMasterExceptionPolicy(void);
 void ExceptionPolicyApply(
         Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason);
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow);
 
+extern enum ExceptionPolicy g_eps_master_switch;
 #ifdef DEBUG
 extern uint64_t g_eps_applayer_error_offset_ts;
 extern uint64_t g_eps_applayer_error_offset_tc;
