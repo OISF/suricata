@@ -16,6 +16,45 @@ simulate failures or errors and understand Suricata behavior under such conditio
 Exception Policies
 ------------------
 
+.. _master-switch:
+
+Master Switch
+~~~~~~~~~~~~~
+
+It is possible to set all configuration policies via what we call "master
+switch". This offers a quick way to define what the engine should do in case of
+traffic exceptions, while still allowing for the flexibility of indicating a
+different behavior for specific exception policies your setup/environment may
+have the need to.
+
+::
+
+   # In IPS mode, the default is drop-packet/drop-flow. To fallback to old
+   # behavior (setting each of them individually, or ignoring all), set this
+   # to ignore.
+   # All values available for exception policies can be used, and there is one
+   # extra option: auto - which means drop-packet/drop-flow in IPS mode and
+   # ignore in IDS mode).
+   # Exception policy values are: drop-packet, drop-flow, reject, bypass,
+   # pass-packet, pass-flow, ignore (disable).
+   exception-policy: auto
+
+This value will be overwritten by specific exception policies whose settings are
+also defined in the yaml file.
+
+Auto
+''''
+
+**In IPS mode**, the default behavior for all exception policies is to drop
+packets and/or flows. It is possible to disable this default, by setting the
+exception policies "master switch" yaml config option to ``ignore``.
+
+**In IDS mode**, setting auto mode actually means disabling the
+``master-swtich``, or ignoring the exception policies.
+
+Specific settings
+~~~~~~~~~~~~~~~~~
+
 Exception policies are implemented for:
 
 .. list-table:: Exception Policy configuration variables
