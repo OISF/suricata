@@ -16,9 +16,10 @@
  */
 
 use nom::IResult;
-use nom::combinator::{cond, rest};
+use nom::combinator::{cond, rest, verify};
 use nom::number::streaming::{le_u8, le_u16, le_u32};
-use nom::bytes::streaming:: take;
+use nom::Err;
+use nom::error::{ErrorKind, make_error};
 
 #[derive(Debug,PartialEq)]
 pub struct NTLMSSPVersion {
@@ -63,7 +64,24 @@ fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
     bits!(i, tuple!(take_bits!(6u8),take_bits!(1u8),take_bits!(25u32)))
 }
 
+const NTLMSSP_IDTYPE_LEN: usize = 12;
+
+fn extract_ntlm_substring(i: &[u8], offset: u32, length: u16) -> IResult<&[u8], &[u8]> {
+    if offset < NTLMSSP_IDTYPE_LEN as u32 {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+    let start = offset as usize - NTLMSSP_IDTYPE_LEN;
+    let end = offset as usize + length as usize - NTLMSSP_IDTYPE_LEN;
+    if i.len() < end {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+    return Ok((i, &i[start..end]));
+}
+
 pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
+    let orig_i = i;
+    let record_len = i.len() + NTLMSSP_IDTYPE_LEN; // idenfier (8) and type (4) are cut before we are called
+
     let (i, _lm_blob_len) = le_u16(i)?;
     let (i, _lm_blob_maxlen) = le_u16(i)?;
     let (i, _lm_blob_offset) = le_u32(i)?;
@@ -78,28 +96,23 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
 
     let (i, user_blob_len) = le_u16(i)?;
     let (i, _user_blob_maxlen) = le_u16(i)?;
-    let (i, _user_blob_offset) = le_u32(i)?;
+    let (i, user_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
 
     let (i, host_blob_len) = le_u16(i)?;
     let (i, _host_blob_maxlen) = le_u16(i)?;
-    let (i, _host_blob_offset) = le_u32(i)?;
+    let (i, host_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
 
     let (i, _ssnkey_blob_len) = le_u16(i)?;
     let (i, _ssnkey_blob_maxlen) = le_u16(i)?;
     let (i, _ssnkey_blob_offset) = le_u32(i)?;
 
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
-    let (i, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
+    let (_, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
 
-    // subtrack 12 as idenfier (8) and type (4) are cut before we are called
-    // subtract 60 for the len/offset/maxlen fields above
-    let (i, _) = cond(nego_flags.1==1 && domain_blob_offset > 72, |b| take(domain_blob_offset - (12 + 60))(b))(i)?;
-    // or 52 if we have no version
-    let (i, _) = cond(nego_flags.1==0 && domain_blob_offset > 64, |b| take(domain_blob_offset - (12 + 52))(b))(i)?;
-
-    let (i, domain_blob) = take(domain_blob_len)(i)?;
-    let (i, user_blob) = take(user_blob_len)(i)?;
-    let (i, host_blob) = take(host_blob_len)(i)?;
+    // Caller does not care about remaining input...
+    let (_, domain_blob) = extract_ntlm_substring(orig_i, domain_blob_offset, domain_blob_len)?;
+    let (_, user_blob) = extract_ntlm_substring(orig_i, user_blob_offset, user_blob_len)?;
+    let (_, host_blob) = extract_ntlm_substring(orig_i, host_blob_offset, host_blob_len)?;
 
     let record = NTLMSSPAuthRecord {
         domain: domain_blob,
