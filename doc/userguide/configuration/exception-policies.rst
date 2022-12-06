@@ -16,6 +16,28 @@ simulate failures or errors and understand Suricata behavior under such conditio
 Exception Policies
 ------------------
 
+Master Switch
+~~~~~~~~~~~~~
+
+In IPS mode, the default behavior for all exception policies is to drop packets
+and/or flows. It is possible to disable this default, by setting the exception
+policies "master switch" yaml config option, to ``disabled``:
+
+::
+
+   # Define a common behavior for all exception policies
+   # the default is drop-packet/drop-flow. To fallback to old behavior (setting
+   # each of them individually, or ignoring all), disable it.
+   # Possible values: auto (drop-packet/drop-flow), perfomance (bypass),
+   # disabled
+   exception-policy-master-switch: disabled
+
+This value will be overwritten by specific exception policies whose settings are
+also defined in the yaml file.
+
+Specific settings
+~~~~~~~~~~~~~~~~~
+
 Exception policies are implemented for:
 
 .. list-table:: Exception Policy configuration variables
