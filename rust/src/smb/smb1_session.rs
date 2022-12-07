@@ -135,11 +135,16 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
             tx.vercmd.set_smb1_cmd(r.command);
 
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
+                td.request_host = Some(smb1_session_setup_request_host_info(r, rem));
                 if let Some(s) = parse_secblob(setup.sec_blob) {
                     td.ntlmssp = s.ntlmssp;
                     td.krb_ticket = s.krb;
+                    if let Some(ntlm) = &td.ntlmssp {
+                        if ntlm.warning {
+                            tx.set_event(SMBEvent::UnusualNtlmsspOrder);
+                        }
+                    }
                 }
-                td.request_host = Some(smb1_session_setup_request_host_info(r, rem));
             }
         },
         _ => {

@@ -17,7 +17,7 @@
 
 use crate::smb::smb2_records::*;
 use crate::smb::smb::*;
-//use smb::events::*;
+use crate::smb::events::*;
 use crate::smb::auth::*;
 
 pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
@@ -34,6 +34,11 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
                 if let Some(s) = parse_secblob(setup.data) {
                     td.ntlmssp = s.ntlmssp;
                     td.krb_ticket = s.krb;
+                    if let Some(ntlm) = &td.ntlmssp {
+                        if ntlm.warning {
+                            tx.set_event(SMBEvent::UnusualNtlmsspOrder);
+                        }
+                    }
                 }
             }
         },
