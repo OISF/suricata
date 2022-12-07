@@ -65,6 +65,7 @@ pub struct NTLMSSPAuthRecord<'a> {
     pub user: &'a [u8],
     pub host: &'a [u8],
     pub version: Option<NTLMSSPVersion>,
+    pub warning: bool,
 }
 
 fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u32)> {
@@ -121,10 +122,19 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let (_, user_blob) = extract_ntlm_substring(orig_i, user_blob_offset, user_blob_len)?;
     let (_, host_blob) = extract_ntlm_substring(orig_i, host_blob_offset, host_blob_len)?;
 
+    let mut warning = false;
+    if user_blob_offset < domain_blob_offset + domain_blob_len as u32
+        || host_blob_offset < user_blob_offset + user_blob_len as u32
+    {
+        // to set event in transaction
+        warning = true;
+    }
+
     let record = NTLMSSPAuthRecord {
         domain: domain_blob,
         user: user_blob,
         host: host_blob,
+        warning,
 
         version,
     };
