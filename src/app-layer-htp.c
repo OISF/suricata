@@ -2385,21 +2385,12 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_plusspace_decode(cfg_prec->cfg, 0);
     // enables request decompression
     htp_config_set_request_decompression(cfg_prec->cfg, 1);
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
-    // disable by default
     htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
     htp_config_set_lzma_memlimit(cfg_prec->cfg,
             HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
     htp_config_set_compression_bomb_limit(cfg_prec->cfg,
                                           HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
     htp_config_set_compression_time_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT);
-#endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2601,12 +2592,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
-            htp_config_set_response_decompression_layer_limit(cfg_prec->cfg, value);
-#else
-            SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "can't set response-body-decompress-layer-limit "
-                    "to %u, libhtp version too old", value);
-#endif
+            htp_config_set_decompression_layer_limit(cfg_prec->cfg, value);
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
             htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
                                                      ConfValIsTrue(p->val));
@@ -2676,7 +2662,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             htp_config_set_field_limit(cfg_prec->cfg,
                     (size_t)limit);
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
         } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2690,8 +2675,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
         } else if (strcasecmp("lzma-enabled", p->name) == 0) {
             if (ConfValIsTrue(p->val)) {
                 htp_config_set_lzma_layers(cfg_prec->cfg, 1);
@@ -2706,8 +2689,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 SCLogConfig("Setting HTTP LZMA decompression layers to %" PRIu32 "", (int)limit);
                 htp_config_set_lzma_layers(cfg_prec->cfg, limit);
             }
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
         } else if (strcasecmp("compression-bomb-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2721,8 +2702,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP compression bomb limit to %"PRIu32" bytes", limit);
             htp_config_set_compression_bomb_limit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
         } else if (strcasecmp("decompression-time-limit", p->name) == 0) {
             uint32_t limit = 0;
             // between 1 usec and 1 second
@@ -2734,7 +2713,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
             SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
             htp_config_set_compression_time_limit(cfg_prec->cfg, (size_t)limit);
-#endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
                 cfg_prec->randomize = ConfValIsTrue(p->val);

@@ -28,13 +28,6 @@ while IFS= read -r requirement; do
             cp -a suricata-update.tmp/* suricata-update/
             rm -rf suricata-update.tmp
             ;;
-        libhtp)
-            repo=${LIBHTP_REPO:-$2}
-            branch=${LIBHTP_BRANCH:-$3}
-            echo "===> Bundling ${repo} -b ${branch}"
-            rm -rf libhtp
-            git clone "${repo}" -b "${branch}" libhtp
-            ;;
         \#*)
             # Ignore comment.
             ;;

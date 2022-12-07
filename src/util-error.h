@@ -231,7 +231,6 @@ typedef enum {
     SC_ERR_RAWBYTES_BUFFER,
     SC_ERR_SOCKET,
     SC_ERR_PCAP_TRANSLATE, /* failed to translate ip to dev */
-    SC_WARN_OUTDATED_LIBHTP,
     SC_WARN_DEPRECATED,
     SC_WARN_PROFILE,
     SC_ERR_FLOW_INIT,
