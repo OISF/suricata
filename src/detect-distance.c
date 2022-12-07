@@ -118,7 +118,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         cd->distance = index;
         cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
-        if (StringParseInt32(&cd->distance, 0, 0, str) < 0) {
+        if ((StringParseInt32(&cd->distance, 0, 0, str) < 0) ||
+                (abs(cd->distance) > DETECT_CONTENT_VALUE_MAX)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                       "invalid value for distance: %s", str);
             goto end;

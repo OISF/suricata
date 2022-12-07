@@ -115,7 +115,8 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         cd->within = index;
         cd->flags |= DETECT_CONTENT_WITHIN_VAR;
     } else {
-        if (StringParseInt32(&cd->within, 0, 0, str) < 0) {
+        if ((StringParseInt32(&cd->within, 0, 0, str) < 0) ||
+                (abs(cd->within) > DETECT_CONTENT_VALUE_MAX)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                       "invalid value for within: %s", str);
             goto end;
