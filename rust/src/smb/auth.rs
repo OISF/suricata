@@ -151,6 +151,7 @@ pub struct NtlmsspData {
     pub user: Vec<u8>,
     pub domain: Vec<u8>,
     pub version: Option<NTLMSSPVersion>,
+    pub warning: bool,
 }
 
 /// take in blob, search for the header and parse it
@@ -179,6 +180,7 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
                         host,
                         user,
                         domain,
+                        warning: ad.warning,
                         version: ad.version,
                     };
                     ntlmssp_data = Some(d);
