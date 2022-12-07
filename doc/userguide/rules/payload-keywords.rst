@@ -197,6 +197,8 @@ distance:5; means the pattern can be anywhere after the previous
 match + 5 bytes. For limiting how far after the last match Suricata
 needs to look, use 'within'.
 
+The absolute value for distance must be less than or equal to 1MB (1048576).
+
 Examples of distance:
 
 .. image:: payload-keywords/distance5.png
@@ -222,6 +224,8 @@ within comes with a mandatory numeric value. Using within makes sure
 there will only be a match if the content matches with the payload
 within the set amount of bytes. Within can not be 0 (zero)
 
+The absolute value for within must be less than or equal to 1MB (1048576).
+
 Example:
 
 .. image:: payload-keywords/within2.png
@@ -243,7 +247,7 @@ payload for a match, use within.
 rawbytes
 --------
 
-The rawbytes keyword has no effect but is included to be comaptible with
+The rawbytes keyword has no effect but is included to be compatible with
 signatures that use it, for example signatures used with Snort.
 
 isdataat
