@@ -863,7 +863,7 @@ static int DetectContentDepthTest01(void)
     TEST_RUN("content:\"=\"; offset:4; depth:9; content:\"=&\"; distance:55; within:2;", 60, 70);
 
     // distance value is too high so we bail and not set anything on this content
-    TEST_RUN("content:\"0123456789\"; content:\"abcdef\"; distance:2147483647;", 0, 0);
+    TEST_RUN("content:\"0123456789\"; content:\"abcdef\"; distance:1048576;", 0, 0);
 
     // Bug #5162.
     TEST_RUN("content:\"SMB\"; depth:8; content:\"|09 00|\"; distance:8; within:2;", 11, 18);
