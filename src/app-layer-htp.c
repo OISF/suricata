@@ -60,7 +60,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
@@ -462,7 +461,6 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
     if (likely(htud)) {
         HtpBodyFree(&htud->request_body);
         HtpBodyFree(&htud->response_body);
-        bstr_free(htud->request_uri_normalized);
         if (htud->request_headers_raw)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
@@ -2275,21 +2273,12 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *tx_ud;
-    bstr *request_uri_normalized;
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
-    const HTPCfgRec *cfg = hstate->cfg;
+    HtpState *hstate = htp_connp_user_data(connp);
 
-    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
-    if (request_uri_normalized == NULL)
-        return HTP_OK;
-
-    tx_ud = htp_tx_get_user_data(tx);
+    tx_ud = htp_tx_user_data(tx);
     if (unlikely(tx_ud == NULL)) {
         return HTP_STATUS_OK;
     }
-    if (unlikely(tx_ud->request_uri_normalized != NULL))
-        bstr_free(tx_ud->request_uri_normalized);
-    tx_ud->request_uri_normalized = request_uri_normalized;
 
     if (htp_tx_flags(tx)) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
@@ -2358,7 +2347,7 @@ static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t
  */
 static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 {
-    cfg_prec->uri_include_all = FALSE;
+    htp_config_set_normalized_uri_include_all(cfg_prec->cfg, FALSE);
     cfg_prec->request.body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     cfg_prec->response.body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
     cfg_prec->request.inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
@@ -2586,16 +2575,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
 
         } else if (strcasecmp("double-decode-query", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodeQuery);
-            }
+            htp_config_set_double_decode_normalized_query(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("double-decode-path", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodePath);
-            }
+            htp_config_set_double_decode_normalized_path(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
@@ -2672,9 +2655,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
                                                 ConfValIsTrue(p->val));
         } else if (strcasecmp("uri-include-all", p->name) == 0) {
-            cfg_prec->uri_include_all = ConfValIsTrue(p->val);
+            htp_config_set_normalized_uri_include_all(cfg_prec->cfg,
+                                                ConfValIsTrue(p->val));
             SCLogDebug("uri-include-all %s",
-                    cfg_prec->uri_include_all ? "enabled" : "disabled");
+                     ConfValIsTrue(p->val)? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
             htp_config_set_plusspace_decode(cfg_prec->cfg,
                                                 ConfValIsTrue(p->val));
@@ -3787,20 +3771,20 @@ static int HTPParserTest07(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL)  {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref, reflen);
             printf("\": ");
@@ -3880,11 +3864,11 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
-        PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
-                       bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
+        PrintRawDataFp(stdout, bstr_ptr(request_uri_normalized),
+                       bstr_len(request_uri_normalized));
     }
 
     result = 1;
@@ -3960,11 +3944,11 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
-        PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
-                       bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
+        PrintRawDataFp(stdout, bstr_ptr(request_uri_normalized),
+                       bstr_len(request_uri_normalized));
     }
 
     result = 1;
@@ -4106,21 +4090,21 @@ static int HTPParserTest11(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx != NULL && tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (4 != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (4 != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be 2, is %"PRIuMAX,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (bstr_ptr(tx_ud->request_uri_normalized)[0] != '/' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[1] != '%' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[2] != '0' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[3] != '0')
+        if (bstr_ptr(request_uri_normalized)[0] != '/' ||
+            bstr_ptr(request_uri_normalized)[1] != '%' ||
+            bstr_ptr(request_uri_normalized)[2] != '0' ||
+            bstr_ptr(request_uri_normalized)[3] != '0')
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\": ");
             goto end;
         }
@@ -4187,24 +4171,24 @@ static int HTPParserTest12(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (7 != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (7 != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be 5, is %"PRIuMAX,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (bstr_ptr(tx_ud->request_uri_normalized)[0] != '/' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[1] != '?' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[2] != 'a' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[3] != '=' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[4] != '%' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[5] != '0' ||
-            bstr_ptr(tx_ud->request_uri_normalized)[6] != '0')
+        if (bstr_ptr(request_uri_normalized)[0] != '/' ||
+            bstr_ptr(request_uri_normalized)[1] != '?' ||
+            bstr_ptr(request_uri_normalized)[2] != 'a' ||
+            bstr_ptr(request_uri_normalized)[3] != '=' ||
+            bstr_ptr(request_uri_normalized)[4] != '%' ||
+            bstr_ptr(request_uri_normalized)[5] != '0' ||
+            bstr_ptr(request_uri_normalized)[6] != '0')
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\": ");
             goto end;
         }
@@ -4847,37 +4831,40 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3,
+                    bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4938,37 +4925,40 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2,
+                    bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3,
+                    bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -5057,20 +5047,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5084,20 +5074,20 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref2,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref2, reflen);
             printf("\": ");
@@ -5110,20 +5100,20 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 2);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX" (3): ",
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref3,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref3, reflen);
             printf("\": ");
@@ -5220,20 +5210,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5247,20 +5237,20 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref2,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref2, reflen);
             printf("\": ");
@@ -5353,20 +5343,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5459,20 +5449,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5565,20 +5555,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5672,20 +5662,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5776,20 +5766,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
@@ -5881,20 +5871,20 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    if (request_uri_normalized != NULL) {
+        if (reflen != bstr_len(request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(request_uri_normalized));
             goto end;
         }
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        if (memcmp(bstr_ptr(request_uri_normalized), ref1,
+                   bstr_len(request_uri_normalized)) != 0)
         {
             printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            PrintRawUriFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
             printf("\" != \"");
             PrintRawUriFp(stdout, ref1, reflen);
             printf("\": ");
