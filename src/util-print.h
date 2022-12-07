@@ -42,9 +42,9 @@
     } while (0)
 
 void PrintBufferRawLineHex(char *, int *,int, const uint8_t *, uint32_t);
-void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
+void PrintRawUriFp(FILE *, const uint8_t *, uint32_t);
 void PrintRawUriBuf(char *, uint32_t *, uint32_t,
-                    uint8_t *, uint32_t);
+                    const uint8_t *, uint32_t);
 void PrintRawJsonFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, const uint8_t *, uint32_t);
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,

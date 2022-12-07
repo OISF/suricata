@@ -77,23 +77,22 @@ void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
     if (h2s == NULL || h1tx == NULL) {
         return;
     }
-    if (h1tx->request_method == NULL) {
+    if (htp_tx_request_method(h1tx) == NULL) {
         // may happen if we only got the reply, not the HTTP1 request
         return;
     }
     // else
-    rs_http2_tx_set_method(h2s, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
-    if (h1tx->request_uri != NULL) {
+    rs_http2_tx_set_method(h2s, bstr_ptr(htp_tx_request_method(h1tx)), bstr_len(htp_tx_request_method(h1tx)));
+    if (htp_tx_request_uri(h1tx) != NULL) {
         // A request line without spaces gets interpreted as a request_method
         // and has request_uri=NULL
-        rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
+        rs_http2_tx_set_uri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)), bstr_len(htp_tx_request_uri(h1tx)));
     }
-    size_t nbheaders = htp_table_size(h1tx->request_headers);
+    size_t nbheaders = htp_tx_request_headers_size(h1tx);
     for (size_t i = 0; i < nbheaders; i++) {
-        htp_header_t *h = htp_table_get_index(h1tx->request_headers, i, NULL);
+        const htp_header_t *h = htp_tx_request_header_index(h1tx, i);
         if (h != NULL) {
-            rs_http2_tx_add_header(h2s, bstr_ptr(h->name), bstr_len(h->name), bstr_ptr(h->value),
-                    bstr_len(h->value));
+            rs_http2_tx_add_header(h2s, htp_header_name_ptr(h), htp_header_name_len(h), htp_header_value_ptr(h), htp_header_value_len(h));
         }
     }
 }

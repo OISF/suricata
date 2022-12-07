@@ -87,10 +87,10 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_request_line", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_request_line", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");
@@ -130,11 +130,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
-        if (unlikely(tx->request_line == NULL)) {
+        if (unlikely(htp_tx_request_line(tx) == NULL)) {
             return NULL;
         }
-        const uint32_t data_len = bstr_len(tx->request_line);
-        const uint8_t *data = bstr_ptr(tx->request_line);
+        const uint32_t data_len = bstr_len(htp_tx_request_line(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_request_line(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
