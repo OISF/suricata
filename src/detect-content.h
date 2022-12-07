@@ -80,6 +80,11 @@
                                        ((c)->flags & DETECT_CONTENT_OFFSET)   || \
                                        ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
 
+/*
+ * Values for distance, and within must be less than or equal
+ * to this value (absolute value where required).
+ */
+#define DETECT_CONTENT_VALUE_MAX 1024 * 1024
 
 #include "util-spm.h"
 
