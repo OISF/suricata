@@ -117,7 +117,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         cd->distance = index;
         cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
-        if (StringParseInt32(&cd->distance, 0, 0, str) < 0) {
+        if ((StringParseI32RangeCheck(&cd->distance, 0, 0, str, -DETECT_CONTENT_VALUE_MAX,
+                     DETECT_CONTENT_VALUE_MAX) < 0)) {
             SCLogError("invalid value for distance: %s", str);
             return -1;
         }
