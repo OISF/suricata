@@ -160,11 +160,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //loop over packets
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
-    if (header->ts.tv_sec >= INT_MAX - 3600) {
+    if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600) {
         goto bail;
     }
     p->ts.tv_sec = header->ts.tv_sec;
-    p->ts.tv_usec = header->ts.tv_usec % 1000000;
+    p->ts.tv_usec = ((header->ts.tv_usec % 1000000) + 1000000) % 1000000;
     p->datalink = pcap_datalink(pkts);
     p->pkt_src = PKT_SRC_WIRE;
     while (r > 0) {
@@ -187,12 +187,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
         }
         r = pcap_next_ex(pkts, &header, &pkt);
-        if (header->ts.tv_sec >= INT_MAX - 3600) {
+        if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600) {
             goto bail;
         }
         PacketRecycle(p);
         p->ts.tv_sec = header->ts.tv_sec;
-        p->ts.tv_usec = header->ts.tv_usec % 1000000;
+        p->ts.tv_usec = ((header->ts.tv_usec % 1000000) + 1000000) % 1000000;
         p->datalink = pcap_datalink(pkts);
         p->pkt_src = PKT_SRC_WIRE;
         pcap_cnt++;
