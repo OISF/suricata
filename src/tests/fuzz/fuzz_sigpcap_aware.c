@@ -157,7 +157,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
     p = PacketGetFromAlloc();
-    if (header.ts.tv_sec >= INT_MAX - 3600) {
+    if (v header.ts.tv_sec >= INT_MAX - 3600) {
         goto bail;
     }
     p->pkt_src = PKT_SRC_WIRE;
