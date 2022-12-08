@@ -1058,14 +1058,19 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
     }
 
     if (netmask != 128) {
-        struct in6_addr mask6;
+        struct in6_addr mask6, check;
         CIDRGetIPv6(netmask, &mask6);
+        memcpy(&check, &addr, sizeof(check));
+        bool diff = false;
         for (int i = 0; i < 16; i++) {
             addr.s6_addr[i] &= mask6.s6_addr[i];
+            diff |= (addr.s6_addr[i] != check.s6_addr[i]);
         }
-        char nstr[64];
-        PrintInet(AF_INET6, (void *)&addr.s6_addr, nstr, sizeof(nstr));
-        SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+        if (diff) {
+            char nstr[64];
+            PrintInet(AF_INET6, (void *)&addr.s6_addr, nstr, sizeof(nstr));
+            SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+        }
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
         SCRadixValidateIPv6Key((uint8_t *)&addr.s6_addr, netmask);
 #endif
