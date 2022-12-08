@@ -149,8 +149,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             }
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;
-            SCLogDebug("lets go mime_state %p, state_flag %u", mime_state,
-                    mime_state ? mime_state->state_flag : 0);
+            SCLogDebug("lets go mime_state %p", mime_state);
             break;
         default:
             /* don't know how we got here */
