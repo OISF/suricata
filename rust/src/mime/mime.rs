@@ -67,11 +67,11 @@ fn is_mime_space(ch: u8) -> bool {
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
-    let (input, _) = take_while(|ch: u8| is_mime_space(ch))(input)?;
+    let (input, _) = take_while(is_mime_space)(input)?;
     let (input, name) = take_until("=")(input)?;
     let (input, _) = char('=')(input)?;
     let (input, value) = alt((mime_parse_value_delimited, mime_parse_value_until))(input)?;
-    let (input, _) = take_while(|ch: u8| is_mime_space(ch))(input)?;
+    let (input, _) = take_while(is_mime_space)(input)?;
     let (input, _) = opt(complete(char(';')))(input)?;
     return Ok((input, (name, value)));
 }
@@ -253,7 +253,7 @@ fn mime_consume_until_eol(input: &[u8]) -> IResult<&[u8], bool> {
 pub fn mime_parse_header_line(input: &[u8]) -> IResult<&[u8], &[u8]> {
     let (input, name) = take_till(|ch: u8| ch == b':')(input)?;
     let (input, _) = char(':')(input)?;
-    let (input, _) = take_while(|ch: u8| is_mime_space(ch))(input)?;
+    let (input, _) = take_while(is_mime_space)(input)?;
     return Ok((input, name));
 }
 
@@ -288,7 +288,7 @@ fn mime_parse_headers<'a, 'b>(
                                 "filename".as_bytes(),
                                 &mut sections_values,
                             ) {
-                                if filename.len() > 0 {
+                                if !filename.is_empty() {
                                     ctx.filename = Vec::with_capacity(filename.len());
                                     fileopen = true;
                                     for c in filename {
@@ -300,19 +300,19 @@ fn mime_parse_headers<'a, 'b>(
                                 }
                             }
                         }
-                        if value.len() == 0 {
+                        if value.is_empty() {
                             errored = true;
                         }
                     }
                     _ => {
-                        if line.len() > 0 {
+                        if !line.is_empty() {
                             errored = true;
                         }
                     }
                 }
                 let (input3, _) = tag("\r\n")(input2)?;
                 input = input3;
-                if line.len() == 0 || (line.len() == 1 && line[0] == b'\r') {
+                if line.is_empty() || (line.len() == 1 && line[0] == b'\r') {
                     return Ok((input, (MimeParserState::HeaderEnd, fileopen, errored)));
                 }
             }
@@ -341,7 +341,7 @@ fn mime_consume_chunk<'a, 'b>(boundary: &'b [u8], input: &'a [u8]) -> IResult<&'
             let (input2, _) = tag("\r\n")(input)?;
             if input2.len() < boundary.len() {
                 if input2 == &boundary[..input2.len()] {
-                    if line.len() > 0 {
+                    if !line.is_empty() {
                         // consume as chunk up to eol (not consuming eol)
                         return Ok((input, false));
                     }
@@ -417,17 +417,15 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
                         return (MimeParserResult::MimeNeedsMore, consumed, warnings);
                     }
                     ctx.state = MimeParserState::Chunk;
-                } else {
-                    if input[..ctx.boundary.len()] == ctx.boundary {
-                        ctx.state = MimeParserState::Start;
-                        if ctx.filename.len() > 0 {
-                            warnings |= MIME_EVENT_FLAG_NO_FILEDATA;
-                        }
-                        ctx.filename.clear();
-                        return (MimeParserResult::MimeFileClose, consumed, warnings);
-                    } else {
-                        ctx.state = MimeParserState::Chunk;
+                } else if input[..ctx.boundary.len()] == ctx.boundary {
+                    ctx.state = MimeParserState::Start;
+                    if !ctx.filename.is_empty() {
+                        warnings |= MIME_EVENT_FLAG_NO_FILEDATA;
                     }
+                    ctx.filename.clear();
+                    return (MimeParserResult::MimeFileClose, consumed, warnings);
+                } else {
+                    ctx.state = MimeParserState::Chunk;
                 }
             }
             MimeParserState::Chunk => {
@@ -506,7 +504,7 @@ pub unsafe extern "C" fn rs_mime_parse(
 pub unsafe extern "C" fn rs_mime_state_get_filename(
     ctx: &mut MimeStateHTTP, buffer: *mut *const u8, filename_len: *mut u16,
 ) {
-    if ctx.filename.len() > 0 {
+    if !ctx.filename.is_empty() {
         *buffer = ctx.filename.as_ptr();
         if ctx.filename.len() < u16::MAX.into() {
             *filename_len = ctx.filename.len() as u16;

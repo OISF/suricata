@@ -174,7 +174,7 @@ fn log_data(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonErr
     if !ctx.attachments.is_empty() {
         js.open_array("attachment")?;
         for a in &ctx.attachments {
-            js.append_string(&String::from_utf8_lossy(&a))?;
+            js.append_string(&String::from_utf8_lossy(a))?;
         }
         js.close()?;
     }

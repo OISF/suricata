@@ -79,7 +79,7 @@ pub fn mime_smtp_state_init(files: &mut FileContainer) -> Option<MimeStateSMTP> 
         boundary: Vec::new(),
         quoted_buffer: Vec::new(),
         encoding: MimeSmtpEncoding::Plain,
-        files: files,
+        files,
         md5: Md5::new(),
         md5_state: MimeSmtpMd5State::MimeSmtpMd5Disabled,
         md5_result: [0; 16].into(),
@@ -140,7 +140,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
     let mut sections_values = Vec::new();
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::rs_equals_lowercase(&h.name, b"content-disposition") {
-            if ctx.filename.len() == 0 {
+            if ctx.filename.is_empty() {
                 if let Ok(value) =
                     mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
                 {
@@ -161,7 +161,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
     }
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::rs_equals_lowercase(&h.name, b"content-type") {
-            if ctx.filename.len() == 0 {
+            if ctx.filename.is_empty() {
                 if let Ok(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
                 {
@@ -196,10 +196,10 @@ extern "C" {
 }
 
 fn hex(i: u8) -> Option<u8> {
-    if i >= b'0' && i <= b'9' {
+    if (b'0'..=b'9').contains(&i) {
         return Some(i - b'0');
     }
-    if i >= b'A' && i <= b'F' {
+    if (b'A'..=b'F').contains(&i) {
         return Some(i - b'A' + 10);
     }
     return None;
@@ -214,7 +214,7 @@ fn mime_smtp_parse_line(
                 ctx.md5 = Md5::new();
                 ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Started;
             }
-            if i.len() == 0 {
+            if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
                 mime_smtp_process_headers(ctx);
                 if ctx.main_headers_nb == 0 {
@@ -230,7 +230,7 @@ fn mime_smtp_parse_line(
             } // else event ?
         }
         MimeSmtpParserState::MimeSmtpHeader => {
-            if i.len() == 0 {
+            if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
                 mime_smtp_process_headers(ctx);
                 if ctx.main_headers_nb == 0 {
@@ -249,22 +249,20 @@ fn mime_smtp_parse_line(
         }
         MimeSmtpParserState::MimeSmtpBody => {
             if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
-                Update::update(&mut ctx.md5, &full);
+                Update::update(&mut ctx.md5, full);
             }
-            if ctx.boundary.len() > 0 && i.len() >= ctx.boundary.len() {
-                if i[..ctx.boundary.len()] == ctx.boundary {
-                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
-                    let toclose = ctx.filename.len() > 0;
-                    ctx.filename.clear();
-                    ctx.headers.truncate(ctx.main_headers_nb);
-                    ctx.encoding = MimeSmtpEncoding::Plain;
-                    if toclose {
-                        return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
-                    }
-                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
+            if !ctx.boundary.is_empty() && i.len() >= ctx.boundary.len() && i[..ctx.boundary.len()] == ctx.boundary {
+                ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
+                let toclose = !ctx.filename.is_empty();
+                ctx.filename.clear();
+                ctx.headers.truncate(ctx.main_headers_nb);
+                ctx.encoding = MimeSmtpEncoding::Plain;
+                if toclose {
+                    return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
                 }
+                return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
             }
-            if ctx.filename.len() == 0 {
+            if ctx.filename.is_empty() {
                 return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
             }
             match ctx.encoding {
@@ -365,7 +363,7 @@ pub unsafe extern "C" fn rs_mime_smtp_get_state(ctx: &mut MimeStateSMTP) -> Mime
 pub unsafe extern "C" fn rs_mime_smtp_get_filename(
     ctx: &mut MimeStateSMTP, buffer: *mut *const u8, filename_len: *mut u16,
 ) {
-    if ctx.filename.len() > 0 {
+    if !ctx.filename.is_empty() {
         *buffer = ctx.filename.as_ptr();
         if ctx.filename.len() < u16::MAX.into() {
             *filename_len = ctx.filename.len() as u16;
