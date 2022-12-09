@@ -28,8 +28,6 @@
 #include "decode.h"
 
 #include "detect.h"
-#include "detect-parse.h"
-#include "detect-content.h"
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -37,6 +35,10 @@
 #include "detect-engine-file.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+
+#include "detect-parse.h"
+#include "detect-content.h"
+#include "detect-file-data.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -104,65 +106,22 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectFileInspectGeneric, NULL);
+    DetectBufferTypeSetDescriptionByName("file.name", "http user agent");
 
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
+    g_file_match_list_id = DetectBufferTypeRegister("files");
+    g_file_name_buffer_id = DetectBufferTypeRegister("file.name");
 
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
+    SCLogDebug("registering filename rule option");
+    filehandler_table[DETECT_FILENAME].name = "files";
+    filehandler_table[DETECT_FILENAME].priority = 0;
+    filehandler_table[DETECT_FILENAME].PrefilterFn = NULL;
+    filehandler_table[DETECT_FILENAME].Callback = DetectFileInspectGeneric;
 
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
+    filehandler_table[DETECT_FILE_NAME].name = "file.name";
+    filehandler_table[DETECT_FILE_NAME].priority = 2;
+    filehandler_table[DETECT_FILE_NAME].PrefilterFn = PrefilterMpmFilenameRegister;
+    filehandler_table[DETECT_FILE_NAME].Callback = DetectEngineInspectFilename;
 
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
-
-    //this is used by filestore
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectFileInspectGeneric, NULL);
-
-    g_file_match_list_id = DetectBufferTypeGetByName("files");
-
-    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB,
-        ALPROTO_NFS, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
-        0 };
-
-    for (int i = 0; protos_ts[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.name", protos_ts[i],
-                SIG_FLAG_TOSERVER, 0,
-                DetectEngineInspectFilename, NULL);
-
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOSERVER, 2,
-                PrefilterMpmFilenameRegister, NULL, protos_ts[i],
-                0);
-    }
-    for (int i = 0; protos_tc[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.name", protos_tc[i],
-                SIG_FLAG_TOCLIENT, 0,
-                DetectEngineInspectFilename, NULL);
-
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOCLIENT, 2,
-                PrefilterMpmFilenameRegister, NULL, protos_tc[i],
-                0);
-    }
-
-    DetectBufferTypeSetDescriptionByName("file.name", "file name");
-
-    g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
-	SCLogDebug("registering filename rule option");
     return;
 }
 

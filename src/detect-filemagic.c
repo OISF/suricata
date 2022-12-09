@@ -53,6 +53,7 @@
 
 #include "stream-tcp.h"
 
+#include "detect-file-data.h"
 #include "detect-filemagic.h"
 
 #include "conf.h"
@@ -134,34 +135,14 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILE_MAGIC].Setup = DetectFilemagicSetupSticky;
     sigmatch_table[DETECT_FILE_MAGIC].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
+    filehandler_table[DETECT_FILE_MAGIC].name = "file.magic",
+    filehandler_table[DETECT_FILE_MAGIC].priority = 2;
+    filehandler_table[DETECT_FILE_MAGIC].PrefilterFn = PrefilterMpmFilemagicRegister;
+    filehandler_table[DETECT_FILE_MAGIC].Callback = DetectEngineInspectFilemagic;
+
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
-    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS,
-        ALPROTO_HTTP2, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2,
-        0 };
-
-    for (int i = 0; protos_ts[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],
-                SIG_FLAG_TOSERVER, 0,
-                DetectEngineInspectFilemagic, NULL);
-
-        DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOSERVER, 2,
-                PrefilterMpmFilemagicRegister, NULL, protos_ts[i],
-                0);
-    }
-    for (int i = 0; protos_tc[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.magic", protos_tc[i],
-                SIG_FLAG_TOCLIENT, 0,
-                DetectEngineInspectFilemagic, NULL);
-
-        DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOCLIENT, 2,
-                PrefilterMpmFilemagicRegister, NULL, protos_tc[i],
-                0);
-    }
-
-    DetectBufferTypeSetDescriptionByName("file.magic",
-            "file magic");
+    DetectBufferTypeSetDescriptionByName("file.magic", "file magic");
 
     g_file_magic_buffer_id = DetectBufferTypeGetByName("file.magic");
 	SCLogDebug("registering filemagic rule option");

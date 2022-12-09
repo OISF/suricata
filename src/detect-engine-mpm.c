@@ -86,12 +86,8 @@ static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
  *
  *  \note to be used at start up / registration only. Errors are fatal.
  */
-void DetectAppLayerMpmRegister2(const char *name,
-        int direction, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectBufferMpmRegistery *mpm_reg, int list_id),
-        InspectionBufferGetDataPtr GetData,
+void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,

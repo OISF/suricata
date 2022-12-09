@@ -1228,6 +1228,8 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
+void DetectFileHandlerRegister(void);
+
 /* event code */
 enum {
 #ifdef UNITTESTS
