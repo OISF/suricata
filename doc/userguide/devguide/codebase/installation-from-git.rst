@@ -10,6 +10,10 @@ basically the same, except that some commands are Ubuntu-specific
 (like sudo and apt-get). In case you are using another operating system,
 you should replace those commands with your OS-specific commands.
 
+.. note::
+
+   These instructions were tested on Ubuntu 22.04.
+
 Pre-installation requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
