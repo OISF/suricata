@@ -197,7 +197,7 @@ pub struct MimeStateHTTP {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum MimeParserResult {
     MimeNeedsMore = 0,
     MimeFileOpen = 1,

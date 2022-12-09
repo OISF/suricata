@@ -25,7 +25,7 @@ use std::ffi::CStr;
 use std::os::raw::c_uchar;
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
 pub enum MimeSmtpParserState {
     MimeSmtpStart = 0,
     MimeSmtpHeader = 1,
@@ -46,7 +46,7 @@ pub struct MimeHeader {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
 pub enum MimeSmtpMd5State {
     MimeSmtpMd5Disabled = 0,
     MimeSmtpMd5Started = 1,
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn rs_mime_smtp_state_free(ctx: &mut MimeStateSMTP) {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum MimeSmtpParserResult {
     MimeSmtpNeedsMore = 0,
     MimeSmtpFileOpen = 1,
@@ -112,7 +112,7 @@ pub enum MimeSmtpParserResult {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
 pub enum MimeSmtpEncoding {
     Plain = 0,
     Base64 = 1,
