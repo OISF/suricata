@@ -75,6 +75,9 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum
  */
 int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
 
+typedef int (*PrefilterRegisterFunc)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
+
 /** \brief register an app layer keyword for mpm
  *  \param name buffer name
  *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
@@ -88,17 +91,14 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
  *        If both are needed, register the keyword twice.
  */
 void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistry *mpm_reg, int list_id),
-        InspectionBufferGetDataPtr GetData, AppProto alproto, int tx_min_progress);
+        PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress);
 void DetectAppLayerMpmRegisterByParentId(
         DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
-void DetectPktMpmRegister(const char *name, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-                const DetectBufferMpmRegistry *mpm_reg, int list_id),
+void DetectPktMpmRegister(const char *name, int priority, PrefilterRegisterFunc PrefilterRegister,
         InspectionBufferGetPktDataPtr GetData);
 void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
         const int id, const int parent_id,

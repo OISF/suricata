@@ -1766,9 +1766,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
      * we check for tx->response_line in case of junk
      * interpreted as body before response line
      */
-    if (!(htud->tcflags & HTP_FILENAME_SET) &&
-        (tx->response_line != NULL || tx->is_protocol_0_9))
-    {
+    if (!(htud->tcflags & HTP_FILENAME_SET)) {
         SCLogDebug("setting up file name");
 
         uint8_t *filename = NULL;
@@ -1818,9 +1816,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
         }
-    }
-    else if (tx->response_line != NULL || tx->is_protocol_0_9)
-    {
+    } else {
         /* otherwise, just store the data */
 
         if (!(htud->tcflags & HTP_DONTSTORE)) {

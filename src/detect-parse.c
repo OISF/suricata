@@ -73,6 +73,58 @@
 #include "action-globals.h"
 #include "util-validate.h"
 
+/* Table with all filehandler registrations */
+DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];
+
+void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
+{
+    // file protocols with common file handling
+    typedef struct {
+        AppProto al_proto;
+        int direction;
+        int to_client_progress;
+        int to_server_progress;
+    } DetectFileHandlerProtocol_t;
+    static DetectFileHandlerProtocol_t al_protocols[] = {
+        { .al_proto = ALPROTO_NFS, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+        { .al_proto = ALPROTO_SMB, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+        { .al_proto = ALPROTO_FTP, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+        { .al_proto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+        { .al_proto = ALPROTO_HTTP1,
+                .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
+                .to_client_progress = HTP_RESPONSE_BODY,
+                .to_server_progress = HTP_REQUEST_BODY },
+        { .al_proto = ALPROTO_HTTP2,
+                .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
+                .to_client_progress = HTTP2StateDataServer,
+                .to_server_progress = HTTP2StateDataClient },
+        { .al_proto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(al_protocols); i++) {
+        int direction = al_protocols[i].direction == 0
+                                ? (int)(SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)
+                                : al_protocols[i].direction;
+
+        if (direction & SIG_FLAG_TOCLIENT) {
+            DetectAppLayerMpmRegister2(reg->name, SIG_FLAG_TOCLIENT, reg->priority,
+                    reg->PrefilterFn, reg->GetData, al_protocols[i].al_proto,
+                    al_protocols[i].to_client_progress);
+            DetectAppLayerInspectEngineRegister2(reg->name, al_protocols[i].al_proto,
+                    SIG_FLAG_TOCLIENT, al_protocols[i].to_client_progress, reg->Callback,
+                    reg->GetData);
+        }
+        if (direction & SIG_FLAG_TOSERVER) {
+            DetectAppLayerMpmRegister2(reg->name, SIG_FLAG_TOSERVER, reg->priority,
+                    reg->PrefilterFn, reg->GetData, al_protocols[i].al_proto,
+                    al_protocols[i].to_server_progress);
+            DetectAppLayerInspectEngineRegister2(reg->name, al_protocols[i].al_proto,
+                    SIG_FLAG_TOSERVER, al_protocols[i].to_server_progress, reg->Callback,
+                    reg->GetData);
+        }
+    }
+}
+
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
@@ -82,6 +134,9 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
         SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail);
 
+/**
+ * \brief Registration table for file handlers
+ */
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
  */

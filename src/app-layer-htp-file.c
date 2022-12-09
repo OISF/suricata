@@ -67,9 +67,19 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
         flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
     }
 
+    flags |= FILE_USE_DETECT;
+
     if (FileOpenFileWithId(files, &htp_sbcfg, s->file_track_id++, filename, filename_len, data,
                 data_len, flags) != 0) {
         retval = -1;
+    } else {
+        const HTPCfgDir *cfg;
+        if (direction & STREAM_TOCLIENT) {
+            cfg = &s->cfg->response;
+        } else {
+            cfg = &s->cfg->request;
+        }
+        FileSetInspectSizes(files->tail, cfg->inspect_window, cfg->inspect_min_size);
     }
 
     tx->tx_data.files_opened++;
