@@ -81,6 +81,15 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
                 DecodeSetNoPacketInspectionFlag(p);
                 break;
         }
+    } else if (g_eps_master_switch == EXCEPTION_POLICY_BYPASS_FLOW) {
+        PacketBypassCallback(p);
+        SCLogDebug("EXCEPTION_POLICY_PASS_FLOW");
+        if (p->flow) {
+            p->flow->flags |= FLOW_ACTION_PASS;
+            FlowSetNoPacketInspectionFlag(p->flow); // TODO util func
+        }
+        DecodeSetNoPayloadInspectionFlag(p);
+        DecodeSetNoPacketInspectionFlag(p);
     }
     SCLogDebug("end");
 }
