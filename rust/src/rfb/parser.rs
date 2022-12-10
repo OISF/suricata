@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -229,14 +229,13 @@ mod tests {
                 // Check the first message.
                 assert_eq!(message.major, "003");
 
-                // And we should have 6 bytes left.
+                // And we should have 0 bytes left.
                 assert_eq!(remainder.len(), 0);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
@@ -245,13 +244,10 @@ mod tests {
     #[test]
     fn test_parse_server_init() {
         let buf = [
-            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01,
-            0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e,
-            0x61, 0x6e, 0x65, 0x61, 0x67, 0x6c, 0x65, 0x73,
-            0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f,
-            0x73, 0x74, 0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c,
-            0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e
+            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
+            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
 
         let result = parse_server_init(&buf);
@@ -262,17 +258,129 @@ mod tests {
                 assert_eq!(message.height, 800);
                 assert_eq!(message.pixel_format.bits_per_pixel, 32);
 
-                // And we should have 6 bytes left.
+                // And we should have 0 bytes left.
                 assert_eq!(remainder.len(), 0);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
     }
 
+    #[test]
+    fn test_parse_pixel_format() {
+        let buf = [
+            0x20, /* Bits per pixel: 32 */
+            0x18, /* Depth: 24 */
+            0x00, /* Big endian flag: False */
+            0x01, /* True color flag: True */
+            0x00, 0xff, /* Red maximum: 255 */
+            0x00, 0xff, /* Green maximum: 255 */
+            0x00, 0xff, /* Blue maximum: 255 */
+            0x10, /* Red shift: 16 */
+            0x08, /* Green shift: 8 */
+            0x00, /* Blue shift: 0 */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_pixel_format(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.bits_per_pixel, 32);
+                assert_eq!(message.depth, 24);
+                assert_eq!(message.big_endian_flag, 0);
+                assert_eq!(message.true_colour_flag, 1);
+                assert_eq!(message.red_max, 255);
+                assert_eq!(message.green_max, 255);
+                assert_eq!(message.blue_max, 255);
+                assert_eq!(message.red_shift, 16);
+                assert_eq!(message.green_shift, 8);
+                assert_eq!(message.blue_shift, 0);
+                assert_eq!(remainder.len(), 5);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_supported_security_types() {
+        let buf = [
+            0x01, /* Number of security types: 1 */
+            0x02, /* Security type: VNC (2) */
+            0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_supported_security_types(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.number_of_types, 1);
+                assert_eq!(message.types[0], 2);
+                assert_eq!(remainder.len(), 19);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_vnc_auth() {
+        let buf = [
+            0x54, 0x7b, 0x7a, 0x6f, 0x36, 0xa1, 0x54, 0xdb, 0x03, 0xa2, 0x57, 0x5c, 0x6f, 0x2a,
+            0x4e, 0xc5, /* Authentication challenge: 547b7a6f36a154db03a2575c6f2a4ec5 */
+            0x00, 0x00, 0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_vnc_auth(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(
+                    hex::encode(message.secret),
+                    "547b7a6f36a154db03a2575c6f2a4ec5"
+                );
+                assert_eq!(remainder.len(), 5);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_client_init() {
+        let buf = [
+            0x00, /*Share desktop flag: False*/
+            0x7b, 0x7a, 0x6f, 0x36, 0xa1, 0x54, 0xdb, 0x03, 0xa2, 0x57, 0x5c, 0x6f, 0x2a, 0x4e,
+            0xc5, 0x00, 0x00, 0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_client_init(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.shared, 0);
+                assert_eq!(remainder.len(), 20);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
 }
