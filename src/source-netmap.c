@@ -412,7 +412,7 @@ retry:
                 ns->iface, ring, strlen(optstr) ? "/" : "", optstr);
     } else if (strlen(ns->iface) > 5 && strncmp(ns->iface, "vale", 4) == 0 && isdigit(ns->iface[4])) {
         snprintf(devname, sizeof(devname), "%s", ns->iface);
-#if NETMAP_API < 14 || !USET_NET_NETMAP_API
+#if NETMAP_API < 14 || !USE_NEW_NETMAP_API
     } else if (ns->iface[strlen(ns->iface)-1] == '*' ||
             ns->iface[strlen(ns->iface)-1] == '^') {
         SCLogDebug("device with SW-ring enabled (ns->iface): %s",ns->iface);
