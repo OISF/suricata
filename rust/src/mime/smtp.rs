@@ -141,7 +141,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::rs_equals_lowercase(&h.name, b"content-disposition") {
             if ctx.filename.is_empty() {
-                if let Ok(value) =
+                if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
                 {
                     ctx.filename.extend_from_slice(value);
@@ -162,7 +162,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::rs_equals_lowercase(&h.name, b"content-type") {
             if ctx.filename.is_empty() {
-                if let Ok(value) =
+                if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
                 {
                     ctx.filename.extend_from_slice(value);
@@ -173,7 +173,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
                 }
             }
             if ctx.main_headers_nb == 0 {
-                if let Ok(value) =
+                if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"boundary", &mut sections_values)
                 {
                     // start wih 2 additional hyphens
@@ -251,7 +251,10 @@ fn mime_smtp_parse_line(
             if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
                 Update::update(&mut ctx.md5, full);
             }
-            if !ctx.boundary.is_empty() && i.len() >= ctx.boundary.len() && i[..ctx.boundary.len()] == ctx.boundary {
+            if !ctx.boundary.is_empty()
+                && i.len() >= ctx.boundary.len()
+                && i[..ctx.boundary.len()] == ctx.boundary
+            {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
                 let toclose = !ctx.filename.is_empty();
                 ctx.filename.clear();
@@ -270,14 +273,12 @@ fn mime_smtp_parse_line(
                     FileAppendData(ctx.files, full.as_ptr(), full.len() as u32);
                 },
                 MimeSmtpEncoding::Base64 => {
-                    match base64::decode(i) {
-                        Ok(dec) => unsafe {
+                    if let Ok(dec) = base64::decode(i) {
+                        unsafe {
                             FileAppendData(ctx.files, dec.as_ptr(), dec.len() as u32);
-                        },
-                        Err(_) => {
-                            //TODOrust5 set event ?
                         }
                     }
+                    // else TODOrust5 set event ?
                 }
                 MimeSmtpEncoding::QuotedPrintable => {
                     let mut c = 0;
