@@ -77,7 +77,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
         return LuaCallbackError(luastate, "Internal error: no fields in transaction");
     }
     /* extract MIME field based on spesific field name. */
-    uint8_t *field_value;
+    const uint8_t *field_value;
     uint32_t field_len;
     /* check MIME field */
     if (!rs_mime_smtp_get_header(mime, name, &field_value, &field_len)) {
@@ -145,7 +145,7 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
     if(mime == NULL) {
         return LuaCallbackError(luastate, "Error: no mime entity found");
     }
-    uint8_t *field_value;
+    const uint8_t *field_name;
     uint32_t field_len;
     /* check MIME field */
     if (!rs_mime_smtp_get_header(mime, name, &field_value, &field_len)) {
