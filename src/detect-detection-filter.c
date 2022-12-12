@@ -286,112 +286,89 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse01(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("track by_dst,count 10,seconds 60");
-    if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 1;
-    }
+    DetectThresholdData *df = DetectDetectionFilterParse("track by_dst,count 10,seconds 60");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    DetectDetectionFilterFree(NULL, df);
 
-    return 0;
+    PASS;
 }
 
 /**
  * \test DetectDetectionFilterTestParse02 is a test for a invalid detection_filter options
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse02(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("track both,count 10,seconds 60");
-    if (df && (df->track == TRACK_DST || df->track == TRACK_SRC) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 0;
-    }
+    DetectThresholdData *df = DetectDetectionFilterParse("track both,count 10,seconds 60");
+    FAIL_IF_NOT_NULL(df);
 
-    return 1;
+    PASS;
 }
 
 /**
  * \test DetectDetectionfilterTestParse03 is a test for a valid detection_filter options in any
  * order
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse03(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("track by_dst, seconds 60, count 10");
-    if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 1;
-    }
+    DetectThresholdData *df = DetectDetectionFilterParse("track by_dst, seconds 60, count 10");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    DetectDetectionFilterFree(NULL, df);
 
-    return 0;
+    PASS;
 }
 
 /**
  * \test DetectDetectionFilterTestParse04 is a test for an invalid detection_filter options in any
  * order
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse04(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
-    if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 0;
-    }
+    DetectThresholdData *df =
+            DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
+    FAIL_IF_NOT_NULL(df);
 
-    return 1;
+    PASS;
 }
 
 /**
  * \test DetectDetectionFilterTestParse05 is a test for a valid detection_filter options in any
  * order
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse05(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60");
-    if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 1;
-    }
+    DetectThresholdData *df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    DetectDetectionFilterFree(NULL, df);
 
-    return 0;
+    PASS;
 }
 
 /**
  * \test DetectDetectionFilterTestParse06 is a test for an invalid value in detection_filter
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestParse06(void)
 {
-    DetectThresholdData *df = NULL;
-    df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
-    if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 0)) {
-        DetectDetectionFilterFree(NULL, df);
-        return 0;
-    }
+    DetectThresholdData *df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
+    FAIL_IF_NOT_NULL(df);
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -399,69 +376,55 @@ static int DetectDetectionFilterTestParse06(void)
  * keyword by setting up the signature and later testing its working by matching the received packet
  * against the sig.
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestSig1(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-    int alerts = 0;
 
     HostInitConfig(HOST_QUIET);
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test\"; detection_filter: track by_dst, count 4, seconds 60; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"detection_filter Test\"; detection_filter: "
+            "track by_dst, count 4, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts = PacketAlertCheck(p, 1);
+    FAIL_IF(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 1);
-
-    if(alerts == 4)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-end:
     UTHFreePackets(&p, 1);
     HostShutdown();
-    return result;
+
+    PASS;
 }
 
 /**
@@ -469,18 +432,12 @@ end:
  * keyword by setting up the signature and later testing its working by matching the received packet
  * against the sig.
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
  */
 
 static int DetectDetectionFilterTestSig2(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-    int alerts = 0;
     struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
@@ -490,19 +447,18 @@ static int DetectDetectionFilterTestSig2(void)
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 4, seconds 60; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"detection_filter Test 2\"; "
+            "detection_filter: track by_dst, count 4, seconds 60; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -510,36 +466,31 @@ static int DetectDetectionFilterTestSig2(void)
     TimeGet(&p->ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts = PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
 
     TimeSetIncrementTime(200);
     TimeGet(&p->ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    FAIL_IF(PacketAlertCheck(p, 10));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-
-    if (alerts == 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF(PacketAlertCheck(p, 10));
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
+
     UTHFreePackets(&p, 1);
     HostShutdown();
-    return result;
+
+    PASS;
 }
 
 /**
@@ -547,13 +498,8 @@ end:
  */
 static int DetectDetectionFilterTestSig3(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-    int alerts = 0;
-    int drops = 0;
     struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
@@ -563,19 +509,17 @@ static int DetectDetectionFilterTestSig3(void)
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 2, seconds 60; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "drop tcp any any -> any 80 (msg:\"detection_filter Test 2\"; "
+            "detection_filter: track by_dst, count 2, seconds 60; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -583,61 +527,50 @@ static int DetectDetectionFilterTestSig3(void)
     TimeGet(&p->ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts = PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF(PacketAlertCheck(p, 10));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF(PacketAlertCheck(p, 10));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10));
+    FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     TimeSetIncrementTime(200);
     TimeGet(&p->ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF(PacketAlertCheck(p, 10));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF(PacketAlertCheck(p, 10));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10));
+    FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10));
+    FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
-
-    if (alerts == 3 && drops == 3)
-        result = 1;
-    else {
-        if (alerts != 3)
-            printf("alerts: %d != 3: ", alerts);
-        if (drops != 3)
-            printf("drops: %d != 3: ", drops);
-    }
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
+
     UTHFreePackets(&p, 1);
     HostShutdown();
-    return result;
+
+    PASS;
 }
 
 static void DetectDetectionFilterRegisterTests(void)
