@@ -508,7 +508,40 @@ pub unsafe extern "C" fn rs_mime_smtp_get_filename(
         *filename_len = 0;
     }
 }
-//TODOrust5 = lua
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_smtp_get_header(
+    ctx: &mut MimeStateSMTP, str: *const std::os::raw::c_char, buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> bool {
+    let name: &CStr = CStr::from_ptr(str); //unsafe
+    for h in &ctx.headers[ctx.main_headers_nb..] {
+        if mime::rs_equals_lowercase(&h.name, name.to_bytes()) {
+            *buffer = h.value.as_ptr();
+            *buffer_len = h.value.len() as u32;
+            return true;
+        }
+    }
+    *buffer = std::ptr::null_mut();
+    *buffer_len = 0;
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_mime_smtp_get_header_name(
+    ctx: &mut MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32, num: u32,
+) -> bool {
+    if num as usize + ctx.main_headers_nb < ctx.headers.len() {
+        *buffer = ctx.headers[ctx.main_headers_nb + num as usize]
+            .name
+            .as_ptr();
+        *buffer_len = ctx.headers[ctx.main_headers_nb + num as usize].name.len() as u32;
+        return true;
+    }
+    *buffer = std::ptr::null_mut();
+    *buffer_len = 0;
+    return false;
+}
 
 static mut MIME_SMTP_CONFIG_DECODE_BASE64: bool = false;
 static mut MIME_SMTP_CONFIG_DECODE_QUOTED: bool = false;
