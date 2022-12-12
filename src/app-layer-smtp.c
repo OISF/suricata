@@ -358,6 +358,10 @@ static void SMTPConfigure(void) {
         if (ret) {
             smtp_config.mime_config.body_md5 = val;
         }
+        ret = ConfGetChildValueBool(config, "body", &val);
+        if (ret) {
+            smtp_config.mime_config.body = val;
+        }
     }
 
     /* Pass mime config data to MimeDec API */
@@ -619,6 +623,13 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         }
     } else {
         SCLogDebug("Body not a Ctnt_attachment");
+        if (MimeDecGetConfig()->body) {
+            if(state->body_len+len<=SMTP_MAX_BODY_SIZE){
+                memcpy(state->body+state->body_len,chunk,len);
+                state->body_len+=len;
+            }
+        }
+   
     }
     SCReturnInt(ret);
 }
