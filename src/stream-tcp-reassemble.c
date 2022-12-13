@@ -998,7 +998,7 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
 }
 #endif
 
-static StreamingBufferBlock *GetBlock(StreamingBuffer *sb, const uint64_t offset)
+static StreamingBufferBlock *GetBlock(const StreamingBuffer *sb, const uint64_t offset)
 {
     StreamingBufferBlock *blk = sb->head;
     if (blk == NULL)
@@ -1014,7 +1014,7 @@ static StreamingBufferBlock *GetBlock(StreamingBuffer *sb, const uint64_t offset
     return NULL;
 }
 
-static inline bool GapAhead(TcpStream *stream, StreamingBufferBlock *cur_blk)
+static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_blk)
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
@@ -1033,7 +1033,7 @@ static inline bool GapAhead(TcpStream *stream, StreamingBufferBlock *cur_blk)
  *  \param check_for_gap check if there is a gap ahead. Optional as it is only
  *                       needed for app-layer incomplete support.
  *  \retval bool pkt loss ahead */
-static bool GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_len,
+static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t *data_len,
         uint64_t offset, const bool check_for_gap)
 {
     const uint8_t *mydata;
