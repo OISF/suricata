@@ -358,7 +358,7 @@ static void SMTPConfigure(void) {
         if (ret) {
             smtp_config.mime_config.body_md5 = val;
         }
-        ret = ConfGetChildValueBool(config, "body", &val);
+	    ret = ConfGetChildValueBool(config, "body", &val);
         if (ret) {
             smtp_config.mime_config.body = val;
         }
@@ -493,6 +493,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
     DEBUG_VALIDATE_BUG_ON(tx == NULL);
 
+
     uint16_t flags = FileFlowToFlags(flow, STREAM_TOSERVER);
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
@@ -621,15 +622,22 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         if (ret == 0) {
             SCLogDebug("Successfully processed file data!");
         }
+    } else if (entity->ctnt_flags & CTNT_IS_BODYPART && ( entity->ctnt_flags & CTNT_IS_TEXT ||  entity->ctnt_flags & CTNT_IS_HTML)) {
+        if (MimeDecGetConfig()->body) {
+            if( len>= DATA_CHUNK_SIZE) {
+                SCLogDebug("[SMTPProcessDataChunk] len[%d] is more then 3072",len);
+                memcpy(state->body,chunk,DATA_CHUNK_SIZE-1);
+                state->body_len = DATA_CHUNK_SIZE;
+            } else {
+                memcpy(state->body,chunk,len);
+                state->body_len = len;
+            }
+            state->body[DATA_CHUNK_SIZE-1] = 0;
+            SCLogNotice("[SMTPProcessDataChunk] state->body_len=%d len=%d" , state->body_len,len);
+        }
+        
     } else {
         SCLogDebug("Body not a Ctnt_attachment");
-        if (MimeDecGetConfig()->body) {
-            if(state->body_len+len<=SMTP_MAX_BODY_SIZE){
-                memcpy(state->body+state->body_len,chunk,len);
-                state->body_len+=len;
-            }
-        }
-   
     }
     SCReturnInt(ret);
 }

@@ -61,8 +61,7 @@
 
 /* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
-#define SMTP_MAX_BODY_SIZE  998  /* max length of smtp body */
-
+ 
 /* Mime Parser Constants */
 #define HEADER_READY    0x01
 #define HEADER_STARTED  0x02
@@ -98,7 +97,7 @@ typedef struct MimeDecConfig {
                                          extract urls  */
     bool log_url_scheme;            /**< Log the scheme of extracted URLs */
     bool body_md5;                  /**< Compute md5 sum of body */
-    bool body;                  /**< Compute md5 sum of body */
+    bool body;                  	/**< message body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
 } MimeDecConfig;
@@ -205,7 +204,7 @@ typedef struct MimeDecParseState {
     int body_end;  /**< Currently at end of body */
     uint8_t current_line_delimiter_len; /**< Length of line delimiter */
     void *data;  /**< Pointer to data specific to the caller */
-    uint8_t body[SMTP_MAX_BODY_SIZE]; 
+    uint8_t body[DATA_CHUNK_SIZE]; 
     uint32_t body_len; 
     int (*DataChunkProcessorFunc) (const uint8_t *chunk, uint32_t len,
             struct MimeDecParseState *state);  /**< Data chunk processing function callback */

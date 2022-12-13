@@ -270,6 +270,8 @@ outputs:
             # for the body you need to set app-layer.protocols.smtp.mime.body-md5
             # to yes
             #md5: [body, subject]
+            #  for the body you need to set app-layer.protocols.smtp.mime.body to yes
+            #body: yes
 
         #- dnp3
         - ftp
@@ -937,6 +939,8 @@ app-layer:
         # Log the scheme of URLs that are extracted
         # (default is no)
         #log-url-scheme: yes
+	# Extract body,  set eve-log.types.smtp.body as yes to enable save body in eve log
+	#body: yes
         # Set to yes to compute the md5 of the mail body. You will then
         # be able to journalize it.
         body-md5: no
