@@ -816,7 +816,7 @@ static inline uint64_t GetLeftEdge(Flow *f, TcpSession *ssn, TcpStream *stream)
         left_edge = app_le;
         SCLogDebug("left_edge %" PRIu64 ", using only app:%" PRIu64, left_edge, app_le);
     } else {
-        left_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+        left_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
         SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
     }
 

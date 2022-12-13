@@ -413,7 +413,7 @@ uint64_t StreamTcpGetAcked(const TcpStream *stream)
 
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof)
 {
-    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+    uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
     if (!eof && StreamTcpInlineMode() == FALSE) {
         right_edge = MIN(GetAbsLastAck(stream), right_edge);
     }
@@ -899,7 +899,6 @@ uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
         dirstr = "server";
 #endif
     }
-
     int use_app = 1;
     int use_raw = 1;
 
@@ -913,7 +912,7 @@ uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
         use_raw = 0;
     }
 
-    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+    const uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
 
     SCLogDebug("%s: app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
             dirstr,
@@ -1514,7 +1513,7 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
     /* app is dead */
     } else if (progress == 0) {
         uint64_t tcp_window = stream->window;
-        uint64_t stream_right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+        const uint64_t stream_right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
         if (tcp_window < stream_right_edge) {
             uint64_t new_raw = stream_right_edge - tcp_window;
             if (new_raw > STREAM_RAW_PROGRESS(stream)) {
