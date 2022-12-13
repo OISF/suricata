@@ -237,7 +237,7 @@ The tls.fingerprint buffer is lower case so you must use lower case letters for 
 tls.store
 ---------
 
-store TLS/SSL certificate on disk
+store TLS/SSL certificate on disk. The location can be specify in the output.tls-stor.certs-log-dir parameter of the yaml configuration file.
 
 ssl_state
 ---------
