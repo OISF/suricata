@@ -24,8 +24,8 @@ impl SMBState {
     #[cfg(feature = "debug")]
     pub fn _debug_tx_stats(&self) {
         if self.transactions.len() > 1 {
-            let txf = self.transactions.first().unwrap();
-            let txl = self.transactions.last().unwrap();
+            let txf = self.transactions.front().unwrap();
+            let txl = self.transactions.back().unwrap();
 
             SCLogDebug!("TXs {} MIN {} MAX {}", self.transactions.len(), txf.id, txl.id);
             SCLogDebug!("- OLD tx.id {}: {:?}", txf.id, txf);

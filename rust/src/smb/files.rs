@@ -111,8 +111,8 @@ impl SMBState {
         tx.tx_data.init_files_opened();
         SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         let (files, flags) = self.files.get(direction);
         return (tx_ref.unwrap(), files, flags)
     }

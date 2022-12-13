@@ -49,8 +49,8 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX IOCTL created: ID {} FUNC {:08x}: {}",
                 tx.id, func, &fsctl_func_to_string(func));
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 }
