@@ -232,19 +232,6 @@ static int GetNumaNode(void)
     return node;
 }
 
-static int GetCPU(void)
-{
-    int cpu = -1;
-
-#if defined(__linux__)
-    cpu = sched_getcpu();
-#else
-    SCLogWarning(SC_ERR_TM_THREADS_ERROR, "CPU id retrieval is not supported on this OS.");
-#endif
-
-    return cpu;
-}
-
 /**
  * \brief Registration Function for ReceiveDPDK.
  * \todo Unit tests are needed for this module.
@@ -471,8 +458,8 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     thread_numa = GetNumaNode();
     if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
         SC_ATOMIC_ADD(dpdk_config->inconsitent_numa_cnt, 1);
-        SCLogInfo("NIC on NUMA %d but thread id %d on NUMA %d. Decreased performance expected",
-                rte_eth_dev_socket_id(ptv->port_id), GetCPU(), thread_numa);
+        SCLogPerf("%s: NIC is on NUMA %d, thread on NUMA %d", dpdk_config->iface,
+                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
     }
 
     uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
@@ -498,13 +485,11 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         // some PMDs requires additional actions only after the device has started
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
 
-        uint16_t inconsist_numa_map = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
-        if (inconsist_numa_map > 0) {
+        uint16_t inconsist_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
+        if (inconsist_numa_cnt > 0) {
             SCLogWarning(SC_WARN_DPDK_CONF,
-                    "Expect decreased performance due to interface (%s) being on NUMA node %d "
-                    "but is used by %d threads on distinct NUMA nodes. "
-                    "Run with verbose logging to determine individual thread ids",
-                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_map);
+                    "%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
+                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_cnt);
         }
     }
 
