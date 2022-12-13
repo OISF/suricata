@@ -106,6 +106,21 @@ typedef struct StreamingBuffer_ {
 #endif
 } StreamingBuffer;
 
+static inline bool StreamingBufferHasData(const StreamingBuffer *sb)
+{
+    return (sb->stream_offset || sb->buf_offset || !RB_EMPTY(&sb->sbb_tree));
+}
+
+static inline uint64_t StreamingBufferGetConsecutiveDataRightEdge(const StreamingBuffer *sb)
+{
+    return sb->stream_offset + sb->buf_offset;
+}
+
+static inline uint64_t StreamingBufferGetOffset(const StreamingBuffer *sb)
+{
+    return sb->stream_offset;
+}
+
 #ifndef DEBUG
 #define STREAMING_BUFFER_INITIALIZER(cfg)                                                          \
     {                                                                                              \

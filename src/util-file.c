@@ -323,9 +323,9 @@ static int FileMagicSize(void)
 uint64_t FileDataSize(const File *file)
 {
     if (file != NULL && file->sb != NULL) {
-        SCLogDebug("returning %"PRIu64,
-                file->sb->stream_offset + file->sb->buf_offset);
-        return file->sb->stream_offset + file->sb->buf_offset;
+        const uint64_t size = StreamingBufferGetConsecutiveDataRightEdge(file->sb);
+        SCLogDebug("returning %" PRIu64, size);
+        return size;
     }
     SCLogDebug("returning 0 (default)");
     return 0;
@@ -392,12 +392,13 @@ static int FilePruneFile(File *file)
         /* if file has inspect window and min size set, we
          * do some house keeping here */
         if (file->inspect_window != 0 && file->inspect_min_size != 0) {
+            const uint64_t file_offset = StreamingBufferGetOffset(file->sb);
             uint32_t window = file->inspect_window;
-            if (file->sb->stream_offset == 0)
+            if (file_offset == 0)
                 window = MAX(window, file->inspect_min_size);
 
             uint64_t file_size = FileDataSize(file);
-            uint64_t data_size = file_size - file->sb->stream_offset;
+            uint64_t data_size = file_size - file_offset;
 
             SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
                     window, file_size, data_size);
