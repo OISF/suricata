@@ -1433,7 +1433,9 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         return false;
 
     if (StreamTcpInlineMode() == FALSE) {
-        if ((STREAM_RAW_PROGRESS(stream) == STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset)) {
+        const uint64_t segs_re_abs =
+                STREAM_BASE_OFFSET(stream) + stream->segs_right_edge - stream->base_seq;
+        if (STREAM_RAW_PROGRESS(stream) == segs_re_abs) {
             return false;
         }
         if (StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 1) {
