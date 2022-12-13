@@ -30,7 +30,8 @@ use std::str;
 use std::ffi::{self, CString};
 
 use std::collections::HashMap;
-
+use std::collections::VecDeque;
+ 
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
@@ -334,8 +335,8 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
@@ -353,8 +354,8 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 }
@@ -386,8 +387,8 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 }
@@ -712,7 +713,7 @@ pub struct SMBState<> {
     post_gap_files_checked: bool,
 
     /// transactions list
-    pub transactions: Vec<SMBTransaction>,
+    pub transactions: VecDeque<SMBTransaction>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -768,7 +769,7 @@ impl SMBState {
             tc_trunc: false,
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
             tx_id:0,
             dialect:0,
             dialect_vec: None,
@@ -872,15 +873,15 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX GENERIC created: ID {} tx list {} {:?}",
                 tx.id, self.transactions.len(), &tx);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
     pub fn get_last_tx(&mut self, smb_ver: u8, smb_cmd: u16)
         -> Option<&mut SMBTransaction>
     {
-        let tx_ref = self.transactions.last_mut();
+        let tx_ref = self.transactions.back_mut();
         if let Some(tx) = tx_ref {
             let found = if tx.vercmd.get_version() == smb_ver {
                 if smb_ver == 1 {
@@ -942,8 +943,8 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
@@ -977,8 +978,8 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX TREECONNECT created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(&name));
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
@@ -1011,8 +1012,8 @@ impl SMBState {
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
