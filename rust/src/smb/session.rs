@@ -47,8 +47,8 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SESSIONSETUP created: ID {}", tx.id);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
