@@ -419,7 +419,7 @@ fn mime_smtp_parse_line(
                                 if c == i.len() - 1 {
                                     eol_equal = true;
                                     break;
-                                } else if c + 2 > i.len() {
+                                } else if c + 2 >= i.len() {
                                     // log event ?
                                     break;
                                 }
