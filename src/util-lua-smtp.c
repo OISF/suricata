@@ -147,10 +147,6 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
     }
     const uint8_t *field_name;
     uint32_t field_len;
-    /* check MIME field */
-    if (!rs_mime_smtp_get_header(mime, name, &field_value, &field_len)) {
-        return LuaCallbackError(luastate, "Error: mimefield not found");
-    }
     /* Counter of MIME fields found */
     int num = 1;
     /* loop trough the list of mimeFields, printing each name found */
