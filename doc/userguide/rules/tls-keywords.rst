@@ -237,7 +237,8 @@ The tls.fingerprint buffer is lower case so you must use lower case letters for 
 tls.store
 ---------
 
-store TLS/SSL certificate on disk
+store TLS/SSL certificate on disk.
+The location can be specified in the `output.tls-store.certs-log-dir` parameter of the yaml configuration file, cf :ref:`suricata-yaml-outputs-tls`..
 
 ssl_state
 ---------

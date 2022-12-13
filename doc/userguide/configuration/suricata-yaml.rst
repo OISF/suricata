@@ -388,6 +388,8 @@ For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-out
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
+.. _suricata-yaml-outputs-tls:
+
 TLS parameters and certificates logging (tls.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
