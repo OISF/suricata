@@ -83,6 +83,8 @@ pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
+static mut SMB_MAX_TX: usize = 1024;
+
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
@@ -714,6 +716,7 @@ pub struct SMBState<> {
 
     /// transactions list
     pub transactions: VecDeque<SMBTransaction>,
+    tx_index_completed: usize,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -770,6 +773,7 @@ impl SMBState {
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             transactions: VecDeque::new(),
+            tx_index_completed: 0,
             tx_id:0,
             dialect:0,
             dialect_vec: None,
@@ -789,6 +793,20 @@ impl SMBState {
         self.tx_id += 1;
         tx.id = self.tx_id;
         SCLogDebug!("TX {} created", tx.id);
+        if self.transactions.len() > unsafe { SMB_MAX_TX } {
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
+                index += 1;
+                if !tx_old.request_done || !tx_old.response_done {
+                    tx_old.request_done = true;
+                    tx_old.response_done = true;
+                    tx_old.set_event(SMBEvent::TooManyTransactions);
+                    break;
+                }
+            }
+            self.tx_index_completed = index;
+
+        }
         return tx;
     }
 
@@ -809,6 +827,7 @@ impl SMBState {
         if found {
             SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
                     tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -2396,6 +2415,13 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
             match get_memval(val) {
                 Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_CNT = retval as u32; }
                 Err(_) => { SCLogError!("Invalid max-read-queue-cnt value"); }
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.smb.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                SMB_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for smb.max-tx");
             }
         }
     } else {
