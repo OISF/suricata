@@ -625,7 +625,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     } else if (entity->ctnt_flags & CTNT_IS_BODYPART && ( entity->ctnt_flags & CTNT_IS_TEXT ||  entity->ctnt_flags & CTNT_IS_HTML)) {
         if (MimeDecGetConfig()->body) {
             if( len>= DATA_CHUNK_SIZE) {
-                SCLogDebug("[SMTPProcessDataChunk] len[%d] is more then 3072",len);
                 memcpy(state->body,chunk,DATA_CHUNK_SIZE-1);
                 state->body_len = DATA_CHUNK_SIZE;
             } else {
@@ -633,7 +632,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 state->body_len = len;
             }
             state->body[DATA_CHUNK_SIZE-1] = 0;
-            SCLogNotice("[SMTPProcessDataChunk] state->body_len=%d len=%d" , state->body_len,len);
         }
         
     } else {
