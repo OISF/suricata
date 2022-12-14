@@ -358,7 +358,7 @@ static void SMTPConfigure(void) {
         if (ret) {
             smtp_config.mime_config.body_md5 = val;
         }
-	    ret = ConfGetChildValueBool(config, "body", &val);
+        ret = ConfGetChildValueBool(config, "body", &val);
         if (ret) {
             smtp_config.mime_config.body = val;
         }

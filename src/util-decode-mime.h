@@ -61,7 +61,7 @@
 
 /* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
- 
+
 /* Mime Parser Constants */
 #define HEADER_READY    0x01
 #define HEADER_STARTED  0x02
