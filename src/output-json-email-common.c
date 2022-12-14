@@ -145,7 +145,7 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
 }
 static void EveEmailLogJSONBody(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
-    if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
+    if (email_ctx->flags & LOG_EMAIL_BODY) {
         MimeDecParseState *mime_state = tx->mime_state;
         if (mime_state && mime_state->body_len > 0 ) {
             jb_set_string(js, "body", (const char*)mime_state->body);
