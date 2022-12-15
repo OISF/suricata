@@ -97,6 +97,7 @@ typedef struct MimeDecConfig {
                                          extract urls  */
     bool log_url_scheme;            /**< Log the scheme of extracted URLs */
     bool body_md5;                  /**< Compute md5 sum of body */
+    bool body;                  	/**< message body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
 } MimeDecConfig;
@@ -203,6 +204,8 @@ typedef struct MimeDecParseState {
     int body_end;  /**< Currently at end of body */
     uint8_t current_line_delimiter_len; /**< Length of line delimiter */
     void *data;  /**< Pointer to data specific to the caller */
+    uint8_t body[DATA_CHUNK_SIZE]; 
+    uint32_t body_len; 
     int (*DataChunkProcessorFunc) (const uint8_t *chunk, uint32_t len,
             struct MimeDecParseState *state);  /**< Data chunk processing function callback */
 } MimeDecParseState;
