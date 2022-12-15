@@ -158,6 +158,9 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     /* Close drop. */
     jb_close(js);
 
+    const char *verdict = PacketActionVerdictToString(p);
+    jb_set_string(js, "verdict", verdict);
+
     if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {
         int logged = 0;
         int i;

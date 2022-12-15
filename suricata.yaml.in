@@ -168,6 +168,9 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
+            # Enable logging the final verdict on a packet (e.g. "blocked",
+            # "allowed", "rejected")
+            verdict: yes
         # app layer frames
         - frame:
             # disabled by default as this is very verbose.
