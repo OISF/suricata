@@ -413,38 +413,6 @@ static inline int32_t SCACDequeue(StateQueue *q)
     return q->store[q->bot++];
 }
 
-/*
-#define SCACStateQueueIsEmpty(q) (((q)->top == (q)->bot) ? 1 : 0)
-
-#define SCACEnqueue(q, state) do { \
-                                  int i = 0; \
-                                             \
-                                  for (i = (q)->bot; i < (q)->top; i++) { \
-                                      if ((q)->store[i] == state)       \
-                                      return; \
-                                  } \
-                                    \
-                                  (q)->store[(q)->top++] = state;   \
-                                                                \
-                                  if ((q)->top == STATE_QUEUE_CONTAINER_SIZE) \
-                                      (q)->top = 0;                     \
-                                                                        \
-                                  if ((q)->top == (q)->bot) {           \
-                                  FatalError("Just ran out of space in the queue.  " \
-                                                "Fatal Error.  Exiting.  Please file a bug report on
-this"); \
-                                  }                                     \
-                              } while (0)
-
-#define SCACDequeue(q) ( (((q)->bot == STATE_QUEUE_CONTAINER_SIZE)? ((q)->bot = 0): 0), \
-                         (((q)->bot == (q)->top) ?                      \
-                          (printf("StateQueue behaving "                \
-                                         "weirdly.  Fatal Error.  Exiting.  Please " \
-                                         "file a bug report on this"), \
-                           exit(EXIT_FAILURE)) : 0), \
-                         (q)->store[(q)->bot++])     \
-*/
-
 /**
  * \internal
  * \brief Club the output data from 2 states and store it in the 1st state.
