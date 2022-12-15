@@ -624,14 +624,14 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         }
     } else if (entity->ctnt_flags & CTNT_IS_BODYPART && ( entity->ctnt_flags & CTNT_IS_TEXT ||  entity->ctnt_flags & CTNT_IS_HTML)) {
         if (MimeDecGetConfig()->body) {
-            if( len>= DATA_CHUNK_SIZE) {
+            if (len >= DATA_CHUNK_SIZE) {
                 memcpy(state->body,chunk,DATA_CHUNK_SIZE-1);
                 state->body_len = DATA_CHUNK_SIZE;
             } else {
                 memcpy(state->body,chunk,len);
                 state->body_len = len;
             }
-            state->body[DATA_CHUNK_SIZE-1] = 0;
+            state->body[DATA_CHUNK_SIZE - 1] = 0;
         }
         
     } else {
