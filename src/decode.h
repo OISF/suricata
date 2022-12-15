@@ -840,6 +840,7 @@ void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
 void DecodeUpdatePacketCounters(ThreadVars *tv,
                                 const DecodeThreadVars *dtv, const Packet *p);
 const char *PacketDropReasonToString(enum PacketDropReason r);
+const char *PacketActionVerdictToString(const Packet *p);
 
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);

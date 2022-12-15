@@ -52,6 +52,9 @@
 #include "output.h"
 #include "output-json.h"
 
+#include "packet.h"
+#include "action-globals.h"
+
 #include "util-byte.h"
 #include "util-privs.h"
 #include "util-print.h"
