@@ -819,6 +819,24 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
     return NULL;
 }
 
+/** \brief Decide Packet's final verdict based on packet action, return it as a string */
+const char *PacketActionVerdictToString(const Packet *p)
+{
+    /* Reject is valid in both IDS and IPS */
+    if (PacketCheckAction(p, ACTION_REJECT_ANY)) {
+        return "reject";
+    } else if (EngineModeIsIPS()) {
+        /* Verdicts will be reject, drop, or accept */
+        if (PacketCheckAction(p, ACTION_DROP)) {
+            return "drop";
+        }
+        return "accept";
+    }
+
+    /* If we're in IDS mode and action isn't reject, we won't log verdict */
+    return NULL;
+}
+
 /* TODO drop reason stats! */
 void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p)
 {

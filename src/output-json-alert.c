@@ -826,12 +826,16 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             jb_set_string(jb, "capture_file", pcap_filename);
         }
 
+        if (PacketActionVerdictToString(p) != NULL) {
+            const char *verdict = PacketActionVerdictToString(p);
+            jb_set_string(jb, "verdict", verdict);
+        }
+
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
     }
 
-    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
-            LOG_JSON_TAGGED_PACKETS)) {
+    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags & LOG_JSON_TAGGED_PACKETS)) {
         JsonBuilder *packetjs =
                 CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
