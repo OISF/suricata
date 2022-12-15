@@ -3772,7 +3772,7 @@
                         "error": {
                             "type": "object",
                             "properties": {
-                                "bittorrent-dht": { 
+                                "bittorrent-dht": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_tcp": {
