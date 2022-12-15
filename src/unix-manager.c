@@ -143,12 +143,12 @@ static int UnixNew(UnixCommand * this)
             if (ret != 0) {
                 int err = errno;
                 if (err != EEXIST) {
-                    SCLogError("Cannot create socket directory %s: %s", SOCKET_PATH, strerror(err));
+                    SCLogError(
+                            "failed to create socket directory %s: %s", SOCKET_PATH, strerror(err));
                     return 0;
                 }
             } else {
-                SCLogInfo("Created socket directory %s",
-                        SOCKET_PATH);
+                SCLogInfo("created socket directory %s", SOCKET_PATH);
             }
         }
     }
