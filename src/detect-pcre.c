@@ -874,11 +874,14 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         goto error;
 
 #ifdef PCRE_HAVE_JIT_EXEC
-    /* Deliberately silent on failures. Not having a context id means
-     * JIT will be bypassed */
-    pd->thread_ctx_jit_stack_id = DetectRegisterThreadCtxFuncs(de_ctx, "pcre",
-            DetectPcreThreadInit, (void *)pd,
-            DetectPcreThreadFree, 1);
+    if (pcre_use_jit) {
+        /* Deliberately silent on failures. Not having a context id means
+         * JIT will be bypassed */
+        pd->thread_ctx_jit_stack_id = DetectRegisterThreadCtxFuncs(
+                de_ctx, "pcre", DetectPcreThreadInit, (void *)pd, DetectPcreThreadFree, 1);
+    } else {
+        pd->thread_ctx_jit_stack_id = -1;
+    }
 #endif
 
     int sm_list = -1;
