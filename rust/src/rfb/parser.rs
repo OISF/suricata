@@ -24,6 +24,7 @@ use nom7::combinator::map_res;
 use nom7::number::streaming::*;
 use nom7::*;
 
+#[derive(Debug,PartialEq)]
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
     TCSupportedSecurityTypes,
