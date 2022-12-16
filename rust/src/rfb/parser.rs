@@ -17,12 +17,12 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use std::fmt;
-use std::str;
 use nom7::bytes::streaming::take;
 use nom7::combinator::map_res;
 use nom7::number::streaming::*;
 use nom7::*;
+use std::fmt;
+use std::str;
 
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
@@ -36,7 +36,7 @@ pub enum RFBGlobalState {
     TSVncResponse,
     TCSecurityResult,
     TSClientInit,
-    Message
+    Message,
 }
 
 impl fmt::Display for RFBGlobalState {
@@ -53,43 +53,43 @@ impl fmt::Display for RFBGlobalState {
             RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
             RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
             RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
-            RFBGlobalState::Message => write!(f, "Message")
+            RFBGlobalState::Message => write!(f, "Message"),
         }
     }
 }
 
 pub struct ProtocolVersion {
     pub major: String,
-    pub minor: String
+    pub minor: String,
 }
 
 pub struct SupportedSecurityTypes {
     pub number_of_types: u8,
-    pub types: Vec<u8>
+    pub types: Vec<u8>,
 }
 
 pub struct SecurityTypeSelection {
-    pub security_type: u8
+    pub security_type: u8,
 }
 
 pub struct ServerSecurityType {
-    pub security_type: u32
+    pub security_type: u32,
 }
 
 pub struct SecurityResult {
-    pub status: u32
+    pub status: u32,
 }
 
 pub struct FailureReason {
-    pub reason_string: String
+    pub reason_string: String,
 }
 
 pub struct VncAuth {
-    pub secret: Vec<u8>
+    pub secret: Vec<u8>,
 }
 
 pub struct ClientInit {
-    pub shared: u8
+    pub shared: u8,
 }
 
 pub struct PixelFormat {
@@ -110,7 +110,7 @@ pub struct ServerInit {
     pub height: u16,
     pub pixel_format: PixelFormat,
     pub name_length: u32,
-    pub name: Vec<u8>
+    pub name: Vec<u8>,
 }
 
 pub fn parse_protocol_version(i: &[u8]) -> IResult<&[u8], ProtocolVersion> {
@@ -120,29 +120,40 @@ pub fn parse_protocol_version(i: &[u8]) -> IResult<&[u8], ProtocolVersion> {
     let (i, _) = be_u8(i)?;
     let (i, minor) = map_res(take(3_usize), str::from_utf8)(i)?;
     let (i, _) = be_u8(i)?;
-    Ok((i, ProtocolVersion{ major: major.to_string(), minor: minor.to_string(), }))
+    Ok((
+        i,
+        ProtocolVersion {
+            major: major.to_string(),
+            minor: minor.to_string(),
+        },
+    ))
 }
 
 pub fn parse_supported_security_types(i: &[u8]) -> IResult<&[u8], SupportedSecurityTypes> {
     let (i, number_of_types) = be_u8(i)?;
     let (i, types) = take(number_of_types as usize)(i)?;
     Ok((
-            i,
-            SupportedSecurityTypes{
-                number_of_types,
-                types: types.to_vec()
-            }
-        ))
+        i,
+        SupportedSecurityTypes {
+            number_of_types,
+            types: types.to_vec(),
+        },
+    ))
 }
 
 pub fn parse_server_security_type(i: &[u8]) -> IResult<&[u8], ServerSecurityType> {
     let (i, security_type) = be_u32(i)?;
-    Ok((i, ServerSecurityType{ security_type, }))
+    Ok((i, ServerSecurityType { security_type }))
 }
 
 pub fn parse_vnc_auth(i: &[u8]) -> IResult<&[u8], VncAuth> {
     let (i, secret) = take(16_usize)(i)?;
-    Ok((i, VncAuth { secret: secret.to_vec() }))
+    Ok((
+        i,
+        VncAuth {
+            secret: secret.to_vec(),
+        },
+    ))
 }
 
 pub fn parse_security_type_selection(i: &[u8]) -> IResult<&[u8], SecurityTypeSelection> {
@@ -159,11 +170,11 @@ pub fn parse_failure_reason(i: &[u8]) -> IResult<&[u8], FailureReason> {
     let (i, reason_length) = be_u32(i)?;
     let (i, reason_string) = map_res(take(reason_length as usize), str::from_utf8)(i)?;
     Ok((
-            i,
-            FailureReason {
-                reason_string: reason_string.to_string()
-            }
-        ))
+        i,
+        FailureReason {
+            reason_string: reason_string.to_string(),
+        },
+    ))
 }
 
 pub fn parse_client_init(i: &[u8]) -> IResult<&[u8], ClientInit> {
@@ -209,7 +220,7 @@ pub fn parse_server_init(i: &[u8]) -> IResult<&[u8], ServerInit> {
         height,
         pixel_format,
         name_length,
-        name: name.to_vec()
+        name: name.to_vec(),
     };
     Ok((i, init))
 }
@@ -235,8 +246,7 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
@@ -245,13 +255,10 @@ mod tests {
     #[test]
     fn test_parse_server_init() {
         let buf = [
-            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01,
-            0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e,
-            0x61, 0x6e, 0x65, 0x61, 0x67, 0x6c, 0x65, 0x73,
-            0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f,
-            0x73, 0x74, 0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c,
-            0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e
+            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
+            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
 
         let result = parse_server_init(&buf);
@@ -268,8 +275,7 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
