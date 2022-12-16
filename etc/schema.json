@@ -4147,6 +4147,12 @@
                         "ethernet": {
                             "type": "integer"
                         },
+                        "arp": {
+                            "type": "integer"
+                        },
+                        "unknown_ethertype": {
+                            "type": "integer"
+                        },
                         "geneve": {
                             "type": "integer"
                         },
