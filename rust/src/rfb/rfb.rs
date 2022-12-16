@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2021 Open Information Security Foundation
+/* Copyright (C) 2020-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -631,5 +631,99 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         SCLogDebug!("Rust rfb parser registered.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for RFB.");
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_error_state() {
+        let mut state = RFBState::new();
+
+        let buf = &[
+            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
+            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
+        ];
+        let r = state.parse_request(buf);
+
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: -1,
+                consumed: 0,
+                needed: 0
+            }
+        );
+    }
+
+    // Test the state machine for RFB protocol
+    // Passes an initial buffer with initial RFBState = TCServerProtocolVersion
+    // Tests various client and server RFBStates as the buffer is parsed using parse_request and parse_response functions
+    #[test]
+    fn test_rfb_state_machine() {
+        let mut init_state = RFBState::new();
+
+        let buf: &[u8] = &[
+            0x52, 0x46, 0x42, 0x20, 0x30, 0x30, 0x33, 0x2e, 0x30, 0x30, 0x38, 0x0a,
+            0x01, /* Number of security types: 1 */
+            0x02, /* Security type: VNC (2) */
+            0x02, /* Security type selected: VNC (2) */
+            0x54, 0x7b, 0x7a, 0x6f, 0x36, 0xa1, 0x54, 0xdb, 0x03, 0xa2, 0x57, 0x5c, 0x6f, 0x2a,
+            0x4e,
+            0xc5, /* 16 byte Authentication challenge: 547b7a6f36a154db03a2575c6f2a4ec5 */
+            0x00, 0x00, 0x00, 0x00, /* Authentication result: OK */
+            0x00, /* Share desktop flag: False */
+            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
+            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69,
+            0x6e, /* Server framebuffer parameters */
+        ];
+
+        //The buffer values correspond to Server Protocol version: 003.008
+        // Same buffer is used for both functions due to similar values in request and response
+        init_state.parse_response(&buf[0..12]);
+        let mut ok_state = parser::RFBGlobalState::TSClientProtocolVersion;
+        assert_eq!(init_state.state, ok_state);
+
+        //The buffer values correspond to Client Protocol version: 003.008
+        init_state.parse_request(&buf[0..12]);
+        ok_state = parser::RFBGlobalState::TCSupportedSecurityTypes;
+        assert_eq!(init_state.state, ok_state);
+
+        init_state.parse_response(&buf[12..14]);
+        ok_state = parser::RFBGlobalState::TSSecurityTypeSelection;
+        assert_eq!(init_state.state, ok_state);
+
+        init_state.parse_request(&buf[14..15]);
+        ok_state = parser::RFBGlobalState::TCVncChallenge;
+        assert_eq!(init_state.state, ok_state);
+
+        //The buffer values correspond to Server Authentication challenge: 547b7a6f36a154db03a2575c6f2a4ec5
+        // Same buffer is used for both functions due to similar values in request and response
+        init_state.parse_response(&buf[15..31]);
+        ok_state = parser::RFBGlobalState::TSVncResponse;
+        assert_eq!(init_state.state, ok_state);
+
+        //The buffer values correspond to Client Authentication response: 547b7a6f36a154db03a2575c6f2a4ec5
+        init_state.parse_request(&buf[15..31]);
+        ok_state = parser::RFBGlobalState::TCSecurityResult;
+        assert_eq!(init_state.state, ok_state);
+
+        init_state.parse_response(&buf[31..35]);
+        ok_state = parser::RFBGlobalState::TSClientInit;
+        assert_eq!(init_state.state, ok_state);
+
+        init_state.parse_request(&buf[35..36]);
+        ok_state = parser::RFBGlobalState::TCServerInit;
+        assert_eq!(init_state.state, ok_state);
+
+        init_state.parse_response(&buf[36..90]);
+        ok_state = parser::RFBGlobalState::Message;
+        assert_eq!(init_state.state, ok_state);
     }
 }
