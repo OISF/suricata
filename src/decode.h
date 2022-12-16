@@ -683,6 +683,8 @@ typedef struct DecodeThreadVars_
     uint16_t counter_udp;
     uint16_t counter_icmpv4;
     uint16_t counter_icmpv6;
+    uint16_t counter_arp;
+    uint16_t counter_unknown;
 
     uint16_t counter_sll;
     uint16_t counter_raw;
@@ -1188,6 +1190,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeIEEE8021ah(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_ARP:
+            StatsIncr(tv, dtv->counter_arp);
             break;
         case ETHERNET_TYPE_MPLS_UNICAST:
         case ETHERNET_TYPE_MPLS_MULTICAST:
@@ -1208,6 +1211,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         default:
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
+            StatsIncr(tv, dtv->counter_unknown);
             return false;
     }
     return true;
