@@ -24,6 +24,7 @@ use nom7::*;
 use std::fmt;
 use std::str;
 
+#[derive(Debug,PartialEq)]
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
     TCSupportedSecurityTypes,
