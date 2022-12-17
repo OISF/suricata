@@ -74,14 +74,14 @@ typedef enum {
 } SCLogOPType;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_LOG_DEF_FILE_FORMAT      "[%i - %m] %t %d: %S: "
-#define SC_LOG_DEF_LOG_FORMAT_REL   "%D: %S: "
-#define SC_LOG_DEF_LOG_FORMAT_RELV  "%d: %S: "
-#define SC_LOG_DEF_LOG_FORMAT_RELVV "[%i] %d: %S: "
+#define SC_LOG_DEF_FILE_FORMAT      "[%i - %m] %t %d: %S: %M"
+#define SC_LOG_DEF_LOG_FORMAT_REL   "%D: %S: %M"
+#define SC_LOG_DEF_LOG_FORMAT_RELV  "%d: %S: %M"
+#define SC_LOG_DEF_LOG_FORMAT_RELVV "[%i] %d: %S: %M"
 #ifdef DEBUG
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%f:%l] %d: %S: "
+#define SC_LOG_DEF_LOG_FORMAT_DEV "%d: %S: %M [%f:%l]"
 #else
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%f:%l] %d: %S: "
+#define SC_LOG_DEF_LOG_FORMAT_DEV "%d: %S: %M [%f:%l]"
 #endif
 
 /* The maximum length of the log message */
@@ -199,6 +199,7 @@ typedef struct SCLogConfig_ {
 #define SC_LOG_FMT_FUNCTION         'n' /* Function */
 #define SC_LOG_FMT_SUBSYSTEM        'S' /* Subsystem name */
 #define SC_LOG_FMT_THREAD_NAME      'T' /* thread name */
+#define SC_LOG_FMT_MESSAGE          'M' /* log message body */
 
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'

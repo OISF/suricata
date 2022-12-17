@@ -376,8 +376,11 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
     BUG_ON(sc_log_module_initialized != 1);
 
     /* make a copy of the format string as it will be modified below */
-    char local_format[strlen(log_format) + 1];
+    const int add_M = strstr(log_format, "%M") == NULL;
+    char local_format[strlen(log_format) + add_M * 2 + 1];
     strlcpy(local_format, log_format, sizeof(local_format));
+    if (add_M)
+        strlcat(local_format, "%M", sizeof(local_format));
     char *temp_fmt = local_format;
     char *substr = temp_fmt;
 
@@ -553,6 +556,36 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
                 substr = temp_fmt;
                 substr++;
                 break;
+
+            case SC_LOG_FMT_MESSAGE: {
+                temp_fmt[0] = '\0';
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", substr);
+                if (cw < 0) {
+                    return -1;
+                }
+                temp += cw;
+                if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
+                    return 0;
+                }
+                const char *hi = "";
+                if (log_level <= SC_LOG_ERROR)
+                    hi = red;
+                else if (log_level <= SC_LOG_NOTICE)
+                    hi = yellow;
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", hi, message,
+                        reset);
+                if (cw < 0) {
+                    return -1;
+                }
+                temp += cw;
+                if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
+                    return 0;
+                }
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+            }
         }
         temp_fmt++;
 	}
@@ -563,25 +596,6 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
     if (cw < 0) {
         return -1;
     }
-    temp += cw;
-    if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        return 0;
-    }
-
-    const char *hi = "";
-    if (log_level <= SC_LOG_ERROR)
-        hi = red;
-    else if (log_level <= SC_LOG_NOTICE)
-        hi = yellow;
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", hi, message, reset);
-    if (cw < 0) {
-        return -1;
-    }
-    temp += cw;
-    if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        return 0;
-    }
-
     if (sc_log_config->op_filter_regex != NULL) {
         if (pcre2_match(sc_log_config->op_filter_regex, (PCRE2_SPTR8)buffer, strlen(buffer), 0, 0,
                     sc_log_config->op_filter_regex_match, NULL) < 0) {
