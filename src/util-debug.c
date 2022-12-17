@@ -295,6 +295,9 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     } else if (strncmp("util-", module_name, 5) == 0) {
         *dn_len = strlen(module_name) - 5;
         return module_name + 5;
+    } else if (strncmp("source-pcap-file", module_name, 16) == 0) {
+        *dn_len = strlen("pcap");
+        return "pcap";
     } else if (strncmp("source-", module_name, 7) == 0) {
         *dn_len = strlen(module_name) - 7;
         return module_name + 7;
