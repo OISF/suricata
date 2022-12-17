@@ -1422,7 +1422,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
                 if (ConfSetFinal("pfring.cluster-id", optarg) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring.cluster-id.\n");
+                    SCLogError("failed to set pfring.cluster-id");
                     return TM_ECODE_FAILED;
                 }
 #else
@@ -1434,7 +1434,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
                 if (ConfSetFinal("pfring.cluster-type", optarg) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring.cluster-type.\n");
+                    SCLogError("failed to set pfring.cluster-type");
                     return TM_ECODE_FAILED;
                 }
 #else
@@ -1637,7 +1637,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pcap-buffer-size.\n");
+                    SCLogError("failed to set pcap-buffer-size");
                     return TM_ECODE_FAILED;
                 }
 #else
@@ -1729,7 +1729,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-recursive") == 0) {
                 if (ConfSetFinal("pcap-file.recursive", "true") != 1) {
-                    SCLogError("ERROR: Failed to set pcap-file.recursive");
+                    SCLogError("failed to set pcap-file.recursive");
                     return TM_ECODE_FAILED;
                 }
             }
@@ -1918,7 +1918,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             struct stat buf;
             if (stat(optarg, &buf) != 0) {
 #endif /* OS_WIN32 */
-                SCLogError("ERROR: Pcap file does not exist\n");
+                SCLogError("pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
