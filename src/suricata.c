@@ -271,7 +271,7 @@ static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
     signal(SIGSEGV, SIG_DFL);
     int r;
     if ((r = unw_init_local(&cursor, (unw_context_t *)(context)) != 0)) {
-        fprintf(stderr, "unable to obtain stack trace: unw_init_local: %s\n", unw_strerror(r));
+        SCLogError("unable to obtain stack trace: unw_init_local: %s", unw_strerror(r));
         goto terminate;
     }
 
@@ -563,10 +563,9 @@ static void SetBpfStringFromFile(char *filename)
             bpf_filter[strlen(bpf_filter)-1] = '\0';
         }
         if (strlen(bpf_filter) > 0) {
-            if(ConfSetFinal("bpf-filter", bpf_filter) != 1) {
-                SCLogError("ERROR: Failed to set bpf filter!");
+            if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
                 SCFree(bpf_filter);
-                exit(EXIT_FAILURE);
+                FatalError("failed to set bpf filter");
             }
         }
     }
@@ -1507,7 +1506,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 EngineModeSetIPS();
             } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                    fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
+                    SCLogError("failed to set engine init-failure-fatal");
                     return TM_ECODE_FAILED;
                 }
 #ifdef BUILD_UNIX_SOCKET
@@ -1516,7 +1515,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     suri->run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
                         if (ConfSetFinal("unix-command.filename", optarg) != 1) {
-                            fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
+                            SCLogError("failed to set unix-command.filename");
                             return TM_ECODE_FAILED;
                         }
 
@@ -1536,7 +1535,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef UNITTESTS
                 suri->run_mode = RUNMODE_LIST_UNITTEST;
 #else
-                fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+                SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
+                           "configure when building");
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
@@ -1582,7 +1582,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef UNITTESTS
                 unittests_fatal = 1;
 #else
-                fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+                SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
+                           "configure when building");
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "user") == 0) {
@@ -1606,7 +1607,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
+                    SCLogError("failed to set erf-file.file");
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
@@ -1708,9 +1709,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         FatalError("Invalid argument for --set, must be key=val.");
                     }
                     if (!ConfSetFromString(optarg, 1)) {
-                        fprintf(stderr, "Failed to set configuration value %s.",
-                                optarg);
-                        exit(EXIT_FAILURE);
+                        FatalError("failed to set configuration value %s", optarg);
                     }
                 }
             }
@@ -1772,7 +1771,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         case 'T':
             conf_test = 1;
             if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
+                SCLogError("failed to set engine init-failure-fatal");
                 return TM_ECODE_FAILED;
             }
             break;
@@ -1952,7 +1951,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
             }
 #else
-            fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+            SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to configure "
+                       "when building.");
             return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             break;
