@@ -262,7 +262,7 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
 
         ShortenString(devname, newdevname, destlen, '.');
 
-        SCLogInfo("Shortening device name to: %s", newdevname);
+        SCLogInfo("%s: shortening device name to %s", devname, newdevname);
     } else {
         strlcpy(newdevname, devname, destlen);
     }
