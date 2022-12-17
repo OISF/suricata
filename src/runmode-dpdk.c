@@ -913,7 +913,7 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
 {
     if (iconf->mtu > dev_info->max_mtu || iconf->mtu < dev_info->min_mtu) {
-        SCLogError("Loaded MTU of \"%s\" is out of bounds. "
+        SCLogError("%s: MTU out of bounds. "
                    "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
                 iconf->iface, dev_info->min_mtu, dev_info->max_mtu);
         SCReturnInt(-ERANGE);
@@ -923,7 +923,7 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
     // check if jumbo frames are set and are available
     if (iconf->mtu > RTE_ETHER_MAX_LEN &&
             !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError("Jumbo frames not supported, set MTU of \"%s\" to 1500B", iconf->iface);
+        SCLogError("%s: jumbo frames not supported, set MTU to 1500", iconf->iface);
         SCReturnInt(-EINVAL);
     }
 #endif
@@ -960,7 +960,7 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
     // configure RX offloads
     if (dev_info->rx_offload_capa & DEV_RX_OFFLOAD_RSS_HASH) {
         if (iconf->nb_rx_queues > 1) {
-            SCLogConfig("RSS enabled on %s for %d queues", iconf->iface, iconf->nb_rx_queues);
+            SCLogConfig("%s: RSS enabled for %d queues", iconf->iface, iconf->nb_rx_queues);
             port_conf->rx_adv_conf.rss_conf = (struct rte_eth_rss_conf){
                 .rss_key = rss_hkey,
                 .rss_key_len = RSS_HKEY_LEN,
@@ -974,34 +974,31 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             if (port_conf->rx_adv_conf.rss_conf.rss_hf != rss_hf_tmp) {
                 DumpRSSFlags(port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
 
-                SCLogWarning("Interface %s modified RSS hash function based on hardware support, "
-                             "requested:%#" PRIx64 " configured:%#" PRIx64,
+                SCLogWarning("%s: modified RSS hash function based on hardware support: "
+                             "requested:%#" PRIx64 ", configured:%#" PRIx64,
                         iconf->iface, port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
                 port_conf->rx_adv_conf.rss_conf.rss_hf = rss_hf_tmp;
             }
             port_conf->rxmode.mq_mode = ETH_MQ_RX_RSS;
         } else {
-            SCLogConfig("RSS not enabled on %s", iconf->iface);
+            SCLogConfig("%s: RSS not enabled", iconf->iface);
             port_conf->rx_adv_conf.rss_conf.rss_key = NULL;
             port_conf->rx_adv_conf.rss_conf.rss_hf = 0;
         }
     } else {
-        SCLogConfig("RSS not supported on %s", iconf->iface);
+        SCLogConfig("%s: RSS not supported", iconf->iface);
     }
 
     if (iconf->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
-        SCLogConfig("Checksum validation disabled on %s", iconf->iface);
+        SCLogConfig("%s: checksum validation disabled", iconf->iface);
     } else if (dev_info->rx_offload_capa & DEV_RX_OFFLOAD_CHECKSUM) {
         if (iconf->checksum_mode == CHECKSUM_VALIDATION_ENABLE &&
                 iconf->flags & DPDK_RX_CHECKSUM_OFFLOAD) {
-            SCLogConfig("IP, TCP and UDP checksum validation enabled and offloaded "
-                        "on %s",
-                    iconf->iface);
+            SCLogConfig("%s: IP, TCP and UDP checksum validation offloaded", iconf->iface);
             port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_CHECKSUM;
         } else if (iconf->checksum_mode == CHECKSUM_VALIDATION_ENABLE &&
                    !(iconf->flags & DPDK_RX_CHECKSUM_OFFLOAD)) {
-            SCLogConfig("Suricata checksum validation enabled (but can be offloaded on %s)",
-                    iconf->iface);
+            SCLogConfig("%s: checksum validation enabled (but can be offloaded)", iconf->iface);
         }
     }
 
@@ -1027,15 +1024,15 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     // +4 for VLAN header
     mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
-    SCLogInfo("Creating a packet mbuf pool %s of size %d, cache size %d, mbuf size %d",
-            mempool_name, iconf->mempool_size, iconf->mempool_cache_size, mbuf_size);
+    SCLogInfo("%s: creating packet mbuf pool %s of size %d, cache size %d, mbuf size %d",
+            iconf->iface, mempool_name, iconf->mempool_size, iconf->mempool_cache_size, mbuf_size);
 
     iconf->pkt_mempool = rte_pktmbuf_pool_create(mempool_name, iconf->mempool_size,
             iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
     if (iconf->pkt_mempool == NULL) {
         retval = -rte_errno;
-        SCLogError("Error (err=%d) during rte_pktmbuf_pool_create (mempool: %s) - %s", rte_errno,
-                mempool_name, rte_strerror(rte_errno));
+        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
+                iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
         SCReturnInt(retval);
     }
 
@@ -1047,10 +1044,9 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         rxq_conf.rx_thresh.wthresh = 0;
         rxq_conf.rx_free_thresh = 0;
         rxq_conf.rx_drop_en = 0;
-        SCLogPerf(
-                "Creating Q %d of P %d using desc RX: %d TX: %d RX htresh: %d RX pthresh %d wtresh "
-                "%d free_tresh %d drop_en %d Offloads %lu",
-                queue_id, iconf->port_id, iconf->nb_rx_desc, iconf->nb_tx_desc,
+        SCLogPerf("%s: rx queue setup: queue:%d port:%d rx_desc:%d tx_desc:%d rx: htresh: %d "
+                  "pthresh %d wtresh %d free_tresh %d drop_en %d offloads %lu",
+                iconf->iface, queue_id, iconf->port_id, iconf->nb_rx_desc, iconf->nb_tx_desc,
                 rxq_conf.rx_thresh.hthresh, rxq_conf.rx_thresh.pthresh, rxq_conf.rx_thresh.wthresh,
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en, rxq_conf.offloads);
 
@@ -1058,8 +1054,9 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError("Error (err=%d) during initialization of device queue %u of port %u", retval,
-                    queue_id, iconf->port_id);
+            SCLogError(
+                    "%s: rte_eth_rx_queue_setup failed with code %d for device queue %u of port %u",
+                    iconf->iface, retval, queue_id, iconf->port_id);
             SCReturnInt(retval);
         }
     }
@@ -1067,13 +1064,14 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     for (uint16_t queue_id = 0; queue_id < iconf->nb_tx_queues; queue_id++) {
         txq_conf = dev_info->default_txconf;
         txq_conf.offloads = port_conf->txmode.offloads;
-        SCLogPerf("Creating TX queue %d on port %d", queue_id, iconf->port_id);
+        SCLogPerf("%s: tx queue setup: queue:%d port:%d", iconf->iface, queue_id, iconf->port_id);
         retval = rte_eth_tx_queue_setup(
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError("Error (err=%d) during initialization of device queue %u of port %u", retval,
-                    queue_id, iconf->port_id);
+            SCLogError(
+                    "%s: rte_eth_tx_queue_setup failed with code %d for device queue %u of port %u",
+                    iconf->iface, retval, queue_id, iconf->port_id);
             SCReturnInt(retval);
         }
     }
@@ -1100,25 +1098,26 @@ static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
 
     if (iconf->nb_rx_queues != out_iconf->nb_tx_queues) {
         // the other direction is validated when the copy interface is configured
-        SCLogError("Interface %s has configured %d RX queues but copy interface %s has %d TX queues"
+        SCLogError("%s: configured %d RX queues but copy interface %s has %d TX queues"
                    " - number of queues must be equal",
                 iconf->iface, iconf->nb_rx_queues, out_iconf->iface, out_iconf->nb_tx_queues);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (iconf->mtu != out_iconf->mtu) {
-        SCLogError("Interface %s has configured MTU of %dB but copy interface %s has MTU set to %dB"
+        SCLogError("%s: configured MTU of %d but copy interface %s has MTU set to %d"
                    " - MTU must be equal",
                 iconf->iface, iconf->mtu, out_iconf->iface, out_iconf->mtu);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (iconf->copy_mode != out_iconf->copy_mode) {
-        SCLogError(
-                "Copy modes of interfaces %s and %s are not equal", iconf->iface, out_iconf->iface);
+        SCLogError("%s: copy modes of interfaces %s and %s are not equal", iconf->iface,
+                iconf->iface, out_iconf->iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     } else if (strcmp(iconf->iface, out_iconf->out_iface) != 0) {
         // check if the other iface has the current iface set as a copy iface
-        SCLogError("Copy interface of %s is not set to %s", out_iconf->iface, iconf->iface);
+        SCLogError("%s: copy interface of %s is not set to %s", iconf->iface, out_iconf->iface,
+                iconf->iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
     }
@@ -1135,12 +1134,14 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     if (iconf->out_iface != NULL) {
         retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
         if (retval != 0) {
-            SCLogError("Error (err=%d) during obtaining port id of %s", retval, iconf->out_iface);
+            SCLogError("%s: failed to obtain out iface %s port id (err=%d)", iconf->iface,
+                    iconf->out_iface, retval);
             SCReturnInt(retval);
         }
 
         if (rte_eth_dev_socket_id(iconf->port_id) != rte_eth_dev_socket_id(iconf->out_port_id)) {
-            SCLogWarning("%s and %s are not on the same NUMA node", iconf->iface, iconf->out_iface);
+            SCLogWarning("%s: out iface %s is not on the same NUMA node", iconf->iface,
+                    iconf->out_iface);
         }
 
         retval = DeviceValidateOutIfaceConfig(iconf);
@@ -1169,41 +1170,37 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
     if (retval < 0) {
-        SCLogError("Error (err=%d) when getting port id of %s Is device enabled?", retval,
-                iconf->iface);
+        SCLogError("%s: getting port id failed (err=%d). Is device enabled?", iconf->iface, retval);
         SCReturnInt(retval);
     }
 
     if (!rte_eth_dev_is_valid_port(iconf->port_id)) {
-        SCLogError("Specified port %d is invalid", iconf->port_id);
+        SCLogError("%s: specified port %d is invalid", iconf->iface, iconf->port_id);
         SCReturnInt(retval);
     }
 
     retval = rte_eth_dev_socket_id(iconf->port_id);
     if (retval < 0) {
-        SCLogError("Error (err=%d) invalid socket id (port %s)", retval, iconf->iface);
+        SCLogError("%s: invalid socket id (err=%d)", iconf->iface, retval);
         SCReturnInt(retval);
-    } else {
-        iconf->socket_id = retval;
     }
+    iconf->socket_id = retval;
 
     retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
     if (retval != 0) {
-        SCLogError("Error (err=%d) during getting device info (port %s)", retval, iconf->iface);
+        SCLogError("%s: getting device info failed (err=%d)", iconf->iface, retval);
         SCReturnInt(retval);
     }
 
     if (iconf->nb_rx_queues > dev_info.max_rx_queues) {
-        SCLogError("Number of configured RX queues of %s is higher than maximum allowed (%" PRIu16
-                   ")",
-                iconf->iface, dev_info.max_rx_queues);
+        SCLogError("%s: configured RX queues %u is higher than device maximum (%" PRIu16 ")",
+                iconf->iface, iconf->nb_rx_queues, dev_info.max_rx_queues);
         SCReturnInt(-ERANGE);
     }
 
     if (iconf->nb_tx_queues > dev_info.max_tx_queues) {
-        SCLogError("Number of configured TX queues of %s is higher than maximum allowed (%" PRIu16
-                   ")",
-                iconf->iface, dev_info.max_tx_queues);
+        SCLogError("%s: configured TX queues %u is higher than device maximum (%" PRIu16 ")",
+                iconf->iface, iconf->nb_tx_queues, dev_info.max_tx_queues);
         SCReturnInt(-ERANGE);
     }
 
@@ -1220,16 +1217,16 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     retval = rte_eth_dev_configure(
             iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, &port_conf);
     if (retval != 0) {
-        SCLogError(
-                "Error (err=%d) during configuring the device (port %u)", retval, iconf->port_id);
+        SCLogError("%s: failed to configure the device (port %u, err %d)", iconf->iface,
+                iconf->port_id, retval);
         SCReturnInt(retval);
     }
 
     retval = rte_eth_dev_adjust_nb_rx_tx_desc(
             iconf->port_id, &iconf->nb_rx_desc, &iconf->nb_tx_desc);
     if (retval != 0) {
-        SCLogError("Error (err=%d) during adjustment of device queues descriptors (port %u)",
-                retval, iconf->port_id);
+        SCLogError("%s: failed to adjust device queue descriptors (port %u, err %d)", iconf->iface,
+                iconf->port_id, retval);
         SCReturnInt(retval);
     }
 
@@ -1240,22 +1237,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         // when multicast is enabled but set to disable or vice versa
         if ((retval == 1 && !(iconf->flags & DPDK_MULTICAST)) ||
                 (retval == 0 && (iconf->flags & DPDK_MULTICAST))) {
-            SCLogError("Allmulticast setting of port (%" PRIu16
+            SCLogError("%s: Allmulticast setting of port (%" PRIu16
                        ") can not be configured. Set it to %s",
-                    iconf->port_id, retval == 1 ? "true" : "false");
+                    iconf->iface, iconf->port_id, retval == 1 ? "true" : "false");
         } else if (retval < 0) {
-            SCLogError("Error (err=%d) Unable to get multicast mode on port %u", retval,
-                    iconf->port_id);
-            SCReturnInt(retval);
-        }
-
-        if (retval < 0) {
-            SCLogError("Error (err=%d) Unable to get multicast mode on port %u", retval,
-                    iconf->port_id);
+            SCLogError("%s: failed to get multicast mode (port %u, err %d)", iconf->iface,
+                    iconf->port_id, retval);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("Error (err=%d) when en/disabling multicast on port %u", retval, iconf->port_id);
+        SCLogError("%s: error when changing multicast setting (port %u err %d)", iconf->iface,
+                iconf->port_id, retval);
         SCReturnInt(retval);
     }
 
@@ -1265,37 +1257,37 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         retval = rte_eth_promiscuous_get(iconf->port_id);
         if ((retval == 1 && !(iconf->flags & DPDK_PROMISC)) ||
                 (retval == 0 && (iconf->flags & DPDK_PROMISC))) {
-            SCLogError("Promiscuous setting of port (%" PRIu16
+            SCLogError("%s: promiscuous setting of port (%" PRIu16
                        ") can not be configured. Set it to %s",
-                    iconf->port_id, retval == 1 ? "true" : "false");
+                    iconf->iface, iconf->port_id, retval == 1 ? "true" : "false");
             SCReturnInt(TM_ECODE_FAILED);
         } else if (retval < 0) {
-            SCLogError("Error (err=%d) Unable to get promiscuous mode on port %u", retval,
-                    iconf->port_id);
+            SCLogError("%s: failed to get promiscuous mode (port %u, err=%d)", iconf->iface,
+                    iconf->port_id, retval);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError(
-                "Error (err=%d) when enabling promiscuous mode on port %u", retval, iconf->port_id);
+        SCLogError("%s: error when changing promiscuous setting (port %u, err %d)", iconf->iface,
+                iconf->port_id, retval);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     // set maximum transmission unit
-    SCLogConfig("Setting MTU of %s to %dB", iconf->iface, iconf->mtu);
+    SCLogConfig("%s: setting MTU to %d", iconf->iface, iconf->mtu);
     retval = rte_eth_dev_set_mtu(iconf->port_id, iconf->mtu);
     if (retval == -ENOTSUP) {
-        SCLogWarning("Changing MTU on port %u is not supported, ignoring the setting...",
-                iconf->port_id);
+        SCLogWarning("%s: changing MTU on port %u is not supported, ignoring the setting",
+                iconf->iface, iconf->port_id);
         // if it is not possible to set the MTU, retrieve it
         retval = rte_eth_dev_get_mtu(iconf->port_id, &iconf->mtu);
         if (retval < 0) {
-            SCLogError(
-                    "Error (err=%d) Unable to retrieve MTU from port %u", retval, iconf->port_id);
+            SCLogError("%s: failed to retrieve MTU (port %u, err %d)", iconf->iface, iconf->port_id,
+                    retval);
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("Error (err=%d) when setting MTU to %u on port %u", retval, iconf->mtu,
-                iconf->port_id);
+        SCLogError("%s: failed to set MTU to %u (port %u, err %d)", iconf->iface, iconf->mtu,
+                iconf->port_id, retval);
         SCReturnInt(retval);
     }
 
@@ -1326,7 +1318,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
         if (retval != 0)
             FatalError("EAL cleanup failed: %s", strerror(-retval));
 
-        FatalError("Device %s fails to configure", iface);
+        FatalError("%s: failed to configure", iface);
     }
 
     SC_ATOMIC_RESET(iconf->ref);
