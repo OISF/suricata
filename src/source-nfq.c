@@ -584,7 +584,7 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(q->h, AF_INET) < 0) {
-            FatalError("nfq_unbind_pf() for AF_INET failed");
+            FatalError("nfq_unbind_pf() for AF_INET failed: %s", strerror(errno));
         }
         if (nfq_unbind_pf(q->h, AF_INET6) < 0) {
             FatalError("nfq_unbind_pf() for AF_INET6 failed");
