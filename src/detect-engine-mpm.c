@@ -243,14 +243,10 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
             shared = confshared;
 
         if (shared == 0) {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using unique mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using unique mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using shared mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using shared mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
@@ -472,14 +468,10 @@ void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
             shared = confshared;
 
         if (shared == 0) {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using unique mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using unique mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using shared mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using shared mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
@@ -645,14 +637,10 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
             shared = confshared;
 
         if (shared == 0) {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using unique mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using unique mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
-            if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogPerf("using shared mpm ctx' for %s", n->name);
-            }
+            SCLogDebug("using shared mpm ctx' for %s", n->name);
             n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
@@ -705,10 +693,10 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
     int32_t ctx;
     if (shared == 0) {
         ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-        SCLogPerf("using unique mpm ctx' for %s", name);
+        SCLogDebug("using unique mpm ctx' for %s", name);
     } else {
         ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name, DETECT_SM_LIST_PMATCH);
-        SCLogPerf("using shared mpm ctx' for %s", name);
+        SCLogDebug("using shared mpm ctx' for %s", name);
     }
     return ctx;
 }
