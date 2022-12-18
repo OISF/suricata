@@ -552,10 +552,9 @@ static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->out_port_id);
     if (retval < 0) {
-        SCLogWarning(
-                "Name of the copy interface (%s) for the interface %s is not valid, changing to %s",
-                entry_str, iconf->iface, DPDK_CONFIG_DEFAULT_COPY_INTERFACE);
-        iconf->out_iface = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
+        SCLogWarning("%s: name of the copy interface (%s) is invalid (err %d)", iconf->iface,
+                entry_str, retval);
+        SCReturnInt(retval);
     }
 
     iconf->out_iface = entry_str;
