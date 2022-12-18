@@ -786,6 +786,8 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
         iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
     if (strcmp(driver_name, "net_ixgbe") == 0)
         ixgbeDeviceSetRSSHashFunction(&rss_conf->rss_hf);
+    if (strcmp(driver_name, "net_e1000_igb") == 0)
+        rss_conf->rss_hf = (ETH_RSS_IPV4 | ETH_RSS_IPV6 | ETH_RSS_IPV6_EX);
 }
 
 // Returns -1 if no bit is set
