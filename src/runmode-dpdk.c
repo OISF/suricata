@@ -614,11 +614,6 @@ static int ConfigSetCopyIfaceSettings(DPDKIfaceConfig *iconf, const char *iface,
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->copy_mode == DPDK_COPY_MODE_IPS)
-        SCLogInfo("DPDK IPS mode activated between %s and %s", iconf->iface, iconf->out_iface);
-    else if (iconf->copy_mode == DPDK_COPY_MODE_TAP)
-        SCLogInfo("DPDK IPS mode activated between %s and %s", iconf->iface, iconf->out_iface);
-
     SCReturnInt(0);
 }
 
@@ -726,14 +721,20 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval =
-            ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str) |
-            ConfGetChildValueWithDefault(
-                    if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
-    // if one of copy interface settings fail to load then the default values are set
-    retval = retval != 1 ? ConfigSetCopyIfaceSettings(iconf, DPDK_CONFIG_DEFAULT_COPY_INTERFACE,
-                                   DPDK_CONFIG_DEFAULT_COPY_MODE)
-                         : ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
+    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
+    if (retval != 1)
+        SCReturnInt(-ENOENT);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = ConfGetChildValueWithDefault(
+            if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
+    if (retval != 1)
+        SCReturnInt(-ENOENT);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -1147,6 +1148,13 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
             // Error will be written out by the validation function
             SCReturnInt(retval);
         }
+
+        if (iconf->copy_mode == DPDK_COPY_MODE_IPS)
+            SCLogInfo("%s: DPDK IPS mode activated: %s->%s", iconf->iface, iconf->iface,
+                    iconf->out_iface);
+        else if (iconf->copy_mode == DPDK_COPY_MODE_TAP)
+            SCLogInfo("%s: DPDK TAP mode activated: %s->%s", iconf->iface, iconf->iface,
+                    iconf->out_iface);
     }
     SCReturnInt(0);
 }
