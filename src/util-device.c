@@ -247,6 +247,11 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
 
     /* If we have to shorten the interface name */
     if (devnamelen > MAX_DEVNAME) {
+        /* special mode for DPDK pci addresses */
+        if (devnamelen >= 5 && strncmp(devname, "0000:", 5) == 0) {
+            strlcpy(newdevname, devname + 5, destlen);
+            return 0;
+        }
 
         /* IF the dest length is over 10 chars long it will not do any
          * good for the shortening. The shortening is done due to the
