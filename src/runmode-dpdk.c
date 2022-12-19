@@ -552,7 +552,7 @@ static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->out_port_id);
     if (retval < 0) {
-        SCLogWarning("%s: name of the copy interface (%s) is invalid (err %d)", iconf->iface,
+        SCLogError("%s: name of the copy interface (%s) is invalid (err %d)", iconf->iface,
                 entry_str, retval);
         SCReturnInt(retval);
     }
@@ -610,7 +610,7 @@ static int ConfigSetCopyIfaceSettings(DPDKIfaceConfig *iconf, const char *iface,
     }
 
     if (iconf->out_iface == NULL || strlen(iconf->out_iface) <= 0) {
-        SCLogError("Copy mode enabled but interface not set");
+        SCLogError("%s: copy mode enabled but interface not set", iconf->iface);
         SCReturnInt(-EINVAL);
     }
 
