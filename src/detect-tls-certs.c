@@ -102,6 +102,12 @@ void DetectTlsCertsRegister(void)
             PrefilterMpmTlsCertsRegister, NULL, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
+    DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CERT_READY, DetectEngineInspectTlsCerts, NULL);
+
+    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOSERVER, 2, PrefilterMpmTlsCertsRegister,
+            NULL, ALPROTO_TLS, TLS_STATE_CERT_READY);
+
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
     g_tls_certs_buffer_id = DetectBufferTypeGetByName("tls.certs");
@@ -141,13 +147,20 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         return NULL;
 
     const SSLState *ssl_state = (SSLState *)f->alstate;
+    const SSLStateConnp *connp;
 
-    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
+    if (f->flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (TAILQ_EMPTY(&connp->certs)) {
         return NULL;
     }
 
     if (cbdata->cert == NULL) {
-        cbdata->cert = TAILQ_FIRST(&ssl_state->server_connp.certs);
+        cbdata->cert = TAILQ_FIRST(&connp->certs);
     } else {
         cbdata->cert = TAILQ_NEXT(cbdata->cert, next);
     }
