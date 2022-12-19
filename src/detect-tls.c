@@ -143,6 +143,9 @@ void DetectTlsRegister (void)
 
     DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
+
+    DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 }
 
 /**
@@ -619,6 +622,14 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    ssl_state->server_connp.cert_log_flag |= SSL_TLS_LOG_PEM;
+    SSLStateConnp *connp;
+
+    if (p->flow->flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    connp->cert_log_flag |= SSL_TLS_LOG_PEM;
     SCReturnInt(1);
 }
