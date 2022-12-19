@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -79,6 +79,12 @@ void DetectTlsIssuerRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    DetectAppLayerInspectEngineRegister2("tls.cert_issuer", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
+
+    DetectAppLayerMpmRegister2("tls.cert_issuer", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
+
     DetectAppLayerInspectEngineRegister2("tls.cert_issuer", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);
@@ -122,13 +128,19 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
+        const SSLStateConnp *connp;
+        if (flow_flags & STREAM_TOSERVER) {
+            connp = &ssl_state->client_connp;
+        } else {
+            connp = &ssl_state->server_connp;
+        }
 
-        if (ssl_state->server_connp.cert0_issuerdn == NULL) {
+        if (connp->cert0_issuerdn == NULL) {
             return NULL;
         }
 
-        const uint32_t data_len = strlen(ssl_state->server_connp.cert0_issuerdn);
-        const uint8_t *data = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
+        const uint32_t data_len = strlen(connp->cert0_issuerdn);
+        const uint8_t *data = (uint8_t *)connp->cert0_issuerdn;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
