@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2021 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -95,8 +95,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     if (ns->iface[0]) {
         size_t len = strlen(ns->iface);
         if (ns->iface[len-1] == '+') {
-            SCLogWarning("netmap interface %s uses obsolete '+' notation. Using '^' instead.",
-                    ns->iface);
+            SCLogWarning("%s: interface uses obsolete '+' notation. Using '^' instead", ns->iface);
             ns->iface[len-1] = '^';
             ns->sw_ring = true;
         } else if (ns->iface[len-1] == '^') {
@@ -123,15 +122,14 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
             ns->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
-                    ns->bpf_filter);
+            SCLogInfo("%s: using command-line provided bpf filter '%s'", iface, ns->bpf_filter);
         }
     }
 
     if (if_root == NULL && if_default == NULL) {
-        SCLogInfo("Unable to find netmap config for "
-                "interface \"%s\" or \"default\", using default values",
-                iface);
+        SCLogInfo("%s: unable to find netmap config for interface \"%s\" or \"default\", using "
+                  "default values",
+                iface, iface);
         goto finalize;
 
     /* If there is no setting for current interface use default one as main iface */
@@ -150,7 +148,8 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             ns->threads_auto = true;
         } else {
             if (StringParseUint16(&ns->threads, 10, 0, threadsstr) < 0) {
-                SCLogWarning("Invalid config value for threads: %s, resetting to 0", threadsstr);
+                SCLogWarning("%s: invalid config value for threads: %s, resetting to 0", iface,
+                        threadsstr);
                 ns->threads = 0;
             }
         }
@@ -162,7 +161,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
             if (strlen(bpf_filter) > 0) {
                 ns->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", ns->bpf_filter);
+                SCLogInfo("%s: using bpf filter %s", iface, ns->bpf_filter);
             }
         }
     }
@@ -170,7 +169,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     int boolval = 0;
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
-        SCLogInfo("Disabling promiscuous mode on iface %s", ns->iface);
+        SCLogInfo("%s: disabling promiscuous mode", ns->iface);
         ns->promisc = false;
     }
 
@@ -185,7 +184,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         } else if (ConfValIsFalse(tmpctype)) {
             ns->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
-            SCLogWarning("Invalid value for checksum-checks for %s", iface);
+            SCLogWarning("%s: invalid value for checksum-checks '%s'", iface, tmpctype);
         }
     }
 
@@ -198,7 +197,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         } else if (strcmp(copymodestr, "tap") == 0) {
             ns->copy_mode = NETMAP_COPY_MODE_TAP;
         } else {
-            SCLogWarning("Invalid copy-mode (valid are tap, ips)");
+            SCLogWarning("%s: invalid copy-mode %s (valid are tap, ips)", iface, copymodestr);
         }
     }
 
@@ -255,7 +254,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     /* Find initial node */
     ConfNode *netmap_node = ConfGetNode("netmap");
     if (netmap_node == NULL) {
-        SCLogInfo("Unable to find netmap config using default value");
+        SCLogInfo("%s: unable to find netmap config using default value", iface_name);
     } else {
         if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
         if_default = ConfFindDeviceConfig(netmap_node, "default");
@@ -309,8 +308,7 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     SC_ATOMIC_RESET(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
-    SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
-            aconf->iface_name);
+    SCLogPerf("%s: using %d threads", aconf->iface_name, aconf->in.threads);
 
     LiveDeviceHasNoStats();
     return aconf;
