@@ -42,6 +42,6 @@ case "$1" in
         ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
         ;;
     verify)
-        python3 ./suricata-verify/run.py
+        python3 ./suricata-verify/run.py -q
         ;;
 esac
