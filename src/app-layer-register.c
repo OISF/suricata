@@ -47,6 +47,8 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
     if (alproto == ALPROTO_UNKNOWN || alproto == ALPROTO_FAILED)
         FatalError("Unknown or invalid AppProto '%s'.", p->name);
 
+    BUG_ON(strcmp(p->name, AppProtoToString(alproto)) != 0);
+
     ip_proto_str = IpProtoToString(p->ip_proto);
     if (ip_proto_str == NULL)
         FatalError("Unknown or unsupported ip_proto field in parser '%s'", p->name);
@@ -101,6 +103,8 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
 
     if (alproto == ALPROTO_UNKNOWN || alproto >= ALPROTO_FAILED)
         FatalError("Unknown or invalid AppProto '%s'.", p->name);
+
+    BUG_ON(strcmp(p->name, AppProtoToString(alproto)) != 0);
 
     ip_proto_str = IpProtoToString(p->ip_proto);
     if (ip_proto_str == NULL)
