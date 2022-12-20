@@ -410,29 +410,30 @@ static int NetmapRunModeInit(NetmapRunMode_t runmode)
     const char *live_dev = NULL;
     (void)ConfGet("netmap.live-interface", &live_dev);
 
+    const char *runmode_str = "unknown";
     int ret;
     switch (runmode) {
         case NETMAP_AUTOFP:
+            runmode_str = "autofp";
             ret = RunModeSetLiveCaptureAutoFp(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_autofp, live_dev);
             break;
         case NETMAP_WORKERS:
+            runmode_str = "workers";
             ret = RunModeSetLiveCaptureWorkers(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_workers, live_dev);
             break;
         case NETMAP_SINGLE:
+            runmode_str = "single";
             ret = RunModeSetLiveCaptureSingle(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_single, live_dev);
             break;
     }
     if (ret != 0) {
-        FatalError("Unable to start runmode %s", runmode == NETMAP_AUTOFP    ? "autofp"
-                                                 : runmode == NETMAP_WORKERS ? "workers"
-                                                                             : "single");
+        FatalError("Unable to start runmode %s", runmode_str);
     }
 
-    SCLogDebug("%s initialized",
-            runmode == NETMAP_AUTOFP ? "autofp" : runmode == NETMAP_WORKERS ? "workers" : "single");
+    SCLogDebug("%s initialized", runmode_str);
 
     SCReturnInt(0);
 }
