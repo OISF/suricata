@@ -607,16 +607,23 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
-    if 2 * (header.additional_rr as usize
+    let min_msg_size = 2 * (header.additional_rr as usize
         + header.answer_rr as usize
         + header.authority_rr as usize
         + header.questions as usize)
-        + DNS_HEADER_SIZE
-        > rlen
-    {
-        //not enough data for such a DNS record
+        + DNS_HEADER_SIZE;
+
+    if min_msg_size > u16::MAX as usize {
+        // The number of items in this DNS message exceeds the maximum
+        // DNS message size.
         return (false, false, false);
     }
+
+    if min_msg_size > rlen {
+        // Not enough data for such a DNS message.
+        return (false, false, false);
+    }
+
     let is_request = header.flags & 0x8000 == 0;
     return (true, is_request, false);
 }
