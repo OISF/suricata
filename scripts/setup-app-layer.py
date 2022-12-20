@@ -146,7 +146,7 @@ def patch_app_layer_protos_c(protoname):
                 temp = temp.replace("template", protoname.lower())
                 output.write(temp)
 
-        if line.find("return ALPROTO_TEMPLATE;") > -1:
+        if line.find("strcmp(proto_name, \"template\")") > -1:
             # Duplicate the section starting at this line and
             # including the following line.
             for j in range(i, i + 2):
