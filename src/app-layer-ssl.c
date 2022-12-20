@@ -1067,7 +1067,7 @@ invalid_length:
 static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
                                           const uint8_t * const initial_input,
                                           const uint32_t input_len,
-                                          JA3Buffer *ja3_elliptic_curves)
+                                          JA3Buffer **ja3_elliptic_curves)
 {
     const uint8_t *input = initial_input;
 
@@ -1097,7 +1097,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
             input += 2;
 
             if (TLSDecodeValueIsGREASE(elliptic_curve) != 1) {
-                int rc = Ja3BufferAddValue(&ja3_elliptic_curves,
+                int rc = Ja3BufferAddValue(ja3_elliptic_curves,
                                            elliptic_curve);
                 if (rc != 0)
                     return -1;
@@ -1124,7 +1124,7 @@ invalid_length:
 static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
                                             const uint8_t * const initial_input,
                                             const uint32_t input_len,
-                                            JA3Buffer *ja3_elliptic_curves_pf)
+                                            JA3Buffer **ja3_elliptic_curves_pf)
 {
     const uint8_t *input = initial_input;
 
@@ -1151,7 +1151,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
             input += 1;
 
             if (TLSDecodeValueIsGREASE(elliptic_curve_pf) != 1) {
-                int rc = Ja3BufferAddValue(&ja3_elliptic_curves_pf,
+                int rc = Ja3BufferAddValue(ja3_elliptic_curves_pf,
                                            elliptic_curve_pf);
                 if (rc != 0)
                     return -1;
@@ -1253,7 +1253,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurves(ssl_state, input,
                                                               ext_len,
-                                                              ja3_elliptic_curves);
+                                                              &ja3_elliptic_curves);
                 if (ret < 0)
                     goto end;
 
@@ -1267,7 +1267,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurvePF(ssl_state, input,
                                                                ext_len,
-                                                               ja3_elliptic_curves_pf);
+                                                               &ja3_elliptic_curves_pf);
                 if (ret < 0)
                     goto end;
 
