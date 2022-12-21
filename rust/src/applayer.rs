@@ -24,6 +24,7 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 
 #[repr(C)]
+#[repr(C)]
 #[derive(Debug,PartialEq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
