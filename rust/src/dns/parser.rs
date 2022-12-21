@@ -49,7 +49,7 @@ pub fn dns_parse_header(i: &[u8]) -> IResult<&[u8], DNSHeader> {
 ///
 /// Parameters:
 ///   start: the start of the name
-///   message: the complete message that start is a part of
+///   message: the complete message that start is a part of with the DNS header
 pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
     let mut pos = start;
     let mut pivot = start;
@@ -192,12 +192,18 @@ fn dns_parse_answer<'a>(
 }
 
 /// Parse a DNS response.
-pub fn dns_parse_response(slice: &[u8]) -> IResult<&[u8], DNSResponse> {
-    let i = slice;
+pub fn dns_parse_response(message: &[u8]) -> IResult<&[u8], DNSResponse> {
+    let i = message;
     let (i, header) = dns_parse_header(i)?;
-    let (i, queries) = count(|b| dns_parse_query(b, slice), header.questions as usize)(i)?;
-    let (i, answers) = dns_parse_answer(i, slice, header.answer_rr as usize)?;
-    let (i, authorities) = dns_parse_answer(i, slice, header.authority_rr as usize)?;
+    dns_parse_response_body(i, message, header)
+}
+
+pub fn dns_parse_response_body<'a>(
+    i: &'a [u8], message: &'a [u8], header: DNSHeader,
+) -> IResult<&'a [u8], DNSResponse> {
+    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
+    let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
+    let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
     Ok((
         i,
         DNSResponse {
@@ -348,7 +354,14 @@ pub fn dns_parse_rdata<'a>(
 pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
     let i = input;
     let (i, header) = dns_parse_header(i)?;
-    let (i, queries) = count(|b| dns_parse_query(b, input), header.questions as usize)(i)?;
+    dns_parse_request_body(i, input, header)
+}
+
+pub fn dns_parse_request_body<'a>(
+    input: &'a [u8], message: &'a [u8], header: DNSHeader,
+) -> IResult<&'a [u8], DNSRequest> {
+    let i = input;
+    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
     Ok((i, DNSRequest { header, queries }))
 }
 
