@@ -17,13 +17,13 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use std;
-use std::ffi::CString;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use super::parser;
 use crate::applayer;
 use crate::applayer::*;
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom7::Err;
-use super::parser;
+use std;
+use std::ffi::CString;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
@@ -87,7 +87,7 @@ pub struct RFBState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: Vec<RFBTransaction>,
-    state: parser::RFBGlobalState
+    state: parser::RFBGlobalState,
 }
 
 impl State<RFBTransaction> for RFBState {
@@ -98,7 +98,6 @@ impl State<RFBTransaction> for RFBState {
     fn get_transaction_by_index(&self, index: usize) -> Option<&RFBTransaction> {
         self.transactions.get(index)
     }
-
 }
 
 impl Default for RFBState {
@@ -113,7 +112,7 @@ impl RFBState {
             state_data: AppLayerStateData::new(),
             tx_id: 0,
             transactions: Vec::new(),
-            state: parser::RFBGlobalState::TCServerProtocolVersion
+            state: parser::RFBGlobalState::TCServerProtocolVersion,
         }
     }
 
@@ -185,7 +184,10 @@ impl RFBState {
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -207,63 +209,69 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.ts_security_type_selection = Some(request);
-                                current_transaction.chosen_security_type = Some(chosen_security_type as u32);
+                                current_transaction.chosen_security_type =
+                                    Some(chosen_security_type as u32);
                             } else {
                                 return AppLayerResult::err();
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
                         }
                     }
                 }
-                parser::RFBGlobalState::TSVncResponse => {
-                    match parser::parse_vnc_auth(current) {
-                        Ok((rem, request)) => {
-                            consumed += current.len() - rem.len();
-                            current = rem;
+                parser::RFBGlobalState::TSVncResponse => match parser::parse_vnc_auth(current) {
+                    Ok((rem, request)) => {
+                        consumed += current.len() - rem.len();
+                        current = rem;
 
                             self.state = parser::RFBGlobalState::TCSecurityResult;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
-                                current_transaction.ts_vnc_response = Some(request);
-                            } else {
-                                return AppLayerResult::err();
-                            }
-                        }
-                        Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
-                        }
-                        Err(_) => {
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.ts_vnc_response = Some(request);
+                        } else {
                             return AppLayerResult::err();
                         }
                     }
-                }
-                parser::RFBGlobalState::TSClientInit => {
-                    match parser::parse_client_init(current) {
-                        Ok((rem, request)) => {
-                            consumed += current.len() - rem.len();
-                            current = rem;
+                    Err(Err::Incomplete(_)) => {
+                        return AppLayerResult::incomplete(
+                            consumed as u32,
+                            (current.len() + 1) as u32,
+                        );
+                    }
+                    Err(_) => {
+                        return AppLayerResult::err();
+                    }
+                },
+                parser::RFBGlobalState::TSClientInit => match parser::parse_client_init(current) {
+                    Ok((rem, request)) => {
+                        consumed += current.len() - rem.len();
+                        current = rem;
 
                             self.state = parser::RFBGlobalState::TCServerInit;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
-                                current_transaction.ts_client_init = Some(request);
-                            } else {
-                                return AppLayerResult::err();
-                            }
-                        }
-                        Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
-                        }
-                        Err(_) => {
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.ts_client_init = Some(request);
+                        } else {
                             return AppLayerResult::err();
                         }
                     }
-                }
+                    Err(Err::Incomplete(_)) => {
+                        return AppLayerResult::incomplete(
+                            consumed as u32,
+                            (current.len() + 1) as u32,
+                        );
+                    }
+                    Err(_) => {
+                        return AppLayerResult::err();
+                    }
+                },
                 parser::RFBGlobalState::Message => {
                     //todo implement RFB messages, for now we stop here
                     return AppLayerResult::err();
@@ -288,7 +296,11 @@ impl RFBState {
 
         let mut current = input;
         let mut consumed = 0;
-        SCLogDebug!("response_state {}, response_len {}", self.state, input.len());
+        SCLogDebug!(
+            "response_state {}, response_len {}",
+            self.state,
+            input.len()
+        );
         loop {
             if current.is_empty() {
                 return AppLayerResult::ok();
@@ -311,7 +323,10 @@ impl RFBState {
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -325,8 +340,14 @@ impl RFBState {
                             current = rem;
 
                             SCLogDebug!(
-                                "supported_security_types: {}, types: {}", request.number_of_types,
-                                request.types.iter().map(ToString::to_string).map(|v| v + " ").collect::<String>()
+                                "supported_security_types: {}, types: {}",
+                                request.number_of_types,
+                                request
+                                    .types
+                                    .iter()
+                                    .map(ToString::to_string)
+                                    .map(|v| v + " ")
+                                    .collect::<String>()
                             );
 
                             self.state = parser::RFBGlobalState::TSSecurityTypeSelection;
@@ -341,7 +362,10 @@ impl RFBState {
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -369,41 +393,46 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_server_security_type = Some(request);
-                                current_transaction.chosen_security_type = Some(chosen_security_type);
+                                current_transaction.chosen_security_type =
+                                    Some(chosen_security_type);
                             } else {
                                 return AppLayerResult::err();
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
                         }
                     }
                 }
-                parser::RFBGlobalState::TCVncChallenge => {
-                    match parser::parse_vnc_auth(current) {
-                        Ok((rem, request)) => {
-                            consumed += current.len() - rem.len();
-                            current = rem;
+                parser::RFBGlobalState::TCVncChallenge => match parser::parse_vnc_auth(current) {
+                    Ok((rem, request)) => {
+                        consumed += current.len() - rem.len();
+                        current = rem;
 
                             self.state = parser::RFBGlobalState::TSVncResponse;
 
-                            if let Some(current_transaction) = self.get_current_tx() {
-                                current_transaction.tc_vnc_challenge = Some(request);
-                            } else {
-                                return AppLayerResult::err();
-                            }
-                        }
-                        Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
-                        }
-                        Err(_) => {
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.tc_vnc_challenge = Some(request);
+                        } else {
                             return AppLayerResult::err();
                         }
                     }
-                }
+                    Err(Err::Incomplete(_)) => {
+                        return AppLayerResult::incomplete(
+                            consumed as u32,
+                            (current.len() + 1) as u32,
+                        );
+                    }
+                    Err(_) => {
+                        return AppLayerResult::err();
+                    }
+                },
                 parser::RFBGlobalState::TCSecurityResult => {
                     match parser::parse_security_result(current) {
                         Ok((rem, request)) => {
@@ -425,7 +454,10 @@ impl RFBState {
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -443,7 +475,10 @@ impl RFBState {
                             return AppLayerResult::err();
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -467,7 +502,10 @@ impl RFBState {
                             }
                         }
                         Err(Err::Incomplete(_)) => {
-                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                            return AppLayerResult::incomplete(
+                                consumed as u32,
+                                (current.len() + 1) as u32,
+                            );
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -490,7 +528,9 @@ impl RFBState {
 // C exports.
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_rfb_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -503,10 +543,7 @@ pub extern "C" fn rs_rfb_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) {
+pub unsafe extern "C" fn rs_rfb_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RFBState);
     state.free_tx(tx_id);
 }
@@ -537,8 +574,7 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RFBState);
     match state.get_tx(tx_id) {
@@ -552,17 +588,14 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
+pub unsafe extern "C" fn rs_rfb_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RFBState);
     return state.tx_id;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
-    _direction: u8,
+    tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, RFBTransaction);
     if tx.complete {
@@ -614,18 +647,10 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_RFB = alproto;
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust rfb parser registered.");
