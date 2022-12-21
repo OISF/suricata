@@ -28,6 +28,11 @@ use std::ffi::CString;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
+#[derive(AppLayerFrameType)]
+pub enum RFBFrameType {
+    Pdu,
+}
+
 pub struct RFBTransaction {
     tx_id: u64,
     pub complete: bool,
@@ -151,8 +156,10 @@ impl RFBState {
         self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id)
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
         // We're not interested in empty requests.
+        let input = stream_slice.as_slice();
+
         if input.is_empty() {
             return AppLayerResult::ok();
         }
@@ -169,6 +176,14 @@ impl RFBState {
                     match parser::parse_protocol_version(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             if request.major == "003" && request.minor == "003" {
@@ -199,6 +214,14 @@ impl RFBState {
                     match parser::parse_security_type_selection(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             let chosen_security_type = request.security_type;
@@ -230,9 +253,17 @@ impl RFBState {
                 parser::RFBGlobalState::TSVncResponse => match parser::parse_vnc_auth(current) {
                     Ok((rem, request)) => {
                         consumed += current.len() - rem.len();
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            current,
+                            consumed as i64,
+                            RFBFrameType::Pdu as u8,
+                        );
+
                         current = rem;
 
-                            self.state = parser::RFBGlobalState::TCSecurityResult;
+                        self.state = parser::RFBGlobalState::TCSecurityResult;
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_vnc_response = Some(request);
@@ -253,9 +284,17 @@ impl RFBState {
                 parser::RFBGlobalState::TSClientInit => match parser::parse_client_init(current) {
                     Ok((rem, request)) => {
                         consumed += current.len() - rem.len();
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            current,
+                            consumed as i64,
+                            RFBFrameType::Pdu as u8,
+                        );
+
                         current = rem;
 
-                            self.state = parser::RFBGlobalState::TCServerInit;
+                        self.state = parser::RFBGlobalState::TCServerInit;
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_client_init = Some(request);
@@ -289,7 +328,9 @@ impl RFBState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
+
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -311,6 +352,14 @@ impl RFBState {
                     match parser::parse_protocol_version(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             self.state = parser::RFBGlobalState::TSClientProtocolVersion;
@@ -338,6 +387,14 @@ impl RFBState {
                     match parser::parse_supported_security_types(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             SCLogDebug!(
@@ -378,6 +435,14 @@ impl RFBState {
                     match parser::parse_server_security_type(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             let chosen_security_type = request.security_type;
@@ -414,9 +479,17 @@ impl RFBState {
                 parser::RFBGlobalState::TCVncChallenge => match parser::parse_vnc_auth(current) {
                     Ok((rem, request)) => {
                         consumed += current.len() - rem.len();
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            current,
+                            consumed as i64,
+                            RFBFrameType::Pdu as u8,
+                        );
+
                         current = rem;
 
-                            self.state = parser::RFBGlobalState::TSVncResponse;
+                        self.state = parser::RFBGlobalState::TSVncResponse;
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.tc_vnc_challenge = Some(request);
@@ -438,6 +511,14 @@ impl RFBState {
                     match parser::parse_security_result(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             if request.status == 0 {
@@ -490,6 +571,14 @@ impl RFBState {
                     match parser::parse_server_init(current) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
+                            let _pdu = Frame::new(
+                                flow,
+                                &stream_slice,
+                                current,
+                                consumed as i64,
+                                RFBFrameType::Pdu as u8,
+                            );
+
                             current = rem;
 
                             self.state = parser::RFBGlobalState::Message;
@@ -551,26 +640,20 @@ pub unsafe extern "C" fn rs_rfb_state_tx_free(state: *mut std::os::raw::c_void, 
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_request(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    return state.parse_request(stream_slice.as_slice());
+    return state.parse_request(flow, stream_slice);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_response(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    return state.parse_response(stream_slice.as_slice());
+    return state.parse_response(flow, stream_slice);
 }
 
 #[no_mangle]
@@ -642,8 +725,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         apply_tx_config: None,
         flags: 0,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(RFBFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(RFBFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -668,13 +751,17 @@ mod test {
     fn test_error_state() {
         let mut state = RFBState::new();
 
-        let buf = &[
+        let buf: &[u8] = &[
             0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
             0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
             0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
             0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
-        let r = state.parse_request(buf);
+
+        let r = state.parse_request(
+            std::ptr::null(),
+            StreamSlice::from_slice(&buf, STREAM_START, 0),
+        );
 
         assert_eq!(
             r,
@@ -709,8 +796,9 @@ mod test {
             0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69,
             0x6e, /* Server framebuffer parameters */
         ];
-
+    
         let flow = std::ptr::null();
+
 
         //The buffer values correspond to Server Protocol version: 003.008
         // Same buffer is used for both functions due to similar values in request and response
@@ -729,7 +817,7 @@ mod test {
         ok_state = parser::RFBGlobalState::TCSupportedSecurityTypes;
         assert_eq!(init_state.state, ok_state);
 
-        init_state.parse_response(&buf[12..14]);
+        init_state.parse_response(flow, StreamSlice::from_slice(&buf[12..14], STREAM_START, 0));
         ok_state = parser::RFBGlobalState::TSSecurityTypeSelection;
         assert_eq!(init_state.state, ok_state);
 
