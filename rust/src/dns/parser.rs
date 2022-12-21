@@ -128,9 +128,7 @@ fn dns_parse_answer<'a>(
         data: &'a [u8],
     }
 
-    fn subparser<'a>(
-        i: &'a [u8], message: &'a [u8],
-    ) -> IResult<&'a [u8], Answer<'a>> {
+    fn subparser<'a>(i: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], Answer<'a>> {
         let (i, name) = dns_parse_name(i, message)?;
         let (i, rrtype) = be_u16(i)?;
         let (i, rrclass) = be_u16(i)?;
@@ -357,20 +355,20 @@ pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
 #[cfg(test)]
 mod tests {
 
-    use crate::dns::dns::{DNSHeader,DNSAnswerEntry};
+    use crate::dns::dns::{DNSAnswerEntry, DNSHeader};
     use crate::dns::parser::*;
 
     /// Parse a simple name with no pointers.
     #[test]
     fn test_dns_parse_name() {
         let buf: &[u8] = &[
-                                                0x09, 0x63, /* .......c */
+            0x09, 0x63, /* .......c */
             0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x63, 0x66, /* lient-cf */
             0x07, 0x64, 0x72, 0x6f, 0x70, 0x62, 0x6f, 0x78, /* .dropbox */
             0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, /* .com.... */
         ];
         let expected_remainder: &[u8] = &[0x00, 0x01, 0x00];
-        let (remainder,name) = dns_parse_name(buf, buf).unwrap();
+        let (remainder, name) = dns_parse_name(buf, buf).unwrap();
         assert_eq!("client-cf.dropbox.com".as_bytes(), &name[..]);
         assert_eq!(remainder, expected_remainder);
     }
@@ -379,24 +377,24 @@ mod tests {
     #[test]
     fn test_dns_parse_name_with_pointer() {
         let buf: &[u8] = &[
-            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15 /* 0   - .....F.. */,
-            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00 /* 8   - ......E. */,
-            0x00, 0x7b, 0x71, 0x6e, 0x00, 0x00, 0x39, 0x11 /* 16  - .{qn..9. */,
-            0xf4, 0xd9, 0x08, 0x08, 0x08, 0x08, 0x0a, 0x10 /* 24  - ........ */,
-            0x01, 0x0b, 0x00, 0x35, 0xe1, 0x8e, 0x00, 0x67 /* 32  - ...5...g */,
-            0x60, 0x00, 0xef, 0x08, 0x81, 0x80, 0x00, 0x01 /* 40  - `....... */,
-            0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77 /* 48  - .......w */,
-            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63 /* 56  - ww.suric */,
-            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03 /* 64  - ata-ids. */,
-            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01 /* 72  - org..... */,
-            0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00 /* 80  - ........ */,
-            0x0e, 0x0f, 0x00, 0x02, 0xc0, 0x10, 0xc0, 0x10 /* 88  - ........ */,
-            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2b /* 96  - .......+ */,
-            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, 0xc0, 0x10 /* 104 - ....N... */,
-            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2b /* 112 - .......+ */,
-            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0x00, 0x00 /* 120 - ....N... */,
-            0x29, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 /* 128 - )....... */,
-            0x00,                                          /* 136 - . */
+            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* 0   - .....F.. */
+            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* 8   - ......E. */
+            0x00, 0x7b, 0x71, 0x6e, 0x00, 0x00, 0x39, 0x11, /* 16  - .{qn..9. */
+            0xf4, 0xd9, 0x08, 0x08, 0x08, 0x08, 0x0a, 0x10, /* 24  - ........ */
+            0x01, 0x0b, 0x00, 0x35, 0xe1, 0x8e, 0x00, 0x67, /* 32  - ...5...g */
+            0x60, 0x00, 0xef, 0x08, 0x81, 0x80, 0x00, 0x01, /* 40  - `....... */
+            0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77, /* 48  - .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* 56  - ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* 64  - ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* 72  - org..... */
+            0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, /* 80  - ........ */
+            0x0e, 0x0f, 0x00, 0x02, 0xc0, 0x10, 0xc0, 0x10, /* 88  - ........ */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2b, /* 96  - .......+ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, 0xc0, 0x10, /* 104 - ....N... */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2b, /* 112 - .......+ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0x00, 0x00, /* 120 - ....N... */
+            0x29, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* 128 - )....... */
+            0x00, /* 136 - . */
         ];
 
         // The DNS payload starts at offset 42.
@@ -405,53 +403,57 @@ mod tests {
         // The name at offset 54 is the complete name.
         let start1 = &buf[54..];
         let res1 = dns_parse_name(start1, message);
-        assert_eq!(res1,
-                   Ok((&start1[22..],
-                                 "www.suricata-ids.org".as_bytes().to_vec())));
+        assert_eq!(
+            res1,
+            Ok((&start1[22..], "www.suricata-ids.org".as_bytes().to_vec()))
+        );
 
         // The second name starts at offset 80, but is just a pointer
         // to the first.
         let start2 = &buf[80..];
         let res2 = dns_parse_name(start2, message);
-        assert_eq!(res2,
-                   Ok((&start2[2..],
-                                 "www.suricata-ids.org".as_bytes().to_vec())));
+        assert_eq!(
+            res2,
+            Ok((&start2[2..], "www.suricata-ids.org".as_bytes().to_vec()))
+        );
 
         // The third name starts at offset 94, but is a pointer to a
         // portion of the first.
         let start3 = &buf[94..];
         let res3 = dns_parse_name(start3, message);
-        assert_eq!(res3,
-                   Ok((&start3[2..],
-                                 "suricata-ids.org".as_bytes().to_vec())));
+        assert_eq!(
+            res3,
+            Ok((&start3[2..], "suricata-ids.org".as_bytes().to_vec()))
+        );
 
         // The fourth name starts at offset 110, but is a pointer to a
         // portion of the first.
         let start4 = &buf[110..];
         let res4 = dns_parse_name(start4, message);
-        assert_eq!(res4,
-                   Ok((&start4[2..],
-                                 "suricata-ids.org".as_bytes().to_vec())));
+        assert_eq!(
+            res4,
+            Ok((&start4[2..], "suricata-ids.org".as_bytes().to_vec()))
+        );
     }
 
     #[test]
     fn test_dns_parse_name_double_pointer() {
         let buf: &[u8] = &[
-            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15 /* 0:   .....F.. */,
-            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00 /* 8:   ......E. */,
-            0x00, 0x66, 0x5e, 0x20, 0x40, 0x00, 0x40, 0x11 /* 16:  .f^ @.@. */,
-            0xc6, 0x3b, 0x0a, 0x10, 0x01, 0x01, 0x0a, 0x10 /* 24:  .;...... */,
-            0x01, 0x0b, 0x00, 0x35, 0xc2, 0x21, 0x00, 0x52 /* 32:  ...5.!.R */,
-            0x35, 0xc5, 0x0d, 0x4f, 0x81, 0x80, 0x00, 0x01 /* 40:  5..O.... */,
-            0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x05, 0x62 /* 48:  .......b */,
-            0x6c, 0x6f, 0x63, 0x6b, 0x07, 0x64, 0x72, 0x6f /* 56:  lock.dro */,
-            0x70, 0x62, 0x6f, 0x78, 0x03, 0x63, 0x6f, 0x6d /* 64:  pbox.com */,
-            0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00 /* 72:  ........ */,
-            0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x09, 0x00 /* 80:  ........ */,
-            0x0b, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x02 /* 88:  ..block. */,
-            0x67, 0x31, 0xc0, 0x12, 0xc0, 0x2f, 0x00, 0x01 /* 96:  g1.../.. */,
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04 /* 104: ........ */,
-            0x2d, 0x3a, 0x46, 0x21                         /* 112: -:F!     */
+            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* 0:   .....F.. */
+            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* 8:   ......E. */
+            0x00, 0x66, 0x5e, 0x20, 0x40, 0x00, 0x40, 0x11, /* 16:  .f^ @.@. */
+            0xc6, 0x3b, 0x0a, 0x10, 0x01, 0x01, 0x0a, 0x10, /* 24:  .;...... */
+            0x01, 0x0b, 0x00, 0x35, 0xc2, 0x21, 0x00, 0x52, /* 32:  ...5.!.R */
+            0x35, 0xc5, 0x0d, 0x4f, 0x81, 0x80, 0x00, 0x01, /* 40:  5..O.... */
+            0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x05, 0x62, /* 48:  .......b */
+            0x6c, 0x6f, 0x63, 0x6b, 0x07, 0x64, 0x72, 0x6f, /* 56:  lock.dro */
+            0x70, 0x62, 0x6f, 0x78, 0x03, 0x63, 0x6f, 0x6d, /* 64:  pbox.com */
+            0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, /* 72:  ........ */
+            0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x09, 0x00, /* 80:  ........ */
+            0x0b, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x02, /* 88:  ..block. */
+            0x67, 0x31, 0xc0, 0x12, 0xc0, 0x2f, 0x00, 0x01, /* 96:  g1.../.. */
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, /* 104: ........ */
+            0x2d, 0x3a, 0x46, 0x21, /* 112: -:F!     */
         ];
 
         // The start of the DNS message in the above packet.
@@ -463,46 +465,48 @@ mod tests {
         let start: &[u8] = &buf[100..];
 
         let res = dns_parse_name(start, message);
-        assert_eq!(res,
-                   Ok((&start[2..],
-                                 "block.g1.dropbox.com".as_bytes().to_vec())));
+        assert_eq!(
+            res,
+            Ok((&start[2..], "block.g1.dropbox.com".as_bytes().to_vec()))
+        );
     }
 
     #[test]
     fn test_dns_parse_request() {
         // DNS request from dig-a-www.suricata-ids.org.pcap.
         let pkt: &[u8] = &[
-                        0x8d, 0x32, 0x01, 0x20, 0x00, 0x01, /* ...2. .. */
+            0x8d, 0x32, 0x01, 0x20, 0x00, 0x01, /* ...2. .. */
             0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77, /* .......w */
             0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
             0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
             0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
             0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
-            0x00, 0x00, 0x00                                /* ... */
+            0x00, 0x00, 0x00, /* ... */
         ];
 
         let res = dns_parse_request(pkt);
         match res {
             Ok((rem, request)) => {
-
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
                 assert!(!rem.is_empty());
 
-                assert_eq!(request.header, DNSHeader {
-                    tx_id: 0x8d32,
-                    flags: 0x0120,
-                    questions: 1,
-                    answer_rr: 0,
-                    authority_rr: 0,
-                    additional_rr: 1,
-                });
+                assert_eq!(
+                    request.header,
+                    DNSHeader {
+                        tx_id: 0x8d32,
+                        flags: 0x0120,
+                        questions: 1,
+                        answer_rr: 0,
+                        authority_rr: 0,
+                        additional_rr: 1,
+                    }
+                );
 
                 assert_eq!(request.queries.len(), 1);
 
                 let query = &request.queries[0];
-                assert_eq!(query.name,
-                           "www.suricata-ids.org".as_bytes().to_vec());
+                assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
                 assert_eq!(query.rrtype, 1);
                 assert_eq!(query.rrclass, 1);
             }
@@ -516,7 +520,7 @@ mod tests {
     fn test_dns_parse_response() {
         // DNS response from dig-a-www.suricata-ids.org.pcap.
         let pkt: &[u8] = &[
-                        0x8d, 0x32, 0x81, 0xa0, 0x00, 0x01, /* ...2.... */
+            0x8d, 0x32, 0x81, 0xa0, 0x00, 0x01, /* ...2.... */
             0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x77, /* .......w */
             0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
             0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
@@ -528,55 +532,63 @@ mod tests {
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
             0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0xc0, 0x32, /* ....N..2 */
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
-            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19              /* ....N. */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, /* ....N. */
         ];
 
         let res = dns_parse_response(pkt);
         match res {
             Ok((rem, response)) => {
-
                 // The response should be full parsed.
                 assert_eq!(rem.len(), 0);
 
-                assert_eq!(response.header, DNSHeader{
-                    tx_id: 0x8d32,
-                    flags: 0x81a0,
-                    questions: 1,
-                    answer_rr: 3,
-                    authority_rr: 0,
-                    additional_rr: 0,
-                });
+                assert_eq!(
+                    response.header,
+                    DNSHeader {
+                        tx_id: 0x8d32,
+                        flags: 0x81a0,
+                        questions: 1,
+                        answer_rr: 3,
+                        authority_rr: 0,
+                        additional_rr: 0,
+                    }
+                );
 
                 assert_eq!(response.answers.len(), 3);
 
                 let answer1 = &response.answers[0];
-                assert_eq!(answer1.name,
-                           "www.suricata-ids.org".as_bytes().to_vec());
+                assert_eq!(answer1.name, "www.suricata-ids.org".as_bytes().to_vec());
                 assert_eq!(answer1.rrtype, 5);
                 assert_eq!(answer1.rrclass, 1);
                 assert_eq!(answer1.ttl, 3544);
-                assert_eq!(answer1.data,
-                           DNSRData::CNAME("suricata-ids.org".as_bytes().to_vec()));
+                assert_eq!(
+                    answer1.data,
+                    DNSRData::CNAME("suricata-ids.org".as_bytes().to_vec())
+                );
 
                 let answer2 = &response.answers[1];
-                assert_eq!(answer2, &DNSAnswerEntry{
-                    name: "suricata-ids.org".as_bytes().to_vec(),
-                    rrtype: 1,
-                    rrclass: 1,
-                    ttl: 244,
-                    data: DNSRData::A([192, 0, 78, 24].to_vec()),
-                });
+                assert_eq!(
+                    answer2,
+                    &DNSAnswerEntry {
+                        name: "suricata-ids.org".as_bytes().to_vec(),
+                        rrtype: 1,
+                        rrclass: 1,
+                        ttl: 244,
+                        data: DNSRData::A([192, 0, 78, 24].to_vec()),
+                    }
+                );
 
                 let answer3 = &response.answers[2];
-                assert_eq!(answer3, &DNSAnswerEntry{
-                    name: "suricata-ids.org".as_bytes().to_vec(),
-                    rrtype: 1,
-                    rrclass: 1,
-                    ttl: 244,
-                    data: DNSRData::A([192, 0, 78, 25].to_vec()),
-                })
-
-            },
+                assert_eq!(
+                    answer3,
+                    &DNSAnswerEntry {
+                        name: "suricata-ids.org".as_bytes().to_vec(),
+                        rrtype: 1,
+                        rrclass: 1,
+                        ttl: 244,
+                        data: DNSRData::A([192, 0, 78, 25].to_vec()),
+                    }
+                )
+            }
             _ => {
                 assert!(false);
             }
@@ -588,7 +600,7 @@ mod tests {
         // DNS response with an SOA authority record from
         // dns-udp-nxdomain-soa.pcap.
         let pkt: &[u8] = &[
-                        0x82, 0x95, 0x81, 0x83, 0x00, 0x01, /* j....... */
+            0x82, 0x95, 0x81, 0x83, 0x00, 0x01, /* j....... */
             0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x03, 0x64, /* .......d */
             0x6e, 0x65, 0x04, 0x6f, 0x69, 0x73, 0x66, 0x03, /* ne.oisf. */
             0x6e, 0x65, 0x74, 0x00, 0x00, 0x01, 0x00, 0x01, /* net..... */
@@ -603,51 +615,53 @@ mod tests {
             0x01, 0x00, 0x00, 0x1c, 0x20, 0x00, 0x00, 0x03, /* .... ... */
             0x84, 0x00, 0x12, 0x75, 0x00, 0x00, 0x01, 0x51, /* ...u...Q */
             0x80, 0x00, 0x00, 0x29, 0x02, 0x00, 0x00, 0x00, /* ...).... */
-            0x00, 0x00, 0x00, 0x00                          /* .... */
+            0x00, 0x00, 0x00, 0x00, /* .... */
         ];
 
         let res = dns_parse_response(pkt);
         match res {
             Ok((rem, response)) => {
-
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
                 assert!(!rem.is_empty());
 
-                assert_eq!(response.header, DNSHeader{
-                    tx_id: 0x8295,
-                    flags: 0x8183,
-                    questions: 1,
-                    answer_rr: 0,
-                    authority_rr: 1,
-                    additional_rr: 1,
-                });
+                assert_eq!(
+                    response.header,
+                    DNSHeader {
+                        tx_id: 0x8295,
+                        flags: 0x8183,
+                        questions: 1,
+                        answer_rr: 0,
+                        authority_rr: 1,
+                        additional_rr: 1,
+                    }
+                );
 
                 assert_eq!(response.authorities.len(), 1);
 
                 let authority = &response.authorities[0];
-                assert_eq!(authority.name,
-                           "oisf.net".as_bytes().to_vec());
+                assert_eq!(authority.name, "oisf.net".as_bytes().to_vec());
                 assert_eq!(authority.rrtype, 6);
                 assert_eq!(authority.rrclass, 1);
                 assert_eq!(authority.ttl, 899);
-                assert_eq!(authority.data,
-                           DNSRData::SOA(DNSRDataSOA{
-                               mname: "ns-110.awsdns-13.com".as_bytes().to_vec(),
-                               rname: "awsdns-hostmaster.amazon.com".as_bytes().to_vec(),
-                               serial: 1,
-                               refresh: 7200,
-                               retry: 900,
-                               expire: 1209600,
-                               minimum: 86400,
-                           }));
-            },
+                assert_eq!(
+                    authority.data,
+                    DNSRData::SOA(DNSRDataSOA {
+                        mname: "ns-110.awsdns-13.com".as_bytes().to_vec(),
+                        rname: "awsdns-hostmaster.amazon.com".as_bytes().to_vec(),
+                        serial: 1,
+                        refresh: 7200,
+                        retry: 900,
+                        expire: 1209600,
+                        minimum: 86400,
+                    })
+                );
+            }
             _ => {
                 assert!(false);
             }
         }
     }
-
 
     #[test]
     fn test_dns_parse_response_null() {
@@ -662,7 +676,7 @@ mod tests {
             0x73, 0x65, 0x61, 0x00, 0x00, 0x0a, 0x00, 0x01, /* sea..... */
             0xc0, 0x0c, 0x00, 0x0a, 0x00, 0x01, 0x00, 0x00, /* ........ */
             0x00, 0x00, 0x00, 0x09, 0x56, 0x41, 0x43, 0x4b, /* ....VACK */
-            0x44, 0x03, 0xc5, 0xe9, 0x01,                   /* D.... */
+            0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
         ];
 
         let res = dns_parse_response(pkt);
@@ -671,59 +685,59 @@ mod tests {
                 // The response should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
-                assert_eq!(response.header, DNSHeader {
-                    tx_id: 0x12b0,
-                    flags: 0x8400,
-                    questions: 1,
-                    answer_rr: 1,
-                    authority_rr: 0,
-                    additional_rr: 0,
-                });
+                assert_eq!(
+                    response.header,
+                    DNSHeader {
+                        tx_id: 0x12b0,
+                        flags: 0x8400,
+                        questions: 1,
+                        answer_rr: 1,
+                        authority_rr: 0,
+                        additional_rr: 0,
+                    }
+                );
 
                 assert_eq!(response.queries.len(), 1);
                 let query = &response.queries[0];
-                assert_eq!(query.name,
-                           "vaaaakardli.pirate.sea".as_bytes().to_vec());
+                assert_eq!(query.name, "vaaaakardli.pirate.sea".as_bytes().to_vec());
                 assert_eq!(query.rrtype, DNS_RECORD_TYPE_NULL);
                 assert_eq!(query.rrclass, 1);
 
                 assert_eq!(response.answers.len(), 1);
 
                 let answer = &response.answers[0];
-                assert_eq!(answer.name,
-                           "vaaaakardli.pirate.sea".as_bytes().to_vec());
+                assert_eq!(answer.name, "vaaaakardli.pirate.sea".as_bytes().to_vec());
                 assert_eq!(answer.rrtype, DNS_RECORD_TYPE_NULL);
                 assert_eq!(answer.rrclass, 1);
                 assert_eq!(answer.ttl, 0);
-                assert_eq!(answer.data, DNSRData::NULL(vec![
-                        0x56, 0x41, 0x43, 0x4b,       /* VACK */
+                assert_eq!(
+                    answer.data,
+                    DNSRData::NULL(vec![
+                        0x56, 0x41, 0x43, 0x4b, /* VACK */
                         0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
-                        ]));
-            },
+                    ])
+                );
+            }
             _ => {
                 assert!(false);
             }
         }
     }
 
-
     #[test]
     fn test_dns_parse_rdata_sshfp() {
         // Dummy data since we don't have a pcap sample.
         let data: &[u8] = &[
             // algo: DSS
-            0x02,
-            // fp_type: SHA-1
-            0x01,
-            // fingerprint: 123456789abcdef67890123456789abcdef67890
-            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90,
-            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90
+            0x02, // fp_type: SHA-1
+            0x01, // fingerprint: 123456789abcdef67890123456789abcdef67890
+            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90, 0x12, 0x34, 0x56, 0x78,
+            0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90,
         ];
 
         let res = dns_parse_rdata_sshfp(data);
         match res {
             Ok((rem, rdata)) => {
-
                 // The data should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
@@ -732,12 +746,12 @@ mod tests {
                         assert_eq!(sshfp.algo, 2);
                         assert_eq!(sshfp.fp_type, 1);
                         assert_eq!(sshfp.fingerprint, &data[2..]);
-                    },
+                    }
                     _ => {
                         assert!(false);
                     }
                 }
-            },
+            }
             _ => {
                 assert!(false);
             }
@@ -746,7 +760,7 @@ mod tests {
 
     #[test]
     fn test_dns_parse_rdata_srv() {
-    /*  ; <<>> DiG 9.11.5-P4-5.1+deb10u2-Debian <<>> _sip._udp.sip.voice.google.com SRV
+        /*  ; <<>> DiG 9.11.5-P4-5.1+deb10u2-Debian <<>> _sip._udp.sip.voice.google.com SRV
         ;; global options: +cmd
         ;; Got answer:
         ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1524
@@ -764,27 +778,22 @@ mod tests {
         ;; MSG SIZE  rcvd: 191   */
 
         let pkt: &[u8] = &[
-            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00,
-            0x00, 0x01, 0x04, 0x5f, 0x73, 0x69, 0x70, 0x04, 0x5f, 0x75,
-            0x64, 0x70, 0x03, 0x73, 0x69, 0x70, 0x05, 0x76, 0x6f, 0x69,
-            0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x21, 0x00, 0x01, 0xc0, 0x0c,
-            0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x13, 0x00, 0x26,
-            0x00, 0x14, 0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70,
-            0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61, 0x73, 0x74, 0x2d, 0x32,
-            0x05, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f,
-            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0xc0, 0x0c,
-            0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x13, 0x00, 0x26,
-            0x00, 0x0a, 0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70,
-            0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61, 0x73, 0x74, 0x2d, 0x31,
-            0x05, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f,
-            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00
+            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x04, 0x5f,
+            0x73, 0x69, 0x70, 0x04, 0x5f, 0x75, 0x64, 0x70, 0x03, 0x73, 0x69, 0x70, 0x05, 0x76,
+            0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
+            0x6d, 0x00, 0x00, 0x21, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00,
+            0x01, 0x13, 0x00, 0x26, 0x00, 0x14, 0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70,
+            0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61, 0x73, 0x74, 0x2d, 0x32, 0x05, 0x76, 0x6f, 0x69,
+            0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0xc0, 0x0c, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x13, 0x00, 0x26, 0x00, 0x0a,
+            0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70, 0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61,
+            0x73, 0x74, 0x2d, 0x31, 0x05, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f,
+            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
         ];
 
         let res = dns_parse_response(pkt);
         match res {
             Ok((rem, response)) => {
-
                 // The data should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
@@ -796,8 +805,10 @@ mod tests {
                         assert_eq!(srv.priority, 20);
                         assert_eq!(srv.weight, 1);
                         assert_eq!(srv.port, 5060);
-                        assert_eq!(srv.target,
-                            "sip-anycast-2.voice.google.com".as_bytes().to_vec());
+                        assert_eq!(
+                            srv.target,
+                            "sip-anycast-2.voice.google.com".as_bytes().to_vec()
+                        );
                     }
                     _ => {
                         assert!(false);
@@ -809,14 +820,16 @@ mod tests {
                         assert_eq!(srv.priority, 10);
                         assert_eq!(srv.weight, 1);
                         assert_eq!(srv.port, 5060);
-                        assert_eq!(srv.target,
-                            "sip-anycast-1.voice.google.com".as_bytes().to_vec());
+                        assert_eq!(
+                            srv.target,
+                            "sip-anycast-1.voice.google.com".as_bytes().to_vec()
+                        );
                     }
                     _ => {
                         assert!(false);
                     }
                 }
-            },
+            }
             _ => {
                 assert!(false);
             }
