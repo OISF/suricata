@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-pub mod parser;
+pub mod detect;
 pub mod dns;
 pub mod log;
-pub mod detect;
+pub mod parser;
 
 #[cfg(feature = "lua")]
 pub mod lua;
