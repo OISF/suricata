@@ -20,6 +20,7 @@
 use nom::IResult;
 use nom::combinator::rest;
 use nom::error::ErrorKind;
+use nom::multi::count;
 use nom::number::streaming::{be_u8, be_u16, be_u32};
 use nom;
 use crate::dns::dns::*;
@@ -50,10 +51,8 @@ named!(pub dns_parse_header<DNSHeader>,
 ///
 /// Parameters:
 ///   start: the start of the name
-///   message: the complete message that start is a part of
-pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
-                              message: &'b [u8])
-                              -> IResult<&'b [u8], Vec<u8>> {
+///   message: the complete message that start is a part of with the DNS header
+pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
     let mut pos = start;
     let mut pivot = start;
     let mut name: Vec<u8> = Vec::with_capacity(32);
@@ -197,26 +196,27 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
 
 
 /// Parse a DNS response.
-pub fn dns_parse_response<'a>(slice: &'a [u8])
-                              -> IResult<&[u8], DNSResponse> {
-    do_parse!(
-        slice,
-        header: dns_parse_header
-            >> queries: count!(
-                call!(dns_parse_query, slice), header.questions as usize)
-            >> answers: call!(
-                dns_parse_answer, slice, header.answer_rr as usize)
-            >> authorities: call!(
-                dns_parse_answer, slice, header.authority_rr as usize)
-            >> (
-                DNSResponse{
-                    header: header,
-                    queries: queries,
-                    answers: answers,
-                    authorities: authorities,
-                }
-            )
-    )
+pub fn dns_parse_response(message: &[u8]) -> IResult<&[u8], DNSResponse> {
+    let i = message;
+    let (i, header) = dns_parse_header(i)?;
+    dns_parse_response_body(i, message, header)
+}
+
+pub fn dns_parse_response_body<'a>(
+    i: &'a [u8], message: &'a [u8], header: DNSHeader,
+) -> IResult<&'a [u8], DNSResponse> {
+    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
+    let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
+    let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
+    Ok((
+        i,
+        DNSResponse {
+            header,
+            queries,
+            answers,
+            authorities,
+        },
+    ))
 }
 
 /// Parse a single DNS query.
@@ -344,19 +344,18 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
 }
 
 /// Parse a DNS request.
-pub fn dns_parse_request<'a>(input: &'a [u8]) -> IResult<&[u8], DNSRequest> {
-    do_parse!(
-        input,
-        header: dns_parse_header >>
-        queries: count!(call!(dns_parse_query, input),
-                        header.questions as usize) >>
-            (
-                DNSRequest{
-                    header: header,
-                    queries: queries,
-                }
-            )
-    )
+pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
+    let i = input;
+    let (i, header) = dns_parse_header(i)?;
+    dns_parse_request_body(i, input, header)
+}
+
+pub fn dns_parse_request_body<'a>(
+    input: &'a [u8], message: &'a [u8], header: DNSHeader,
+) -> IResult<&'a [u8], DNSRequest> {
+    let i = input;
+    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
+    Ok((i, DNSRequest { header, queries }))
 }
 
 #[cfg(test)]

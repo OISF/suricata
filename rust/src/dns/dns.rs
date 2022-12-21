@@ -29,7 +29,7 @@ use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
 
-use nom::IResult;
+use nom::{Err, IResult};
 use nom::number::streaming::be_u16;
 
 /// DNS record types.
@@ -500,18 +500,23 @@ impl DNSState {
                                                         event as u8);
     }
 
-    fn validate_header(&self, input: &[u8]) -> bool {
-        parser::dns_parse_header(input)
-            .map(|(_, header)| probe_header_validity(header, input.len()).0)
-            .unwrap_or(false)
+    fn validate_header<'a>(&self, input: &'a [u8]) -> Option<(&'a [u8], DNSHeader)> {
+        if let Ok((body, header)) = parser::dns_parse_header(input) {
+            if probe_header_validity(&header, input.len()).0 {
+                return Some((body, header));
+            }
+        }
+        None
     }
 
     fn parse_request(&mut self, input: &[u8], is_tcp: bool) -> bool {
-        if !self.validate_header(input) {
+        let (body, header) = if let Some((body, header)) = self.validate_header(input) {
+            (body, header)
+        } else {
             return !is_tcp;
-        }
+        };
 
-        match parser::dns_parse_request(input) {
+        match parser::dns_parse_request_body(body, input, header) {
             Ok((_, request)) => {
                 if request.header.flags & 0x8000 != 0 {
                     SCLogDebug!("DNS message is not a request");
@@ -564,11 +569,13 @@ impl DNSState {
     }
 
     pub fn parse_response(&mut self, input: &[u8], is_tcp: bool) -> bool {
-        if !self.validate_header(input) {
+        let (body, header) = if let Some((body, header)) = self.validate_header(input) {
+            (body, header)
+        } else {
             return !is_tcp;
-        }
+        };
 
-        match parser::dns_parse_response(input) {
+        match parser::dns_parse_response_body(body, input, header) {
             Ok((_, response)) => {
 
                 SCLogDebug!("Response header flags: {}", response.header.flags);
@@ -729,7 +736,7 @@ impl DNSState {
 
 const DNS_HEADER_SIZE: usize = 12;
 
-fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
+fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
     let min_msg_size = 2
         * (header.additional_rr as usize
             + header.answer_rr as usize
@@ -758,7 +765,7 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
     // parse a complete message, so perform header validation only.
     if input.len() < dlen {
         if let Ok((_, header)) = parser::dns_parse_header(input) {
-            return probe_header_validity(header, dlen);
+            return probe_header_validity(&header, dlen);
         } else {
             return (false, false, false);
         }
@@ -766,17 +773,15 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
 
     match parser::dns_parse_request(input) {
         Ok((_, request)) => {
-            return probe_header_validity(request.header, dlen);
-        },
-        Err(nom::Err::Incomplete(_)) => {
-            match parser::dns_parse_header(input) {
-                Ok((_, header)) => {
-                    return probe_header_validity(header, dlen);
-                }
-                Err(nom::Err::Incomplete(_)) => (false, false, true),
-                Err(_) => (false, false, false),
-            }
+            return probe_header_validity(&request.header, dlen);
         }
+        Err(Err::Incomplete(_)) => match parser::dns_parse_header(input) {
+            Ok((_, header)) => {
+                return probe_header_validity(&header, dlen);
+            }
+            Err(Err::Incomplete(_)) => (false, false, true),
+            Err(_) => (false, false, false),
+        },
         Err(_) => (false, false, false),
     }
 }
