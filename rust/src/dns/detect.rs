@@ -58,9 +58,7 @@ fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
 pub extern "C" fn rs_dns_opcode_match(
-    tx: &mut DNSTransaction,
-    detect: &mut DetectDnsOpcode,
-    flags: u8,
+    tx: &mut DNSTransaction, detect: &mut DetectDnsOpcode, flags: u8,
 ) -> u8 {
     let header_flags = if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
