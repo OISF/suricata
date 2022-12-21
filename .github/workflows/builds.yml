@@ -7,10 +7,6 @@ on:
 permissions: read-all
 
 env:
-  DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
-  DEFAULT_LIBHTP_BRANCH: 0.5.x
-  DEFAULT_LIBHTP_PR:
-
   DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
   DEFAULT_SU_BRANCH: master
   DEFAULT_SU_PR:
@@ -49,10 +45,6 @@ jobs:
           if test "${PR_HREF}"; then
               body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
 
-              libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
-              libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
-              libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
-
               su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
               su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
               su_pr=$(echo "${body}" | awk '/^suricata-update-pr/ { print $2 }')
@@ -61,10 +53,6 @@ jobs:
               sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
               sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
           fi
-          echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
-          echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
-          echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
-
           echo "su_repo=${su_repo:-${DEFAULT_SU_REPO}}" >> $GITHUB_ENV
           echo "su_branch=${su_branch:-${DEFAULT_SU_BRANCH}}" >> $GITHUB_ENV
           echo "su_pr=${su_pr:-${DEFAULT_SU_PR}}" >> $GITHUB_ENV
@@ -72,16 +60,6 @@ jobs:
           echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
           echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
           echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
-      - name: Fetching libhtp
-        run: |
-          git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
-          if [[ "${libhtp_pr}" != "" ]]; then
-              cd libhtp
-              git fetch origin pull/${libhtp_pr}/head:prep
-              git checkout prep
-              cd ..
-          fi
-          tar zcf libhtp.tar.gz libhtp
       - name: Fetching suricata-update
         run: |
           git clone --depth 1 ${su_repo} -b ${su_branch} suricata-update
@@ -106,7 +84,7 @@ jobs:
           fi
           tar zcf suricata-verify.tar.gz suricata-verify
       - name: Cleaning up
-        run: rm -rf libhtp suricata-update suricata-verify
+        run: rm -rf suricata-update suricata-verify
       - name: Uploading prep archive
         uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
         with:
@@ -165,7 +143,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Setup cbindgen
@@ -279,7 +256,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
@@ -380,7 +356,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Setup cbindgen
@@ -620,7 +595,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -715,7 +689,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -802,7 +775,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: mkdir /home/suricata/suricata
@@ -883,7 +855,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -978,7 +949,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1056,7 +1026,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1097,14 +1066,6 @@ jobs:
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-14 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-14 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
-      - run: |
-          cd libhtp
-          make test
-          cd ..
-        env:
-          LLVM_PROFILE_FILE: "/tmp/htp-test.profraw"
-      - run: llvm-profdata-14 merge -o htp-test.profdata /tmp/htp-test.profraw
-      - run: llvm-cov-14 show libhtp/test/test_all -instr-profile=htp-test.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
         with:
@@ -1176,7 +1137,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1264,7 +1224,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -1411,7 +1370,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1497,7 +1455,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1575,7 +1532,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1642,7 +1598,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -1712,7 +1667,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Setup cbindgen
         run: |
@@ -1768,13 +1722,11 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
-      # somehow it gets included by some C++ stdlib header (case unsensitive)
-      - run: rm libhtp/VERSION && make check
+      - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
@@ -1810,7 +1762,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Npcap DLL
         run: |
@@ -1866,7 +1817,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Build

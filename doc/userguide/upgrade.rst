@@ -30,6 +30,13 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading 7.0 to 8.0
+--------------------
+
+Other Changes
+~~~~~~~~~~~~~
+- libhtp has been replaced with a rust version. This means libhtp is no longer built and linked as a shared library, and the libhtp dependency is now built directly into suricata.
+
 Upgrading 6.0 to 7.0
 --------------------
 

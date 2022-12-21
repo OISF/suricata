@@ -1509,101 +1509,6 @@
         [test "x$install_suricata_update" = "xyes"])
     AC_SUBST([install_suricata_update_reason])
 
-  # libhtp
-    AC_ARG_ENABLE(non-bundled-htp,
-           AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),[enable_non_bundled_htp=$enableval],[enable_non_bundled_htp=no])
-    AS_IF([test "x$enable_non_bundled_htp" = "xyes"], [
-        PKG_CHECK_MODULES([libhtp], htp,, [with_pkgconfig_htp=no])
-        if test "$with_pkgconfig_htp" != "no"; then
-            CPPFLAGS="${CPPFLAGS} ${libhtp_CFLAGS}"
-            LIBS="${LIBS} ${libhtp_LIBS}"
-        fi
-
-        AC_ARG_WITH(libhtp_includes,
-                [  --with-libhtp-includes=DIR  libhtp include directory],
-                [with_libhtp_includes="$withval"],[with_libhtp_includes=no])
-        AC_ARG_WITH(libhtp_libraries,
-                [  --with-libhtp-libraries=DIR    libhtp library directory],
-                [with_libhtp_libraries="$withval"],[with_libhtp_libraries="no"])
-
-        if test "$with_libhtp_includes" != "no"; then
-            CPPFLAGS="-I${with_libhtp_includes} ${CPPFLAGS}"
-        fi
-
-        if test "$with_libhtp_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS} -L${with_libhtp_libraries}"
-        fi
-
-        AC_CHECK_HEADER(htp/htp.h,,[AC_MSG_ERROR(htp/htp.h not found ...)])
-
-        LIBHTP=""
-        AC_CHECK_LIB(htp, htp_conn_create,, LIBHTP="no")
-        if test "$LIBHTP" = "no"; then
-            echo
-            echo "   ERROR! libhtp library not found"
-            echo
-            exit 1
-        fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.42],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
-        if test "$libhtp_minver_found" = "no"; then
-            PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
-            if test "$libhtp_devver_found" = "no"; then
-                echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.42, nor the dev 0.5.X"
-                echo
-                exit 1
-            fi
-        fi
-
-        AC_CHECK_LIB([htp], [htp_config_register_request_uri_normalize],AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Found htp_config_register_request_uri_normalize function in libhtp]) ,,[-lhtp])
-        # check for htp_tx_get_response_headers_raw
-        AC_CHECK_LIB([htp], [htp_tx_get_response_headers_raw],AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Found htp_tx_get_response_headers_raw in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_decode_query_inplace],AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Found htp_decode_query_inplace function in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_config_set_response_decompression_layer_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Found htp_config_set_response_decompression_layer_limit function in libhtp]) ,,[-lhtp])
-        AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
-        AC_CHECK_LIB([htp], [htp_config_set_lzma_memlimit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Found htp_config_set_lzma_memlimit function in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_config_set_lzma_layers],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Found htp_config_set_lzma_layers function in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_config_set_compression_bomb_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Found htp_config_set_compression_bomb_limit function in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_config_set_compression_time_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Found htp_config_set_compression_time_limit function in libhtp]) ,,[-lhtp])
-    ])
-
-    if test "x$enable_non_bundled_htp" = "xno"; then
-        # test if we have a bundled htp
-        if test -d "$srcdir/libhtp"; then
-            AC_CONFIG_SUBDIRS([libhtp])
-            HTP_DIR="libhtp"
-            AC_SUBST(HTP_DIR)
-            HTP_LDADD="../libhtp/htp/libhtp.la"
-            AC_SUBST(HTP_LDADD)
-            # make sure libhtp is added to the includes
-            CPPFLAGS="-I\${srcdir}/../libhtp/ ${CPPFLAGS}"
-
-            AC_CHECK_HEADER(iconv.h,,[AC_MSG_ERROR(iconv.h not found ...)])
-            AC_CHECK_LIB(iconv, libiconv_close)
-            AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
-            # enable when libhtp has been updated
-            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Assuming htp_config_set_response_decompression_layer_limit function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Assuming htp_config_set_lzma_memlimit function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Assuming htp_config_set_lzma_layers function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Assuming htp_config_set_compression_bomb_limit function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Assuming htp_config_set_compression_time_limit function in bundled libhtp])
-        else
-            echo
-            echo "  ERROR: Libhtp is not bundled. Get libhtp by doing:"
-            echo "     git clone https://github.com/OISF/libhtp"
-            echo "  Then re-run Suricata's autogen.sh and configure script."
-            echo "  Or, if libhtp is installed in a different location,"
-            echo "  pass --enable-non-bundled-htp to Suricata's configure script."
-            echo "  Add --with-libhtp-includes=<dir> and --with-libhtp-libraries=<dir> if"
-            echo "  libhtp is not installed in the include and library paths."
-            echo
-            exit 1
-        fi
-    fi
-
-
   # Check for libcap-ng
     case $host in
     *-*-linux*)
@@ -2344,6 +2249,22 @@ fi
        fi
     fi
 
+    have_htp_headers="no"
+    AC_MSG_CHECKING(for $srcdir/rust/dist/htp/htp.h)
+    if test -f "$srcdir/rust/dist/htp/htp.h"; then
+       AC_MSG_RESULT(yes)
+       have_htp_headers="yes"
+    else
+       AC_MSG_RESULT(no)
+       AC_MSG_CHECKING(for $srcdir/rust/gen/htp/htp.h)
+       if test -f "$srcdir/rust/gen/htp/htp.h"; then
+           AC_MSG_RESULT(yes)
+           have_htp_headers="yes"
+       else
+           AC_MSG_RESULT(no)
+       fi
+    fi
+
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version 2>&1 | cut -d' ' -f2-)
@@ -2365,7 +2286,7 @@ fi
     AC_SUBST([CBINDGEN], [$CBINDGEN])
 
     # Require cbindgen if generated headers are not bundled.
-    if test "x$have_rust_headers" != "xyes"; then
+    if test "x$have_rust_headers" != "xyes" || test "x$have_htp_headers" != "xyes"; then
       if test "x$CBINDGEN" = "xno"; then
         echo "  Warning: cbindgen too old or not found, it is required to "
         echo "      generate header files."
@@ -2375,6 +2296,7 @@ fi
     fi
 
     AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
+    AM_CONDITIONAL([HAVE_HTP_HEADERS], [test "x$have_htp_headers" = "xyes"])
     AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
@@ -2549,7 +2471,6 @@ AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(RUST_FEATURES)
 AC_SUBST(RUST_SURICATA_LIBDIR)
 AC_SUBST(RUST_SURICATA_LIBNAME)
-AC_SUBST(enable_non_bundled_htp)
 
 AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [test "x$can_build_shared_library" = "xyes"])
 
@@ -2589,7 +2510,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
-  Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}

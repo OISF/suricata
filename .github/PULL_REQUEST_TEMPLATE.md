@@ -17,6 +17,3 @@ Describe changes:
 #suricata-update-pr:
 #suricata-update-repo:
 #suricata-update-branch:
-#libhtp-pr:
-#libhtp-repo:
-#libhtp-branch:
