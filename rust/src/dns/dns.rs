@@ -133,10 +133,11 @@ static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[repr(u32)]
 pub enum DNSEvent {
-    MalformedData = 0,
-    NotRequest = 1,
-    NotResponse = 2,
-    ZFlagSet = 3,
+    MalformedData,
+    NotRequest,
+    NotResponse,
+    ZFlagSet,
+    InvalidOpcode,
 }
 
 impl DNSEvent {
@@ -146,6 +147,7 @@ impl DNSEvent {
             DNSEvent::NotRequest => "NOT_A_REQUEST\0",
             DNSEvent::NotResponse => "NOT_A_RESPONSE\0",
             DNSEvent::ZFlagSet => "Z_FLAG_SET\0",
+            DNSEvent::InvalidOpcode => "INVALID_OPCODE\0",
         }
     }
 
@@ -155,6 +157,7 @@ impl DNSEvent {
             1 => Some(DNSEvent::NotRequest),
             2 => Some(DNSEvent::NotResponse),
             4 => Some(DNSEvent::ZFlagSet),
+            5 => Some(DNSEvent::InvalidOpcode),
             _ => None,
         }
     }
@@ -165,6 +168,7 @@ impl DNSEvent {
             "not_a_request" => Some(DNSEvent::NotRequest),
             "not_a_response" => Some(DNSEvent::NotRequest),
             "z_flag_set" => Some(DNSEvent::ZFlagSet),
+            "invalid_opcode" => Some(DNSEvent::InvalidOpcode),
             _ => None
         }
     }
@@ -506,6 +510,7 @@ impl DNSState {
                 }
 
                 let z_flag = request.header.flags & 0x0040 != 0;
+                let opcode = ((request.header.flags >> 11) & 0xf) as u8;
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
@@ -515,6 +520,10 @@ impl DNSState {
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
                     self.set_event(DNSEvent::ZFlagSet);
+                }
+
+                if opcode >= 7 {
+                    self.set_event(DNSEvent::InvalidOpcode);
                 }
 
                 return true;
@@ -546,6 +555,7 @@ impl DNSState {
                 }
 
                 let z_flag = response.header.flags & 0x0040 != 0;
+                let opcode = ((response.header.flags >> 11) & 0xf) as u8;
 
                 let mut tx = self.new_tx();
                 if let Some(ref mut config) = &mut self.config {
@@ -560,6 +570,10 @@ impl DNSState {
                 if z_flag {
                     SCLogDebug!("Z-flag set on DNS response");
                     self.set_event(DNSEvent::ZFlagSet);
+                }
+
+                if opcode >= 7 {
+                    self.set_event(DNSEvent::InvalidOpcode);
                 }
 
                 return true;
@@ -692,11 +706,6 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
-    let opcode = ((header.flags >> 11) & 0xf) as u8;
-    if opcode >= 7 {
-        //unassigned opcode
-        return (false, false, false);
-    }
     if 2 * (header.additional_rr as usize
         + header.answer_rr as usize
         + header.authority_rr as usize
