@@ -383,7 +383,17 @@ impl DNSState {
         tx.tx_data.set_event(event as u8);
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> bool {
+    fn validate_header(&self, input: &[u8]) -> bool {
+        parser::dns_parse_header(input)
+            .map(|(_, header)| probe_header_validity(header, input.len()).0)
+            .unwrap_or(false)
+    }
+
+    fn parse_request(&mut self, input: &[u8], is_tcp: bool) -> bool {
+        if !self.validate_header(input) {
+            return !is_tcp;
+        }
+
         match parser::dns_parse_request(input) {
             Ok((_, request)) => {
                 if request.header.flags & 0x8000 != 0 {
@@ -434,7 +444,7 @@ impl DNSState {
             input.len() as i64,
             DnsFrameType::Pdu as u8,
         );
-        self.parse_request(input)
+        self.parse_request(input, false)
     }
 
     fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
@@ -446,10 +456,14 @@ impl DNSState {
             input.len() as i64,
             DnsFrameType::Pdu as u8,
         );
-        self.parse_response(input)
+        self.parse_response(input, false)
     }
 
-    pub fn parse_response(&mut self, input: &[u8]) -> bool {
+    pub fn parse_response(&mut self, input: &[u8], is_tcp: bool) -> bool {
+        if !self.validate_header(input) {
+            return !is_tcp;
+        }
+
         match parser::dns_parse_response(input) {
             Ok((_, response)) => {
                 SCLogDebug!("Response header flags: {}", response.header.flags);
@@ -538,7 +552,7 @@ impl DNSState {
                     msg.len() as i64,
                     DnsFrameType::Pdu as u8,
                 );
-                if self.parse_request(msg) {
+                if self.parse_request(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
                 } else {
@@ -600,7 +614,7 @@ impl DNSState {
                     msg.len() as i64,
                     DnsFrameType::Pdu as u8,
                 );
-                if self.parse_response(msg) {
+                if self.parse_response(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
                 } else {
@@ -640,16 +654,19 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
-    if 2 * (header.additional_rr as usize
-        + header.answer_rr as usize
-        + header.authority_rr as usize
-        + header.questions as usize)
-        + DNS_HEADER_SIZE
-        > rlen
-    {
-        //not enough data for such a DNS record
+    let min_msg_size = 2
+        * (header.additional_rr as usize
+            + header.answer_rr as usize
+            + header.authority_rr as usize
+            + header.questions as usize)
+        + DNS_HEADER_SIZE;
+
+    if min_msg_size > rlen {
+        // Not enough data for records defined in the header, or
+        // impossibly large.
         return (false, false, false);
     }
+
     let is_request = header.flags & 0x8000 == 0;
     return (true, is_request, false);
 }
@@ -1245,7 +1262,7 @@ mod tests {
             0x80,
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf));
+        assert!(state.parse_response(buf, false));
     }
 
     // Port of the C RustDNSUDPParserTest02 unit test.
@@ -1265,7 +1282,7 @@ mod tests {
             0x10,0x00,0x02,0xC0,0x85,0x00,0x00,0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf));
+        assert!(state.parse_response(buf, false));
     }
 
     // Port of the C RustDNSUDPParserTest03 unit test.
@@ -1285,7 +1302,7 @@ mod tests {
             0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf));
+        assert!(state.parse_response(buf, false));
     }
 
     // Port of the C RustDNSUDPParserTest04 unit test.
@@ -1309,7 +1326,7 @@ mod tests {
             0x6b,0x00,0x01,0x00,0x01,0x00,0x09,0x3a,0x80,0x00,0x04,0x0a,0x1e,0x1c,0x5f
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf));
+        assert!(state.parse_response(buf, false));
     }
 
     // Port of the C RustDNSUDPParserTest05 unit test.
@@ -1333,7 +1350,7 @@ mod tests {
             0x6b,0x00,0x01,0x00,0x01,0x00,0x09,0x3a,0x80,0x00,0x04,0x0a,0x1e,0x1c,0x5f
         ];
         let mut state = DNSState::new();
-        assert!(!state.parse_response(buf));
+        assert!(!state.parse_response(buf, false));
     }
 
     // Port of the C RustDNSTCPParserTestMultiRecord unit test.
