@@ -506,6 +506,9 @@ fn dns_log_json_answer(
         js.set_bool("z", true)?;
     }
 
+    let opcode = ((header.flags >> 11) & 0xf) as u8;
+    js.set_uint("opcode", opcode as u64)?;
+
     if let Some(query) = response.queries.first() {
         js.set_string_from_bytes("rrname", &query.name)?;
         js.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
@@ -620,6 +623,8 @@ fn dns_log_query(
                 if request.header.flags & 0x0040 != 0 {
                     jb.set_bool("z", true)?;
                 }
+                let opcode = ((request.header.flags >> 11) & 0xf) as u8;
+                jb.set_uint("opcode", opcode as u64)?;
                 return Ok(true);
             }
         }
