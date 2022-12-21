@@ -20,7 +20,6 @@
 use super::parser;
 use crate::applayer;
 use crate::applayer::*;
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::frames::*;
 use nom7::Err;
 use std;
@@ -252,32 +251,36 @@ impl RFBState {
                             frame.set_len(flow, consumed as i64);
                         }
 
+                        if let Some(frame) = &pdu {
+                            frame.set_len(flow, consumed as i64);
+                        }
+
                         self.state = parser::RFBGlobalState::TCSecurityResult;
 
-                        if let Some(current_transaction) = self.get_current_tx() {
-                            current_transaction.ts_vnc_response = Some(request);
-                        } else {
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_vnc_response = Some(request);
+                            } else {
+                                return AppLayerResult::err();
+                            }
+                        }
+                        Err(Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
+                        }
+                        Err(_) => {
                             return AppLayerResult::err();
                         }
                     }
-                    Err(Err::Incomplete(_)) => {
-                        return AppLayerResult::incomplete(
-                            consumed as u32,
-                            (current.len() + 1) as u32,
-                        );
-                    }
-                    Err(_) => {
-                        return AppLayerResult::err();
-                    }
-                },
-                parser::RFBGlobalState::TSClientInit => match parser::parse_client_init(current) {
-                    Ok((rem, request)) => {
-                        consumed += current.len() - rem.len();
-                        current = rem;
+                }
+                parser::RFBGlobalState::TSClientInit => {
+                    match parser::parse_client_init(current) {
+                        Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
+                            current = rem;
 
                         if let Some(frame) = &pdu {
                             frame.set_len(flow, consumed as i64);
                         }
+
 
                         self.state = parser::RFBGlobalState::TCServerInit;
 
@@ -454,6 +457,10 @@ impl RFBState {
                     Ok((rem, request)) => {
                         consumed += current.len() - rem.len();
                         current = rem;
+
+                        if let Some(frame) = &pdu {
+                            frame.set_len(flow, consumed as i64);
+                        }
 
                         if let Some(frame) = &pdu {
                             frame.set_len(flow, consumed as i64);
