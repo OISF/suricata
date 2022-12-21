@@ -22,10 +22,16 @@ use std::ffi::CString;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
+use crate::frames::*;
 use nom7::Err;
 use super::parser;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
+
+#[derive(AppLayerFrameType)]
+pub enum RFBFrameType {
+    Pdu,
+}
 
 pub struct RFBTransaction {
     tx_id: u64,
@@ -151,8 +157,16 @@ impl RFBState {
         self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id)
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
         // We're not interested in empty requests.
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new(
+            flow,
+            &stream_slice,
+            input,
+            -1_i64,
+            RFBFrameType::Pdu as u8,
+        );
         if input.is_empty() {
             return AppLayerResult::ok();
         }
@@ -280,7 +294,15 @@ impl RFBState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new(
+            flow,
+            &stream_slice,
+            input,
+            -1_i64,
+            RFBFrameType::Pdu as u8,
+        );
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -513,26 +535,26 @@ pub unsafe extern "C" fn rs_rfb_state_tx_free(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_request(
-    _flow: *const Flow,
+    flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    return state.parse_request(stream_slice.as_slice());
+    return state.parse_request(flow, stream_slice);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_response(
-    _flow: *const Flow,
+    flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    return state.parse_response(stream_slice.as_slice());
+    return state.parse_response(flow, stream_slice);
 }
 
 #[no_mangle]
@@ -608,8 +630,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         apply_tx_config: None,
         flags: 0,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(RFBFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(RFBFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
