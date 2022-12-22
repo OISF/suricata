@@ -43,7 +43,9 @@
 /**
  * \brief The various log levels
  * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
-  *      or it may result in logging to syslog with LOG_EMERG priority.
+ *       or it may result in logging to syslog with LOG_EMERG priority.
+ *
+ * NOTE: The Level enum in log.rs also needs to be updated to match.
  */
 typedef enum {
     SC_LOG_NOTSET = -1,

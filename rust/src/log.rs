@@ -26,9 +26,6 @@ use crate::core::*;
 pub enum Level {
     NotSet = -1,
     None = 0,
-    Emergency,
-    Alert,
-    Critical,
     Error,
     Warning,
     Notice,
