@@ -73,22 +73,16 @@ generated the event.
 Event type: Alert
 -----------------
 
-Field action
-~~~~~~~~~~~~
+This field contains data about a signature that matched, such as
+``signature_id`` (``sid`` in the rule) and the ``signature`` (``msg`` in the
+rule).
 
-Possible values: "allowed" and "blocked"
-
-Example:
-
-::
-
-
-  "action":"allowed"
-
-Action is set to "allowed" unless a rule used the "drop" action and Suricata is in IPS mode, or when the rule used the "reject" action.
-
-It can also contain information about Source and Target of the attack in the alert.source and alert.target field it target keyword is used in
+It can also contain information about Source and Target of the attack in the
+``alert.source`` and ``alert.target`` field if target keyword is used in
 the signature.
+
+This event will also have the ``pcap_cnt`` field, when running in pcap mode, to
+indicate which packet triggered the signature.
 
 ::
 
@@ -108,6 +102,56 @@ the signature.
        "ip": "179.60.192.3",
        "port": 80
      },
+
+Action field
+~~~~~~~~~~~~
+
+Possible values: "allowed" and "blocked".
+
+Example:
+
+::
+
+  "action":"allowed"
+
+Action is set to "allowed" unless a rule used the "drop" action and Suricata is
+in IPS mode, or when the rule used the "reject" action. It is important to note
+that this does not necessarily indicate the final verdict for a given packet or
+flow, since one packet may match on several rules.
+
+.. _verdict-alert:
+
+Verdict
+~~~~~~~
+
+An object containning info on the final action that will be applied to a given
+packet, based on all the signatures triggered by it and other possible events
+(e.g., a flow drop). For that reason, it is possible for an alert with
+an action ``allowed`` to have a verdict ``drop``, in IPS mode, for instance, if
+that packet was dropped due to a different alert.
+
+* Action: ``alert``, ``pass``, ``drop`` (this latter only occurs in IPS mode)
+* Reject-target: ``to_server``, ``to_client``, ``both`` (only occurs for 'reject' rules)
+* Reject: an array of strings with possible reject types: ``tcp-reset``,
+  ``icmp-prohib`` (only occurs for 'reject' rules)
+
+Example:
+
+::
+
+    "verdict": {
+       "action": "drop",
+       "reject-target": "to_client",
+       "reject": "[icmp-prohib]"
+     }
+
+
+Pcap Field
+~~~~~~~~~~
+
+If pcap log capture is active in `multi` mode, a `capture_file` key will be added to the event
+with value being the full path of the pcap file where the corresponding packets
+have been extracted.
 
 Event type: Anomaly
 -------------------
