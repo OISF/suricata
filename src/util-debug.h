@@ -188,7 +188,8 @@ typedef struct SCLogConfig_ {
 } SCLogConfig;
 
 /* The different log format specifiers supported by the API */
-#define SC_LOG_FMT_TIME             't' /* Timestamp in standard format */
+#define SC_LOG_FMT_TIME             'z' /* Timestamp in RFC3339 like format */
+#define SC_LOG_FMT_TIME_LEGACY      't' /* Timestamp in legacy format */
 #define SC_LOG_FMT_PID              'p' /* PID */
 #define SC_LOG_FMT_TID              'i' /* Thread ID */
 #define SC_LOG_FMT_TM               'm' /* Thread module name */
