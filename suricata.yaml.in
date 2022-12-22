@@ -577,6 +577,7 @@ logging:
       enabled: yes
       level: info
       filename: suricata.log
+      # format: "[%i - %m] %z %d: %S: %M"
       # type: json
   - syslog:
       enabled: no
