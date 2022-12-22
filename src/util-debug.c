@@ -383,8 +383,9 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
         strlcat(local_format, "%M", sizeof(local_format));
     char *temp_fmt = local_format;
     char *substr = temp_fmt;
+    struct tm local_tm;
 
-	while ( (temp_fmt = strchr(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
+    while ((temp_fmt = strchr(temp_fmt, SC_LOG_FMT_PREFIX))) {
         if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
             return 0;
         }
@@ -392,7 +393,23 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
             case SC_LOG_FMT_TIME:
                 temp_fmt[0] = '\0';
 
-                struct tm local_tm;
+                tms = SCLocalTime(tval->tv_sec, &local_tm);
+
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                        "%s%s%04d-%02d-%02d %02d:%02d:%02d%s", substr, green, tms->tm_year + 1900,
+                        tms->tm_mon + 1, tms->tm_mday, tms->tm_hour, tms->tm_min, tms->tm_sec,
+                        reset);
+                if (cw < 0)
+                    return -1;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
+            case SC_LOG_FMT_TIME_LEGACY:
+                temp_fmt[0] = '\0';
+
                 tms = SCLocalTime(tval->tv_sec, &local_tm);
 
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
@@ -588,7 +605,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
             }
         }
         temp_fmt++;
-	}
+    }
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
         return 0;
     }
