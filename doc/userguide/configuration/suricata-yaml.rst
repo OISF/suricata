@@ -1780,8 +1780,11 @@ Default Configuration Example
     # something reasonable if not provided.  Can be overridden in an
     # output section.  You can leave this out to get the default.
     #
-    # This value is overridden by the SC_LOG_FORMAT env var.
-    #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+    # This console log format value can be overridden by the SC_LOG_FORMAT env var.
+    #default-log-format: "%D: %S: %M"
+    #
+    # For the pre-7.0 log format use:
+    #default-log-format: "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 
     # A regex to filter output.  Can be overridden in an output section.
     # Defaults to empty (no filter).
@@ -1799,6 +1802,7 @@ Default Configuration Example
         enabled: yes
         level: info
         filename: suricata.log
+        # format: "[%i - %m] %z %d: %S: %M"
         # type: json
     - syslog:
         enabled: no
@@ -1850,8 +1854,8 @@ specified signs:
 
 ::
 
-  t:      Time, timestamp, time and date
-			example: 15/10/2010 - -11:40:07
+  z:      ISO-like formatted timestamp: YYYY-MM-DD HH:MM:SS
+  t:      Original Suricata log timestamp: DD/MM/YYYY -- HH:MM::SS
   p:      Process ID. Suricata's whole processing consists of multiple threads.
   i:      Thread ID. ID of individual threads.
   m:      Thread module name. (Outputs, Detect etc.)
