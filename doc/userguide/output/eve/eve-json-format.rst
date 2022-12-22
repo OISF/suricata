@@ -89,22 +89,16 @@ generated the event.
 Event type: Alert
 -----------------
 
-Field action
-~~~~~~~~~~~~
+This field contains data about a signature that matched, such as
+``signature_id`` (``sid`` in the rule) and the ``signature`` (``msg`` in the
+rule).
 
-Possible values: "allowed" and "blocked"
-
-Example:
-
-::
-
-
-  "action":"allowed"
-
-Action is set to "allowed" unless a rule used the "drop" action and Suricata is in IPS mode, or when the rule used the "reject" action.
-
-It can also contain information about Source and Target of the attack in the alert.source and alert.target field if target keyword is used in
+It can also contain information about Source and Target of the attack in the
+``alert.source`` and ``alert.target`` field if target keyword is used in
 the signature.
+
+This event will also have the ``pcap_cnt`` field, when running in pcap mode, to
+indicate which packet triggered the signature.
 
 ::
 
@@ -146,6 +140,37 @@ the signature.
       ]
     }
   },
+
+Action field
+~~~~~~~~~~~~
+
+Possible values: "allowed" and "blocked".
+
+Example:
+
+::
+
+  "action":"allowed"
+
+Action is set to "allowed" unless a rule used the "drop" action and Suricata is
+in IPS mode, or when the rule used the "reject" action. It is important to note
+that this does not necessarily indicate the final verdict for a given packet or
+flow, since one packet may match on several rules.
+
+Verdict Field
+~~~~~~~~~~~~~
+
+Possible values are "accept", "drop" or "reject".
+
+Example:
+
+::
+
+  "verdict":"drop"
+
+Verdict is the final action that will be applied to a given packet, based on all
+the signatures triggered by it. In IPS mode, all values are possible. In IDS
+mode, verdict is only present if its value is "reject".
 
 Pcap Field
 ~~~~~~~~~~
