@@ -74,7 +74,7 @@ typedef enum {
 } SCLogOPType;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_LOG_DEF_FILE_FORMAT      "[%i - %m] %t %d: %S: %M"
+#define SC_LOG_DEF_FILE_FORMAT      "[%i - %m] %z %d: %S: %M"
 #define SC_LOG_DEF_LOG_FORMAT_REL   "%D: %S: %M"
 #define SC_LOG_DEF_LOG_FORMAT_RELV  "%d: %S: %M"
 #define SC_LOG_DEF_LOG_FORMAT_RELVV "[%i] %d: %S: %M"
