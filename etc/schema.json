@@ -264,7 +264,7 @@
                             }
                         }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": true
                 },
                 "source": {
                     "type": "object",
