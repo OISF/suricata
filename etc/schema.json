@@ -151,6 +151,9 @@
                     "stored": {
                         "type": "boolean"
                     },
+                    "storing": {
+                        "type": "boolean"
+                    },
                     "tx_id": {
                         "type": "integer"
                     },
@@ -1449,6 +1452,9 @@
                     "type": "string"
                 },
                 "stored": {
+                    "type": "boolean"
+                },
+                "storing": {
                     "type": "boolean"
                 },
                 "tx_id": {
