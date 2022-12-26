@@ -75,7 +75,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 
     /* verify other conditions. */
-    DetectContentData *cd = (DetectContentData *)pm->ctx;;
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
 
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         SCLogError("can't use multiple nocase modifiers with the same content");

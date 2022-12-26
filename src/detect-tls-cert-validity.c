@@ -269,7 +269,7 @@ static time_t DateStringToEpoch (char *string)
 
     time_t epoch = StringIsEpoch(string);
     if (epoch != -1) {
-        return epoch;;
+        return epoch;
     }
 
     r = SCStringPatternToTime(string, patterns, 10, &tm);
