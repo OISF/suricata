@@ -30,7 +30,6 @@ typedef struct OutputJsonCtx_ OutputJsonCtx;
 
 void JsonFileLogRegister(void);
 JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
-        const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
-        OutputJsonCtx *eve_ctx);
+        const uint64_t tx_id, uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCtx *eve_ctx);
 
 #endif /* __OUTPUT_JSON_FILE_H__ */
