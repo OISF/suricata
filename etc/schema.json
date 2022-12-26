@@ -116,6 +116,9 @@
                     "filename": {
                         "type": "string"
                     },
+                    "file_id": {
+                        "type": "integer"
+                    },
                     "gaps": {
                         "type": "boolean"
                     },
