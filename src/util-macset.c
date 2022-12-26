@@ -119,7 +119,7 @@ static inline void MacUpdateEntry(MacSet *ms, uint8_t *addr, int side, ThreadVar
 {
     switch (ms->state[side]) {
         case EMPTY_SET:
-            memcpy(ms->singles[side], addr, sizeof(MacAddr));;
+            memcpy(ms->singles[side], addr, sizeof(MacAddr));
             ms->state[side] = SINGLE_MAC;
             if (tv != NULL)
                 StatsSetUI64(tv, ctr, 1);

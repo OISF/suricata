@@ -75,7 +75,7 @@ int TmModuleGetIdByName(const char *name)
 {
     TmModule *tm = TmModuleGetByName(name);
     if (tm == NULL)
-        return -1;;
+        return -1;
     return TmModuleGetIDForTM(tm);
 }
 

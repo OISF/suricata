@@ -1163,7 +1163,7 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     ascii_codes = state_table_mod_pointers[state & 0x7FFF] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0]) {
-                        state = *(ascii_codes + no_of_entries);;
+                        state = *(ascii_codes + no_of_entries);
                     } else {
                         state = zero_state[buf_local];
                     }
@@ -1246,9 +1246,9 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     ascii_codes = state_table_mod_pointers[state & 0x00FFFFFF] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0]) {
-                        state = *(ascii_codes + no_of_entries);;
+                        state = *(ascii_codes + no_of_entries);
                     } else {
-                        state = zero_state[buf_local];;
+                        state = zero_state[buf_local];
                     }
                 } else {
                     if (no_of_entries == 0) {

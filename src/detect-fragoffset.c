@@ -127,7 +127,7 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    return FragOffsetMatch(frag, fragoff->mode, fragoff->frag_off);;
+    return FragOffsetMatch(frag, fragoff->mode, fragoff->frag_off);
 }
 
 /**

@@ -217,7 +217,7 @@ static void SCACShrinkState(SCACCtx *ctx)
 
 static inline int SCACInitNewState(MpmCtx *mpm_ctx)
 {
-    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;;
+    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
 
     /* Exponentially increase the allocated space when needed. */
     if (ctx->allocated_state_count < ctx->state_count + 1) {
