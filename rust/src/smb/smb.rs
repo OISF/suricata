@@ -1397,7 +1397,7 @@ impl SMBState {
                                             if smb_record.is_request() {
                                                 smb1_request_record(self, smb_record);
                                             } else {
-                                                // If we recevied a response when expecting a request, set an event
+                                                // If we received a response when expecting a request, set an event
                                                 // on the PDU frame instead of handling the response.
                                                 SCLogDebug!("SMB1 reply seen from client to server");
                                                 if let Some(frame) = pdu_frame {
@@ -1426,7 +1426,7 @@ impl SMBState {
                                                 if smb_record.is_request() {
                                                     smb2_request_record(self, smb_record);
                                                 } else {
-                                                    // If we recevied a response when expecting a request, set an event
+                                                    // If we received a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.
                                                     SCLogDebug!("SMB2 reply seen from client to server");
                                                     if let Some(frame) = pdu_frame {
