@@ -81,8 +81,7 @@ typedef struct JsonFileLogThread_ {
 } JsonFileLogThread;
 
 JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
-        const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
-        OutputJsonCtx *eve_ctx)
+        const uint64_t tx_id, uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCtx *eve_ctx)
 {
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
@@ -186,7 +185,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
     jb_set_string(js, "app_proto", AppProtoToString(p->flow->alproto));
 
     jb_open_object(js, "fileinfo");
-    EveFileInfo(js, ff, tx_id, stored);
+    EveFileInfo(js, ff, tx_id, ff->flags);
     jb_close(js);
 
     /* xff header */
@@ -206,8 +205,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ? aft->filelog_ctx->xff_cfg
                                                             : aft->filelog_ctx->parent_xff_cfg;
-    JsonBuilder *js = JsonBuildFileInfoRecord(
-            p, ff, tx, tx_id, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, eve_ctx);
+    JsonBuilder *js = JsonBuildFileInfoRecord(p, ff, tx, tx_id, dir, xff_cfg, eve_ctx);
     if (unlikely(js == NULL)) {
         return;
     }

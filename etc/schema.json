@@ -146,6 +146,10 @@
                     "stored": {
                         "type": "boolean"
                     },
+                    "storing": {
+                        "description": "the file is set to be stored when completed",
+                        "type": "boolean"
+                    },
                     "tx_id": {
                         "type": "integer"
                     },
@@ -1446,6 +1450,10 @@
                     "type": "string"
                 },
                 "stored": {
+                    "type": "boolean"
+                },
+                "storing": {
+                    "description": "the file is set to be stored when completed",
                     "type": "boolean"
                 },
                 "tx_id": {

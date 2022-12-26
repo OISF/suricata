@@ -166,8 +166,12 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
                     ff->file_store_id) == (int)sizeof(js_metadata_filename)) {
             WARN_ONCE(WOT_SNPRINTF, "Failed to write file info record. Output filename truncated.");
         } else {
+            // Set temporarily flag that file is stored for logging.
+            // CloseFile in output-filedata.c will soon set it for good.
+            uint16_t prev_flags = ff->flags;
+            ff->flags |= FILE_STORED;
             JsonBuilder *js_fileinfo =
-                    JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
+                    JsonBuildFileInfoRecord(p, ff, tx, tx_id, dir, ctx->xff_cfg, NULL);
             if (likely(js_fileinfo != NULL)) {
                 jb_close(js_fileinfo);
                 FILE *out = fopen(js_metadata_filename, "w");
@@ -178,6 +182,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
                 }
                 jb_free(js_fileinfo);
             }
+            ff->flags = prev_flags;
         }
     }
 }
