@@ -2530,7 +2530,6 @@ static int PortParseTest14Spaces(void)
     const char *str = "              45";
     DetectPort *dp = PortParse(str);
     FAIL_IF_NULL(dp);
-    FAIL_IF_NULL(dp);
     FAIL_IF(dp->port != 45);
     FAIL_IF(dp->port2 != 45);
     DetectPortFree(NULL, dp);
@@ -2542,7 +2541,6 @@ static int PortParseTestMoreThan14Spaces(void)
 {
     const char *str = "                                   45";
     DetectPort *dp = PortParse(str);
-    FAIL_IF_NULL(dp);
     FAIL_IF_NULL(dp);
     FAIL_IF(dp->port != 45);
     FAIL_IF(dp->port2 != 45);
