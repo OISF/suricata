@@ -128,7 +128,7 @@ json_t *SCJsonString(const char *val)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const bool stored)
+void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const uint16_t flags)
 {
     jb_set_string_from_bytes(jb, "filename", ff->name, ff->name_len);
 
@@ -170,11 +170,14 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const bo
         jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
     }
 
-    if (stored) {
+    if (flags & FILE_STORED) {
         JB_SET_TRUE(jb, "stored");
         jb_set_uint(jb, "file_id", ff->file_store_id);
     } else {
         JB_SET_FALSE(jb, "stored");
+        if (flags & FILE_STORE) {
+            JB_SET_TRUE(jb, "storing");
+        }
     }
 
     jb_set_uint(jb, "size", FileTrackedSize(ff));
