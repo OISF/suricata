@@ -603,6 +603,10 @@ static int TCPProtoDetect(ThreadVars *tv,
                 AppLayerIncFlowCounter(tv, f);
                 FlagPacketFlow(p, f, flags);
 
+            } else if (flags & STREAM_EOF) {
+                *alproto = f->alproto;
+                StreamTcpSetStreamFlagAppProtoDetectionCompleted(*stream);
+                AppLayerIncFlowCounter(tv, f);
             }
         } else {
             /* both sides unknown, let's see if we need to give up */
@@ -676,6 +680,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             if (f->alproto == ALPROTO_UNKNOWN) {
                 goto failure;
             }
+            AppLayerIncFlowCounter(tv, f);
         }
         if (FlowChangeProto(f)) {
             FlowUnsetChangeProtoFlag(f);
