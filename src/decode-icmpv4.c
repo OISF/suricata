@@ -405,8 +405,8 @@ static int DecodeICMPV4test01(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -455,8 +455,8 @@ static int DecodeICMPV4test02(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -503,8 +503,8 @@ static int DecodeICMPV4test03(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -582,8 +582,8 @@ static int DecodeICMPV4test04(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -651,8 +651,8 @@ static int DecodeICMPV4test05(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -757,8 +757,8 @@ static int ICMPV4InvalidType07(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
@@ -800,8 +800,8 @@ static int DecodeICMPV4test08(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
-    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];

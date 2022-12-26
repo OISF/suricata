@@ -204,8 +204,8 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff, void *tx,
         const uint64_t tx_id, uint8_t dir, OutputJsonCtx *eve_ctx)
 {
-    HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
-        aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
+    HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ? aft->filelog_ctx->xff_cfg
+                                                            : aft->filelog_ctx->parent_xff_cfg;
     JsonBuilder *js = JsonBuildFileInfoRecord(
             p, ff, tx, tx_id, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, eve_ctx);
     if (unlikely(js == NULL)) {
