@@ -937,11 +937,102 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         return -1;
 
     } else if (p->tcph->th_flags & TH_FIN) {
-        StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
-        SCLogDebug("FIN packet received, no session setup");
-        return -1;
+        /* Drop reason will only be used if midstream policy is set to fail closed */
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
 
-    /* SYN/ACK */
+        if (!stream_config.midstream || p->payload_len == 0) {
+            StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
+            SCLogDebug("FIN packet received, no session setup");
+            return -1;
+        }
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
+            StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
+            SCLogDebug("FIN packet received, no session setup");
+            return -1;
+        }
+        SCLogDebug("midstream picked up");
+
+        if (ssn == NULL) {
+            ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
+            if (ssn == NULL) {
+                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                return -1;
+            }
+            StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
+            StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+        }
+        /* set the state */
+        StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
+        SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
+                   "TCP_FIN_WAIT1",
+                ssn);
+
+        ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
+        if (stream_config.async_oneside) {
+            SCLogDebug("ssn %p: =~ ASYNC", ssn);
+            ssn->flags |= STREAMTCP_FLAG_ASYNC;
+        }
+
+        /** window scaling for midstream pickups, we can't do much other
+         *  than assume that it's set to the max value: 14 */
+        ssn->client.wscale = TCP_WSCALE_MAX;
+        ssn->server.wscale = TCP_WSCALE_MAX;
+
+        /* set the sequence numbers and window */
+        ssn->client.isn = TCP_GET_SEQ(p) - 1;
+        STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
+        ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
+        ssn->client.last_ack = TCP_GET_SEQ(p);
+        ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+        SCLogDebug("ssn %p: ssn->client.isn %u, ssn->client.next_seq %u", ssn, ssn->client.isn,
+                ssn->client.next_seq);
+
+        ssn->server.isn = TCP_GET_ACK(p) - 1;
+        STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
+        ssn->server.next_seq = ssn->server.isn + 1;
+        ssn->server.last_ack = TCP_GET_ACK(p);
+        ssn->server.next_win = ssn->server.last_ack;
+
+        SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 ", "
+                   "ssn->server.next_win %" PRIu32 "",
+                ssn, ssn->client.next_win, ssn->server.next_win);
+        SCLogDebug("ssn %p: ssn->client.last_ack %" PRIu32 ", "
+                   "ssn->server.last_ack %" PRIu32 "",
+                ssn, ssn->client.last_ack, ssn->server.last_ack);
+
+        /* Set the timestamp value for both streams, if packet has timestamp
+         * option enabled.*/
+        if (TCP_HAS_TS(p)) {
+            ssn->client.last_ts = TCP_GET_TSVAL(p);
+            ssn->server.last_ts = TCP_GET_TSECR(p);
+            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32 " "
+                       "ssn->client.last_ts %" PRIu32 "",
+                    ssn, ssn->server.last_ts, ssn->client.last_ts);
+
+            ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
+
+            ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
+            if (ssn->server.last_ts == 0)
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
+            if (ssn->client.last_ts == 0)
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
+
+        } else {
+            ssn->server.last_ts = 0;
+            ssn->client.last_ts = 0;
+        }
+
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+
+        ssn->flags |= STREAMTCP_FLAG_SACKOK;
+        SCLogDebug("ssn %p: assuming SACK permitted for both sides", ssn);
+
+        /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
