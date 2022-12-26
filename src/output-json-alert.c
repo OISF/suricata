@@ -619,7 +619,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
                 jb_open_array(jb, "files");
             }
             jb_start_object(jb);
-            EveFileInfo(jb, file, tx_id, file->flags & FILE_STORED);
+            EveFileInfo(jb, file, tx_id, file->flags);
             jb_close(jb);
             file = file->next;
         }
