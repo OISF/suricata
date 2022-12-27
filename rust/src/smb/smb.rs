@@ -1352,7 +1352,11 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_write_request_record(self, r);
+                                            // how many more bytes are expected within this NBSS record
+                                            // So that we can check that further parsed offsets and lengths
+                                            // stay within the NBSS record.
+                                            let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                            smb1_write_request_record(self, r, nbss_remaining);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
@@ -1368,7 +1372,11 @@ impl SMBState {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
                                         if smb_record.command == SMB2_COMMAND_WRITE {
-                                            smb2_write_request_record(self, smb_record);
+                                            // how many more bytes are expected within this NBSS record
+                                            // So that we can check that further parsed offsets and lengths
+                                            // stay within the NBSS record.
+                                            let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                            smb2_write_request_record(self, smb_record, nbss_remaining);
                                             let consumed = input.len() - output.len();
                                             SCLogDebug!("consumed {}", consumed);
                                             return consumed;
@@ -1605,7 +1613,11 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_read_response_record(self, r);
+                                            // how many more bytes are expected within this NBSS record
+                                            // So that we can check that further parsed offsets and lengths
+                                            // stay within the NBSS record.
+                                            let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                            smb1_read_response_record(self, r, nbss_remaining);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
@@ -1619,7 +1631,11 @@ impl SMBState {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
                                         if smb_record.command == SMB2_COMMAND_READ {
-                                            smb2_read_response_record(self, smb_record);
+                                            // how many more bytes are expected within this NBSS record
+                                            // So that we can check that further parsed offsets and lengths
+                                            // stay within the NBSS record.
+                                            let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                            smb2_read_response_record(self, smb_record, nbss_remaining);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
