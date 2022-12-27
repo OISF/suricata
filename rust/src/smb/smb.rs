@@ -1302,7 +1302,7 @@ impl SMBState {
                                 if is_pipe {
                                     return 0;
                                 }
-                                smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX);
+                                smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX, nbss_part_hdr.length as usize - nbss_part_hdr.data.len());
                                 
                                 self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                 self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
@@ -1318,7 +1318,7 @@ impl SMBState {
                             SCLogDebug!("SMB2: partial record {}",
                                         &smb2_command_string(smb_record.command));
                             if smb_record.command == SMB2_COMMAND_WRITE {
-                                smb2_write_request_record(self, smb_record);
+                                smb2_write_request_record(self, smb_record, nbss_part_hdr.length as usize - nbss_part_hdr.data.len());
                                 
                                 self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                 self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
@@ -1637,7 +1637,7 @@ impl SMBState {
                                 self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
                                 self.add_smb1_tc_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
 
-                                smb1_read_response_record(self, r, SMB1_HEADER_SIZE);
+                                smb1_read_response_record(self, r, SMB1_HEADER_SIZE, nbss_part_hdr.length as usize - nbss_part_hdr.data.len());
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }
@@ -1654,7 +1654,7 @@ impl SMBState {
                                 self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
                                 self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64, smb_record.header_len as i64);
 
-                                smb2_read_response_record(self, smb_record);
+                                smb2_read_response_record(self, smb_record, nbss_part_hdr.length as usize - nbss_part_hdr.data.len());
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }

@@ -418,7 +418,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
         SMB1_COMMAND_WRITE_ANDX |
         SMB1_COMMAND_WRITE |
         SMB1_COMMAND_WRITE_AND_CLOSE => {
-            smb1_write_request_record(state, r, *andx_offset, command);
+            smb1_write_request_record(state, r, *andx_offset, command, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_TRANS => {
@@ -618,7 +618,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
 
     let have_tx = match command {
         SMB1_COMMAND_READ_ANDX => {
-            smb1_read_response_record(state, r, *andx_offset);
+            smb1_read_response_record(state, r, *andx_offset, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -933,7 +933,7 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
-pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize, command: u8)
+pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize, command: u8, nbss_remaining: usize)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -958,6 +958,15 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 None => b"<unknown>".to_vec(),
             };
             let mut set_event_fileoverlap = false;
+            let max_rd_len = if rd.len as usize > rd.data.len() + nbss_remaining {
+                // Write record claims more bytes than can be contained in NBSS record...
+                // The server MUST fail the request with STATUS_INVALID_PARAMETER.
+                // We use the data available...
+                state.set_event(SMBEvent::WriteRequestTooLarge);
+                (rd.data.len() + nbss_remaining) as u32
+            } else {
+                rd.len
+            };
             let found = match state.get_file_tx_by_fuid_with_open_file(&file_fid, Direction::ToServer) {
                 Some(tx) => {
                     let file_id : u32 = tx.id as u32;
@@ -968,7 +977,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
-                                rd.len, false, &file_id);
+                                max_rd_len, false, &file_id);
                         SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
                     }
                     true
@@ -996,7 +1005,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
-                                rd.len, false, &file_id);
+                                max_rd_len, false, &file_id);
                         tdf.share_name = share_name;
                         SCLogDebug!("files {:?}", files);
                         SCLogDebug!("tdf {:?}", tdf);
@@ -1009,7 +1018,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 state.set_event(SMBEvent::FileOverlap);
             }
 
-            state.set_file_left(Direction::ToServer, rd.len, rd.data.len() as u32, file_fid.to_vec());
+            state.set_file_left(Direction::ToServer, max_rd_len, rd.data.len() as u32, file_fid.to_vec());
 
             if command == SMB1_COMMAND_WRITE_AND_CLOSE {
                 SCLogDebug!("closing FID {:?}", file_fid);
@@ -1023,7 +1032,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
     smb1_request_record_generic(state, r, events);
 }
 
-pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize)
+pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize, nbss_remaining: usize)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1032,13 +1041,22 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
             Ok((_, rd)) => {
                 SCLogDebug!("SMBv1: read response => {:?}", rd);
 
+                let max_rd_len = if rd.len as usize > nbss_remaining + rd.data.len() {
+                    // Write record claims more bytes than can be contained in NBSS record...
+                    // The server MUST fail the request with STATUS_INVALID_PARAMETER.
+                    // We use the data available...
+                    state.set_event(SMBEvent::ReadResponseTooLarge);
+                    (rd.data.len() + nbss_remaining) as u32
+                } else {
+                    rd.len
+                };
                 let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
                 let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
                     Some(o) => (o.offset, o.guid),
                     None => {
                         SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
-                                rd.len - rd.data.len() as u32, rd);
-                        state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                                max_rd_len - rd.data.len() as u32, rd);
+                        state.set_skip(Direction::ToClient, max_rd_len, rd.data.len() as u32);
                         return;
                     },
                 };
@@ -1066,7 +1084,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                                 let (files, flags) = tdf.files.get(Direction::ToClient);
                                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                         &file_name, rd.data, offset,
-                                        rd.len, false, &file_id);
+                                        max_rd_len, false, &file_id);
                             }
                             true
                         },
@@ -1083,7 +1101,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                             let (files, flags) = tdf.files.get(Direction::ToClient);
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, rd.data, offset,
-                                    rd.len, false, &file_id);
+                                    max_rd_len, false, &file_id);
                             tdf.share_name = share_name;
                         }
                         tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
@@ -1102,7 +1120,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     smb_read_dcerpc_record(state, vercmd, hdr, pure_fid, rd.data);
                 }
 
-                state.set_file_left(Direction::ToClient, rd.len, rd.data.len() as u32, file_fid.to_vec());
+                state.set_file_left(Direction::ToClient, max_rd_len, rd.data.len() as u32, file_fid.to_vec());
             }
             _ => {
                 events.push(SMBEvent::MalformedData);
