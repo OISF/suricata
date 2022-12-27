@@ -113,7 +113,7 @@ fn smb2_read_response_record_generic(state: &mut SMBState, r: &Smb2Record)
     }
 }
 
-pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_READ_QUEUE_CNT };
@@ -122,6 +122,13 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record)
 
     match parse_smb2_response_read(r.data) {
         Ok((_, rd)) => {
+            if rd.len - rd.data.len() as u32 > nbss_remaining {
+                // Record claims more bytes than are in NBSS record...
+                state.set_event(SMBEvent::ReadResponseTooLarge);
+                // Skip the remaining bytes of the record.
+                state.set_skip(Direction::ToClient, nbss_remaining, 0);
+                return;
+            }
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
                 SCLogDebug!("SMBv2/READ: incomplete record, expecting a follow up");
                 // fall through
@@ -264,7 +271,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record)
     }
 }
 
-pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
@@ -277,6 +284,13 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record)
     }
     match parse_smb2_request_write(r.data) {
         Ok((_, wr)) => {
+            if wr.wr_len - wr.data.len() as u32 > nbss_remaining {
+                // Record claims more bytes than are in NBSS record...
+                state.set_event(SMBEvent::WriteRequestTooLarge);
+                // Skip the remaining bytes of the record.
+                state.set_skip(Direction::ToServer, nbss_remaining, 0);
+                return;
+            }
             if (state.max_write_size != 0 && wr.wr_len > state.max_write_size) ||
                (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < wr.wr_len }) {
                 state.set_event(SMBEvent::WriteRequestTooLarge);
@@ -580,7 +594,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, r);
+            smb2_write_request_record(state, r, 0);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
@@ -684,7 +698,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
         SMB2_COMMAND_READ => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS ||
                r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                smb2_read_response_record(state, r);
+                smb2_read_response_record(state, r, 0);
                 false
 
             } else if r.nt_status == SMB_NTSTATUS_END_OF_FILE {

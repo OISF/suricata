@@ -26,9 +26,9 @@ alert smb any any -> any any (msg:"SURICATA SMB max response READ size exceeded"
 # checks negotiated max-write-size and 'app-layer.protocols.smb.max-write-size`
 alert smb any any -> any any (msg:"SURICATA SMB max WRITE size exceeded"; flow:to_server; app-layer-event:smb.write_request_too_large; classtype:protocol-command-decode; sid:2225011; rev:1;)
 
-# checks 'app-layer.protocols.smb.max-read-size` against NEGOTIATE PROTOCOL response
+# checks 'app-layer.protocols.smb.max-read-size`, NEGOTIATE PROTOCOL response, and NBSS record length against SMB read data length
 alert smb any any -> any any (msg:"SURICATA SMB supported READ size exceeded"; flow:to_client; app-layer-event:smb.negotiate_max_read_size_too_large; classtype:protocol-command-decode; sid:2225012; rev:1;)
-# checks 'app-layer.protocols.smb.max-write-size` against NEGOTIATE PROTOCOL response
+# checks 'app-layer.protocols.smb.max-write-size`, NEGOTIATE PROTOCOL response, NBSS record length against SMB write data length
 alert smb any any -> any any (msg:"SURICATA SMB supported WRITE size exceeded"; flow:to_server; app-layer-event:smb.negotiate_max_write_size_too_large; classtype:protocol-command-decode; sid:2225013; rev:1;)
 
 # checks 'app-layer.protocols.smb.max-write-queue-size` against out of order chunks
