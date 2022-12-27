@@ -417,7 +417,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
         SMB1_COMMAND_WRITE_ANDX |
         SMB1_COMMAND_WRITE |
         SMB1_COMMAND_WRITE_AND_CLOSE => {
-            smb1_write_request_record(state, r, *andx_offset, command);
+            smb1_write_request_record(state, r, *andx_offset, command, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_TRANS => {
@@ -617,7 +617,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
 
     let have_tx = match command {
         SMB1_COMMAND_READ_ANDX => {
-            smb1_read_response_record(state, r, *andx_offset);
+            smb1_read_response_record(state, r, *andx_offset, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -932,7 +932,7 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
-pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, command: u8)
+pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, command: u8, nbss_remaining: u32)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -946,7 +946,13 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
     match result {
         Ok((_, rd)) => {
             SCLogDebug!("SMBv1: write andx => {:?}", rd);
-
+            if rd.len > rd.data.len() as u32 + nbss_remaining {
+                // Record claims more bytes than are in NBSS record...
+                state.set_event(SMBEvent::WriteRequestTooLarge);
+                // Skip the remaining bytes of the record.
+                state.set_skip(Direction::ToServer, nbss_remaining, 0);
+                return;
+            }
             let mut file_fid = rd.fid.to_vec();
             file_fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
             SCLogDebug!("SMBv1 WRITE: FID {:?} offset {}",
@@ -1019,7 +1025,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
     smb1_request_record_generic(state, r, events);
 }
 
-pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize)
+pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, nbss_remaining: u32)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1027,7 +1033,13 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
         match parse_smb_read_andx_response_record(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
             Ok((_, rd)) => {
                 SCLogDebug!("SMBv1: read response => {:?}", rd);
-
+                if rd.len > nbss_remaining + rd.data.len() as u32 {
+                    // Record claims more bytes than are in NBSS record...
+                    state.set_event(SMBEvent::ReadResponseTooLarge);
+                    // Skip the remaining bytes of the record.
+                    state.set_skip(Direction::ToClient, nbss_remaining, 0);
+                    return;
+                }
                 let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
                 let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
                     Some(o) => (o.offset, o.guid),
