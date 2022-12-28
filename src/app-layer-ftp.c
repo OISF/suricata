@@ -645,6 +645,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                             FTPFree(state->port_line, state->port_line_size);
                             state->port_line = NULL;
                             state->port_line_size = 0;
+                            state->port_line_len = 0;
                         }
                         SCReturnStruct(APP_LAYER_OK);
                     }
