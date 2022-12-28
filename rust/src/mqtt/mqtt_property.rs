@@ -24,7 +24,7 @@ use nom7::IResult;
 
 // TODO: It might be useful to also add detection on property presence and
 // content, e.g. mqtt.property: AUTHENTICATION_METHOD.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 #[allow(non_camel_case_types)]
 pub enum MQTTProperty {
     UNKNOWN,
