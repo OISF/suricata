@@ -2640,6 +2640,11 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     MacSetRegisterFlowStorage();
 
+    LiveDeviceFinalize(); // must be after EBPF extension registration
+
+    RunModeEngineIsIPS(
+            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
@@ -2744,11 +2749,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     CoredumpLoadConfig();
 
     DecodeGlobalConfig();
-
-    LiveDeviceFinalize();
-
-    RunModeEngineIsIPS(
-            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
