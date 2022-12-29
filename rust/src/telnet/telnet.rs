@@ -16,14 +16,13 @@
  */
 
 use std;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;
 use super::parser;
 
-static mut ALPROTO_TELNET: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent)]
 enum TelnetEvent {}
@@ -399,10 +398,10 @@ pub unsafe extern "C" fn rs_telnet_probing_parser(
         let slice = build_slice!(input, input_len as usize);
         if probe(slice).is_ok() {
             SCLogDebug!("telnet detected");
-            return ALPROTO_TELNET;
+            return AppProto::ALPROTO_TELNET;
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -561,7 +560,6 @@ pub unsafe extern "C" fn rs_telnet_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_TELNET = alproto;
         if AppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
             parser.name,

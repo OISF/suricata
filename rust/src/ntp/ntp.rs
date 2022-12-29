@@ -20,7 +20,7 @@
 extern crate ntp_parser;
 use self::ntp_parser::*;
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
+use crate::core::{AppProto,Flow};
 use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
@@ -237,7 +237,6 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
     1
 }
 
-static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
 pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
@@ -246,17 +245,17 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
         _rdir: *mut u8) -> AppProto
 {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, input_len as usize) };
-    let alproto = unsafe{ ALPROTO_NTP };
+    let alproto = AppProto::ALPROTO_NTP;
     match parse_ntp(slice) {
         Ok((_, _)) => {
             // parse_ntp already checks for supported version (3 or 4)
             return alproto;
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            return AppProto::ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return AppProto::ALPROTO_FAILED;
         },
     }
 }
@@ -306,7 +305,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
-        ALPROTO_NTP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

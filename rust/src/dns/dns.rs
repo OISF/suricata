@@ -113,7 +113,6 @@ pub const DNS_RCODE_BADALG:   u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
 
-static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
 pub enum DnsFrameType {
@@ -885,7 +884,7 @@ pub unsafe extern "C" fn rs_dns_probe(
     rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
-        return core::ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     let (is_dns, is_request, _) = probe(slice, slice.len());
@@ -896,9 +895,9 @@ pub unsafe extern "C" fn rs_dns_probe(
             Direction::ToClient
         };
         *rdir = dir as u8;
-        return ALPROTO_DNS;
+        return AppProto::ALPROTO_DNS;
     }
-    return 0;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -910,7 +909,7 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
     rdir: *mut u8
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
-        return core::ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
@@ -924,9 +923,9 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
         if (direction & DIR_BOTH) != dir.into() {
             *rdir = dir as u8;
         }
-        return ALPROTO_DNS;
+        return AppProto::ALPROTO_DNS;
     }
-    return 0;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -985,7 +984,6 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_DNS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
@@ -1031,7 +1029,6 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
     let ip_proto_str = CString::new("tcp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_DNS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

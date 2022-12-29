@@ -19,13 +19,12 @@
 
 use std;
 use std::ffi::CString;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
 use nom7::Err;
 use super::parser;
 
-static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
 pub struct RFBTransaction {
     tx_id: u64,
@@ -620,7 +619,6 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_RFB = alproto;
         if AppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
             parser.name,

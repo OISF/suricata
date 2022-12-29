@@ -19,13 +19,12 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, IPPROTO_UDP};
 use std::ffi::CString;
 use std::os::raw::c_char;
 
 const BITTORRENT_DHT_PAYLOAD_PREFIX: &[u8] = b"d1:ad2:id20:\0";
 
-static mut ALPROTO_BITTORRENT_DHT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent, Debug, PartialEq, Eq)]
 pub enum BitTorrentDHTEvent {
@@ -267,14 +266,13 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_BITTORRENT_DHT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
 
         if AppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP,
-            ALPROTO_BITTORRENT_DHT,
+            AppProto::ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
             BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,
             0,
@@ -285,7 +283,7 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         };
         if AppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP,
-            ALPROTO_BITTORRENT_DHT,
+            AppProto::ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
             BITTORRENT_DHT_PAYLOAD_PREFIX.len() as u16 - 1,
             0,

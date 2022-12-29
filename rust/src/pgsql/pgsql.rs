@@ -22,7 +22,7 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, IPPROTO_TCP};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
@@ -30,7 +30,6 @@ use std::ffi::CString;
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
-static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
 
@@ -560,10 +559,10 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
 
         let slice: &[u8] = build_slice!(input, input_len as usize);
         if probe_ts(slice) {
-            return ALPROTO_PGSQL;
+            return AppProto::ALPROTO_PGSQL;
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 /// C entry point for a probing parser.
@@ -576,22 +575,22 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
-            return ALPROTO_PGSQL;
+            return AppProto::ALPROTO_PGSQL;
         }
 
         match parser::pgsql_parse_response(slice) {
             Ok((_, _response)) => {
-                return ALPROTO_PGSQL;
+                return AppProto::ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
-                return ALPROTO_UNKNOWN;
+                return AppProto::ALPROTO_UNKNOWN;
             }
             Err(_e) => {
-                return ALPROTO_FAILED;
+                return AppProto::ALPROTO_FAILED;
             }
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -749,7 +748,6 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_PGSQL = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
@@ -764,7 +762,7 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
                     SCLogError!("Invalid depth value");
                 }
             }
-            AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
+            AppLayerParserSetStreamDepth(IPPROTO_TCP, AppProto::ALPROTO_PGSQL, stream_depth)
         }
         if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
             if let Ok(v) = val.parse::<usize>() {

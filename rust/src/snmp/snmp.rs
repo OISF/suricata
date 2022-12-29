@@ -322,7 +322,6 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
     1
 }
 
-static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
 fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
@@ -358,12 +357,11 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = ALPROTO_SNMP;
-    if slice.len() < 4 { return ALPROTO_FAILED; }
+    if slice.len() < 4 { return AppProto::ALPROTO_FAILED; }
     match parse_pdu_enveloppe_version(slice) {
-        Ok((_,_))               => alproto,
-        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        _                       => ALPROTO_FAILED,
+        Ok((_,_))               => AppProto::ALPROTO_SNMP,
+        Err(Err::Incomplete(_)) => AppProto::ALPROTO_UNKNOWN,
+        _                       => AppProto::ALPROTO_FAILED,
     }
 }
 
@@ -412,7 +410,6 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         // port 161
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
-        ALPROTO_SNMP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

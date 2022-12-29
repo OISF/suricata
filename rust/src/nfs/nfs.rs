@@ -47,7 +47,6 @@ static mut NFS_MAX_TX: usize = 1024;
 pub const RPC_TCP_PRE_CREDS: usize = 28;
 pub const RPC_UDP_PRE_CREDS: usize = 24;
 
-static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
 /*
  * Record parsing.
  *
@@ -1877,17 +1876,17 @@ pub unsafe extern "C" fn rs_nfs_probe_ms(
                     if (direction & DIR_BOTH) != adirection {
                         *rdir = adirection;
                     }
-                    ALPROTO_NFS
+                    AppProto::ALPROTO_NFS
                 },
-                0 => { ALPROTO_UNKNOWN },
-                _ => { ALPROTO_FAILED },
+                0 => { AppProto::ALPROTO_UNKNOWN },
+                _ => { AppProto::ALPROTO_FAILED },
             }
         },
         0 => {
-            ALPROTO_UNKNOWN
+            AppProto::ALPROTO_UNKNOWN
         },
         _ => {
-            ALPROTO_FAILED
+            AppProto::ALPROTO_FAILED
         }
     }
 }
@@ -1903,9 +1902,9 @@ pub unsafe extern "C" fn rs_nfs_probe(_f: *const Flow,
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe: running probe");
     match nfs_probe(slice, direction.into()) {
-        1 => { ALPROTO_NFS },
-        -1 => { ALPROTO_FAILED },
-        _ => { ALPROTO_UNKNOWN },
+        1 => { AppProto::ALPROTO_NFS },
+        -1 => { AppProto::ALPROTO_FAILED },
+        _ => { AppProto::ALPROTO_UNKNOWN },
     }
 }
 
@@ -1920,9 +1919,9 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_ts(_f: *const Flow,
 {
     let slice: &[u8] = build_slice!(input, len as usize);
     match nfs_probe_udp(slice, Direction::ToServer) {
-        1 => { ALPROTO_NFS },
-        -1 => { ALPROTO_FAILED },
-        _ => { ALPROTO_UNKNOWN },
+        1 => { AppProto::ALPROTO_NFS },
+        -1 => { AppProto::ALPROTO_FAILED },
+        _ => { AppProto::ALPROTO_UNKNOWN },
     }
 }
 
@@ -1937,9 +1936,9 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
 {
     let slice: &[u8] = build_slice!(input, len as usize);
     match nfs_probe_udp(slice, Direction::ToClient) {
-        1 => { ALPROTO_NFS },
-        -1 => { ALPROTO_FAILED },
-        _ => { ALPROTO_UNKNOWN },
+        1 => { AppProto::ALPROTO_NFS },
+        -1 => { AppProto::ALPROTO_FAILED },
+        _ => { AppProto::ALPROTO_UNKNOWN },
     }
 }
 
@@ -1990,25 +1989,24 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
         if midstream {
             if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP,
-                    parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
+                    parser.name, AppProto::ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
                 SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP
                             detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                    default_port.as_ptr(), ALPROTO_NFS, 0,
+                    default_port.as_ptr(), AppProto::ALPROTO_NFS, 0,
                     NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                     rs_nfs_probe_ms, rs_nfs_probe_ms);
             }
         } else {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                default_port.as_ptr(), ALPROTO_NFS, 0,
+                default_port.as_ptr(), AppProto::ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe, rs_nfs_probe);
         }
@@ -2069,16 +2067,15 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_NFS = alproto;
 
         if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP,
-                parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
+                parser.name, AppProto::ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
             SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP
                         detection UDP detection on port {:?}.",
                         default_port);
             AppLayerProtoDetectPPRegister(IPPROTO_UDP,
-                default_port.as_ptr(), ALPROTO_NFS, 0,
+                default_port.as_ptr(), AppProto::ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc);
         }

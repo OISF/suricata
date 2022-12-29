@@ -17,14 +17,13 @@
 
 use super::parser;
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, IPPROTO_TCP};
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
-static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent)]
 enum TemplateEvent {}
@@ -244,10 +243,10 @@ unsafe extern "C" fn rs_template_probing_parser(
     if input_len > 1 && !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice).is_ok() {
-            return ALPROTO_TEMPLATE;
+            return AppProto::ALPROTO_TEMPLATE;
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 extern "C" fn rs_template_state_new(
@@ -425,7 +424,6 @@ pub unsafe extern "C" fn rs_template_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_TEMPLATE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

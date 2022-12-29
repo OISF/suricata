@@ -279,16 +279,16 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
 ) -> AppProto {
     if input_len < 28 {
         // at least the ISAKMP_HEADER must be there, not ALPROTO_UNKNOWN because over UDP
-        return ALPROTO_FAILED;
+        return AppProto::ALPROTO_FAILED;
     }
 
     if !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice, direction.into(), rdir) {
-            return ALPROTO_IKE;
+            return AppProto::ALPROTO_IKE;
         }
     }
-    return ALPROTO_FAILED;
+    return AppProto::ALPROTO_FAILED;
 }
 
 #[no_mangle]
@@ -380,8 +380,6 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
     tx.logged.set(logged);
 }
 
-static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
-
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"ike\0";
 const PARSER_ALIAS: &[u8] = b"ikev2\0";
@@ -429,7 +427,6 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_IKE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

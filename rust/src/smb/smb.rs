@@ -80,7 +80,6 @@ pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
 
-static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
@@ -2062,14 +2061,14 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
 fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppProto
 {
     if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM && smb_probe_tcp_midstream(flags.into(), slice, rdir, begins) == 1 {
-        unsafe { return ALPROTO_SMB; }
+        return AppProto::ALPROTO_SMB;
     }
     if let Ok((_, ref hdr)) = parse_nbss_record_partial(slice) {
         if hdr.is_smb() {
             SCLogDebug!("smb found");
-            unsafe { return ALPROTO_SMB; }
+            return AppProto::ALPROTO_SMB;
         } else if hdr.needs_more(){
-            return 0;
+            return AppProto::ALPROTO_UNKNOWN;
         } else if hdr.is_valid() &&
             hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
                 //we accept a first small netbios message before real SMB
@@ -2079,18 +2078,18 @@ fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppPro
                     if let Ok((_, ref hdr2)) = parse_nbss_record_partial(&hdr.data[hl..]) {
                         if hdr2.is_smb() {
                             SCLogDebug!("smb found");
-                            unsafe { return ALPROTO_SMB; }
+                            return AppProto::ALPROTO_SMB;
                         }
                     }
                 } else if hdr.length < 256 {
                     // we want more data, 256 is some random value
-                    return 0;
+                    return AppProto::ALPROTO_UNKNOWN;
                 }
                 // default is failure
             }
     }
     SCLogDebug!("no smb");
-    unsafe { return ALPROTO_FAILED; }
+    return AppProto::ALPROTO_FAILED;
 }
 
 // probing confirmation parser
@@ -2101,7 +2100,7 @@ pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
     -> AppProto
 {
     if len < MIN_REC_SIZE as u32 {
-        return ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
     return smb_probe_tcp(flags, slice, rdir, true);
@@ -2115,7 +2114,7 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
     -> AppProto
 {
     if len < MIN_REC_SIZE as u32 {
-        return ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
     return smb_probe_tcp(flags, slice, rdir, false);
@@ -2221,10 +2220,10 @@ pub unsafe extern "C" fn rs_smb_state_get_event_info(
     SMBEvent::get_event_info(event_name, event_id, event_type)
 }
 
-pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
+pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> AppProto {
     let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
     let f = cast_pointer!(f, Flow);
-    if retval != ALPROTO_SMB {
+    if retval != AppProto::ALPROTO_SMB {
         return retval;
     }
     let (sp, dp) = f.get_ports();
@@ -2241,31 +2240,31 @@ pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u
             }
         }
     }
-    return ALPROTO_SMB;
+    return AppProto::ALPROTO_SMB;
 }
 
 fn register_pattern_probe() -> i8 {
     let mut r = 0;
     unsafe {
         // SMB1
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB2/3
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB3 encrypted records
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToServer as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
                                                      Direction::ToClient as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
     }
@@ -2325,17 +2324,16 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_SMB = alproto;
         if register_pattern_probe() < 0 {
             return;
         }
 
         let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
-                    IPPROTO_TCP, parser.name, ALPROTO_SMB, 0,
+                    IPPROTO_TCP, parser.name, AppProto::ALPROTO_SMB, 0,
                     MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
 
         if have_cfg == 0 {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), AppProto::ALPROTO_SMB,
                                           0, MIN_REC_SIZE, Direction::ToServer as u8, rs_smb_probe_tcp, rs_smb_probe_tcp);
         }
 
@@ -2354,7 +2352,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 Err(_) => { SCLogError!("Invalid depth value"); }
             }
         }
-        AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
+        AppLayerParserSetStreamDepth(IPPROTO_TCP, AppProto::ALPROTO_SMB, stream_depth);
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {

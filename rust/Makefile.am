@@ -2,6 +2,7 @@ EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
+		dist/rust-app-layer-protos.h \
 		vendor
 
 if !DEBUG
@@ -51,6 +52,7 @@ endif
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	$(MAKE) gen/rust-app-layer-protos.h
 
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -83,8 +85,12 @@ if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
 	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
+gen/rust-app-layer-protos.h: $(RUST_SURICATA_LIB)
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen_protos.toml \
+		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-app-layer-protos.h $(abs_top_builddir)/rust/src/app_layer_protos.rs || true
 else
 gen/rust-bindings.h:
+gen/rust-app-layer-protos.h:
 endif
 
 doc:
@@ -94,6 +100,10 @@ if HAVE_CBINDGEN
 dist/rust-bindings.h:
 	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
+dist/rust-app-layer-protos.h:
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen_protos.toml \
+		--quiet --output $(abs_top_builddir)/rust/dist/rust-app-layer-protos.h $(abs_top_builddir)/rust/src/app_layer_protos.rs
 else
 dist/rust-bindings.h:
+dist/rust-app-layer-protos.h:
 endif

@@ -16,10 +16,10 @@
  */
 
 use crate::applayer::{self, *};
-use crate::core::{self, Direction, DIR_BOTH};
+use crate::core::{self, Direction, DIR_BOTH, AppProto};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
-    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
+    rs_dcerpc_get_alstate_progress, PARSER_NAME,
 };
 use nom7::Err;
 use std;
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
     if len == 0 {
-        return core::ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
@@ -312,14 +312,14 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
         } else if dir != Direction::ToClient {
             *rdir = Direction::ToClient.into();
         };
-        return ALPROTO_DCERPC;
+        return AppProto::ALPROTO_DCERPC;
     }
-    return core::ALPROTO_FAILED;
+    return AppProto::ALPROTO_FAILED;
 }
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, AppProto::ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
                                                      Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
@@ -369,7 +369,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_DCERPC = alproto;
         if register_pattern_probe() < 0 {
             return;
         }

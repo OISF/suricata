@@ -86,10 +86,7 @@ impl From<Direction> for u8 {
 }
 
 // Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = u16;
-
-pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
+pub type AppProto = crate::app_layer_protos::AppProto;
 
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
@@ -228,7 +225,6 @@ pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
-        ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
 }
 

@@ -20,7 +20,7 @@
 use crate::frames::*;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN};
+use crate::core::{AppProto, Flow};
 use crate::sip::parser::*;
 use nom7::Err;
 use std;
@@ -281,7 +281,6 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
     1
 }
 
-static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_probing_parser_ts(
@@ -293,9 +292,9 @@ pub unsafe extern "C" fn rs_sip_probing_parser_ts(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_request(buf).is_ok() {
-        return ALPROTO_SIP;
+        return AppProto::ALPROTO_SIP;
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -308,9 +307,9 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_response(buf).is_ok() {
-        return ALPROTO_SIP;
+        return AppProto::ALPROTO_SIP;
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
@@ -381,7 +380,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_SIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

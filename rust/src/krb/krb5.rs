@@ -27,7 +27,7 @@ use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction};
+use crate::core::{AppProto,Flow,Direction};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -323,8 +323,6 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
     1
 }
 
-static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
         _direction: u8,
@@ -332,16 +330,16 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = ALPROTO_KRB5;
-    if slice.len() <= 10 { return ALPROTO_FAILED; }
+    let alproto = AppProto::ALPROTO_KRB5;
+    if slice.len() <= 10 { return AppProto::ALPROTO_FAILED; }
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != BerClass::Application { return ALPROTO_FAILED; }
+            if hdr.class != BerClass::Application { return AppProto::ALPROTO_FAILED; }
             // Tag number should be <= 30
-            if hdr.tag.0 > 30 { return ALPROTO_FAILED; }
+            if hdr.tag.0 > 30 { return AppProto::ALPROTO_FAILED; }
             // Kerberos messages contain sequences
-            if rem.is_empty() || rem[0] != 0x30 { return ALPROTO_FAILED; }
+            if rem.is_empty() || rem[0] != 0x30 { return AppProto::ALPROTO_FAILED; }
             // Check kerberos version
             if let Ok((rem,_hdr)) = der_read_element_header(rem) {
                 if rem.len() > 5 {
@@ -353,13 +351,13 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
                     }
                 }
             }
-            return ALPROTO_FAILED;
+            return AppProto::ALPROTO_FAILED;
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            return AppProto::ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return ALPROTO_FAILED;
+            return AppProto::ALPROTO_FAILED;
         },
     }
 }
@@ -371,19 +369,19 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
         rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    if slice.len() <= 14 { return ALPROTO_FAILED; }
+    if slice.len() <= 14 { return AppProto::ALPROTO_FAILED; }
     match be_u32(slice) as IResult<&[u8],u32> {
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
-            if record_mark > 16384 { return ALPROTO_FAILED; }
+            if record_mark > 16384 { return AppProto::ALPROTO_FAILED; }
             return rs_krb5_probing_parser(_flow, direction,
                     rem.as_ptr(), rem.len() as u32, rdir);
         },
         Err(Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
+            return AppProto::ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return ALPROTO_FAILED;
+            return AppProto::ALPROTO_FAILED;
         },
     }
 }
@@ -579,7 +577,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
-        ALPROTO_KRB5 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
@@ -596,7 +593,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
-        ALPROTO_KRB5 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

@@ -22,12 +22,10 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, IPPROTO_UDP};
 use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
-
-static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 const DEFAULT_DCID_LEN: usize = 16;
 const PKT_NUM_BUF_MAX_LEN: usize = 4;
@@ -354,9 +352,9 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
     let slice = build_slice!(input, input_len as usize);
 
     if QuicHeader::from_bytes(slice, DEFAULT_DCID_LEN).is_ok() {
-        return ALPROTO_QUIC;
+        return AppProto::ALPROTO_QUIC;
     } else {
-        return ALPROTO_FAILED;
+        return AppProto::ALPROTO_FAILED;
     }
 }
 
@@ -489,7 +487,6 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_QUIC = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

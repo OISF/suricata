@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 use crate::applayer::{self, *};
-use crate::core::{self, AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{self, AppProto, IPPROTO_TCP};
 
 use std::ffi::CString;
 
@@ -27,8 +27,6 @@ use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
 
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
 pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus { probe_strict: true };
-
-static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent)]
 enum ModbusEvent {
@@ -276,9 +274,9 @@ pub extern "C" fn rs_modbus_probe(
 ) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     match MODBUS_PARSER.probe(slice, Direction::Unknown) {
-        Status::Recognized => unsafe { ALPROTO_MODBUS },
-        Status::Incomplete => ALPROTO_UNKNOWN,
-        Status::Unrecognized => unsafe { ALPROTO_FAILED },
+        Status::Recognized => AppProto::ALPROTO_MODBUS,
+        Status::Incomplete => AppProto::ALPROTO_UNKNOWN,
+        Status::Unrecognized => AppProto::ALPROTO_FAILED,
     }
 }
 
@@ -412,7 +410,6 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
     let ip_proto_str = CString::new("tcp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabledDefault(ip_proto_str.as_ptr(), parser.name, false) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_MODBUS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

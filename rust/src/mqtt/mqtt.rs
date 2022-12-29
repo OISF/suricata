@@ -39,7 +39,6 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut MQTT_MAX_TX: usize = 1024;
 
-static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum MQTTEvent {
@@ -602,16 +601,16 @@ pub unsafe extern "C" fn rs_mqtt_probing_parser(
         Ok((_, hdr)) => {
             // reject unassigned message type
             if hdr.message_type == MQTTTypeCode::UNASSIGNED {
-                return ALPROTO_FAILED;
+                return AppProto::ALPROTO_FAILED;
             }
             // with 2 being the highest valid QoS level
             if hdr.qos_level > 2 {
-                return ALPROTO_FAILED;
+                return AppProto::ALPROTO_FAILED;
             }
-            return ALPROTO_MQTT;
+            return AppProto::ALPROTO_MQTT;
         }
-        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        Err(_) => ALPROTO_FAILED,
+        Err(Err::Incomplete(_)) => AppProto::ALPROTO_UNKNOWN,
+        Err(_) => AppProto::ALPROTO_FAILED,
     }
 }
 
@@ -769,7 +768,6 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_MQTT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

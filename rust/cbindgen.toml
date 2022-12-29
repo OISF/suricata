@@ -88,6 +88,7 @@ include = [
 exclude = [
     "AppLayerDecoderEvents",
     "AppLayerParserState",
+    "AppProto",
     "CLuaState",
     "DetectEngineState",
     "Flow",

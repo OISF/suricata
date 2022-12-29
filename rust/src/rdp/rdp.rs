@@ -20,14 +20,13 @@
 //! RDP application layer
 
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, IPPROTO_TCP};
 use crate::rdp::parser::*;
 use nom7::Err;
 use std;
 use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
-static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 
 //
 // transactions
@@ -414,10 +413,10 @@ pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
         // https://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=view&target=rdp-ssl.pcap.gz
         // but this callback will not be exercised, so `probe_tls_handshake` not needed here.
         if probe_rdp(slice) {
-            return ALPROTO_RDP;
+            return AppProto::ALPROTO_RDP;
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 /// probe for TLS
@@ -502,7 +501,6 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_RDP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

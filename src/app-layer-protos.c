@@ -30,9 +30,8 @@
 const char *AppProtoToString(AppProto alproto)
 {
     const char *proto_name = NULL;
-    enum AppProtoEnum proto = alproto;
 
-    switch (proto) {
+    switch (alproto) {
         case ALPROTO_HTTP1:
             proto_name = "http";
             break;

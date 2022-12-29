@@ -110,7 +110,6 @@ pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
 
-pub static mut ALPROTO_DCERPC: AppProto = ALPROTO_UNKNOWN;
 
 pub fn dcerpc_type_string(t: u8) -> String {
     match t {
@@ -1300,7 +1299,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u
 {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 {
-        return core::ALPROTO_UNKNOWN;
+        return AppProto::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
@@ -1314,20 +1313,20 @@ pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u
         if (direction & DIR_BOTH) != dir as u8 {
             *rdir = dir as u8;
         }
-        return ALPROTO_DCERPC;
+        return AppProto::ALPROTO_DCERPC;
     }
-    return core::ALPROTO_FAILED;
+    return AppProto::ALPROTO_FAILED;
 }
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
                                                      Direction::ToServer.into(), rs_dcerpc_probe_tcp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, AppProto::ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
                                                      Direction::ToClient.into(), rs_dcerpc_probe_tcp, 0, 0) < 0 {
             SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
@@ -1386,7 +1385,6 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
     ) != 0
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_DCERPC = alproto;
         if register_pattern_probe() < 0 {
             return;
         }

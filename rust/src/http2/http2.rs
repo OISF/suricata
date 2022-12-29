@@ -32,8 +32,6 @@ use std::ffi::CString;
 use std::fmt;
 use std::io;
 
-static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
-
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
 const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
@@ -1097,19 +1095,19 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                     || header.flags & 0xFE != 0
                     || header.ftype != parser::HTTP2FrameType::Settings as u8
                 {
-                    return ALPROTO_FAILED;
+                    return AppProto::ALPROTO_FAILED;
                 }
-                return ALPROTO_HTTP2;
+                return AppProto::ALPROTO_HTTP2;
             }
             Err(Err::Incomplete(_)) => {
-                return ALPROTO_UNKNOWN;
+                return AppProto::ALPROTO_UNKNOWN;
             }
             Err(_) => {
-                return ALPROTO_FAILED;
+                return AppProto::ALPROTO_FAILED;
             }
         }
     }
-    return ALPROTO_UNKNOWN;
+    return AppProto::ALPROTO_UNKNOWN;
 }
 
 // Extern functions operating on HTTP2.
@@ -1261,7 +1259,6 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_HTTP2 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

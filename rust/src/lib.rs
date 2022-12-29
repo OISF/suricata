@@ -56,6 +56,7 @@ extern crate suricata_derive;
 #[macro_use]
 pub mod log;
 
+pub mod app_layer_protos;
 #[macro_use]
 pub mod core;
 

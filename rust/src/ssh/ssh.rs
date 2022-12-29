@@ -22,7 +22,6 @@ use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn hassh_is_enabled() -> bool {
@@ -477,7 +476,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_SSH = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
