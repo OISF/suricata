@@ -117,7 +117,7 @@ def patch_rust_applayer_mod_rs(protoname):
     rustfmt(filename)
 
 def patch_app_layer_protos_h(protoname):
-    filename = "src/app-layer-protos.h"
+    filename = "rust/src/app_layer_protos.rs"
     print("Patching %s." % (filename))
     output = io.StringIO()
     with open(filename) as infile:
@@ -355,7 +355,7 @@ def detect_patch_detect_engine_register_h(protoname, buffername):
 
 def proto_exists(proto):
     upper = proto.upper()
-    for line in open("src/app-layer-protos.h"):
+    for line in open("rust/src/app_layer_protos.rs"):
         if line.find("ALPROTO_%s," % (upper)) > -1:
             return True
     return False
