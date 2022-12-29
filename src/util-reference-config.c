@@ -320,7 +320,6 @@ static int SCRConfIsLineBlankOrComment(char *line)
 static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
-    uint8_t i = 1;
 
     int runmode = RunmodeGetCurrent();
     bool is_conf_test_mode = runmode == RUNMODE_CONF_TEST;
@@ -333,7 +332,6 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
                 return false;
             }
         }
-        i++;
     }
 
 #ifdef UNITTESTS

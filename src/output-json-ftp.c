@@ -74,7 +74,6 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
     bool reply_truncated = false;
 
     if (!TAILQ_EMPTY(&tx->response_list)) {
-        int resp_code_cnt = 0;
         int resp_cnt = 0;
         FTPString *response;
         bool is_cc_array_open = false;
@@ -102,7 +101,6 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
                             is_cc_array_open = true;
                         }
                         jb_append_string_from_bytes(jb, (const uint8_t *)where, 3);
-                        resp_code_cnt++;
                         offset = 4;
                     }
                 }
