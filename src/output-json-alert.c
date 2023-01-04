@@ -101,6 +101,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_ACTION            BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -109,6 +110,8 @@
 #define JSON_BODY_LOGGING  (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
+
+bool g_logalert_action = true;
 
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
@@ -362,6 +365,16 @@ static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
     }
 }
 
+void DropAlertJsonHeader(
+        const Packet *p, const PacketAlert *pa, JsonBuilder *js, JsonAddrInfo *addr)
+{
+    uint16_t action_flag = 0;
+    if (g_oja_log_json_action) {
+        action_flag = LOG_JSON_ACTION;
+    }
+    AlertJsonHeader(NULL, p, pa, js, action_flag, addr, NULL);
+}
+
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer)
 {
@@ -388,7 +401,10 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 
     jb_open_object(js, "alert");
 
-    jb_set_string(js, "action", action);
+    if (flags & LOG_JSON_ACTION) {
+        jb_set_string(js, "action", action);
+    }
+
     jb_set_uint(js, "gid", pa->s->gid);
     jb_set_uint(js, "signature_id", pa->s->id);
     jb_set_uint(js, "rev", pa->s->rev);
@@ -1059,6 +1075,16 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         }
 
         json_output_ctx->payload_buffer_size = payload_buffer_size;
+    }
+
+    /* action is enabled by default */
+    flags |= LOG_JSON_ACTION;
+    const char *action = ConfNodeLookupChildValue(conf, "action");
+    if (action != NULL) {
+        if (ConfValIsFalse(action)) {
+            SetFlag(conf, "action", LOG_JSON_ACTION, &flags);
+            g_oja_log_json_action = false;
+        }
     }
 
     if (flags & LOG_JSON_RULE_METADATA) {
