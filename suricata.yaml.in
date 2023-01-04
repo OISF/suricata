@@ -168,6 +168,9 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
+            # Enable logging of the alert's action. Possible values are
+            # "allowed" or "blocked" (for 'drop' or 'reject' rules). Default: yes
+            # action: no
         # app layer frames
         - frame:
             # disabled by default as this is very verbose.

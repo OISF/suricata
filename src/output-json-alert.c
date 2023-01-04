@@ -101,6 +101,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_ACTION            BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -362,6 +363,13 @@ static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
     }
 }
 
+void DropAlertJsonHeader(
+        const Packet *p, const PacketAlert *pa, JsonBuilder *js, JsonAddrInfo *addr)
+{
+    /* always log alert action, in drop events */
+    AlertJsonHeader(NULL, p, pa, js, LOG_JSON_ACTION, addr, NULL);
+}
+
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer)
 {
@@ -388,7 +396,10 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 
     jb_open_object(js, "alert");
 
-    jb_set_string(js, "action", action);
+    if (flags & LOG_JSON_ACTION) {
+        jb_set_string(js, "action", action);
+    }
+
     jb_set_uint(js, "gid", pa->s->gid);
     jb_set_uint(js, "signature_id", pa->s->id);
     jb_set_uint(js, "rev", pa->s->rev);
@@ -994,6 +1005,8 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
     static bool warn_no_meta = false;
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
     uint16_t flags = METADATA_DEFAULTS;
+    /* action is enabled by default */
+    flags |= LOG_JSON_ACTION;
 
     if (conf != NULL) {
         /* Check for metadata to enable/disable. */
@@ -1061,6 +1074,9 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         }
 
         json_output_ctx->payload_buffer_size = payload_buffer_size;
+
+        /* check for action field */
+        SetFlag(conf, "action", LOG_JSON_ACTION, &flags);
     }
 
     if (flags & LOG_JSON_RULE_METADATA) {
