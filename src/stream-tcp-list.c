@@ -376,9 +376,9 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
 
         const uint8_t *list_data;
         StreamingBufferSegmentGetData(&stream->sb, &list->sbseg, &list_data, &list_len);
-        if (list_data == NULL || list_len == 0)
+        DEBUG_VALIDATE_BUG_ON(list_len > USHRT_MAX);
+        if (list_data == NULL || list_len == 0 || list_len > USHRT_MAX)
             return 0;
-        BUG_ON(list_len > USHRT_MAX);
 
         /* if list seg is partially before base_seq, list_len (from stream) and
          * TCP_SEG_LEN(list) will not be the same */
