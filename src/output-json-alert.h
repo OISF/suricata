@@ -28,6 +28,8 @@
 #define __OUTPUT_JSON_ALERT_H__
 
 void JsonAlertLogRegister(void);
+void DropAlertJsonHeader(
+        const Packet *p, const PacketAlert *pa, JsonBuilder *js, JsonAddrInfo *addr);
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer);
 
