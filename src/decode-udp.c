@@ -60,12 +60,16 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
         // packet can still be valid, keeping for consistency with decoder.udp.hlen_invalid event
         ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_INVALID);
     }
+    if (unlikely(UDP_GET_LEN(p) < UDP_HEADER_LEN)) {
+        ENGINE_SET_INVALID_EVENT(p, UDP_LEN_INVALID);
+        return -1;
+    }
 
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
     p->payload = (uint8_t *)pkt + UDP_HEADER_LEN;
-    p->payload_len = len - UDP_HEADER_LEN;
+    p->payload_len = UDP_GET_LEN(p) - UDP_HEADER_LEN;
 
     p->proto = IPPROTO_UDP;
 
