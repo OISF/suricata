@@ -1,0 +1,34 @@
+name: New Author Check
+
+on:
+  - pull_request
+
+jobs:
+  check-id:
+    name: New Author Check
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt -y install git
+      - uses: actions/checkout@v3.2.0
+        with:
+          fetch-depth: 0
+      - name: Export all previous authors
+        run: git log --format="%an <%ae>" origin/master | sort | uniq > authors.txt
+      - run: cat authors.txt
+      - name: Get authors of new commits
+        run: git log --format="%an <%ae>" origin/${GITHUB_BASE_REF}... | sort | uniq > commit-authors.txt
+      - run: cat commit-authors.txt
+      - name: Check new authors
+        run: |
+          touch new-authors.txt
+          while read -r author; do
+             echo "Checking author: ${author}"
+             if ! grep -q "^${author}\$" authors.txt; then
+                 echo "ERROR: ${author} NOT FOUND"
+                 echo "::error ::New author found: ${author}"
+                 echo "${author}" >> new-authors.txt
+                 echo has_new_authors="yes" >> $GITHUB_ENV
+             fi
+          done < commit-authors.txt
+      - if: ${{ env.has_new_authors == 'yes' }}
+        run: exit 1
