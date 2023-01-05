@@ -82,7 +82,7 @@ static int g_droplog_flows_start = 1;
  * \param tv    Pointer the current thread variables
  * \param p     Pointer the packet which is being logged
  *
- * \return return TM_EODE_OK on success
+ * \return return TM_ECODE_OK on success
  */
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
@@ -309,7 +309,7 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
  * \param data  Pointer to the droplog struct
  * \param p     Pointer the packet which is being logged
  *
- * \retval 0 on succes
+ * \retval 0 on success
  */
 static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
