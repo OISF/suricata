@@ -362,7 +362,7 @@ static inline void ConsolidateBackward(StreamingBuffer *sb,
 static int Insert(StreamingBuffer *sb, struct SBB *tree,
         uint32_t rel_offset, uint32_t len)
 {
-    SCLogDebug("* inserting: %u/%u\n", rel_offset, len);
+    SCLogDebug("* inserting: %u/%u", rel_offset, len);
 
     StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
     if (sbb == NULL)
