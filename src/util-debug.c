@@ -1085,13 +1085,13 @@ static inline const char *SCLogGetDefaultLogFormat(const SCLogLevel lvl)
     const char *prog_ver = GetProgramVersion();
     if (strstr(prog_ver, "RELEASE") != NULL) {
         if (lvl <= SC_LOG_NOTICE)
-            return SC_LOG_DEF_LOG_FORMAT_REL;
+            return SC_LOG_DEF_LOG_FORMAT_REL_NOTICE;
         else if (lvl <= SC_LOG_INFO)
-            return SC_LOG_DEF_LOG_FORMAT_RELV;
-        else if (lvl <= SC_LOG_PERF)
-            return SC_LOG_DEF_LOG_FORMAT_RELVV;
+            return SC_LOG_DEF_LOG_FORMAT_REL_INFO;
+        else if (lvl <= SC_LOG_CONFIG)
+            return SC_LOG_DEF_LOG_FORMAT_REL_CONFIG;
     }
-    return SC_LOG_DEF_LOG_FORMAT_DEV;
+    return SC_LOG_DEF_LOG_FORMAT_DEBUG;
 }
 
 /**
