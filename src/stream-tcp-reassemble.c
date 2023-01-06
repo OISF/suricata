@@ -911,20 +911,24 @@ uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
         // raw is dead
         use_raw = 0;
     }
-
-    const uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
-    SCLogDebug("%s: app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
-            dirstr,
-            STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
-            STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no",
-            right_edge);
     if (use_raw) {
+        const uint64_t right_edge =
+                STREAM_BASE_OFFSET(stream) + stream->segs_right_edge - stream->base_seq;
+        SCLogDebug("%s: app %" PRIu64 " (use: %s), raw %" PRIu64
+                   " (use: %s). Stream right edge: %" PRIu64,
+                dirstr, STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
+                STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no", right_edge);
         if (right_edge > STREAM_RAW_PROGRESS(stream)) {
             SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
             return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
     }
     if (use_app) {
+        const uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
+        SCLogDebug("%s: app %" PRIu64 " (use: %s), raw %" PRIu64
+                   " (use: %s). Stream right edge: %" PRIu64,
+                dirstr, STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
+                STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no", right_edge);
         if (right_edge > STREAM_APP_PROGRESS(stream)) {
             SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
             return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
