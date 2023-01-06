@@ -1667,6 +1667,12 @@ static void DetectFlow(ThreadVars *tv,
 {
     Flow *const f = p->flow;
 
+    /* if flow is set to drop, we enforce that here */
+    if (f->flags & FLOW_ACTION_DROP) {
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
+        SCReturn;
+    }
+
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
@@ -1682,12 +1688,6 @@ static void DetectFlow(ThreadVars *tv,
         SCLogDebug("p->pcap %"PRIu64": no detection on packet, "
                 "PKT_NOPACKET_INSPECTION is set", p->pcap_cnt);
         return;
-    }
-
-    /* if flow is set to drop, we enforce that here */
-    if (f->flags & FLOW_ACTION_DROP) {
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
-        SCReturn;
     }
 
     /* see if the packet matches one or more of the sigs */
