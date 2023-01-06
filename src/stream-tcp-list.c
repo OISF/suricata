@@ -703,6 +703,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             }
 #endif
         }
+    } else {
+        // EINVAL
+        StreamTcpSegmentReturntoPool(seg);
     }
 
     SCReturnInt(0);
