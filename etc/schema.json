@@ -5297,6 +5297,9 @@
                 "tc_gap": {
                     "type": "boolean"
                 },
+                "tc_max_regions": {
+                    "type": "integer"
+                },
                 "tcp_flags": {
                     "type": "string"
                 },
@@ -5308,6 +5311,9 @@
                 },
                 "ts_gap": {
                     "type": "boolean"
+                },
+                "ts_max_regions": {
+                    "type": "integer"
                 },
                 "urg": {
                     "type": "boolean"
