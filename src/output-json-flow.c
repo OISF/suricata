@@ -313,6 +313,9 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
             if (FlowHasGaps(f, STREAM_TOSERVER)) {
                 JB_SET_TRUE(jb, "ts_gap");
             }
+
+            jb_set_uint(jb, "ts_max_regions", ssn->client.sb.max_regions);
+            jb_set_uint(jb, "tc_max_regions", ssn->server.sb.max_regions);
         }
 
         /* Close tcp. */
