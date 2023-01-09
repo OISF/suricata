@@ -2206,6 +2206,63 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen));    \
     FAIL_IF(!(VALIDATE(stream, (uint8_t *)(buf), (buflen))));
 
+#define MISSED_ADD_PAYLOAD(seq, seg, seglen)                                                       \
+    StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen));
+
+int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
+
+int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len)
+{
+    int cnt = 0;
+    uint64_t last_re = 0;
+    StreamingBufferBlock *sbb = NULL;
+    RB_FOREACH(sbb, SBB, &stream->sb.sbb_tree)
+    {
+        if (sbb->offset != last_re) {
+            // gap before us
+            if (cnt == pos && last_re == offset && len == sbb->offset - last_re) {
+                return 1;
+            }
+            cnt++;
+        }
+        last_re = sbb->offset + sbb->len;
+        cnt++;
+    }
+    return 0;
+}
+
+int UTHCheckDataAtPostion(
+        TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len);
+
+int UTHCheckDataAtPostion(
+        TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len)
+{
+    int cnt = 0;
+    uint64_t last_re = 0;
+    StreamingBufferBlock *sbb = NULL;
+    RB_FOREACH(sbb, SBB, &stream->sb.sbb_tree)
+    {
+        if (sbb->offset != last_re) {
+            // gap before us
+            cnt++;
+        }
+
+        if (cnt == pos && sbb->offset == offset) {
+            const uint8_t *buf = NULL;
+            uint32_t buf_len = 0;
+            StreamingBufferSBBGetData(&stream->sb, sbb, &buf, &buf_len);
+
+            if (len == buf_len) {
+                return (memcmp(data, buf, len) == 0);
+            }
+        }
+
+        last_re = sbb->offset + sbb->len;
+        cnt++;
+    }
+    return 0;
+}
+
 /**
  *  \test   Test the handling of packets missed by both IDS and the end host.
  *          The packet is missed in the starting of the stream.
@@ -2216,10 +2273,15 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 static int StreamTcpReassembleTest25 (void)
 {
     MISSED_START(6);
-    MISSED_STEP(10, "BB", 2, "\0\0\0BB", 5);
-    MISSED_STEP(12, "CC", 2, "\0\0\0BBCC", 7);
+    MISSED_ADD_PAYLOAD(10, "BB", 2);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "BB", 2) == 1);
+    MISSED_ADD_PAYLOAD(12, "CC", 2);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "BBCC", 4) == 1);
     MISSED_STEP(7, "AAA", 3, "AAABBCC", 7);
     MISSED_END;
+    PASS;
 }
 
 /**
@@ -2233,7 +2295,10 @@ static int StreamTcpReassembleTest26 (void)
 {
     MISSED_START(9);
     MISSED_STEP(10, "AAA", 3, "AAA", 3);
-    MISSED_STEP(15, "CC", 2, "AAA\0\0CC", 7);
+    MISSED_ADD_PAYLOAD(15, "CC", 2);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "AAA", 3) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 3, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 5, "CC", 2) == 1);
     MISSED_STEP(13, "BB", 2, "AAABBCC", 7);
     MISSED_END;
 }
@@ -2265,10 +2330,16 @@ static int StreamTcpReassembleTest27 (void)
 static int StreamTcpReassembleTest28 (void)
 {
     MISSED_START(6);
-    MISSED_STEP(10, "AAA", 3, "\0\0\0AAA", 6);
-    MISSED_STEP(13, "BB", 2, "\0\0\0AAABB", 8);
+    MISSED_ADD_PAYLOAD(10, "AAA", 3);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAA", 3) == 1);
+    MISSED_ADD_PAYLOAD(13, "BB", 2);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAABB", 5) == 1);
     ssn.state = TCP_TIME_WAIT;
-    MISSED_STEP(15, "CC", 2, "\0\0\0AAABBCC", 10);
+    MISSED_ADD_PAYLOAD(15, "CC", 2);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAABBCC", 7) == 1);
     MISSED_END;
 }
 
@@ -2285,7 +2356,10 @@ static int StreamTcpReassembleTest29 (void)
     MISSED_START(9);
     MISSED_STEP(10, "AAA", 3, "AAA", 3);
     ssn.state = TCP_TIME_WAIT;
-    MISSED_STEP(15, "CC", 2, "AAA\0\0CC", 7);
+    MISSED_ADD_PAYLOAD(15, "CC", 2);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "AAA", 3) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 3, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 5, "CC", 2) == 1);
     MISSED_END;
 }
 
