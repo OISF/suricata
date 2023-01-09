@@ -64,6 +64,7 @@
 typedef struct StreamingBufferConfig_ {
     uint32_t buf_slide;
     uint32_t buf_size;
+    uint16_t max_regions; /**< max concurrent memory regions. 0 means no limit. */
     void *(*Calloc)(size_t n, size_t size);
     void *(*Realloc)(void *ptr, size_t orig_size, size_t size);
     void (*Free)(void *ptr, size_t size);
@@ -71,7 +72,7 @@ typedef struct StreamingBufferConfig_ {
 
 #define STREAMING_BUFFER_CONFIG_INITIALIZER                                                        \
     {                                                                                              \
-        0, 0, NULL, NULL, NULL,                                                                    \
+        0, 0, 0, NULL, NULL, NULL,                                                                 \
     }
 
 #define STREAMING_BUFFER_REGION_INIT                                                               \
