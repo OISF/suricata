@@ -23,7 +23,6 @@
 #include "util-debug.h"
 
 static void ListRegions(StreamingBuffer *sb);
-#define REGION_MAX_GAP 250000
 
 #define DUMP_REGIONS 0 // set to 1 to dump a visual representation of the regions list and sbb tree.
 
@@ -1071,8 +1070,8 @@ static inline bool RegionsIntersect(const StreamingBuffer *sb, const StreamingBu
 
     /* create the data range for the region, adding the max gap */
     const uint64_t reg_o =
-            r->stream_offset > REGION_MAX_GAP ? (r->stream_offset - REGION_MAX_GAP) : 0;
-    const uint64_t reg_re = r->stream_offset + r->buf_size + REGION_MAX_GAP;
+            r->stream_offset > sb->cfg->region_gap ? (r->stream_offset - sb->cfg->region_gap) : 0;
+    const uint64_t reg_re = r->stream_offset + r->buf_size + sb->cfg->region_gap;
     SCLogDebug("r %p: %" PRIu64 "/%" PRIu64 " - adjusted %" PRIu64 "/%" PRIu64, r, r->stream_offset,
             r->stream_offset + r->buf_size, reg_o, reg_re);
     /* check if data range intersects with region range */
@@ -1707,7 +1706,7 @@ static void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
 
 static int StreamingBufferTest02(void)
 {
-    StreamingBufferConfig cfg = { 8, 24, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1763,7 +1762,7 @@ static int StreamingBufferTest02(void)
 
 static int StreamingBufferTest03(void)
 {
-    StreamingBufferConfig cfg = { 8, 24, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1818,7 +1817,7 @@ static int StreamingBufferTest03(void)
 
 static int StreamingBufferTest04(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1909,7 +1908,7 @@ static int StreamingBufferTest04(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest06(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1967,7 +1966,7 @@ static int StreamingBufferTest06(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest07(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2025,7 +2024,7 @@ static int StreamingBufferTest07(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest08(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2083,7 +2082,7 @@ static int StreamingBufferTest08(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest09(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2141,7 +2140,7 @@ static int StreamingBufferTest09(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest10(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 

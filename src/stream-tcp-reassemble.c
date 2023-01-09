@@ -500,6 +500,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.prealloc_segments = segment_prealloc;
     stream_config.sbcnf.buf_size = 2048;
     stream_config.sbcnf.max_regions = max_regions;
+    stream_config.sbcnf.region_gap = STREAMING_BUFFER_REGION_GAP_DEFAULT;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
