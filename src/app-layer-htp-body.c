@@ -33,7 +33,8 @@
 #include "util-streaming-buffer.h"
 #include "util-print.h"
 
-static StreamingBufferConfig default_cfg = { 0, 3072, 1, HTPCalloc, HTPRealloc, HTPFree };
+static StreamingBufferConfig default_cfg = { 0, 3072, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT,
+    HTPCalloc, HTPRealloc, HTPFree };
 
 /**
  * \brief Append a chunk of body to the HtpBody struct
