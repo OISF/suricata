@@ -484,7 +484,22 @@ static int StreamTcpReassemblyConfig(bool quiet)
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
 
+    uint16_t max_regions = 8;
+    ConfNode *mr = ConfGetNode("stream.reassembly.max-regions");
+    if (mr) {
+        uint16_t max_r = 0;
+        if (StringParseUint16(&max_r, 10, (uint16_t)strlen(mr->val), mr->val) < 0) {
+            SCLogError("max-regions %s is invalid", mr->val);
+            return -1;
+        }
+        max_regions = max_r;
+    }
+    if (!quiet)
+        SCLogConfig("stream.reassembly \"max-regions\": %u", max_regions);
+
+    stream_config.prealloc_segments = segment_prealloc;
     stream_config.sbcnf.buf_size = 2048;
+    stream_config.sbcnf.max_regions = max_regions;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
