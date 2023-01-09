@@ -103,6 +103,12 @@ StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlo
 
 static inline StreamingBufferRegion *InitBufferRegion(StreamingBuffer *sb, const uint32_t min_size)
 {
+    if (sb->regions == USHRT_MAX ||
+            (sb->cfg->max_regions != 0 && sb->regions >= sb->cfg->max_regions)) {
+        SCLogDebug("max regions reached");
+        return NULL;
+    }
+
     StreamingBufferRegion *aux_r = CALLOC(sb->cfg, 1, sizeof(*aux_r));
     if (aux_r == NULL)
         return NULL;
@@ -115,8 +121,6 @@ static inline StreamingBufferRegion *InitBufferRegion(StreamingBuffer *sb, const
     aux_r->buf_size = MAX(sb->cfg->buf_size, min_size);
     sb->regions++;
     sb->max_regions = MAX(sb->regions, sb->max_regions);
-
-    BUG_ON(sb->regions > 100);
     return aux_r;
 }
 
@@ -1703,7 +1707,7 @@ static void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
 
 static int StreamingBufferTest02(void)
 {
-    StreamingBufferConfig cfg = { 8, 24, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1759,7 +1763,7 @@ static int StreamingBufferTest02(void)
 
 static int StreamingBufferTest03(void)
 {
-    StreamingBufferConfig cfg = { 8, 24, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 24, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1814,7 +1818,7 @@ static int StreamingBufferTest03(void)
 
 static int StreamingBufferTest04(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1905,7 +1909,7 @@ static int StreamingBufferTest04(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest06(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -1963,7 +1967,7 @@ static int StreamingBufferTest06(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest07(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2021,7 +2025,7 @@ static int StreamingBufferTest07(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest08(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2079,7 +2083,7 @@ static int StreamingBufferTest08(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest09(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
@@ -2137,7 +2141,7 @@ static int StreamingBufferTest09(void)
 /** \test lots of gaps in block list */
 static int StreamingBufferTest10(void)
 {
-    StreamingBufferConfig cfg = { 8, 16, NULL, NULL, NULL };
+    StreamingBufferConfig cfg = { 8, 16, 1, NULL, NULL, NULL };
     StreamingBuffer *sb = StreamingBufferInit(&cfg);
     FAIL_IF(sb == NULL);
 
