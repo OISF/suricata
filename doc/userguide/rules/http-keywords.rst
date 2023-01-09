@@ -317,14 +317,10 @@ Example of the purpose of ``http.header``:
 http.cookie
 -----------
 
-With the ``http.cookie`` content modifier, it is possible to match
-specifically and only on the cookie buffer. The keyword can be used in
-combination with all previously mentioned content modifiers like
-``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
+With the ``http.cookie`` sticky buffer it is possible to match
+specifically on the HTTP cookie contents. Keywords like ``depth``, ``distance``, ``offset``, ``nocase`` and ``within`` can be used with ``http.cookie``.
 
-Note that cookies are passed in HTTP headers, but are extracted to a
-dedicated buffer and matched using their own specific content
-modifier.
+Note that cookies are passed in HTTP headers but Suricata extracts the Cookie data to ``http.cookie`` and will not match Cookie content put in the ``http.header`` sticky buffer.
 
 Example of a cookie in a HTTP request:
 
