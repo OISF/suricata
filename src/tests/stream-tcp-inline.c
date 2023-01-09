@@ -59,15 +59,23 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     StreamTcpUTDeinit(ra_ctx);                  \
     PASS
 
-#define INLINE_STEP(rseq, seg, seglen, buf, buflen, packet, packetlen) \
-    p = UTHBuildPacketReal((uint8_t *)(seg), (seglen), IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);    \
-    FAIL_IF(p == NULL); \
-    p->tcph->th_seq = htonl(stream->isn + (rseq)); \
-    p->tcph->th_ack = htonl(31);  \
-    FAIL_IF (StreamTcpReassembleHandleSegmentHandleData(&tv, ra_ctx, &ssn, stream, p) < 0);   \
-    FAIL_IF (memcmp(p->payload, packet, MIN((packetlen),p->payload_len)) != 0); \
-    UTHFreePacket(p);   \
+#define INLINE_ADD_PAYLOAD(rseq, seg, seglen, packet, packetlen)                                   \
+    p = UTHBuildPacketReal(                                                                        \
+            (uint8_t *)(seg), (seglen), IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);              \
+    FAIL_IF(p == NULL);                                                                            \
+    p->tcph->th_seq = htonl(stream->isn + (rseq));                                                 \
+    p->tcph->th_ack = htonl(31);                                                                   \
+    FAIL_IF(StreamTcpReassembleHandleSegmentHandleData(&tv, ra_ctx, &ssn, stream, p) < 0);         \
+    FAIL_IF(memcmp(p->payload, packet, MIN((packetlen), p->payload_len)) != 0);                    \
+    UTHFreePacket(p);
+
+#define INLINE_STEP(rseq, seg, seglen, buf, buflen, packet, packetlen)                             \
+    INLINE_ADD_PAYLOAD((rseq), (seg), (seglen), (packet), (packetlen));                            \
     FAIL_IF(!(VALIDATE(stream, (uint8_t *)(buf), (buflen))));
+
+int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
+int UTHCheckDataAtPostion(
+        TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len);
 
 /** \test full overlap */
 static int StreamTcpInlineTest01(void)
@@ -100,7 +108,9 @@ static int StreamTcpInlineTest03(void)
 static int StreamTcpInlineTest04(void)
 {
     INLINE_START(0);
-    INLINE_STEP(3, "ABCDE", 5, "\0\0ABCDE", 7, "ABCDE", 5);
+    INLINE_ADD_PAYLOAD(3, "ABCDE", 5, "ABCDE", 5);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 2, "ABCDE", 5) == 1);
     INLINE_STEP(1, "xxxxx", 5, "xxABCDE", 7, "xxABC", 5);
     INLINE_END;
 }
@@ -109,8 +119,13 @@ static int StreamTcpInlineTest04(void)
 static int StreamTcpInlineTest05(void)
 {
     INLINE_START(0);
-    INLINE_STEP(8, "ABCDE", 5, "\0\0\0\0\0\0\0ABCDE", 12, "ABCDE", 5);
-    INLINE_STEP(1, "xxxxx", 5, "xxxxx\0\0ABCDE", 12, "xxxxx", 5);
+    INLINE_ADD_PAYLOAD(8, "ABCDE", 5, "ABCDE", 5);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 7) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 7, "ABCDE", 5) == 1);
+    INLINE_ADD_PAYLOAD(1, "xxxxx", 5, "xxxxx", 5);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "xxxxx", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 5, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 7, "ABCDE", 5) == 1);
     INLINE_END;
 }
 
@@ -118,10 +133,30 @@ static int StreamTcpInlineTest05(void)
 static int StreamTcpInlineTest06(void)
 {
     INLINE_START(0);
-    INLINE_STEP(2, "A", 1, "\0A", 2, "A", 1);
-    INLINE_STEP(4, "A", 1, "\0A\0A", 4, "A", 1);
-    INLINE_STEP(6, "A", 1, "\0A\0A\0A", 6, "A", 1);
-    INLINE_STEP(8, "A", 1, "\0A\0A\0A\0A", 8, "A", 1);
+    INLINE_ADD_PAYLOAD(2, "A", 1, "A", 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
+    INLINE_ADD_PAYLOAD(4, "A", 1, "A", 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
+    INLINE_ADD_PAYLOAD(6, "A", 1, "A", 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 4, 4, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 5, 5, "A", 1) == 1);
+    INLINE_ADD_PAYLOAD(8, "A", 1, "A", 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 4, 4, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 5, 5, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 6, 6, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 7, 7, "A", 1) == 1);
     INLINE_STEP(1, "xxxxxxxxx", 9, "xAxAxAxAx", 9, "xAxAxAxAx", 9);
     INLINE_END;
 }
@@ -130,7 +165,9 @@ static int StreamTcpInlineTest06(void)
 static int StreamTcpInlineTest07(void)
 {
     INLINE_START(0);
-    INLINE_STEP(3, "ABCDE", 5, "\0\0ABCDE", 7, "ABCDE", 5);
+    INLINE_ADD_PAYLOAD(3, "ABCDE", 5, "ABCDE", 5);
+    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 2, "ABCDE", 5) == 1);
     INLINE_STEP(1, "XXABC", 5, "XXABCDE", 7, "XXABC", 5);
     INLINE_END;
 }
