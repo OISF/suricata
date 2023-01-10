@@ -25,6 +25,7 @@ use std;
 use std::cmp;
 use std::ffi::CString;
 use std::collections::VecDeque;
+use crate::conf::conf_get;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -109,6 +110,8 @@ pub const DCERPC_TYPE_CO_CANCEL: u8 = 18;
 pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
+
+static mut DCERPC_MAX_TX: usize = 1024;
 
 pub static mut ALPROTO_DCERPC: AppProto = ALPROTO_UNKNOWN;
 
@@ -305,6 +308,7 @@ pub struct DCERPCState {
     pub bind: Option<DCERPCBind>,
     pub bindack: Option<DCERPCBindAck>,
     pub transactions: VecDeque<DCERPCTransaction>,
+    tx_index_completed: usize,
     pub buffer_ts: Vec<u8>,
     pub buffer_tc: Vec<u8>,
     pub pad: u8,
@@ -352,6 +356,18 @@ impl DCERPCState {
         self.tx_id += 1;
         tx.req_done = self.ts_ssn_trunc;
         tx.resp_done = self.tc_ssn_trunc;
+        if self.transactions.len() > unsafe { DCERPC_MAX_TX } {
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
+                index += 1;
+                if !tx_old.req_done || !tx_old.resp_done {
+                    tx_old.req_done = true;
+                    tx_old.resp_done = true;
+                    break;
+                }
+            }
+            self.tx_index_completed = index;
+        }
         tx
     }
 
@@ -372,6 +388,7 @@ impl DCERPCState {
         if found {
             SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
                             tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -1396,6 +1413,13 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         ) != 0
         {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.dcerpc.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                DCERPC_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for smb.max-tx");
+            }
         }
         SCLogDebug!("Rust DCERPC parser registered.");
     } else {
