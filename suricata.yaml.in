@@ -900,6 +900,8 @@ app-layer:
       # max-tx: 1024
     dcerpc:
       enabled: yes
+      # Maximum number of live DCERPC transactions per flow
+      # max-tx: 1024
     ftp:
       enabled: yes
       # memcap: 64mb
