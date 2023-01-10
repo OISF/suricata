@@ -1849,7 +1849,7 @@ will be displayed. This option is the so called format string::
 
   default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
-The % followed by a character, has a special meaning. There are eight
+The % followed by a character has a special meaning. There are thirteen
 specified signs:
 
 ::
@@ -1860,11 +1860,16 @@ specified signs:
   i:      Thread ID. ID of individual threads.
   m:      Thread module name. (Outputs, Detect etc.)
   d:      Log-level of specific log-event. (Error, info, debug etc.)
+  D:      Compact log format (E for Error, i for info etc.)
+  S:      Subsystem name.
+  T:      Thread name.
+  M:      Log message body.
   f:      Filename. Name of C-file (source code) where log-event is generated.
   l:      Line-number within the filename, where the log-event is generated in the source-code.
   n:      Function-name in the C-code (source code).
 
-The last three, f, l and n are mainly convenient for developers.
+
+The last three options, f, l and n, are mainly convenient for developers.
 
 The log-format can be overridden in the command line by the
 environment variable: SC_LOG_FORMAT
