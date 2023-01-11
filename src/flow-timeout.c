@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -362,7 +362,7 @@ void FlowForceReassemblyForFlow(Flow *f)
  * done are:
  * - code consistency
  * - silence complaining profilers
- * - allow us to aggressively check using debug valdation assertions
+ * - allow us to aggressively check using debug validation assertions
  * - be robust in case of future changes
  * - locking overhead if neglectable when no other thread fights us
  *

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -534,7 +534,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
-     * a new flow if nescesary. If we get NULL, we're out of flow memory.
+     * a new flow if necessary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
     Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow);
     if (f == NULL)
