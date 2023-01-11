@@ -1521,8 +1521,8 @@ the app-layer event ``http.compression_bomb`` is set
 (this event can also set from other conditions).
 This can happen on slow configurations (hardware, ASAN, etc...)
 
-HTTP2
------
+Configure HTTP2
+~~~~~~~~~~~~~~~
 
 HTTP keywords can be enabled to match on HTTP1 traffic.
 To do so, you should set ``app-layer.protocols.http2.http1-rules``.
