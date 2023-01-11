@@ -120,6 +120,9 @@ impl FileTransferTracker {
         files.file_close(&self.track_id, myflags);
         SCLogDebug!("truncated file");
         self.file_is_truncated = true;
+        self.chunks.clear();
+        self.in_flight = 0;
+        self.cur_ooo = 0;
     }
 
     pub fn create(&mut self, _name: &[u8], _file_size: u64) {
@@ -157,6 +160,9 @@ impl FileTransferTracker {
         self.fill_bytes = fill_bytes;
         self.chunk_is_last = is_last;
 
+        if self.file_is_truncated {
+            return 0;
+        }
         if self.file_open == false {
             SCLogDebug!("NEW CHUNK: FILE OPEN");
             self.track_id = *xid;
@@ -176,6 +182,11 @@ impl FileTransferTracker {
     /// If gap_size > 0 'data' should not be used.
     /// return how much we consumed of data
     pub fn update(&mut self, files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32) -> u32 {
+        if self.file_is_truncated {
+            let consumed = std::cmp::min(data.len() as u32, self.chunk_left);
+            self.chunk_left = self.chunk_left.saturating_sub(data.len() as u32);
+            return consumed;
+        }
         let mut consumed = 0 as usize;
         let is_gap = gap_size > 0;
         if is_gap || gap_size > 0 {
