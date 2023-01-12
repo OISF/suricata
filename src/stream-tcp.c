@@ -6073,8 +6073,10 @@ void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
 {
     if (direction) {
         ssn->server.app_progress_rel += progress;
+        SCLogDebug("progress now %" PRIu64, STREAM_APP_PROGRESS(&ssn->server));
     } else {
         ssn->client.app_progress_rel += progress;
+        SCLogDebug("progress now %" PRIu64, STREAM_APP_PROGRESS(&ssn->client));
     }
 }
 
