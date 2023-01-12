@@ -206,11 +206,13 @@ void DetectHttp2Register(void)
                                          "HTTP2 header name");
     g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
 
-    sigmatch_table[DETECT_HTTP2_HEADER].name = "http2.header";
-    sigmatch_table[DETECT_HTTP2_HEADER].desc = "sticky buffer to match on one HTTP2 header name and value";
-    sigmatch_table[DETECT_HTTP2_HEADER].url = "/rules/http2-keywords.html#header";
-    sigmatch_table[DETECT_HTTP2_HEADER].Setup = DetectHTTP2headerSetup;
-    sigmatch_table[DETECT_HTTP2_HEADER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP2_SINGLE_HEADER].name = "http2.single_header";
+    sigmatch_table[DETECT_HTTP2_SINGLE_HEADER].desc =
+            "sticky buffer to match on only one HTTP2 header name and value";
+    sigmatch_table[DETECT_HTTP2_SINGLE_HEADER].url = "/rules/http2-keywords.html#single_header";
+    sigmatch_table[DETECT_HTTP2_SINGLE_HEADER].Setup = DetectHTTP2headerSetup;
+    sigmatch_table[DETECT_HTTP2_SINGLE_HEADER].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOCLIENT, 2,
                                PrefilterMpmHttp2HeaderRegister, NULL,

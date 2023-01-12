@@ -110,8 +110,8 @@ Examples::
 ``http2.header_name`` can be used as ``fast_pattern``.
 
 
-http2.header
------------------
+http2.single_header
+-------------------
 
 Match on the name and value of a HTTP2 header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
 Name and value get concatenated by ": ", colon and space.
@@ -119,13 +119,29 @@ Each colon in the name or the value should be escaped as a double colon "::" for
 
 Examples::
 
-  http2.header; content:"agent: nghttp2";
-  http2.header; content:"custom-header: I love::colons";
+  http2.single_header; content:"agent: nghttp2";
+  http2.single_header; content:"custom-header: I love::colons";
+
+``http2.single_header`` is a 'sticky buffer'.
+
+``http2.single_header`` can be used as ``fast_pattern``.
+
+
+http2.header
+------------
+
+Match on the names and values of all HTTP2 headers from a request or response.
+This is just an alias to http.header keyword, only applied for HTTP2.
+Name and value get concatenated by ": ", colon and space.
+Each colon in the name or the value should be escaped as a double colon "::" for detection
+
+Examples::
+
+  http2.header; content:"agent: nghttp2"; content:"custom-header: I love::colons";
 
 ``http2.header`` is a 'sticky buffer'.
 
 ``http2.header`` can be used as ``fast_pattern``.
-
 
 Additional information
 ----------------------

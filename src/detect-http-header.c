@@ -411,6 +411,17 @@ static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
     return 0;
 }
 
+static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(s, g_http_header_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    return 0;
+}
+
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -465,6 +476,14 @@ void DetectHttpHeaderRegister(void)
 
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+
+    // same as http.header but only ALPROTO_HTTP2
+    sigmatch_table[DETECT_HTTP2_HEADER].name = "http2.header";
+    sigmatch_table[DETECT_HTTP2_HEADER].desc =
+            "sticky buffer to match on HTTP2 headers like http.header";
+    sigmatch_table[DETECT_HTTP2_HEADER].url = "/rules/http2-keywords.html#header";
+    sigmatch_table[DETECT_HTTP2_HEADER].Setup = DetectHTTP2headerSetup;
+    sigmatch_table[DETECT_HTTP2_HEADER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 }
 
 /************************************Unittests*********************************/
