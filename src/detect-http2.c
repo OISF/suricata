@@ -93,14 +93,16 @@ static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
-static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
+static int DetectHTTP2RequestHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
+static int DetectHTTP2ResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
 static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
                                                SigGroupHead *sgh, MpmCtx *mpm_ctx,
                                                const DetectBufferMpmRegistery *mpm_reg, int list_id);
 static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttp2RequestHeaderValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttp2ResponseHeaderValidateCallback(const Signature *s, const char **sigerror);
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -108,8 +110,8 @@ void DetectHTTP2RegisterTests (void);
 
 static int g_http2_match_buffer_id = 0;
 static int g_http2_header_name_buffer_id = 0;
-static int g_http2_header_buffer_id = 0;
-
+static int g_http2_request_header_buffer_id = 0;
+static int g_http2_response_header_buffer_id = 0;
 
 /**
  * \brief Registration function for HTTP2 keywords
@@ -206,29 +208,39 @@ void DetectHttp2Register(void)
                                          "HTTP2 header name");
     g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
 
-    sigmatch_table[DETECT_HTTP2_HEADER].name = "http2.header";
-    sigmatch_table[DETECT_HTTP2_HEADER].desc = "sticky buffer to match on one HTTP2 header name and value";
-    sigmatch_table[DETECT_HTTP2_HEADER].url = "/rules/http2-keywords.html#header";
-    sigmatch_table[DETECT_HTTP2_HEADER].Setup = DetectHTTP2headerSetup;
-    sigmatch_table[DETECT_HTTP2_HEADER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP2_REQUEST_HEADER].name = "http2.request_header";
+    sigmatch_table[DETECT_HTTP2_REQUEST_HEADER].desc =
+            "sticky buffer to match on only one HTTP2 header name and value";
+    sigmatch_table[DETECT_HTTP2_REQUEST_HEADER].url = "/rules/http2-keywords.html#request_header";
+    sigmatch_table[DETECT_HTTP2_REQUEST_HEADER].Setup = DetectHTTP2RequestHeaderSetup;
+    sigmatch_table[DETECT_HTTP2_REQUEST_HEADER].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOCLIENT, 2,
-                               PrefilterMpmHttp2HeaderRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
-    DetectAppLayerInspectEngineRegister2("http2_header",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateOpen,
-                                         DetectEngineInspectHttp2Header, NULL);
-    DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOSERVER, 2,
-                               PrefilterMpmHttp2HeaderRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
-    DetectAppLayerInspectEngineRegister2("http2_header",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
-                                         DetectEngineInspectHttp2Header, NULL);
+    DetectAppLayerMpmRegister2("http2_request_header", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmHttp2HeaderRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerInspectEngineRegister2("http2_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateOpen, DetectEngineInspectHttp2Header, NULL);
+    DetectBufferTypeRegisterValidateCallback(
+            "http2_request_header", DetectHttp2RequestHeaderValidateCallback);
+    DetectBufferTypeSetDescriptionByName("http2_request_header", "HTTP2 header name and value");
+    g_http2_request_header_buffer_id = DetectBufferTypeGetByName("http2_request_header");
 
-    DetectBufferTypeSetDescriptionByName("http2_header",
-                                         "HTTP2 header name and value");
-    DetectBufferTypeRegisterValidateCallback("http2_header", DetectHttp2HeaderValidateCallback);
-    g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header");
+    sigmatch_table[DETECT_HTTP2_RESPONSE_HEADER].name = "http2.response_header";
+    sigmatch_table[DETECT_HTTP2_RESPONSE_HEADER].desc =
+            "sticky buffer to match on only one HTTP2 header name and value";
+    sigmatch_table[DETECT_HTTP2_RESPONSE_HEADER].url = "/rules/http2-keywords.html#response_header";
+    sigmatch_table[DETECT_HTTP2_RESPONSE_HEADER].Setup = DetectHTTP2ResponseHeaderSetup;
+    sigmatch_table[DETECT_HTTP2_RESPONSE_HEADER].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+
+    DetectAppLayerMpmRegister2("http2_response_header", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmHttp2HeaderRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerInspectEngineRegister2("http2_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateOpen, DetectEngineInspectHttp2Header, NULL);
+    DetectBufferTypeRegisterValidateCallback(
+            "http2_response_header", DetectHttp2ResponseHeaderValidateCallback);
+    DetectBufferTypeSetDescriptionByName("http2_response_header", "HTTP2 header name and value");
+    g_http2_response_header_buffer_id = DetectBufferTypeGetByName("http2_response_header");
 
     DetectAppLayerInspectEngineRegister2(
             "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
@@ -786,9 +798,20 @@ static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectHTTP2RequestHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_http2_header_buffer_id) < 0)
+    if (DetectBufferSetActiveList(s, g_http2_request_header_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    return 0;
+}
+
+static int DetectHTTP2ResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(s, g_http2_response_header_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
@@ -917,9 +940,10 @@ static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttp2HeaderValidateCallback(
+        const Signature *s, const char **sigerror, int buffer_id)
 {
-    const SigMatch *sm = s->init_data->smlists[g_http2_header_buffer_id];
+    const SigMatch *sm = s->init_data->smlists[buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT)
             continue;
@@ -958,6 +982,16 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
         }
     }
     return true;
+}
+
+static bool DetectHttp2RequestHeaderValidateCallback(const Signature *s, const char **sigerror)
+{
+    return DetectHttp2HeaderValidateCallback(s, sigerror, g_http2_request_header_buffer_id);
+}
+
+static bool DetectHttp2ResponseHeaderValidateCallback(const Signature *s, const char **sigerror)
+{
+    return DetectHttp2HeaderValidateCallback(s, sigerror, g_http2_response_header_buffer_id);
 }
 
 #ifdef UNITTESTS
