@@ -481,6 +481,12 @@ Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice
     }
 
     const uint64_t frame_abs_offset = (uint64_t)frame_start_rel + stream_slice->offset;
+#ifdef DEBUG_VALIDATION
+    const TcpSession *ssn = f->protoctx;
+    const TcpStream *stream = dir == 0 ? &ssn->client : &ssn->server;
+    BUG_ON(stream_slice->offset != STREAM_APP_PROGRESS(stream));
+    BUG_ON(frame_abs_offset > STREAM_APP_PROGRESS(stream) + stream_slice->input_len);
+#endif
     Frame *r = FrameNew(frames, frame_abs_offset, len);
     if (r != NULL) {
         r->type = frame_type;
