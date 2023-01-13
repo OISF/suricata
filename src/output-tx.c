@@ -31,6 +31,8 @@
 #include "app-layer-parser.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "action-globals.h"
+#include "packet.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
@@ -333,7 +335,7 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
-    if (p->flow == NULL)
+    if (p->flow == NULL || PacketCheckAction(p, ACTION_DROP))
         return TM_ECODE_OK;
     if (!((PKT_IS_PSEUDOPKT(p)) || (p->flags & PKT_APPLAYER_UPDATE) != 0)) {
         SCLogDebug("not pseudo, no app update: skip");
