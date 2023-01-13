@@ -160,7 +160,6 @@ StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg);
 void StreamingBufferClear(StreamingBuffer *sb);
 void StreamingBufferFree(StreamingBuffer *sb);
 
-void StreamingBufferSlide(StreamingBuffer *sb, uint32_t slide);
 void StreamingBufferSlideToOffset(StreamingBuffer *sb, uint64_t offset);
 
 StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
