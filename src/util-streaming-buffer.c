@@ -612,47 +612,6 @@ static int WARN_UNUSED GrowToSize(StreamingBuffer *sb, uint32_t size)
     return GrowRegionToSize(sb, &sb->region, size);
 }
 
-static thread_local bool grow_warn_once = false;
-
-/** \internal
- *  \brief try to double the buffer size
- *  \retval 0 ok
- *  \retval -1 failed, buffer unchanged
- */
-static int WARN_UNUSED Grow(StreamingBuffer *sb)
-{
-    DEBUG_VALIDATE_BUG_ON(sb->region.buf_size > BIT_U32(30));
-    uint32_t grow = sb->region.buf_size * 2;
-    if (grow > BIT_U32(30)) { // 1GiB
-        if (!grow_warn_once) {
-            SCLogWarning("StreamingBuffer::Grow() tried to alloc %u bytes, exceeds limit of %lu",
-                    grow, BIT_U32(30));
-            grow_warn_once = true;
-        }
-        return -1;
-    }
-
-    void *ptr = REALLOC(sb->cfg, sb->region.buf, sb->region.buf_size, grow);
-    if (ptr == NULL)
-        return -1;
-
-    /* for safe printing and general caution, lets memset the
-     * new data to 0 */
-    size_t diff = grow - sb->region.buf_size;
-    void *new_mem = ((char *)ptr) + sb->region.buf_size;
-    memset(new_mem, 0, diff);
-
-    sb->region.buf = ptr;
-    sb->region.buf_size = grow;
-    SCLogDebug("grown buffer to %u", grow);
-#ifdef DEBUG
-    if (sb->region.buf_size > sb->buf_size_max) {
-        sb->buf_size_max = sb->region.buf_size;
-    }
-#endif
-    return 0;
-}
-
 static inline bool RegionBeforeOffset(const StreamingBufferRegion *r, const uint64_t o)
 {
     return (r->stream_offset + r->buf_size <= o);
@@ -881,11 +840,8 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
             if (GrowToSize(sb, data_len) != 0)
                 return NULL;
         } else {
-            while (!DATA_FITS(sb, data_len)) {
-                if (Grow(sb) != 0) {
-                    return NULL;
-                }
-            }
+            if (GrowToSize(sb, sb->region.buf_offset + data_len) != 0)
+                return NULL;
         }
     }
     DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
@@ -921,11 +877,8 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
             if (GrowToSize(sb, data_len) != 0)
                 return -1;
         } else {
-            while (!DATA_FITS(sb, data_len)) {
-                if (Grow(sb) != 0) {
-                    return -1;
-                }
-            }
+            if (GrowToSize(sb, sb->region.buf_offset + data_len) != 0)
+                return -1;
         }
     }
     DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
@@ -958,11 +911,8 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
             if (GrowToSize(sb, data_len) != 0)
                 return -1;
         } else {
-            while (!DATA_FITS(sb, data_len)) {
-                if (Grow(sb) != 0) {
-                    return -1;
-                }
-            }
+            if (GrowToSize(sb, sb->region.buf_offset + data_len) != 0)
+                return -1;
         }
     }
     DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
