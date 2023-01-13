@@ -33,7 +33,7 @@
 #include "util-streaming-buffer.h"
 #include "util-print.h"
 
-static StreamingBufferConfig default_cfg = { 0, 3072, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT,
+static StreamingBufferConfig default_cfg = { 3072, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT,
     HTPCalloc, HTPRealloc, HTPFree };
 
 /**
