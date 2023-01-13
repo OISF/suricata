@@ -867,17 +867,6 @@ void StreamingBufferSlideToOffset(StreamingBuffer *sb, uint64_t offset)
     BUG_ON(sb->region.stream_offset < offset);
 }
 
-void StreamingBufferSlide(StreamingBuffer *sb, uint32_t slide)
-{
-    SCLogDebug("slide with %" PRIu32, slide);
-    uint32_t size = sb->region.buf_offset - slide;
-    SCLogDebug("sliding %u forward, size of original buffer left after slide %u", slide, size);
-    memmove(sb->region.buf, sb->region.buf + slide, size);
-    sb->region.stream_offset += slide;
-    sb->region.buf_offset = size;
-    SBBPrune(sb);
-}
-
 #define DATA_FITS(sb, len) ((sb)->region.buf_offset + (len) <= (sb)->region.buf_size)
 
 StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint8_t *data, uint32_t data_len)
@@ -1726,7 +1715,7 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlide(sb, 6);
+    StreamingBufferSlideToOffset(sb, 6);
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
@@ -1745,7 +1734,7 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlide(sb, 6);
+    StreamingBufferSlideToOffset(sb, 12);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
@@ -1799,7 +1788,7 @@ static int StreamingBufferTest03(void)
     FAIL_IF_NOT(sb->sbb_size == 22);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlide(sb, 10);
+    StreamingBufferSlideToOffset(sb, 10);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
