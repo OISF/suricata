@@ -512,15 +512,16 @@ enum FlowState {
     FLOW_STATE_NEW = 0,
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
+    FLOW_STATE_DROPPED,
     FLOW_STATE_LOCAL_BYPASSED,
 #ifdef CAPTURE_OFFLOAD
     FLOW_STATE_CAPTURE_BYPASSED,
 #endif
 };
 #ifdef CAPTURE_OFFLOAD
-#define FLOW_STATE_SIZE 5
+#define FLOW_STATE_SIZE 6
 #else
-#define FLOW_STATE_SIZE 4
+#define FLOW_STATE_SIZE 5
 #endif
 
 typedef struct FlowProtoTimeout_ {
@@ -723,6 +724,17 @@ static inline bool FlowIsBypassed(const Flow *f)
             f->flow_state == FLOW_STATE_CAPTURE_BYPASSED ||
 #endif
             f->flow_state == FLOW_STATE_LOCAL_BYPASSED) {
+        return true;
+    }
+    return false;
+}
+
+static inline bool FlowIsDropped(const Flow *f)
+{
+    if (f == NULL) {
+        return false;
+    }
+    if (f->flow_state == FLOW_STATE_DROPPED) {
         return true;
     }
     return false;

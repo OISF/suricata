@@ -555,7 +555,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
 
         /* handle the app layer part of the UDP packet payload */
-    } else if (p->flow && p->proto == IPPROTO_UDP) {
+    } else if (p->flow && p->proto == IPPROTO_UDP && !FlowIsDropped(p->flow)) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
         AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
@@ -566,7 +566,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     /* handle Detect */
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
-    if (detect_thread != NULL) {
+    if (detect_thread != NULL && !FlowIsDropped(p->flow)) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, detect_thread);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
@@ -579,7 +579,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     if (p->flow != NULL) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-        if (FlowIsBypassed(p->flow)) {
+        if (FlowIsBypassed(p->flow) || FlowIsDropped(p->flow)) {
             FlowCleanupAppLayer(p->flow);
             if (p->proto == IPPROTO_TCP) {
                 StreamTcpSessionCleanup(p->flow->protoctx);

@@ -63,6 +63,8 @@
 #include "detect.h"
 #include "detect-engine-state.h"
 #include "stream.h"
+#include "packet.h"
+#include "action-globals.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-expectation.h"
@@ -513,6 +515,11 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
+    }
+    if (f->flags & FLOW_ACTION_DROP) {
+        SCLogDebug("flow drop flag set. Drop packet on flow %p", f);
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
+        FlowUpdateState(f, FLOW_STATE_DROPPED);
     }
 }
 
