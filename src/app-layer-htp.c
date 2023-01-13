@@ -2550,16 +2550,14 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 
-    cfg_prec->request.sbcfg.buf_size = cfg_prec->request.inspect_window ?
-                                       cfg_prec->request.inspect_window : 256;
-    cfg_prec->request.sbcfg.buf_slide = 0;
+    cfg_prec->request.sbcfg.buf_size =
+            cfg_prec->request.inspect_window ? cfg_prec->request.inspect_window : 256;
     cfg_prec->request.sbcfg.Calloc = HTPCalloc;
     cfg_prec->request.sbcfg.Realloc = HTPRealloc;
     cfg_prec->request.sbcfg.Free = HTPFree;
 
-    cfg_prec->response.sbcfg.buf_size = cfg_prec->response.inspect_window ?
-                                        cfg_prec->response.inspect_window : 256;
-    cfg_prec->response.sbcfg.buf_slide = 0;
+    cfg_prec->response.sbcfg.buf_size =
+            cfg_prec->response.inspect_window ? cfg_prec->response.inspect_window : 256;
     cfg_prec->response.sbcfg.Calloc = HTPCalloc;
     cfg_prec->response.sbcfg.Realloc = HTPRealloc;
     cfg_prec->response.sbcfg.Free = HTPFree;
