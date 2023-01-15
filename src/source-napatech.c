@@ -949,21 +949,24 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
          */
         switch (NT_NET_GET_PKT_TIMESTAMP_TYPE(packet_buffer)) {
             case NT_TIMESTAMP_TYPE_NATIVE_UNIX:
-                p->ts.tv_sec = pkt_ts / 100000000;
-                p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0);
+                p->ts = SCTIME_FROM_SECS(pkt_ts / 100000000);
+                p->ts += SCTIME_FROM_USECS(
+                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
                 break;
             case NT_TIMESTAMP_TYPE_PCAP:
-                p->ts.tv_sec = pkt_ts >> 32;
-                p->ts.tv_usec = pkt_ts & 0xFFFFFFFF;
+                p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
+                p->ts += SCTIME_FROM_USECS(pkt_ts & 0xFFFFFFFF);
                 break;
             case NT_TIMESTAMP_TYPE_PCAP_NANOTIME:
-                p->ts.tv_sec = pkt_ts >> 32;
-                p->ts.tv_usec = ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0);
+                p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
+                p->ts += SCTIME_FROM_USECS(
+                        ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0));
                 break;
             case NT_TIMESTAMP_TYPE_NATIVE_NDIS:
                 /* number of seconds between 1/1/1601 and 1/1/1970 */
-                p->ts.tv_sec = (pkt_ts / 100000000) - 11644473600;
-                p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0);
+                p->ts = SCTIME_FROM_SECS((pkt_ts / 100000000) - 11644473600);
+                p->ts += SCTIME_FROM_USECS(
+                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
                 break;
             default:
                 SCLogError("Packet from Napatech Stream: %u does not have a supported timestamp "

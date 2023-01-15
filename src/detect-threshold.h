@@ -72,7 +72,7 @@ typedef struct DetectThresholdEntry_ {
     uint32_t current_count; /**< Var for count control */
     int track;          /**< Track type: by_src, by_src */
 
-    struct timeval tv1;     /**< Var for time control */
+    SCTime_t tv1; /**< Var for time control */
     struct DetectThresholdEntry_ *next;
 } DetectThresholdEntry;
 

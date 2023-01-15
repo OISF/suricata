@@ -64,11 +64,9 @@ static int CreateFileName(const Packet *p, SSLState *state, char *filename, size
     /* Use format : packet time + incremental ID
      * When running on same pcap it will overwrite
      * On a live device, we will not be able to overwrite */
-    if (snprintf(path, sizeof(path), "%s/%ld.%ld-%d.pem",
-             tls_logfile_base_dir,
-             (long int)p->ts.tv_sec,
-             (long int)p->ts.tv_usec,
-             file_id) == sizeof(path))
+    if (snprintf(path, sizeof(path), "%s/%ld.%ld-%d.pem", tls_logfile_base_dir,
+                (long int)SCTIME_SECS(p->ts), (long int)SCTIME_USECS(p->ts),
+                file_id) == sizeof(path))
         return 0;
 
     strlcpy(filename, path, filename_size);
@@ -160,7 +158,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
         char timebuf[64];
         Port sp, dp;
-        CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+        CreateTimeString(p->ts, timebuf, sizeof(timebuf));
         if (!TLSGetIPInformations(p, srcip, PRINT_BUF_LEN, &sp, dstip, PRINT_BUF_LEN, &dp, ipproto))
             goto end_fwrite_fpmeta;
         if (fprintf(fpmeta, "TIME:              %s\n", timebuf) < 0)

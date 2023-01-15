@@ -435,12 +435,8 @@ static int DetectDetectionFilterTestSig2(void)
 {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset(&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -460,7 +456,7 @@ static int DetectDetectionFilterTestSig2(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 10));
@@ -470,7 +466,7 @@ static int DetectDetectionFilterTestSig2(void)
     FAIL_IF(PacketAlertCheck(p, 10));
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 10));
@@ -497,12 +493,8 @@ static int DetectDetectionFilterTestSig3(void)
 {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset(&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -521,7 +513,7 @@ static int DetectDetectionFilterTestSig3(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 10));
@@ -539,7 +531,7 @@ static int DetectDetectionFilterTestSig3(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 10));

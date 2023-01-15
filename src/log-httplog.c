@@ -126,8 +126,8 @@ static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, cha
 }
 
 /* Custom format logging */
-static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct timeval *ts,
-                                            char *srcip, Port sp, char *dstip, Port dp)
+static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t ts, char *srcip,
+        Port sp, char *dstip, Port dp)
 {
     LogHttpFileCtx *httplog_ctx = aft->httplog_ctx;
     uint32_t i;
@@ -155,14 +155,14 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             case LOG_CF_TIMESTAMP:
             /* TIMESTAMP */
-                LogCustomFormatWriteTimestamp(aft->buffer, node->data, ts);
-                break;
+            LogCustomFormatWriteTimestamp(aft->buffer, node->data, ts);
+            break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf, MIN(strlen(buf),6));
-                break;
+            snprintf(buf, sizeof(buf), "%06u", (unsigned int)SCTIME_USECS(ts));
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                    (uint8_t *)buf, MIN(strlen(buf), 6));
+            break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
@@ -385,7 +385,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
     char timebuf[64];
 
     /* check if we have HTTP state or not */
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
     Port sp, dp;
@@ -427,7 +427,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
     MemBufferReset(aft->buffer);
 
     if (hlog->flags & LOG_HTTP_CUSTOM) {
-        LogHttpLogCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
+        LogHttpLogCustom(aft, tx, p->ts, srcip, sp, dstip, dp);
     } else {
         /* time */
         MemBufferWriteString(aft->buffer, "%s ", timebuf);

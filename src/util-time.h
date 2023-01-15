@@ -24,13 +24,47 @@
 #ifndef __UTIL_TIME_H__
 #define __UTIL_TIME_H__
 
+typedef uint64_t SCTime_t;
+
+/*
+ * The SCTime_t member is broken up as
+ *  seconds: 44
+ *  useconds: 20
+ *
+ * Over 500000 years can be represented in 44 bits of seconds:
+ *  2^44/(365*24*60*60)
+ *  557855.560
+ * 1048576 microseconds can be represented in 20 bits:
+ *  2^20
+ *  1048576
+ */
+#define USECS_BITS               20
+#define USEC_BITMASK             0xfffff
+#define SCTIME_USECS(t)          (SCTime_t)((t)&USEC_BITMASK)
+#define SCTIME_SECS(t)           (SCTime_t)((time_t)((t) >> USECS_BITS))
+#define SCTIME_MSECS(t)          (SCTime_t)(SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
+#define SCTIME_FROM_SECS(secs)   (SCTime_t)((((SCTime_t)(secs)) << USECS_BITS))
+#define SCTIME_FROM_USECS(usecs) (SCTime_t) SCTIME_USECS((usecs))
+#define SCTIME_FROM_TIMEVAL(tv)                                                                    \
+    (SCTime_t)((SCTIME_FROM_SECS((tv)->tv_sec) + SCTIME_FROM_USECS((tv)->tv_usec)))
+#define SCTIME_FROM_TIMESPEC(ts)                                                                   \
+    (SCTime_t)((SCTIME_FROM_SECS((ts)->tv_sec) + SCTIME_FROM_USECS((ts)->tv_nsec * 1000)))
+#define SCTIME_TO_TIMEVAL(tv, t)                                                                   \
+    (tv)->tv_sec = SCTIME_SECS((t));                                                               \
+    (tv)->tv_usec = SCTIME_USECS((t));
+#define SCTIME_CMP(a, b, CMP)                                                                      \
+    ((SCTIME_SECS(a) == SCTIME_SECS(b)) ? (SCTIME_USECS(a) CMP SCTIME_USECS(b))                    \
+                                        : (SCTIME_SECS(a) CMP SCTIME_SECS(b)))
+#define SCTIME_CMP_GT(a, b) SCTIME_CMP((a), (b), >)
+#define SCTIME_CMP_LT(a, b) SCTIME_CMP((a), (b), <)
+
 void TimeInit(void);
 void TimeDeinit(void);
 
-void TimeSetByThread(const int thread_id, const struct timeval *tv);
-void TimeGet(struct timeval *);
+void TimeSetByThread(const int thread_id, SCTime_t tv);
+SCTime_t TimeGet(void);
 
-/** \brief intialize a 'struct timespec' from a 'struct timeval'. */
+/** \brief initialize a 'struct timespec' from a 'struct timeval'. */
 #define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
 
 static inline struct timeval TimevalWithSeconds(const struct timeval *ts, const time_t sec_add)
@@ -69,7 +103,7 @@ static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
 #endif
 
 #ifdef UNITTESTS
-void TimeSet(struct timeval *);
+void TimeSet(SCTime_t);
 void TimeSetToCurrentTime(void);
 void TimeSetIncrementTime(uint32_t);
 #endif
@@ -80,9 +114,9 @@ void TimeModeSetOffline (void);
 bool TimeModeIsLive(void);
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
-void CreateTimeString(const struct timeval *ts, char *str, size_t size);
-void CreateIsoTimeString(const struct timeval *ts, char *str, size_t size);
-void CreateUtcIsoTimeString(const struct timeval *ts, char *str, size_t size);
+void CreateTimeString(const SCTime_t ts, char *str, size_t size);
+void CreateIsoTimeString(const SCTime_t ts, char *str, size_t size);
+void CreateUtcIsoTimeString(const SCTime_t ts, char *str, size_t size);
 void CreateFormattedTimeString(const struct tm *t, const char * fmt, char *str, size_t size);
 time_t SCMkTimeUtc(struct tm *tp);
 int SCStringPatternToTime(char *string, const char **patterns,

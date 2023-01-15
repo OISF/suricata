@@ -156,7 +156,7 @@ const DetectThresholdData *SigGetThresholdTypeIter(
  *
  */
 
-static DetectThresholdEntry* ThresholdTimeoutCheck(DetectThresholdEntry *head, struct timeval *tv)
+static DetectThresholdEntry *ThresholdTimeoutCheck(DetectThresholdEntry *head, SCTime_t ts)
 {
     DetectThresholdEntry *tmp = head;
     DetectThresholdEntry *prev = NULL;
@@ -166,8 +166,8 @@ static DetectThresholdEntry* ThresholdTimeoutCheck(DetectThresholdEntry *head, s
         /* check if the 'check' timestamp is not before the creation ts.
          * This can happen due to the async nature of the host timeout
          * code that also calls this code from a management thread. */
-        struct timeval entry = TimevalWithSeconds(&tmp->tv1, (time_t)tmp->seconds);
-        if (TimevalEarlier(tv, &entry)) {
+        SCTime_t entry = tmp->tv1 + SCTIME_FROM_SECS((time_t)tmp->seconds);
+        if (ts <= entry) {
             prev = tmp;
             tmp = tmp->next;
             continue;
@@ -189,21 +189,20 @@ static DetectThresholdEntry* ThresholdTimeoutCheck(DetectThresholdEntry *head, s
     return new_head;
 }
 
-int ThresholdHostTimeoutCheck(Host *host, struct timeval *tv)
+int ThresholdHostTimeoutCheck(Host *host, SCTime_t ts)
 {
     DetectThresholdEntry* head = HostGetStorageById(host, host_threshold_id);
-    DetectThresholdEntry* new_head = ThresholdTimeoutCheck(head, tv);
+    DetectThresholdEntry *new_head = ThresholdTimeoutCheck(head, ts);
     if (new_head != head) {
         HostSetStorageById(host, host_threshold_id, new_head);
     }
     return new_head == NULL;
 }
 
-
-int ThresholdIPPairTimeoutCheck(IPPair *pair, struct timeval *tv)
+int ThresholdIPPairTimeoutCheck(IPPair *pair, SCTime_t ts)
 {
     DetectThresholdEntry* head = IPPairGetStorageById(pair, ippair_threshold_id);
-    DetectThresholdEntry* new_head = ThresholdTimeoutCheck(head, tv);
+    DetectThresholdEntry *new_head = ThresholdTimeoutCheck(head, ts);
     if (new_head != head) {
         IPPairSetStorageById(pair, ippair_threshold_id, new_head);
     }
@@ -325,18 +324,18 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
 * \retval int 1 if threshold reached for this entry
 *
 */
-static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, struct timeval packet_time)
+static int IsThresholdReached(
+        DetectThresholdEntry *lookup_tsh, const DetectThresholdData *td, SCTime_t packet_time)
 {
     int ret = 0;
 
     /* Check if we have a timeout enabled, if so,
     * we still matching (and enabling the new_action) */
     if (lookup_tsh->tv_timeout != 0) {
-        if ((packet_time.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+        if ((SCTIME_SECS(packet_time) - lookup_tsh->tv_timeout) > td->timeout) {
             /* Ok, we are done, timeout reached */
             lookup_tsh->tv_timeout = 0;
-        }
-        else {
+        } else {
             /* Already matching */
             ret = 1;
         } /* else - if ((packet_time - lookup_tsh->tv_timeout) > td->timeout) */
@@ -344,13 +343,13 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
     }
     else {
         /* Update the matching state with the timeout interval */
-        struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
-        if (TimevalEarlier(&packet_time, &entry)) {
+        SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
+        if (packet_time <= entry) {
             lookup_tsh->current_count++;
             if (lookup_tsh->current_count > td->count) {
                 /* Then we must enable the new action by setting a
                 * timeout */
-                lookup_tsh->tv_timeout = packet_time.tv_sec;
+                lookup_tsh->tv_timeout = SCTIME_SECS(packet_time);
                 ret = 1;
             }
         } else {
@@ -362,7 +361,7 @@ static int IsThresholdReached(DetectThresholdEntry* lookup_tsh, const DetectThre
     return ret;
 }
 
-static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, struct timeval packet_time)
+static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, SCTime_t packet_time)
 {
     if (h && e) {
         e->current_count = 1;
@@ -373,7 +372,7 @@ static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, struct timev
     }
 }
 
-static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, struct timeval packet_time)
+static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, SCTime_t packet_time)
 {
     if (pair && e) {
         e->current_count = 1;
@@ -404,8 +403,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("limit");
 
             if (lookup_tsh != NULL)  {
-                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
-                if (TimevalEarlier(&p->ts, &entry)) {
+                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
+                if (p->ts <= entry) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count <= td->count) {
@@ -431,8 +430,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("threshold");
 
             if (lookup_tsh != NULL)  {
-                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
-                if (TimevalEarlier(&p->ts, &entry)) {
+                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
+                if (p->ts <= entry) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
@@ -457,8 +456,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("both");
 
             if (lookup_tsh != NULL) {
-                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
-                if (TimevalEarlier(&p->ts, &entry)) {
+                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
+                if (p->ts <= entry) {
                     /* within time limit */
 
                     lookup_tsh->current_count++;
@@ -495,8 +494,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
-                struct timeval entry = TimevalWithSeconds(&lookup_tsh->tv1, (time_t)td->seconds);
-                if (TimevalEarlier(&p->ts, &entry)) {
+                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
+                if (p->ts <= entry) {
                     /* within timeout */
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count > td->count) {

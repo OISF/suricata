@@ -510,14 +510,15 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 
     /* Convert ERF time to timeval - from libpcap. */
     uint64_t ts = dr->ts;
-    p->ts.tv_sec = ts >> 32;
+    p->ts = SCTIME_FROM_SECS(ts >> 32);
     ts = (ts & 0xffffffffULL) * 1000000;
     ts += 0x80000000; /* rounding */
-    p->ts.tv_usec = ts >> 32;
-    if (p->ts.tv_usec >= 1000000) {
-        p->ts.tv_usec -= 1000000;
-        p->ts.tv_sec++;
+    uint64_t usecs = ts >> 32;
+    if (usecs >= 1000000) {
+        usecs -= 1000000;
+        p->ts += SCTIME_FROM_SECS(1);
     }
+    p->ts += SCTIME_FROM_USECS(usecs);
 
     StatsIncr(ewtn->tv, ewtn->packets);
     ewtn->bytes += wlen;

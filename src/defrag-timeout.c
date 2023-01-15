@@ -36,7 +36,7 @@
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts)
+static int DefragTrackerTimedOut(DefragTracker *dt, SCTime_t ts)
 {
     /** never prune a trackers that is used by a packet
      *  we are currently processing in one of the threads */
@@ -45,7 +45,7 @@ static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts)
     }
 
     /* retain if remove is not set and not timed out */
-    if (!dt->remove && timercmp(&dt->timeout, ts, >))
+    if (!dt->remove && SCTIME_CMP_GT(dt->timeout, ts))
         return 0;
 
     return 1;
@@ -62,7 +62,8 @@ static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts)
  *
  *  \retval cnt timed out tracker
  */
-static uint32_t DefragTrackerHashRowTimeout(DefragTrackerHashRow *hb, DefragTracker *dt, struct timeval *ts)
+static uint32_t DefragTrackerHashRowTimeout(
+        DefragTrackerHashRow *hb, DefragTracker *dt, SCTime_t ts)
 {
     uint32_t cnt = 0;
 
@@ -117,7 +118,7 @@ static uint32_t DefragTrackerHashRowTimeout(DefragTrackerHashRow *hb, DefragTrac
  *
  *  \retval cnt number of timed out tracker
  */
-uint32_t DefragTimeoutHash(struct timeval *ts)
+uint32_t DefragTimeoutHash(SCTime_t ts)
 {
     uint32_t idx = 0;
     uint32_t cnt = 0;

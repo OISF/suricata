@@ -102,8 +102,7 @@ void PacketReinit(Packet *p)
     p->vlan_id[0] = 0;
     p->vlan_id[1] = 0;
     p->vlan_idx = 0;
-    p->ts.tv_sec = 0;
-    p->ts.tv_usec = 0;
+    p->ts = 0;
     p->datalink = 0;
     p->drop_reason = 0;
 #define PACKET_RESET_ACTION(p) (p)->action = 0

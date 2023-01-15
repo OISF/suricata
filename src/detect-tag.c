@@ -106,7 +106,7 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 
             tde.sid = s->id;
             tde.gid = s->gid;
-            tde.last_ts = tde.first_ts = p->ts.tv_sec;
+            tde.last_ts = tde.first_ts = SCTIME_SECS(p->ts);
             tde.metric = td->metric;
             tde.count = td->count;
             if (td->direction == DETECT_TAG_DIR_SRC)
@@ -123,7 +123,7 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
                 /* If it already exists it will be updated */
                 tde.sid = s->id;
                 tde.gid = s->gid;
-                tde.last_ts = tde.first_ts = p->ts.tv_sec;
+                tde.last_ts = tde.first_ts = SCTIME_SECS(p->ts);
                 tde.metric = td->metric;
                 tde.count = td->count;
 

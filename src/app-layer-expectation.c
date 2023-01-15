@@ -71,7 +71,7 @@ SC_ATOMIC_DECLARE(uint32_t, expectation_count);
 #define EXPECTATION_MAX_LEVEL 10
 
 typedef struct Expectation_ {
-    struct timeval ts;
+    SCTime_t ts;
     Port sp;
     Port dp;
     AppProto alproto;
@@ -317,8 +317,6 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
     if (exp_list == NULL)
         goto out;
 
-    time_t ctime = f->lastts.tv_sec;
-
     CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, lexp) {
         if ((exp->direction & flags) && ((exp->sp == 0) || (exp->sp == f->sp)) &&
                 ((exp->dp == 0) || (exp->dp == f->dp))) {
@@ -346,7 +344,7 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
             continue;
         }
         /* Cleaning remove old entries */
-        if (ctime > exp->ts.tv_sec + EXPECTATION_TIMEOUT) {
+        if (SCTIME_SECS(f->lastts) > SCTIME_SECS(exp->ts) + EXPECTATION_TIMEOUT) {
             exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);
             if (exp_list == NULL)
                 goto out;

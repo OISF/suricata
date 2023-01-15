@@ -1027,7 +1027,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
 
-            ssn->server.last_pkt_ts = p->ts.tv_sec;
+            ssn->server.last_pkt_ts = SCTIME_SECS(p->ts);
             if (ssn->server.last_ts == 0)
                 ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             if (ssn->client.last_ts == 0)
@@ -1080,7 +1080,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             if (ssn->client.last_ts == 0)
                 ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
 
-            ssn->client.last_pkt_ts = p->ts.tv_sec;
+            ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
             ssn->client.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
         }
 
@@ -1187,7 +1187,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
 
-            ssn->client.last_pkt_ts = p->ts.tv_sec;
+            ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
             if (ssn->server.last_ts == 0)
                 ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             if (ssn->client.last_ts == 0)
@@ -1221,7 +1221,7 @@ static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q)
     q->win = TCP_GET_WINDOW(p);
     q->seq = TCP_GET_SEQ(p);
     q->ack = TCP_GET_ACK(p);
-    q->pkt_ts = p->ts.tv_sec;
+    q->pkt_ts = SCTIME_SECS(p->ts);
 
     if (TCP_GET_SACKOK(p) == 1)
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
@@ -1546,7 +1546,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                         "ssn->server.last_ts %" PRIu32"", ssn,
                         ssn->client.last_ts, ssn->server.last_ts);
                 ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
-                ssn->client.last_pkt_ts = p->ts.tv_sec;
+                ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
                 if (ssn->client.last_ts == 0)
                     ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             } else {
@@ -1658,7 +1658,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
                 if (ssn->server.last_ts == 0)
                     ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
-                ssn->server.last_pkt_ts = p->ts.tv_sec;
+                ssn->server.last_pkt_ts = SCTIME_SECS(p->ts);
                 ssn->server.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
             }
 
@@ -1699,7 +1699,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 // Check whether packets have been received in the correct order (only ever update)
                 if (ssn->client.last_ts < ts_val) {
                     ssn->client.last_ts = ts_val;
-                    ssn->client.last_pkt_ts = p->ts.tv_sec;
+                    ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
                 }
 
                 SCLogDebug("ssn %p: Retransmitted SYN. Updated timestamp from packet %" PRIu64, ssn,
@@ -1763,7 +1763,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         {
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
             ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_TIMESTAMP;
-            ssn->client.last_pkt_ts = p->ts.tv_sec;
+            ssn->client.last_pkt_ts = SCTIME_SECS(p->ts);
         } else {
             ssn->client.last_ts = 0;
             ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
@@ -5784,12 +5784,13 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                 result = (int32_t) (ts - last_ts);
             }
 
-            SCLogDebug("result %"PRIi32", p->ts.tv_sec %"PRIuMAX"", result, (uintmax_t)p->ts.tv_sec);
+            SCLogDebug("result %" PRIi32 ", p->ts(secs) %" PRIuMAX "", result,
+                    (uintmax_t)SCTIME_SECS(p->ts));
 
             if (last_pkt_ts == 0 &&
                     (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
             {
-                last_pkt_ts = p->ts.tv_sec;
+                last_pkt_ts = SCTIME_SECS(p->ts);
             }
 
             if (result < 0) {
@@ -5799,12 +5800,10 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
-                        (((uint32_t) p->ts.tv_sec) >
-                            last_pkt_ts + PAWS_24DAYS))
-            {
+                       (((uint32_t)SCTIME_SECS(p->ts)) > last_pkt_ts + PAWS_24DAYS)) {
                 SCLogDebug("packet is not valid last_pkt_ts "
-                           "%" PRIu32 " p->ts.tv_sec %" PRIu32 "",
-                            last_pkt_ts, (uint32_t) p->ts.tv_sec);
+                           "%" PRIu32 " p->ts(sec) %" PRIu32 "",
+                        last_pkt_ts, (uint32_t)SCTIME_SECS(p->ts));
                 /* candidate for rejection */
                 ret = 0;
             }
@@ -5814,8 +5813,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                  * current stream timestamp is not so old. if so then we need to
                  * accept the packet and update the stream->last_ts (RFC 1323)*/
                 if ((SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) &&
-                        (((uint32_t) p->ts.tv_sec > (last_pkt_ts + PAWS_24DAYS))))
-                {
+                        (((uint32_t)SCTIME_SECS(p->ts) > (last_pkt_ts + PAWS_24DAYS)))) {
                     SCLogDebug("timestamp considered valid anyway");
                 } else {
                     goto invalid;
@@ -5928,12 +5926,13 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 result = (int32_t) (ts - sender_stream->last_ts);
             }
 
-            SCLogDebug("result %"PRIi32", p->ts.tv_sec %"PRIuMAX"", result, (uintmax_t)p->ts.tv_sec);
+            SCLogDebug("result %" PRIi32 ", p->ts(sec) %" PRIuMAX "", result,
+                    (uintmax_t)SCTIME_SECS(p->ts));
 
             if (sender_stream->last_pkt_ts == 0 &&
                     (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
             {
-                sender_stream->last_pkt_ts = p->ts.tv_sec;
+                sender_stream->last_pkt_ts = SCTIME_SECS(p->ts);
             }
 
             if (result < 0) {
@@ -5943,12 +5942,11 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
-                        (((uint32_t) p->ts.tv_sec) >
-                            sender_stream->last_pkt_ts + PAWS_24DAYS))
-            {
+                       (((uint32_t)SCTIME_SECS(p->ts)) >
+                               sender_stream->last_pkt_ts + PAWS_24DAYS)) {
                 SCLogDebug("packet is not valid sender_stream->last_pkt_ts "
-                           "%" PRIu32 " p->ts.tv_sec %" PRIu32 "",
-                            sender_stream->last_pkt_ts, (uint32_t) p->ts.tv_sec);
+                           "%" PRIu32 " p->ts(sec) %" PRIu32 "",
+                        sender_stream->last_pkt_ts, (uint32_t)SCTIME_SECS(p->ts));
                 /* candidate for rejection */
                 ret = 0;
             }
@@ -5959,17 +5957,17 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
                     sender_stream->last_ts = ts;
 
-                sender_stream->last_pkt_ts = p->ts.tv_sec;
+                sender_stream->last_pkt_ts = SCTIME_SECS(p->ts);
 
             } else if (ret == 0) {
                 /* if the timestamp of packet is not valid then, check if the
                  * current stream timestamp is not so old. if so then we need to
                  * accept the packet and update the stream->last_ts (RFC 1323)*/
                 if ((SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) &&
-                        (((uint32_t) p->ts.tv_sec > (sender_stream->last_pkt_ts + PAWS_24DAYS))))
-                {
+                        (((uint32_t)SCTIME_SECS(p->ts) >
+                                (sender_stream->last_pkt_ts + PAWS_24DAYS)))) {
                     sender_stream->last_ts = ts;
-                    sender_stream->last_pkt_ts = p->ts.tv_sec;
+                    sender_stream->last_pkt_ts = SCTIME_SECS(p->ts);
 
                     SCLogDebug("timestamp considered valid anyway");
                 } else {
@@ -6185,8 +6183,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
 
     PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
-    p->ts.tv_sec = parent->ts.tv_sec;
-    p->ts.tv_usec = parent->ts.tv_usec;
+    p->ts = parent->ts;
 
     FlowReference(&p->flow, parent->flow);
     /* set tunnel flags */
