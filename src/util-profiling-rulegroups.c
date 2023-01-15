@@ -108,7 +108,7 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
     }
 
     gettimeofday(&tval, NULL);
-    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(SCTIME_FROM_TIMEVAL(&tval), timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
     for (i = 0; i < rules_ctx->cnt; i++) {

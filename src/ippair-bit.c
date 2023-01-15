@@ -64,13 +64,13 @@ int IPPairHasBits(IPPair *ippair)
 
 /** \retval 1 ippair timed out wrt xbits
   * \retval 0 ippair still has active (non-expired) xbits */
-int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts)
+int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
 {
     GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
-            if (xb->expire > (uint32_t)ts->tv_sec)
+            if (xb->expire > (uint32_t)SCTIME_SECS(ts))
                 return 0;
         }
     }

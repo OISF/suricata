@@ -24,7 +24,7 @@
 #ifndef __IPPAIR_TIMEOUT_H__
 #define __IPPAIR_TIMEOUT_H__
 
-uint32_t IPPairTimeoutHash(struct timeval *ts);
+uint32_t IPPairTimeoutHash(SCTime_t ts);
 
 uint32_t IPPairGetSpareCount(void);
 uint32_t IPPairGetActiveCount(void);

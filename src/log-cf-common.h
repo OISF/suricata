@@ -84,7 +84,7 @@ void LogCustomFormatFree(LogCustomFormat *cf);
 void LogCustomFormatAddNode(LogCustomFormat *cf, LogCustomFormatNode *node);
 int LogCustomFormatParse(LogCustomFormat *cf, const char *format);
 
-void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const struct timeval *ts);
+void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const SCTime_t ts);
 void LogCustomFormatRegister(void);
 
 #endif /* __LOG_CF_COMMON_H__ */

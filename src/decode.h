@@ -468,7 +468,7 @@ typedef struct Packet_
      * hash size still */
     uint32_t flow_hash;
 
-    struct timeval ts;
+    SCTime_t ts;
 
     union {
         /* nfq stuff */

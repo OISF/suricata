@@ -289,8 +289,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         SCLogDebug("Received Packet Len: %d", pktlen);
 
-        p->ts.tv_sec = IPFWts.tv_sec;
-        p->ts.tv_usec = IPFWts.tv_usec;
+        p->ts = SCTIME_FROM_TIMEVAL(&IPFWts);
 
         ptv->pkts++;
         ptv->bytes += pktlen;

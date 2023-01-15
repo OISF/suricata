@@ -511,7 +511,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* update time */
     if (!(PKT_IS_PSEUDOPKT(p))) {
-        TimeSetByThread(tv->id, &p->ts);
+        TimeSetByThread(tv->id, p->ts);
     }
 
     /* handle Flow */

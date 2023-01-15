@@ -329,8 +329,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->recursion_level = parent->recursion_level + 1;
     DEBUG_VALIDATE_BUG_ON(parent->nb_decoded_layers >= decoder_max_layers);
     p->nb_decoded_layers = parent->nb_decoded_layers + 1;
-    p->ts.tv_sec = parent->ts.tv_sec;
-    p->ts.tv_usec = parent->ts.tv_usec;
+    p->ts = parent->ts;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     p->livedev = parent->livedev;
@@ -408,8 +407,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
         PacketCopyData(p, pkt, len);
     }
     p->recursion_level = parent->recursion_level; /* NOT incremented */
-    p->ts.tv_sec = parent->ts.tv_sec;
-    p->ts.tv_usec = parent->ts.tv_usec;
+    p->ts = parent->ts;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     /* tell new packet it's part of a tunnel */

@@ -193,11 +193,11 @@ void FlowInit(Flow *f, const Packet *p)
         /* nothing to do for this IP proto. */
         SCLogDebug("no special setup for IP proto %u", p->proto);
     }
-    COPY_TIMESTAMP(&p->ts, &f->startts);
+    f->startts = p->ts;
 
     f->protomap = FlowGetProtoMapping(f->proto);
     f->timeout_policy = FlowGetTimeoutPolicy(f);
-    const uint32_t timeout_at = (uint32_t)f->startts.tv_sec + f->timeout_policy;
+    const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->startts) + f->timeout_policy;
     f->timeout_at = timeout_at;
 
     if (MacSetFlowStorageEnabled()) {

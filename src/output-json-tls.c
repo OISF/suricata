@@ -169,10 +169,8 @@ static void JsonTlsLogNotBefore(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_before != 0) {
         char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = ssl_state->server_connp.cert0_not_before;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        SCTime_t ts = SCTIME_FROM_SECS(ssl_state->server_connp.cert0_not_before);
+        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
         jb_set_string(js, "notbefore", timebuf);
     }
 }
@@ -181,10 +179,8 @@ static void JsonTlsLogNotAfter(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_after != 0) {
         char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = ssl_state->server_connp.cert0_not_after;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        SCTime_t ts = SCTIME_FROM_SECS(ssl_state->server_connp.cert0_not_after);
+        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
         jb_set_string(js, "notafter", timebuf);
     }
 }
@@ -305,18 +301,14 @@ static void JsonTlsLogClientCert(
     }
     if (connp->cert0_not_before != 0) {
         char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = connp->cert0_not_before;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        SCTime_t ts = SCTIME_FROM_SECS(connp->cert0_not_before);
+        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
         jb_set_string(js, "notbefore", timebuf);
     }
     if (connp->cert0_not_after != 0) {
         char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = connp->cert0_not_after;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        SCTime_t ts = SCTIME_FROM_SECS(connp->cert0_not_after);
+        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
         jb_set_string(js, "notafter", timebuf);
     }
 

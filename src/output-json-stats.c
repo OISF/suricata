@@ -76,7 +76,6 @@ typedef struct JsonStatsLogThread_ {
 static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
                                 const OutputEngineInfo output)
 {
-    struct timeval last_reload;
     char timebuf[64];
     const SigFileLoaderStat *sig_stat = NULL;
 
@@ -86,8 +85,8 @@ static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
     }
 
     if (output == OUTPUT_ENGINE_LAST_RELOAD || output == OUTPUT_ENGINE_ALL) {
-        last_reload = de_ctx->last_reload;
-        CreateIsoTimeString(&last_reload, timebuf, sizeof(timebuf));
+        SCTime_t last_reload = SCTIME_FROM_TIMEVAL(&de_ctx->last_reload);
+        CreateIsoTimeString(last_reload, timebuf, sizeof(timebuf));
         json_object_set_new(jdata, "last_reload", json_string(timebuf));
     }
 
@@ -301,7 +300,7 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     if (unlikely(js == NULL))
         return 0;
     char timebuf[64];
-    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(SCTIME_FROM_TIMEVAL(&tval), timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
     json_object_set_new(js, "event_type", json_string("stats"));
 

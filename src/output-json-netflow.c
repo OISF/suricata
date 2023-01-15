@@ -59,11 +59,9 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
     if (unlikely(js == NULL))
         return NULL;
 
-    struct timeval tv;
-    memset(&tv, 0x00, sizeof(tv));
-    TimeGet(&tv);
+    SCTime_t ts = TimeGet();
 
-    CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(ts, timebuf, sizeof(timebuf));
 
     /* reverse header direction if the flow started out wrong */
     dir ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
@@ -186,13 +184,13 @@ static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
 
     char timebuf1[64], timebuf2[64];
 
-    CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
+    CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
+    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
 
     jb_set_string(js, "start", timebuf1);
     jb_set_string(js, "end", timebuf2);
 
-    int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
+    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
     jb_set_uint(js, "age", age);
 
     jb_set_uint(js, "min_ttl", f->min_ttl_toserver);
@@ -230,13 +228,13 @@ static void NetFlowLogEveToClient(JsonBuilder *js, Flow *f)
 
     char timebuf1[64], timebuf2[64];
 
-    CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
+    CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
+    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
 
     jb_set_string(js, "start", timebuf1);
     jb_set_string(js, "end", timebuf2);
 
-    int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
+    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
     jb_set_uint(js, "age", age);
 
     /* To client is zero if we did not see any packet */

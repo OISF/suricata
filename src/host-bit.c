@@ -64,13 +64,13 @@ int HostHasHostBits(Host *host)
 
 /** \retval 1 host timed out wrt xbits
   * \retval 0 host still has active (non-expired) xbits */
-int HostBitsTimedoutCheck(Host *h, struct timeval *ts)
+int HostBitsTimedoutCheck(Host *h, SCTime_t ts)
 {
     GenericVar *gv = HostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
-            if (xb->expire > (uint32_t)ts->tv_sec)
+            if (xb->expire > (uint32_t)SCTIME_SECS(ts))
                 return 0;
         }
     }

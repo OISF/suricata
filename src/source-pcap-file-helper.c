@@ -77,9 +77,8 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     PACKET_PROFILING_TMM_START(p, TMM_RECEIVEPCAPFILE);
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
-    p->ts.tv_sec = h->ts.tv_sec;
-    p->ts.tv_usec = h->ts.tv_usec % 1000000;
-    SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
+    p->ts = SCTIME_FROM_TIMEVAL(&h->ts);
+    SCLogDebug("p->ts.tv_sec %" PRIuMAX "", (uintmax_t)SCTIME_SECS(p->ts));
     p->datalink = ptv->datalink;
     p->pcap_cnt = ++pcap_g.cnt;
 
@@ -130,7 +129,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 
     /* initialize all the thread's initial timestamp */
     if (likely(ptv->first_pkt_hdr != NULL)) {
-        TmThreadsInitThreadsTimestamp(&ptv->first_pkt_ts);
+        TmThreadsInitThreadsTimestamp(SCTIME_FROM_TIMEVAL(&ptv->first_pkt_ts));
         PcapFileCallbackLoop((char *)ptv, ptv->first_pkt_hdr,
                 (u_char *)ptv->first_pkt_data);
         ptv->first_pkt_hdr = NULL;

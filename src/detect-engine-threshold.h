@@ -47,8 +47,8 @@ void ThresholdHashInit(DetectEngineCtx *);
 void ThresholdHashAllocate(DetectEngineCtx *);
 void ThresholdContextDestroy(DetectEngineCtx *);
 
-int ThresholdHostTimeoutCheck(Host *, struct timeval *);
-int ThresholdIPPairTimeoutCheck(IPPair *, struct timeval *);
+int ThresholdHostTimeoutCheck(Host *, SCTime_t);
+int ThresholdIPPairTimeoutCheck(IPPair *, SCTime_t);
 void ThresholdListFree(void *ptr);
 
 #endif /* __DETECT_ENGINE_THRESHOLD_H__ */

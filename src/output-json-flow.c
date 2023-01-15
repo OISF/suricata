@@ -62,11 +62,9 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
         return NULL;
     }
 
-    struct timeval tv;
-    memset(&tv, 0x00, sizeof(tv));
-    TimeGet(&tv);
+    SCTime_t ts = TimeGet();
 
-    CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(ts, timebuf, sizeof(timebuf));
 
     if ((f->flags & FLOW_DIR_REVERSED) == 0) {
         if (FLOW_IS_IPV4(f)) {
@@ -209,7 +207,7 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     }
 
     char timebuf1[64];
-    CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
+    CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
     jb_set_string(js, "start", timebuf1);
 }
 
@@ -221,10 +219,10 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     EveAddFlow(f, jb);
 
     char timebuf2[64];
-    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
+    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
     jb_set_string(jb, "end", timebuf2);
 
-    int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
+    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
     jb_set_uint(jb, "age", age);
 
     if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)

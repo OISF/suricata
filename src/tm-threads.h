@@ -255,8 +255,8 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type);
 void TmThreadsUnregisterThread(const int id);
 void TmThreadsInjectFlowById(Flow *f, const int id);
 
-void TmThreadsInitThreadsTimestamp(const struct timeval *ts);
-void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts);
+void TmThreadsInitThreadsTimestamp(const SCTime_t ts);
+void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts);
 void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);

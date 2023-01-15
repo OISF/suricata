@@ -127,10 +127,10 @@ static void ContainerUrlRangeFree(void *s)
     }
 }
 
-static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, struct timeval *ts)
+static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, const SCTime_t ts)
 {
     // we only timeout if we have no flow referencing us
-    if ((uint32_t)ts->tv_sec > cu->expire || cu->error) {
+    if ((uint32_t)SCTIME_SECS(ts) > cu->expire || cu->error) {
         if (SC_ATOMIC_GET(cu->hdata->use_cnt) == 0) {
             DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
             return true;
@@ -185,7 +185,7 @@ void HttpRangeContainersDestroy(void)
     THashShutdown(ContainerUrlRangeList.ht);
 }
 
-uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
+uint32_t HttpRangeContainersTimeoutHash(const SCTime_t ts)
 {
     SCLogDebug("timeout: starting");
     uint32_t cnt = 0;
@@ -237,7 +237,7 @@ uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
  */
 static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
 {
-    const struct timeval *ts = &f->lastts;
+    const SCTime_t ts = f->lastts;
     HttpRangeContainerFile lookup;
     memset(&lookup, 0, sizeof(lookup));
     // cast so as not to have const in the structure
@@ -246,7 +246,7 @@ static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const
     struct THashDataGetResult res = THashGetFromHash(ContainerUrlRangeList.ht, &lookup);
     if (res.data) {
         // nothing more to do if (res.is_new)
-        ContainerUrlRangeUpdate(res.data->data, ts->tv_sec + ContainerUrlRangeList.timeout);
+        ContainerUrlRangeUpdate(res.data->data, SCTIME_SECS(ts) + ContainerUrlRangeList.timeout);
         HttpRangeContainerFile *c = res.data->data;
         c->hdata = res.data;
         SCLogDebug("c %p", c);

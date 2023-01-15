@@ -51,7 +51,7 @@ uint32_t HostGetActiveCount(void)
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int HostHostTimedOut(Host *h, struct timeval *ts)
+static int HostHostTimedOut(Host *h, SCTime_t ts)
 {
     int tags = 0;
     int thresholds = 0;
@@ -98,7 +98,7 @@ static int HostHostTimedOut(Host *h, struct timeval *ts)
  *
  *  \retval cnt timed out hosts
  */
-static uint32_t HostHashRowTimeout(HostHashRow *hb, Host *h, struct timeval *ts)
+static uint32_t HostHashRowTimeout(HostHashRow *hb, Host *h, SCTime_t ts)
 {
     uint32_t cnt = 0;
 
@@ -153,7 +153,7 @@ static uint32_t HostHashRowTimeout(HostHashRow *hb, Host *h, struct timeval *ts)
  *
  *  \retval cnt number of timed out host
  */
-uint32_t HostTimeoutHash(struct timeval *ts)
+uint32_t HostTimeoutHash(SCTime_t ts)
 {
     uint32_t idx = 0;
     uint32_t cnt = 0;

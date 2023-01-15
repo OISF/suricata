@@ -113,7 +113,7 @@ bool TimeModeIsLive(void)
     return live_time_tracking;
 }
 
-void TimeSetByThread(const int thread_id, const struct timeval *tv)
+void TimeSetByThread(const int thread_id, SCTime_t tv)
 {
     if (live_time_tracking)
         return;
@@ -122,17 +122,13 @@ void TimeSetByThread(const int thread_id, const struct timeval *tv)
 }
 
 #ifdef UNITTESTS
-void TimeSet(struct timeval *tv)
+void TimeSet(SCTime_t ts)
 {
     if (live_time_tracking)
         return;
 
-    if (tv == NULL)
-        return;
-
     SCSpinLock(&current_time_spinlock);
-    current_time.tv_sec = tv->tv_sec;
-    current_time.tv_usec = tv->tv_usec;
+    SCTIME_TO_TIMEVAL(&current_time, ts);
 
     SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
                (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
@@ -148,34 +144,34 @@ void TimeSetToCurrentTime(void)
 
     gettimeofday(&tv, NULL);
 
-    TimeSet(&tv);
+    SCTime_t ts = SCTIME_FROM_TIMEVAL(&tv);
+    TimeSet(ts);
 }
 #endif
 
-void TimeGet(struct timeval *tv)
+SCTime_t TimeGet()
 {
-    if (tv == NULL)
-        return;
-
+    struct timeval tv = { 0 };
     if (live_time_tracking) {
-        gettimeofday(tv, NULL);
+        gettimeofday(&tv, NULL);
     } else {
 #ifdef UNITTESTS
         if (unlikely(RunmodeIsUnittests())) {
             SCSpinLock(&current_time_spinlock);
-            tv->tv_sec = current_time.tv_sec;
-            tv->tv_usec = current_time.tv_usec;
+            tv.tv_sec = current_time.tv_sec;
+            tv.tv_usec = current_time.tv_usec;
             SCSpinUnlock(&current_time_spinlock);
         } else {
 #endif
-            TmThreadsGetMinimalTimestamp(tv);
+            TmThreadsGetMinimalTimestamp(&tv);
 #ifdef UNITTESTS
         }
 #endif
     }
 
-    SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",
-               (uintmax_t)tv->tv_sec, (uintmax_t)tv->tv_usec);
+    SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec", (uintmax_t)tv.tv_sec,
+            (uintmax_t)tv.tv_usec);
+    return SCTIME_FROM_TIMEVAL(&tv);
 }
 
 #ifdef UNITTESTS
@@ -183,13 +179,11 @@ void TimeGet(struct timeval *tv)
  *  \param tv_sec seconds to increment the time with */
 void TimeSetIncrementTime(uint32_t tv_sec)
 {
-    struct timeval tv;
-    memset(&tv, 0x00, sizeof(tv));
-    TimeGet(&tv);
+    SCTime_t ts = TimeGet();
 
-    tv.tv_sec += tv_sec;
+    ts += SCTIME_FROM_SECS(tv_sec);
 
-    TimeSet(&tv);
+    TimeSet(ts);
 }
 #endif
 
@@ -198,7 +192,7 @@ void TimeSetIncrementTime(uint32_t tv_sec)
  *  \brief wrapper around strftime on Windows to provide output
  *         compatible with posix %z
  */
-static inline void WinStrftime(const struct timeval *ts, const struct tm *t, char *str, size_t size)
+static inline void WinStrftime(const SCTime_t ts, const struct tm *t, char *str, size_t size)
 {
     char time_fmt[64] = { 0 };
     char tz[6] = { 0 };
@@ -207,14 +201,14 @@ static inline void WinStrftime(const struct timeval *ts, const struct tm *t, cha
     const int m = (abs(_timezone) % 3600) / 60;
     snprintf(tz, sizeof(tz), "%c%02d%02d", tzdiff < 0 ? '-' : '+', h, m);
     strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06u", t);
-    snprintf(str, size, time_fmt, ts->tv_usec);
+    snprintf(str, size, time_fmt, SCTIME_USECS(ts));
     strlcat(str, tz, size); // append our timezone
 }
 #endif
 
-void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
+void CreateIsoTimeString(const SCTime_t ts, char *str, size_t size)
 {
-    time_t time = ts->tv_sec;
+    time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
@@ -224,7 +218,7 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
         WinStrftime(ts, t, str, size);
 #else
         char time_fmt[64] = { 0 };
-        int64_t usec = ts->tv_usec;
+        int64_t usec = SCTIME_USECS(ts);
         strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06" PRIi64 "%z", t);
         snprintf(str, size, time_fmt, usec);
 #endif
@@ -233,9 +227,9 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     }
 }
 
-void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
+void CreateUtcIsoTimeString(const SCTime_t ts, char *str, size_t size)
 {
-    time_t time = ts->tv_sec;
+    time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
@@ -243,7 +237,7 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
     if (likely(t != NULL)) {
         char time_fmt[64] = { 0 };
         strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
-        snprintf(str, size, time_fmt, ts->tv_usec);
+        snprintf(str, size, time_fmt, SCTIME_USECS(ts));
     } else {
         snprintf(str, size, "ts-error");
     }
@@ -275,16 +269,15 @@ struct tm *SCLocalTime(time_t timep, struct tm *result)
     return localtime_r(&timep, result);
 }
 
-void CreateTimeString (const struct timeval *ts, char *str, size_t size)
+void CreateTimeString(const SCTime_t ts, char *str, size_t size)
 {
-    time_t time = ts->tv_sec;
+    time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
 
     if (likely(t != NULL)) {
-        snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-                t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-                t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+        snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u", t->tm_mon + 1, t->tm_mday,
+                t->tm_year + 1900, t->tm_hour, t->tm_min, t->tm_sec, (uint32_t)SCTIME_USECS(ts));
     } else {
         snprintf(str, size, "ts-error");
     }
@@ -393,12 +386,12 @@ static int UpdateCachedTime(int n, time_t time)
 /** \brief Return a formatted string for the provided time.
  *
  * Cache the Month/Day/Year - Hours:Min part of the time string for
- * the current minute. Copy that result into the the return string and
+ * the current minute. Copy that result into the return string and
  * then only print the seconds for each call.
  */
-void CreateTimeString (const struct timeval *ts, char *str, size_t size)
+void CreateTimeString(const SCTime_t ts, char *str, size_t size)
 {
-    time_t time = ts->tv_sec;
+    time_t time = SCTIME_SECS(ts);
     int seconds;
 
     /* Only get a new local time when the time crosses into a new
@@ -431,9 +424,7 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     if (cached_len >= (int)size)
       cached_len = size;
     memcpy(str, cached_str, cached_len);
-    snprintf(str + cached_len, size - cached_len,
-             "%02d.%06u",
-             seconds, (uint32_t) ts->tv_usec);
+    snprintf(str + cached_len, size - cached_len, "%02d.%06u", seconds, (uint32_t)SCTIME_USECS(ts));
 }
 
 #endif /* defined(__OpenBSD__) */
@@ -652,5 +643,5 @@ uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
 
 uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1)
 {
-    return (uint64_t)(t1.tv_sec - t0.tv_sec) * 1000000 + (t1.tv_usec - t1.tv_usec);
+    return (uint64_t)(t1.tv_sec - t0.tv_sec) * 1000000L + (t1.tv_usec - t1.tv_usec);
 }

@@ -165,7 +165,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     if (unlikely(p == NULL))
         return NULL;
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -251,9 +251,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     if (unlikely(p == NULL))
         return NULL;
 
-    struct timeval tv;
-    TimeGet(&tv);
-    COPY_TIMESTAMP(&tv, &p->ts);
+    p->ts = TimeGet();
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;

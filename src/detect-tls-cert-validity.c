@@ -186,11 +186,9 @@ static int DetectTlsValidityMatch (DetectEngineThreadCtx *det_ctx,
     else if ((dd->mode & DETECT_TLS_VALIDITY_RA) &&
             cert_epoch >= dd->epoch && cert_epoch <= dd->epoch2)
         ret = 1;
-    else if ((dd->mode & DETECT_TLS_VALIDITY_EX) &&
-            f->lastts.tv_sec > cert_epoch)
+    else if ((dd->mode & DETECT_TLS_VALIDITY_EX) && (time_t)SCTIME_SECS(f->lastts) > cert_epoch)
         ret = 1;
-    else if ((dd->mode & DETECT_TLS_VALIDITY_VA) &&
-            f->lastts.tv_sec <= cert_epoch)
+    else if ((dd->mode & DETECT_TLS_VALIDITY_VA) && (time_t)SCTIME_SECS(f->lastts) <= cert_epoch)
         ret = 1;
 
     SCReturnInt(ret);

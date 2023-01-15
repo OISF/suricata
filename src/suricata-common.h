@@ -497,6 +497,7 @@ typedef void lua_State;
 
 #include "tm-threads-common.h"
 #include "util-optimize.h"
+#include "util-time.h"
 #include "util-mem.h"
 #include "util-memcmp.h"
 #include "util-atomic.h"

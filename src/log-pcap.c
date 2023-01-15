@@ -594,8 +594,8 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     PcapLogLock(pl);
 
     pl->pkt_cnt++;
-    pl->h->ts.tv_sec = p->ts.tv_sec;
-    pl->h->ts.tv_usec = p->ts.tv_usec;
+    pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
+    pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         rp = p->root;
         pl->h->caplen = GET_PKT_LEN(rp);
@@ -618,7 +618,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;
-        struct tm *tms = SCLocalTime(p->ts.tv_sec, &local_tm);
+        struct tm *tms = SCLocalTime(SCTIME_SECS(p->ts), &local_tm);
         if (tms->tm_mday != pl->prev_day) {
             rotate = 1;
             pl->prev_day = tms->tm_mday;
@@ -681,8 +681,8 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             }
 
             /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
-            pl->h->ts.tv_sec = p->ts.tv_sec;
-            pl->h->ts.tv_usec = p->ts.tv_usec;
+            pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
+            pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
             if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
                 rp = p->root;
                 pl->h->caplen = GET_PKT_LEN(rp);
@@ -1074,11 +1074,9 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
         td->pcap_log->file_cnt = 1;
     }
 
-    struct timeval ts;
-    memset(&ts, 0x00, sizeof(struct timeval));
-    TimeGet(&ts);
+    SCTime_t ts = TimeGet();
     struct tm local_tm;
-    struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
+    struct tm *tms = SCLocalTime(SCTIME_SECS(ts), &local_tm);
     td->pcap_log->prev_day = tms->tm_mday;
 
     PcapLogUnlock(td->pcap_log);
@@ -1712,9 +1710,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     }
 
     /** get the time so we can have a filename with seconds since epoch */
-    struct timeval ts;
-    memset(&ts, 0x00, sizeof(struct timeval));
-    TimeGet(&ts);
+    SCTime_t ts = TimeGet();
 
     /* Place to store the name of our PCAP file */
     PcapFileName *pf = SCMalloc(sizeof(PcapFileName));
@@ -1725,7 +1721,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;
-        struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
+        struct tm *tms = SCLocalTime(SCTIME_SECS(ts), &local_tm);
 
         char dirname[32], dirfull[PATH_MAX] = "";
 
@@ -1750,12 +1746,11 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
 
         int written;
         if (pl->timestamp_format == TS_FORMAT_SEC) {
-            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s",
-                     dirfull, pl->prefix, (uint32_t)ts.tv_sec, pl->suffix);
+            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s", dirfull, pl->prefix,
+                    (uint32_t)SCTIME_SECS(ts), pl->suffix);
         } else {
-            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32 "%s",
-                     dirfull, pl->prefix, (uint32_t)ts.tv_sec,
-                     (uint32_t)ts.tv_usec, pl->suffix);
+            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32 "%s", dirfull,
+                    pl->prefix, (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts), pl->suffix);
         }
         if (written == PATH_MAX) {
             SCLogError("log-pcap path overflow");
@@ -1765,12 +1760,11 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         int ret;
         /* create the filename to use */
         if (pl->timestamp_format == TS_FORMAT_SEC) {
-            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s", pl->dir,
-                    pl->prefix, (uint32_t)ts.tv_sec, pl->suffix);
+            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s", pl->dir, pl->prefix,
+                    (uint32_t)SCTIME_SECS(ts), pl->suffix);
         } else {
-            ret = snprintf(filename, PATH_MAX,
-                    "%s/%s.%" PRIu32 ".%" PRIu32 "%s", pl->dir, pl->prefix,
-                    (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec, pl->suffix);
+            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32 "%s", pl->dir,
+                    pl->prefix, (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts), pl->suffix);
         }
         if (ret < 0 || (size_t)ret >= PATH_MAX) {
             SCLogError("failed to construct path");
@@ -1807,10 +1801,10 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                         case 't':
                         /* create the filename to use */
                         if (pl->timestamp_format == TS_FORMAT_SEC) {
-                            snprintf(str, sizeof(str), "%"PRIu32, (uint32_t)ts.tv_sec);
+                            snprintf(str, sizeof(str), "%" PRIu32, (uint32_t)SCTIME_SECS(ts));
                         } else {
-                            snprintf(str, sizeof(str), "%"PRIu32".%"PRIu32,
-                                    (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+                            snprintf(str, sizeof(str), "%" PRIu32 ".%" PRIu32,
+                                    (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts));
                         }
                     }
                     strlcat(filename, str, PATH_MAX);
@@ -1825,14 +1819,12 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
             int ret;
             /* create the filename to use */
             if (pl->timestamp_format == TS_FORMAT_SEC) {
-                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 "%s",
-                        pl->dir, pl->prefix, pl->thread_number,
-                        (uint32_t)ts.tv_sec, pl->suffix);
+                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 "%s", pl->dir, pl->prefix,
+                        pl->thread_number, (uint32_t)SCTIME_SECS(ts), pl->suffix);
             } else {
-                ret = snprintf(filename, PATH_MAX,
-                        "%s/%s.%u.%" PRIu32 ".%" PRIu32 "%s", pl->dir,
-                        pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec,
-                        (uint32_t)ts.tv_usec, pl->suffix);
+                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32 "%s", pl->dir,
+                        pl->prefix, pl->thread_number, (uint32_t)SCTIME_SECS(ts),
+                        (uint32_t)SCTIME_USECS(ts), pl->suffix);
             }
             if (ret < 0 || (size_t)ret >= PATH_MAX) {
                 SCLogError("failed to construct path");
