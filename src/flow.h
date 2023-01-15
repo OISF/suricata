@@ -28,6 +28,7 @@
 typedef struct FlowStorageId FlowStorageId;
 
 #include "decode.h"
+#include "util-time.h"
 #include "util-exception-policy.h"
 #include "util-var.h"
 #include "util-optimize.h"
@@ -414,7 +415,7 @@ typedef struct Flow_
     /* time stamp of last update (last packet). Set/updated under the
      * flow and flow hash row locks, safe to read under either the
      * flow lock or flow hash row lock. */
-    struct timeval lastts;
+    SCTime_t lastts;
 
     /* end of flow "header" */
 
@@ -500,7 +501,7 @@ typedef struct Flow_
 
     struct FlowBucket_ *fb;
 
-    struct timeval startts;
+    SCTime_t startts;
 
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
@@ -701,8 +702,8 @@ static inline void FlowDeReference(Flow **d)
  */
 static inline int64_t FlowGetId(const Flow *f)
 {
-    int64_t id = (uint64_t)(f->startts.tv_sec & 0x0000FFFF) << 48 |
-                 (uint64_t)(f->startts.tv_usec & 0x0000FFFF) << 32 | (int64_t)f->flow_hash;
+    int64_t id = (uint64_t)(SCTIME_SECS(f->startts) & 0x0000FFFF) << 48 |
+                 (uint64_t)(f->startts & 0x0000FFFF) << 32 | (int64_t)f->flow_hash;
     /* reduce to 51 bits as Javascript and even JSON often seem to
      * max out there. */
     id &= 0x7ffffffffffffLL;

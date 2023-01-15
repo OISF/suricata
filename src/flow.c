@@ -418,9 +418,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
 #endif
         /* update the last seen timestamp of this flow */
-        if (timercmp(&p->ts, &f->lastts, >)) {
-            COPY_TIMESTAMP(&p->ts, &f->lastts);
-            const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + f->timeout_policy;
+        if (SCTIME_CMP_GT(p->ts, f->lastts)) {
+            f->lastts = p->ts;
+            const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->lastts) + f->timeout_policy;
             if (timeout_at != f->timeout_at) {
                 f->timeout_at = timeout_at;
             }
@@ -428,9 +428,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 #ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
-        if (p->ts.tv_sec - f->lastts.tv_sec > FLOW_BYPASSED_TIMEOUT / 2) {
+        if (SCTIME_SECS(p->ts) - SCTIME_SECS(f->lastts) > FLOW_BYPASSED_TIMEOUT / 2) {
             SCLogDebug("Downgrading flow to local bypass");
-            COPY_TIMESTAMP(&p->ts, &f->lastts);
+            f->lastts = p->ts;
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
         } else {
             /* In IPS mode the packet could come from the other interface so it would
@@ -1182,7 +1182,7 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
         if (timeout_policy != f->timeout_policy) {
             f->timeout_policy = timeout_policy;
-            const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + timeout_policy;
+            const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->lastts) + timeout_policy;
             if (timeout_at != f->timeout_at)
                 f->timeout_at = timeout_at;
         }
@@ -1207,8 +1207,8 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
  */
 void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
 {
-    *secs = (uint64_t)flow->lastts.tv_sec;
-    *usecs = (uint64_t)flow->lastts.tv_usec;
+    *secs = (uint64_t)SCTIME_SECS(flow->lastts);
+    *usecs = (uint64_t)SCTIME_USECS(flow->lastts);
 }
 
 /**

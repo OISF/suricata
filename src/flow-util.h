@@ -56,8 +56,7 @@
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \
-        (f)->lastts.tv_sec = 0;                                                                    \
-        (f)->lastts.tv_usec = 0;                                                                   \
+        (f)->lastts = 0;                                                                           \
         FLOWLOCK_INIT((f));                                                                        \
         (f)->protoctx = NULL;                                                                      \
         (f)->flow_end_flags = 0;                                                                   \
@@ -103,8 +102,7 @@
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \
-        (f)->lastts.tv_sec = 0;                                                                    \
-        (f)->lastts.tv_usec = 0;                                                                   \
+        (f)->lastts = 0;                                                                           \
         (f)->protoctx = NULL;                                                                      \
         (f)->flow_end_flags = 0;                                                                   \
         (f)->alparser = NULL;                                                                      \

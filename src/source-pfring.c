@@ -234,8 +234,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
         gettimeofday((struct timeval *)&h->ts, NULL);
     }
 
-    p->ts.tv_sec = h->ts.tv_sec;
-    p->ts.tv_usec = h->ts.tv_usec;
+    p->ts = SCTIME_FROM_TIMEVAL(&h->ts);
 
     /* PF_RING all packets are marked as a link type of ethernet
      * so that is what we do here. */
@@ -423,9 +422,9 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             }
 
             /* Trigger one dump of stats every second */
-            if (p->ts.tv_sec != last_dump) {
+            if (SCTIME_SECS(p->ts) != last_dump) {
                 PfringDumpCounters(ptv);
-                last_dump = p->ts.tv_sec;
+                last_dump = SCTIME_SECS(p->ts);
             }
         } else if (unlikely(r == 0)) {
             if (suricata_ctl_flags & SURICATA_STOP) {

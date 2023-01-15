@@ -178,9 +178,11 @@ void DPDKSetTimevalOfMachineStart(void)
  * @param machine_start_tv - timestamp when the machine was started
  * @param real_tv
  */
-static void DPDKSetTimevalReal(struct timeval *machine_start_tv, struct timeval *real_tv)
+static SCTime_t DPDKSetTimevalReal(struct timeval *machine_start_tv)
 {
-    CyclesAddToTimeval(rte_get_tsc_cycles(), machine_start_tv, real_tv);
+    struct timeval real_tv;
+    CyclesAddToTimeval(rte_get_tsc_cycles(), machine_start_tv, &real_tv);
+    return SCTIME_FROM_TIMEVAL(&real_tv);
 }
 
 /* get number of seconds from the reset of TSC counter (typically from the machine start) */
@@ -377,7 +379,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
 
-            DPDKSetTimevalReal(&machine_start_time, &p->ts);
+            p->ts = DPDKSetTimevalReal(&machine_start_time);
             p->dpdk_v.mbuf = ptv->received_mbufs[i];
             p->ReleasePacket = DPDKReleasePacket;
             p->dpdk_v.copy_mode = ptv->copy_mode;

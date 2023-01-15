@@ -162,7 +162,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
 
     MemBufferReset(aft->buffer);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     MemBufferWriteString(aft->buffer, "+================\n"
                          "TIME:              %s\n", timebuf);
@@ -206,7 +206,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
     if (p->flow != NULL) {
         int applayer = 0;
         applayer = StreamTcpAppLayerIsDisabled(p->flow);
-        CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
+        CreateTimeString(p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
         MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n"
                              "FLOW PKTS TOSRC:   %"PRIu32"\n"
@@ -324,7 +324,7 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
 
     MemBufferReset(aft->buffer);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     MemBufferWriteString(aft->buffer,
                          "+================\n"

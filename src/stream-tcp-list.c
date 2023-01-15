@@ -566,8 +566,8 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, const Packet *pp)
 {
     if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > pp->payload_len) {
-        seg->pcap_hdr_storage->ts.tv_sec = rp->ts.tv_sec;
-        seg->pcap_hdr_storage->ts.tv_usec = rp->ts.tv_usec;
+        seg->pcap_hdr_storage->ts.tv_sec = SCTIME_SECS(rp->ts);
+        seg->pcap_hdr_storage->ts.tv_usec = SCTIME_USECS(rp->ts);
         seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - pp->payload_len;
         /*
          * pkt_hdr members are initially allocated 64 bytes of memory. Thus,

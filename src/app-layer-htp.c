@@ -839,7 +839,8 @@ static int Setup(Flow *f, HtpState *hstate)
 
     SCLogDebug("New hstate->connp %p", hstate->connp);
 
-    htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
+    struct timeval tv = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
+    htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &tv);
 
     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
             htp_cfg_rec->request.inspect_min_size);
@@ -882,7 +883,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
-    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
     /* pass the new data to the htp parser */
     if (input_len > 0) {
         const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
@@ -949,7 +950,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
     hstate->slice = &stream_slice;
 
-    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
     htp_tx_t *tx = NULL;
     size_t consumed = 0;
     if (input_len > 0) {

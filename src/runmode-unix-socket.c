@@ -1285,11 +1285,10 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
 
     SCLogInfo("add-hostbit: ip %s hostbit %s expire %us", ipaddress, hostbit, expire);
 
-    struct timeval current_time;
-    TimeGet(&current_time);
+    SCTime_t current_time = TimeGet();
     Host *host = HostGetHostFromHash(&a);
     if (host) {
-        HostBitSet(host, idx, current_time.tv_sec + expire);
+        HostBitSet(host, idx, SCTIME_SECS(current_time) + expire);
         HostUnlock(host);
 
         json_object_set_new(answer, "message", json_string("hostbit added"));
@@ -1415,9 +1414,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 
     SCLogInfo("list-hostbit: %s", ipaddress);
 
-    struct timeval ts;
-    memset(&ts, 0, sizeof(ts));
-    TimeGet(&ts);
+    SCTime_t ts = TimeGet();
 
     struct Bit {
         uint32_t id;
@@ -1457,8 +1454,8 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
         if (bitobject == NULL)
             continue;
         uint32_t expire = 0;
-        if ((uint32_t)ts.tv_sec < bits[i].expire)
-            expire = bits[i].expire - (uint32_t)ts.tv_sec;
+        if ((uint32_t)SCTIME_SECS(ts) < bits[i].expire)
+            expire = bits[i].expire - (uint32_t)SCTIME_SECS(ts);
 
         const char *name = VarNameStoreLookupById(bits[i].id, VAR_TYPE_HOST_BIT);
         if (name == NULL)
@@ -1654,7 +1651,7 @@ TmEcode UnixSocketGetFlowStatsById(json_t *cmd, json_t *answer, void *data)
     uint32_t todstpktcnt = f->todstpktcnt;
     uint64_t tosrcbytecnt = f->tosrcbytecnt;
     uint64_t todstbytecnt = f->todstbytecnt;
-    uint64_t age = f->lastts.tv_sec - f->startts.tv_sec;
+    uint64_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
     FLOWLOCK_UNLOCK(f);
 
     json_t *flow_info = json_object();

@@ -673,13 +673,9 @@ static int DetectThresholdTestSig3(void)
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
-    struct timeval ts;
     DetectThresholdEntry *lookup_tsh = NULL;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -700,7 +696,7 @@ static int DetectThresholdTestSig3(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -720,7 +716,7 @@ static int DetectThresholdTestSig3(void)
     HostRelease(host);
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -778,12 +774,8 @@ static int DetectThresholdTestSig4(void)
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -804,7 +796,7 @@ static int DetectThresholdTestSig4(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -813,7 +805,7 @@ static int DetectThresholdTestSig4(void)
     alerts += PacketAlertCheck(p, 10);
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1022,12 +1014,8 @@ static int DetectThresholdTestSig7(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1048,7 +1036,7 @@ static int DetectThresholdTestSig7(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1065,7 +1053,7 @@ static int DetectThresholdTestSig7(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1116,12 +1104,8 @@ static int DetectThresholdTestSig8(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1142,7 +1126,7 @@ static int DetectThresholdTestSig8(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1159,7 +1143,7 @@ static int DetectThresholdTestSig8(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1210,12 +1194,8 @@ static int DetectThresholdTestSig9(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1236,7 +1216,7 @@ static int DetectThresholdTestSig9(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1253,7 +1233,7 @@ static int DetectThresholdTestSig9(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1304,12 +1284,8 @@ static int DetectThresholdTestSig10(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1330,7 +1306,7 @@ static int DetectThresholdTestSig10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1347,7 +1323,7 @@ static int DetectThresholdTestSig10(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1398,12 +1374,8 @@ static int DetectThresholdTestSig11(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1424,7 +1396,7 @@ static int DetectThresholdTestSig11(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1441,7 +1413,7 @@ static int DetectThresholdTestSig11(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1492,12 +1464,8 @@ static int DetectThresholdTestSig12(void)
     int result = 0;
     int alerts = 0;
     int drops = 0;
-    struct timeval ts;
 
     HostInitConfig(HOST_QUIET);
-
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1518,7 +1486,7 @@ static int DetectThresholdTestSig12(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
@@ -1535,7 +1503,7 @@ static int DetectThresholdTestSig12(void)
     p->action = 0;
 
     TimeSetIncrementTime(200);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
@@ -1621,7 +1589,7 @@ static int DetectThresholdTestSig13(void)
     FAIL_IF(alerts != 2);
 
     TimeSetIncrementTime(70);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
@@ -1704,9 +1672,8 @@ static int DetectThresholdTestSig14(void)
     FAIL_IF(alerts1 != 2);
     FAIL_IF(alerts2 != 2);
 
-    TimeSetIncrementTime(70);
-    TimeGet(&p1->ts);
-    TimeGet(&p2->ts);
+    p1->ts = TimeGet();
+    p2->ts = TimeGet();
 
     /* Now they should both alert again after previous alerts expire */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);

@@ -31,7 +31,7 @@ void HostBitInitCtx(void);
 void HostBitRegisterTests(void);
 
 int HostHasHostBits(Host *host);
-int HostBitsTimedoutCheck(Host *h, struct timeval *ts);
+int HostBitsTimedoutCheck(Host *h, SCTime_t ts);
 
 void HostBitSet(Host *, uint32_t, uint32_t);
 void HostBitUnset(Host *, uint32_t);

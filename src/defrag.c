@@ -628,7 +628,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
     /* Update timeout. */
-    tracker->timeout = TimevalWithSeconds(&p->ts, tracker->host_timeout);
+    tracker->timeout = SCTIME_SECS(p->ts) + tracker->host_timeout;
 
     Frag *prev = NULL, *next = NULL;
     bool overlap = false;
@@ -1104,7 +1104,9 @@ static Packet *BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
 
     PacketInit(p);
 
-    gettimeofday(&p->ts, NULL);
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+    p->ts = SCTIME_FROM_TIMEVAL(&tval);
     //p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     ip4h.ip_verhl = 4 << 4;
     ip4h.ip_verhl |= hlen >> 2;
@@ -1174,7 +1176,9 @@ static Packet *IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off,
 
     PacketInit(p);
 
-    gettimeofday(&p->ts, NULL);
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+    p->ts = SCTIME_FROM_TIMEVAL(&tval);
 
     ip6h.s_ip6_nxt = 44;
     ip6h.s_ip6_hlim = 2;
@@ -2104,7 +2108,7 @@ static int DefragTimeoutTest(void)
     Packet *p = BuildTestPacket(IPPROTO_ICMP, 99, 0, 1, 'A' + i, 16);
     FAIL_IF_NULL(p);
 
-    p->ts.tv_sec += (defrag_context->timeout + 1);
+    p->ts += SCTIME_FROM_SECS(defrag_context->timeout + 1);
     Packet *tp = Defrag(NULL, NULL, p);
     FAIL_IF_NOT_NULL(tp);
 

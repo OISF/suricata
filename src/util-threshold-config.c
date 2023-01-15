@@ -1635,10 +1635,6 @@ static int SCThresholdConfTest09(void)
 
     HostInitConfig(HOST_QUIET);
 
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     FAIL_IF_NULL(p);
 
@@ -1660,7 +1656,7 @@ static int SCThresholdConfTest09(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1675,7 +1671,7 @@ static int SCThresholdConfTest09(void)
     FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
 
     TimeSetIncrementTime(2);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     p->alerts.cnt = 0;
     p->action = 0;
@@ -1683,7 +1679,7 @@ static int SCThresholdConfTest09(void)
     FAIL_IF(p->alerts.cnt != 1 || !(PacketTestAction(p, ACTION_DROP)));
 
     TimeSetIncrementTime(3);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     p->alerts.cnt = 0;
     p->action = 0;
@@ -1691,7 +1687,7 @@ static int SCThresholdConfTest09(void)
     FAIL_IF(p->alerts.cnt != 1 || !(PacketTestAction(p, ACTION_DROP)));
 
     TimeSetIncrementTime(10);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     p->alerts.cnt = 0;
     p->action = 0;
@@ -1719,10 +1715,6 @@ static int SCThresholdConfTest09(void)
 static int SCThresholdConfTest10(void)
 {
     HostInitConfig(HOST_QUIET);
-
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     /* Create two different packets falling to the same rule, and
     *  because count:3, we should drop on match #4.
@@ -1753,7 +1745,7 @@ static int SCThresholdConfTest10(void)
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     p2->ts = p1->ts;
 
     /* All should be alerted, none dropped */
@@ -1777,7 +1769,7 @@ static int SCThresholdConfTest10(void)
     p2->action = 0;
 
     TimeSetIncrementTime(2);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
 
     /* Still dropped because timeout not expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -1786,7 +1778,7 @@ static int SCThresholdConfTest10(void)
     p1->action = 0;
 
     TimeSetIncrementTime(10);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
 
     /* Not dropped because timeout expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -1813,10 +1805,6 @@ static int SCThresholdConfTest10(void)
 static int SCThresholdConfTest11(void)
 {
     HostInitConfig(HOST_QUIET);
-
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1847,7 +1835,7 @@ static int SCThresholdConfTest11(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     int alerts10 = 0;
     int alerts11 = 0;
@@ -1875,14 +1863,14 @@ static int SCThresholdConfTest11(void)
     alerts12 += PacketAlertCheck(p, 12);
 
     TimeSetIncrementTime(100);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts10 += PacketAlertCheck(p, 10);
     alerts11 += PacketAlertCheck(p, 11);
 
     TimeSetIncrementTime(10);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts10 += PacketAlertCheck(p, 10);
@@ -1923,10 +1911,6 @@ static int SCThresholdConfTest12(void)
 {
     HostInitConfig(HOST_QUIET);
 
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     FAIL_IF_NULL(p);
 
@@ -1956,7 +1940,7 @@ static int SCThresholdConfTest12(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     int alerts10 = 0;
     int alerts11 = 0;
@@ -1984,14 +1968,14 @@ static int SCThresholdConfTest12(void)
     alerts12 += PacketAlertCheck(p, 12);
 
     TimeSetIncrementTime(100);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts10 += PacketAlertCheck(p, 10);
     alerts11 += PacketAlertCheck(p, 11);
 
     TimeSetIncrementTime(10);
-    TimeGet(&p->ts);
+    p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts10 += PacketAlertCheck(p, 10);
@@ -2090,10 +2074,6 @@ static int SCThresholdConfTest14(void)
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
 
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
@@ -2141,10 +2121,6 @@ static int SCThresholdConfTest15(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
             "drop tcp any any -> any any (msg:\"suppress test\"; content:\"lalala\"; gid:1; sid:10000;)");
@@ -2194,10 +2170,6 @@ static int SCThresholdConfTest16(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     Signature *sig = DetectEngineAppendSig(de_ctx,
             "drop tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:1000;)");
     FAIL_IF_NULL(sig);
@@ -2244,10 +2216,6 @@ static int SCThresholdConfTest17(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
             "drop tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:10000;)");
@@ -2517,10 +2485,6 @@ static int SCThresholdConfTest22(void)
 
     IPPairInitConfig(IPPAIR_QUIET);
 
-    struct timeval ts;
-    memset(&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     /* This packet will cause rate_filter */
     Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
     FAIL_IF_NULL(p1);
@@ -2551,7 +2515,7 @@ static int SCThresholdConfTest22(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     p2->ts = p3->ts = p1->ts;
 
     /* All should be alerted, none dropped */
@@ -2570,7 +2534,7 @@ static int SCThresholdConfTest22(void)
     p1->action = p2->action = p3->action = 0;
 
     TimeSetIncrementTime(2);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     p2->ts = p3->ts = p1->ts;
 
     /* p1 still shouldn't be dropped after 2nd alert */
@@ -2581,7 +2545,7 @@ static int SCThresholdConfTest22(void)
     p1->action = 0;
 
     TimeSetIncrementTime(2);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     p2->ts = p3->ts = p1->ts;
 
     /* All should be alerted, only p1 must be dropped  due to rate_filter*/
@@ -2600,7 +2564,7 @@ static int SCThresholdConfTest22(void)
     p1->action = p2->action = p3->action = 0;
 
     TimeSetIncrementTime(7);
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     p2->ts = p3->ts = p1->ts;
 
     /* All should be alerted, none dropped (because timeout expired) */
@@ -2658,10 +2622,6 @@ static int SCThresholdConfTest23(void)
 
     IPPairInitConfig(IPPAIR_QUIET);
 
-    struct timeval ts;
-    memset(&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
-
     /* Create two packets between same addresses in opposite direction */
     Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
     FAIL_IF_NULL(p1);
@@ -2687,14 +2647,14 @@ static int SCThresholdConfTest23(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p1->ts);
+    p1->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     /* First packet should be alerted, not dropped */
     FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     TimeSetIncrementTime(2);
-    TimeGet(&p2->ts);
+    p2->ts = TimeGet();
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
     /* Second packet should be dropped because it considered as "the same pair"

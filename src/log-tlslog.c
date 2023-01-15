@@ -293,10 +293,8 @@ static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
 static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
 {
     char timebuf[64] = {0};
-    struct timeval tv;
-    tv.tv_sec = *date;
-    tv.tv_usec = 0;
-    CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+    const SCTime_t ts = SCTIME_FROM_SECS(*date);
+    CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
     MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
 }
 
@@ -306,9 +304,8 @@ static void LogTlsLogString(MemBuffer *buffer, const char *title,
     MemBufferWriteString(buffer, "%s='%s'", title, value);
 }
 
-static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state,
-                           const struct timeval *ts, char *srcip, Port sp,
-                           char *dstip, Port dp)
+static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state, const SCTime_t ts,
+        char *srcip, Port sp, char *dstip, Port dp)
 {
     char timebuf[64];
     CreateTimeString(ts, timebuf, sizeof(timebuf));
@@ -338,9 +335,8 @@ static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state,
     }
 }
 
-static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state,
-                              const struct timeval *ts, char *srcip, Port sp,
-                              char *dstip, Port dp)
+static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const SCTime_t ts,
+        char *srcip, Port sp, char *dstip, Port dp)
 {
     if (ssl_state->server_connp.cert0_fingerprint != NULL) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
@@ -373,9 +369,8 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state,
 }
 
 /* Custom format logging */
-static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
-                            const struct timeval *ts, char *srcip, Port sp,
-                            char *dstip, Port dp)
+static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const SCTime_t ts,
+        char *srcip, Port sp, char *dstip, Port dp)
 {
     LogTlsFileCtx *tlslog_ctx = aft->tlslog_ctx;
     uint32_t i;
@@ -398,12 +393,10 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
                 break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
-                PrintRawUriBuf((char *)aft->buffer->buffer,
-                               &aft->buffer->offset,
-                               aft->buffer->size, (uint8_t *)buf,
-                               MIN(strlen(buf),6));
-                break;
+            snprintf(buf, sizeof(buf), "%06u", (unsigned int)SCTIME_USECS(ts));
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                    (uint8_t *)buf, MIN(strlen(buf), 6));
+            break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
                 PrintRawUriBuf((char *)aft->buffer->buffer,
@@ -513,12 +506,12 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     MemBufferReset(aft->buffer);
 
     if (hlog->flags & LOG_TLS_CUSTOM) {
-        LogTlsLogCustom(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
+        LogTlsLogCustom(aft, ssl_state, p->ts, srcip, sp, dstip, dp);
     } else if (hlog->flags & LOG_TLS_EXTENDED) {
-        LogTlsLogBasic(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
-        LogTlsLogExtended(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
+        LogTlsLogBasic(aft, ssl_state, p->ts, srcip, sp, dstip, dp);
+        LogTlsLogExtended(aft, ssl_state, p->ts, srcip, sp, dstip, dp);
     } else {
-        LogTlsLogBasic(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
+        LogTlsLogBasic(aft, ssl_state, p->ts, srcip, sp, dstip, dp);
     }
 
     MemBufferWriteString(aft->buffer, "\n");

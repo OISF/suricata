@@ -24,7 +24,7 @@
 #ifndef __HOST_TIMEOUT_H__
 #define __HOST_TIMEOUT_H__
 
-uint32_t HostTimeoutHash(struct timeval *ts);
+uint32_t HostTimeoutHash(SCTime_t ts);
 
 uint32_t HostGetSpareCount(void);
 uint32_t HostGetActiveCount(void);

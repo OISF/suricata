@@ -960,7 +960,7 @@ static int ExpiredTestDetect01(void)
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
     p3->pcap_cnt = 3;
 
-    f.lastts.tv_sec = 1474978656; /* 2016-09-27 */
+    f.lastts = SCTIME_FROM_SECS(1474978656L); /* 2016-09-27 */
 
     StreamTcpInitConfig(true);
 
@@ -1268,7 +1268,7 @@ static int ValidTestDetect01(void)
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
     p3->pcap_cnt = 3;
 
-    f.lastts.tv_sec = 1474978656; /* 2016-09-27 */
+    f.lastts = SCTIME_FROM_SECS(1474978656L); /* 2016-09-27 */
 
     StreamTcpInitConfig(true);
 
