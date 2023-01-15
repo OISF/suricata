@@ -161,10 +161,9 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
 
     if (ctx->fileinfo) {
         char js_metadata_filename[PATH_MAX];
-        if (snprintf(js_metadata_filename, sizeof(js_metadata_filename),
-                        "%s.%"PRIuMAX".%u.json", final_filename,
-                        (uintmax_t)p->ts.tv_sec, ff->file_store_id)
-                == (int)sizeof(js_metadata_filename)) {
+        if (snprintf(js_metadata_filename, sizeof(js_metadata_filename), "%s.%" PRIuMAX ".%u.json",
+                    final_filename, (uintmax_t)SCTIME_SECS(p->ts),
+                    ff->file_store_id) == (int)sizeof(js_metadata_filename)) {
             WARN_ONCE(WOT_SNPRINTF, "Failed to write file info record. Output filename truncated.");
         } else {
             JsonBuilder *js_fileinfo =

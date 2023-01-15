@@ -173,7 +173,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
 
     char timebuf[64];
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
         /* decoder event */
@@ -243,7 +243,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         goto not_supported;
     }
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);

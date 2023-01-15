@@ -263,7 +263,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
 
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = p->ts.tv_sec;
+        iter->last_ts = SCTIME_SECS(p->ts);
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
@@ -385,7 +385,7 @@ static void TagHandlePacketHost(Host *host, Packet *p)
     prev = NULL;
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = p->ts.tv_sec;
+        iter->last_ts = SCTIME_SECS(p->ts);
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
@@ -542,7 +542,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
  * \retval 1 no tags or tags removed -- host is free to go (from tag perspective)
  * \retval 0 still active tags
  */
-int TagTimeoutCheck(Host *host, struct timeval *tv)
+int TagTimeoutCheck(Host *host, SCTime_t ts)
 {
     DetectTagDataEntry *tde = NULL;
     DetectTagDataEntry *tmp = NULL;
@@ -555,9 +555,8 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
 
     prev = NULL;
     while (tmp != NULL) {
-        struct timeval last_ts = { .tv_sec = tmp->last_ts, 0 };
-        struct timeval timeout_at = TimevalWithSeconds(&last_ts, TAG_MAX_LAST_TIME_SEEN);
-        if (!TimevalEarlier(&timeout_at, tv)) {
+        SCTime_t timeout_at = SCTIME_FROM_SECS(tmp->last_ts + TAG_MAX_LAST_TIME_SEEN);
+        if (timeout_at >= ts) {
             prev = tmp;
             tmp = tmp->next;
             retval = 0;
@@ -759,7 +758,7 @@ static int DetectTagTestPacket02 (void)
     int i = 0;
     for (; i < num_packets; i++) {
         SCLogDebug("packet %d", i);
-        TimeGet(&p[i]->ts);
+        p[i]->ts = TimeGet();
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
         FAIL_IF(UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0);
 
@@ -1097,7 +1096,7 @@ static int DetectTagTestPacket05 (void)
         p[i]->flow->protoctx = &ssn;
 
         SCLogDebug("packet %d", i);
-        TimeGet(&p[i]->ts);
+        p[i]->ts = TimeGet();
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
 
         FAIL_IF(UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0);

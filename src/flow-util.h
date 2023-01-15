@@ -36,43 +36,43 @@
         (f)->tosrcbytecnt = 0; \
     } while (0)
 
-#define FLOW_INITIALIZE(f) do { \
-        (f)->sp = 0; \
-        (f)->dp = 0; \
-        (f)->proto = 0; \
-        (f)->livedev = NULL; \
-        (f)->timeout_at = 0; \
-        (f)->timeout_policy = 0; \
-        (f)->vlan_idx = 0; \
-        (f)->next = NULL; \
-        (f)->flow_state = 0; \
-        (f)->use_cnt = 0; \
-        (f)->tenant_id = 0; \
-        (f)->parent_id = 0; \
-        (f)->probing_parser_toserver_alproto_masks = 0; \
-        (f)->probing_parser_toclient_alproto_masks = 0; \
-        (f)->flags = 0; \
-        (f)->file_flags = 0; \
-        (f)->protodetect_dp = 0; \
-        (f)->lastts.tv_sec = 0; \
-        (f)->lastts.tv_usec = 0; \
-        FLOWLOCK_INIT((f)); \
-        (f)->protoctx = NULL; \
-        (f)->flow_end_flags = 0; \
-        (f)->alproto = 0; \
-        (f)->alproto_ts = 0; \
-        (f)->alproto_tc = 0; \
-        (f)->alproto_orig = 0; \
-        (f)->alproto_expect = 0; \
-        (f)->de_ctx_version = 0; \
-        (f)->thread_id[0] = 0; \
-        (f)->thread_id[1] = 0; \
-        (f)->alparser = NULL; \
-        (f)->alstate = NULL; \
-        (f)->sgh_toserver = NULL; \
-        (f)->sgh_toclient = NULL; \
-        (f)->flowvar = NULL; \
-        RESET_COUNTERS((f)); \
+#define FLOW_INITIALIZE(f)                                                                         \
+    do {                                                                                           \
+        (f)->sp = 0;                                                                               \
+        (f)->dp = 0;                                                                               \
+        (f)->proto = 0;                                                                            \
+        (f)->livedev = NULL;                                                                       \
+        (f)->timeout_at = 0;                                                                       \
+        (f)->timeout_policy = 0;                                                                   \
+        (f)->vlan_idx = 0;                                                                         \
+        (f)->next = NULL;                                                                          \
+        (f)->flow_state = 0;                                                                       \
+        (f)->use_cnt = 0;                                                                          \
+        (f)->tenant_id = 0;                                                                        \
+        (f)->parent_id = 0;                                                                        \
+        (f)->probing_parser_toserver_alproto_masks = 0;                                            \
+        (f)->probing_parser_toclient_alproto_masks = 0;                                            \
+        (f)->flags = 0;                                                                            \
+        (f)->file_flags = 0;                                                                       \
+        (f)->protodetect_dp = 0;                                                                   \
+        (f)->lastts = 0;                                                                           \
+        FLOWLOCK_INIT((f));                                                                        \
+        (f)->protoctx = NULL;                                                                      \
+        (f)->flow_end_flags = 0;                                                                   \
+        (f)->alproto = 0;                                                                          \
+        (f)->alproto_ts = 0;                                                                       \
+        (f)->alproto_tc = 0;                                                                       \
+        (f)->alproto_orig = 0;                                                                     \
+        (f)->alproto_expect = 0;                                                                   \
+        (f)->de_ctx_version = 0;                                                                   \
+        (f)->thread_id[0] = 0;                                                                     \
+        (f)->thread_id[1] = 0;                                                                     \
+        (f)->alparser = NULL;                                                                      \
+        (f)->alstate = NULL;                                                                       \
+        (f)->sgh_toserver = NULL;                                                                  \
+        (f)->sgh_toclient = NULL;                                                                  \
+        (f)->flowvar = NULL;                                                                       \
+        RESET_COUNTERS((f));                                                                       \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
@@ -80,52 +80,52 @@
  *  Note that the lnext, lprev, hnext fields are untouched, those are
  *  managed by the queueing code. Same goes for fb (FlowBucket ptr) field.
  */
-#define FLOW_RECYCLE(f) do { \
-        FlowCleanupAppLayer((f)); \
-        (f)->sp = 0; \
-        (f)->dp = 0; \
-        (f)->proto = 0; \
-        (f)->livedev = NULL; \
-        (f)->vlan_idx = 0; \
-        (f)->ffr = 0; \
-        (f)->next = NULL; \
-        (f)->timeout_at = 0; \
-        (f)->timeout_policy = 0; \
-        (f)->flow_state = 0; \
-        (f)->use_cnt = 0; \
-        (f)->tenant_id = 0; \
-        (f)->parent_id = 0; \
-        (f)->probing_parser_toserver_alproto_masks = 0; \
-        (f)->probing_parser_toclient_alproto_masks = 0; \
-        (f)->flags = 0; \
-        (f)->file_flags = 0; \
-        (f)->protodetect_dp = 0; \
-        (f)->lastts.tv_sec = 0; \
-        (f)->lastts.tv_usec = 0; \
-        (f)->protoctx = NULL; \
-        (f)->flow_end_flags = 0; \
-        (f)->alparser = NULL; \
-        (f)->alstate = NULL; \
-        (f)->alproto = 0; \
-        (f)->alproto_ts = 0; \
-        (f)->alproto_tc = 0; \
-        (f)->alproto_orig = 0; \
-        (f)->alproto_expect = 0; \
-        (f)->de_ctx_version = 0; \
-        (f)->thread_id[0] = 0; \
-        (f)->thread_id[1] = 0; \
-        (f)->sgh_toserver = NULL; \
-        (f)->sgh_toclient = NULL; \
-        GenericVarFree((f)->flowvar); \
-        (f)->flowvar = NULL; \
-        if (MacSetFlowStorageEnabled()) { \
-            MacSet *ms = FlowGetStorageById((f), MacSetGetFlowStorageID()); \
-            if (ms != NULL) { \
-                MacSetReset(ms); \
-            } \
-        } \
-        RESET_COUNTERS((f)); \
-    } while(0)
+#define FLOW_RECYCLE(f)                                                                            \
+    do {                                                                                           \
+        FlowCleanupAppLayer((f));                                                                  \
+        (f)->sp = 0;                                                                               \
+        (f)->dp = 0;                                                                               \
+        (f)->proto = 0;                                                                            \
+        (f)->livedev = NULL;                                                                       \
+        (f)->vlan_idx = 0;                                                                         \
+        (f)->ffr = 0;                                                                              \
+        (f)->next = NULL;                                                                          \
+        (f)->timeout_at = 0;                                                                       \
+        (f)->timeout_policy = 0;                                                                   \
+        (f)->flow_state = 0;                                                                       \
+        (f)->use_cnt = 0;                                                                          \
+        (f)->tenant_id = 0;                                                                        \
+        (f)->parent_id = 0;                                                                        \
+        (f)->probing_parser_toserver_alproto_masks = 0;                                            \
+        (f)->probing_parser_toclient_alproto_masks = 0;                                            \
+        (f)->flags = 0;                                                                            \
+        (f)->file_flags = 0;                                                                       \
+        (f)->protodetect_dp = 0;                                                                   \
+        (f)->lastts = 0;                                                                           \
+        (f)->protoctx = NULL;                                                                      \
+        (f)->flow_end_flags = 0;                                                                   \
+        (f)->alparser = NULL;                                                                      \
+        (f)->alstate = NULL;                                                                       \
+        (f)->alproto = 0;                                                                          \
+        (f)->alproto_ts = 0;                                                                       \
+        (f)->alproto_tc = 0;                                                                       \
+        (f)->alproto_orig = 0;                                                                     \
+        (f)->alproto_expect = 0;                                                                   \
+        (f)->de_ctx_version = 0;                                                                   \
+        (f)->thread_id[0] = 0;                                                                     \
+        (f)->thread_id[1] = 0;                                                                     \
+        (f)->sgh_toserver = NULL;                                                                  \
+        (f)->sgh_toclient = NULL;                                                                  \
+        GenericVarFree((f)->flowvar);                                                              \
+        (f)->flowvar = NULL;                                                                       \
+        if (MacSetFlowStorageEnabled()) {                                                          \
+            MacSet *ms = FlowGetStorageById((f), MacSetGetFlowStorageID());                        \
+            if (ms != NULL) {                                                                      \
+                MacSetReset(ms);                                                                   \
+            }                                                                                      \
+        }                                                                                          \
+        RESET_COUNTERS((f));                                                                       \
+    } while (0)
 
 #define FLOW_DESTROY(f) do { \
         FlowCleanupAppLayer((f)); \

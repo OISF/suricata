@@ -170,10 +170,10 @@ static int LuaCallbackPacketPayload(lua_State *luastate)
  *
  *  Places: seconds (number), microseconds (number)
  */
-static int LuaCallbackTimestampPushToStack(lua_State *luastate, const struct timeval *ts)
+static int LuaCallbackTimestampPushToStack(lua_State *luastate, const SCTime_t ts)
 {
-    lua_pushnumber(luastate, (double)ts->tv_sec);
-    lua_pushnumber(luastate, (double)ts->tv_usec);
+    lua_pushnumber(luastate, (double)SCTIME_SECS(ts));
+    lua_pushnumber(luastate, (double)SCTIME_USECS(ts));
     return 2;
 }
 
@@ -188,7 +188,7 @@ static int LuaCallbackTimestampPushToStack(lua_State *luastate, const struct tim
 static int LuaCallbackTimeStringPushToStackFromPacket(lua_State *luastate, const Packet *p)
 {
     char timebuf[64];
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
     lua_pushstring (luastate, timebuf);
     return 1;
 }
@@ -203,7 +203,7 @@ static int LuaCallbackPacketTimestamp(lua_State *luastate)
     if (p == NULL)
         return LuaCallbackError(luastate, "internal error: no packet");
 
-    return LuaCallbackTimestampPushToStack(luastate, &p->ts);
+    return LuaCallbackTimestampPushToStack(luastate, p->ts);
 }
 
 /** \internal
@@ -229,14 +229,13 @@ static int LuaCallbackPacketTimeString(lua_State *luastate)
  * Places: seconds (number), seconds (number), microseconds (number),
  *         microseconds (number)
  */
-static int LuaCallbackFlowTimestampsPushToStack(lua_State *luastate,
-                                                const struct timeval *startts,
-                                                const struct timeval *lastts)
+static int LuaCallbackFlowTimestampsPushToStack(
+        lua_State *luastate, const SCTime_t startts, const SCTime_t lastts)
 {
-    lua_pushnumber(luastate, (double)startts->tv_sec);
-    lua_pushnumber(luastate, (double)lastts->tv_sec);
-    lua_pushnumber(luastate, (double)startts->tv_usec);
-    lua_pushnumber(luastate, (double)lastts->tv_usec);
+    lua_pushnumber(luastate, (double)SCTIME_SECS(startts));
+    lua_pushnumber(luastate, (double)SCTIME_SECS(lastts));
+    lua_pushnumber(luastate, (double)SCTIME_USECS(startts));
+    lua_pushnumber(luastate, (double)SCTIME_USECS(lastts));
     return 4;
 }
 
@@ -251,8 +250,7 @@ static int LuaCallbackFlowTimestamps(lua_State *luastate)
         return LuaCallbackError(luastate, "internal error: no flow");
     }
 
-    return LuaCallbackFlowTimestampsPushToStack(luastate, &flow->startts,
-                                                &flow->lastts);
+    return LuaCallbackFlowTimestampsPushToStack(luastate, flow->startts, flow->lastts);
 }
 
 /** \internal
@@ -266,7 +264,7 @@ static int LuaCallbackFlowTimestamps(lua_State *luastate)
 static int LuaCallbackTimeStringPushToStackFromFlow(lua_State *luastate, const Flow *flow)
 {
     char timebuf[64];
-    CreateTimeString(&flow->startts, timebuf, sizeof(timebuf));
+    CreateTimeString(flow->startts, timebuf, sizeof(timebuf));
     lua_pushstring (luastate, timebuf);
     return 1;
 }

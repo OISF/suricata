@@ -209,13 +209,10 @@ static const char *WinDivertGetErrorString(DWORD error_code)
  */
 static void WinDivertInitQPCValues(WinDivertThreadVars *wd_tv)
 {
-    struct timeval now;
-
-    TimeGet(&now);
+    SCTime_t now = TimeGet();
     (void)QueryPerformanceCounter((LARGE_INTEGER *)&wd_tv->qpc_start_count);
 
-    wd_tv->qpc_start_time =
-            (uint64_t)now.tv_sec * (1000 * 1000) + (uint64_t)now.tv_usec;
+    wd_tv->qpc_start_time = (uint64_t)SCTIME_SECS(now) * (1000 * 1000) + (uint64_t)SCTIME_SECS(now);
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER *)&wd_tv->qpc_freq_usec);
     /* \bug: clock drift? */
@@ -223,21 +220,20 @@ static void WinDivertInitQPCValues(WinDivertThreadVars *wd_tv)
 }
 
 /**
- * \brief gets a timeval from a WinDivert timestamp
+ * \brief WinDivert timestamp to a SCTime_t
  */
-static struct timeval WinDivertTimestampToTimeval(WinDivertThreadVars *wd_tv,
-                                                  INT64 timestamp_count)
+static SCTime_t WinDivertTimestampToTimeStamp(WinDivertThreadVars *wd_tv, INT64 timestamp_count)
 {
-    struct timeval ts;
+    struct timeval tv;
 
     int64_t qpc_delta = (int64_t)timestamp_count - wd_tv->qpc_start_count;
     int64_t unix_usec =
             wd_tv->qpc_start_time + (qpc_delta / wd_tv->qpc_freq_usec);
 
-    ts.tv_sec = (long)(unix_usec / (1000 * 1000));
-    ts.tv_usec = (long)(unix_usec - (int64_t)ts.tv_sec * (1000 * 1000));
+    tv.tv_sec = (long)(unix_usec / (1000 * 1000));
+    tv.tv_usec = (long)(unix_usec - (int64_t)tv.tv_sec * (1000 * 1000));
 
-    return ts;
+    return SCTIME_FROM_TIMEVAL(&tv);
 }
 
 /**
@@ -479,7 +475,7 @@ static TmEcode WinDivertRecvHelper(ThreadVars *tv, WinDivertThreadVars *wd_tv)
     }
     SCLogDebug("Packet received, length %" PRId32 "", GET_PKT_LEN(p));
 
-    p->ts = WinDivertTimestampToTimeval(wd_tv, p->windivert_v.addr.Timestamp);
+    p->ts = WinDivertTimestampToTimeStamp(wd_tv, p->windivert_v.addr.Timestamp);
     p->windivert_v.thread_num = wd_tv->thread_num;
 
 #ifdef COUNTERS

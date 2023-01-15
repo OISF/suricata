@@ -106,7 +106,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     char timebuf[64];
     int decoder_event = 0;
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
     if (PKT_IS_IPV4(p)) {

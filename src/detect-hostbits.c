@@ -105,7 +105,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
             else
                 HostLock(p->host_src);
 
-            HostBitToggle(p->host_src,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitToggle(p->host_src, fd->idx, SCTIME_SECS(p->ts) + fd->expire);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -117,7 +117,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
             else
                 HostLock(p->host_dst);
 
-            HostBitToggle(p->host_dst,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitToggle(p->host_dst, fd->idx, SCTIME_SECS(p->ts) + fd->expire);
             HostUnlock(p->host_dst);
             break;
     }
@@ -165,7 +165,7 @@ static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostBitSet(p->host_src,fd->idx,p->ts.tv_sec + fd->expire);
+            HostBitSet(p->host_src, fd->idx, SCTIME_SECS(p->ts) + fd->expire);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -176,7 +176,7 @@ static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostBitSet(p->host_dst,fd->idx, p->ts.tv_sec + fd->expire);
+            HostBitSet(p->host_dst, fd->idx, SCTIME_SECS(p->ts) + fd->expire);
             HostUnlock(p->host_dst);
             break;
     }
@@ -195,7 +195,7 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            r = HostBitIsset(p->host_src,fd->idx, p->ts.tv_sec);
+            r = HostBitIsset(p->host_src, fd->idx, SCTIME_SECS(p->ts));
             HostUnlock(p->host_src);
             return r;
         case DETECT_XBITS_TRACK_IPDST:
@@ -206,7 +206,7 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            r = HostBitIsset(p->host_dst,fd->idx, p->ts.tv_sec);
+            r = HostBitIsset(p->host_dst, fd->idx, SCTIME_SECS(p->ts));
             HostUnlock(p->host_dst);
             return r;
     }
@@ -225,7 +225,7 @@ static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            r = HostBitIsnotset(p->host_src,fd->idx, p->ts.tv_sec);
+            r = HostBitIsnotset(p->host_src, fd->idx, SCTIME_SECS(p->ts));
             HostUnlock(p->host_src);
             return r;
         case DETECT_XBITS_TRACK_IPDST:
@@ -236,7 +236,7 @@ static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            r = HostBitIsnotset(p->host_dst,fd->idx, p->ts.tv_sec);
+            r = HostBitIsnotset(p->host_dst, fd->idx, SCTIME_SECS(p->ts));
             HostUnlock(p->host_dst);
             return r;
     }

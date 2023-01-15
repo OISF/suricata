@@ -29,7 +29,7 @@ static int DetectFlowAgeMatch(
     if (p->flow == NULL) {
         return 0;
     }
-    uint32_t age = p->flow->lastts.tv_sec - p->flow->startts.tv_sec;
+    uint32_t age = SCTIME_SECS(p->flow->lastts) - SCTIME_SECS(p->flow->startts);
 
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     return DetectU32Match(age, du32);

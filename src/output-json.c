@@ -804,7 +804,7 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         return NULL;
     }
 
-    CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(p->ts, timebuf, sizeof(timebuf));
 
     jb_set_string(js, "timestamp", timebuf);
 

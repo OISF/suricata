@@ -775,7 +775,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
             p->ReleasePacket = AFXDPReleasePacket;
             p->flags |= PKT_IGNORE_CHECKSUM;
 
-            p->ts = ts;
+            p->ts = SCTIME_FROM_TIMEVAL(&ts);
 
             uint64_t addr = xsk_ring_cons__rx_desc(&ptv->xsk.rx, idx_rx)->addr;
             uint32_t len = xsk_ring_cons__rx_desc(&ptv->xsk.rx, idx_rx++)->len;

@@ -662,7 +662,7 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
         EBPFDeleteKey(eb->mapfd, eb->key[1]);
         SCLogDebug("Done delete entry: %u", FLOW_IS_IPV6(f));
     } else {
-        f->lastts.tv_sec = tsec;
+        f->lastts = SCTIME_FROM_SECS(tsec);
         return true;
     }
     return false;

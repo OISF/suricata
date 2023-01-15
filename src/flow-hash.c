@@ -58,7 +58,7 @@ FlowBucket *flow_hash;
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
-static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const struct timeval *ts);
+static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime_t ts);
 
 /** \brief compare two raw ipv6 addrs
  *
@@ -510,13 +510,13 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
     Flow *f = NULL;
     bool spare_sync = false;
     if (emerg) {
-        if ((uint32_t)p->ts.tv_sec > fls->emerg_spare_sync_stamp) {
+        if ((uint32_t)SCTIME_SECS(p->ts) > fls->emerg_spare_sync_stamp) {
             fls->spare_queue = FlowSpareGetFromPool(); /* local empty, (re)populate and try again */
             spare_sync = true;
             f = FlowQueuePrivateGetFromTop(&fls->spare_queue);
             if (f == NULL) {
                 /* wait till next full sec before retrying */
-                fls->emerg_spare_sync_stamp = (uint32_t)p->ts.tv_sec;
+                fls->emerg_spare_sync_stamp = (uint32_t)SCTIME_SECS(p->ts);
             }
         }
     } else {
@@ -587,7 +587,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
                 FlowWakeupFlowManagerThread();
             }
 
-            f = FlowGetUsedFlow(tv, fls->dtv, &p->ts);
+            f = FlowGetUsedFlow(tv, fls->dtv, p->ts);
             if (f == NULL) {
                 NoFlowHandleIPS(p);
                 return NULL;
@@ -781,8 +781,8 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
     f = fb->head;
     do {
         Flow *next_f = NULL;
-        const bool timedout =
-            (fb_nextts < (uint32_t)p->ts.tv_sec && FlowIsTimedOut(f, (uint32_t)p->ts.tv_sec, emerg));
+        const bool timedout = (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) &&
+                               FlowIsTimedOut(f, (uint32_t)SCTIME_SECS(p->ts), emerg));
         if (timedout) {
             FLOWLOCK_WRLOCK(f);
             if (likely(f->use_cnt == 0)) {
@@ -962,8 +962,7 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
 
     f->protomap = FlowGetProtoMapping(f->proto);
     /* set timestamp to now */
-    f->startts.tv_sec = ttime->tv_sec;
-    f->startts.tv_usec = ttime->tv_nsec * 1000;
+    f->startts = SCTIME_FROM_TIMESPEC(ttime);
     f->lastts = f->startts;
 
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
@@ -1054,26 +1053,26 @@ static inline uint32_t GetUsedAtomicUpdate(const uint32_t val)
 /** \internal
  *  \brief check if flow has just seen an update.
  */
-static inline bool StillAlive(const Flow *f, const struct timeval *ts)
+static inline bool StillAlive(const Flow *f, const SCTime_t ts)
 {
     switch (f->flow_state) {
         case FLOW_STATE_NEW:
-            if (ts->tv_sec - f->lastts.tv_sec <= 1) {
+            if (SCTIME_SECS(ts) - SCTIME_SECS(f->lastts) <= 1) {
                 return true;
             }
             break;
         case FLOW_STATE_ESTABLISHED:
-            if (ts->tv_sec - f->lastts.tv_sec <= 5) {
+            if (SCTIME_SECS(ts) - SCTIME_SECS(f->lastts) <= 5) {
                 return true;
             }
             break;
         case FLOW_STATE_CLOSED:
-            if (ts->tv_sec - f->lastts.tv_sec <= 3) {
+            if (SCTIME_SECS(ts) - SCTIME_SECS(f->lastts) <= 3) {
                 return true;
             }
             break;
         default:
-            if (ts->tv_sec - f->lastts.tv_sec < 30) {
+            if (SCTIME_SECS(ts) - SCTIME_SECS(f->lastts) < 30) {
                 return true;
             }
             break;
@@ -1106,7 +1105,7 @@ static inline bool StillAlive(const Flow *f, const struct timeval *ts)
  *
  *  \retval f flow or NULL
  */
-static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const struct timeval *ts)
+static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime_t ts)
 {
     uint32_t idx = GetUsedAtomicUpdate(FLOW_GET_NEW_TRIES) % flow_config.hash_size;
     uint32_t tried = 0;

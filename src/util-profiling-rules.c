@@ -299,7 +299,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary,
     }
 
     gettimeofday(&tval, NULL);
-    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(SCTIME_FROM_TIMEVAL(&tval), timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
     json_object_set_new(js, "sort", json_string(sort_desc));
 
