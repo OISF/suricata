@@ -767,11 +767,8 @@ pub unsafe extern "C" fn rs_dns_parse_request(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if state.parse_request_udp(flow, stream_slice) {
-        AppLayerResult::ok()
-    } else {
-        AppLayerResult::err()
-    }
+    state.parse_request_udp(flow, stream_slice);
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -780,11 +777,8 @@ pub unsafe extern "C" fn rs_dns_parse_response(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if state.parse_response_udp(flow, stream_slice) {
-        AppLayerResult::ok()
-    } else {
-        AppLayerResult::err()
-    }
+    state.parse_response_udp(flow, stream_slice);
+    AppLayerResult::ok()
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
