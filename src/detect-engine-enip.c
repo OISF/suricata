@@ -164,7 +164,9 @@ static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
 static int CIPServiceMatch(ENIPTransaction *enip_data,
         DetectCipServiceData *cipserviced)
 {
+#ifdef DEBUG
     int count = 1;
+#endif
     CIPServiceEntry *svc = NULL;
     //SCLogDebug("CIPServiceMatchAL");
     TAILQ_FOREACH(svc, &enip_data->service_list, next)
@@ -200,7 +202,9 @@ static int CIPServiceMatch(ENIPTransaction *enip_data,
                 return 1;
             }
         }
+#ifdef DEBUG
         count++;
+#endif
     }
     return 0;
 }

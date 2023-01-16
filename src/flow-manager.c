@@ -737,12 +737,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint16_t flow_mgr_host_spare = StatsRegisterCounter("hosts.spare", th_v);
 */
     memset(&ts, 0, sizeof(ts));
-    uint32_t hash_passes = 0;
 #ifdef FM_PROFILE
+    uint32_t hash_passes = 0;
     uint32_t hash_row_checks = 0;
     uint32_t hash_passes_chunks = 0;
-#endif
     uint32_t hash_full_passes = 0;
+#endif
 
     const uint32_t min_timeout = FlowTimeoutsMin();
     const uint32_t pass_in_sec = min_timeout ? min_timeout * 8 : 60;
@@ -836,10 +836,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
                 FlowTimeoutHash(&ftd->timeout, &ts, ftd->min, ftd->max, &counters);
-                hash_passes++;
+#ifdef FM_PROFILE
                 hash_full_passes++;
                 hash_passes++;
-#ifdef FM_PROFILE
                 hash_passes_chunks += 1;
                 hash_row_checks += counters.rows_checked;
 #endif
@@ -853,12 +852,14 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                     hash_pass_iter++;
                     if (hash_pass_iter == pass_in_sec) {
                         hash_pass_iter = 0;
+#ifdef FM_PROFILE
                         hash_full_passes++;
+#endif
                         StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
                     }
                 }
-                hash_passes++;
 #ifdef FM_PROFILE
+                hash_passes++;
                 hash_row_checks += counters.rows_checked;
                 hash_passes_chunks += chunks;
 #endif
@@ -1105,9 +1106,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     uint64_t recycled_cnt = 0;
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
-    uint32_t fr_passes = 0;
 
 #ifdef FM_PROFILE
+    uint32_t fr_passes = 0;
     struct timeval endts;
     struct timeval active;
     struct timeval paused;
@@ -1144,8 +1145,8 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 #endif
             TmThreadsUnsetFlag(th_v, THV_PAUSED);
         }
-        fr_passes++;
 #ifdef FM_PROFILE
+        fr_passes++;
         struct timeval run_startts;
         memset(&run_startts, 0, sizeof(run_startts));
         gettimeofday(&run_startts, NULL);
@@ -1286,8 +1287,6 @@ void FlowRecyclerThreadSpawn(void)
  */
 void FlowDisableFlowRecyclerThread(void)
 {
-    int cnt = 0;
-
     /* move all flows still in the hash to the recycler queue */
 #ifndef DEBUG
     (void)FlowCleanupHash();
@@ -1309,7 +1308,6 @@ void FlowDisableFlowRecyclerThread(void)
             strlen(thread_name_flow_rec)) == 0)
         {
             TmThreadsSetFlag(tv, THV_KILL);
-            cnt++;
         }
     }
     SCMutexUnlock(&tv_root_lock);

@@ -1652,8 +1652,6 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
 {
-    uint32_t sigs = 0;
-
     SCLogDebug("building signature grouping structure, stage 2: "
             "building source address lists...");
 
@@ -1677,8 +1675,6 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
         if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, s);
         }
-
-        sigs++;
     }
 
     IPOnlyPrepare(de_ctx);
