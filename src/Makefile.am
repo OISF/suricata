@@ -340,6 +340,7 @@ noinst_HEADERS = \
 	detect-tos.h \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
+	detect-transform-dropbytes.h \
 	detect-transform-md5.h \
 	detect-transform-pcrexform.h \
 	detect-transform-sha1.h \
@@ -948,6 +949,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tos.c \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
+	detect-transform-dropbytes.c \
 	detect-transform-md5.c \
 	detect-transform-pcrexform.c \
 	detect-transform-sha1.c \
@@ -1234,6 +1236,7 @@ EXTRA_DIST = \
 	tests/detect-snmp-pdu_type.c \
 	tests/detect-snmp-version.c \
 	tests/detect-template.c \
+	tests/detect-transform-dropbytes.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
 	tests/detect-ttl.c \
