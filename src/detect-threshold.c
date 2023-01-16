@@ -1672,6 +1672,7 @@ static int DetectThresholdTestSig14(void)
     FAIL_IF(alerts1 != 2);
     FAIL_IF(alerts2 != 2);
 
+    TimeSetIncrementTime(70);
     p1->ts = TimeGet();
     p2->ts = TimeGet();
 

@@ -203,10 +203,10 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     uint64_t usecs = (ts >> 32);
     if (usecs >= 1000000) {
         usecs -= 1000000;
-        p->ts += SCTIME_FROM_SECS(1);
+        p->ts = SCTIME_ADD_SECS(p->ts, 1);
         usecs++;
     }
-    p->ts += SCTIME_FROM_USECS(usecs);
+    p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
     etv->pkts++;
     etv->bytes += wlen;

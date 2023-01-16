@@ -628,7 +628,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
     /* Update timeout. */
-    tracker->timeout = SCTIME_SECS(p->ts) + tracker->host_timeout;
+    tracker->timeout = SCTIME_FROM_SECS(SCTIME_SECS(p->ts) + tracker->host_timeout);
 
     Frag *prev = NULL, *next = NULL;
     bool overlap = false;
@@ -2108,7 +2108,7 @@ static int DefragTimeoutTest(void)
     Packet *p = BuildTestPacket(IPPROTO_ICMP, 99, 0, 1, 'A' + i, 16);
     FAIL_IF_NULL(p);
 
-    p->ts += SCTIME_FROM_SECS(defrag_context->timeout + 1);
+    p->ts = SCTIME_ADD_SECS(p->ts, defrag_context->timeout + 1);
     Packet *tp = Defrag(NULL, NULL, p);
     FAIL_IF_NOT_NULL(tp);
 

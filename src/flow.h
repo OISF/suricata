@@ -703,7 +703,7 @@ static inline void FlowDeReference(Flow **d)
 static inline int64_t FlowGetId(const Flow *f)
 {
     int64_t id = (uint64_t)(SCTIME_SECS(f->startts) & 0x0000FFFF) << 48 |
-                 (uint64_t)(f->startts & 0x0000FFFF) << 32 | (int64_t)f->flow_hash;
+                 (uint64_t)(SCTIME_USECS(f->startts) & 0x0000FFFF) << 32 | (int64_t)f->flow_hash;
     /* reduce to 51 bits as Javascript and even JSON often seem to
      * max out there. */
     id &= 0x7ffffffffffffLL;

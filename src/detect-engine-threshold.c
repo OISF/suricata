@@ -166,8 +166,8 @@ static DetectThresholdEntry *ThresholdTimeoutCheck(DetectThresholdEntry *head, S
         /* check if the 'check' timestamp is not before the creation ts.
          * This can happen due to the async nature of the host timeout
          * code that also calls this code from a management thread. */
-        SCTime_t entry = tmp->tv1 + SCTIME_FROM_SECS((time_t)tmp->seconds);
-        if (ts <= entry) {
+        SCTime_t entry = SCTIME_ADD_SECS(tmp->tv1, (time_t)tmp->seconds);
+        if (SCTIME_CMP_LTE(ts, entry)) {
             prev = tmp;
             tmp = tmp->next;
             continue;
@@ -343,8 +343,8 @@ static int IsThresholdReached(
     }
     else {
         /* Update the matching state with the timeout interval */
-        SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
-        if (packet_time <= entry) {
+        SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
+        if (SCTIME_CMP_LTE(packet_time, entry)) {
             lookup_tsh->current_count++;
             if (lookup_tsh->current_count > td->count) {
                 /* Then we must enable the new action by setting a
@@ -403,8 +403,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("limit");
 
             if (lookup_tsh != NULL)  {
-                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
-                if (p->ts <= entry) {
+                SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
+                if (SCTIME_CMP_LTE(p->ts, entry)) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count <= td->count) {
@@ -430,8 +430,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("threshold");
 
             if (lookup_tsh != NULL)  {
-                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
-                if (p->ts <= entry) {
+                SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
+                if (SCTIME_CMP_LTE(p->ts, entry)) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
@@ -456,8 +456,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("both");
 
             if (lookup_tsh != NULL) {
-                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
-                if (p->ts <= entry) {
+                SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
+                if (SCTIME_CMP_LTE(p->ts, entry)) {
                     /* within time limit */
 
                     lookup_tsh->current_count++;
@@ -494,8 +494,8 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
-                SCTime_t entry = lookup_tsh->tv1 + SCTIME_FROM_SECS(td->seconds);
-                if (p->ts <= entry) {
+                SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
+                if (SCTIME_CMP_LTE(p->ts, entry)) {
                     /* within timeout */
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count > td->count) {
