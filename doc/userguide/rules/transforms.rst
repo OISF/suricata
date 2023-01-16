@@ -134,3 +134,21 @@ Example::
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
+
+dropbytes
+---------
+
+Takes the buffer, and removes all bytes provided via a mandatory option.
+The mandatory option uses the same format as the content keyword.
+All bytes specified via the content keyword are removed from the buffer.
+For example, dropbytes:"ab" removes all instances of bytes 0x61 ('a') and 0x62 ('b').
+The mandatory option can also specify flags. In that case, prefix the content with the required flags, and separate with a comma.
+2 flags are implemented:
+! -> negate (example: dropbytes:"!,ab" -> drop all bytes except 0x61 ('a') and 0x62 ('b')).
+c -> clear the buffer (e.g., set its length to 0) if no bytes were dropped.
+
+The following example generates an alert if the downloaded content contains an obfuscated Windows command like power^shell:
+
+    alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"power^shell.exe obfuscation"; flow:established,to_client; \
+        file.data; dropbytes:"^"; content:"powershell.exe"; sid:1;)
+
