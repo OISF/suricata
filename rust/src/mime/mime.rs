@@ -211,8 +211,8 @@ fn mime_parse_skip_line(input: &[u8]) -> IResult<&[u8], MimeParserState> {
     return Ok((input, MimeParserState::Start));
 }
 
-fn mime_parse_boundary_regular<'a, 'b>(
-    boundary: &'b [u8], input: &'a [u8],
+fn mime_parse_boundary_regular<'a>(
+    boundary: &[u8], input: &'a [u8],
 ) -> IResult<&'a [u8], MimeParserState> {
     let (input, _) = tag(boundary)(input)?;
     let (input, _) = take_till(|ch: u8| ch == b'\n')(input)?;
@@ -224,17 +224,15 @@ fn mime_parse_boundary_regular<'a, 'b>(
 const MIME_BOUNDARY_MAX_BEFORE_EOL: usize = 128;
 const MIME_HEADER_MAX_LINE: usize = 4096;
 
-fn mime_parse_boundary_missing_eol<'a, 'b>(
-    boundary: &'b [u8], input: &'a [u8],
+fn mime_parse_boundary_missing_eol<'a>(
+    boundary: &[u8], input: &'a [u8],
 ) -> IResult<&'a [u8], MimeParserState> {
     let (input, _) = tag(boundary)(input)?;
     let (input, _) = take(MIME_BOUNDARY_MAX_BEFORE_EOL)(input)?;
     return Ok((input, MimeParserState::BoundaryWaitingForEol));
 }
 
-fn mime_parse_boundary<'a, 'b>(
-    boundary: &'b [u8], input: &'a [u8],
-) -> IResult<&'a [u8], MimeParserState> {
+fn mime_parse_boundary<'a>(boundary: &[u8], input: &'a [u8]) -> IResult<&'a [u8], MimeParserState> {
     let r = mime_parse_boundary_regular(boundary, input);
     if r.is_ok() {
         return r;
@@ -270,8 +268,8 @@ pub fn rs_equals_lowercase(s1: &[u8], s2: &[u8]) -> bool {
     return false;
 }
 
-fn mime_parse_headers<'a, 'b>(
-    ctx: &'b mut MimeStateHTTP, i: &'a [u8],
+fn mime_parse_headers<'a>(
+    ctx: &mut MimeStateHTTP, i: &'a [u8],
 ) -> IResult<&'a [u8], (MimeParserState, bool, bool)> {
     let mut fileopen = false;
     let mut errored = false;
@@ -336,7 +334,7 @@ fn mime_parse_headers<'a, 'b>(
 
 type NomTakeError<'a> = Err<nom7::error::Error<&'a [u8]>>;
 
-fn mime_consume_chunk<'a, 'b>(boundary: &'b [u8], input: &'a [u8]) -> IResult<&'a [u8], bool> {
+fn mime_consume_chunk<'a>(boundary: &[u8], input: &'a [u8]) -> IResult<&'a [u8], bool> {
     let r: Result<(&[u8], &[u8]), NomTakeError> = take_until("\r\n")(input);
     match r {
         Ok((input, line)) => {

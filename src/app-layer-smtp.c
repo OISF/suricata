@@ -711,11 +711,6 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
                                 flags) != 0) {
                         SCLogDebug("FileOpenFile() failed");
                     }
-                    /* Set storage flag if applicable since only the first file in the
-                     * flow seems to be processed by the 'filestore' detector */
-                    if (tx->files_ts.head->flags & FILE_STORE) {
-                        flags |= FILE_STORE;
-                    }
                     SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     break;
                 case MimeSmtpFileChunk:
@@ -1103,9 +1098,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                             FILE_NOMD5 | FILE_NOMAGIC) == 0) {
                     SMTPNewFile(tx, tx->files_ts.tail);
                 }
-            } else if (smtp_config.decode_mime) {
+            } else if (smtp_config.decode_mime && tx->mime_state == NULL) {
                 // should happen only once per transaction
-                DEBUG_VALIDATE_BUG_ON(tx->mime_state);
                 tx->mime_state = rs_mime_smtp_state_init(&tx->files_ts, &smtp_config.sbcfg);
                 if (tx->mime_state == NULL) {
                     SCLogDebug("MimeDecInitParser() failed to "
