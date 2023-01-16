@@ -1885,7 +1885,7 @@ again:
 /**
  * \brief Unpauses all threads present in tv_root
  */
-void TmThreadContinueThreads()
+void TmThreadContinueThreads(void)
 {
     SCMutexLock(&tv_root_lock);
     for (int i = 0; i < TVT_MAX; i++) {
@@ -2251,7 +2251,7 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
 }
 
-uint16_t TmThreadsGetWorkerThreadMax()
+uint16_t TmThreadsGetWorkerThreadMax(void)
 {
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);

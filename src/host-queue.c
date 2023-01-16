@@ -39,7 +39,7 @@ HostQueue *HostQueueInit (HostQueue *q)
     return q;
 }
 
-HostQueue *HostQueueNew()
+HostQueue *HostQueueNew(void)
 {
     HostQueue *q = (HostQueue *)SCMalloc(sizeof(HostQueue));
     if (q == NULL) {

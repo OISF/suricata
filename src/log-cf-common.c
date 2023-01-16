@@ -36,7 +36,7 @@
  *  \retval LogCustomFormatNode * ptr if created
  *  \retval NULL if failed to allocate
  */
-LogCustomFormatNode * LogCustomFormatNodeAlloc()
+LogCustomFormatNode *LogCustomFormatNodeAlloc(void)
 {
     LogCustomFormatNode * node = SCCalloc(1, sizeof(LogCustomFormatNode));
     if (unlikely(node == NULL)) {
@@ -51,7 +51,7 @@ LogCustomFormatNode * LogCustomFormatNodeAlloc()
  *  \retval LogCustomFormat * ptr if created
  *  \retval NULL if failed to allocate
  */
-LogCustomFormat * LogCustomFormatAlloc()
+LogCustomFormat *LogCustomFormatAlloc(void)
 {
     LogCustomFormat * cf = SCCalloc(1, sizeof(LogCustomFormat));
     if (unlikely(cf == NULL)) {

@@ -1052,7 +1052,7 @@ void AppLayerRegisterGlobalCounters(void)
 }
 
 #define IPPROTOS_MAX 2
-void AppLayerSetupCounters()
+void AppLayerSetupCounters(void)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
     AppProto alprotos[ALPROTO_MAX];
@@ -1173,7 +1173,7 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
     }
 }
 
-void AppLayerDeSetupCounters()
+void AppLayerDeSetupCounters(void)
 {
     memset(applayer_counter_names, 0, sizeof(applayer_counter_names));
     memset(applayer_counters, 0, sizeof(applayer_counters));

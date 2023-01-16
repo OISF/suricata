@@ -47,7 +47,7 @@ static void SCLogFileCloseRedis(LogFileCtx *log_ctx);
 /**
  * \brief SCLogRedisInit() - Initializes global stuff before threads
  */
-void SCLogRedisInit()
+void SCLogRedisInit(void)
 {
 #ifdef HAVE_LIBEVENT_PTHREADS
     evthread_use_pthreads();

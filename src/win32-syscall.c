@@ -314,7 +314,7 @@ release:
 /**
  * \brief get the maximum transmissible unit for all devices on the system
  */
-int GetGlobalMTUWin32()
+int GetGlobalMTUWin32(void)
 {
     uint32_t mtu = 0;
 
@@ -1653,7 +1653,7 @@ static int Win32TestStripPcapPrefix(void)
 }
 #endif /* UNITTESTS */
 
-void Win32SyscallRegisterTests()
+void Win32SyscallRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("Win32TestStripPcapPrefix", Win32TestStripPcapPrefix);

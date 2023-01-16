@@ -135,7 +135,7 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
-void PcapFileGlobalInit()
+void PcapFileGlobalInit(void)
 {
     memset(&pcap_g, 0x00, sizeof(pcap_g));
     SC_ATOMIC_INIT(pcap_g.invalid_checksums);
@@ -452,7 +452,7 @@ TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-void PcapIncreaseInvalidChecksum()
+void PcapIncreaseInvalidChecksum(void)
 {
     (void) SC_ATOMIC_ADD(pcap_g.invalid_checksums, 1);
 }
