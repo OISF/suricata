@@ -849,7 +849,6 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 int DatasetsInit(void)
 {
     SCLogDebug("datasets start");
-    int n = 0;
     ConfNode *datasets = ConfGetNode("datasets");
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -916,7 +915,7 @@ int DatasetsInit(void)
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
 
-            SCLogDebug("(%d) set %s type %s. Conf %s", n, set_name, set_type->val, conf_str);
+            SCLogDebug("set %s type %s. Conf %s", set_name, set_type->val, conf_str);
 
             if (strcmp(set_type->val, "md5") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load,
@@ -926,9 +925,8 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
                 dset->from_yaml = true;
-                n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load,
@@ -938,9 +936,8 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
                 dset->from_yaml = true;
-                n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load,
@@ -950,9 +947,8 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
                 dset->from_yaml = true;
-                n++;
             }
 
             list_pos++;

@@ -447,8 +447,9 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead)
 {
     SCEnter();
+#ifdef DEBUG
     uint32_t i = 0;
-
+#endif
     IPOnlyCIDRItem *it, *next = NULL;
 
     if (tmphead == NULL) {
@@ -460,8 +461,10 @@ void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead)
     next = it->next;
 
     while (it != NULL) {
+#ifdef DEBUG
         i++;
         SCLogDebug("Item(%p) %"PRIu32" removed", it, i);
+#endif
         SCFree(it);
         it = next;
 

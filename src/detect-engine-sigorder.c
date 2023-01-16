@@ -730,8 +730,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     Signature *sig = NULL;
     SCSigSignatureWrapper *sigw = NULL;
     SCSigSignatureWrapper *sigw_list = NULL;
-
+#ifdef DEBUG
     int i = 0;
+#endif
     SCLogDebug("ordering signatures in memory");
 
     sig = de_ctx->sig_list;
@@ -742,7 +743,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw_list = sigw;
 
         sig = sig->next;
+#ifdef DEBUG
         i++;
+#endif
     }
 
     /* Sort the list */
@@ -754,9 +757,13 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
     sigw = sigw_list;
+#ifdef DEBUG
     i = 0;
+#endif
     while (sigw != NULL) {
+#ifdef DEBUG
         i++;
+#endif
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
