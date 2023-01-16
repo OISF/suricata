@@ -230,7 +230,11 @@ void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow 
     DEBUG_VALIDATE_BUG_ON(ipproto != f->proto);
 
     jb_open_object(jb, "frame");
-    jb_set_string(jb, "type", AppLayerParserGetFrameNameById(ipproto, f->alproto, frame->type));
+    if (frame->type == FRAME_STREAM_TYPE) {
+        jb_set_string(jb, "type", "stream");
+    } else {
+        jb_set_string(jb, "type", AppLayerParserGetFrameNameById(ipproto, f->alproto, frame->type));
+    }
     jb_set_uint(jb, "id", frame->id);
     jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
 
