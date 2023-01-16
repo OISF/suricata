@@ -1058,9 +1058,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                             FILE_NOMD5 | FILE_NOMAGIC | FILE_USE_DETECT) == 0) {
                     SMTPNewFile(tx, tx->files_ts.tail);
                 }
-            } else if (smtp_config.decode_mime) {
+            } else if (smtp_config.decode_mime && tx->mime_state == NULL) {
                 // should happen only once per transaction
-                DEBUG_VALIDATE_BUG_ON(tx->mime_state);
                 tx->mime_state = rs_mime_smtp_state_init(&tx->files_ts, &smtp_config.sbcfg);
                 if (tx->mime_state == NULL) {
                     SCLogDebug("MimeDecInitParser() failed to "
