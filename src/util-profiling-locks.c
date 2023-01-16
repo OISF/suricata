@@ -93,7 +93,7 @@ static void LockRecordFree(void *data)
     SCFree(fn);
 }
 
-int LockRecordInitHash()
+int LockRecordInitHash(void)
 {
     pthread_mutex_init(&lock_records_mutex, NULL);
     pthread_mutex_lock(&lock_records_mutex);
@@ -218,7 +218,7 @@ static void SCProfilingListLocks(void)
     fclose(fp);
 }
 
-void LockRecordFreeHash()
+void LockRecordFreeHash(void)
 {
     if (profiling_locks_enabled == 0)
         return;

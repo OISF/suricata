@@ -425,7 +425,7 @@ void CleanupRuleAnalyzer(void)
  * \retval 1 if successful
  * \retval 0 if on error
  */
-int PerCentEncodingSetup ()
+int PerCentEncodingSetup(void)
 {
 #define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
     const char *eb = NULL;

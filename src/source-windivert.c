@@ -1000,7 +1000,7 @@ static int SourceWinDivertTestIfaceMatchFilter(void)
 /**
  * \brief this function registers unit tests for the WinDivert Source
  */
-void SourceWinDivertRegisterTests()
+void SourceWinDivertRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("SourceWinDivertTestIfaceMatchFilter",

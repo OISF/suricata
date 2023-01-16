@@ -1725,7 +1725,7 @@ static int SCLogTestInit05(void)
 
 #endif /* UNITTESTS */
 
-void SCLogRegisterTests()
+void SCLogRegisterTests(void)
 {
 
 #ifdef UNITTESTS

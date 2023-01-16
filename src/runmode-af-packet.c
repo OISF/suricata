@@ -717,7 +717,7 @@ static int AFPConfigGeThreadsCount(void *conf)
     return afp->threads;
 }
 
-int AFPRunModeIsIPS()
+int AFPRunModeIsIPS(void)
 {
     int nlive = LiveGetDeviceCount();
     int ldev;

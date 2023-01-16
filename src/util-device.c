@@ -339,12 +339,12 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
  *
  * This can be useful in the case, this is not a real interface.
  */
-void LiveDeviceHasNoStats()
+void LiveDeviceHasNoStats(void)
 {
     live_devices_stats = 0;
 }
 
-int LiveDeviceListClean()
+int LiveDeviceListClean(void)
 {
     SCEnter();
     LiveDevice *pd, *tpd;
