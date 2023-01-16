@@ -413,8 +413,8 @@ fn mime_base64_decode(decoder: &mut MimeBase64Decoder, input: &[u8]) -> io::Resu
     let maxlen = ((decoder.nb as usize + i.len()) * 3) / 4;
     let mut r = vec![0; maxlen];
     let mut offset = 0;
-    while i.len() > 0 {
-        while decoder.nb < 4 && i.len() > 0 {
+    while !i.is_empty() {
+        while decoder.nb < 4 && !i.is_empty() {
             if i[0] != b' ' {
                 decoder.tmp[decoder.nb as usize] = i[0];
                 decoder.nb += 1;
