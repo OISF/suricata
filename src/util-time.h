@@ -24,8 +24,6 @@
 #ifndef __UTIL_TIME_H__
 #define __UTIL_TIME_H__
 
-typedef uint64_t SCTime_t;
-
 /*
  * The SCTime_t member is broken up as
  *  seconds: 44
@@ -38,25 +36,53 @@ typedef uint64_t SCTime_t;
  *  2^20
  *  1048576
  */
-#define USECS_BITS               20
-#define USEC_BITMASK             0xfffff
-#define SCTIME_USECS(t)          (SCTime_t)((t)&USEC_BITMASK)
-#define SCTIME_SECS(t)           (SCTime_t)((time_t)((t) >> USECS_BITS))
-#define SCTIME_MSECS(t)          (SCTime_t)(SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
-#define SCTIME_FROM_SECS(secs)   (SCTime_t)((((SCTime_t)(secs)) << USECS_BITS))
-#define SCTIME_FROM_USECS(usecs) (SCTime_t) SCTIME_USECS((usecs))
+
+typedef struct {
+    uint64_t secs : 44;
+    uint64_t usecs : 20;
+} SCTime_t;
+
+#define SCTIME_INIT(t)                                                                             \
+    {                                                                                              \
+        (t).secs = 0;                                                                              \
+        (t).usecs = 0;                                                                             \
+    }
+#define SCTIME_USECS(t)          ((uint64_t)(t).usecs)
+#define SCTIME_SECS(t)           ((uint64_t)(t).secs)
+#define SCTIME_MSECS(t)          (SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
+#define SCTIME_ADD_SECS(ts, s)   SCTIME_FROM_SECS((ts).secs + (s))
+#define SCTIME_ADD_USECS(ts, us) SCTIME_FROM_USECS((ts).usecs + (us))
+#define SCTIME_FROM_SECS(s)                                                                        \
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = (s), .usecs = 0                                                                    \
+    }
+#define SCTIME_FROM_USECS(us)                                                                      \
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = 0, .usecs = (us)                                                                   \
+    }
 #define SCTIME_FROM_TIMEVAL(tv)                                                                    \
-    (SCTime_t)((SCTIME_FROM_SECS((tv)->tv_sec) + SCTIME_FROM_USECS((tv)->tv_usec)))
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = (tv)->tv_sec, .usecs = (tv)->tv_usec                                               \
+    }
 #define SCTIME_FROM_TIMESPEC(ts)                                                                   \
-    (SCTime_t)((SCTIME_FROM_SECS((ts)->tv_sec) + SCTIME_FROM_USECS((ts)->tv_nsec * 1000)))
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = (ts)->tv_sec, .usecs = (ts)->tv_nsec * 1000                                        \
+    }
+
 #define SCTIME_TO_TIMEVAL(tv, t)                                                                   \
     (tv)->tv_sec = SCTIME_SECS((t));                                                               \
     (tv)->tv_usec = SCTIME_USECS((t));
 #define SCTIME_CMP(a, b, CMP)                                                                      \
     ((SCTIME_SECS(a) == SCTIME_SECS(b)) ? (SCTIME_USECS(a) CMP SCTIME_USECS(b))                    \
                                         : (SCTIME_SECS(a) CMP SCTIME_SECS(b)))
-#define SCTIME_CMP_GT(a, b) SCTIME_CMP((a), (b), >)
-#define SCTIME_CMP_LT(a, b) SCTIME_CMP((a), (b), <)
+#define SCTIME_CMP_GTE(a, b) SCTIME_CMP((a), (b), >=)
+#define SCTIME_CMP_GT(a, b)  SCTIME_CMP((a), (b), >)
+#define SCTIME_CMP_LT(a, b)  SCTIME_CMP((a), (b), <)
+#define SCTIME_CMP_LTE(a, b) SCTIME_CMP((a), (b), <=)
 
 void TimeInit(void);
 void TimeDeinit(void);

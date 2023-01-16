@@ -181,7 +181,7 @@ void TimeSetIncrementTime(uint32_t tv_sec)
 {
     SCTime_t ts = TimeGet();
 
-    ts += SCTIME_FROM_SECS(tv_sec);
+    ts = SCTIME_ADD_SECS(ts, tv_sec);
 
     TimeSet(ts);
 }

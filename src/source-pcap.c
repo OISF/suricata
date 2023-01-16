@@ -246,7 +246,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     p->ts = SCTIME_FROM_TIMEVAL(&h->ts);
-    SCLogDebug("p->ts.tv_sec %" PRIuMAX "", SCTIME_SECS((uintmax_t)p->ts));
+    SCLogDebug("p->ts.tv_sec %" PRIuMAX "", (uintmax_t)SCTIME_SECS(p->ts));
     p->datalink = ptv->datalink;
 
     ptv->pkts++;
