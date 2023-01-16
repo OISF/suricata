@@ -556,7 +556,7 @@ int TagTimeoutCheck(Host *host, SCTime_t ts)
     prev = NULL;
     while (tmp != NULL) {
         SCTime_t timeout_at = SCTIME_FROM_SECS(tmp->last_ts + TAG_MAX_LAST_TIME_SEEN);
-        if (timeout_at >= ts) {
+        if (SCTIME_CMP_GTE(timeout_at, ts)) {
             prev = tmp;
             tmp = tmp->next;
             retval = 0;
