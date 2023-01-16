@@ -796,8 +796,7 @@ static void AFPReadFromRingSetupPacket(
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
     /* Timestamp */
-    p->ts = SCTIME_FROM_SECS(h.h2->tp_sec);
-    p->ts += SCTIME_FROM_USECS(h.h2->tp_nsec / 1000);
+    p->ts = (SCTime_t){ .secs = h.h2->tp_sec, .usecs = h.h2->tp_nsec / 1000 };
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)", GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
     /* We only check for checksum disable */
@@ -958,8 +957,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
     /* Timestamp */
-    p->ts = SCTIME_FROM_SECS(ppd->tp_sec);
-    p->ts += SCTIME_FROM_USECS(ppd->tp_nsec / 1000);
+    p->ts = (SCTime_t){ .secs = ppd->tp_sec, .usecs = ppd->tp_nsec / 1000 };
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
             GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 

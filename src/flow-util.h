@@ -56,7 +56,7 @@
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \
-        (f)->lastts = 0;                                                                           \
+        SCTIME_INIT((f)->lastts);                                                                  \
         FLOWLOCK_INIT((f));                                                                        \
         (f)->protoctx = NULL;                                                                      \
         (f)->flow_end_flags = 0;                                                                   \
@@ -102,7 +102,7 @@
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \
-        (f)->lastts = 0;                                                                           \
+        SCTIME_INIT((f)->lastts);                                                                  \
         (f)->protoctx = NULL;                                                                      \
         (f)->flow_end_flags = 0;                                                                   \
         (f)->alparser = NULL;                                                                      \
