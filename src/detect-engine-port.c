@@ -100,13 +100,16 @@ void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *dp)
 void DetectPortPrintList(DetectPort *head)
 {
     DetectPort *cur;
+#ifdef DEBUG
     uint16_t cnt = 0;
-
+#endif
     SCLogDebug("= list start:");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
              DetectPortPrint(cur);
+#ifdef DEBUG
              cnt++;
+#endif
         }
         SCLogDebug(" ");
     }

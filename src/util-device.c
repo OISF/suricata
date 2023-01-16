@@ -284,7 +284,6 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
  */
 LiveDevice *LiveGetDevice(const char *name)
 {
-    int i = 0;
     LiveDevice *pd;
 
     if (name == NULL) {
@@ -296,8 +295,6 @@ LiveDevice *LiveGetDevice(const char *name)
         if (!strcmp(name, pd->dev)) {
             return pd;
         }
-
-        i++;
     }
 
     return NULL;
