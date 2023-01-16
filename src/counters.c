@@ -1265,7 +1265,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 /**
  * \brief Releases the resources alloted by the Stats API
  */
-void StatsReleaseResources()
+void StatsReleaseResources(void)
 {
     StatsLogSummary();
     StatsReleaseCtx();

@@ -320,7 +320,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
     return aconf->in.threads;
 }
 
-int NetmapRunModeIsIPS()
+int NetmapRunModeIsIPS(void)
 {
     int nlive = LiveGetDeviceCount();
     int ldev;

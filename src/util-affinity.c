@@ -162,7 +162,7 @@ static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
  * \brief Extract cpu affinity configuration from current config file
  */
 
-void AffinitySetupLoadFromConfig()
+void AffinitySetupLoadFromConfig(void)
 {
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     ConfNode *root = ConfGetNode("threading.cpu-affinity");

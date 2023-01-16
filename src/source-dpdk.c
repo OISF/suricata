@@ -184,7 +184,7 @@ static void DPDKSetTimevalReal(struct timeval *machine_start_tv, struct timeval 
 }
 
 /* get number of seconds from the reset of TSC counter (typically from the machine start) */
-static uint64_t DPDKGetSeconds()
+static uint64_t DPDKGetSeconds(void)
 {
     return CyclesToSeconds(rte_get_tsc_cycles());
 }

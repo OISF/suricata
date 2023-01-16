@@ -951,7 +951,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 }
 
 /** \brief spawn the flow manager thread */
-void FlowManagerThreadSpawn()
+void FlowManagerThreadSpawn(void)
 {
     intmax_t setting = 1;
     (void)ConfGetInt("flow.managers", &setting);
@@ -1146,7 +1146,7 @@ static bool FlowRecyclerReadyToShutdown(void)
 }
 
 /** \brief spawn the flow recycler thread */
-void FlowRecyclerThreadSpawn()
+void FlowRecyclerThreadSpawn(void)
 {
     intmax_t setting = 1;
     (void)ConfGetInt("flow.recyclers", &setting);

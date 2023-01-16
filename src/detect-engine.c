@@ -4861,7 +4861,7 @@ static int DetectEngineTest09(void)
 
 #endif
 
-void DetectEngineRegisterTests()
+void DetectEngineRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineTest01", DetectEngineTest01);

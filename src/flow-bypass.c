@@ -181,7 +181,7 @@ int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc,
 #endif
 
 /** \brief spawn the flow bypass manager thread */
-void BypassedFlowManagerThreadSpawn()
+void BypassedFlowManagerThreadSpawn(void)
 {
 #ifdef CAPTURE_OFFLOAD_MANAGER
 

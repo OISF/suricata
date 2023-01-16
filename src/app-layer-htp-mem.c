@@ -40,7 +40,7 @@ SC_ATOMIC_DECLARE(uint64_t, htp_config_memcap);
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, htp_memcap);
 
-void HTPParseMemcap()
+void HTPParseMemcap(void)
 {
     const char *conf_val;
 

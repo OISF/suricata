@@ -252,7 +252,7 @@ static void ArgumentsAddOptionAndArgument(struct Arguments *args, const char *op
     SCReturn;
 }
 
-static void InitEal()
+static void InitEal(void)
 {
     SCEnter();
     int retval;

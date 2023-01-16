@@ -408,7 +408,7 @@ void SCLogReleaseFGFilters(void)
  *
  * \retval count The no of FG filters
  */
-int SCLogPrintFGFilters()
+int SCLogPrintFGFilters(void)
 {
     SCLogFGFilterFile *fgf_file = NULL;
     SCLogFGFilterFunc *fgf_func = NULL;

@@ -1268,7 +1268,7 @@ TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
 /**
  * \brief Clean global contexts. Must be called on exit.
  */
-void NFQContextsClean()
+void NFQContextsClean(void)
 {
     if (g_nfq_q != NULL) {
         SCFree(g_nfq_q);

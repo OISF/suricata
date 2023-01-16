@@ -195,7 +195,7 @@ int StreamTcpReassembleSetMemcap(uint64_t size)
  *
  *  \return memcap memcap value
  */
-uint64_t StreamTcpReassembleGetMemcap()
+uint64_t StreamTcpReassembleGetMemcap(void)
 {
     uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.reassembly_memcap);
     return memcapcopy;

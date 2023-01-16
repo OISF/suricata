@@ -38,7 +38,7 @@ DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
     return q;
 }
 
-DefragTrackerQueue *DefragTrackerQueueNew()
+DefragTrackerQueue *DefragTrackerQueueNew(void)
 {
     DefragTrackerQueue *q = (DefragTrackerQueue *)SCMalloc(sizeof(DefragTrackerQueue));
     if (q == NULL) {
