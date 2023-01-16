@@ -23,6 +23,7 @@ use digest::Digest;
 use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
+use std::io;
 use std::os::raw::c_uchar;
 
 #[repr(u8)]
@@ -79,6 +80,7 @@ pub struct MimeStateSMTP<'a> {
     pub(crate) urls: Vec<Vec<u8>>,
     boundary: Vec<u8>,
     encoding: MimeSmtpEncoding,
+    decoder: Option<MimeBase64Decoder>,
     content_type: MimeSmtpContentType,
     decoded_line: Vec<u8>,
     files: &'a mut FileContainer,
@@ -88,7 +90,27 @@ pub struct MimeStateSMTP<'a> {
     pub(crate) md5_result: GenericArray<u8, U16>,
 }
 
-pub fn mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBufferConfig) -> Option<MimeStateSMTP> {
+#[derive(Debug)]
+pub struct MimeBase64Decoder {
+    tmp: [u8; 4],
+    nb: u8,
+}
+
+impl MimeBase64Decoder {
+    pub fn new() -> MimeBase64Decoder {
+        MimeBase64Decoder { tmp: [0; 4], nb: 0 }
+    }
+}
+
+impl Default for MimeBase64Decoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub fn mime_smtp_state_init(
+    files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
+) -> Option<MimeStateSMTP> {
     let r = MimeStateSMTP {
         state_flag: MimeSmtpParserState::MimeSmtpStart,
         headers: Vec::new(),
@@ -99,6 +121,7 @@ pub fn mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBu
         boundary: Vec::new(),
         decoded_line: Vec::new(),
         encoding: MimeSmtpEncoding::Plain,
+        decoder: None,
         content_type: MimeSmtpContentType::Message,
         files,
         sbcfg,
@@ -110,7 +133,9 @@ pub fn mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBufferConfig) -> *mut MimeStateSMTP {
+pub unsafe extern "C" fn rs_mime_smtp_state_init(
+    files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
+) -> *mut MimeStateSMTP {
     if let Some(ctx) = mime_smtp_state_init(files, sbcfg) {
         let boxed = Box::new(ctx);
         return Box::into_raw(boxed) as *mut _;
@@ -176,6 +201,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
         } else if mime::rs_equals_lowercase(&h.name, b"content-transfer-encoding") {
             if mime::rs_equals_lowercase(&h.value, b"base64") {
                 ctx.encoding = MimeSmtpEncoding::Base64;
+                ctx.decoder = Some(MimeBase64Decoder::new());
             } else if mime::rs_equals_lowercase(&h.value, b"quoted-printable") {
                 ctx.encoding = MimeSmtpEncoding::QuotedPrintable;
             }
@@ -239,7 +265,7 @@ extern "C" {
 }
 
 fn hex(i: u8) -> Option<u8> {
-    if (b'0'..=b'9').contains(&i) {
+    if i.is_ascii_digit() {
         return Some(i - b'0');
     }
     if (b'A'..=b'F').contains(&i) {
@@ -326,6 +352,116 @@ fn mime_smtp_find_url_strings(ctx: &mut MimeStateSMTP, input_new: &[u8]) {
     } // else  no end of line, already buffered for next input...
 }
 
+fn mime_base64_map(input: u8) -> io::Result<u8> {
+    match input {
+        43 => Ok(62),  // +
+        47 => Ok(63),  // /
+        48 => Ok(52),  // 0
+        49 => Ok(53),  // 1
+        50 => Ok(54),  // 2
+        51 => Ok(55),  // 3
+        52 => Ok(56),  // 4
+        53 => Ok(57),  // 5
+        54 => Ok(58),  // 6
+        55 => Ok(59),  // 7
+        56 => Ok(60),  // 8
+        57 => Ok(61),  // 9
+        65 => Ok(0),   // A
+        66 => Ok(1),   // B
+        67 => Ok(2),   // C
+        68 => Ok(3),   // D
+        69 => Ok(4),   // E
+        70 => Ok(5),   // F
+        71 => Ok(6),   // G
+        72 => Ok(7),   // H
+        73 => Ok(8),   // I
+        74 => Ok(9),   // J
+        75 => Ok(10),  // K
+        76 => Ok(11),  // L
+        77 => Ok(12),  // M
+        78 => Ok(13),  // N
+        79 => Ok(14),  // O
+        80 => Ok(15),  // P
+        81 => Ok(16),  // Q
+        82 => Ok(17),  // R
+        83 => Ok(18),  // S
+        84 => Ok(19),  // T
+        85 => Ok(20),  // U
+        86 => Ok(21),  // V
+        87 => Ok(22),  // W
+        88 => Ok(23),  // X
+        89 => Ok(24),  // Y
+        90 => Ok(25),  // Z
+        97 => Ok(26),  // a
+        98 => Ok(27),  // b
+        99 => Ok(28),  // c
+        100 => Ok(29), // d
+        101 => Ok(30), // e
+        102 => Ok(31), // f
+        103 => Ok(32), // g
+        104 => Ok(33), // h
+        105 => Ok(34), // i
+        106 => Ok(35), // j
+        107 => Ok(36), // k
+        108 => Ok(37), // l
+        109 => Ok(38), // m
+        110 => Ok(39), // n
+        111 => Ok(40), // o
+        112 => Ok(41), // p
+        113 => Ok(42), // q
+        114 => Ok(43), // r
+        115 => Ok(44), // s
+        116 => Ok(45), // t
+        117 => Ok(46), // u
+        118 => Ok(47), // v
+        119 => Ok(48), // w
+        120 => Ok(49), // x
+        121 => Ok(50), // y
+        122 => Ok(51), // z
+        _ => Err(io::Error::new(io::ErrorKind::InvalidData, "invalid base64")),
+    }
+}
+
+fn mime_base64_decode(decoder: &mut MimeBase64Decoder, input: &[u8]) -> io::Result<Vec<u8>> {
+    let mut i = input;
+    let maxlen = ((decoder.nb as usize + i.len()) * 3) / 4;
+    let mut r = vec![0; maxlen];
+    let mut offset = 0;
+    while !i.is_empty() {
+        while decoder.nb < 4 && !i.is_empty() {
+            if i[0] != b' ' {
+                decoder.tmp[decoder.nb as usize] = i[0];
+                decoder.nb += 1;
+            }
+            i = &i[1..];
+        }
+        if decoder.nb == 4 {
+            decoder.tmp[0] = mime_base64_map(decoder.tmp[0])?;
+            decoder.tmp[1] = mime_base64_map(decoder.tmp[1])?;
+            if decoder.tmp[2] == b'=' {
+                r[offset] = (decoder.tmp[0] << 2) | (decoder.tmp[1] >> 4);
+                offset += 1;
+            } else {
+                decoder.tmp[2] = mime_base64_map(decoder.tmp[2])?;
+                if decoder.tmp[3] == b'=' {
+                    r[offset] = (decoder.tmp[0] << 2) | (decoder.tmp[1] >> 4);
+                    r[offset + 1] = (decoder.tmp[1] << 4) | (decoder.tmp[2] >> 2);
+                    offset += 2;
+                } else {
+                    decoder.tmp[3] = mime_base64_map(decoder.tmp[3])?;
+                    r[offset] = (decoder.tmp[0] << 2) | (decoder.tmp[1] >> 4);
+                    r[offset + 1] = (decoder.tmp[1] << 4) | (decoder.tmp[2] >> 2);
+                    r[offset + 2] = (decoder.tmp[2] << 6) | decoder.tmp[3];
+                    offset += 3;
+                }
+            }
+            decoder.nb = 0;
+        }
+    }
+    r.truncate(offset);
+    return Ok(r);
+}
+
 fn mime_smtp_parse_line(
     ctx: &mut MimeStateSMTP, i: &[u8], full: &[u8],
 ) -> (MimeSmtpParserResult, u32) {
@@ -404,13 +540,20 @@ fn mime_smtp_parse_line(
                 }
                 MimeSmtpEncoding::Base64 => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
-                        if let Ok(dec) = base64::decode(i) {
-                            mime_smtp_find_url_strings(ctx, &dec);
-                            unsafe {
-                                FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec.len() as u32);
+                        if let Some(ref mut decoder) = &mut ctx.decoder {
+                            if let Ok(dec) = mime_base64_decode(decoder, i) {
+                                mime_smtp_find_url_strings(ctx, &dec);
+                                unsafe {
+                                    FileAppendData(
+                                        ctx.files,
+                                        ctx.sbcfg,
+                                        dec.as_ptr(),
+                                        dec.len() as u32,
+                                    );
+                                }
                             }
+                            // else TODOrust5 set event ?
                         }
-                        // else TODOrust5 set event ?
                     }
                 }
                 MimeSmtpEncoding::QuotedPrintable => {
