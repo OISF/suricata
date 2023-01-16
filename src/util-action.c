@@ -95,7 +95,7 @@ static uint8_t ActionAsciiToFlag(const char *action)
  *
  * \retval 0 on success; -1 on fatal error;
  */
-int ActionInitConfig()
+int ActionInitConfig(void)
 {
     uint8_t actions_used = 0;
     uint8_t action_flag = 0;

@@ -493,7 +493,7 @@ void DetectLoadersInit(void)
 /**
  * \brief Unpauses all threads present in tv_root
  */
-void TmThreadWakeupDetectLoaderThreads()
+void TmThreadWakeupDetectLoaderThreads(void)
 {
     ThreadVars *tv = NULL;
     int i = 0;
@@ -517,7 +517,7 @@ void TmThreadWakeupDetectLoaderThreads()
 /**
  * \brief Unpauses all threads present in tv_root
  */
-void TmThreadContinueDetectLoaderThreads()
+void TmThreadContinueDetectLoaderThreads(void)
 {
     ThreadVars *tv = NULL;
     int i = 0;

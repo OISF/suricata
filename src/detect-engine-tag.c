@@ -77,7 +77,7 @@ void TagDestroyCtx(void)
 
 /** \brief Reset the tagging engine context
  */
-void TagRestartCtx()
+void TagRestartCtx(void)
 {
     TagDestroyCtx();
     TagInitCtx();

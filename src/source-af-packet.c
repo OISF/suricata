@@ -437,7 +437,7 @@ AFPPeersList peerslist;
 /**
  * \brief Init the global list of ::AFPPeer
  */
-TmEcode AFPPeersListInit()
+TmEcode AFPPeersListInit(void)
 {
     SCEnter();
     TAILQ_INIT(&peerslist.peers);
@@ -454,7 +454,7 @@ TmEcode AFPPeersListInit()
  *
  * \retval TM_ECODE_FAILED if some threads are not peered or TM_ECODE_OK else.
  */
-TmEcode AFPPeersListCheck()
+TmEcode AFPPeersListCheck(void)
 {
 #define AFP_PEERS_MAX_TRY 4
 #define AFP_PEERS_WAIT 20000
@@ -569,7 +569,7 @@ static int AFPPeersListStarted(void)
 /**
  * \brief Clean the global peers list.
  */
-void AFPPeersListClean()
+void AFPPeersListClean(void)
 {
     AFPPeer *pitem;
 

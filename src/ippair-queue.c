@@ -40,7 +40,7 @@ IPPairQueue *IPPairQueueInit (IPPairQueue *q)
     return q;
 }
 
-IPPairQueue *IPPairQueueNew()
+IPPairQueue *IPPairQueueNew(void)
 {
     IPPairQueue *q = (IPPairQueue *)SCMalloc(sizeof(IPPairQueue));
     if (q == NULL) {
