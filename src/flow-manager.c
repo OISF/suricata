@@ -1286,8 +1286,6 @@ void FlowRecyclerThreadSpawn(void)
  */
 void FlowDisableFlowRecyclerThread(void)
 {
-    int cnt = 0;
-
     /* move all flows still in the hash to the recycler queue */
 #ifndef DEBUG
     (void)FlowCleanupHash();
@@ -1309,7 +1307,6 @@ void FlowDisableFlowRecyclerThread(void)
             strlen(thread_name_flow_rec)) == 0)
         {
             TmThreadsSetFlag(tv, THV_KILL);
-            cnt++;
         }
     }
     SCMutexUnlock(&tv_root_lock);
