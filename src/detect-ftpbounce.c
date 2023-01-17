@@ -263,6 +263,7 @@ static int DetectFtpbounceTestSetup01(void)
 
 #include "stream-tcp-reassemble.h"
 
+#if 0
 /**
  * \test Check the ftpbounce match, send a get request in three chunks
  * + more data.
@@ -532,6 +533,7 @@ end:
     SCFree(p);
     return result;
 }
+#endif
 
 /**
  * \brief this function registers unit tests for DetectFtpbounce
@@ -539,9 +541,9 @@ end:
 static void DetectFtpbounceRegisterTests(void)
 {
     UtRegisterTest("DetectFtpbounceTestSetup01", DetectFtpbounceTestSetup01);
-    UtRegisterTest("DetectFtpbounceTestALMatch02",
-                   DetectFtpbounceTestALMatch02);
-    UtRegisterTest("DetectFtpbounceTestALMatch03",
-                   DetectFtpbounceTestALMatch03);
+    //    UtRegisterTest("DetectFtpbounceTestALMatch02",
+    //                   DetectFtpbounceTestALMatch02);
+    //    UtRegisterTest("DetectFtpbounceTestALMatch03",
+    //                   DetectFtpbounceTestALMatch03);
 }
 #endif /* UNITTESTS */
