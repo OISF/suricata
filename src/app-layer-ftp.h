@@ -121,11 +121,13 @@ typedef struct FtpLineState_ {
     const uint8_t *buf;
     uint32_t len;
     uint8_t delim_len;
+#if 0
     uint8_t *db;
     uint32_t db_len;
     uint8_t current_line_db;
     /** we have seen LF for the currently parsed line */
     uint8_t current_line_lf_seen;
+#endif
 } FtpLineState;
 
 typedef struct FTPString_ {
@@ -171,14 +173,14 @@ typedef struct FtpState_ {
 
     /* --parser details-- */
     /** current line extracted by the parser from the call to FTPGetline() */
-    const uint8_t *current_line;
+//    const uint8_t *current_line;
     /** length of the line in current_line.  Doesn't include the delimiter */
-    uint32_t current_line_len;
-    uint8_t current_line_delimiter_len;
+//    uint32_t current_line_len;
+//    uint8_t current_line_delimiter_len;
     bool current_line_truncated;
 
     /* 0 for toserver, 1 for toclient */
-    FtpLineState line_state[2];
+//    FtpLineState line_state[2];
 
     FtpRequestCommand command;
     FtpRequestCommandArgOfs arg_offset;
