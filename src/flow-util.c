@@ -249,6 +249,8 @@ void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
             name = "flow.end.state.established";
         } else if (i == FLOW_STATE_CLOSED) {
             name = "flow.end.state.closed";
+        } else if (i == FLOW_STATE_DROPPED) {
+            name = "flow.end.state.dropped";
         } else if (i == FLOW_STATE_LOCAL_BYPASSED) {
             name = "flow.end.state.local_bypassed";
 #ifdef CAPTURE_OFFLOAD

@@ -4930,6 +4930,9 @@
                                         "closed": {
                                             "type": "integer"
                                         },
+                                        "dropped": {
+                                            "type": "integer"
+                                        },
                                         "local_bypassed": {
                                             "type": "integer"
                                         },
