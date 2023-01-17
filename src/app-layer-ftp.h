@@ -118,6 +118,9 @@ enum {
 typedef struct FtpLineState_ {
     /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */
+    const uint8_t *buf;
+    uint32_t len;
+    uint8_t delim_len;
     uint8_t *db;
     uint32_t db_len;
     uint8_t current_line_db;
