@@ -951,7 +951,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 // Record claims more bytes than are in NBSS record...
                 state.set_event(SMBEvent::WriteRequestTooLarge);
                 // Skip the remaining bytes of the record.
-                state.set_skip(Direction::ToServer, nbss_remaining, 0);
+                state.set_skip(Direction::ToServer, nbss_remaining);
                 return;
             }
             let mut file_fid = rd.fid.to_vec();
@@ -1041,7 +1041,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     // Record claims more bytes than are in NBSS record...
                     state.set_event(SMBEvent::ReadResponseTooLarge);
                     // Skip the remaining bytes of the record.
-                    state.set_skip(Direction::ToClient, nbss_remaining, 0);
+                    state.set_skip(Direction::ToClient, nbss_remaining);
                     return;
                 }
                 let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
@@ -1050,7 +1050,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     None => {
                         SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
                                 rd.len - rd.data.len() as u32, rd);
-                        state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                        state.set_skip(Direction::ToClient, nbss_remaining);
                         return;
                     },
                 };
