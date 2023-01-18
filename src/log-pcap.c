@@ -1396,7 +1396,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                 pl->size_limit = size;
             } else if (pl->size_limit < MIN_LIMIT) {
                 FatalError("Fail to initialize pcap-log output, limit less than "
-                           "allowed minimum.");
+                           "allowed minimum of %d bytes.",
+                        MIN_LIMIT);
             }
         }
     }
