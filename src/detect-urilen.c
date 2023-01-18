@@ -145,7 +145,7 @@ static void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \brief set prefilter dsize pair
  *  \param s signature to get dsize value from
  */
-void DetectUrilenApplyToContent(Signature *s, int list)
+static void DetectUrilenApplyToContent1(Signature *s, int list)
 {
     uint16_t high = UINT16_MAX;
     bool found = false;
@@ -206,6 +206,78 @@ void DetectUrilenApplyToContent(Signature *s, int list)
                     "because of urilen.", s->id, cd->id, cd->depth);
         }
     }
+}
+
+static void DetectUrilenApplyToContent2(Signature *s, int list)
+{
+    uint64_t high = UINT64_MAX;
+    bool found = false;
+
+    SigMatch *sm = s->init_data->smlists[list];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_BSIZE)
+            continue;
+
+        DetectU64Data *bsz = (DetectU64Data *)sm->ctx;
+
+        switch (bsz->mode) {
+            case DETECT_UINT_LT:
+                if (bsz->arg1 < UINT64_MAX) {
+                    high = bsz->arg1 + 1;
+                }
+                break;
+            case DETECT_UINT_LTE:
+                // fallthrough
+            case DETECT_UINT_EQ:
+                high = bsz->arg1;
+                break;
+            case DETECT_UINT_RA:
+                if (bsz->arg2 < UINT64_MAX) {
+                    high = bsz->arg2 + 1;
+                }
+                break;
+            case DETECT_UINT_NE:
+                // fallthrough
+            case DETECT_UINT_GTE:
+                // fallthrough
+            case DETECT_UINT_GT:
+                high = UINT64_MAX;
+                break;
+        }
+        found = true;
+    }
+
+    // skip sentinel to avoid mismatches
+    if (!found || high == UINT64_MAX)
+        return;
+
+    SCLogDebug("high %u", high);
+
+    sm = s->init_data->smlists[list];
+    for ( ; sm != NULL;  sm = sm->next) {
+        if (sm->type != DETECT_CONTENT) {
+            continue;
+        }
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (cd == NULL) {
+            continue;
+        }
+
+        if (cd->depth == 0 || cd->depth > high) {
+            cd->depth = high;
+            SCLogDebug("updated %u, content %u to have depth %u "
+                    "because of urilen.", s->id, cd->id, cd->depth);
+        }
+    }
+}
+
+/** \brief set prefilter dsize pair
+ *  \param s signature to get dsize value from
+ */
+void DetectUrilenApplyToContent(Signature *s, int list)
+{
+    DetectUrilenApplyToContent1(s, list);
+    DetectUrilenApplyToContent2(s, list);
 }
 
 bool DetectUrilenValidateContent(const Signature *s, int list, const char **sigerror)
