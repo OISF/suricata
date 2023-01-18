@@ -61,8 +61,6 @@ typedef struct LiveDeviceName_ {
 void LiveDevRegisterExtension(void);
 
 int LiveRegisterDeviceName(const char *dev);
-int LiveGetDeviceNameCount(void);
-const char *LiveGetDeviceNameName(int number);
 int LiveRegisterDevice(const char *dev);
 int LiveDevUseBypass(LiveDevice *dev);
 void LiveDevSetBypassStats(LiveDevice *dev, uint64_t cnt, int family);
