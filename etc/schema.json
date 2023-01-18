@@ -4710,6 +4710,9 @@
                                         },
                                         "pkt_too_small": {
                                             "type": "integer"
+                                        },
+                                        "len_invalid": {
+                                            "type": "integer"
                                         }
                                     },
                                     "additionalProperties": false
