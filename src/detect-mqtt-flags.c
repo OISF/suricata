@@ -116,7 +116,7 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid flag definition: %s", rawstr);
+        SCLogError("invalid flag definition: %s", rawstr);
         return NULL;
     }
 
@@ -138,7 +138,7 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
         }
         if (strlen(flagv) < 2) {
             /* flags have a minimum length */
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "malformed flag value: %s", flagv);
+            SCLogError("malformed flag value: %s", flagv);
             goto error;
         }  else {
             int offset = 0;
@@ -150,18 +150,18 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
             }
             if (strcmp(flagv+offset, "dup") == 0) {
                 if (de->dup != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->dup = fs_to_set;
             } else if (strcmp(flagv+offset, "retain") == 0) {
                 if (de->retain != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->retain = fs_to_set;
             } else {
-                SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid flag definition: %s", flagv);
+                SCLogError("invalid flag definition: %s", flagv);
                 goto error;
             }
         }

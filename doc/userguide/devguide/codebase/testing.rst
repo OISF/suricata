@@ -75,20 +75,19 @@ From the C side, ``decode-ethernet.c`` offers an good example:
             0x94, 0x56, 0x00, 0x01, 0x89, 0x03,
         };
 
-        Packet *p = SCMalloc(SIZE_OF_PACKET);
+        Packet *p = PacketGetFromAlloc();
         FAIL_IF_NULL(p);
         ThreadVars tv;
         DecodeThreadVars dtv;
 
         memset(&dtv, 0, sizeof(DecodeThreadVars));
         memset(&tv,  0, sizeof(ThreadVars));
-        memset(p, 0, SIZE_OF_PACKET);
 
         DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
         FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, DCE_PKT_TOO_SMALL));
 
-        SCFree(p);
+        PacketFree(p);
         PASS;
     }
 

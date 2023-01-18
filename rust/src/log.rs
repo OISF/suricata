@@ -26,9 +26,6 @@ use crate::core::*;
 pub enum Level {
     NotSet = -1,
     None = 0,
-    Emergency,
-    Alert,
-    Critical,
     Error,
     Warning,
     Notice,
@@ -59,8 +56,8 @@ pub extern "C" fn rs_log_set_level(level: i32) {
 
 fn basename(filename: &str) -> &str {
     let path = Path::new(filename);
-    for os_str in path.file_name() {
-        for basename in os_str.to_str() {
+    if let Some(os_str) = path.file_name() {
+        if let Some(basename) = os_str.to_str() {
             return basename;
         }
     }
@@ -68,14 +65,15 @@ fn basename(filename: &str) -> &str {
 }
 
 pub fn sclog(level: Level, file: &str, line: u32, function: &str,
-         code: i32, message: &str)
+         message: &str)
 {
     let filename = basename(file);
+    let noext = &filename[0..filename.len() - 3];
     sc_log_message(level,
                    filename,
                    line,
                    function,
-                   code,
+                   noext,
                    message);
 }
 
@@ -99,9 +97,9 @@ macro_rules!function {
 
 #[macro_export]
 macro_rules!do_log {
-    ($level:expr, $code:expr, $($arg:tt)*) => {
+    ($level:expr, $($arg:tt)*) => {
         if $crate::log::get_log_level() >= $level as i32 {
-            $crate::log::sclog($level, file!(), line!(), $crate::function!(), $code,
+            $crate::log::sclog($level, file!(), line!(), $crate::function!(),
                   &(format!($($arg)*)));
         }
     }
@@ -110,35 +108,35 @@ macro_rules!do_log {
 #[macro_export]
 macro_rules!SCLogError {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Error, 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Error, $($arg)*);
     };
 }
 
 #[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Notice, 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Notice, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogInfo {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Info, 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Info, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogPerf {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Perf, 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Perf, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Config, 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Config, $($arg)*);
     }
 }
 
@@ -147,7 +145,7 @@ macro_rules!SCLogConfig {
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
-        do_log!($crate::log::Level::Debug, 0, $($arg)*);
+        do_log!($crate::log::Level::Debug, $($arg)*);
     }
 }
 
@@ -168,7 +166,7 @@ pub fn sc_log_message(level: Level,
                       filename: &str,
                       line: std::os::raw::c_uint,
                       function: &str,
-                      code: std::os::raw::c_int,
+                      module: &str,
                       message: &str) -> std::os::raw::c_int
 {
     unsafe {
@@ -178,7 +176,7 @@ pub fn sc_log_message(level: Level,
                 to_safe_cstring(filename).as_ptr(),
                 line,
                 to_safe_cstring(function).as_ptr(),
-                code,
+                to_safe_cstring(module).as_ptr(),
                 to_safe_cstring(message).as_ptr());
         }
     }

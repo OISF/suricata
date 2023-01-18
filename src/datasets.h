@@ -32,6 +32,8 @@ enum DatasetTypes {
     DATASET_TYPE_STRING = 1,
     DATASET_TYPE_MD5,
     DATASET_TYPE_SHA256,
+    DATASET_TYPE_IPV4,
+    DATASET_TYPE_IPV6,
 };
 
 #define DATASET_NAME_MAX_LEN 63
@@ -60,5 +62,6 @@ DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uin
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
+int DatasetLookupSerialized(Dataset *set, const char *string);
 
 #endif /* __DATASETS_H__ */

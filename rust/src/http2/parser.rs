@@ -32,18 +32,18 @@ use std::fmt;
 use std::str::FromStr;
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2FrameType {
-    DATA = 0,
-    HEADERS = 1,
-    PRIORITY = 2,
-    RSTSTREAM = 3,
-    SETTINGS = 4,
-    PUSHPROMISE = 5,
-    PING = 6,
-    GOAWAY = 7,
-    WINDOWUPDATE = 8,
-    CONTINUATION = 9,
+    Data = 0,
+    Headers = 1,
+    Priority = 2,
+    RstStream = 3,
+    Settings = 4,
+    PushPromise = 5,
+    Ping = 6,
+    GoAway = 7,
+    WindowUpdate = 8,
+    Continuation = 9,
 }
 
 impl fmt::Display for HTTP2FrameType {
@@ -59,22 +59,22 @@ impl std::str::FromStr for HTTP2FrameType {
         let su = s.to_uppercase();
         let su_slice: &str = &su;
         match su_slice {
-            "DATA" => Ok(HTTP2FrameType::DATA),
-            "HEADERS" => Ok(HTTP2FrameType::HEADERS),
-            "PRIORITY" => Ok(HTTP2FrameType::PRIORITY),
-            "RSTSTREAM" => Ok(HTTP2FrameType::RSTSTREAM),
-            "SETTINGS" => Ok(HTTP2FrameType::SETTINGS),
-            "PUSHPROMISE" => Ok(HTTP2FrameType::PUSHPROMISE),
-            "PING" => Ok(HTTP2FrameType::PING),
-            "GOAWAY" => Ok(HTTP2FrameType::GOAWAY),
-            "WINDOWUPDATE" => Ok(HTTP2FrameType::WINDOWUPDATE),
-            "CONTINUATION" => Ok(HTTP2FrameType::CONTINUATION),
+            "DATA" => Ok(HTTP2FrameType::Data),
+            "HEADERS" => Ok(HTTP2FrameType::Headers),
+            "PRIORITY" => Ok(HTTP2FrameType::Priority),
+            "RSTSTREAM" => Ok(HTTP2FrameType::RstStream),
+            "SETTINGS" => Ok(HTTP2FrameType::Settings),
+            "PUSHPROMISE" => Ok(HTTP2FrameType::PushPromise),
+            "PING" => Ok(HTTP2FrameType::Ping),
+            "GOAWAY" => Ok(HTTP2FrameType::GoAway),
+            "WINDOWUPDATE" => Ok(HTTP2FrameType::WindowUpdate),
+            "CONTINUATION" => Ok(HTTP2FrameType::Continuation),
             _ => Err(format!("'{}' is not a valid value for HTTP2FrameType", s)),
         }
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct HTTP2FrameHeader {
     //we could add detection on (GOAWAY) additional data
     pub length: u32,
@@ -103,22 +103,22 @@ pub fn http2_parse_frame_header(i: &[u8]) -> IResult<&[u8], HTTP2FrameHeader> {
 }
 
 #[repr(u32)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2ErrorCode {
-    NOERROR = 0,
-    PROTOCOLERROR = 1,
-    INTERNALERROR = 2,
-    FLOWCONTROLERROR = 3,
-    SETTINGSTIMEOUT = 4,
-    STREAMCLOSED = 5,
-    FRAMESIZEERROR = 6,
-    REFUSEDSTREAM = 7,
-    CANCEL = 8,
-    COMPRESSIONERROR = 9,
-    CONNECTERROR = 10,
-    ENHANCEYOURCALM = 11,
-    INADEQUATESECURITY = 12,
-    HTTP11REQUIRED = 13,
+    NoError = 0,
+    ProtocolError = 1,
+    InternalError = 2,
+    FlowControlError = 3,
+    SettingsTimeout = 4,
+    StreamClosed = 5,
+    FrameSizeError = 6,
+    RefusedStream = 7,
+    Cancel = 8,
+    CompressionError = 9,
+    ConnectError = 10,
+    EnhanceYourCalm = 11,
+    InadequateSecurity = 12,
+    Http11Required = 13,
 }
 
 impl fmt::Display for HTTP2ErrorCode {
@@ -134,19 +134,19 @@ impl std::str::FromStr for HTTP2ErrorCode {
         let su = s.to_uppercase();
         let su_slice: &str = &su;
         match su_slice {
-            "NO_ERROR" => Ok(HTTP2ErrorCode::NOERROR),
-            "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::PROTOCOLERROR),
-            "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FLOWCONTROLERROR),
-            "SETTINGS_TIMEOUT" => Ok(HTTP2ErrorCode::SETTINGSTIMEOUT),
-            "STREAM_CLOSED" => Ok(HTTP2ErrorCode::STREAMCLOSED),
-            "FRAME_SIZE_ERROR" => Ok(HTTP2ErrorCode::FRAMESIZEERROR),
-            "REFUSED_STREAM" => Ok(HTTP2ErrorCode::REFUSEDSTREAM),
-            "CANCEL" => Ok(HTTP2ErrorCode::CANCEL),
-            "COMPRESSION_ERROR" => Ok(HTTP2ErrorCode::COMPRESSIONERROR),
-            "CONNECT_ERROR" => Ok(HTTP2ErrorCode::CONNECTERROR),
-            "ENHANCE_YOUR_CALM" => Ok(HTTP2ErrorCode::ENHANCEYOURCALM),
-            "INADEQUATE_SECURITY" => Ok(HTTP2ErrorCode::INADEQUATESECURITY),
-            "HTTP_1_1_REQUIRED" => Ok(HTTP2ErrorCode::HTTP11REQUIRED),
+            "NO_ERROR" => Ok(HTTP2ErrorCode::NoError),
+            "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::ProtocolError),
+            "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FlowControlError),
+            "SETTINGS_TIMEOUT" => Ok(HTTP2ErrorCode::SettingsTimeout),
+            "STREAM_CLOSED" => Ok(HTTP2ErrorCode::StreamClosed),
+            "FRAME_SIZE_ERROR" => Ok(HTTP2ErrorCode::FrameSizeError),
+            "REFUSED_STREAM" => Ok(HTTP2ErrorCode::RefusedStream),
+            "CANCEL" => Ok(HTTP2ErrorCode::Cancel),
+            "COMPRESSION_ERROR" => Ok(HTTP2ErrorCode::CompressionError),
+            "CONNECT_ERROR" => Ok(HTTP2ErrorCode::ConnectError),
+            "ENHANCE_YOUR_CALM" => Ok(HTTP2ErrorCode::EnhanceYourCalm),
+            "INADEQUATE_SECURITY" => Ok(HTTP2ErrorCode::InadequateSecurity),
+            "HTTP_1_1_REQUIRED" => Ok(HTTP2ErrorCode::Http11Required),
             _ => Err(format!("'{}' is not a valid value for HTTP2ErrorCode", s)),
         }
     }
@@ -293,7 +293,7 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
         61 => ("www-authenticate", ""),
         _ => ("", ""),
     };
-    if name.len() > 0 {
+    if !name.is_empty() {
         return Some(HTTP2FrameHeaderBlock {
             name: name.as_bytes().to_vec(),
             value: value.as_bytes().to_vec(),
@@ -330,7 +330,7 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2HeaderDecodeStatus {
     HTTP2HeaderDecodeSuccess = 0,
     HTTP2HeaderDecodeSizeUpdate = 1,
@@ -456,7 +456,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 } else {
                     dyn_headers.table.push(headcopy);
                 }
-                while dyn_headers.current_size > dyn_headers.max_size && dyn_headers.table.len() > 0
+                while dyn_headers.current_size > dyn_headers.max_size && !dyn_headers.table.is_empty()
                 {
                     dyn_headers.current_size -=
                         32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
@@ -512,8 +512,8 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
         return Ok((i3, 0));
     }
     let mut varval = max;
-    for i in 0..varia.len() {
-        varval += ((varia[i] & 0x7F) as u64) << (7 * i);
+    for (i, e) in varia.iter().enumerate() {
+        varval += ((e & 0x7F) as u64) << (7 * i);
     }
     match varval.checked_add((finalv as u64) << (7 * varia.len())) {
         None => {
@@ -539,7 +539,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     if (maxsize2 as usize) < dyn_headers.max_size {
         //dyn_headers.max_size is updated later with all headers
         //may evict entries
-        while dyn_headers.current_size > (maxsize2 as usize) && dyn_headers.table.len() > 0 {
+        while dyn_headers.current_size > (maxsize2 as usize) && !dyn_headers.table.is_empty() {
             // we check dyn_headers.table as we may be in best effort
             // because the previous maxsize was too big for us to retain all the headers
             dyn_headers.current_size -=
@@ -585,7 +585,7 @@ pub struct HTTP2FrameHeaders {
 //end stream
 pub const HTTP2_FLAG_HEADER_EOS: u8 = 0x1;
 pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
-const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
+pub const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 fn http2_parse_headers_blocks<'a>(
@@ -593,7 +593,7 @@ fn http2_parse_headers_blocks<'a>(
 ) -> IResult<&'a [u8], Vec<HTTP2FrameHeaderBlock>> {
     let mut blocks = Vec::new();
     let mut i3 = input;
-    while i3.len() > 0 {
+    while !i3.is_empty() {
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
                 blocks.push(b);
@@ -681,14 +681,14 @@ pub fn http2_parse_frame_continuation<'a>(
 }
 
 #[repr(u16)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
-    SETTINGSHEADERTABLESIZE = 1,
-    SETTINGSENABLEPUSH = 2,
-    SETTINGSMAXCONCURRENTSTREAMS = 3,
-    SETTINGSINITIALWINDOWSIZE = 4,
-    SETTINGSMAXFRAMESIZE = 5,
-    SETTINGSMAXHEADERLISTSIZE = 6,
+    HeaderTableSize = 1,
+    EnablePush = 2,
+    MaxConcurrentStreams = 3,
+    InitialWindowSize = 4,
+    MaxFrameSize = 5,
+    MaxHeaderListSize = 6,
 }
 
 impl fmt::Display for HTTP2SettingsId {
@@ -704,12 +704,12 @@ impl std::str::FromStr for HTTP2SettingsId {
         let su = s.to_uppercase();
         let su_slice: &str = &su;
         match su_slice {
-            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::SETTINGSHEADERTABLESIZE),
-            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::SETTINGSENABLEPUSH),
-            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS),
-            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::SETTINGSINITIALWINDOWSIZE),
-            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXFRAMESIZE),
-            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXHEADERLISTSIZE),
+            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::HeaderTableSize),
+            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::EnablePush),
+            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::MaxConcurrentStreams),
+            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::InitialWindowSize),
+            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::MaxFrameSize),
+            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::MaxHeaderListSize),
             _ => Err(format!("'{}' is not a valid value for HTTP2SettingsId", s)),
         }
     }
@@ -872,7 +872,7 @@ mod tests {
         let r = http2_parse_settingsctx(s);
         match r {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
+                assert_eq!(ctx.id, HTTP2SettingsId::EnablePush);
                 match ctx.value {
                     Some(_) => {
                         panic!("Unexpected value");
@@ -891,12 +891,9 @@ mod tests {
         let r1 = http2_parse_settingsctx(s1);
         match r1 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
-                match ctx.value {
-                    Some(_) => {
-                        panic!("Unexpected value");
-                    }
-                    None => {}
+                assert_eq!(ctx.id, HTTP2SettingsId::EnablePush);
+                if ctx.value.is_some() {
+                    panic!("Unexpected value");
                 }
                 assert_eq!(rem.len(), 1);
             }
@@ -909,7 +906,7 @@ mod tests {
         let r2 = http2_parse_settingsctx(s2);
         match r2 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 42);
@@ -929,7 +926,7 @@ mod tests {
         let r3 = http2_parse_settingsctx(s3);
         match r3 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 42);
@@ -951,7 +948,7 @@ mod tests {
         let r4 = http2_parse_settingsctx(s4);
         match r4 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 54);
@@ -972,7 +969,7 @@ mod tests {
         let r5 = http2_parse_settingsctx(s5);
         match r5 {
             Ok((rem, ctx)) => {
-                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                assert_eq!(ctx.id, HTTP2SettingsId::MaxConcurrentStreams);
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 76);
@@ -1028,7 +1025,7 @@ mod tests {
             Ok((remainder, frame)) => {
                 // Check the first message.
                 assert_eq!(frame.length, 6);
-                assert_eq!(frame.ftype, HTTP2FrameType::SETTINGS as u8);
+                assert_eq!(frame.ftype, HTTP2FrameType::Settings as u8);
                 assert_eq!(frame.flags, 0);
                 assert_eq!(frame.reserved, 0);
                 assert_eq!(frame.stream_id, 0);

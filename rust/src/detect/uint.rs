@@ -25,7 +25,7 @@ use nom7::IResult;
 
 use std::ffi::CStr;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
 pub enum DetectUintMode {
     DetectUintModeEqual,
@@ -162,7 +162,7 @@ fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, De
         DetectUintData {
             arg1,
             arg2: T::min_value(),
-            mode: mode,
+            mode,
         },
     ))
 }

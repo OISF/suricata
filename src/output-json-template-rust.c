@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2021 Open Information Security Foundation
+/* Copyright (C) 2018-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,12 +49,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-template-rust.h"
 #include "output-json-template-rust.h"
 #include "rust.h"
 
 typedef struct LogTemplateFileCtx_ {
-    uint32_t    flags;
+    uint32_t flags;
     OutputJsonCtx *eve_ctx;
 } LogTemplateFileCtx;
 
@@ -63,14 +62,14 @@ typedef struct LogTemplateLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogTemplateLogThread;
 
-static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonTemplateLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
 {
     SCLogNotice("JsonTemplateLogger");
     LogTemplateLogThread *thread = thread_data;
 
-    JsonBuilder *js = CreateEveHeader(
-            p, LOG_DIR_PACKET, "template-rust", NULL, thread->templatelog_ctx->eve_ctx);
+    JsonBuilder *js =
+            CreateEveHeader(p, LOG_DIR_PACKET, "template", NULL, thread->templatelog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -98,8 +97,7 @@ static void OutputTemplateLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -120,7 +118,7 @@ static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf,
 
     SCLogNotice("Template log sub-module initialized.");
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE_RUST);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -167,15 +165,14 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
 void JsonTemplateRustLogRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.template-rust") == NULL) {
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
     /* TEMPLATE_END_REMOVE */
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TEMPLATE_RUST, "eve-log",
-        "JsonTemplateRustLog", "eve-log.template-rust",
-        OutputTemplateLogInitSub, ALPROTO_TEMPLATE_RUST, JsonTemplateLogger,
-        JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
+            OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonTemplateLogger,
+            JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
 
     SCLogNotice("Template JSON logger registered.");
 }

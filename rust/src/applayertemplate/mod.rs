@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-pub mod template;
 mod parser;
+pub mod template;
 /* TEMPLATE_START_REMOVE */
 pub mod logger;
 /* TEMPLATE_END_REMOVE */

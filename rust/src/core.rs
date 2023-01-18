@@ -44,7 +44,7 @@ const DIR_TOSERVER:        u8 = 0b0000_0100;
 const DIR_TOCLIENT:        u8 = 0b0000_1000;
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Direction {
     ToServer = 0x04,
     ToClient = 0x08,
@@ -129,7 +129,7 @@ pub type SCLogMessageFunc =
                   filename: *const std::os::raw::c_char,
                   line: std::os::raw::c_uint,
                   function: *const std::os::raw::c_char,
-                  code: std::os::raw::c_int,
+                  subsystem: *const std::os::raw::c_char,
                   message: *const std::os::raw::c_char) -> std::os::raw::c_int;
 
 pub type DetectEngineStateFreeFunc =

@@ -78,7 +78,7 @@ impl From<u32> for QuicVersion {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum QuicType {
     Initial,
     Retry,
@@ -93,7 +93,7 @@ const QUIC_FLAG_DCID_LEN: u8 = 0x8;
 const QUIC_FLAG_NONCE: u8 = 0x4;
 const QUIC_FLAG_VERSION: u8 = 0x1;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PublicFlags {
     pub is_long: bool,
     pub raw: u8,
@@ -161,7 +161,7 @@ pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
 }
 
 /// A QUIC packet's header.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct QuicHeader {
     pub flags: PublicFlags,
     pub ty: QuicType,
@@ -237,8 +237,8 @@ impl QuicHeader {
                     rest,
                     QuicHeader {
                         flags,
-                        ty: ty,
-                        version: version,
+                        ty,
+                        version,
                         version_buf: version_buf.to_vec(),
                         dcid: dcid.to_vec(),
                         scid: Vec::new(),
@@ -357,12 +357,10 @@ impl QuicHeader {
                 } else {
                     return Err(nom7::Err::Error(QuicError::InvalidPacket));
                 }
+            } else if let Ok(length) = u16::try_from(rest.len()) {
+                (rest, length)
             } else {
-                if let Ok(length) = u16::try_from(rest.len()) {
-                    (rest, length)
-                } else {
-                    return Err(nom7::Err::Error(QuicError::InvalidPacket));
-                }
+                return Err(nom7::Err::Error(QuicError::InvalidPacket));
             };
 
             Ok((

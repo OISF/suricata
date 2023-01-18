@@ -53,11 +53,11 @@ impl Ikev1ParticipantData {
     }
 
     pub fn update(
-        &mut self, key_exchange: &String, nonce: &String, transforms: &Vec<Vec<SaAttribute>>,
+        &mut self, key_exchange: &str, nonce: &str, transforms: &Vec<Vec<SaAttribute>>,
     ) {
-        self.key_exchange = key_exchange.clone();
-        self.nonce = nonce.clone();
-        if self.nb_transforms == 0 && transforms.len() > 0 {
+        self.key_exchange = key_exchange.to_string();
+        self.nonce = nonce.to_string();
+        if self.nb_transforms == 0 && !transforms.is_empty() {
             self.transform.extend(transforms[0].iter().cloned());
         }
         self.nb_transforms += transforms.len() as u64;
@@ -94,7 +94,7 @@ pub fn handle_ikev1(
         match parse_ikev1_payload_list(current) {
             Ok((rem, payload_list)) => {
                 for isakmp_payload in payload_list {
-                    if let Err(_) = parse_payload(
+                    if parse_payload(
                         cur_payload_type,
                         isakmp_payload.data,
                         isakmp_payload.data.len() as u16,
@@ -104,7 +104,7 @@ pub fn handle_ikev1(
                         &mut tx.hdr.ikev1_transforms,
                         &mut tx.hdr.ikev1_header.vendor_ids,
                         &mut payload_types,
-                    ) {
+                    ).is_err() {
                         SCLogDebug!("Error while parsing IKEV1 payloads");
                         return AppLayerResult::err();
                     }
@@ -146,7 +146,7 @@ pub fn handle_ikev1(
                     );
                 }
 
-                if rem.len() > 0 {
+                if !rem.is_empty() {
                     // more data left unread than should be
                     SCLogDebug!("Unread Payload Data");
                     state.set_event(IkeEvent::PayloadExtraData);

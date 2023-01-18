@@ -47,7 +47,7 @@ const DETECT_BYTEMATH_FLAG_REQUIRED: u8 = DETECT_BYTEMATH_FLAG_RESULT
     | DETECT_BYTEMATH_FLAG_OPER;
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // operators: +, -, /, *, <<, >>
 pub enum ByteMathOperator {
     OperatorNone = 1,
@@ -60,7 +60,7 @@ pub enum ByteMathOperator {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>
 pub enum ByteMathEndian {
     EndianNone = 0,
@@ -71,7 +71,7 @@ pub enum ByteMathEndian {
 pub const DETECT_BYTEMATH_ENDIAN_DEFAULT: ByteMathEndian = ByteMathEndian::BigEndian;
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ByteMathBase {
     BaseNone = 0,
     BaseOct = 8,
@@ -466,20 +466,20 @@ mod tests {
         result: &str, base: ByteMathBase, endian: ByteMathEndian, bitmask_val: u32, flags: u8,
     ) {
         let bmd = DetectByteMathData {
-            nbytes: nbytes,
-            offset: offset,
-            oper: oper,
+            nbytes,
+            offset,
+            oper,
             rvalue_str: if !rvalue_str.is_empty() {
                 CString::new(rvalue_str).unwrap().into_raw()
             } else {
                 std::ptr::null_mut()
             },
-            rvalue: rvalue,
+            rvalue,
             result: CString::new(result).unwrap().into_raw(),
-            base: base,
-            endian: endian,
-            bitmask_val: bitmask_val,
-            flags: flags,
+            base,
+            endian,
+            bitmask_val,
+            flags,
             ..Default::default()
         };
 

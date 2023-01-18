@@ -62,6 +62,7 @@ void RegisterModbusParsers(void)
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-build.h"
+#include "detect-engine-alert.h"
 
 #include "flow-util.h"
 

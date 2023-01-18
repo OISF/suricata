@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,7 +62,6 @@
 #include "util-memcmp.h"
 #include "util-spm.h"
 #include "util-debug.h"
-#include "util-validate.h"
 
 #include "runmodes.h"
 
@@ -684,7 +683,7 @@ static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
     SCEnter();
 
     if (!(alproto > ALPROTO_UNKNOWN && alproto < ALPROTO_FAILED)) {
-        FatalError(SC_ERR_ALPARSER, "Unknown protocol detected - %u", alproto);
+        FatalError("Unknown protocol detected - %u", alproto);
     }
 
     SCReturnUInt(1UL << (uint32_t)alproto);
@@ -794,13 +793,14 @@ AppLayerProtoDetectProbingParserElementCreate(AppProto alproto,
     pe->next = NULL;
 
     if (max_depth != 0 && min_depth >= max_depth) {
-        SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
+        SCLogError("Invalid arguments sent to "
                    "register the probing parser.  min_depth >= max_depth");
         goto error;
     }
     if (alproto <= ALPROTO_UNKNOWN || alproto >= ALPROTO_MAX) {
-        SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to register "
-                   "the probing parser.  Invalid alproto - %d", alproto);
+        SCLogError("Invalid arguments sent to register "
+                   "the probing parser.  Invalid alproto - %d",
+                alproto);
         goto error;
     }
 
@@ -906,8 +906,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_SNMP\n");
                     else if (pp_pe->alproto == ALPROTO_SIP)
                         printf("            alproto: ALPROTO_SIP\n");
-                    else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
-                        printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
+                    else if (pp_pe->alproto == ALPROTO_TEMPLATE)
+                        printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_RFB)
                         printf("            alproto: ALPROTO_RFB\n");
                     else if (pp_pe->alproto == ALPROTO_MQTT)
@@ -916,10 +916,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_PGSQL\n");
                     else if (pp_pe->alproto == ALPROTO_TELNET)
                         printf("            alproto: ALPROTO_TELNET\n");
-                    else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                        printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
                         printf("            alproto: ALPROTO_DNP3\n");
+                    else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
+                        printf("            alproto: ALPROTO_BITTORRENT_DHT\n");
                     else
                         printf("impossible\n");
 
@@ -989,8 +989,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_SNMP\n");
                 else if (pp_pe->alproto == ALPROTO_SIP)
                     printf("            alproto: ALPROTO_SIP\n");
-                else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
-                    printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
+                else if (pp_pe->alproto == ALPROTO_TEMPLATE)
+                    printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_RFB)
                     printf("            alproto: ALPROTO_RFB\n");
                 else if (pp_pe->alproto == ALPROTO_MQTT)
@@ -999,10 +999,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_PGSQL\n");
                 else if (pp_pe->alproto == ALPROTO_TELNET)
                     printf("            alproto: ALPROTO_TELNET\n");
-                else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                    printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
                     printf("            alproto: ALPROTO_DNP3\n");
+                else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
+                    printf("            alproto: ALPROTO_BITTORRENT_DHT\n");
                 else
                     printf("impossible\n");
 
@@ -1200,13 +1200,12 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
         curr_pe = curr_port->sp;
     while (curr_pe != NULL) {
         if (curr_pe->alproto == alproto) {
-            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
-                       "ipproto - %"PRIu8" Port - %"PRIu16" "
+            SCLogError("Duplicate pp registered - "
+                       "ipproto - %" PRIu8 " Port - %" PRIu16 " "
                        "App Protocol - NULL, App Protocol(ID) - "
-                       "%"PRIu16" min_depth - %"PRIu16" "
-                       "max_dept - %"PRIu16".",
-                       ipproto, port, alproto,
-                       min_depth, max_depth);
+                       "%" PRIu16 " min_depth - %" PRIu16 " "
+                       "max_dept - %" PRIu16 ".",
+                    ipproto, port, alproto, min_depth, max_depth);
             goto error;
         }
         curr_pe = curr_pe->next;
@@ -1748,9 +1747,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".detection-ports");
     if (r < 0) {
-        FatalError(SC_ERR_FATAL, "snprintf failure.");
+        FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        FatalError("buffer not big enough to write param.");
     }
     node = ConfGetNode(param);
     if (node == NULL) {
@@ -1758,9 +1757,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto_name, ".", ipproto_name, ".detection-ports");
         if (r < 0) {
-            FatalError(SC_ERR_FATAL, "snprintf failure.");
+            FatalError("snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            FatalError("buffer not big enough to write param.");
         }
         node = ConfGetNode(param);
         if (node == NULL)
@@ -1858,7 +1857,7 @@ int AppLayerProtoDetectSetup(void)
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
-        FatalError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
+        FatalError("Unable to alloc SpmGlobalThreadCtx.");
     }
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
@@ -2030,9 +2029,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto, ".enabled");
     if (r < 0) {
-        FatalError(SC_ERR_FATAL, "snprintf failure.");
+        FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        FatalError("buffer not big enough to write param.");
     }
 
     node = ConfGetNode(param);
@@ -2041,9 +2040,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto, ".", ipproto, ".enabled");
         if (r < 0) {
-            FatalError(SC_ERR_FATAL, "snprintf failure.");
+            FatalError("snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            FatalError("buffer not big enough to write param.");
         }
 
         node = ConfGetNode(param);
@@ -2068,7 +2067,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
     }
 
     /* Invalid or null value. */
-    SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+    SCLogError("Invalid value found for %s.", param);
     exit(EXIT_FAILURE);
 
  disabled:
@@ -2254,8 +2253,7 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 {
     if (expectation_proto[alproto]) {
         if (proto != expectation_proto[alproto]) {
-            SCLogError(SC_ERR_NOT_SUPPORTED,
-                       "Expectation on 2 IP protocols are not supported");
+            SCLogError("Expectation on 2 IP protocols are not supported");
         }
     }
     expectation_proto[alproto] = proto;

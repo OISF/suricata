@@ -29,7 +29,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_method(
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let m = &r.method;
-        if m.len() > 0 {
+        if !m.is_empty() {
             *buffer = m.as_ptr();
             *buffer_len = m.len() as u32;
             return 1;
@@ -50,7 +50,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let p = &r.path;
-        if p.len() > 0 {
+        if !p.is_empty() {
             *buffer = p.as_ptr();
             *buffer_len = p.len() as u32;
             return 1;
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
         Direction::ToServer => {
             if let Some(ref r) = tx.request {
                 let v = &r.version;
-                if v.len() > 0 {
+                if !v.is_empty() {
                     *buffer = v.as_ptr();
                     *buffer_len = v.len() as u32;
                     return 1;
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
         Direction::ToClient => {
             if let Some(ref r) = tx.response {
                 let v = &r.version;
-                if v.len() > 0 {
+                if !v.is_empty() {
                     *buffer = v.as_ptr();
                     *buffer_len = v.len() as u32;
                     return 1;
@@ -107,7 +107,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_code(
 ) -> u8 {
     if let Some(ref r) = tx.response {
         let c = &r.code;
-        if c.len() > 0 {
+        if !c.is_empty() {
             *buffer = c.as_ptr();
             *buffer_len = c.len() as u32;
             return 1;
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(
 ) -> u8 {
     if let Some(ref r) = tx.response {
         let re = &r.reason;
-        if re.len() > 0 {
+        if !re.is_empty() {
             *buffer = re.as_ptr();
             *buffer_len = re.len() as u32;
             return 1;
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_request_line(
     buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request_line {
-        if r.len() > 0 {
+        if !r.is_empty() {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
             return 1;
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_response_line(
     buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.response_line {
-        if r.len() > 0 {
+        if !r.is_empty() {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
             return 1;

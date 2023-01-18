@@ -84,7 +84,7 @@ static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf,
 void JsonTFTPLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TFTP, "eve-log", "JsonTFTPLog", "eve-log.tftp",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
             OutputTFTPLogInitSub, ALPROTO_TFTP, JsonTFTPLogger, JsonLogThreadInit,
             JsonLogThreadDeinit, NULL);
 

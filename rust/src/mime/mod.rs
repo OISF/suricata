@@ -56,7 +56,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
     let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
-    while input.len() > 0 {
+    while !input.is_empty() {
         match mime_parse_header_token(input) {
             Ok((rem, t)) => {
                 tokens.insert(t.0, t.1);
@@ -138,18 +138,15 @@ pub unsafe extern "C" fn rs_mime_find_header_token(
     let hbuf = build_slice!(hinput, hlen as usize);
     let tbuf = build_slice!(tinput, tlen as usize);
     let mut sections_values = Vec::new();
-    match mime_find_header_token(hbuf, tbuf, &mut sections_values) {
-        Ok(value) => {
-            // limit the copy to the supplied buffer size
-            if value.len() <= RS_MIME_MAX_TOKEN_LEN {
-                outbuf[..value.len()].clone_from_slice(value);
-            } else {
-                outbuf.clone_from_slice(&value[..RS_MIME_MAX_TOKEN_LEN]);
-            }
-            *outlen = value.len() as u32;
-            return true;
+    if let Ok(value) = mime_find_header_token(hbuf, tbuf, &mut sections_values) {
+        // limit the copy to the supplied buffer size
+        if value.len() <= RS_MIME_MAX_TOKEN_LEN {
+            outbuf[..value.len()].clone_from_slice(value);
+        } else {
+            outbuf.clone_from_slice(&value[..RS_MIME_MAX_TOKEN_LEN]);
         }
-        _ => {}
+        *outlen = value.len() as u32;
+        return true;
     }
     return false;
 }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -158,15 +158,10 @@ void DetectFiledataRegister(void)
     DetectAppLayerInspectEngineRegister2(
             "file_data", ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
 
-    DetectBufferTypeSetDescriptionByName("file_data",
-            "http response body, smb files or smtp attachments data");
+    DetectBufferTypeSetDescriptionByName("file_data", "data from tracked files");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
-
-#define FILEDATA_CONTENT_LIMIT 100000
-#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 32768
-#define FILEDATA_CONTENT_INSPECT_WINDOW 4096
 
 static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     if (de_ctx->filedata_config_initialized)
@@ -210,14 +205,14 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
                     s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_FTP &&
                     s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP &&
                     s->alproto != ALPROTO_NFS)) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError("rule contains conflicting keywords.");
         return -1;
     }
 
     if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
-                "flow:to_client or flow:from_server with smtp.");
+        SCLogError("Can't use file_data with "
+                   "flow:to_client or flow:from_server with smtp.");
         return -1;
     }
 

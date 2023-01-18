@@ -53,9 +53,15 @@ impl Transaction for RFBTransaction {
     }
 }
 
+impl Default for RFBTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RFBTransaction {
-    pub fn new() -> RFBTransaction {
-        RFBTransaction {
+    pub fn new() -> Self {
+        Self {
             tx_id: 0,
             complete: false,
             chosen_security_type: None,
@@ -95,6 +101,12 @@ impl State<RFBTransaction> for RFBState {
 
 }
 
+impl Default for RFBState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RFBState {
     pub fn new() -> Self {
         Self {
@@ -124,12 +136,7 @@ impl RFBState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn new_tx(&mut self) -> RFBTransaction {
@@ -140,17 +147,13 @@ impl RFBState {
     }
 
     fn get_current_tx(&mut self) -> Option<&mut RFBTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == self.tx_id {
-                return Some(tx);
-            }
-        }
-        return None;
+        let tx_id = self.tx_id;
+        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id)
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -158,7 +161,7 @@ impl RFBState {
         let mut consumed = 0;
         SCLogDebug!("request_state {}, input_len {}", self.state, input.len());
         loop {
-            if current.len() == 0 {
+            if current.is_empty() {
                 return AppLayerResult::ok();
             }
             match self.state {
@@ -279,7 +282,7 @@ impl RFBState {
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -287,7 +290,7 @@ impl RFBState {
         let mut consumed = 0;
         SCLogDebug!("response_state {}, response_len {}", self.state, input.len());
         loop {
-            if current.len() == 0 {
+            if current.is_empty() {
                 return AppLayerResult::ok();
             }
             match self.state {
@@ -569,7 +572,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"rfb\0";
+const PARSER_NAME: &[u8] = b"rfb\0";
 
 export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 export_state_data_get!(rs_rfb_get_state_data, RFBState);

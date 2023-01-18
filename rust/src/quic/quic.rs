@@ -23,6 +23,7 @@ use super::{
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
 
@@ -73,13 +74,13 @@ impl QuicTransaction {
     fn new_empty(client: bool, header: QuicHeader) -> Self {
         QuicTransaction {
             tx_id: 0,
-            header: header,
+            header,
             cyu: Vec::new(),
             sni: None,
             ua: None,
             extv: Vec::new(),
             ja3: None,
-            client: client,
+            client,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -91,7 +92,7 @@ pub struct QuicState {
     keys: Option<QuicKeys>,
     hello_tc: bool,
     hello_ts: bool,
-    transactions: Vec<QuicTransaction>,
+    transactions: VecDeque<QuicTransaction>,
 }
 
 impl Default for QuicState {
@@ -102,7 +103,7 @@ impl Default for QuicState {
             keys: None,
             hello_tc: false,
             hello_ts: false,
-            transactions: Vec::new(),
+            transactions: VecDeque::new(),
         }
     }
 }
@@ -134,7 +135,7 @@ impl QuicState {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     fn tx_iterator(
@@ -180,7 +181,7 @@ impl QuicState {
                 &mut h20,
                 &mut pktnum_buf,
             );
-            if !r1.is_ok() {
+            if r1.is_err() {
                 return Err(());
             }
             // mutate one at a time
@@ -229,7 +230,7 @@ impl QuicState {
                 Frame::Crypto(c) => {
                     ja3 = Some(c.ja3.clone());
                     for e in &c.extv {
-                        if e.etype == TlsExtensionType::ServerName && e.values.len() > 0 {
+                        if e.etype == TlsExtensionType::ServerName && !e.values.is_empty() {
                             sni = Some(e.values[0].to_vec());
                         }
                     }
@@ -251,13 +252,13 @@ impl QuicState {
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         tx.tx_data.set_event(event as u8);
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
-        while buf.len() > 0 {
+        while !buf.is_empty() {
             match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
                 Ok((rest, header)) => {
                     if (to_server && self.hello_ts) || (!to_server && self.hello_tc) {

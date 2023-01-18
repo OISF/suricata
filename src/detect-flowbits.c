@@ -97,13 +97,14 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
 
         // Check for spaces in between the flowbit names
         if (strchr(token, ' ') != NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Spaces are not allowed in flowbit names.");
+            SCLogError("Spaces are not allowed in flowbit names.");
             return -1;
         }
 
         if (i == MAX_TOKENS) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Number of flowbits exceeds "
-                       "maximum allowed: %d.", MAX_TOKENS);
+            SCLogError("Number of flowbits exceeds "
+                       "maximum allowed: %d.",
+                    MAX_TOKENS);
             return -1;
         }
         strarr[i++] = token;
@@ -207,7 +208,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         case DETECT_FLOWBITS_CMD_TOGGLE:
             return DetectFlowbitMatchToggle(p,fd);
         default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
+            SCLogError("unknown cmd %" PRIu32 "", fd->cmd);
             return 0;
     }
 
@@ -222,15 +223,14 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
 
     count = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (count != 2 && count != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH,
-            "\"%s\" is not a valid setting for flowbits.", str);
+        SCLogError("\"%s\" is not a valid setting for flowbits.", str);
         return 0;
     }
 
     pcre2len = cmd_len;
     rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
     if (rc < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return 0;
     }
 
@@ -238,7 +238,7 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
         pcre2len = name_len;
         rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
         if (rc < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             return 0;
         }
 
@@ -251,8 +251,7 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
             /* Validate name, spaces are not allowed. */
             for (size_t i = 0; i < strlen(name); i++) {
                 if (isblank(name[i])) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE,
-                        "spaces not allowed in flowbit names");
+                    SCLogError("spaces not allowed in flowbit names");
                     return 0;
                 }
             }
@@ -287,7 +286,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
+        SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
     }
 
@@ -417,7 +416,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
     struct FBAnalyze *array = SCCalloc(array_size, sizeof(struct FBAnalyze));
 
     if (array == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate flowbit analyze array");
+        SCLogError("Unable to allocate flowbit analyze array");
         return -1;
     }
 
@@ -587,8 +586,8 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
 
             const Signature *s = de_ctx->sig_array[array[i].isset_sids[0]];
-            SCLogWarning(SC_WARN_FLOWBIT, "flowbit '%s' is checked but not "
-                    "set. Checked in %u and %u other sigs",
+            SCLogWarning("flowbit '%s' is checked but not "
+                         "set. Checked in %u and %u other sigs",
                     varname, s->id, array[i].isset_sids_idx - 1);
         }
         if (array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] &&

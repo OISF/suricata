@@ -95,7 +95,7 @@ MacSet *MacSetInit(int size)
     }
     ms = SCCalloc(1, sizeof(*ms));
     if (unlikely(ms == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate MacSet memory");
+        SCLogError("Unable to allocate MacSet memory");
         return NULL;
     }
     (void) SC_ATOMIC_ADD(flow_memuse, (sizeof(*ms)));
@@ -119,7 +119,7 @@ static inline void MacUpdateEntry(MacSet *ms, uint8_t *addr, int side, ThreadVar
 {
     switch (ms->state[side]) {
         case EMPTY_SET:
-            memcpy(ms->singles[side], addr, sizeof(MacAddr));;
+            memcpy(ms->singles[side], addr, sizeof(MacAddr));
             ms->state[side] = SINGLE_MAC;
             if (tv != NULL)
                 StatsSetUI64(tv, ctr, 1);
@@ -133,8 +133,8 @@ static inline void MacUpdateEntry(MacSet *ms, uint8_t *addr, int side, ThreadVar
                     }
                     ms->buf[side] = SCCalloc(ms->size, sizeof(MacAddr));
                     if (unlikely(ms->buf[side] == NULL)) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate "
-                                                     "MacSet memory");
+                        SCLogError("Unable to allocate "
+                                   "MacSet memory");
                         return;
                     }
                     (void) SC_ATOMIC_ADD(flow_memuse, (ms->size * sizeof(MacAddr)));

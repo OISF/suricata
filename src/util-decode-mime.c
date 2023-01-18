@@ -133,7 +133,7 @@ void MimeDecSetConfig(MimeDecConfig *config)
             mime_dec_config.header_value_depth = MAX_HEADER_VALUE;
         }
     } else {
-        SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM, "Invalid null configuration parameters");
+        SCLogWarning("Invalid null configuration parameters");
     }
 }
 
@@ -273,7 +273,6 @@ MimeDecField * MimeDecAddField(MimeDecEntity *entity)
 {
     MimeDecField *node = SCMalloc(sizeof(MimeDecField));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         return NULL;
     }
     memset(node, 0x00, sizeof(MimeDecField));
@@ -359,7 +358,6 @@ static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t 
 {
     MimeDecUrl *node = SCMalloc(sizeof(MimeDecUrl));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         return NULL;
     }
     memset(node, 0x00, sizeof(MimeDecUrl));
@@ -393,7 +391,6 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
 {
     MimeDecEntity *curr, *node = SCMalloc(sizeof(MimeDecEntity));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         return NULL;
     }
     memset(node, 0x00, sizeof(MimeDecEntity));
@@ -469,7 +466,6 @@ static MimeDecStackNode * PushStack(MimeDecStack *stack)
     if (node == NULL) {
         node = SCMalloc(sizeof(MimeDecStackNode));
         if (unlikely(node == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
             return NULL;
         }
     } else {
@@ -567,7 +563,6 @@ static DataValue * AddDataValue(DataValue *dv)
 {
     DataValue *curr, *node = SCMalloc(sizeof(DataValue));
     if (unlikely(node == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         return NULL;
     }
     memset(node, 0x00, sizeof(DataValue));
@@ -632,7 +627,6 @@ static uint8_t *GetFullValue(const DataValue *dv, uint32_t *olen)
     if (len > 0) {
         val = SCCalloc(1, len);
         if (unlikely(val == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
             return NULL;
         }
         for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
@@ -809,9 +803,8 @@ static int StoreMimeHeader(MimeDecParseState *state)
                 ret = MIME_DEC_ERR_PARSE;
             } else if (state->stack->top != NULL) {
                 /* Store each header name and value */
-                if (MimeDecFillField(state->stack->top->data, state->hname,
-                            state->hlen, val, vlen) == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "MimeDecFillField() function failed");
+                if (MimeDecFillField(state->stack->top->data, state->hname, state->hlen, val,
+                            vlen) == NULL) {
                     ret = MIME_DEC_ERR_MEM;
                 } else {
                     stored = 1;
@@ -822,7 +815,6 @@ static int StoreMimeHeader(MimeDecParseState *state)
             }
         } else if (state->hvalue != NULL) {
             /* Memory allocation must have failed since val is NULL */
-            SCLogError(SC_ERR_MEM_ALLOC, "GetFullValue() function failed");
             ret = MIME_DEC_ERR_MEM;
         }
 
@@ -1030,7 +1022,6 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                     /* First copy to temp URL string */
                     tempUrl = SCMalloc(tokLen);
                     if (unlikely(tempUrl == NULL)) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                         return MIME_DEC_ERR_MEM;
                     }
 
@@ -1284,6 +1275,24 @@ static uint8_t ProcessBase64Remainder(
     return buf_consumed;
 }
 
+static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
+        const uint8_t *buf, const uint32_t buf_len, const uint32_t offset, MimeDecParseState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(offset > buf_len);
+    if (offset > buf_len)
+        return MIME_DEC_ERR_DATA;
+
+    for (uint32_t i = offset; i < buf_len; i++) {
+        if (buf[i] != ' ') {
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
+            if (state->bvr_len >= B64_BLOCK)
+                return MIME_DEC_ERR_DATA;
+            state->bvremain[state->bvr_len++] = buf[i];
+        }
+    }
+    return MIME_DEC_OK;
+}
+
 /**
  * \brief Processes a body line by base64-decoding and passing to the data chunk
  * processing callback function when the buffer is read
@@ -1304,14 +1313,11 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
     if (len > MAX_ENC_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_ENC_LINE;
         state->msg->anomaly_flags |= ANOM_LONG_ENC_LINE;
-        SCLogDebug("Error: Max encoded input line length exceeded %u > %u",
-                len, MAX_ENC_LINE_LEN);
+        SCLogDebug("max encoded input line length exceeded %u > %u", len, MAX_ENC_LINE_LEN);
     }
 
     if (state->bvr_len + len < B64_BLOCK) {
-        memcpy(state->bvremain + state->bvr_len, buf, len);
-        state->bvr_len += len;
-        return MIME_DEC_OK;
+        return ProcessBase64BodyLineCopyRemainder(buf, len, 0, state);
     }
 
     /* First process remaining from previous line. We will consume
@@ -1327,11 +1333,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         uint32_t left = len - consumed;
         if (left < B64_BLOCK) {
             DEBUG_VALIDATE_BUG_ON(left + state->bvr_len > B64_BLOCK);
-            if (left + state->bvr_len > B64_BLOCK)
-                return MIME_DEC_ERR_PARSE;
-            memcpy(state->bvremain, buf + consumed, left);
-            state->bvr_len += left;
-            return MIME_DEC_OK;
+            return ProcessBase64BodyLineCopyRemainder(buf, len, consumed, state);
         }
 
         remaining -= consumed;
@@ -1381,23 +1383,11 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
          * size. We strip of spaces this while storing it in bvremain */
         if (consumed_bytes == 0 && leftover_bytes > B64_BLOCK) {
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            for (uint32_t i = 0; i < leftover_bytes; i++) {
-                if (buf[offset] != ' ') {
-                    DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
-                    if (state->bvr_len >= B64_BLOCK)
-                        return MIME_DEC_ERR_DATA;
-                    state->bvremain[state->bvr_len++] = buf[offset];
-                }
-                offset++;
-            }
-            return MIME_DEC_OK;
-
+            return ProcessBase64BodyLineCopyRemainder(buf, len, offset, state);
         } else if (leftover_bytes > 0 && leftover_bytes <= B64_BLOCK) {
             /* If remaining is 4 by this time, we encountered spaces during processing */
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            memcpy(state->bvremain, buf + offset + consumed_bytes, leftover_bytes);
-            state->bvr_len = (uint8_t)leftover_bytes;
-            return MIME_DEC_OK;
+            return ProcessBase64BodyLineCopyRemainder(buf, len, offset + consumed_bytes, state);
         }
 
         /* Update counts */
@@ -1459,6 +1449,12 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         state->msg->anomaly_flags |= ANOM_LONG_ENC_LINE;
         SCLogDebug("Error: Max encoded input line length exceeded %u > %u",
                 len, MAX_ENC_LINE_LEN);
+    }
+    if (len == 0) {
+        memcpy(state->data_chunk + state->data_chunk_len, buf + len,
+                state->current_line_delimiter_len);
+        state->data_chunk_len += state->current_line_delimiter_len;
+        return ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     }
 
     remaining = len;
@@ -1745,7 +1741,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
         if (vlen > 0) {
             dv = AddDataValue(state->hvalue);
             if (dv == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "AddDataValue() function failed");
                 return MIME_DEC_ERR_MEM;
             }
             if (state->hvalue == NULL) {
@@ -1754,7 +1749,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 
             dv->value = SCMalloc(vlen);
             if (unlikely(dv->value == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                 return MIME_DEC_ERR_MEM;
             }
             memcpy(dv->value, buf, vlen);
@@ -1793,7 +1787,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
         /* Copy name and value to state */
         state->hname = SCMalloc(hlen);
         if (unlikely(state->hname == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
             return MIME_DEC_ERR_MEM;
         }
         memcpy(state->hname, hname, hlen);
@@ -1819,12 +1812,10 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
             if (vlen > 0) {
                 state->hvalue = AddDataValue(NULL);
                 if (state->hvalue == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "AddDataValue() function failed");
                     return MIME_DEC_ERR_MEM;
                 }
                 state->hvalue->value = SCMalloc(vlen);
                 if (unlikely(state->hvalue->value == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
                 memcpy(state->hvalue->value, hval, vlen);
@@ -1899,7 +1890,6 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                 /* Copy over using dynamic memory */
                 entity->filename = SCMalloc(blen);
                 if (unlikely(entity->filename == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
                 memcpy(entity->filename, bptr, blen);
@@ -1930,7 +1920,6 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                 /* Store boundary in parent node */
                 state->stack->top->bdef = SCMalloc(blen);
                 if (unlikely(state->stack->top->bdef == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
                 memcpy(state->stack->top->bdef, bptr, blen);
@@ -1953,7 +1942,6 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     /* Copy over using dynamic memory */
                     entity->filename = SCMalloc(blen);
                     if (unlikely(entity->filename == NULL)) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                         return MIME_DEC_ERR_MEM;
                     }
                     memcpy(entity->filename, bptr, blen);
@@ -2249,9 +2237,6 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
                 if (mdcfg->decode_base64 && (entity->ctnt_flags & CTNT_IS_BASE64)) {
                     SCLogDebug("skip empty line");
                     return MIME_DEC_OK;
-                } else if (mdcfg->decode_quoted_printable && (entity->ctnt_flags & CTNT_IS_QP)) {
-                    SCLogDebug("skip empty line");
-                    return MIME_DEC_OK;
                 }
                 SCLogDebug("not skipping empty line");
             }
@@ -2413,14 +2398,12 @@ MimeDecParseState * MimeDecInitParser(void *data,
 
     state = SCMalloc(sizeof(MimeDecParseState));
     if (unlikely(state == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         return NULL;
     }
     memset(state, 0x00, sizeof(MimeDecParseState));
 
     state->stack = SCMalloc(sizeof(MimeDecStack));
     if (unlikely(state->stack == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         SCFree(state);
         return NULL;
     }
@@ -2428,7 +2411,6 @@ MimeDecParseState * MimeDecInitParser(void *data,
 
     mimeMsg = SCMalloc(sizeof(MimeDecEntity));
     if (unlikely(mimeMsg == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         SCFree(state->stack);
         SCFree(state);
         return NULL;
@@ -2440,7 +2422,6 @@ MimeDecParseState * MimeDecInitParser(void *data,
     state->msg = mimeMsg;
     PushStack(state->stack);
     if (state->stack->top == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
         SCFree(state->stack);
         SCFree(state);
         return NULL;

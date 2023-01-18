@@ -22,8 +22,10 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-cache.h"
+#include "util-debug.h"
 
 typedef struct TcpPoolCache {
     bool cache_enabled; /**< cache should only be enabled for worker threads */

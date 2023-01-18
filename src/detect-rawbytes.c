@@ -55,22 +55,20 @@ static int DetectRawbytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "rawbytes has no value");
+        SCLogError("rawbytes has no value");
         SCReturnInt(-1);
     }
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_RAWBYTES_BUFFER,
-                "\"rawbytes\" cannot be combined "
-                "with the \"%s\" sticky buffer",
+        SCLogError("\"rawbytes\" cannot be combined "
+                   "with the \"%s\" sticky buffer",
                 DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
         SCReturnInt(-1);
     }
 
     SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(
-                SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceding content option");
+        SCLogError("\"rawbytes\" needs a preceding content option");
         SCReturnInt(-1);
     }
 
@@ -78,16 +76,14 @@ static int DetectRawbytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         case DETECT_CONTENT: {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
             if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,
-                        "can't use multiple rawbytes modifiers for the same content. ");
+                SCLogError("can't use multiple rawbytes modifiers for the same content. ");
                 SCReturnInt(-1);
             }
             cd->flags |= DETECT_CONTENT_RAWBYTES;
             break;
         }
         default:
-            SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT,
-                    "\"rawbytes\" needs a preceding content option");
+            SCLogError("\"rawbytes\" needs a preceding content option");
             SCReturnInt(-1);
     }
 

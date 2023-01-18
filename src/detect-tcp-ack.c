@@ -208,6 +208,7 @@ static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 /**
  * \internal
  * \brief This test tests sameip success and failure.

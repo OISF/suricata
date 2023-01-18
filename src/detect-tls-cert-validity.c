@@ -269,7 +269,7 @@ static time_t DateStringToEpoch (char *string)
 
     time_t epoch = StringIsEpoch(string);
     if (epoch != -1) {
-        return epoch;;
+        return epoch;
     }
 
     r = SCStringPatternToTime(string, patterns, 10, &tm);
@@ -301,14 +301,14 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
+        SCLogError("Parse error %s", rawstr);
         goto error;
     }
 
     pcre2len = sizeof(mode);
     res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("mode \"%s\"", mode);
@@ -316,7 +316,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
     pcre2len = sizeof(value1);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("value1 \"%s\"", value1);
@@ -325,7 +325,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
         pcre2len = sizeof(range);
         res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
         SCLogDebug("range \"%s\"", range);
@@ -335,7 +335,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             SCLogDebug("value2 \"%s\"", value2);
@@ -363,8 +363,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
     }
 
     if (strlen(range) != 0 && strlen(mode) != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "Range specified but mode also set");
+        SCLogError("Range specified but mode also set");
         goto error;
     }
 
@@ -380,8 +379,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
     /* set the second value if specified */
     if (strlen(value2) > 0) {
         if (!(dd->mode & DETECT_TLS_VALIDITY_RA)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Multiple tls validity values specified but mode is not range");
+            SCLogError("Multiple tls validity values specified but mode is not range");
             goto error;
         }
 
@@ -390,8 +388,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
             goto error;
 
         if (dd->epoch2 <= dd->epoch) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Second value in range must not be smaller than the first");
+            SCLogError("Second value in range must not be smaller than the first");
             goto error;
         }
     }
@@ -426,7 +423,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
+        SCLogError("Allocation \'%s\' failed", rawstr);
         goto error;
     }
 
@@ -477,7 +474,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
+        SCLogError("Allocation \'%s\' failed", rawstr);
         goto error;
     }
 
@@ -567,7 +564,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     dd = DetectTlsValidityParse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 

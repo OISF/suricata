@@ -81,25 +81,25 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     // Create pxd from optstr
     DetectTransformXorData *pxd = SCCalloc(1, sizeof(*pxd));
     if (pxd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCLogError("memory allocation failed");
         SCReturnInt(-1);
     }
 
     size_t keylen = strlen(optstr);
     if (keylen % 2 == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "XOR transform key's length must be an even number");
+        SCLogError("XOR transform key's length must be an even number");
         DetectTransformXorFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
     if (keylen / 2 > UINT8_MAX) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Key length too big for XOR transform");
+        SCLogError("Key length too big for XOR transform");
         DetectTransformXorFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
     pxd->length = (uint8_t)(keylen / 2);
     pxd->key = SCMalloc(keylen / 2);
     if (pxd->key == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCLogError("memory allocation failed");
         DetectTransformXorFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
@@ -111,8 +111,7 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
             pxd->key[i] |= (optstr[2 * i + 1] >= 'A' ? ((optstr[2 * i + 1] & 0xdf) - 'A') + 10
                                                      : (optstr[2 * i + 1] - '0'));
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "XOR transform key must be hexadecimal characters only");
+            SCLogError("XOR transform key must be hexadecimal characters only");
             DetectTransformXorFree(de_ctx, pxd);
             SCReturnInt(-1);
         }

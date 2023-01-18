@@ -63,8 +63,6 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#include "util-print.h"
-
 #define KEYWORD_NAME "http.header_names"
 #define KEYWORD_NAME_LEGACY "http_header_names"
 #define KEYWORD_DOC "http-keywords.html#http-header-names"

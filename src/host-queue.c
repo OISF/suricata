@@ -39,11 +39,11 @@ HostQueue *HostQueueInit (HostQueue *q)
     return q;
 }
 
-HostQueue *HostQueueNew()
+HostQueue *HostQueueNew(void)
 {
     HostQueue *q = (HostQueue *)SCMalloc(sizeof(HostQueue));
     if (q == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostQueueNew. Exiting...");
+        SCLogError("Fatal error encountered in HostQueueNew. Exiting...");
         exit(EXIT_SUCCESS);
     }
     q = HostQueueInit(q);

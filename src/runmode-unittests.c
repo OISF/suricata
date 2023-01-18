@@ -28,6 +28,7 @@
 #ifdef UNITTESTS
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-alert.h"
 #include "detect-engine-address.h"
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"
@@ -297,6 +298,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 
     exit(EXIT_SUCCESS);
 #else
-    FatalError(SC_ERR_FATAL, "Unittests are not build-in");
+    FatalError("Unittests are not build-in");
 #endif /* UNITTESTS */
 }

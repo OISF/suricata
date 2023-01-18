@@ -109,7 +109,7 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     /* Check if Hassh is disabled */
     if (!RunmodeIsUnittests() && !rs_ssh_hassh_is_enabled()) {
         if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_SSH_HASSH)) {
-            SCLogError(SC_WARN_HASSH_DISABLED, "hassh support is not enabled");
+            SCLogError("hassh support is not enabled");
         }
         return -2;
     }
@@ -134,7 +134,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
             *sigerror = "ssh.hassh should not be used together with "
                         "nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
         }
 
         if (cd->content_len != 32)
@@ -142,7 +142,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
             *sigerror = "Invalid length of the specified ssh.hassh (should "
                         "be 32 characters long). This rule will therefore "
                         "never match.";
-            SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
             return false;
         }
         for (size_t i = 0; i < cd->content_len; ++i)
@@ -151,7 +151,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
             {
                 *sigerror = "Invalid ssh.hassh string (should be string of hexademical characters)."
                             "This rule will therefore never match.";
-                SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
                 return false;
             }
         }

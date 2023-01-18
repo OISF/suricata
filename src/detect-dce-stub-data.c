@@ -181,6 +181,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int DetectDceStubDataTestParse01(void)
 {

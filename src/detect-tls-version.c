@@ -155,7 +155,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
 
     ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.version option");
+        SCLogError("invalid tls.version option");
         goto error;
     }
 
@@ -166,7 +166,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
         res = pcre2_substring_copy_bynumber(
                 parse_regex.match, 1, (PCRE2_UCHAR8 *)ver_ptr, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
         }
 
@@ -196,7 +196,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
             temp = (uint16_t)strtol(tmp_str, NULL, 0);
             tls->flags |= DETECT_TLS_VERSION_FLAG_RAW;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
+            SCLogError("Invalid value");
             goto error;
         }
 

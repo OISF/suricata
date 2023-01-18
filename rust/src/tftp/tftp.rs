@@ -32,7 +32,7 @@ const DATA:         u8 = 3;
 const ACK:          u8 = 4;
 const ERROR:        u8 = 5;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TFTPTransaction {
     pub opcode : u8,
     pub filename : String,
@@ -115,7 +115,7 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
-    return state.tx_id as u64;
+    return state.tx_id;
 }
 
 fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
@@ -125,7 +125,7 @@ fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
     )(i)
 }
 
-fn tftp_request<'a>(slice: &'a [u8]) -> IResult<&[u8], TFTPTransaction> {
+fn tftp_request(slice: &[u8]) -> IResult<&[u8], TFTPTransaction> {
     let (i, _) = tag([0])(slice)?;
     let (i, opcode) = be_u8(i)?;
     let (i, filename) = getstr(i)?;

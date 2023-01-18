@@ -23,7 +23,7 @@ use nom7::combinator::{rest, cond};
 use nom7::number::streaming::be_u32;
 use nom7::IResult;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs2Handle<'a> {
     pub value: &'a[u8],
 }
@@ -33,7 +33,7 @@ pub fn parse_nfs2_handle(i: &[u8]) -> IResult<&[u8], Nfs2Handle> {
     Ok((i, Nfs2Handle { value }))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs2RequestLookup<'a> {
     pub handle: Nfs2Handle<'a>,
     pub name_vec: Vec<u8>,
@@ -51,7 +51,7 @@ pub fn parse_nfs2_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs2RequestLookup> 
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs2RequestRead<'a> {
     pub handle: Nfs2Handle<'a>,
     pub offset: u32,
@@ -84,7 +84,7 @@ pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
     Ok((i, reply))
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Nfs2Attributes<> {
     pub atype: u32,
     pub asize: u32,

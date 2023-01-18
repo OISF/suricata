@@ -241,6 +241,7 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectFtpbounceTestSetup01 is a test for the Setup ftpbounce

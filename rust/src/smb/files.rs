@@ -52,7 +52,7 @@ impl SMBTransactionFile {
 
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
+        flags: u16, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
@@ -64,32 +64,57 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
+    pub fn new_file_tx(&mut self, fuid: &[u8], file_name: &[u8], direction: Direction)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         tx.type_data = Some(SMBTransactionTypeData::FILE(SMBTransactionFile::new()));
-        match tx.type_data {
-            Some(SMBTransactionTypeData::FILE(ref mut d)) => {
-                d.direction = direction;
-                d.fuid = fuid.to_vec();
-                d.file_name = file_name.to_vec();
-                d.file_tracker.tx_id = tx.id - 1;
-                tx.tx_data.update_file_flags(self.state_data.file_flags);
-                d.update_file_flags(tx.tx_data.file_flags);
-            },
-            _ => { },
+        if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+            d.direction = direction;
+            d.fuid = fuid.to_vec();
+            d.file_name = file_name.to_vec();
+            d.file_tracker.tx_id = tx.id - 1;
+            tx.tx_data.update_file_flags(self.state_data.file_flags);
+            d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
         tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
         SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: Direction)
+    /// get file tx for a open file. Returns None if a file for the fuid exists,
+    /// but has already been closed.
+    pub fn get_file_tx_by_fuid_with_open_file(&mut self, fuid: &[u8], direction: Direction)
+        -> Option<&mut SMBTransaction>
+    {
+        let f = fuid.to_vec();
+        for tx in &mut self.transactions {
+            let found = match tx.type_data {
+                Some(SMBTransactionTypeData::FILE(ref mut d)) => {
+                    direction == d.direction && f == d.fuid && !d.file_tracker.is_done()
+                },
+                _ => { false },
+            };
+
+            if found {
+                SCLogDebug!("SMB: Found SMB file TX with ID {}", tx.id);
+                if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+                    tx.tx_data.update_file_flags(self.state_data.file_flags);
+                    d.update_file_flags(tx.tx_data.file_flags);
+                }
+                return Some(tx);
+            }
+        }
+        SCLogDebug!("SMB: Failed to find SMB TX with FUID {:?}", fuid);
+        return None;
+    }
+
+    /// get file tx for a fuid. File may already have been closed.
+    pub fn get_file_tx_by_fuid(&mut self, fuid: &[u8], direction: Direction)
         -> Option<&mut SMBTransaction>
     {
         let f = fuid.to_vec();

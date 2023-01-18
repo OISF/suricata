@@ -38,11 +38,6 @@ jobs:
     name: Prepare dependencies
     runs-on: ubuntu-latest
     steps:
-      - name: Cache ~/.cargo
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
-        with:
-          path: ~/.cargo
-          key: cargo
       - run: sudo apt update && sudo apt -y install jq curl
       - name: Parse repo and branch information
         env:
@@ -113,7 +108,7 @@ jobs:
       - name: Cleaning up
         run: rm -rf libhtp suricata-update suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         with:
           name: prep
           path: .
@@ -123,10 +118,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
           path: ~/.cargo
-          key: cbindgen
+          key: ${{ github.job }}-cargo
       - name: Installing Rust
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -137,7 +132,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         with:
           name: prep
           path: .
@@ -150,16 +145,23 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
-      - uses: actions/checkout@v3.1.0
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - uses: actions/checkout@v3.3.0
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -248,22 +250,120 @@ jobs:
       - run: suricatasc -h
       - run: suricata-update -V
 
-  # This build also creates the distribution package that some other builds
-  # depend on.
-  alma-8:
-    name: AlmaLinux 8
+  almalinux-9-templates:
+    name: AlmaLinux 9 Test Templates
     runs-on: ubuntu-latest
-    container: almalinux:8.4
+    container: almalinux:9
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          # TODO: Find some variable that matches the job name.
+          key: almalinux-9-templates-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cp prep/cbindgen $HOME/.cargo/bin
+      - run: chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: rustup component add rustfmt
+      - run: rustup component add clippy
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          make -j2
+      - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
+      - run: make -j2
+      - run: ./src/suricata --list-app-layer-protos | grep foobar
+      - name: Verify rustfmt
+        run: rustfmt -v --check src/applayerfoobar/*.rs
+        working-directory: rust
+      - name: Verify clippy
+        run: cargo clippy --all-features
+        working-directory: rust
+
+  # This build also creates the distribution package that some other builds
+  # depend on.
+  almalinux-8:
+    name: AlmaLinux 8
+    runs-on: ubuntu-latest
+    container: almalinux:8
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - uses: actions/checkout@v3.3.0
 
       # Prebuild check for duplicat SIDs
       - name: Check for duplicate SIDs
@@ -276,7 +376,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -368,7 +468,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         name: Uploading distribution
         with:
           name: dist
@@ -378,8 +478,21 @@ jobs:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: [prepare-deps, alma-8]
+    needs: [prepare-deps, almalinux-8]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/yum
+          key: ${{ github.job }}-yum
+      - run: echo "keepcache=1" >> /etc/yum.conf
+
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -414,7 +527,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -431,7 +544,7 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -449,10 +562,17 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -495,8 +615,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -531,7 +651,7 @@ jobs:
           flags: suricata-verify
 
   fedora-36:
-    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict)
+    name: Fedora 36 (debug, clang, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:36
     needs: [prepare-deps, prepare-cbindgen]
@@ -539,10 +659,17 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -570,6 +697,8 @@ jobs:
                 libevent-devel \
                 libmaxminddb-devel \
                 libpcap-devel \
+                libxdp-devel \
+                libbpf-devel \
                 libtool \
                 lz4-devel \
                 make \
@@ -578,10 +707,11 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
+                systemd-devel \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -594,7 +724,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -620,6 +750,76 @@ jobs:
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
+      # Check compilation against systemd
+      - run: ldd src/suricata | grep libsystemd &> /dev/null
+
+  fedora-36-non-root:
+    name: Fedora 36 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
+    runs-on: ubuntu-latest
+    container: fedora:36
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo \
+                ccache \
+                clang \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hiredis-devel \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libasan \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-softokn-devel \
+                pcre2-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                systemd-devel \
+                which \
+                zlib-devel
+      - run: adduser suricata
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: mkdir /home/suricata/suricata
+      - run: cp -a . /home/suricata/suricata
+      - run: chown -R suricata:suricata /home/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh cbindgen
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh autogen
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh configure
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh make
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh unit-test
+        working-directory: /home/suricata/suricata
+      - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh verify
+        working-directory: /home/suricata/suricata
 
   fedora-35:
     name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
@@ -630,10 +830,17 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -671,8 +878,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -721,10 +928,17 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
           dnf -y install \
@@ -759,8 +973,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -786,6 +1000,11 @@ jobs:
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -812,6 +1031,7 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
+                libhyperscan-dev \
                 liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
@@ -831,8 +1051,8 @@ jobs:
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -897,6 +1117,11 @@ jobs:
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -946,8 +1171,8 @@ jobs:
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -965,7 +1190,7 @@ jobs:
           CC: "clang-14"
           CXX: "clang++-14"
           RUSTFLAGS: "-C instrument-coverage"
-          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -Wimplicit-int-float-conversion -Wimplicit-int-conversion -Werror"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -989,6 +1214,11 @@ jobs:
     container: ubuntu:20.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1029,8 +1259,8 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags \
                 dpdk-dev
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1071,8 +1301,13 @@ jobs:
     name: Ubuntu 20.04 (unsupported rust)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: alma-8
+    needs: almalinux-8
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -1108,7 +1343,7 @@ jobs:
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -1129,10 +1364,10 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1171,8 +1406,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1201,10 +1436,10 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1257,8 +1492,8 @@ jobs:
       - name: Install Coccinelle
         run: |
           apt -y install coccinelle
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1296,10 +1531,10 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - name: Install dependencies
         run: |
@@ -1335,8 +1570,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1359,10 +1594,10 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
 
       - run: |
           apt update
@@ -1402,8 +1637,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1431,6 +1666,11 @@ jobs:
     container: debian:9
     needs: [prepare-deps, prepare-cbindgen]
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - run: |
           apt update
           apt -y install \
@@ -1453,6 +1693,7 @@ jobs:
                 libjansson-dev \
                 libgeoip-dev \
                 liblua5.1-dev \
+                libluajit-5.1-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -1466,8 +1707,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_MIN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1479,7 +1720,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-luajit
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -1496,10 +1737,10 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@56461b9eb0f8438fd15c7a9968e3c9ebb18ceff1
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
       - run: |
          brew install \
           autoconf \
@@ -1518,12 +1759,12 @@ jobs:
           rust \
           xz
       - name: Install cbindgen
-        run: cargo install --force --debug --version 0.24.3 cbindgen
+        run: cargo install --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
       - name: Downloading prep archive
-        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1549,7 +1790,12 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3.1.0
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+      - uses: actions/checkout@v3.3.0
       - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
         with:
           msystem: MINGW64
@@ -1559,8 +1805,8 @@ jobs:
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -1600,7 +1846,12 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3.1.0
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+      - uses: actions/checkout@v3.3.0
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -1610,8 +1861,8 @@ jobs:
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
-      - uses: actions/checkout@v3.1.0
-      - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep

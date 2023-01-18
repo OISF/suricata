@@ -202,9 +202,9 @@ void HostInitConfig(bool quiet)
     if ((ConfGet("host.memcap", &conf_val)) == 1) {
         uint64_t host_memcap = 0;
         if (ParseSizeStringU64(conf_val, &host_memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing host.memcap "
+            SCLogError("Error parsing host.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(host_config.memcap, host_memcap);
@@ -232,18 +232,17 @@ void HostInitConfig(bool quiet)
     /* alloc hash memory */
     uint64_t hash_size = host_config.hash_size * sizeof(HostHashRow);
     if (!(HOST_CHECK_MEMCAP(hash_size))) {
-        SCLogError(SC_ERR_HOST_INIT, "allocating host hash failed: "
-                "max host memcap is smaller than projected hash size. "
-                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
-                "total hash size by multiplying \"host.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", SC_ATOMIC_GET(host_config.memcap), hash_size,
-                (uintmax_t)sizeof(HostHashRow));
+        SCLogError("allocating host hash failed: "
+                   "max host memcap is smaller than projected hash size. "
+                   "Memcap: %" PRIu64 ", Hash table size %" PRIu64 ". Calculate "
+                   "total hash size by multiplying \"host.hash-size\" with %" PRIuMAX ", "
+                   "which is the hash bucket size.",
+                SC_ATOMIC_GET(host_config.memcap), hash_size, (uintmax_t)sizeof(HostHashRow));
         exit(EXIT_FAILURE);
     }
     host_hash = SCMallocAligned(host_config.hash_size * sizeof(HostHashRow), CLS);
     if (unlikely(host_hash == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in HostInitConfig. Exiting...");
+        FatalError("Fatal error encountered in HostInitConfig. Exiting...");
     }
     memset(host_hash, 0, host_config.hash_size * sizeof(HostHashRow));
 
@@ -263,16 +262,17 @@ void HostInitConfig(bool quiet)
     /* pre allocate hosts */
     for (i = 0; i < host_config.prealloc; i++) {
         if (!(HOST_CHECK_MEMCAP(g_host_size))) {
-            SCLogError(SC_ERR_HOST_INIT, "preallocating hosts failed: "
-                    "max host memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", SC_ATOMIC_GET(host_config.memcap),
+            SCLogError("preallocating hosts failed: "
+                       "max host memcap reached. Memcap %" PRIu64 ", "
+                       "Memuse %" PRIu64 ".",
+                    SC_ATOMIC_GET(host_config.memcap),
                     ((uint64_t)SC_ATOMIC_GET(host_memuse) + g_host_size));
             exit(EXIT_FAILURE);
         }
 
         Host *h = HostAlloc();
         if (h == NULL) {
-            SCLogError(SC_ERR_HOST_INIT, "preallocating host failed: %s", strerror(errno));
+            SCLogError("preallocating host failed: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
         HostEnqueue(&host_spare_q,h);

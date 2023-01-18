@@ -149,7 +149,7 @@ static inline int SCACBSInitNewState(MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->goto_table = ptmp;
 
@@ -164,7 +164,7 @@ static inline int SCACBSInitNewState(MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->output_table = ptmp;
 
@@ -206,7 +206,7 @@ static void SCACBSSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(output_state->pids);
         output_state->pids = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     output_state->pids = ptmp;
 
@@ -310,9 +310,8 @@ static inline void SCACBSEnqueue(StateQueue *q, int32_t state)
         q->top = 0;
 
     if (q->top == q->bot) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("Just ran out of space in the queue.  "
+                   "Fatal Error.  Exiting.  Please file a bug report on this");
     }
 
     return;
@@ -324,9 +323,8 @@ static inline int32_t SCACBSDequeue(StateQueue *q)
         q->bot = 0;
 
     if (q->bot == q->top) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "StateQueue behaving weirdly.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("StateQueue behaving weirdly.  "
+                   "Fatal Error.  Exiting.  Please file a bug report on this");
     }
 
     return q->store[q->bot++];
@@ -349,9 +347,9 @@ static inline int32_t SCACBSDequeue(StateQueue *q)
                                       (q)->top = 0;                     \
                                                                         \
                                   if ((q)->top == (q)->bot) {           \
-                                  SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  " \
-                                                "Fatal Error.  Exiting.  Please file a bug report on this"); \
-                                  exit(EXIT_FAILURE);                   \
+                                  FatalError("Just ran out of space in the queue.  " \
+                                                "Fatal Error.  Exiting.  Please file a bug report on
+this"); \
                                   }                                     \
                               } while (0)
 
@@ -398,7 +396,7 @@ static inline void SCACBSClubOutputStates(int32_t dst_state, int32_t src_state,
             if (ptmp == NULL) {
                 SCFree(output_dst_state->pids);
                 output_dst_state->pids = NULL;
-                FatalError(SC_ERR_FATAL, "Error allocating memory");
+                FatalError("Error allocating memory");
             }
             else {
                 output_dst_state->pids = ptmp;
@@ -432,7 +430,7 @@ static inline void SCACBSCreateFailureTable(MpmCtx *mpm_ctx)
      * every state(SCACBSCtx->state_count) */
     ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
@@ -484,7 +482,7 @@ static inline void SCACBSCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u16 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_BS_STATE_TYPE_U16) * 256);
         if (ctx->state_table_u16 == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_u16, 0,
                ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U16) * 256);
@@ -526,7 +524,7 @@ static inline void SCACBSCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u32 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_BS_STATE_TYPE_U32) * 256);
         if (ctx->state_table_u32 == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_u32, 0,
                ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U32) * 256);
@@ -694,7 +692,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U16) * 1);
         ctx->state_table_mod = SCMalloc(size);
         if (ctx->state_table_mod == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_mod, 0, size);
 
@@ -705,7 +703,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * directly to access its state data */
         ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_mod_pointers, 0,
                ctx->state_count * sizeof(uint8_t *));
@@ -766,7 +764,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U32) * 1);
         ctx->state_table_mod = SCMalloc(size);
         if (ctx->state_table_mod == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_mod, 0, size);
 
@@ -777,7 +775,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * directly to access its state data */
         ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_mod_pointers, 0,
                ctx->state_count * sizeof(uint8_t *));
@@ -918,7 +916,7 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
     /* handle no case patterns */
     ctx->pid_pat_list = SCMalloc((mpm_ctx->max_pat_id + 1)* sizeof(SCACBSPatternList));
     if (ctx->pid_pat_list == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(ctx->pid_pat_list, 0, (mpm_ctx->max_pat_id + 1) * sizeof(SCACBSPatternList));
 
@@ -926,7 +924,7 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
             ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
             if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
-                FatalError(SC_ERR_FATAL, "Error allocating memory");
+                FatalError("Error allocating memory");
             }
             memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
@@ -1165,7 +1163,7 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     ascii_codes = state_table_mod_pointers[state & 0x7FFF] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0]) {
-                        state = *(ascii_codes + no_of_entries);;
+                        state = *(ascii_codes + no_of_entries);
                     } else {
                         state = zero_state[buf_local];
                     }
@@ -1248,9 +1246,9 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     ascii_codes = state_table_mod_pointers[state & 0x00FFFFFF] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0]) {
-                        state = *(ascii_codes + no_of_entries);;
+                        state = *(ascii_codes + no_of_entries);
                     } else {
-                        state = zero_state[buf_local];;
+                        state = zero_state[buf_local];
                     }
                 } else {
                     if (no_of_entries == 0) {
@@ -1405,6 +1403,7 @@ void SCACBSPrintInfo(MpmCtx *mpm_ctx)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int SCACBSTest01(void)
 {

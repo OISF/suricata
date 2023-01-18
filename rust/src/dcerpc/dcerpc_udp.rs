@@ -92,7 +92,7 @@ impl DCERPCUDPState {
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.id as u64 == tx_id { //+ 1 {
+            if tx.id == tx_id { //+ 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
@@ -128,12 +128,9 @@ impl DCERPCUDPState {
 
     fn find_incomplete_tx(&mut self, hdr: &DCERPCHdrUdp) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
-            if tx.seqnum == hdr.seqnum && tx.activityuuid == hdr.activityuuid {
-                if (hdr.pkt_type == DCERPC_TYPE_REQUEST && !tx.req_done) ||
-                   (hdr.pkt_type == DCERPC_TYPE_RESPONSE && !tx.resp_done) {
-                    SCLogDebug!("found tx id {}, last tx_id {}, {} {}", tx.id, self.tx_id, tx.seqnum, tx.activityuuid[0]);
-                    return Some(tx);
-                }
+            if tx.seqnum == hdr.seqnum && tx.activityuuid == hdr.activityuuid && ((hdr.pkt_type == DCERPC_TYPE_REQUEST && !tx.req_done) || (hdr.pkt_type == DCERPC_TYPE_RESPONSE && !tx.resp_done)) {
+                SCLogDebug!("found tx id {}, last tx_id {}, {} {}", tx.id, self.tx_id, tx.seqnum, tx.activityuuid[0]);
+                return Some(tx);
             }
         }
         None
@@ -247,7 +244,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
-    SCLogDebug!("freeing tx {}", tx_id as u64);
+    SCLogDebug!("freeing tx {}", tx_id);
     dce_state.free_tx(tx_id);
 }
 
@@ -312,10 +309,8 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
             if dir != Direction::ToServer {
                 *rdir = Direction::ToServer.into();
             }
-        } else {
-            if dir != Direction::ToClient {
-                *rdir = Direction::ToClient.into();
-            }
+        } else if dir != Direction::ToClient {
+            *rdir = Direction::ToClient.into();
         };
         return ALPROTO_DCERPC;
     }
@@ -324,7 +319,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP as u8, ALPROTO_DCERPC,
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
                                                      Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");

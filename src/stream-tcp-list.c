@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -163,10 +163,15 @@ static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
  *  \retval 2 not inserted, data overlap
  *  \retval 1 inserted with overlap detected
  *  \retval 0 inserted, no overlap
+ *  \retval -ENOMEM memcap reached
+ *  \retval -EINVAL seg out of seq range
  */
 static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup_seg, Packet *p)
 {
-    BUG_ON(SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq));
+    /* in lossy traffic, we can get here with the wrong sequence numbers */
+    if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq)) {
+        return -EINVAL;
+    }
 
     /* fast track */
     if (RB_EMPTY(&stream->seg_tree)) {
@@ -371,9 +376,9 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
 
         const uint8_t *list_data;
         StreamingBufferSegmentGetData(&stream->sb, &list->sbseg, &list_data, &list_len);
-        if (list_data == NULL || list_len == 0)
+        DEBUG_VALIDATE_BUG_ON(list_len > USHRT_MAX);
+        if (list_data == NULL || list_len == 0 || list_len > USHRT_MAX)
             return 0;
-        BUG_ON(list_len > USHRT_MAX);
 
         /* if list seg is partially before base_seq, list_len (from stream) and
          * TCP_SEG_LEN(list) will not be the same */
@@ -698,6 +703,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             }
 #endif
         }
+    } else {
+        // EINVAL
+        StreamTcpSegmentReturntoPool(seg);
     }
 
     SCReturnInt(0);
@@ -764,7 +772,8 @@ static inline uint64_t GetLeftEdge(Flow *f, TcpSession *ssn, TcpStream *stream)
     const bool use_app = !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     const bool use_raw = !(stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW);
     const bool use_log = stream_config.streaming_log_api;
-    SCLogDebug("use_app %d use_raw %d use_log %d", use_app, use_raw, use_log);
+    SCLogDebug("use_app %d use_raw %d use_log %d tcp win %u", use_app, use_raw, use_log,
+            stream->window);
 
     if (use_raw) {
         uint64_t raw_progress = STREAM_RAW_PROGRESS(stream);
@@ -919,6 +928,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     }
 
     const uint64_t left_edge = GetLeftEdge(f, ssn, stream);
+    SCLogDebug("buffer left_edge %" PRIu64, left_edge);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);

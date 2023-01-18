@@ -95,7 +95,7 @@ static void LockRecordFree(void *data)
     SCFree(fn);
 }
 
-int LockRecordInitHash()
+int LockRecordInitHash(void)
 {
     pthread_mutex_init(&lock_records_mutex, NULL);
     pthread_mutex_lock(&lock_records_mutex);
@@ -163,8 +163,7 @@ static void SCProfilingListLocks(void)
         fp = fopen(profiling_locks_file_name, profiling_locks_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
-                    profiling_locks_file_name, strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_locks_file_name, strerror(errno));
             return;
         }
     } else {
@@ -220,7 +219,7 @@ static void SCProfilingListLocks(void)
     fclose(fp);
 }
 
-void LockRecordFreeHash()
+void LockRecordFreeHash(void)
 {
     if (profiling_locks_enabled == 0)
         return;

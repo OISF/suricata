@@ -26,6 +26,8 @@
 #ifndef __OUTPUT_STATS_H__
 #define __OUTPUT_STATS_H__
 
+#include "tm-modules.h"
+
 typedef struct StatsRecord_ {
     const char *name;
     const char *tm_name;

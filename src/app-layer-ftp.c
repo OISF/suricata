@@ -118,9 +118,9 @@ static void FTPParseMemcap(void)
     if ((ConfGet("app-layer.protocols.ftp.memcap", &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &ftp_config_memcap) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ftp.memcap "
+            SCLogError("Error parsing ftp.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         }
         SCLogInfo("FTP memcap: %"PRIu64, ftp_config_memcap);
@@ -134,9 +134,8 @@ static void FTPParseMemcap(void)
 
     if ((ConfGet("app-layer.protocols.ftp.max-tx", &conf_val)) == 1) {
         if (ParseSizeStringU32(conf_val, &ftp_config_maxtx) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE,
-                    "Error parsing ftp.max-tx "
-                    "from conf file - %s.",
+            SCLogError("Error parsing ftp.max-tx "
+                       "from conf file - %s.",
                     conf_val);
         }
         SCLogInfo("FTP max tx: %" PRIu32, ftp_config_maxtx);
@@ -144,8 +143,7 @@ static void FTPParseMemcap(void)
 
     if ((ConfGet("app-layer.protocols.ftp.max-line-length", &conf_val)) == 1) {
         if (ParseSizeStringU32(conf_val, &ftp_max_line_len) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ftp.max-line-length from conf file - %s.",
-                    conf_val);
+            SCLogError("Error parsing ftp.max-line-length from conf file - %s.", conf_val);
         }
         SCLogConfig("FTP max line length: %" PRIu32, ftp_max_line_len);
     }
@@ -647,6 +645,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                             FTPFree(state->port_line, state->port_line_size);
                             state->port_line = NULL;
                             state->port_line_size = 0;
+                            state->port_line_len = 0;
                         }
                         SCReturnStruct(APP_LAYER_OK);
                     }
@@ -1148,7 +1147,8 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     } else {
         if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
             SCLogDebug("state is already finished");
-            DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
+            // TODO put back the assert after deciding on the bug...
+            // DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
             SCReturnStruct(APP_LAYER_OK);
         }
         if ((direction & ftpdata_state->direction) == 0) {

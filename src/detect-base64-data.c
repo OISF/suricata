@@ -53,8 +53,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     /* Check for a preceding base64_decode. */
     pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-            "\"base64_data\" keyword seen without preceding base64_decode.");
+        SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
         return -1;
     }
 
@@ -76,8 +75,6 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 }
 
 #ifdef UNITTESTS
-
-#include "detect-engine.h"
 
 static int g_file_data_buffer_id = 0;
 

@@ -25,7 +25,6 @@
 #define __DEFRAG_QUEUE_H__
 
 #include "suricata-common.h"
-#include "decode.h"
 #include "defrag.h"
 
 /** Spinlocks or Mutex for the defrag tracker queues. */

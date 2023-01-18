@@ -29,6 +29,7 @@
 #ifndef __UTIL_MEMCMP_H__
 #define __UTIL_MEMCMP_H__
 
+#include "suricata-common.h"
 #include "util-optimize.h"
 
 /** \brief compare two patterns, converting the 2nd to lowercase

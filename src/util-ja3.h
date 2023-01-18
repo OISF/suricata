@@ -26,6 +26,8 @@
 
 #define JA3_BUFFER_INITIAL_SIZE 128
 
+#include "detect.h"
+
 typedef struct JA3Buffer_ {
     char *data;
     size_t size;
@@ -38,6 +40,14 @@ int Ja3BufferAppendBuffer(JA3Buffer **, JA3Buffer **);
 int Ja3BufferAddValue(JA3Buffer **, uint32_t);
 char *Ja3GenerateHash(JA3Buffer *);
 int Ja3IsDisabled(const char *);
+
+InspectionBuffer *Ja3DetectGetHash(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
+
+InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 
 #endif /* __UTIL_JA3_H__ */
 

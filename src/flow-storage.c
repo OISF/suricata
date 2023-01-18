@@ -29,6 +29,7 @@
 #include "flow-storage.h"
 #include "flow-hash.h"
 #include "flow-util.h"
+#include "util-storage.h"
 #include "util-unittest.h"
 
 unsigned int FlowStorageSize(void)

@@ -104,7 +104,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
 
     ret = DetectParsePcreExec(&parse_regex, isdataatstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
         goto error;
     }
 
@@ -113,7 +113,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -123,7 +123,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             res = pcre2_substring_get_bynumber(
                     parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
@@ -132,7 +132,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             res = pcre2_substring_get_bynumber(
                     parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -147,7 +147,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
 
         if (args[0][0] != '-' && isalpha((unsigned char)args[0][0])) {
             if (offset == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "isdataat supplied with "
+                SCLogError("isdataat supplied with "
                            "var name for offset.  \"offset\" argument supplied to "
                            "this function has to be non-NULL");
                 goto error;
@@ -158,7 +158,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
         } else {
             if (StringParseUint16(&idad->dataat, 10,
                                         strlen(args[0]), args[0]) < 0 ) {
-                SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
+                SCLogError("isdataat out of range");
                 SCFree(idad);
                 idad = NULL;
                 goto error;
@@ -247,8 +247,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     if (offset != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(offset, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                       "seen in isdataat - %s\n", offset);
+            SCLogError("Unknown byte_extract var "
+                       "seen in isdataat - %s\n",
+                    offset);
             goto end;
         }
         idad->dataat = index;
@@ -324,7 +325,7 @@ static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     /* retrieve the sm to apply the depth against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "endswith needs a "
+        SCLogError("endswith needs a "
                    "preceding content option");
         goto end;
     }

@@ -255,6 +255,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICT          BIT_U32(8)  /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
+#define SIG_FLAG_INIT_JA3                   BIT_U32(10) /**< signature has ja3 keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -1250,12 +1251,11 @@ enum {
     FILE_DECODER_EVENT_Z_STREAM_ERROR,
     FILE_DECODER_EVENT_Z_BUF_ERROR,
     FILE_DECODER_EVENT_Z_UNKNOWN_ERROR,
+    FILE_DECODER_EVENT_LZMA_IO_ERROR,
+    FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR,
     FILE_DECODER_EVENT_LZMA_DECODER_ERROR,
     FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR,
-    FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR,
-    FILE_DECODER_EVENT_LZMA_FORMAT_ERROR,
-    FILE_DECODER_EVENT_LZMA_DATA_ERROR,
-    FILE_DECODER_EVENT_LZMA_BUF_ERROR,
+    FILE_DECODER_EVENT_LZMA_XZ_ERROR,
     FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
 
     DETECT_EVENT_TOO_MANY_BUFFERS,

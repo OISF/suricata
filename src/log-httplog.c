@@ -552,7 +552,7 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
     OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError("couldn't create new file_ctx");
         return result;
     }
 
@@ -616,7 +616,7 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
     return result;
 
 parsererror:
-    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
+    SCLogError("Syntax error in custom http log format string.");
 errorfree:
     LogCustomFormatFree(httplog_ctx->cf);
     LogFileFreeCtx(file_ctx);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2021 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,11 +38,11 @@
 #include "util-runmodes.h"
 #include "util-ioctl.h"
 #include "util-byte.h"
+#include "util-time.h"
 
 #ifdef HAVE_NETMAP
 #define NETMAP_WITH_LIBS
 #include <net/netmap_user.h>
-#include "util-time.h"
 #endif /* HAVE_NETMAP */
 
 #include "source-netmap.h"
@@ -95,9 +95,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     if (ns->iface[0]) {
         size_t len = strlen(ns->iface);
         if (ns->iface[len-1] == '+') {
-            SCLogWarning(SC_WARN_OPTION_OBSOLETE,
-                    "netmap interface %s uses obsolete '+' notation. "
-                    "Using '^' instead.", ns->iface);
+            SCLogWarning("%s: interface uses obsolete '+' notation. Using '^' instead", ns->iface);
             ns->iface[len-1] = '^';
             ns->sw_ring = true;
         } else if (ns->iface[len-1] == '^') {
@@ -124,15 +122,14 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
             ns->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
-                    ns->bpf_filter);
+            SCLogInfo("%s: using command-line provided bpf filter '%s'", iface, ns->bpf_filter);
         }
     }
 
     if (if_root == NULL && if_default == NULL) {
-        SCLogInfo("Unable to find netmap config for "
-                "interface \"%s\" or \"default\", using default values",
-                iface);
+        SCLogInfo("%s: unable to find netmap config for interface \"%s\" or \"default\", using "
+                  "default values",
+                iface, iface);
         goto finalize;
 
     /* If there is no setting for current interface use default one as main iface */
@@ -151,8 +148,8 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             ns->threads_auto = true;
         } else {
             if (StringParseUint16(&ns->threads, 10, 0, threadsstr) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid config value for "
-                             "threads: %s, resetting to 0", threadsstr);
+                SCLogWarning("%s: invalid config value for threads: %s, resetting to 0", iface,
+                        threadsstr);
                 ns->threads = 0;
             }
         }
@@ -164,7 +161,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
             if (strlen(bpf_filter) > 0) {
                 ns->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", ns->bpf_filter);
+                SCLogInfo("%s: using bpf filter %s", iface, ns->bpf_filter);
             }
         }
     }
@@ -172,7 +169,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     int boolval = 0;
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
-        SCLogInfo("Disabling promiscuous mode on iface %s", ns->iface);
+        SCLogInfo("%s: disabling promiscuous mode", ns->iface);
         ns->promisc = false;
     }
 
@@ -187,8 +184,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         } else if (ConfValIsFalse(tmpctype)) {
             ns->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid value for "
-                    "checksum-checks for %s", iface);
+            SCLogWarning("%s: invalid value for checksum-checks '%s'", iface, tmpctype);
         }
     }
 
@@ -201,8 +197,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         } else if (strcmp(copymodestr, "tap") == 0) {
             ns->copy_mode = NETMAP_COPY_MODE_TAP;
         } else {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid copy-mode "
-                    "(valid are tap, ips)");
+            SCLogWarning("%s: invalid copy-mode %s (valid are tap, ips)", iface, copymodestr);
         }
     }
 
@@ -259,7 +254,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     /* Find initial node */
     ConfNode *netmap_node = ConfGetNode("netmap");
     if (netmap_node == NULL) {
-        SCLogInfo("Unable to find netmap config using default value");
+        SCLogInfo("%s: unable to find netmap config using default value", iface_name);
     } else {
         if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
         if_default = ConfFindDeviceConfig(netmap_node, "default");
@@ -313,8 +308,7 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     SC_ATOMIC_RESET(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
-    SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
-            aconf->iface_name);
+    SCLogPerf("%s: using %d threads", aconf->iface_name, aconf->in.threads);
 
     LiveDeviceHasNoStats();
     return aconf;
@@ -326,7 +320,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
     return aconf->in.threads;
 }
 
-int NetmapRunModeIsIPS()
+int NetmapRunModeIsIPS(void)
 {
     int nlive = LiveGetDeviceCount();
     int ldev;
@@ -347,7 +341,7 @@ int NetmapRunModeIsIPS()
     for (ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            SCLogError("Problem with config file");
             return 0;
         }
         const char *copymodestr = NULL;
@@ -355,7 +349,7 @@ int NetmapRunModeIsIPS()
 
         if (if_root == NULL) {
             if (if_default == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError("Problem with config file");
                 return 0;
             }
             if_root = if_default;
@@ -373,11 +367,12 @@ int NetmapRunModeIsIPS()
     }
 
     if (has_ids && has_ips) {
-        SCLogInfo("Netmap mode using IPS and IDS mode");
+        SCLogWarning("Netmap using both IPS and TAP/IDS mode, this will not be allowed in Suricata "
+                     "8 due to undefined behavior. See ticket #5588.");
         for (ldev = 0; ldev < nlive; ldev++) {
             const char *live_dev = LiveGetDeviceName(ldev);
             if (live_dev == NULL) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                SCLogError("Problem with config file");
                 return 0;
             }
             if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
@@ -385,7 +380,7 @@ int NetmapRunModeIsIPS()
 
             if (if_root == NULL) {
                 if (if_default == NULL) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    SCLogError("Problem with config file");
                     return 0;
                 }
                 if_root = if_default;
@@ -393,9 +388,8 @@ int NetmapRunModeIsIPS()
 
             if (! ((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) &&
                     (strcmp(copymodestr, "ips") == 0))) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "Netmap IPS mode used and interface '%s' is in IDS or TAP mode. "
-                                "Sniffing '%s' but expect bad result as stream-inline is activated.",
+                SCLogError("Netmap IPS mode used and interface '%s' is in IDS or TAP mode. "
+                           "Sniffing '%s' but expect bad result as stream-inline is activated.",
                         live_dev, live_dev);
             }
         }
@@ -416,29 +410,30 @@ static int NetmapRunModeInit(NetmapRunMode_t runmode)
     const char *live_dev = NULL;
     (void)ConfGet("netmap.live-interface", &live_dev);
 
+    const char *runmode_str = "unknown";
     int ret;
     switch (runmode) {
         case NETMAP_AUTOFP:
+            runmode_str = "autofp";
             ret = RunModeSetLiveCaptureAutoFp(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_autofp, live_dev);
             break;
         case NETMAP_WORKERS:
+            runmode_str = "workers";
             ret = RunModeSetLiveCaptureWorkers(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_workers, live_dev);
             break;
         case NETMAP_SINGLE:
+            runmode_str = "single";
             ret = RunModeSetLiveCaptureSingle(ParseNetmapConfig, NetmapConfigGeThreadsCount,
                     "ReceiveNetmap", "DecodeNetmap", thread_name_single, live_dev);
             break;
     }
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode %s",
-                runmode == NETMAP_AUTOFP ? "autofp"
-                                         : runmode == NETMAP_WORKERS ? "workers" : "single");
+        FatalError("Unable to start runmode %s", runmode_str);
     }
 
-    SCLogDebug("%s initialized",
-            runmode == NETMAP_AUTOFP ? "autofp" : runmode == NETMAP_WORKERS ? "workers" : "single");
+    SCLogDebug("%s initialized", runmode_str);
 
     SCReturnInt(0);
 }
@@ -470,7 +465,7 @@ int RunModeIdsNetmapWorkers(void)
 int RunModeIdsNetmapAutoFp(void)
 {
     SCEnter();
-    FatalError(SC_ERR_FATAL, "Netmap not configured");
+    FatalError("Netmap not configured");
     SCReturnInt(0);
 }
 
@@ -480,7 +475,7 @@ int RunModeIdsNetmapAutoFp(void)
 int RunModeIdsNetmapSingle(void)
 {
     SCEnter();
-    FatalError(SC_ERR_FATAL, "Netmap not configured");
+    FatalError("Netmap not configured");
     SCReturnInt(0);
 }
 
@@ -493,7 +488,7 @@ int RunModeIdsNetmapSingle(void)
 int RunModeIdsNetmapWorkers(void)
 {
     SCEnter();
-    FatalError(SC_ERR_FATAL, "Netmap not configured");
+    FatalError("Netmap not configured");
     SCReturnInt(0);
 }
 #endif // #ifdef HAVE_NETMAP

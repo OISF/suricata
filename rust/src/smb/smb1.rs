@@ -148,7 +148,7 @@ pub fn smb1_check_tx(cmd: u8) -> bool {
     }
 }
 
-fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>, direction: Direction)
+fn smb1_close_file(state: &mut SMBState, fid: &[u8], direction: Direction)
 {
     if let Some(tx) = state.get_file_tx_by_fuid(fid, direction) {
         SCLogDebug!("found tx {}", tx.id);
@@ -433,7 +433,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                     let mut bad_dialects = false;
                     let mut dialects : Vec<Vec<u8>> = Vec::new();
                     for d in &pr.dialects {
-                        if d.len() == 0 {
+                        if d.is_empty() {
                             bad_dialects = true;
                             continue;
                         } else if d.len() == 1 {
@@ -570,15 +570,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
             false
         },
     };
-    if !have_tx {
-        if smb1_create_new_tx(command) {
-            let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(1, command as u16, tx_key);
-            SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
-            tx.set_events(events);
-            if no_response_expected {
-                tx.response_done = true;
-            }
+    if !have_tx && smb1_create_new_tx(command) {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(1, command as u16, tx_key);
+        SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
+        tx.set_events(events);
+        if no_response_expected {
+            tx.response_done = true;
         }
     }
 }
@@ -668,16 +666,13 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
         SMB1_COMMAND_TREE_CONNECT_ANDX => {
             if r.nt_status != SMB_NTSTATUS_SUCCESS {
                 let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_TREE);
-                match state.get_treeconnect_tx(name_key) {
-                    Some(tx) => {
-                        if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
-                            tdn.tree_id = r.tree_id as u32;
-                        }
-                        tx.set_status(r.nt_status, r.is_dos_error);
-                        tx.response_done = true;
-                        SCLogDebug!("tx {} is done", tx.id);
-                    },
-                    None => { },
+                if let Some(tx) = state.get_treeconnect_tx(name_key) {
+                    if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
+                        tdn.tree_id = r.tree_id as u32;
+                    }
+                    tx.set_status(r.nt_status, r.is_dos_error);
+                    tx.response_done = true;
+                    SCLogDebug!("tx {} is done", tx.id);
                 }
                 return;
             }
@@ -799,15 +794,12 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
     };
 
     if !have_tx && tx_sync {
-        match state.get_last_tx(1, command as u16) {
-            Some(tx) => {
-                SCLogDebug!("last TX {} is CMD {}", tx.id, &smb1_command_string(command));
-                tx.response_done = true;
-                SCLogDebug!("tx {} cmd {} is done", tx.id, command);
-                tx.set_status(r.nt_status, r.is_dos_error);
-                tx.set_events(events);
-            },
-            _ => {},
+        if let Some(tx) = state.get_last_tx(1, command as u16) {
+            SCLogDebug!("last TX {} is CMD {}", tx.id, &smb1_command_string(command));
+            tx.response_done = true;
+            SCLogDebug!("tx {} cmd {} is done", tx.id, command);
+            tx.set_status(r.nt_status, r.is_dos_error);
+            tx.set_events(events);
         }
     } else if !have_tx && smb1_check_tx(command) {
         let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_GENERICTX,
@@ -821,7 +813,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
                 tx.set_events(events);
                 true
             },
-            _ => {
+            None => {
                 SCLogDebug!("no TX found for key {:?}", tx_key);
                 false
             },
@@ -966,7 +958,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 None => b"<unknown>".to_vec(),
             };
             let mut set_event_fileoverlap = false;
-            let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToServer) {
+            let found = match state.get_file_tx_by_fuid_with_open_file(&file_fid, Direction::ToServer) {
                 Some(tx) => {
                     let file_id : u32 = tx.id as u32;
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -1063,7 +1055,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         None => Vec::new(),
                     };
                     let mut set_event_fileoverlap = false;
-                    let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToClient) {
+                    let found = match state.get_file_tx_by_fuid_with_open_file(&file_fid, Direction::ToClient) {
                         Some(tx) => {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                 let file_id : u32 = tx.id as u32;
@@ -1126,7 +1118,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
 /// configured to do so, or if this is a tx especially
 /// for setting an event.
 fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
-    if smb1_create_new_tx(r.command) || events.len() > 0 {
+    if smb1_create_new_tx(r.command) || !events.is_empty() {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
         tx.set_events(events);
@@ -1138,18 +1130,15 @@ fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, even
 /// if we didn't already update a tx, and we have to set events
 fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
     let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-    match state.get_generic_tx(1, r.command as u16, &tx_key) {
-        Some(tx) => {
-            tx.request_done = true;
-            tx.response_done = true;
-            SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
-            tx.set_status(r.nt_status, r.is_dos_error);
-            tx.set_events(events);
-            return;
-        },
-        None => {},
+    if let Some(tx) = state.get_generic_tx(1, r.command as u16, &tx_key) {
+        tx.request_done = true;
+        tx.response_done = true;
+        SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
+        tx.set_status(r.nt_status, r.is_dos_error);
+        tx.set_events(events);
+        return;
     }
-    if events.len() > 0 {
+    if !events.is_empty() {
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
         tx.request_done = true;
         tx.response_done = true;

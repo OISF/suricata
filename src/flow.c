@@ -253,9 +253,11 @@ static inline void FlowSwapFlags(Flow *f)
 static inline void FlowSwapFileFlags(Flow *f)
 {
     SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_STORE_TS, FLOWFILE_NO_STORE_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MD5_TS, FLOWFILE_NO_MD5_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA1_TS, FLOWFILE_NO_SHA1_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA256_TS, FLOWFILE_NO_SHA256_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SIZE_TS, FLOWFILE_NO_SIZE_TC);
 }
 
 static inline void TcpStreamFlowSwap(Flow *f)
@@ -562,8 +564,8 @@ void FlowInitConfig(bool quiet)
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of "
-                                             "1 and 100 (as percentage)");
+            SCLogError("flow.emergency-recovery must be in the range of "
+                       "1 and 100 (as percentage)");
             flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
         }
     } else {
@@ -580,13 +582,13 @@ void FlowInitConfig(bool quiet)
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            FatalError(SC_ERR_FATAL, "Invalid value for flow.memcap: NULL");
+            FatalError("Invalid value for flow.memcap: NULL");
         }
 
         if (ParseSizeStringU64(conf_val, &flow_memcap_copy) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing flow.memcap "
+            SCLogError("Error parsing flow.memcap "
                        "from conf file - %s.  Killing engine",
-                       conf_val);
+                    conf_val);
             exit(EXIT_FAILURE);
         } else {
             SC_ATOMIC_SET(flow_config.memcap, flow_memcap_copy);
@@ -595,7 +597,7 @@ void FlowInitConfig(bool quiet)
     if ((ConfGet("flow.hash-size", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            FatalError(SC_ERR_FATAL, "Invalid value for flow.hash-size: NULL");
+            FatalError("Invalid value for flow.hash-size: NULL");
         }
 
         if (StringParseUint32(&configval, 10, strlen(conf_val),
@@ -606,7 +608,7 @@ void FlowInitConfig(bool quiet)
     if ((ConfGet("flow.prealloc", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            FatalError(SC_ERR_FATAL, "Invalid value for flow.prealloc: NULL");
+            FatalError("Invalid value for flow.prealloc: NULL");
         }
 
         if (StringParseUint32(&configval, 10, strlen(conf_val),
@@ -624,18 +626,17 @@ void FlowInitConfig(bool quiet)
     /* alloc hash memory */
     uint64_t hash_size = flow_config.hash_size * sizeof(FlowBucket);
     if (!(FLOW_CHECK_MEMCAP(hash_size))) {
-        SCLogError(SC_ERR_FLOW_INIT, "allocating flow hash failed: "
-                "max flow memcap is smaller than projected hash size. "
-                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
-                "total hash size by multiplying \"flow.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", SC_ATOMIC_GET(flow_config.memcap), hash_size,
-                (uintmax_t)sizeof(FlowBucket));
+        SCLogError("allocating flow hash failed: "
+                   "max flow memcap is smaller than projected hash size. "
+                   "Memcap: %" PRIu64 ", Hash table size %" PRIu64 ". Calculate "
+                   "total hash size by multiplying \"flow.hash-size\" with %" PRIuMAX ", "
+                   "which is the hash bucket size.",
+                SC_ATOMIC_GET(flow_config.memcap), hash_size, (uintmax_t)sizeof(FlowBucket));
         exit(EXIT_FAILURE);
     }
     flow_hash = SCMallocAligned(flow_config.hash_size * sizeof(FlowBucket), CLS);
     if (unlikely(flow_hash == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in FlowInitConfig. Exiting...");
+        FatalError("Fatal error encountered in FlowInitConfig. Exiting...");
     }
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
 
@@ -1033,26 +1034,30 @@ void FlowInitFlowProto(void)
         FlowProtoTimeout *e = &flow_timeouts_emerg[i];
 
         if (e->est_timeout > n->est_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'established\' "
-                    "must be below regular value %u", e->est_timeout, n->est_timeout);
+            SCLogWarning("emergency timeout value %u for \'established\' "
+                         "must be below regular value %u",
+                    e->est_timeout, n->est_timeout);
             e->est_timeout = n->est_timeout / 10;
         }
 
         if (e->new_timeout > n->new_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'new\' must be "
-                    "below regular value %u", e->new_timeout, n->new_timeout);
+            SCLogWarning("emergency timeout value %u for \'new\' must be "
+                         "below regular value %u",
+                    e->new_timeout, n->new_timeout);
             e->new_timeout = n->new_timeout / 10;
         }
 
         if (e->closed_timeout > n->closed_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'closed\' must "
-                    "be below regular value %u", e->closed_timeout, n->closed_timeout);
+            SCLogWarning("emergency timeout value %u for \'closed\' must "
+                         "be below regular value %u",
+                    e->closed_timeout, n->closed_timeout);
             e->closed_timeout = n->closed_timeout / 10;
         }
 
         if (e->bypassed_timeout > n->bypassed_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'bypassed\' "
-                    "must be below regular value %u", e->bypassed_timeout, n->bypassed_timeout);
+            SCLogWarning("emergency timeout value %u for \'bypassed\' "
+                         "must be below regular value %u",
+                    e->bypassed_timeout, n->bypassed_timeout);
             e->bypassed_timeout = n->bypassed_timeout / 10;
         }
     }
@@ -1063,25 +1068,25 @@ void FlowInitFlowProto(void)
         FlowProtoTimeout *d = &flow_timeouts_delta[i];
 
         if (e->est_timeout > n->est_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'established\' must be below normal value");
+            SCLogWarning("emergency timeout value for \'established\' must be below normal value");
             e->est_timeout = n->est_timeout / 10;
         }
         d->est_timeout = n->est_timeout - e->est_timeout;
 
         if (e->new_timeout > n->new_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'new\' must be below normal value");
+            SCLogWarning("emergency timeout value for \'new\' must be below normal value");
             e->new_timeout = n->new_timeout / 10;
         }
         d->new_timeout = n->new_timeout - e->new_timeout;
 
         if (e->closed_timeout > n->closed_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'closed\' must be below normal value");
+            SCLogWarning("emergency timeout value for \'closed\' must be below normal value");
             e->closed_timeout = n->closed_timeout / 10;
         }
         d->closed_timeout = n->closed_timeout - e->closed_timeout;
 
         if (e->bypassed_timeout > n->bypassed_timeout) {
-            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'bypassed\' must be below normal value");
+            SCLogWarning("emergency timeout value for \'bypassed\' must be below normal value");
             e->bypassed_timeout = n->bypassed_timeout / 10;
         }
         d->bypassed_timeout = n->bypassed_timeout - e->bypassed_timeout;

@@ -20,7 +20,7 @@
 use nom7::error::{Error, ErrorKind, ParseError};
 use nom7::ErrorConvert;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RdpError {
     UnimplementedLengthDeterminant,
     NotX224Class0Error,

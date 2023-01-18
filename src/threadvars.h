@@ -52,6 +52,7 @@ struct TmSlot_;
  *  rule reloads even if no packets are read by the capture method. */
 #define THV_CAPTURE_INJECT_PKT  BIT_U32(11)
 #define THV_DEAD                BIT_U32(12) /**< thread has been joined with pthread_join() */
+#define THV_RUNNING             BIT_U32(13) /**< thread is running */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
@@ -104,8 +105,10 @@ typedef struct ThreadVars_ {
     void *outctx;
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
-    /** queue for decoders to temporarily store extra packets they
-     *  generate. */
+    /** Queue for decoders to temporarily store extra packets they
+     *  generate. These packets are generated as part of the tunnel
+     *  handling, and are processed directly after the "real" packet
+     *  from the current position in the pipeline. */
     PacketQueueNoLock decode_pq;
 
     /** Stream packet queue for flow time out injection. Either a pointer to the

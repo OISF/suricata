@@ -28,7 +28,7 @@
 #include "util-validate.h"
 #include "util-ja3.h"
 
-#define MD5_STRING_LENGTH 33
+#include "detect-engine.h"
 
 /**
  * \brief Allocate new buffer.
@@ -81,9 +81,9 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
     while (buffer->used + len + 2 > buffer->size)
     {
         buffer->size *= 2;
-        char *tmp = SCRealloc(buffer->data, buffer->size * sizeof(char));
+        char *tmp = SCRealloc(buffer->data, buffer->size);
         if (tmp == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error resizing JA3 buffer");
+            SCLogError("Error resizing JA3 buffer");
             return -1;
         }
         buffer->data = tmp;
@@ -106,7 +106,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
 int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
 {
     if (*buffer1 == NULL || *buffer2 == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffers should not be NULL");
+        SCLogError("Buffers should not be NULL");
         return -1;
     }
 
@@ -170,15 +170,14 @@ static uint32_t NumberOfDigits(uint32_t num)
 int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 {
     if (*buffer == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
+        SCLogError("Buffer should not be NULL");
         return -1;
     }
 
     if ((*buffer)->data == NULL) {
-        (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE * sizeof(char));
+        (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE);
         if ((*buffer)->data == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                       "Error allocating memory for JA3 data");
+            SCLogError("Error allocating memory for JA3 data");
             Ja3BufferFree(buffer);
             return -1;
         }
@@ -215,24 +214,22 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 char *Ja3GenerateHash(JA3Buffer *buffer)
 {
     if (buffer == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
+        SCLogError("Buffer should not be NULL");
         return NULL;
     }
 
     if (buffer->data == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Buffer data should not be NULL");
+        SCLogError("Buffer data should not be NULL");
         return NULL;
     }
 
-    char *ja3_hash = SCMalloc(MD5_STRING_LENGTH * sizeof(char));
+    char *ja3_hash = SCMalloc(SC_MD5_HEX_LEN + 1);
     if (ja3_hash == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                   "Error allocating memory for JA3 hash");
+        SCLogError("Error allocating memory for JA3 hash");
         return NULL;
     }
 
-    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash,
-            MD5_STRING_LENGTH * sizeof(char));
+    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash, SC_MD5_HEX_LEN + 1);
     return ja3_hash;
 }
 
@@ -251,11 +248,55 @@ int Ja3IsDisabled(const char *type)
     bool is_enabled = SSLJA3IsEnabled();
     if (is_enabled == 0) {
         if (strcmp(type, "rule") != 0) {
-            SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
-                    type);
+            SCLogWarning("JA3 is disabled, skipping %s", type);
         }
         return 1;
     }
 
     return 0;
+}
+
+InspectionBuffer *Ja3DetectGetHash(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_quic_tx_get_ja3(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        uint8_t ja3_hash[SC_MD5_HEX_LEN + 1];
+        // this adds a final zero
+        SCMd5HashBufferToHex(b, b_len, (char *)ja3_hash, SC_MD5_HEX_LEN + 1);
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, NULL, 0);
+        InspectionBufferCopy(buffer, ja3_hash, SC_MD5_HEX_LEN);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
+InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_quic_tx_get_ja3(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
 }

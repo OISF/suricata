@@ -90,7 +90,7 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 {
     struct landlock_ruleset *ruleset = SCCalloc(1, sizeof(struct landlock_ruleset));
     if (ruleset == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc landlock ruleset");
+        SCLogError("Can't alloc landlock ruleset");
         return NULL;
     }
 
@@ -104,8 +104,7 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
     }
     if (abi < 2) {
         if (RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
-            SCLogError(SC_ERR_NOT_SUPPORTED,
-                    "Landlock disabled: need Linux 5.19+ for file store support");
+            SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
             SCFree(ruleset);
             return NULL;
         } else {
@@ -116,7 +115,7 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
     ruleset->fd = landlock_create_ruleset(&ruleset->attr, sizeof(ruleset->attr), 0);
     if (ruleset->fd < 0) {
         SCFree(ruleset);
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Can't create landlock ruleset");
+        SCLogError("Can't create landlock ruleset");
         return NULL;
     }
     return ruleset;
@@ -125,13 +124,11 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 static inline void LandlockEnforceRuleset(struct landlock_ruleset *ruleset)
 {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
-        SCLogError(
-                SC_ERR_CONF_YAML_ERROR, "Can't self restrict (prctl phase): %s", strerror(errno));
+        SCLogError("Can't self restrict (prctl phase): %s", strerror(errno));
         return;
     }
     if (landlock_restrict_self(ruleset->fd, 0)) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Can't self restrict (landlock phase): %s",
-                strerror(errno));
+        SCLogError("Can't self restrict (landlock phase): %s", strerror(errno));
     }
 }
 
@@ -144,13 +141,13 @@ static int LandlockSandboxingAddRule(
 
     int dir_fd = open(directory, O_PATH | O_CLOEXEC | O_DIRECTORY);
     if (dir_fd == -1) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Can't open %s", directory);
+        SCLogError("Can't open %s", directory);
         return -1;
     }
     path_beneath.parent_fd = dir_fd;
 
     if (landlock_add_rule(ruleset->fd, LANDLOCK_RULE_PATH_BENEATH, &path_beneath, 0)) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Can't add write rule: %s", strerror(errno));
+        SCLogError("Can't add write rule: %s", strerror(errno));
         close(dir_fd);
         return -1;
     }
@@ -186,7 +183,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     struct landlock_ruleset *ruleset = LandlockCreateRuleset();
     if (ruleset == NULL) {
-        SCLogError(SC_ERR_NOT_SUPPORTED, "Kernel does not support Landlock");
+        SCLogError("Kernel does not support Landlock");
         return;
     }
 
@@ -209,7 +206,7 @@ void LandlockSandboxing(SCInstance *suri)
                     LandlockSandboxingReadPath(ruleset, dirname(file_name));
                 }
             } else {
-                SCLogError(SC_ERR_OPENING_FILE, "Can't open pcap file");
+                SCLogError("Can't open pcap file");
             }
             SCFree(file_name);
         }
@@ -255,9 +252,8 @@ void LandlockSandboxing(SCInstance *suri)
     ConfNode *read_dirs = ConfGetNode("security.landlock.directories.read");
     if (read_dirs) {
         if (!ConfNodeIsSequence(read_dirs)) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                    "Invalid security.landlock.directories.read configuration section: "
-                    "expected a list of directory names.");
+            SCLogWarning("Invalid security.landlock.directories.read configuration section: "
+                         "expected a list of directory names.");
         } else {
             ConfNode *directory;
             TAILQ_FOREACH (directory, &read_dirs->head, next) {
@@ -268,9 +264,8 @@ void LandlockSandboxing(SCInstance *suri)
     ConfNode *write_dirs = ConfGetNode("security.landlock.directories.write");
     if (write_dirs) {
         if (!ConfNodeIsSequence(write_dirs)) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                    "Invalid security.landlock.directories.write configuration section: "
-                    "expected a list of directory names.");
+            SCLogWarning("Invalid security.landlock.directories.write configuration section: "
+                         "expected a list of directory names.");
         } else {
             ConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {

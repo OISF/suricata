@@ -60,9 +60,15 @@ pub struct IkeHeaderWrapper {
     pub ikev2_header: IkeV2Header,
 }
 
+impl Default for IkeHeaderWrapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IkeHeaderWrapper {
-    pub fn new() -> IkeHeaderWrapper {
-        IkeHeaderWrapper {
+    pub fn new() -> Self {
+        Self {
             spi_initiator: String::new(),
             spi_responder: String::new(),
             maj_ver: 0,
@@ -93,6 +99,7 @@ pub struct IkePayloadWrapper {
     pub ikev2_payload_types: Vec<IkePayloadType>,
 }
 
+#[derive(Default)]
 pub struct IKETransaction {
     tx_id: u64,
 
@@ -116,18 +123,8 @@ impl Transaction for IKETransaction {
 }
 
 impl IKETransaction {
-    pub fn new() -> IKETransaction {
-        IKETransaction {
-            tx_id: 0,
-            ike_version: 0,
-            direction: Direction::ToServer,
-            hdr: IkeHeaderWrapper::new(),
-            payload_types: Default::default(),
-            notify_types: vec![],
-            logged: LoggerFlags::new(),
-            tx_data: applayer::AppLayerTxData::new(),
-            errors: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     /// Set an event.
@@ -170,12 +167,7 @@ impl IKEState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     pub fn new_tx(&mut self) -> IKETransaction {
@@ -199,7 +191,7 @@ impl IKEState {
 
     fn handle_input(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -391,8 +383,8 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
 static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ike\0";
-const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
+const PARSER_NAME: &[u8] = b"ike\0";
+const PARSER_ALIAS: &[u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 export_state_data_get!(rs_ike_get_state_data, IKEState);

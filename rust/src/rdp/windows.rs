@@ -19,7 +19,7 @@
 
 /// converts a locale identifier into a locale name
 /// <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/70feba9f-294e-491e-b6eb-56532684c37f>
-pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
+pub fn lcid_to_string(lcid: u32, default: &str) -> String {
     let s = match lcid {
         0x0001 => "ar",
         0x0002 => "bg",
@@ -349,7 +349,7 @@ pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
         0x0C50 => "mn-Mong-MN",
         0x0C51 => "dz-BT",
         0x0C5F => "tmz-MA",
-        0x0C6b => "quz-PE",
+        0x0C6B => "quz-PE",
         0x1001 => "ar-LY",
         0x1004 => "zh-SG",
         0x1007 => "de-LU",
@@ -415,8 +415,8 @@ pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
         0x380C => "fr-MA",
         0x3c01 => "ar-BH",
         0x3c09 => "en-HK",
-        0x3c0A => "es-PY",
-        0x3c0C => "fr-HT",
+        0x3C0A => "es-PY",
+        0x3C0C => "fr-HT",
         0x4001 => "ar-QA",
         0x4009 => "en-IN",
         0x400A => "es-BO",
@@ -476,14 +476,14 @@ pub fn lcid_to_string<'a>(lcid: u32, default: &'a str) -> String {
 }
 
 /// Windows operating system type (build and suffix/pack)
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OperatingSystem {
     pub build: Build,
     pub suffix: Suffix,
 }
 
 // <https://en.wikipedia.org/wiki/Windows_NT#Releases>
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Build {
     Other,
@@ -510,7 +510,7 @@ pub enum Build {
     Server2003 = 3790,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Suffix {
     Empty,
     Rtm,
@@ -550,7 +550,7 @@ pub fn build_number_to_os(number: u32) -> OperatingSystem {
 }
 
 /// convert an OperatingSystem into a string description
-pub fn os_to_string<'a>(os: &OperatingSystem, default: &'a str) -> String {
+pub fn os_to_string(os: &OperatingSystem, default: &str) -> String {
     let s = match os.build {
         Build::Win31 => "Windows NT 3.1",
         Build::Win35 => "Windows NT 3.5",

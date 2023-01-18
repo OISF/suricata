@@ -78,12 +78,12 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
     int *user_data = NULL;
 
     if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        FatalError("Error allocating memory. Exiting");
     }
 
     /* the host os flavour that has to be sent as user data */
     if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "Invalid enum map inside "
+        SCLogError("Invalid enum map inside "
                    "SCHInfoAddHostOSInfo()");
         SCFree(user_data);
         return NULL;
@@ -132,7 +132,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
 
     if (host_os == NULL || host_os_ip_range == NULL ||
             strlen(host_os_ip_range) == 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError("Invalid arguments");
         return -1;
     }
 
@@ -142,7 +142,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
 
     /* the host os flavour that has to be sent as user data */
     if ( (user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "Invalid enum map inside");
+        SCLogError("Invalid enum map inside");
         return -1;
     }
 
@@ -156,7 +156,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     }
 
     if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
 
     /* check if we have more addresses in the host_os_ip_range */
@@ -175,7 +175,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     if (strchr(ip_str, ':') == NULL) {
         /* if we are here, we have an IPV4 address */
         if ( (ipv4_addr = ValidateIPV4Address(ip_str)) == NULL) {
-            SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            SCLogError("Invalid IPV4 address");
             SCHInfoFreeUserDataOSPolicy(user_data);
             SCFree(ip_str);
             return -1;
@@ -187,7 +187,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
         } else {
             if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 32) <
                     0) {
-                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
+                SCLogError("Invalid IPV4 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv4_addr);
                 SCFree(ip_str);
@@ -201,7 +201,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     } else {
         /* if we are here, we have an IPV6 address */
         if ( (ipv6_addr = ValidateIPV6Address(ip_str)) == NULL) {
-            SCLogError(SC_ERR_INVALID_IPV6_ADDR, "Invalid IPV6 address inside");
+            SCLogError("Invalid IPV6 address inside");
             SCHInfoFreeUserDataOSPolicy(user_data);
             SCFree(ip_str);
             return -1;
@@ -213,7 +213,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
         } else {
             if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 128) <
                     0) {
-                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
+                SCLogError("Invalid IPV6 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv6_addr);
                 SCFree(ip_str);
@@ -256,7 +256,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
 
     if (strchr(ip_addr_str, ':') != NULL) {
         if ( (ipv6_addr = ValidateIPV6Address(ip_addr_str)) == NULL) {
-            SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            SCLogError("Invalid IPV4 address");
             return -1;
         }
 
@@ -268,7 +268,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
             return *((int *)user_data);
     } else {
         if ( (ipv4_addr = ValidateIPV4Address(ip_addr_str)) == NULL) {
-            SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            SCLogError("Invalid IPV4 address");
             return -1;
         }
 
@@ -346,9 +346,9 @@ void SCHInfoLoadFromConfig(void)
             if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;
             if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Failed to add host \"%s\" with policy \"%s\" to host "
-                    "info database", host->val, policy->name);
+                SCLogError("Failed to add host \"%s\" with policy \"%s\" to host "
+                           "info database",
+                        host->val, policy->name);
                 exit(EXIT_FAILURE);
             }
         }

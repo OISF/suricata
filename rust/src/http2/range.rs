@@ -38,7 +38,7 @@ pub struct HTTPContentRange {
     pub size: i64,
 }
 
-pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_star(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, _) = char('*')(input)?;
     let (i2, _) = char('/')(i2)?;
     let (i2, size) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
@@ -52,7 +52,7 @@ pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], 
     ));
 }
 
-pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_content_range_def(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, start) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(input)?;
     let (i2, _) = char('-')(i2)?;
     let (i2, end) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
@@ -64,7 +64,7 @@ pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], H
     return Ok((i2, HTTPContentRange { start, end, size }));
 }
 
-fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+fn http2_parse_content_range(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (i2, _) = take_while(|c| c == b' ')(input)?;
     let (i2, _) = take_till(|c| c == b' ')(i2)?;
     let (i2, _) = take_while(|c| c == b' ')(i2)?;
@@ -74,7 +74,7 @@ fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPConte
     ))(i2);
 }
 
-pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+pub fn http2_parse_check_content_range(input: &[u8]) -> IResult<&[u8], HTTPContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
     if v.start > v.end || (v.end > 0 && v.size > 0 && v.end > v.size - 1) {
         return Err(Err::Error(make_error(rem, ErrorKind::Verify)));
@@ -101,25 +101,16 @@ pub unsafe extern "C" fn rs_http_parse_content_range(
 fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()> {
     let hostv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":authority")?;
     let mut hostv = &hostv[..];
-    match hostv.iter().position(|&x| x == b':') {
-        Some(p) => {
-            hostv = &hostv[..p];
-        }
-        None => {}
+    if let Some(p) = hostv.iter().position(|&x| x == b':') {
+        hostv = &hostv[..p];
     }
     let uriv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":path")?;
     let mut uriv = &uriv[..];
-    match uriv.iter().position(|&x| x == b'?') {
-        Some(p) => {
-            uriv = &uriv[..p];
-        }
-        None => {}
+    if let Some(p) = uriv.iter().position(|&x| x == b'?') {
+        uriv = &uriv[..p];
     }
-    match uriv.iter().rposition(|&x| x == b'/') {
-        Some(p) => {
-            uriv = &uriv[p..];
-        }
-        None => {}
+    if let Some(p) = uriv.iter().rposition(|&x| x == b'/') {
+        uriv = &uriv[p..];
     }
     let mut r = Vec::with_capacity(hostv.len() + uriv.len());
     r.extend_from_slice(hostv);
@@ -134,7 +125,8 @@ pub fn http2_range_open(
     if v.end <= 0 || v.size <= 0 {
         // skipped for incomplete range information
         return;
-    } else if v.end == v.size - 1 && v.start == 0 {
+    }
+    if v.end == v.size - 1 && v.start == 0 {
         // whole file in one range
         return;
     }

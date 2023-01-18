@@ -50,11 +50,8 @@ fn log(tx: &RdpTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
             js.set_string("event_type", "tls_handshake")?;
             js.open_array("x509_serials")?;
             for blob in chain {
-                match X509Certificate::from_der(&blob.data) {
-                    Ok((_, cert)) => {
-                        js.append_string(&cert.tbs_certificate.serial.to_str_radix(16))?;
-                    }
-                    _ => {}
+                if let Ok((_, cert)) = X509Certificate::from_der(&blob.data) {
+                    js.append_string(&cert.tbs_certificate.serial.to_str_radix(16))?;
                 }
             }
             js.close()?;
@@ -226,7 +223,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                     &windows::os_to_string(&client.client_build, &unknown),
                 )?;
 
-                if client.client_name.len() > 0 {
+                if !client.client_name.is_empty() {
                     js.set_string("client_name", &client.client_name)?;
                 }
 
@@ -242,7 +239,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                     js.set_uint("function_keys", client.keyboard_function_key as u64)?;
                 }
 
-                if client.ime_file_name.len() > 0 {
+                if !client.ime_file_name.is_empty() {
                     js.set_string("ime", &client.ime_file_name)?;
                 }
 
@@ -315,7 +312,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                 }
 
                 if let Some(ref id) = client.client_dig_product_id {
-                    if id.len() > 0 {
+                    if !id.is_empty() {
                         js.set_string("id", id)?;
                     }
                 }
@@ -361,7 +358,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
             }
 
             McsConnectRequestChild::CsNet(ref net) => {
-                if net.channels.len() > 0 {
+                if !net.channels.is_empty() {
                     js.open_array("channels")?;
                     for channel in &net.channels {
                         js.append_string(channel)?;
@@ -378,7 +375,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
 }
 
 /// converts RdpClientVersion to a string, using the provided prefix
-fn version_to_string<'a>(ver: &RdpClientVersion, prefix: &'a str) -> String {
+fn version_to_string(ver: &RdpClientVersion, prefix: &str) -> String {
     let mut result = String::from(prefix);
     match ver {
         RdpClientVersion::V4 => result.push('4'),

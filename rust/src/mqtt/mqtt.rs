@@ -118,6 +118,12 @@ impl State<MQTTTransaction> for MQTTState {
     }
 }
 
+impl Default for MQTTState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MQTTState {
     pub fn new() -> Self {
         Self {
@@ -152,12 +158,7 @@ impl MQTTState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&MQTTTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     pub fn get_tx_by_pkt_id(&mut self, pkt_id: u32) -> Option<&mut MQTTTransaction> {
@@ -185,7 +186,7 @@ impl MQTTState {
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
-                index = index + 1;
+                index += 1;
                 if !tx_old.complete {
                     tx_old.complete = true;
                     MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
@@ -423,7 +424,7 @@ impl MQTTState {
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
         let mut current = input;
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -450,7 +451,7 @@ impl MQTTState {
             }
         }
 
-        while current.len() > 0 {
+        while !current.is_empty() {
             SCLogDebug!("request: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
@@ -498,7 +499,7 @@ impl MQTTState {
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         let mut current = input;
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -524,9 +525,9 @@ impl MQTTState {
             }
         }
 
-        while current.len() > 0 {
+        while !current.is_empty() {
             SCLogDebug!("response: handling {}", current.len());
-            match parse_message(current, self.protocol_version, self.max_msg_len as usize) {
+            match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
                     SCLogDebug!("response msg {:?}", msg);
                     if let MQTTOperation::TRUNCATED(ref trunc) = msg.op {
@@ -721,7 +722,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"mqtt\0";
+const PARSER_NAME: &[u8] = b"mqtt\0";
 
 export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
 export_state_data_get!(rs_mqtt_get_state_data, MQTTState);

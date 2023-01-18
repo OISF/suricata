@@ -72,9 +72,8 @@ void SCClassConfInit(void)
     if (regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogWarning(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogWarning("pcre2 compile of \"%s\" failed at "
+                     "offset %d: %s",
                 DETECT_CLASSCONFIG_REGEX, (int)eo, errbuffer);
         return;
     }
@@ -119,7 +118,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
                                           SCClassConfClasstypeHashCompareFunc,
                                           SCClassConfClasstypeHashFree);
     if (de_ctx->class_conf_ht == NULL) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
+        SCLogError("Error initializing the hash "
                    "table");
         return NULL;
     }
@@ -135,8 +134,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
             if (RunmodeIsUnittests())
                 return NULL; // silently fail
 #endif
-            SCLogWarning(SC_ERR_FOPEN, "could not open: \"%s\": %s",
-                    filename, strerror(errno));
+            SCLogWarning("could not open: \"%s\": %s", filename, strerror(errno));
             return NULL;
         }
     }
@@ -213,7 +211,7 @@ static char *SCClassConfStringToLowercase(const char *str)
     char *temp_str = NULL;
 
     if ( (new_str = SCStrdup(str)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError("Error allocating memory");
         return NULL;
     }
 
@@ -252,9 +250,8 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     ret = pcre2_match(regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_match, NULL);
     if (ret < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "Invalid Classtype in "
-                "classification.config file %s: \"%s\"",
+        SCLogError("Invalid Classtype in "
+                   "classification.config file %s: \"%s\"",
                 SCClassConfGetConfFilename(de_ctx), rawstr);
         goto error;
     }
@@ -350,15 +347,17 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint16_t i = 1;
+    int errors = 0;
 
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCClassConfIsLineBlankOrComment(line))
             continue;
 
         if (SCClassConfAddClasstype(de_ctx, line, i) == -1) {
-            return false;
+            errors++;
+        } else {
+            i++;
         }
-        i++;
     }
 
 #ifdef UNITTESTS
@@ -366,7 +365,7 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
               de_ctx->class_conf_ht->count);
 #endif
 
-    return true;
+    return errors == 0;
 }
 
 /**
@@ -395,16 +394,14 @@ static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
         return NULL;
     memset(ct, 0, sizeof(SCClassConfClasstype));
 
-    if ( (ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-
+    if ((ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {
         SCClassConfDeAllocClasstype(ct);
         return NULL;
     }
 
     if (classtype_desc != NULL &&
         (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError("Error allocating memory");
 
         SCClassConfDeAllocClasstype(ct);
         return NULL;
@@ -535,15 +532,14 @@ bool SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
             return false;
         }
 #endif
-        SCLogError(SC_ERR_OPENING_FILE, "please check the \"classification-file\" "
-                "option in your suricata.yaml file");
+        SCLogError("please check the \"classification-file\" "
+                   "option in your suricata.yaml file");
         return false;
     }
 
     bool ret = true;
     if (!SCClassConfParseFile(de_ctx, fd)) {
-        SCLogWarning(SC_WARN_CLASSIFICATION_CONFIG,
-                "Error loading classification configuration from %s",
+        SCLogWarning("Error loading classification configuration from %s",
                 SCClassConfGetConfFilename(de_ctx));
         ret = false;
     }

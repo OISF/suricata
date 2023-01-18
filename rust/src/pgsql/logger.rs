@@ -271,10 +271,6 @@ fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder
     let mut jb = JsonBuilder::new_object();
     // User is a mandatory field in a pgsql message
     jb.set_string_from_bytes("user", &params.user.value)?;
-    if let Some(PgsqlParameter { name: _, value }) = &params.database {
-        jb.set_string_from_bytes("database", value)?;
-    }
-
     if let Some(parameters) = &params.optional_params {
         jb.open_array("optional_parameters")?;
         for parameter in parameters {

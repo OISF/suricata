@@ -92,15 +92,13 @@ ConfYamlSetConfDirname(const char *filename)
     if (ep == NULL) {
         conf_dirname = SCStrdup(".");
         if (conf_dirname == NULL) {
-               FatalError(SC_ERR_FATAL,
-                          "ERROR: Failed to allocate memory while loading configuration.");
+            FatalError("ERROR: Failed to allocate memory while loading configuration.");
         }
     }
     else {
         conf_dirname = SCStrdup(filename);
         if (conf_dirname == NULL) {
-               FatalError(SC_ERR_FATAL,
-                          "ERROR: Failed to allocate memory while loading configuration.");
+            FatalError("ERROR: Failed to allocate memory while loading configuration.");
         }
         conf_dirname[ep - filename] = '\0';
     }
@@ -124,7 +122,7 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
     int ret = -1;
 
     if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Failed to initialize YAML parser");
+        SCLogError("Failed to initialize YAML parser");
         return -1;
     }
 
@@ -138,17 +136,15 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 
     file = fopen(include_filename, "r");
     if (file == NULL) {
-        SCLogError(SC_ERR_FOPEN,
-            "Failed to open configuration include file %s: %s",
-            include_filename, strerror(errno));
+        SCLogError("Failed to open configuration include file %s: %s", include_filename,
+                strerror(errno));
         goto done;
     }
 
     yaml_parser_set_input_file(&parser, file);
 
     if (ConfYamlParse(&parser, parent, 0, 0) != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR,
-            "Failed to include configuration file %s", filename);
+        SCLogError("Failed to include configuration file %s", filename);
         goto done;
     }
 
@@ -184,16 +180,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
     int was_empty = -1;
 
     if (rlevel++ > RECURSION_LIMIT) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "Recursion limit reached while parsing "
-                "configuration file, aborting.");
+        SCLogError("Recursion limit reached while parsing "
+                   "configuration file, aborting.");
         return -1;
     }
 
     while (!done) {
         if (!yaml_parser_parse(parser, &event)) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR,
-                "Failed to parse configuration file at line %" PRIuMAX ": %s\n",
-                (uintmax_t)parser->problem_mark.line, parser->problem);
+            SCLogError("Failed to parse configuration file at line %" PRIuMAX ": %s\n",
+                    (uintmax_t)parser->problem_mark.line, parser->problem);
             retval = -1;
             break;
         }
@@ -206,15 +201,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
             yaml_version_directive_t *ver =
                 event.data.document_start.version_directive;
             if (ver == NULL) {
-                SCLogError(SC_ERR_CONF_YAML_ERROR, "ERROR: Invalid configuration file.");
-                SCLogError(SC_ERR_CONF_YAML_ERROR,
-                           "The configuration file must begin with the following two lines: %%YAML 1.1 and ---");
+                SCLogError("ERROR: Invalid configuration file.");
+                SCLogError("The configuration file must begin with the following two lines: %%YAML "
+                           "1.1 and ---");
                 goto fail;
             }
             int major = ver->major;
             int minor = ver->minor;
             if (!(major == YAML_VERSION_MAJOR && minor == YAML_VERSION_MINOR)) {
-                SCLogError(SC_ERR_CONF_YAML_ERROR, "ERROR: Invalid YAML version.  Must be 1.1");
+                SCLogError("ERROR: Invalid YAML version.  Must be 1.1");
                 goto fail;
             }
         }
@@ -325,13 +320,13 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                                     (strcmp(parent->name, "port-groups") == 0)))) {
                                 Mangle(node->name);
                                 if (mangle_errors < MANGLE_ERRORS_MAX) {
-                                    SCLogWarning(SC_WARN_DEPRECATED,
-                                            "%s is deprecated. Please use %s on line %"PRIuMAX".",
-                                            value, node->name, (uintmax_t)parser->mark.line+1);
+                                    SCLogWarning("%s is deprecated. Please use %s on line %" PRIuMAX
+                                                 ".",
+                                            value, node->name, (uintmax_t)parser->mark.line + 1);
                                     mangle_errors++;
                                     if (mangle_errors >= MANGLE_ERRORS_MAX)
-                                        SCLogWarning(SC_WARN_DEPRECATED, "not showing more "
-                                                "parameter name warnings.");
+                                        SCLogWarning("not showing more "
+                                                     "parameter name warnings.");
                                 }
                             }
                         }
@@ -445,15 +440,16 @@ ConfYamlLoadFile(const char *filename)
     ConfNode *root = ConfGetRootNode();
 
     if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError(SC_ERR_FATAL, "failed to initialize yaml parser.");
+        SCLogError("failed to initialize yaml parser.");
         return -1;
     }
 
     struct stat stat_buf;
     if (stat(filename, &stat_buf) == 0) {
         if (stat_buf.st_mode & S_IFDIR) {
-            SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
-                    "Please specify the yaml file in your -c option.", filename);
+            SCLogError("yaml argument is not a file but a directory: %s. "
+                       "Please specify the yaml file in your -c option.",
+                    filename);
             yaml_parser_delete(&parser);
             return -1;
         }
@@ -462,8 +458,7 @@ ConfYamlLoadFile(const char *filename)
     // coverity[toctou : FALSE]
     infile = fopen(filename, "r");
     if (infile == NULL) {
-        SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,
-            strerror(errno));
+        SCLogError("failed to open file: %s: %s", filename, strerror(errno));
         yaml_parser_delete(&parser);
         return -1;
     }
@@ -523,7 +518,7 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     ConfNode *root = ConfGetNode(prefix);
 
     if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError(SC_ERR_FATAL, "failed to initialize yaml parser.");
+        SCLogError("failed to initialize yaml parser.");
         return -1;
     }
 
@@ -531,8 +526,9 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     /* coverity[toctou] */
     if (stat(filename, &stat_buf) == 0) {
         if (stat_buf.st_mode & S_IFDIR) {
-            SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
-                    "Please specify the yaml file in your -c option.", filename);
+            SCLogError("yaml argument is not a file but a directory: %s. "
+                       "Please specify the yaml file in your -c option.",
+                    filename);
             return -1;
         }
     }
@@ -540,8 +536,7 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     /* coverity[toctou] */
     infile = fopen(filename, "r");
     if (infile == NULL) {
-        SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,
-            strerror(errno));
+        SCLogError("failed to open file: %s: %s", filename, strerror(errno));
         yaml_parser_delete(&parser);
         return -1;
     }

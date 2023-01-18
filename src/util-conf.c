@@ -34,7 +34,7 @@ TmEcode ConfigSetLogDirectory(const char *name)
     return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
-const char *ConfigGetLogDirectory()
+const char *ConfigGetLogDirectory(void)
 {
     const char *log_dir = NULL;
 
@@ -81,7 +81,7 @@ TmEcode ConfigSetDataDirectory(char *name)
     return ConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
-const char *ConfigGetDataDirectory()
+const char *ConfigGetDataDirectory(void)
 {
     const char *data_dir = NULL;
 
@@ -151,7 +151,7 @@ int ConfUnixSocketIsEnable(void)
     }
 
     if (value == NULL) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed value for unix-command.enabled: NULL");
+        SCLogError("malformed value for unix-command.enabled: NULL");
         return 0;
     }
 

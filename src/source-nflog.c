@@ -60,8 +60,9 @@ void TmModuleDecodeNFLOGRegister (void)
 
 TmEcode NoNFLOGSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    SCLogError(SC_ERR_NFLOG_NOSUPPORT,"Error creating thread %s: you do not have support for nflog "
-           "enabled please recompile with --enable-nflog", tv->name);
+    SCLogError("Error creating thread %s: you do not have support for nflog "
+               "enabled please recompile with --enable-nflog",
+            tv->name);
     exit(EXIT_FAILURE);
 }
 
@@ -168,7 +169,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
     if (ret > 0) {
         if (ret > 65536) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFLOG sent too big packet");
+            SCLogWarning("NFLOG sent too big packet");
             SET_PKT_LEN(p, 0);
         } else if (runmode_workers)
             PacketSetData(p, (uint8_t *)payload, ret);
@@ -212,7 +213,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     NflogGroupConfig *nflconfig = (NflogGroupConfig *)initdata;
 
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        SCLogError("initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -233,7 +234,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     ntv->h = nflog_open();
     if (ntv->h == NULL) {
-        SCLogError(SC_ERR_NFLOG_OPEN, "nflog_open() failed");
+        SCLogError("nflog_open() failed");
         SCFree(ntv);
         return TM_ECODE_FAILED;
     }
@@ -241,21 +242,21 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     SCLogDebug("binding netfilter_log as nflog handler for AF_INET and AF_INET6");
 
     if (nflog_bind_pf(ntv->h, AF_INET) < 0) {
-        FatalError(SC_ERR_FATAL, "nflog_bind_pf() for AF_INET failed");
+        FatalError("nflog_bind_pf() for AF_INET failed");
     }
     if (nflog_bind_pf(ntv->h, AF_INET6) < 0) {
-        FatalError(SC_ERR_FATAL, "nflog_bind_pf() for AF_INET6 failed");
+        FatalError("nflog_bind_pf() for AF_INET6 failed");
     }
 
     ntv->gh = nflog_bind_group(ntv->h, ntv->group);
     if (!ntv->gh) {
-        SCLogError(SC_ERR_NFLOG_OPEN, "nflog_bind_group() failed");
+        SCLogError("nflog_bind_group() failed");
         SCFree(ntv);
         return TM_ECODE_FAILED;
     }
 
     if (nflog_set_mode(ntv->gh, NFULNL_COPY_PACKET, 0xFFFF) < 0) {
-        SCLogError(SC_ERR_NFLOG_SET_MODE, "can't set packet_copy mode");
+        SCLogError("can't set packet_copy mode");
         SCFree(ntv);
         return TM_ECODE_FAILED;
     }
@@ -265,8 +266,9 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     if (ntv->nlbufsiz < ntv->nlbufsiz_max)
         ntv->nlbufsiz = nfnl_rcvbufsiz(nflog_nfnlh(ntv->h), ntv->nlbufsiz);
     else {
-        SCLogError(SC_ERR_NFLOG_MAX_BUFSIZ, "Maximum buffer size (%d) in NFLOG "
-                                            "has been reached", ntv->nlbufsiz);
+        SCLogError("Maximum buffer size (%d) in NFLOG "
+                   "has been reached",
+                ntv->nlbufsiz);
         return TM_ECODE_FAILED;
     }
 
@@ -286,9 +288,9 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     ntv->livedev = LiveGetDevice(nflconfig->numgroup);
     if (ntv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
-	    SCFree(ntv);
-		SCReturnInt(TM_ECODE_FAILED);
+        SCLogError("Unable to find Live device");
+        SCFree(ntv);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     /* set a timeout to the socket so we can check for a signal
@@ -299,8 +301,9 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     int fd = nflog_fd(ntv->h);
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
-        SCLogWarning(SC_WARN_NFLOG_SETSOCKOPT, "can't set socket "
-                "timeout: %s", strerror(errno));
+        SCLogWarning("can't set socket "
+                     "timeout: %s",
+                strerror(errno));
     }
 
 #ifdef PACKET_STATISTICS
@@ -347,11 +350,11 @@ TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
 
     SCLogDebug("closing nflog group %d", ntv->group);
     if (nflog_unbind_pf(ntv->h, AF_INET) < 0) {
-        FatalError(SC_ERR_FATAL, "nflog_unbind_pf() for AF_INET failed");
+        FatalError("nflog_unbind_pf() for AF_INET failed");
     }
 
     if (nflog_unbind_pf(ntv->h, AF_INET6) < 0) {
-        FatalError(SC_ERR_FATAL, "nflog_unbind_pf() for AF_INET6 failed");
+        FatalError("nflog_unbind_pf() for AF_INET6 failed");
     }
 
     if (ntv->gh) {
@@ -394,11 +397,10 @@ static int NFLOGSetnlbufsiz(void *data, unsigned int size)
         return 1;
     }
 
-    SCLogWarning(SC_WARN_NFLOG_MAXBUFSIZ_REACHED,
-                 "Maximum buffer size (%d) in NFLOG has been "
+    SCLogWarning("Maximum buffer size (%d) in NFLOG has been "
                  "reached. Please, consider raising "
                  "`buffer-size` and `max-size` in nflog configuration",
-                 ntv->nlbufsiz);
+            ntv->nlbufsiz);
     return 0;
 
 }
@@ -426,9 +428,13 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
 
     fd = nflog_fd(ntv->h);
     if (fd < 0) {
-        SCLogError(SC_ERR_NFLOG_FD, "Can't obtain a file descriptor");
+        SCLogError("Can't obtain a file descriptor");
         SCReturnInt(TM_ECODE_FAILED);
     }
+
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
 
     while (1) {
         if (suricata_ctl_flags != 0)
@@ -444,27 +450,24 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
                 if (!ntv->nful_overrun_warned) {
                     int s = ntv->nlbufsiz * 2;
                     if (NFLOGSetnlbufsiz((void *)ntv, s)) {
-                        SCLogWarning(SC_WARN_NFLOG_LOSING_EVENTS,
-                                "We are losing events, "
-                                "increasing buffer size "
-                                "to %d", ntv->nlbufsiz);
+                        SCLogWarning("We are losing events, "
+                                     "increasing buffer size "
+                                     "to %d",
+                                ntv->nlbufsiz);
                     } else {
                         ntv->nful_overrun_warned = 1;
                     }
                 }
                 continue;
             } else {
-                SCLogWarning(SC_WARN_NFLOG_RECV,
-                             "Read from NFLOG fd failed: %s",
-                             strerror(errno));
+                SCLogWarning("Read from NFLOG fd failed: %s", strerror(errno));
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
 
         ret = nflog_handle_packet(ntv->h, ntv->data, rv);
         if (ret != 0)
-            SCLogWarning(SC_ERR_NFLOG_HANDLE_PKT,
-                         "nflog_handle_packet error %" PRId32 "", ret);
+            SCLogWarning("nflog_handle_packet error %" PRId32 "", ret);
 
         StatsSyncCountersIfSignalled(tv);
     }

@@ -23,6 +23,7 @@
  */
 
 #include "detect-engine-build.h"
+#include "detect-engine-alert.h"
 #include "app-layer-parser.h"
 
 /**

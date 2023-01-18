@@ -79,10 +79,8 @@ static OutputInitResult SMBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 void JsonSMBLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_SMB, "eve-log", "JsonSMBLog",
-        "eve-log.smb", SMBLogInitSub, ALPROTO_SMB,
-        JsonSMBLogger, JsonLogThreadInit,
-        JsonLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSMBLog", "eve-log.smb", SMBLogInitSub,
+            ALPROTO_SMB, JsonSMBLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
 
     SCLogDebug("SMB JSON logger registered.");
 }

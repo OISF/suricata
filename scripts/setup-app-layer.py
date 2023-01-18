@@ -8,6 +8,10 @@ import os.path
 import argparse
 import io
 import re
+import datetime
+import subprocess
+
+YEAR = datetime.date.today().year
 
 class SetupError(Exception):
     """Functions in this script can raise this error which will cause the
@@ -17,6 +21,13 @@ class SetupError(Exception):
     pass
 
 progname = os.path.basename(sys.argv[0])
+
+def rustfmt(filename):
+    print("Formatting {}".format(filename))
+    try:
+        subprocess.run(["rustfmt", filename])
+    except Exception as err:
+        print("ERROR: Failed to run rustfmt on {}: {}".format(filename, err))
 
 def fail_if_exists(filename):
     if os.path.exists(filename):
@@ -39,7 +50,10 @@ def common_copy_templates(proto, pairs, replacements=()):
         with open(src) as template_in:
             skip = False
             for line in template_in:
-                if line.find("TEMPLATE_START_REMOVE") > -1:
+                if line.find("/* Copyright") > -1:
+                    output.write("/* Copyright (C) {} Open Information Security Foundation\n".format(YEAR))
+                    continue
+                elif line.find("TEMPLATE_START_REMOVE") > -1:
                     skip = True
                     continue
                 elif line.find("TEMPLATE_END_REMOVE") > -1:
@@ -58,42 +72,23 @@ def common_copy_templates(proto, pairs, replacements=()):
                 output.write(line)
         output.close()
 
-def copy_app_layer_templates(proto, rust):
+        if dst.endswith(".rs"):
+            rustfmt(dst)
+                
+def copy_app_layer_templates(proto):
     lower = proto.lower()
     upper = proto.upper()
 
-    if rust:
-        pairs = (
-            ("src/app-layer-template-rust.c",
-             "src/app-layer-%s.c" % (lower)),
-            ("src/app-layer-template-rust.h",
-             "src/app-layer-%s.h" % (lower)),
-            ("rust/src/applayertemplate/mod.rs",
-             "rust/src/applayer%s/mod.rs" % (lower)),
-            ("rust/src/applayertemplate/template.rs",
-             "rust/src/applayer%s/%s.rs" % (lower, lower)),
-            ("rust/src/applayertemplate/parser.rs",
-             "rust/src/applayer%s/parser.rs" % (lower)),
-        )
-    else:
-        pairs = (
-            ("src/app-layer-template.c",
-             "src/app-layer-%s.c" % (lower)),
-            ("src/app-layer-template.h",
-             "src/app-layer-%s.h" % (lower)),
-        )
+    pairs = (
+        ("rust/src/applayertemplate/mod.rs",
+         "rust/src/applayer%s/mod.rs" % (lower)),
+        ("rust/src/applayertemplate/template.rs",
+         "rust/src/applayer%s/%s.rs" % (lower, lower)),
+        ("rust/src/applayertemplate/parser.rs",
+         "rust/src/applayer%s/parser.rs" % (lower)),
+    )
 
     common_copy_templates(proto, pairs)
-
-def patch_makefile_am(protoname):
-    print("Patching src/Makefile.am.")
-    output = io.StringIO()
-    with open("src/Makefile.am") as infile:
-        for line in infile:
-            if line.lstrip().startswith("app-layer-template."):
-                output.write(line.replace("template", protoname.lower()))
-            output.write(line)
-    open("src/Makefile.am", "w").write(output.getvalue())
 
 def patch_rust_lib_rs(protoname):
     filename = "rust/src/lib.rs"
@@ -119,6 +114,7 @@ def patch_rust_applayer_mod_rs(protoname):
                 done = True
             output.write(line)
     open(filename, "w").write(output.getvalue())
+    rustfmt(filename)
 
 def patch_app_layer_protos_h(protoname):
     filename = "src/app-layer-protos.h"
@@ -142,7 +138,7 @@ def patch_app_layer_protos_c(protoname):
     for i, line in enumerate(inlines):
 
         if line.find("case ALPROTO_TEMPLATE:") > -1:
-            # Duplicate the section starting an this line and
+            # Duplicate the section starting at this line and
             # including the following 2 lines.
             for j in range(i, i + 3):
                 temp = inlines[j]
@@ -150,10 +146,14 @@ def patch_app_layer_protos_c(protoname):
                 temp = temp.replace("template", protoname.lower())
                 output.write(temp)
 
-        if line.find("return ALPROTO_TEMPLATE;") > -1:
-            output.write(
-                line.replace("TEMPLATE", protoname.upper()).replace(
-                    "template", protoname.lower()))
+        if line.find("strcmp(proto_name, \"template\")") > -1:
+            # Duplicate the section starting at this line and
+            # including the following line.
+            for j in range(i, i + 2):
+                temp = inlines[j]
+                temp = temp.replace("TEMPLATE", protoname.upper())
+                temp = temp.replace("template", protoname.lower())
+                output.write(temp)
 
         output.write(line)
     open(filename, "w").write(output.getvalue())
@@ -176,10 +176,8 @@ def patch_app_layer_parser_c(proto):
     output = io.StringIO()
     inlines = open(filename).readlines()
     for line in inlines:
-        if line.find("app-layer-template.h") > -1:
+        if line.find("rs_template_register_parser") > -1:
             output.write(line.replace("template", proto.lower()))
-        if line.find("RegisterTemplateParsers()") > -1:
-            output.write(line.replace("Template", proto))
         output.write(line)
     open(filename, "w").write(output.getvalue())
 
@@ -249,25 +247,17 @@ def logger_patch_output_c(proto):
         output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def logger_copy_templates(proto, rust):
+def logger_copy_templates(proto):
     lower = proto.lower()
-
-    if rust:
-        pairs = (
-            ("src/output-json-template-rust.h",
-             "src/output-json-%s.h" % (lower)),
-            ("src/output-json-template-rust.c",
-             "src/output-json-%s.c" % (lower)),
-            ("rust/src/applayertemplate/logger.rs",
-             "rust/src/applayer%s/logger.rs" % (lower)),
-        )
-    else:
-        pairs = (
-            ("src/output-json-template.h",
-             "src/output-json-%s.h" % (lower)),
-            ("src/output-json-template.c",
-             "src/output-json-%s.c" % (lower)),
-        )
+    
+    pairs = (
+        ("src/output-json-template-rust.h",
+         "src/output-json-%s.h" % (lower)),
+        ("src/output-json-template-rust.c",
+         "src/output-json-%s.c" % (lower)),
+        ("rust/src/applayertemplate/logger.rs",
+         "rust/src/applayer%s/logger.rs" % (lower)),
+    )
 
     common_copy_templates(proto, pairs)
 
@@ -293,41 +283,25 @@ def logger_patch_util_profiling_c(proto):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def detect_copy_templates(proto, buffername, rust):
+def detect_copy_templates(proto, buffername):
     lower = proto.lower()
     buffername_lower = buffername.lower()
 
-    if rust:
-        pairs = (
-            ("src/detect-template-rust-buffer.h",
-             "src/detect-%s-%s.h" % (lower, buffername_lower)),
-            ("src/detect-template-rust-buffer.c",
-             "src/detect-%s-%s.c" % (lower, buffername_lower)),
-        )
-        replacements = (
-            ("TEMPLATE_RUST_BUFFER", "%s_%s" % (
-                proto.upper(), buffername.upper())),
-            ("template-rust-buffer", "%s-%s" % (
-                proto.lower(), buffername.lower())),
-            ("template_rust_buffer", "%s_%s" % (
-                proto.lower(), buffername.lower())),
-            ("TemplateRustBuffer", "%s%s" % (proto, buffername)),
-        )
-    else:
-        pairs = (
-            ("src/detect-template-buffer.h",
-             "src/detect-%s-%s.h" % (lower, buffername_lower)),
-            ("src/detect-template-buffer.c",
-             "src/detect-%s-%s.c" % (lower, buffername_lower)),
-            ("src/tests/detect-template-buffer.c",
-             "src/tests/detect-%s-%s.c" % (lower, buffername_lower)),
-        )
-        replacements = (
-            ("TEMPLATE_BUFFER", "%s_%s" % (proto.upper(), buffername.upper())),
-            ("template-buffer", "%s-%s" % (proto.lower(), buffername.lower())),
-            ("template_buffer", "%s_%s" % (proto.lower(), buffername.lower())),
-            ("TemplateBuffer", "%s%s" % (proto, buffername)),
-        )
+    pairs = (
+        ("src/detect-template-rust-buffer.h",
+         "src/detect-%s-%s.h" % (lower, buffername_lower)),
+        ("src/detect-template-rust-buffer.c",
+         "src/detect-%s-%s.c" % (lower, buffername_lower)),
+    )
+    replacements = (
+        ("TEMPLATE_RUST_BUFFER", "%s_%s" % (
+            proto.upper(), buffername.upper())),
+        ("template-rust-buffer", "%s-%s" % (
+            proto.lower(), buffername.lower())),
+        ("template_rust_buffer", "%s_%s" % (
+            proto.lower(), buffername.lower())),
+        ("TemplateRustBuffer", "%s%s" % (proto, buffername)),
+    )
 
     common_copy_templates(proto, pairs, replacements)
 
@@ -412,8 +386,6 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=epilog)
-    parser.add_argument("--rust", action="store_true", default=False,
-                        help="Setup Rust protocol template.")
     parser.add_argument("--logger", action="store_true", default=False,
                         help="Generate logger.")
     parser.add_argument("--parser", action="store_true", default=False,
@@ -459,10 +431,8 @@ def main():
     if parser:
         if proto_exists(proto):
             raise SetupError("protocol already exists: %s" % (proto))
-        copy_app_layer_templates(proto, args.rust)
-        if args.rust:
-            patch_rust_lib_rs(proto)
-        patch_makefile_am(proto)
+        copy_app_layer_templates(proto)
+        patch_rust_lib_rs(proto)
         patch_app_layer_protos_h(proto)
         patch_app_layer_protos_c(proto)
         patch_app_layer_detect_proto_c(proto)
@@ -472,9 +442,8 @@ def main():
     if logger:
         if not proto_exists(proto):
             raise SetupError("no app-layer parser exists for %s" % (proto))
-        logger_copy_templates(proto, args.rust)
-        if args.rust:
-            patch_rust_applayer_mod_rs(proto)
+        logger_copy_templates(proto)
+        patch_rust_applayer_mod_rs(proto)
         logger_patch_makefile_am(proto)
         logger_patch_suricata_common_h(proto)
         logger_patch_output_c(proto)
@@ -484,14 +453,13 @@ def main():
     if detect:
         if not proto_exists(proto):
             raise SetupError("no app-layer parser exists for %s" % (proto))
-        detect_copy_templates(proto, args.buffer, args.rust)
+        detect_copy_templates(proto, args.buffer)
         detect_patch_makefile_am(proto, args.buffer)
         detect_patch_detect_engine_register_c(proto, args.buffer)
         detect_patch_detect_engine_register_h(proto, args.buffer)
 
     if parser:
-        if args.rust:
-            print("""
+        print("""
 An application detector and parser for the protocol %(proto)s have
 now been setup in the files:
 
@@ -500,34 +468,13 @@ now been setup in the files:
             "proto": proto,
             "proto_lower": proto.lower(),
         })
-        else:
-            print("""
-An application detector and parser for the protocol %(proto)s have
-now been setup in the files:
-
-    src/app-layer-%(proto_lower)s.h
-    src/app-layer-%(proto_lower)s.c""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
 
     if logger:
-        if args.rust:
-            print("""
+        print("""
 A JSON application layer transaction logger for the protocol
 %(proto)s has now been set in the file:
 
     rust/src/applayer%(proto_lower)s/logger.rs""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
-        else:
-            print("""
-A JSON application layer transaction logger for the protocol
-%(proto)s has now been set in the files:
-
-    src/output-json-%(proto_lower)s.h
-    src/output-json-%(proto_lower)s.c""" % {
             "proto": proto,
             "proto_lower": proto.lower(),
         })

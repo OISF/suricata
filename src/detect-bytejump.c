@@ -332,8 +332,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
     /* Execute the regex and populate args with captures. */
     ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
     if (ret < 2 || ret > 10) {
-        SCLogError(SC_ERR_PCRE_PARSE,"parse error, ret %" PRId32
-               ", string \"%s\"", ret, optstr);
+        SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, optstr);
         goto error;
     }
 
@@ -345,8 +344,8 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
     pcre2len = sizeof(str);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
-                                              "for arg 1");
+        SCLogError("pcre2_substring_copy_bynumber failed "
+                   "for arg 1");
         goto error;
     }
 
@@ -376,8 +375,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
         res = pcre2_substring_copy_bynumber(
                 parse_regex.match, i + 1, (PCRE2_UCHAR8 *)args[i + 1], &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed for arg %d",
-                    i + 1);
+            SCLogError("pcre2_substring_copy_bynumber failed for arg %d", i + 1);
             goto error;
         }
         numargs++;
@@ -399,14 +397,14 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
 
     /* Number of bytes */
     if (StringParseUint32(&nbytes, 10, (uint16_t)strlen(args[0]), args[0]) <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", optstr);
+        SCLogError("Malformed number of bytes: %s", optstr);
         goto error;
     }
 
     /* Offset */
     if (args[1][0] != '-' && isalpha((unsigned char)args[1][0])) {
         if (offset == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_jump supplied with "
+            SCLogError("byte_jump supplied with "
                        "var name for offset.  \"value\" argument supplied to "
                        "this function has to be non-NULL");
             goto error;
@@ -416,7 +414,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
             goto error;
     } else {
         if (StringParseInt32(&data->offset, 0, (uint16_t)strlen(args[1]), args[1]) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", optstr);
+            SCLogError("Malformed offset: %s", optstr);
             goto error;
         }
     }
@@ -450,26 +448,26 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
             if (StringParseUint32(
                         &data->multiplier, 10, (uint16_t)strlen(args[i]) - 11, args[i] + 11) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed multiplier: %s", optstr);
+                SCLogError("Malformed multiplier: %s", optstr);
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
             if (StringParseInt32(&data->post_offset, 10, (uint16_t)strlen(args[i]) - 12,
                         args[i] + 12) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed post_offset: %s", optstr);
+                SCLogError("Malformed post_offset: %s", optstr);
                 goto error;
             }
         } else if (strcasecmp("dce", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_DCE;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "Unknown option: \"%s\"", args[i]);
+            SCLogError("Unknown option: \"%s\"", args[i]);
             goto error;
         }
     }
 
     if ((data->flags & DETECT_BYTEJUMP_END) && (data->flags & DETECT_BYTEJUMP_BEGIN)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "'from_end' and 'from_beginning' "
-                "cannot be used in the same byte_jump statement");
+        SCLogError("'from_end' and 'from_beginning' "
+                   "cannot be used in the same byte_jump statement");
         goto error;
     }
 
@@ -482,19 +480,22 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 23 bytes "
-                   "with \"string\": %s", optstr);
+            SCLogError("Cannot test more than 23 bytes "
+                       "with \"string\": %s",
+                    optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 8 bytes "
-                   "without \"string\": %s\n", optstr);
+            SCLogError("Cannot test more than 8 bytes "
+                       "without \"string\": %s\n",
+                    optstr);
             goto error;
         }
         if (data->base != DETECT_BYTEJUMP_BASE_UNSET) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot use a base "
-                   "without \"string\": %s", optstr);
+            SCLogError("Cannot use a base "
+                       "without \"string\": %s",
+                    optstr);
             goto error;
         }
     }
@@ -582,7 +583,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             (data->base == DETECT_BYTEJUMP_BASE_DEC) ||
             (data->base == DETECT_BYTEJUMP_BASE_HEX) ||
             (data->base == DETECT_BYTEJUMP_BASE_OCT) ) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+            SCLogError("Invalid option. "
                        "A byte_jump keyword with dce holds other invalid modifiers.");
             goto error;
         }
@@ -591,8 +592,9 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (offset != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(offset, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                       "seen in byte_jump - %s", offset);
+            SCLogError("Unknown byte_extract var "
+                       "seen in byte_jump - %s",
+                    offset);
             goto error;
         }
         data->offset = index;

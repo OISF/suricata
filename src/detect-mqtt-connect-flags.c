@@ -121,7 +121,7 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid flag definition: %s", rawstr);
+        SCLogError("invalid flag definition: %s", rawstr);
         return NULL;
     }
 
@@ -140,7 +140,7 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
             flagv++;
         }
         if (strlen(flagv) < 2) {
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "malformed flag value: %s", flagv);
+            SCLogError("malformed flag value: %s", flagv);
             goto error;
         }  else {
             int offset = 0;
@@ -152,36 +152,36 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
             }
             if (strcmp(flagv+offset, "username") == 0) {
                 if (de->username != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->username = fs_to_set;
             } else if (strcmp(flagv+offset, "password") == 0) {
                 if (de->password != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->password = fs_to_set;
             } else if (strcmp(flagv+offset, "will") == 0) {
                 if (de->will != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will = fs_to_set;
             } else if (strcmp(flagv+offset, "will_retain") == 0) {
                 if (de->will_retain != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will_retain = fs_to_set;
             } else if (strcmp(flagv+offset, "clean_session") == 0) {
                 if (de->clean_session != MQTT_DONT_CARE) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "duplicate flag definition: %s", flagv);
+                    SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->clean_session = fs_to_set;
             } else {
-                SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid flag definition: %s", flagv);
+                SCLogError("invalid flag definition: %s", flagv);
                 goto error;
             }
         }

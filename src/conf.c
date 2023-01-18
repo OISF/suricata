@@ -71,8 +71,7 @@ static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
     char *next;
 
     if (strlcpy(node_name, name, sizeof(node_name)) >= sizeof(node_name)) {
-        SCLogError(SC_ERR_CONF_NAME_TOO_LONG,
-            "Configuration name too long: %s", name);
+        SCLogError("Configuration name too long: %s", name);
         return NULL;
     }
 
@@ -84,16 +83,14 @@ static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
         if ((node = ConfNodeLookupChild(parent, key)) == NULL) {
             node = ConfNodeNew();
             if (unlikely(node == NULL)) {
-                SCLogWarning(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for configuration.");
+                SCLogWarning("Failed to allocate memory for configuration.");
                 goto end;
             }
             node->name = SCStrdup(key);
             if (unlikely(node->name == NULL)) {
                 ConfNodeFree(node);
                 node = NULL;
-                SCLogWarning(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for configuration.");
+                SCLogWarning("Failed to allocate memory for configuration.");
                 goto end;
             }
             node->parent = parent;
@@ -119,9 +116,8 @@ void ConfInit(void)
     }
     root = ConfNodeNew();
     if (root == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "ERROR: Failed to allocate memory for root configuration node, "
-                       "aborting.");
+        FatalError("ERROR: Failed to allocate memory for root configuration node, "
+                   "aborting.");
     }
     SCLogDebug("configuration module initialized");
 }
@@ -181,8 +177,7 @@ ConfNode *ConfGetNode(const char *name)
     char *next;
 
     if (strlcpy(node_name, name, sizeof(node_name)) >= sizeof(node_name)) {
-        SCLogError(SC_ERR_CONF_NAME_TOO_LONG,
-            "Configuration name too long: %s", name);
+        SCLogError("Configuration name too long: %s", name);
         return NULL;
     }
 
@@ -400,21 +395,24 @@ int ConfGetInt(const char *name, intmax_t *val)
         return 0;
 
     if (strval == NULL) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
-                "for %s: NULL", name);
+        SCLogError("malformed integer value "
+                   "for %s: NULL",
+                name);
         return 0;
     }
 
     errno = 0;
     tmpint = strtoimax(strval, &endptr, 0);
     if (strval[0] == '\0' || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
-                "for %s: '%s'", name, strval);
+        SCLogError("malformed integer value "
+                   "for %s: '%s'",
+                name, strval);
         return 0;
     }
     if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN)) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "integer value for %s out "
-                "of range: '%s'", name, strval);
+        SCLogError("integer value for %s out "
+                   "of range: '%s'",
+                name, strval);
         return 0;
     }
 
@@ -433,13 +431,15 @@ int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
     errno = 0;
     tmpint = strtoimax(strval, &endptr, 0);
     if (strval[0] == '\0' || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
-                "for %s with base %s: '%s'", name, base->name, strval);
+        SCLogError("malformed integer value "
+                   "for %s with base %s: '%s'",
+                name, base->name, strval);
         return 0;
     }
     if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN)) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "integer value for %s with "
-                " base %s out of range: '%s'", name, base->name, strval);
+        SCLogError("integer value for %s with "
+                   " base %s out of range: '%s'",
+                name, base->name, strval);
         return 0;
     }
 
@@ -946,7 +946,7 @@ ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface)
     /* Find initial node which holds all interfaces */
     ifaces_list_node = ConfGetNode(ifaces_node_name);
     if (ifaces_list_node == NULL) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "unable to find %s config", ifaces_node_name);
+        SCLogError("unable to find %s config", ifaces_node_name);
         return NULL;
     }
 
@@ -973,9 +973,8 @@ int ConfSetRootAndDefaultNodes(
     *if_default = ConfSetIfaceNode(ifaces_node_name, default_iface);
 
     if (*if_root == NULL && *if_default == NULL) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR,
-                "unable to find configuration for the interface \"%s\" or the default "
-                "configuration (\"%s\")",
+        SCLogError("unable to find configuration for the interface \"%s\" or the default "
+                   "configuration (\"%s\")",
                 iface, default_iface);
         return (-ENODEV);
     }

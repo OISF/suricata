@@ -115,7 +115,7 @@ int DetectEngineReload(const SCInstance *suri);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
 int DetectEngineMultiTenantEnabled(void);
-int DetectEngineMultiTenantSetup(void);
+int DetectEngineMultiTenantSetup(const bool unix_socket);
 
 int DetectEngineReloadStart(void);
 int DetectEngineReloadIsStart(void);

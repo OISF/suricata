@@ -21,6 +21,7 @@
 #include "host.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "action-globals.h"
 
 /** \brief issue drop action
  *
@@ -60,7 +61,7 @@ bool PacketCheckAction(const Packet *p, const uint8_t a)
  */
 void PacketInit(Packet *p)
 {
-    SCMutexInit(&p->tunnel_mutex, NULL);
+    SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
     PACKET_RESET_CHECKSUMS(p);
     p->livedev = NULL;
@@ -95,7 +96,7 @@ void PacketReinit(Packet *p)
     p->proto = 0;
     p->recursion_level = 0;
     PACKET_FREE_EXTDATA(p);
-    p->flags = p->flags & PKT_ALLOC;
+    p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
     p->vlan_id[0] = 0;
@@ -181,7 +182,7 @@ void PacketDestructor(Packet *p)
     }
     PacketAlertFree(p->alerts.alerts);
     PACKET_FREE_EXTDATA(p);
-    SCMutexDestroy(&p->tunnel_mutex);
+    SCSpinDestroy(&p->persistent.tunnel_lock);
     AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     PACKET_PROFILING_RESET(p);
 }

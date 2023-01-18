@@ -41,6 +41,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
+#include "action-globals.h"
 
 #ifndef HAVE_DPDK
 
@@ -76,10 +77,9 @@ void TmModuleDecodeDPDKRegister(void)
  */
 TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    FatalError(SC_ERR_NO_DPDK,
-            "Error creating thread %s: you do not have "
-            "support for DPDK enabled, on Linux host please recompile "
-            "with --enable-dpdk",
+    FatalError("Error creating thread %s: you do not have "
+               "support for DPDK enabled, on Linux host please recompile "
+               "with --enable-dpdk",
             tv->name);
 }
 
@@ -184,7 +184,7 @@ static void DPDKSetTimevalReal(struct timeval *machine_start_tv, struct timeval 
 }
 
 /* get number of seconds from the reset of TSC counter (typically from the machine start) */
-static uint64_t DPDKGetSeconds()
+static uint64_t DPDKGetSeconds(void)
 {
     return CyclesToSeconds(rte_get_tsc_cycles());
 }
@@ -206,7 +206,7 @@ static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *dri
         struct rte_flow_error flush_error = { 0 };
         retval = rte_flow_flush(ptv->port_id, &flush_error);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_CONF, "Unable to flush rte_flow rules: %s Flush error msg: %s",
+            SCLogError("Unable to flush rte_flow rules: %s Flush error msg: %s",
                     rte_strerror(-retval), flush_error.message);
         }
     }
@@ -225,7 +225,7 @@ static int GetNumaNode(void)
     cpu = sched_getcpu();
     node = numa_node_of_cpu(cpu);
 #else
-    SCLogWarning(SC_ERR_TM_THREADS_ERROR, "NUMA node retrieval is not supported on this OS.");
+    SCLogWarning("NUMA node retrieval is not supported on this OS.");
 #endif
 
     return node;
@@ -268,8 +268,7 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
     struct rte_eth_stats eth_stats;
     int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
     if (unlikely(retval != 0)) {
-        SCLogError(SC_ERR_STAT, "Failed to get stats for port id %d: %s", ptv->port_id,
-                rte_strerror(-retval));
+        SCLogError("Failed to get stats for port id %d: %s", ptv->port_id, rte_strerror(-retval));
         return;
     }
 
@@ -349,6 +348,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
     ptv->slot = s->slot_next;
 
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     PacketPoolWait();
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
@@ -418,13 +421,13 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     DPDKIfaceConfig *dpdk_config = (DPDKIfaceConfig *)initdata;
 
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "DPDK configuration is NULL in thread initialization");
+        SCLogError("DPDK configuration is NULL in thread initialization");
         goto fail;
     }
 
     ptv = SCCalloc(1, sizeof(DPDKThreadVars));
     if (unlikely(ptv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory");
+        SCLogError("Unable to allocate memory");
         goto fail;
     }
 
@@ -446,38 +449,45 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->threads = dpdk_config->threads;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
-    uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
-    ptv->queue_id = queue_id;
     // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
     ptv->pkt_mempool = dpdk_config->pkt_mempool;
     dpdk_config->pkt_mempool = NULL;
+
+    thread_numa = GetNumaNode();
+    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
+        SC_ATOMIC_ADD(dpdk_config->inconsitent_numa_cnt, 1);
+        SCLogPerf("%s: NIC is on NUMA %d, thread on NUMA %d", dpdk_config->iface,
+                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+    }
+
+    uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
+    ptv->queue_id = queue_id;
 
     // the last thread starts the device
     if (queue_id == dpdk_config->threads - 1) {
         retval = rte_eth_dev_start(ptv->port_id);
         if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (%s) during device startup of %s",
-                    rte_strerror(-retval), dpdk_config->iface);
+            SCLogError("Error (%s) during device startup of %s", rte_strerror(-retval),
+                    dpdk_config->iface);
             goto fail;
         }
 
         struct rte_eth_dev_info dev_info;
         retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (%s) when getting device info of %s",
-                    rte_strerror(-retval), dpdk_config->iface);
+            SCLogError("Error (%s) when getting device info of %s", rte_strerror(-retval),
+                    dpdk_config->iface);
             goto fail;
         }
 
         // some PMDs requires additional actions only after the device has started
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
-    }
 
-    thread_numa = GetNumaNode();
-    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
-        SCLogWarning(SC_WARN_DPDK_CONF,
-                "NIC on NUMA %d but thread on NUMA %d. Decreased performance expected",
-                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+        uint16_t inconsist_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
+        if (inconsist_numa_cnt > 0) {
+            SCLogWarning("%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
+                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_cnt);
+        }
     }
 
     *data = (void *)ptv;
@@ -509,14 +519,13 @@ static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
 
         retval = rte_eth_dev_get_name_by_port(ptv->port_id, port_name);
         if (unlikely(retval != 0)) {
-            SCLogError(SC_ERR_STAT, "Failed to convert port id %d to the interface name: %s",
-                    ptv->port_id, strerror(-retval));
+            SCLogError("Failed to convert port id %d to the interface name: %s", ptv->port_id,
+                    strerror(-retval));
             SCReturn;
         }
         retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
         if (unlikely(retval != 0)) {
-            SCLogError(SC_ERR_STAT, "Failed to get stats for interface %s: %s", port_name,
-                    strerror(-retval));
+            SCLogError("Failed to get stats for interface %s: %s", port_name, strerror(-retval));
             SCReturn;
         }
         SCLogPerf("Total RX stats of %s: packets %" PRIu64 " bytes: %" PRIu64 " missed: %" PRIu64
@@ -549,14 +558,12 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
         char iface[RTE_ETH_NAME_MAX_LEN];
         retval = rte_eth_dev_get_name_by_port(ptv->port_id, iface);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) when getting device name (port %d)",
-                    retval, ptv->port_id);
+            SCLogError("Error (err=%d) when getting device name (port %d)", retval, ptv->port_id);
             SCReturnInt(TM_ECODE_FAILED);
         }
         retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
         if (retval != 0) {
-            SCLogError(SC_ERR_DPDK_INIT, "Error (err=%d) during getting device info (port %s)",
-                    retval, iface);
+            SCLogError("Error (err=%d) during getting device info (port %s)", retval, iface);
             SCReturnInt(TM_ECODE_FAILED);
         }
 

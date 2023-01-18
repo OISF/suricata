@@ -34,6 +34,7 @@
 #include "detect-engine-build.h"
 
 #include "detect-content.h"
+#include "detect-bsize.h"
 #include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
@@ -68,6 +69,8 @@
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
+
+#include "action-globals.h"
 
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
@@ -151,20 +154,21 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
     int ret = -1;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "%s shouldn't be supplied "
-                   "with an argument", sigmatch_table[sm_type].name);
+        SCLogError("%s shouldn't be supplied "
+                   "with an argument",
+                sigmatch_table[sm_type].name);
         goto end;
     }
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword seen "
+        SCLogError("\"%s\" keyword seen "
                    "with a sticky buffer still set.  Reset sticky buffer "
                    "with pkt_data before using the modifier.",
-                   sigmatch_table[sm_type].name);
+                sigmatch_table[sm_type].name);
         goto end;
     }
     if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
+        SCLogError("rule contains conflicting "
                    "alprotos set");
         goto end;
     }
@@ -172,24 +176,24 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
     sm = DetectGetLastSMByListId(s,
             DETECT_SM_LIST_PMATCH, DETECT_CONTENT, -1);
     if (sm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
+        SCLogError("\"%s\" keyword "
                    "found inside the rule without a content context.  "
                    "Please use a \"content\" keyword before using the "
-                   "\"%s\" keyword", sigmatch_table[sm_type].name,
-                   sigmatch_table[sm_type].name);
+                   "\"%s\" keyword",
+                sigmatch_table[sm_type].name, sigmatch_table[sm_type].name);
         goto end;
     }
     DetectContentData *cd = (DetectContentData *)sm->ctx;
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+        SCLogError("%s rule can not "
                    "be used with the rawbytes rule keyword",
-                   sigmatch_table[sm_type].name);
+                sigmatch_table[sm_type].name);
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_REPLACE) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+        SCLogError("%s rule can not "
                    "be used with the replace rule keyword",
-                   sigmatch_table[sm_type].name);
+                sigmatch_table[sm_type].name);
         goto end;
     }
     if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
@@ -321,7 +325,7 @@ void SigTableApplyStrictCommandlineOption(const char *str)
 
     char *copy = SCStrdup(str);
     if (copy == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "could not duplicate opt string");
+        FatalError("could not duplicate opt string");
 
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
@@ -330,8 +334,9 @@ void SigTableApplyStrictCommandlineOption(const char *str)
         if (st != NULL) {
             st->flags |= SIGMATCH_STRICT_PARSING;
         } else {
-            SCLogWarning(SC_ERR_CMD_LINE, "'strict' command line "
-                    "argument '%s' not found", key);
+            SCLogWarning("'strict' command line "
+                         "argument '%s' not found",
+                    key);
         }
         key = strtok_r(NULL, ",", &xsaveptr);
     }
@@ -433,7 +438,8 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
     uint32_t sm_type;
 
     /* if we have a sticky buffer, use that */
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
+            s->init_data->list < (int)s->init_data->smlists_array_size) {
         if (!(DetectEngineBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
             return NULL;
         }
@@ -637,7 +643,7 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
         }
     }
 
-    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to find the sm in any of the "
+    SCLogError("Unable to find the sm in any of the "
                "sm lists");
     return -1;
 }
@@ -658,7 +664,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     for (;;) {
         optend = strchr(optend, ';');
         if (optend == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "no terminating \";\" found");
+            SCLogError("no terminating \";\" found");
             goto error;
         }
         else if (optend > optstr && *(optend -1 ) == '\\') {
@@ -699,20 +705,19 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     /* Call option parsing */
     st = SigTableGet(optname);
     if (st == NULL || st->Setup == NULL) {
-        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", optname);
+        SCLogError("unknown rule keyword '%s'.", optname);
         goto error;
     }
 
     if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
         if (optvalue == NULL || strlen(optvalue) == 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
+            SCLogError(
                     "invalid formatting or malformed option to %s keyword: '%s'", optname, optstr);
             goto error;
         }
     } else if (st->flags & SIGMATCH_NOOPT) {
         if (optvalue && strlen(optvalue)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unexpected option to %s keyword: '%s'", optname,
-                    optstr);
+            SCLogError("unexpected option to %s keyword: '%s'", optname, optstr);
             goto error;
         }
     }
@@ -721,12 +726,14 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     if (st->flags & SIGMATCH_INFO_DEPRECATED) {
 #define URL "https://suricata.io/our-story/deprecation-policy/"
         if (st->alternative == 0)
-            SCLogWarning(SC_WARN_DEPRECATED, "keyword '%s' is deprecated "
-                    "and will be removed soon. See %s", st->name, URL);
+            SCLogWarning("keyword '%s' is deprecated "
+                         "and will be removed soon. See %s",
+                    st->name, URL);
         else
-            SCLogWarning(SC_WARN_DEPRECATED, "keyword '%s' is deprecated "
-                    "and will be removed soon. Use '%s' instead. "
-                    "See %s", st->name, sigmatch_table[st->alternative].name, URL);
+            SCLogWarning("keyword '%s' is deprecated "
+                         "and will be removed soon. Use '%s' instead. "
+                         "See %s",
+                    st->name, sigmatch_table[st->alternative].name, URL);
 #undef URL
     }
 
@@ -745,8 +752,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             ovlen--;
         }
         if (ovlen == 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
-                    optname, optstr);
+            SCLogError("invalid formatting or malformed option to %s keyword: \'%s\'", optname,
+                    optstr);
             goto error;
         }
 
@@ -764,14 +771,15 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             ovlen--;
         }
         if (ovlen == 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
-                    optname, optstr);
+            SCLogError("invalid formatting or malformed option to %s keyword: \'%s\'", optname,
+                    optstr);
             goto error;
         }
         /* if quoting is mandatory, enforce it */
         if (st->flags & SIGMATCH_QUOTES_MANDATORY && ovlen && *ptr != '"') {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting to %s keyword: "
-                    "value must be double quoted \'%s\'", optname, optstr);
+            SCLogError("invalid formatting to %s keyword: "
+                       "value must be double quoted \'%s\'",
+                    optname, optstr);
             goto error;
         }
 
@@ -786,9 +794,9 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
                 }
             }
             if (ovlen && ptr[ovlen - 1] != '"') {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "bad option value formatting (possible missing semicolon) "
-                    "for keyword %s: \'%s\'", optname, optvalue);
+                SCLogError("bad option value formatting (possible missing semicolon) "
+                           "for keyword %s: \'%s\'",
+                        optname, optvalue);
                 goto error;
             }
             if (ovlen > 1) {
@@ -799,15 +807,15 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
                 ovlen--;
             }
             if (ovlen == 0) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "bad input "
-                    "for keyword %s: \'%s\'", optname, optvalue);
+                SCLogError("bad input "
+                           "for keyword %s: \'%s\'",
+                        optname, optvalue);
                 goto error;
             }
         } else {
             if (*ptr == '"') {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "quotes on %s keyword that doesn't support them: \'%s\'",
-                        optname, optstr);
+                SCLogError(
+                        "quotes on %s keyword that doesn't support them: \'%s\'", optname, optstr);
                 goto error;
             }
         }
@@ -904,12 +912,12 @@ static int SigParseProto(Signature *s, const char *protostr)
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
         }
         else {
-            SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
+            SCLogError("protocol \"%s\" cannot be used "
                        "in a signature.  Either detection for this protocol "
                        "is not yet supported OR detection has been disabled for "
                        "protocol through the yaml option "
-                       "app-layer.protocols.%s.detection-enabled", protostr,
-                       protostr);
+                       "app-layer.protocols.%s.detection-enabled",
+                    protostr, protostr);
             SCReturnInt(-1);
         }
     }
@@ -972,15 +980,15 @@ static int SigParseActionRejectValidate(const char *action)
 #ifdef HAVE_LIBNET11
 #if defined HAVE_LIBCAP_NG && !defined HAVE_LIBNET_CAPABILITIES
     if (sc_set_caps == TRUE) {
-        SCLogError(SC_ERR_LIBNET11_INCOMPATIBLE_WITH_LIBCAP_NG, "Libnet 1.1 is "
-            "incompatible with POSIX based capabilities with privs dropping. "
-            "For rejects to work, run as root/super user.");
+        SCLogError("Libnet 1.1 is "
+                   "incompatible with POSIX based capabilities with privs dropping. "
+                   "For rejects to work, run as root/super user.");
         return 0;
     }
 #endif
 #else /* no libnet 1.1 */
-    SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION, "Libnet 1.1.x is "
-            "required for action \"%s\" but is not compiled into Suricata",
+    SCLogError("Libnet 1.1.x is "
+               "required for action \"%s\" but is not compiled into Suricata",
             action);
     return 0;
 #endif
@@ -1024,7 +1032,7 @@ static int SigParseAction(Signature *s, const char *action)
         s->action = ACTION_CONFIG;
         s->flags |= SIG_FLAG_NOALERT;
     } else {
-        SCLogError(SC_ERR_INVALID_ACTION,"An invalid action \"%s\" was given",action);
+        SCLogError("An invalid action \"%s\" was given", action);
         return -1;
     }
     return 0;
@@ -1150,7 +1158,7 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
 
     /* Options. */
     if (index == NULL) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "no rule options.");
+        SCLogError("no rule options.");
         goto error;
     }
     while (isspace(*index) || *index == '(') {
@@ -1175,9 +1183,9 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
     } else if (strcmp(parser->direction, "->") != 0) {
-        SCLogError(SC_ERR_INVALID_DIRECTION,
-                "\"%s\" is not a valid direction modifier, "
-                "\"->\" and \"<>\" are supported.", parser->direction);
+        SCLogError("\"%s\" is not a valid direction modifier, "
+                   "\"->\" and \"<>\" are supported.",
+                parser->direction);
         goto error;
     }
 
@@ -1220,7 +1228,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
     SCEnter();
 
     if (!rs_check_utf8(sigstr)) {
-        SCLogError(SC_ERR_RULE_INVALID_UTF8, "rule is not valid UTF-8");
+        SCLogError("rule is not valid UTF-8");
         SCReturnInt(-1);
     }
 
@@ -1469,7 +1477,7 @@ int DetectSignatureAddTransform(Signature *s, int transform, void *options)
         SCReturnInt(-1);
     }
     if (!s->init_data->list_set) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "transforms must directly follow stickybuffers");
+        SCLogError("transforms must directly follow stickybuffers");
         SCReturnInt(-1);
     }
     if (s->init_data->transforms.cnt >= DETECT_TRANSFORMS_MAX) {
@@ -1491,15 +1499,14 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (alproto == ALPROTO_UNKNOWN ||
         alproto >= ALPROTO_FAILED) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid alproto %u", alproto);
+        SCLogError("invalid alproto %u", alproto);
         return -1;
     }
 
     /* since AppProtoEquals is quite permissive wrt dcerpc and smb, make sure
      * we refuse `alert dcerpc ... smb.share; content...` explicitly. */
     if (alproto == ALPROTO_SMB && s->alproto == ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                "can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
+        SCLogError("can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
                 AppProtoToString(s->alproto));
         return -1;
     }
@@ -1510,16 +1517,14 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
             // in this case, we must keep the most restrictive HTTP1
             alproto = s->alproto;
         } else {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                    "can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
-                    AppProtoToString(s->alproto));
+            SCLogError("can't set rule app proto to %s: already set to %s",
+                    AppProtoToString(alproto), AppProtoToString(s->alproto));
             return -1;
         }
     }
 
     if (AppLayerProtoDetectGetProtoName(alproto) == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "disabled alproto %s, rule can never match",
-                AppProtoToString(alproto));
+        SCLogError("disabled alproto %s, rule can never match", AppProtoToString(alproto));
         return -1;
     }
     s->alproto = alproto;
@@ -1652,7 +1657,7 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 
     SigMatchData *smd = (SigMatchData *)SCCalloc(len, sizeof(SigMatchData));
     if (smd == NULL) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
     SigMatchData *out = smd;
 
@@ -1689,8 +1694,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         if (s->init_data->list >= (int)s->init_data->smlists_array_size ||
                 s->init_data->smlists[s->init_data->list] == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "rule %u setup buffer %s but didn't add matches to it", s->id,
+            SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
                     DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
             SCReturnInt(0);
         }
@@ -1727,6 +1731,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             if (!DetectEngineBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror)) {
                 SCReturnInt(0);
             }
+
+            if (!DetectBsizeValidateContentCallback(s, x)) {
+                SCReturnInt(0);
+            }
         }
     }
 
@@ -1744,18 +1752,18 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 bufdir[x].tc);
     }
     if (ts_excl && tc_excl) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+        SCLogError("rule %u mixes keywords with conflicting directions", s->id);
         SCReturnInt(0);
     } else if (ts_excl) {
         SCLogDebug("%u: implied rule direction is toserver", s->id);
         if (DetectFlowSetupImplicit(s, SIG_FLAG_TOSERVER) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCLogError("rule %u mixes keywords with conflicting directions", s->id);
             SCReturnInt(0);
         }
     } else if (tc_excl) {
         SCLogDebug("%u: implied rule direction is toclient", s->id);
         if (DetectFlowSetupImplicit(s, SIG_FLAG_TOCLIENT) < 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCLogError("rule %u mixes keywords with conflicting directions", s->id);
             SCReturnInt(0);
         }
     } else if (dir_amb) {
@@ -1764,7 +1772,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
         (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with "
+        SCLogError("can't mix packet keywords with "
                    "tcp-stream or flow:only_stream.  Invalidating signature.");
         SCReturnInt(0);
     }
@@ -1788,7 +1796,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 #endif
     if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
+        SCLogError("You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
                    "support keywords in one direction within a rule.");
         SCReturnInt(0);
@@ -1813,15 +1821,15 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         has_pkt |= b->packet;
     }
     if (has_pmatch && has_frame) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pure content and frame inspection");
+        SCLogError("can't mix pure content and frame inspection");
         SCReturnInt(0);
     }
     if (has_app && has_frame) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix app-layer buffer and frame inspection");
+        SCLogError("can't mix app-layer buffer and frame inspection");
         SCReturnInt(0);
     }
     if (has_pkt && has_frame) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pkt buffer and frame inspection");
+        SCLogError("can't mix pkt buffer and frame inspection");
         SCReturnInt(0);
     }
 
@@ -1833,10 +1841,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 continue;
 
             if (!(DetectEngineBufferTypeSupportsPacketGetById(de_ctx, i))) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
-                        "specific matches (like dsize, flags, ttl) with stream / "
-                        "state matching by matching on app layer proto (like using "
-                        "http_* keywords).");
+                SCLogError("Signature combines packet "
+                           "specific matches (like dsize, flags, ttl) with stream / "
+                           "state matching by matching on app layer proto (like using "
+                           "http_* keywords).");
                 SCReturnInt(0);
             }
         }
@@ -1888,8 +1896,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             if (list != DETECT_SM_LIST_BASE64_DATA &&
                 s->init_data->smlists[list] != NULL) {
                 if (s->init_data->smlists[list]->idx > idx) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Rule buffer "
-                        "cannot be reset after base64_data.");
+                    SCLogError("Rule buffer "
+                               "cannot be reset after base64_data.");
                     SCReturnInt(0);
                 }
             }
@@ -1912,18 +1920,23 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 #endif
 
+    if (s->init_data->init_flags & SIG_FLAG_INIT_JA3 && s->alproto != ALPROTO_UNKNOWN &&
+            s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
+        SCLogError("Cannot have ja3 with protocol %s.", AppProtoToString(s->alproto));
+        SCReturnInt(0);
+    }
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
         (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
         if (s->alproto != ALPROTO_UNKNOWN &&
                 !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))
         {
-            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't "
-                    "support file matching", AppProtoToString(s->alproto));
+            SCLogError("protocol %s doesn't "
+                       "support file matching",
+                    AppProtoToString(s->alproto));
             SCReturnInt(0);
         }
         if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
-            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL,
-                    "protocol HTTP2 doesn't support file name matching");
+            SCLogError("protocol HTTP2 doesn't support file name matching");
             SCReturnInt(0);
         }
 
@@ -1932,7 +1945,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
     if (s->id == 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature missing required value \"sid\".");
+        SCLogError("Signature missing required value \"sid\".");
         SCReturnInt(0);
     }
     SCReturnInt(1);
@@ -2368,7 +2381,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
-            sw_next->s_prev = sw_dup->s_prev;;
+            sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(de_ctx, sw_dup->s);
     }
@@ -2430,11 +2443,11 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, const char *sigstr)
     /* a duplicate signature that should be chucked out.  Check the previously
      * called function details to understand the different return values */
     if (dup_sig == 1) {
-        SCLogError(SC_ERR_DUPLICATE_SIG, "Duplicate signature \"%s\"", sigstr);
+        SCLogError("Duplicate signature \"%s\"", sigstr);
         goto error;
     } else if (dup_sig == 2) {
-        SCLogWarning(SC_ERR_DUPLICATE_SIG, "Signature with newer revision,"
-                " so the older sig replaced by this new signature \"%s\"",
+        SCLogWarning("Signature with newer revision,"
+                     " so the older sig replaced by this new signature \"%s\"",
                 sigstr);
     }
 
@@ -2512,7 +2525,7 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
 {
     DetectParseRegex *r = SCCalloc(1, sizeof(*r));
     if (r == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre free list");
+        FatalError("failed to alloc memory for pcre free list");
     }
     r->regex = detect_parse->regex;
     r->match = detect_parse->match;
@@ -2530,9 +2543,8 @@ bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect
     if (detect_parse->regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre compile of \"%s\" failed at "
+                   "offset %d: %s",
                 parse_str, en, errbuffer);
         return false;
     }
@@ -2557,9 +2569,8 @@ DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts)
     if (detect_parse->regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError(SC_ERR_PCRE_COMPILE,
-                "pcre2 compile of \"%s\" failed at "
-                "offset %d: %s",
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
                 parse_str, (int)eo, errbuffer);
         SCFree(detect_parse);
         return NULL;
@@ -2598,7 +2609,7 @@ int SC_Pcre2SubstringGet(
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_parse)
 {
     if (!DetectSetupParseRegexesOpts(parse_str, detect_parse, 0)) {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile and study failed");
+        FatalError("pcre compile and study failed");
     }
 }
 
@@ -2608,6 +2619,9 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
  */
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
+#include "packet.h"
+
 static int SigParseTest01 (void)
 {
     int result = 1;

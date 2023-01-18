@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2011-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,13 +18,19 @@
 /**
  * \file
  *
- * \author FirstName LastName <yourname@domain>
+ * \author Richard McConnell <richard_mcconnell@rapid7.com>
+ *
  */
 
-#ifndef __APP_LAYER_TEMPLATE_RUST_H__
-#define __APP_LAYER_TEMPLATE_RUST_H__
+#ifndef UTIL_SYSFS_H
+#define UTIL_SYSFS_H
 
-void RegisterTemplateRustParsers(void);
-void TemplateRustParserRegisterTests(void);
+#include "util-error.h"
+#include "util-debug.h"
 
-#endif /* __APP_LAYER_TEMPLATE_RUST_H__ */
+/* /sys/ prepended as mount point 251 + 5 = 256 */
+#define SYSFS_MAX_FILENAME_SIZE 251
+
+TmEcode SysFsWriteValue(const char *path, int64_t value);
+
+#endif /* UTIL_SYSFS_H */

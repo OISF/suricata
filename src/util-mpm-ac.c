@@ -127,9 +127,9 @@ static inline size_t SCACCheckSafeSizetMult(size_t a, size_t b)
 {
     /* check for safety of multiplication operation */
     if (b > 0 && a > SIZE_MAX / b) {
-        SCLogError(SC_ERR_MEM_ALLOC, "%"PRIuMAX" * %"PRIuMAX" > %"
-                   PRIuMAX" would overflow size_t calculating buffer size",
-                   (uintmax_t) a, (uintmax_t) b, (uintmax_t) SIZE_MAX);
+        SCLogError("%" PRIuMAX " * %" PRIuMAX " > %" PRIuMAX
+                   " would overflow size_t calculating buffer size",
+                (uintmax_t)a, (uintmax_t)b, (uintmax_t)SIZE_MAX);
         exit(EXIT_FAILURE);
     }
     return a * b;
@@ -155,7 +155,7 @@ static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->goto_table = ptmp;
 
@@ -172,7 +172,7 @@ static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->output_table = ptmp;
 
@@ -210,14 +210,14 @@ static void SCACShrinkState(SCACCtx *ctx)
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->output_table = ptmp;
 }
 
 static inline int SCACInitNewState(MpmCtx *mpm_ctx)
 {
-    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;;
+    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
 
     /* Exponentially increase the allocated space when needed. */
     if (ctx->allocated_state_count < ctx->state_count + 1) {
@@ -270,7 +270,7 @@ static void SCACSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(output_state->pids);
         output_state->pids = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     output_state->pids = ptmp;
 
@@ -395,9 +395,7 @@ static inline void SCACEnqueue(StateQueue *q, int32_t state)
         q->top = 0;
 
     if (q->top == q->bot) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("Just ran out of space in the queue. Please file a bug report on this");
     }
 
     return;
@@ -409,45 +407,11 @@ static inline int32_t SCACDequeue(StateQueue *q)
         q->bot = 0;
 
     if (q->bot == q->top) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "StateQueue behaving weirdly.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("StateQueue behaving weirdly. Please file a bug report on this");
     }
 
     return q->store[q->bot++];
 }
-
-/*
-#define SCACStateQueueIsEmpty(q) (((q)->top == (q)->bot) ? 1 : 0)
-
-#define SCACEnqueue(q, state) do { \
-                                  int i = 0; \
-                                             \
-                                  for (i = (q)->bot; i < (q)->top; i++) { \
-                                      if ((q)->store[i] == state)       \
-                                      return; \
-                                  } \
-                                    \
-                                  (q)->store[(q)->top++] = state;   \
-                                                                \
-                                  if ((q)->top == STATE_QUEUE_CONTAINER_SIZE) \
-                                      (q)->top = 0;                     \
-                                                                        \
-                                  if ((q)->top == (q)->bot) {           \
-                                  SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  " \
-                                                "Fatal Error.  Exiting.  Please file a bug report on this"); \
-                                  exit(EXIT_FAILURE);                   \
-                                  }                                     \
-                              } while (0)
-
-#define SCACDequeue(q) ( (((q)->bot == STATE_QUEUE_CONTAINER_SIZE)? ((q)->bot = 0): 0), \
-                         (((q)->bot == (q)->top) ?                      \
-                          (printf("StateQueue behaving "                \
-                                         "weirdly.  Fatal Error.  Exiting.  Please " \
-                                         "file a bug report on this"), \
-                           exit(EXIT_FAILURE)) : 0), \
-                         (q)->store[(q)->bot++])     \
-*/
 
 /**
  * \internal
@@ -483,7 +447,7 @@ static inline void SCACClubOutputStates(int32_t dst_state, int32_t src_state,
             if (ptmp == NULL) {
                 SCFree(output_dst_state->pids);
                 output_dst_state->pids = NULL;
-                FatalError(SC_ERR_FATAL, "Error allocating memory");
+                FatalError("Error allocating memory");
             }
             output_dst_state->pids = ptmp;
 
@@ -515,7 +479,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
      * every state(SCACCtx->state_count) */
     ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
@@ -567,7 +531,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u16 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_STATE_TYPE_U16) * 256);
         if (ctx->state_table_u16 == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_u16, 0,
                ctx->state_count * sizeof(SC_AC_STATE_TYPE_U16) * 256);
@@ -611,7 +575,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u32 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_STATE_TYPE_U32) * 256);
         if (ctx->state_table_u32 == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
+            FatalError("Error allocating memory");
         }
         memset(ctx->state_table_u32, 0,
                ctx->state_count * sizeof(SC_AC_STATE_TYPE_U32) * 256);
@@ -807,7 +771,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     /* handle no case patterns */
     ctx->pid_pat_list = SCMalloc((mpm_ctx->max_pat_id + 1)* sizeof(SCACPatternList));
     if (ctx->pid_pat_list == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(ctx->pid_pat_list, 0, (mpm_ctx->max_pat_id + 1) * sizeof(SCACPatternList));
 
@@ -815,7 +779,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
             ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
             if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
-                FatalError(SC_ERR_FATAL, "Error allocating memory");
+                FatalError("Error allocating memory");
             }
             memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
@@ -1251,6 +1215,7 @@ void MpmACRegister(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int SCACTest01(void)
 {

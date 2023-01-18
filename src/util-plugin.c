@@ -54,7 +54,7 @@ bool RegisterPlugin(SCPlugin *plugin, void *lib)
 
     PluginListNode *node = SCCalloc(1, sizeof(*node));
     if (node == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for plugin");
+        SCLogError("Failed to allocate memory for plugin");
         return false;
     }
     node->plugin = plugin;
@@ -76,13 +76,13 @@ static void InitPlugin(char *path)
 
         SCPluginRegisterFunc plugin_register = dlsym(lib, "SCPluginRegister");
         if (plugin_register == NULL) {
-            SCLogError(SC_ERR_PLUGIN, "Plugin does not export SCPluginRegister function: %s", path);
+            SCLogError("Plugin does not export SCPluginRegister function: %s", path);
             dlclose(lib);
             return;
         }
 
         if (!RegisterPlugin(plugin_register(), lib)) {
-            SCLogError(SC_ERR_PLUGIN, "Plugin registration failed: %s", path);
+            SCLogError("Plugin registration failed: %s", path);
             dlclose(lib);
             return;
         }
@@ -99,16 +99,14 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     TAILQ_FOREACH(plugin, &conf->head, next) {
         struct stat statbuf;
         if (stat(plugin->val, &statbuf) == -1) {
-            SCLogError(SC_ERR_STAT, "Bad plugin path: %s: %s",
-                plugin->val, strerror(errno));
+            SCLogError("Bad plugin path: %s: %s", plugin->val, strerror(errno));
             continue;
         }
         if (S_ISDIR(statbuf.st_mode)) {
             // coverity[toctou : FALSE]
             DIR *dir = opendir(plugin->val);
             if (dir == NULL) {
-                SCLogError(SC_ERR_DIR_OPEN, "Failed to open plugin directory %s: %s",
-                    plugin->val, strerror(errno));
+                SCLogError("Failed to open plugin directory %s: %s", plugin->val, strerror(errno));
                 continue;
             }
             struct dirent *entry = NULL;
@@ -128,8 +126,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     if (run_mode == RUNMODE_PLUGIN) {
         SCCapturePlugin *capture = SCPluginFindCaptureByName(capture_plugin_name);
         if (capture == NULL) {
-            FatalError(SC_ERR_PLUGIN, "No capture plugin found with name %s",
-                    capture_plugin_name);
+            FatalError("No capture plugin found with name %s", capture_plugin_name);
         }
         capture->Init(capture_plugin_args, RUNMODE_PLUGIN, TMM_RECEIVEPLUGIN,
                 TMM_DECODEPLUGIN);
@@ -167,8 +164,7 @@ bool SCRegisterEveFileType(SCEveFileType *plugin)
 {
     /* First check that the name doesn't conflict with a built-in filetype. */
     if (IsBuiltinTypeName(plugin->name)) {
-        SCLogError(SC_ERR_LOG_OUTPUT, "Eve file type name conflicts with built-in type: %s",
-                plugin->name);
+        SCLogError("Eve file type name conflicts with built-in type: %s", plugin->name);
         return false;
     }
 
@@ -176,8 +172,7 @@ bool SCRegisterEveFileType(SCEveFileType *plugin)
     SCEveFileType *existing = NULL;
     TAILQ_FOREACH (existing, &output_types, entries) {
         if (strcmp(existing->name, plugin->name) == 0) {
-            SCLogError(SC_ERR_LOG_OUTPUT,
-                    "Eve file type name conflicts with previously registered type: %s",
+            SCLogError("Eve file type name conflicts with previously registered type: %s",
                     plugin->name);
             return false;
         }

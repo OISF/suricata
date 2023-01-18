@@ -63,8 +63,6 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#include "util-print.h"
-
 #define KEYWORD_NAME "http.protocol"
 #define KEYWORD_NAME_LEGACY "http_protocol"
 #define KEYWORD_DOC "http-keywords.html#http-protocol"

@@ -1,3 +1,5 @@
+.. _datasets:
+
 Datasets
 ========
 
@@ -76,10 +78,10 @@ Syntax::
     dataset:<cmd>,<name>,<options>;
 
     dataset:<set|isset|isnotset>,<name> \
-        [, type <string|md5|sha256>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>];
+        [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>];
 
 type <type>
-  the data type: string, md5, sha256
+  the data type: string, md5, sha256, ipv4, ip
 load <file name>
   file name for load the data when Suricata starts up
 state
@@ -102,7 +104,7 @@ Data Reputation allows matching data against a reputation list.
 Syntax::
 
     datarep:<name>,<operator>,<value>, \
-        [, load <file name>, type <string|md5|sha256>, memcap <size>, hashsize <size>];
+        [, load <file name>, type <string|md5|sha256|ipv4|ip>, memcap <size>, hashsize <size>];
 
 Example rules could look like::
 
@@ -144,9 +146,9 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256
+  Data type: string, md5, sha256, ipv4, ip
 data
-  Data to add in serialized form (base64 for string, hex notation for md5/sha256)
+  Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
 Example adding 'google.com' to set 'myset'::
 
@@ -165,9 +167,53 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256
+  Data type: string, md5, sha256, ipv4, ip
 data
-  Data to remove in serialized form (base64 for string, hex notation for md5/sha256)
+  Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
+
+dataset-clear
+~~~~~~~~~~~~~
+
+Unix Socket command to remove all data from a set. On success, the removal becomes
+active instantly.
+
+Syntax::
+
+    dataset-clear <set name> <set type>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+
+dataset-lookup
+~~~~~~~~~~~~~~
+
+Unix Socket command to test if data is in a set. 
+
+Syntax::
+
+    dataset-lookup <set name> <set type> <data>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+data
+  Data to test in serialized form (base64 for string, hex notation for md5/sha256, string notation for ipv4/ip)
+
+Example testing if 'google.com' is in the set 'myset'::
+
+    dataset-lookup myset string Z29vZ2xlLmNvbQ==
+
+dataset-dump
+~~~~~~~~~~~~
+
+Unix socket command to trigger a dump of datasets to disk.
+
+Syntax::
+
+    dataset-dump
 
 File formats
 ------------
@@ -183,6 +229,10 @@ md5
   in the file as hex encoded string
 sha256
   in the file as hex encoded string
+ipv4
+  in the file as string
+ip
+  in the file as string, it can be IPv6 or IPv4 address (standard notation or IPv4 in IPv6 one)
 
 
 dataset

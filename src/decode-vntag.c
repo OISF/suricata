@@ -84,6 +84,7 @@ int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t 
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
 
 /**
  * \test DecodeVNTagTest01 test if vntag header is too small.

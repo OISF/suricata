@@ -174,7 +174,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 #if 0
     /* filestore and bypass keywords can't work together */
     if (s->flags & SIG_FLAG_BYPASS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+        SCLogError(
                    "filestore can't work with bypass keyword");
         return -1;
     }
@@ -185,7 +185,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_CONFIG;
 
     if (str == NULL || strlen(str) == 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "config keywords need arguments");
+        SCLogError("config keywords need arguments");
         goto error;
     }
     char subsys[32];
@@ -198,18 +198,18 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (ret != 7) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "config is rather picky at this time");
+        SCLogError("config is rather picky at this time");
         goto error;
     }
     pcre2len = sizeof(subsys);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)subsys, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (strcmp(subsys, "logging") != 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'logging' supported at this time");
+        SCLogError("only 'logging' supported at this time");
         goto error;
     }
     SCLogDebug("subsys %s", subsys);
@@ -217,12 +217,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     pcre2len = sizeof(state);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)state, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (strcmp(state, "disable") != 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'disable' supported at this time");
+        SCLogError("only 'disable' supported at this time");
         goto error;
     }
     SCLogDebug("state %s", state);
@@ -230,12 +230,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     pcre2len = sizeof(type);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)type, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (strcmp(type, "type") != 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'type' supported at this time");
+        SCLogError("only 'type' supported at this time");
         goto error;
     }
     SCLogDebug("type %s", type);
@@ -243,12 +243,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     pcre2len = sizeof(typeval);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 4, (PCRE2_UCHAR8 *)typeval, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (!(strcmp(typeval, "tx") == 0 ||strcmp(typeval, "flow") == 0)) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'tx' and 'flow' supported at this time");
+        SCLogError("only 'tx' and 'flow' supported at this time");
         goto error;
     }
     SCLogDebug("typeval %s", typeval);
@@ -256,12 +256,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     pcre2len = sizeof(scope);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 5, (PCRE2_UCHAR8 *)scope, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (strcmp(scope, "scope") != 0) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'scope' supported at this time");
+        SCLogError("only 'scope' supported at this time");
         goto error;
     }
     SCLogDebug("scope %s", scope);
@@ -269,12 +269,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     pcre2len = sizeof(scopeval);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 6, (PCRE2_UCHAR8 *)scopeval, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     if (!(strcmp(scopeval, "tx") == 0 ||strcmp(scopeval, "flow") == 0)) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "only 'tx' and 'flow' supported at this time");
+        SCLogError("only 'tx' and 'flow' supported at this time");
         goto error;
     }
     SCLogDebug("scopeval %s", scopeval);

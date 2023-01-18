@@ -81,7 +81,7 @@ fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
     strings.join("")
 }
 */
-fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
+fn nfs_handle2crc(bytes: &[u8]) -> u32 {
     let c = crc32::checksum_ieee(bytes);
     c
 }
@@ -99,13 +99,13 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name)?;
 
-    if tx.file_handle.len() > 0 {
+    if !tx.file_handle.is_empty() {
         //js.set_string("handle", &nfs_handle2hex(&tx.file_handle));
         let c = nfs_handle2crc(&tx.file_handle);
         let s = format!("{:x}", c);
         js.set_string("hhash", &s)?;
     }
-    js.set_uint("id", tx.id as u64)?;
+    js.set_uint("id", tx.id)?;
     js.set_bool("file_tx", tx.is_file_tx)?;
     Ok(())
 }

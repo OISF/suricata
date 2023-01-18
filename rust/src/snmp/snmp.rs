@@ -36,6 +36,7 @@ pub enum SNMPEvent {
     VersionMismatch,
 }
 
+#[derive(Default)]
 pub struct SNMPState<'a> {
     state_data: AppLayerStateData,
 
@@ -89,12 +90,7 @@ impl<'a> Transaction for SNMPTransaction<'a> {
 
 impl<'a> SNMPState<'a> {
     pub fn new() -> SNMPState<'a> {
-        SNMPState{
-            state_data: AppLayerStateData::new(),
-            version: 0,
-            transactions: Vec::new(),
-            tx_id: 0,
-        }
+        Default::default()
     }
 }
 
@@ -121,8 +117,10 @@ impl<'a> State<SNMPTransaction<'a>> for SNMPState<'a> {
 
 impl<'a> SNMPState<'a> {
     fn add_pdu_info(&mut self, pdu: &SnmpPdu<'a>, tx: &mut SNMPTransaction<'a>) {
-        let mut pdu_info = SNMPPduInfo::default();
-        pdu_info.pdu_type = pdu.pdu_type();
+        let mut pdu_info = SNMPPduInfo {
+            pdu_type: pdu.pdu_type(),
+            ..Default::default()
+        };
         match *pdu {
             SnmpPdu::Generic(ref pdu) => {
                 pdu_info.err = pdu.err;
@@ -184,9 +182,8 @@ impl<'a> SNMPState<'a> {
     /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
         if self.version == 0 {
-            match parse_pdu_enveloppe_version(i) {
-                Ok((_,x)) => self.version = x,
-                _         => (),
+            if let Ok((_, x)) = parse_pdu_enveloppe_version(i) {
+                self.version = x;
             }
         }
         match parse_snmp_generic_message(i) {
@@ -245,7 +242,7 @@ impl<'a> SNMPTransaction<'a> {
             community: None,
             usm: None,
             encrypted: false,
-            id: id,
+            id,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
@@ -331,6 +328,7 @@ static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
     match parse_der_sequence(i) {
         Ok((_,x))     => {
+            #[allow(clippy::single_match)]
             match x.content {
                 BerObjectContent::Sequence(ref v) => {
                     if v.len() == 3 {
@@ -372,7 +370,7 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
 export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
 export_state_data_get!(rs_snmp_get_state_data, SNMPState);
 
-const PARSER_NAME : &'static [u8] = b"snmp\0";
+const PARSER_NAME : &[u8] = b"snmp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_snmp_parser() {

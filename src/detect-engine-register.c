@@ -79,6 +79,7 @@
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
+#include "detect-ipaddr.h"
 #include "detect-ipopts.h"
 #include "detect-tcp-flags.h"
 #include "detect-fragbits.h"
@@ -231,7 +232,6 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 
-#include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
@@ -252,7 +252,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
-#include "app-layer-template.h"
 #include "detect-frame.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
@@ -628,6 +627,7 @@ void SigTableSetup(void)
     DetectTcpmssRegister();
     DetectICMPv6hdrRegister();
     DetectICMPv6mtuRegister();
+    DetectIPAddrBufferRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();
@@ -676,7 +676,6 @@ void SigTableSetup(void)
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
 
-    DetectTemplateBufferRegister();
     DetectBypassRegister();
     DetectConfigRegister();
 
@@ -708,8 +707,9 @@ void SigTableRegisterTests(void)
                    "registration function.", sigmatch_table[i].name);
 
             if (coverage_unittests)
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "detection plugin %s has no unittest "
-                        "registration function.", sigmatch_table[i].name);
+                SCLogWarning("detection plugin %s has no unittest "
+                             "registration function.",
+                        sigmatch_table[i].name);
         }
     }
 }

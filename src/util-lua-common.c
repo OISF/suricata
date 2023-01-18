@@ -56,6 +56,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "action-globals.h"
 
 int LuaCallbackError(lua_State *luastate, const char *msg)
 {
@@ -757,7 +758,7 @@ static int LuaCallbackLogWarning(lua_State *luastate)
     lua_getstack(luastate, 1, &ar);
     lua_getinfo(luastate, "nSl", &ar);
     const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogWarningRaw(SC_WARN_LUA_SCRIPT, ar.short_src, funcname, ar.currentline, "%s", msg);
+    SCLogWarningRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
     return 0;
 }
 
@@ -770,7 +771,7 @@ static int LuaCallbackLogError(lua_State *luastate)
     lua_getstack(luastate, 1, &ar);
     lua_getinfo(luastate, "nSl", &ar);
     const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogErrorRaw(SC_ERR_LUA_SCRIPT, ar.short_src, funcname, ar.currentline, "%s", msg);
+    SCLogErrorRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
     return 0;
 }
 

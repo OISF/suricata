@@ -17,12 +17,13 @@
 
 use crate::smb::smb2_records::*;
 use crate::smb::smb::*;
-//use smb::events::*;
+use crate::smb::events::*;
 use crate::smb::auth::*;
 
 pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
 {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
+    #[allow(clippy::single_match)]
     match parse_smb2_request_session_setup(r.data) {
         Ok((_, setup)) => {
             let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
@@ -33,6 +34,11 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
                 if let Some(s) = parse_secblob(setup.data) {
                     td.ntlmssp = s.ntlmssp;
                     td.krb_ticket = s.krb;
+                    if let Some(ntlm) = &td.ntlmssp {
+                        if ntlm.warning {
+                            tx.set_event(SMBEvent::UnusualNtlmsspOrder);
+                        }
+                    }
                 }
             }
         },

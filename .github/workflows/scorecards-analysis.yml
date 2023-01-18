@@ -22,12 +22,12 @@ jobs:
 
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v3.3.0
         with:
           persist-credentials: false
 
       - name: "Run analysis"
-        uses: ossf/scorecard-action@e363bfca00e752f91de7b7d2a77340e2e523cb18 # v1.0.1
+        uses: ossf/scorecard-action@e38b1902ae4f44df626f11ba0734b14fb91f8f86 # v1.0.1
         with:
           results_file: results.sarif
           results_format: sarif
@@ -42,7 +42,7 @@ jobs:
 
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v2.3.1
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v2.3.1
         with:
           name: SARIF file
           path: results.sarif

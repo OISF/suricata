@@ -21,7 +21,7 @@ use super::{
 };
 use md5::{Digest, Md5};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Cyu {
     pub string: String,
     pub hash: String,

@@ -85,7 +85,7 @@ impl DHCPTransaction {
     pub fn new(id: u64, message: DHCPMessage) -> DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
-            message: message,
+            message,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
@@ -148,12 +148,7 @@ impl DHCPState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&DHCPTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn free_tx(&mut self, tx_id: u64) {
@@ -268,7 +263,7 @@ pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
 export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
 export_state_data_get!(rs_dhcp_get_state_data, DHCPState);
 
-const PARSER_NAME: &'static [u8] = b"dhcp\0";
+const PARSER_NAME: &[u8] = b"dhcp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_register_parser() {

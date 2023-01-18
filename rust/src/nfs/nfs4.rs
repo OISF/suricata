@@ -42,7 +42,7 @@ impl NFSState {
      * is not part of the write record itself so we pass it in here. */
     fn write_v4<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs4RequestWrite<'b>, fh: &'b [u8]) {
         // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
+        let is_last = w.stable == 2;
         SCLogDebug!("is_last {}", is_last);
 
         let mut fill_bytes = 0;
@@ -104,7 +104,7 @@ impl NFSState {
         }
         self.ts_chunk_xid = r.hdr.xid;
         debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
-        self.ts_chunk_left = w.write_len as u32 - w.data.len()  as u32;
+        self.ts_chunk_left = w.write_len - w.data.len()  as u32;
     }
 
     fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b [u8]) {
@@ -129,7 +129,7 @@ impl NFSState {
 
     fn new_tx_v4<'b>(
         &mut self, r: &RpcPacket<'b>, xidmap: &NFSRequestXidMap, procedure: u32,
-        _aux_opcodes: &Vec<u32>,
+        _aux_opcodes: &[u32],
     ) {
         let mut tx = self.new_tx();
         tx.xid = r.hdr.xid;
@@ -140,6 +140,7 @@ impl NFSState {
         tx.file_handle = xidmap.file_handle.to_vec();
 
         tx.auth_type = r.creds_flavor;
+        #[allow(clippy::single_match)]
         match r.creds {
             RpcRequestCreds::Unix(ref u) => {
                 tx.request_machine_name = u.machine_name_buf.to_vec();
@@ -170,12 +171,12 @@ impl NFSState {
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
-            match c {
-                &Nfs4RequestContent::PutFH(ref rd) => {
+            match *c {
+                Nfs4RequestContent::PutFH(ref rd) => {
                     last_putfh = Some(rd.value);
                     aux_opcodes.push(NFSPROC4_PUTFH);
                 }
-                &Nfs4RequestContent::Read(ref rd) => {
+                Nfs4RequestContent::Read(ref rd) => {
                     SCLogDebug!("READv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
                         xidmap.chunk_offset = rd.offset;
@@ -183,33 +184,33 @@ impl NFSState {
                         self.xidmap_handle2name(xidmap);
                     }
                 }
-                &Nfs4RequestContent::Open(ref rd) => {
-                    SCLogDebug!("OPENv4: {}", String::from_utf8_lossy(&rd.filename));
+                Nfs4RequestContent::Open(ref rd) => {
+                    SCLogDebug!("OPENv4: {}", String::from_utf8_lossy(rd.filename));
                     xidmap.file_name = rd.filename.to_vec();
                 }
-                &Nfs4RequestContent::Lookup(ref rd) => {
-                    SCLogDebug!("LOOKUPv4: {}", String::from_utf8_lossy(&rd.filename));
+                Nfs4RequestContent::Lookup(ref rd) => {
+                    SCLogDebug!("LOOKUPv4: {}", String::from_utf8_lossy(rd.filename));
                     xidmap.file_name = rd.filename.to_vec();
                 }
-                &Nfs4RequestContent::Write(ref rd) => {
+                Nfs4RequestContent::Write(ref rd) => {
                     SCLogDebug!("WRITEv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
                         self.write_v4(r, rd, fh);
                     }
                 }
-                &Nfs4RequestContent::Commit => {
+                Nfs4RequestContent::Commit => {
                     SCLogDebug!("COMMITv4");
                     if let Some(fh) = last_putfh {
                         self.commit_v4(r, fh);
                     }
                 }
-                &Nfs4RequestContent::Close(ref _rd) => {
+                Nfs4RequestContent::Close(ref _rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", _rd);
                     if let Some(fh) = last_putfh {
                         self.close_v4(r, fh);
                     }
                 }
-                &Nfs4RequestContent::Create(ref rd) => {
+                Nfs4RequestContent::Create(ref rd) => {
                     SCLogDebug!("CREATEv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
                         xidmap.file_handle = fh.to_vec();
@@ -217,20 +218,20 @@ impl NFSState {
                     xidmap.file_name = rd.filename.to_vec();
                     main_opcode = NFSPROC4_CREATE;
                 }
-                &Nfs4RequestContent::Remove(rd) => {
+                Nfs4RequestContent::Remove(rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
                     main_opcode = NFSPROC4_REMOVE;
                 }
-                &Nfs4RequestContent::SetClientId(ref _rd) => {
+                Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!(
                         "SETCLIENTIDv4: client id {} r_netid {} r_addr {}",
-                        String::from_utf8_lossy(&_rd.client_id),
-                        String::from_utf8_lossy(&_rd.r_netid),
-                        String::from_utf8_lossy(&_rd.r_addr)
+                        String::from_utf8_lossy(_rd.client_id),
+                        String::from_utf8_lossy(_rd.r_netid),
+                        String::from_utf8_lossy(_rd.r_addr)
                     );
                 }
-                &_ => {}
+                _ => {}
             }
         }
 
@@ -318,70 +319,62 @@ impl NFSState {
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
-            match c {
-                &Nfs4ResponseContent::ReadDir(_s, ref rd) => {
-                    if let &Some(ref rd) = rd {
-                        SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
-
-                        for d in &rd.listing {
-                            if let &Some(ref _d) = d {
-                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&_d.name));
-                            }
+            match *c {
+                Nfs4ResponseContent::ReadDir(_s, Some(ref rd)) => {
+                    SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
+                    
+                    for d in &rd.listing {
+                        if let &Some(ref _d) = d {
+                            SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(_d.name));
                         }
                     }
                 }
-                &Nfs4ResponseContent::Remove(s) => {
+                Nfs4ResponseContent::Remove(s) => {
                     SCLogDebug!("REMOVE4: status {}", s);
                     main_opcode_status = s;
                     main_opcode_status_set = true;
                 }
-                &Nfs4ResponseContent::Create(s) => {
+                Nfs4ResponseContent::Create(s) => {
                     SCLogDebug!("CREATE4: status {}", s);
                     main_opcode_status = s;
                     main_opcode_status_set = true;
                 }
-                &Nfs4ResponseContent::Read(s, ref rd) => {
-                    if let &Some(ref rd) = rd {
-                        SCLogDebug!(
-                            "READ4: xidmap {:?} status {} data {}",
-                            xidmap,
-                            s,
-                            rd.data.len()
-                        );
-                        // convert record to generic read reply
-                        let reply = NfsReplyRead {
-                            status: s,
-                            attr_follows: 0,
-                            attr_blob: &[],
-                            count: rd.count,
-                            eof: rd.eof,
-                            data_len: rd.data.len() as u32,
-                            data: rd.data,
-                        };
-                        self.process_read_record(r, &reply, Some(xidmap));
+                Nfs4ResponseContent::Read(s, Some(ref rd)) => {
+                    SCLogDebug!(
+                        "READ4: xidmap {:?} status {} data {}",
+                        xidmap,
+                        s,
+                        rd.data.len()
+                    );
+                    // convert record to generic read reply
+                    let reply = NfsReplyRead {
+                        status: s,
+                        attr_follows: 0,
+                        attr_blob: &[],
+                        count: rd.count,
+                        eof: rd.eof,
+                        data_len: rd.data.len() as u32,
+                        data: rd.data,
+                    };
+                    self.process_read_record(r, &reply, Some(xidmap));
+                }
+                Nfs4ResponseContent::Open(_s, Some(ref _rd)) => {
+                    SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
+                    insert_filename_with_getfh = true;
+                }
+                Nfs4ResponseContent::GetFH(_s, Some(ref rd)) => {
+                    if insert_filename_with_getfh {
+                        self.namemap
+                            .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
                     }
                 }
-                &Nfs4ResponseContent::Open(_s, ref rd) => {
-                    if let &Some(ref _rd) = rd {
-                        SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
-                        insert_filename_with_getfh = true;
-                    }
-                }
-                &Nfs4ResponseContent::GetFH(_s, ref rd) => {
-                    if let &Some(ref rd) = rd {
-                        if insert_filename_with_getfh {
-                            self.namemap
-                                .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
-                        }
-                    }
-                }
-                &Nfs4ResponseContent::PutRootFH(s) => {
-                    if s == NFS4_OK && xidmap.file_name.len() == 0 {
+                Nfs4ResponseContent::PutRootFH(s) => {
+                    if s == NFS4_OK && xidmap.file_name.is_empty() {
                         xidmap.file_name = b"<mount_root>".to_vec();
                         SCLogDebug!("filename {:?}", xidmap.file_name);
                     }
                 }
-                &_ => {}
+                _ => {}
             }
         }
 

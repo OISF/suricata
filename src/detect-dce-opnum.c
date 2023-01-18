@@ -127,7 +127,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
 static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
+        SCLogError("Error parsing dce_opnum option in "
                    "signature, option needs a value");
         return -1;
     }
@@ -137,7 +137,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     void *dod = rs_dcerpc_opnum_parse(arg);
     if (dod == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
+        SCLogError("Error parsing dce_opnum option in "
                    "signature");
         return -1;
     }

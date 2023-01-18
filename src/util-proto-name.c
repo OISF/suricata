@@ -385,21 +385,20 @@ static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number
 {
     ProtoNameHashEntry *proto_ent = SCCalloc(1, sizeof(ProtoNameHashEntry));
     if (!proto_ent) {
-        FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to allocate protocol hash entry");
+        FatalError("Unable to allocate protocol hash entry");
     }
 
     proto_ent->name = SCStrdup(proto_name);
     if (!proto_ent->name)
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for protocol name entries");
+        FatalError("Unable to allocate memory for protocol name entries");
 
     proto_ent->number = proto_number;
 
     SCLogDebug("new protocol entry: name: \"%s\"; protocol number: %d", proto_ent->name,
             proto_ent->number);
     if (0 != HashTableAdd(proto_ht, proto_ent, 0)) {
-        FatalError(SC_ERR_HASH_ADD,
-                "Unable to add entry to proto hash table for "
-                "name: \"%s\"; number: %d",
+        FatalError("Unable to add entry to proto hash table for "
+                   "name: \"%s\"; number: %d",
                 proto_ent->name, proto_ent->number);
     }
     return;
@@ -421,7 +420,7 @@ void SCProtoNameInit(void)
     proto_ht =
             HashTableInit(256, ProtoNameHashFunc, ProtoNameHashCompareFunc, ProtoNameHashFreeFunc);
     if (proto_ht == NULL) {
-        FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to initialize protocol name/number table");
+        FatalError("Unable to initialize protocol name/number table");
     }
 
     for (uint16_t i = 0; i < ARRAY_SIZE(known_proto); i++) {

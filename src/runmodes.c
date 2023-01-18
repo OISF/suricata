@@ -37,6 +37,7 @@
 #include "queue.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
+#include "runmode-af-xdp.h"
 #include "runmode-dpdk.h"
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
@@ -157,6 +158,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "UNITTEST";
         case RUNMODE_AFP_DEV:
             return "AF_PACKET_DEV";
+        case RUNMODE_AFXDP_DEV:
+            return "AF_XDP_DEV";
         case RUNMODE_NETMAP:
 #ifdef HAVE_NETMAP
             return "NETMAP";
@@ -179,7 +182,7 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
 
         default:
-            FatalError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
+            FatalError("Unknown runtime mode. Aborting");
     }
 }
 
@@ -245,6 +248,7 @@ void RunModeRegisterRunModes(void)
     RunModeErfDagRegister();
     RunModeNapatechRegister();
     RunModeIdsAFPRegister();
+    RunModeIdsAFXDPRegister();
     RunModeIdsNetmapRegister();
     RunModeIdsNflogRegister();
     RunModeUnixSocketRegister();
@@ -333,8 +337,7 @@ void RunModeDispatch(int runmode, const char *custom_mode,
 #ifdef HAVE_PLUGINS
                 SCCapturePlugin *plugin = SCPluginFindCaptureByName(capture_plugin_name);
                 if (plugin == NULL) {
-                    FatalError(SC_ERR_PLUGIN, "No capture plugin found with name %s",
-                            capture_plugin_name);
+                    FatalError("No capture plugin found with name %s", capture_plugin_name);
                 }
                 custom_mode = (const char *)plugin->GetDefaultMode();
 #endif
@@ -358,6 +361,9 @@ void RunModeDispatch(int runmode, const char *custom_mode,
             case RUNMODE_AFP_DEV:
                 custom_mode = RunModeAFPGetDefaultMode();
                 break;
+            case RUNMODE_AFXDP_DEV:
+                custom_mode = RunModeAFXDPGetDefaultMode();
+                break;
             case RUNMODE_NETMAP:
                 custom_mode = RunModeNetmapGetDefaultMode();
                 break;
@@ -378,16 +384,16 @@ void RunModeDispatch(int runmode, const char *custom_mode,
                 break;
 #endif
             default:
-                FatalError(SC_ERR_FATAL, "Unknown runtime mode. Aborting");
+                FatalError("Unknown runtime mode. Aborting");
         }
     } else { /* if (custom_mode == NULL) */
         /* Add compability with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
-            SCLogWarning(SC_ERR_RUNMODE, "'worker' mode have been renamed "
+            SCLogWarning("'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");
             local_custom_mode = SCStrdup("workers");
             if (unlikely(local_custom_mode == NULL)) {
-                FatalError(SC_ERR_FATAL, "Unable to dup custom mode");
+                FatalError("Unable to dup custom mode");
             }
             custom_mode = local_custom_mode;
         }
@@ -395,10 +401,10 @@ void RunModeDispatch(int runmode, const char *custom_mode,
 
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
     if (mode == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "The custom type \"%s\" doesn't exist "
+        SCLogError("The custom type \"%s\" doesn't exist "
                    "for this runmode type \"%s\".  Please use --list-runmodes to "
                    "see available custom types for this runmode",
-                   custom_mode, RunModeTranslateModeToName(runmode));
+                custom_mode, RunModeTranslateModeToName(runmode));
         exit(EXIT_FAILURE);
     }
 
@@ -408,7 +414,7 @@ void RunModeDispatch(int runmode, const char *custom_mode,
     }
     active_runmode = SCStrdup(custom_mode);
     if (unlikely(active_runmode == NULL)) {
-        FatalError(SC_ERR_FATAL, "Unable to dup active mode");
+        FatalError("Unable to dup active mode");
     }
 
     if (strcasecmp(active_runmode, "autofp") == 0) {
@@ -463,8 +469,9 @@ void RunModeRegisterNewRunMode(enum RunModes runmode,
                                int (*RunModeFunc)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
-        FatalError(SC_ERR_RUNMODE, "runmode '%s' has already "
-                   "been registered. Please use an unique name.", name);
+        FatalError("runmode '%s' has already "
+                   "been registered. Please use an unique name.",
+                name);
     }
 
     void *ptmp = SCRealloc(runmodes[runmode].runmodes,
@@ -483,11 +490,11 @@ void RunModeRegisterNewRunMode(enum RunModes runmode,
     mode->runmode = runmode;
     mode->name = SCStrdup(name);
     if (unlikely(mode->name == NULL)) {
-        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        FatalError("Failed to allocate string");
     }
     mode->description = SCStrdup(description);
     if (unlikely(mode->description == NULL)) {
-        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        FatalError("Failed to allocate string");
     }
     mode->RunModeFunc = RunModeFunc;
 
@@ -650,8 +657,7 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             module->ThreadInit, module->ThreadDeinit,
             module->ThreadExitPrintStats);
     } else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Unknown logger type: name=%s",
-            module->name);
+        SCLogError("Unknown logger type: name=%s", module->name);
     }
 }
 
@@ -669,7 +675,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         char subname[256];
 
         if (strcmp(type->val, "ikev2") == 0) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "eve module 'ikev2' has been replaced by 'ike'");
+            SCLogWarning("eve module 'ikev2' has been replaced by 'ike'");
             strlcpy(subname, "eve-log.ike", sizeof(subname));
         } else {
             snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
@@ -694,12 +700,10 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
 
                 if (sub_module->parent_name == NULL ||
                         strcmp(sub_module->parent_name, "eve-log") != 0) {
-                    FatalError(SC_ERR_INVALID_ARGUMENT,
-                            "bad parent for %s", subname);
+                    FatalError("bad parent for %s", subname);
                 }
                 if (sub_module->InitSubFunc == NULL) {
-                    FatalError(SC_ERR_INVALID_ARGUMENT,
-                            "bad sub-module for %s", subname);
+                    FatalError("bad sub-module for %s", subname);
                 }
 
                 /* pass on parent output_ctx */
@@ -718,8 +722,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         /* Error is no registered loggers with this name
          * were found .*/
         if (!sub_count) {
-            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                    "No output module named %s", subname);
+            FatalErrorOnInit("No output module named %s", subname);
             continue;
         }
     }
@@ -783,8 +786,7 @@ void RunModeInitializeOutputs(void)
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
             /* Shouldn't happen. */
-            FatalError(SC_ERR_INVALID_ARGUMENT,
-                "Failed to lookup configuration child node: %s", output->val);
+            FatalError("Failed to lookup configuration child node: %s", output->val);
         }
 
         if (strcmp(output->val, "tls-store") == 0) {
@@ -797,34 +799,29 @@ void RunModeInitializeOutputs(void)
         }
 
         if (strcmp(output->val, "file-log") == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "file-log is no longer supported,"
-                    " use eve.files instead "
-                    "(see https://redmine.openinfosecfoundation.org/issues/2376"
-                    " for an explanation)");
+            SCLogWarning("file-log is no longer supported,"
+                         " use eve.files instead "
+                         "(see ticket #2376"
+                         " for an explanation)");
             continue;
         } else if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "Unified1 is no longer supported,"
-                    " use Unified2 instead "
-                    "(see https://redmine.openinfosecfoundation.org/issues/353"
-                    " for an explanation)");
+            SCLogWarning("Unified1 is no longer supported,"
+                         " use Unified2 instead "
+                         "(see ticket #353"
+                         " for an explanation)");
             continue;
         } else if (strncmp(output->val, "unified2-", sizeof("unified2-") - 1) == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "Unified2 is no longer supported.");
+            SCLogWarning("Unified2 is no longer supported.");
             continue;
         } else if (strcmp(output->val, "lua") == 0) {
 #ifndef HAVE_LUA
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "lua support not compiled in. Reconfigure/"
-                    "recompile with lua(jit) and its development "
-                    "files installed to add lua support.");
+            SCLogWarning("lua support not compiled in. Reconfigure/"
+                         "recompile with lua(jit) and its development "
+                         "files installed to add lua support.");
             continue;
 #endif
         } else if (strcmp(output->val, "dns-log") == 0) {
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "dns-log is not longer available as of Suricata 5.0");
+            SCLogWarning("dns-log is not longer available as of Suricata 5.0");
             continue;
         } else if (strcmp(output->val, "tls-log") == 0) {
             tls_log_enabled = 1;
@@ -843,8 +840,7 @@ void RunModeInitializeOutputs(void)
             if (module->InitFunc != NULL) {
                 OutputInitResult r = module->InitFunc(output_config);
                 if (!r.ok) {
-                    FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                        "output module \"%s\": setup failed", output->val);
+                    FatalErrorOnInit("output module \"%s\": setup failed", output->val);
                     continue;
                 } else if (r.ctx == NULL) {
                     continue;
@@ -875,8 +871,7 @@ void RunModeInitializeOutputs(void)
             }
         }
         if (count == 0) {
-            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                "No output module named %s", output->val);
+            FatalErrorOnInit("No output module named %s", output->val);
             continue;
         }
     }
@@ -885,8 +880,7 @@ void RunModeInitializeOutputs(void)
     if (!tls_store_present && tls_log_enabled) {
         /* old YAML with no "tls-store" in outputs. "tls-log" value needs
          * to be started using 'tls-log' config as own config */
-        SCLogWarning(SC_ERR_CONF_YAML_ERROR,
-                     "Please use 'tls-store' in YAML to configure TLS storage");
+        SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
         TAILQ_FOREACH(output, &outputs->head, next) {
             output_config = ConfNodeLookupChild(output, output->val);
@@ -895,8 +889,7 @@ void RunModeInitializeOutputs(void)
 
                 OutputModule *module = OutputGetModuleByConfName("tls-store");
                 if (module == NULL) {
-                    SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                            "No output module named %s, ignoring", "tls-store");
+                    SCLogWarning("No output module named %s, ignoring", "tls-store");
                     continue;
                 }
 
@@ -904,8 +897,7 @@ void RunModeInitializeOutputs(void)
                 if (module->InitFunc != NULL) {
                     OutputInitResult r = module->InitFunc(output_config);
                     if (!r.ok) {
-                        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                                "output module setup failed");
+                        FatalErrorOnInit("output module setup failed");
                         continue;
                     } else if (r.ctx == NULL) {
                         continue;
@@ -992,8 +984,7 @@ void RunModeInitialize(void)
     if ((ConfGet("threading.stack-size", &ss)) == 1) {
         if (ss != NULL) {
             if (ParseSizeStringU64(ss, &threading_set_stack_size) < 0) {
-                FatalError(SC_ERR_INVALID_ARGUMENT,
-                        "Failed to initialize thread_stack_size output, invalid limit: %s", ss);
+                FatalError("Failed to initialize thread_stack_size output, invalid limit: %s", ss);
             }
         }
     }

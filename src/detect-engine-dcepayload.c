@@ -57,6 +57,7 @@ static int g_dce_stub_data_buffer_id = 0;
 /**************************************Unittests*******************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 /**
  * \test Test the working of byte_test endianness.

@@ -31,7 +31,7 @@ void DPDKCleanupEAL(void)
     if (run_mode == RUNMODE_DPDK) {
         int retval = rte_eal_cleanup();
         if (retval != 0)
-            SCLogError(SC_ERR_DPDK_EAL_DEINIT, "EAL cleanup failed: %s", strerror(-retval));
+            SCLogError("EAL cleanup failed: %s", strerror(-retval));
     }
 #endif
 }
@@ -45,12 +45,11 @@ void DPDKCloseDevice(LiveDevice *ldev)
     if (run_mode == RUNMODE_DPDK) {
         retval = rte_eth_dev_get_port_by_name(ldev->dev, &port_id);
         if (retval < 0) {
-            SCLogError(SC_ERR_DPDK_EAL_DEINIT, "Unable to get port id of \"%s\", error: %s",
-                    ldev->dev, rte_strerror(-retval));
+            SCLogError("%s: failed get port id, error: %s", ldev->dev, rte_strerror(-retval));
             return;
         }
 
-        SCLogInfo("Closing device %s", ldev->dev);
+        SCLogInfo("%s: closing device", ldev->dev);
         rte_eth_dev_close(port_id);
     }
 #endif

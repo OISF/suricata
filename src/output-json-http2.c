@@ -178,9 +178,7 @@ static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_
 void JsonHttp2LogRegister (void)
 {
     /* also register as child of eve-log */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_HTTP2,
-        "eve-log", MODULE_NAME, "eve-log.http2",
-        OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonHttp2Logger,
-        HTTP2StateClosed, HTTP2StateClosed,
-        JsonHttp2LogThreadInit, JsonHttp2LogThreadDeinit, NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.http2",
+            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonHttp2Logger, HTTP2StateClosed,
+            HTTP2StateClosed, JsonHttp2LogThreadInit, JsonHttp2LogThreadDeinit, NULL);
 }

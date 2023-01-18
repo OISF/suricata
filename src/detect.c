@@ -65,6 +65,8 @@
 #include "util-detect.h"
 #include "util-profiling.h"
 
+#include "action-globals.h"
+
 typedef struct DetectRunScratchpad {
     const AppProto alproto;
     const uint8_t flow_flags; /* flow/state flags: STREAM_* */
@@ -104,10 +106,10 @@ static void DetectRun(ThreadVars *th_v,
         Packet *p)
 {
     SCEnter();
-    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s flow %p", p->pcap_cnt,
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
-            p->flow);
+            PktSrcToString(p->pkt_src));
 
     /* bail early if packet should not be inspected */
     if (p->flags & PKT_NOPACKET_INSPECTION) {
@@ -968,7 +970,7 @@ void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size
     DEBUG_VALIDATE_BUG_ON(det_ctx->tx_candidates);
     det_ctx->tx_candidates = SCCalloc(size, sizeof(RuleMatchCandidateTx));
     if (det_ctx->tx_candidates == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %"PRIu64" bytes",
+        FatalError("failed to allocate %" PRIu64 " bytes",
                 (uint64_t)(size * sizeof(RuleMatchCandidateTx)));
     }
     det_ctx->tx_candidates_size = size;
@@ -998,7 +1000,7 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
     uint32_t new_size = needed;
     void *ptmp = SCRealloc(det_ctx->tx_candidates, (new_size * sizeof(RuleMatchCandidateTx)));
     if (ptmp == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to expand to %"PRIu64" bytes",
+        FatalError("failed to expand to %" PRIu64 " bytes",
                 (uint64_t)(new_size * sizeof(RuleMatchCandidateTx)));
         // TODO can this be handled more gracefully?
     }

@@ -94,16 +94,15 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
     CreateFileName(p, state, filename, sizeof(filename));
     if (strlen(filename) == 0) {
-        SCLogWarning(SC_ERR_FOPEN, "Can't create PEM filename");
+        SCLogWarning("Can't create PEM filename");
         SCReturn;
     }
 
     fp = fopen(filename, "w");
     if (fp == NULL) {
         if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
-            SCLogWarning(SC_ERR_FOPEN,
-                         "Can't create PEM file '%s' in '%s' directory",
-                         filename, tls_logfile_base_dir);
+            SCLogWarning(
+                    "Can't create PEM file '%s' in '%s' directory", filename, tls_logfile_base_dir);
             logging_dir_not_writable++;
         }
         SCReturn;
@@ -117,7 +116,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
                 SCFree(aft->enc_buf);
                 aft->enc_buf = NULL;
                 aft->enc_buf_len = 0;
-                SCLogWarning(SC_ERR_MEM_ALLOC, "Can't allocate data for base64 encoding");
+                SCLogWarning("Can't allocate data for base64 encoding");
                 goto end_fp;
             }
             aft->enc_buf = ptmp;
@@ -128,7 +127,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
         ret = Base64Encode((unsigned char*) cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
         if (ret != SC_BASE64_OK) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
+            SCLogWarning("Invalid return of Base64Encode function");
             goto end_fwrite_fp;
         }
 
@@ -194,9 +193,8 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         fclose(fpmeta);
     } else {
         if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
-            SCLogWarning(SC_ERR_FOPEN,
-                         "Can't create meta file '%s' in '%s' directory",
-                         filename, tls_logfile_base_dir);
+            SCLogWarning("Can't create meta file '%s' in '%s' directory", filename,
+                    tls_logfile_base_dir);
             logging_dir_not_writable++;
         }
         SCReturn;
@@ -209,14 +207,14 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 end_fwrite_fp:
     fclose(fp);
     if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
-        SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate");
+        SCLogWarning("Unable to write certificate");
         logging_dir_not_writable++;
     }
 end_fwrite_fpmeta:
     if (fpmeta) {
         fclose(fpmeta);
         if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
-            SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate metafile");
+            SCLogWarning("Unable to write certificate metafile");
             logging_dir_not_writable++;
         }
     }
@@ -299,9 +297,8 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
         if (ret != 0) {
             int err = errno;
             if (err != EEXIST) {
-                SCLogError(SC_ERR_LOGDIR_CONFIG,
-                        "Cannot create certs drop directory %s: %s",
-                        tls_logfile_base_dir, strerror(err));
+                SCLogError("Cannot create certs drop directory %s: %s", tls_logfile_base_dir,
+                        strerror(err));
                 exit(EXIT_FAILURE);
             }
         } else {

@@ -28,7 +28,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_name(
 ) -> u8 {
     if let Some(ref r) = tx.tc_server_init {
         let p = &r.name;
-        if p.len() > 0 {
+        if !p.is_empty() {
             *buffer = p.as_ptr();
             *buffer_len = p.len() as u32;
             return 1;

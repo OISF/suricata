@@ -30,7 +30,6 @@ void TmModuleDecodePcapFileRegister (void);
 void PcapIncreaseInvalidChecksum(void);
 
 void PcapFileGlobalInit(void);
-const char *PcapFileGetFilename(void);
 
 #endif /* __SOURCE_PCAP_FILE_H__ */
 

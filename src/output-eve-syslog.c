@@ -45,7 +45,7 @@ static int SyslogInit(ConfNode *conf, bool threaded, void **init_data)
 {
     Context *context = SCCalloc(1, sizeof(Context));
     if (context == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate context for %s", OUTPUT_NAME);
+        SCLogError("Unable to allocate context for %s", OUTPUT_NAME);
         return -1;
     }
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
@@ -55,9 +55,8 @@ static int SyslogInit(ConfNode *conf, bool threaded, void **init_data)
 
     int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
     if (facility == -1) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "Invalid syslog facility: \"%s\","
-                " now using \"%s\" as syslog facility",
+        SCLogWarning("Invalid syslog facility: \"%s\","
+                     " now using \"%s\" as syslog facility",
                 facility_s, DEFAULT_ALERT_SYSLOG_FACILITY_STR);
         facility = DEFAULT_ALERT_SYSLOG_FACILITY;
     }
@@ -101,7 +100,7 @@ void SyslogInitialize(void)
     SCEveFileType *file_type = SCCalloc(1, sizeof(SCEveFileType));
 
     if (file_type == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve file type %s", OUTPUT_NAME);
+        FatalError("Unable to allocate memory for eve file type %s", OUTPUT_NAME);
     }
 
     file_type->name = OUTPUT_NAME;
@@ -109,7 +108,7 @@ void SyslogInitialize(void)
     file_type->Deinit = SyslogDeInit;
     file_type->Write = SyslogWrite;
     if (!SCRegisterEveFileType(file_type)) {
-        FatalError(SC_ERR_LOG_OUTPUT, "Failed to register EVE file type: %s", OUTPUT_NAME);
+        FatalError("Failed to register EVE file type: %s", OUTPUT_NAME);
     }
 }
 #endif /* !OS_WIN32 */

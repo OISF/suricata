@@ -79,8 +79,7 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 {
     BmCtx *new = SCMalloc(sizeof(BmCtx) + sizeof(uint16_t) * (needle_len + 1));
     if (unlikely(new == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in BoyerMooreCtxInit. Exiting...");
+        FatalError("Fatal error encountered in BoyerMooreCtxInit. Exiting...");
     }
 
     /* Prepare bad chars */
@@ -88,8 +87,7 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 
     /* Prepare good Suffixes */
     if (PreBmGs(needle, needle_len, new->bmGs) == -1) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in BooyerMooreCtxInit. Exiting...");
+        FatalError("Fatal error encountered in BooyerMooreCtxInit. Exiting...");
     }
 
 

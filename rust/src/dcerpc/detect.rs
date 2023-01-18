@@ -39,12 +39,18 @@ pub struct DCEOpnumRange {
     pub range2: u32,
 }
 
+impl Default for DCEOpnumRange {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DCEOpnumRange {
     pub fn new() -> Self {
-        return Self {
+        Self {
             range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
             range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
-        };
+        }
     }
 }
 
@@ -79,7 +85,7 @@ fn match_backuuid(
                 }
             }
             let ctxid = tx.get_req_ctxid();
-            ret = ret & ((uuidentry.ctxid == ctxid) as u8);
+            ret &= (uuidentry.ctxid == ctxid) as u8;
             if ret == 0 {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;
@@ -145,9 +151,9 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     }
 
     Ok(DCEIfaceData {
-        if_uuid: if_uuid,
-        du16: du16,
-        any_frag: any_frag,
+        if_uuid,
+        du16,
+        any_frag,
     })
 }
 

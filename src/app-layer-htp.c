@@ -282,15 +282,17 @@ static int HTPLookupPersonality(const char *str)
     IF_HTP_PERSONALITY_NUM(IIS_7_5);
     IF_HTP_PERSONALITY_NUM(APACHE_2);
     if (strcasecmp("TOMCAT_6_0", str) == 0) {
-        SCLogError(SC_WARN_OPTION_OBSOLETE, "Personality %s no "
-                   "longer supported by libhtp.", str);
+        SCLogError("Personality %s no "
+                   "longer supported by libhtp.",
+                str);
         return -1;
     } else if ((strcasecmp("APACHE", str) == 0) ||
                (strcasecmp("APACHE_2_2", str) == 0))
     {
-        SCLogWarning(SC_WARN_OPTION_OBSOLETE, "Personality %s no "
-                   "longer supported by libhtp, failing back to "
-                   "Apache2 personality.", str);
+        SCLogWarning("Personality %s no "
+                     "longer supported by libhtp, failing back to "
+                     "Apache2 personality.",
+                str);
         return HTP_SERVER_APACHE_2;
     }
 
@@ -803,7 +805,7 @@ static int Setup(Flow *f, HtpState *hstate)
         (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree, &user_data);
     }
     else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown address family, bug!");
+        SCLogError("unknown address family, bug!");
         goto error;
     }
 
@@ -2587,16 +2589,17 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec) == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed to "
-                                     "add ipv6 server %s, ignoring", pval->val);
+                        SCLogWarning("LIBHTP failed to "
+                                     "add ipv6 server %s, ignoring",
+                                pval->val);
                     }
                 } else {
                     SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec) == NULL) {
-                            SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed "
-                                         "to add ipv4 server %s, ignoring",
-                                         pval->val);
+                        SCLogWarning("LIBHTP failed "
+                                     "to add ipv4 server %s, ignoring",
+                                pval->val);
                     }
                 } /* else - if (strchr(pval->val, ':') != NULL) */
             } /* TAILQ_FOREACH(pval, &p->head, next) */
@@ -2611,8 +2614,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
                            personality);
                 if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP Failed adding "
-                                 "personality \"%s\", ignoring", p->val);
+                    SCLogWarning("LIBHTP Failed adding "
+                                 "personality \"%s\", ignoring",
+                            p->val);
                 } else {
                     SCLogDebug("LIBHTP personality set to %s",
                                HTPLookupPersonalityString(personality));
@@ -2623,37 +2627,42 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                  * Signatures do not expect this, so override it. */
                 htp_config_set_convert_lowercase(cfg_prec->cfg, HTP_DECODER_URL_PATH, 0);
             } else {
-                SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Unknown personality "
-                             "\"%s\", ignoring", p->val);
+                SCLogWarning("LIBHTP Unknown personality "
+                             "\"%s\", ignoring",
+                        p->val);
                 continue;
             }
 
         } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                    strcasecmp("request_body_limit", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->request.body_limit) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing request-body-limit "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("response-body-limit", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.body_limit) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing response-body-limit "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("request-body-minimal-inspect-size", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_min_size) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-minimal-inspect-size "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing request-body-minimal-inspect-size "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("request-body-inspect-window", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_window) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-inspect-window "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing request-body-inspect-window "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
@@ -2671,30 +2680,34 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
 
         } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-minimal-inspect-size "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing response-body-minimal-inspect-size "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("response-body-inspect-window", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_window) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-inspect-window "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing response-body-inspect-window "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("response-body-decompress-layer-limit", p->name) == 0) {
             uint32_t value = 2;
             if (ParseSizeStringU32(p->val, &value) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-inspect-window "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error parsing response-body-inspect-window "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
 #ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
             htp_config_set_response_decompression_layer_limit(cfg_prec->cfg, value);
 #else
-            SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "can't set response-body-decompress-layer-limit "
-                    "to %u, libhtp version too old", value);
+            SCLogWarning("can't set response-body-decompress-layer-limit "
+                         "to %u, libhtp version too old",
+                    value);
 #endif
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
             htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
@@ -2706,7 +2719,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                                                         HTP_DECODER_URL_PATH,
                                                         p->val[0]);
             } else {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                SCLogError("Invalid entry "
                            "for libhtp param path-bestfit-replacement-char");
             }
         } else if (strcasecmp("path-convert-lowercase", p->name) == 0) {
@@ -2742,7 +2755,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             } else if (strcasecmp(p->val, "decode_invalid") == 0) {
                 handling = HTP_URL_DECODE_PROCESS_INVALID;
             } else {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                SCLogError("Invalid entry "
                            "for libhtp param path-url-encoding-invalid-handling");
                 return;
             }
@@ -2764,12 +2777,13 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("meta-field-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error meta-field-limit "
-                           "from conf file - %s.  Killing engine", p->val);
+                SCLogError("Error meta-field-limit "
+                           "from conf file - %s.  Killing engine",
+                        p->val);
                 exit(EXIT_FAILURE);
             }
             if (limit == 0) {
-                FatalError(SC_ERR_FATAL, "Error meta-field-limit "
+                FatalError("Error meta-field-limit "
                            "from conf file cannot be 0.  Killing engine");
             }
             /* set default soft-limit with our new hard limit */
@@ -2780,11 +2794,12 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'lzma-memlimit' "
-                           "from conf file - %s.", p->val);
+                FatalError("failed to parse 'lzma-memlimit' "
+                           "from conf file - %s.",
+                        p->val);
             }
             if (limit == 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "'lzma-memlimit' "
+                FatalError("'lzma-memlimit' "
                            "from conf file cannot be 0.");
             }
             /* set default soft-limit with our new hard limit */
@@ -2798,9 +2813,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             } else if (!ConfValIsFalse(p->val)) {
                 int8_t limit;
                 if (StringParseInt8(&limit, 10, 0, (const char *)p->val) < 0) {
-                    FatalError(SC_ERR_SIZE_PARSE,
-                            "failed to parse 'lzma-enabled' "
-                            "from conf file - %s.",
+                    FatalError("failed to parse 'lzma-enabled' "
+                               "from conf file - %s.",
                             p->val);
                 }
                 SCLogConfig("Setting HTTP LZMA decompression layers to %" PRIu32 "", (int)limit);
@@ -2811,11 +2825,12 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("compression-bomb-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'compression-bomb-limit' "
-                           "from conf file - %s.", p->val);
+                FatalError("failed to parse 'compression-bomb-limit' "
+                           "from conf file - %s.",
+                        p->val);
             }
             if (limit == 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "'compression-bomb-limit' "
+                FatalError("'compression-bomb-limit' "
                            "from conf file cannot be 0.");
             }
             /* set default soft-limit with our new hard limit */
@@ -2827,9 +2842,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             uint32_t limit = 0;
             // between 1 usec and 1 second
             if (StringParseU32RangeCheck(&limit, 10, 0, p->val, 1, 1000000) < 0) {
-                FatalError(SC_ERR_SIZE_PARSE,
-                        "failed to parse 'decompression-time-limit' "
-                        "from conf file - %s.",
+                FatalError("failed to parse 'decompression-time-limit' "
+                           "from conf file - %s.",
                         p->val);
             }
             SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
@@ -2843,11 +2857,11 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             uint32_t range;
             if (StringParseU32RangeCheck(&range, 10, 0,
                                          (const char *)p->val, 0, 100) < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for randomize"
+                SCLogError("Invalid value for randomize"
                            "-inspection-range setting from conf file - \"%s\"."
                            " It should be a valid integer less than or equal to 100."
                            " Killing engine",
-                           p->val);
+                        p->val);
                 exit(EXIT_FAILURE);
             }
             cfg_prec->randomize_range = range;
@@ -2888,33 +2902,34 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     } else if (strcasecmp("both", pval->val) == 0) {
                         cfg_prec->swf_compression_type = HTTP_SWF_COMPRESSION_BOTH;
                     } else {
-                        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                                   "Invalid entry for "
+                        SCLogError("Invalid entry for "
                                    "swf-decompression.type: %s - "
-                                   "Killing engine", pval->val);
+                                   "Killing engine",
+                                pval->val);
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("compress-depth", pval->name) == 0) {
                     if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE,
-                                   "Error parsing swf-decompression.compression-depth "
-                                   "from conf file - %s. Killing engine", p->val);
+                        SCLogError("Error parsing swf-decompression.compression-depth "
+                                   "from conf file - %s. Killing engine",
+                                p->val);
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("decompress-depth", pval->name) == 0) {
                     if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE,
-                                   "Error parsing swf-decompression.decompression-depth "
-                                   "from conf file - %s. Killing engine", p->val);
+                        SCLogError("Error parsing swf-decompression.decompression-depth "
+                                   "from conf file - %s. Killing engine",
+                                p->val);
                         exit(EXIT_FAILURE);
                     }
                 } else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE, "Ignoring unknown param %s", pval->name);
+                    SCLogWarning("Ignoring unknown param %s", pval->name);
                 }
             }
         } else {
-            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
-                         "default config: %s", p->name);
+            SCLogWarning("LIBHTP Ignoring unknown "
+                         "default config: %s",
+                    p->name);
         }
     } /* TAILQ_FOREACH(p, &default_config->head, next) */
 
@@ -2934,7 +2949,7 @@ void HTPConfigure(void)
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
-        FatalError(SC_ERR_FATAL, "Failed to create HTP default config");
+        FatalError("Failed to create HTP default config");
     }
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
     HTPConfigSetDefaultsPhase1(&cfglist);
@@ -2982,7 +2997,7 @@ void HTPConfigure(void)
         cfglist.next->next = nextrec;
         cfglist.next->cfg = htp_config_create();
         if (NULL == cfglist.next->cfg) {
-            FatalError(SC_ERR_FATAL, "Failed to create HTP server config");
+            FatalError("Failed to create HTP server config");
         }
 
         HTPConfigSetDefaultsPhase1(htprec);
@@ -3073,8 +3088,9 @@ static int HTPStateGetEventInfo(const char *event_name,
 {
     *event_id = SCMapEnumNameToValue(event_name, http_decoder_event_table);
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "http's enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "http's enum map table.",
+                event_name);
         /* this should be treated as fatal */
         return -1;
     }
@@ -3089,8 +3105,9 @@ static int HTPStateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, http_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
-                   "http's enum map table.",  event_id);
+        SCLogError("event \"%d\" not present in "
+                   "http's enum map table.",
+                event_id);
         /* this should be treated as fatal */
         return -1;
     }

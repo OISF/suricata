@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,12 +15,13 @@
  * 02110-1301, USA.
  */
 
-#ifndef __APP_LAYER_DCERPC_COMMON_H__
-#define __APP_LAYER_DCERPC_COMMON_H__
+/**
+ * \file
+ */
 
+#ifndef __OUTPUT_JSON_BITTORRENT_DHT_H__
+#define __OUTPUT_JSON_BITTORRENT_DHT_H__
 
-void RegisterDCERPCParsers(void);
-void DCERPCParserTests(void);
-void DCERPCParserRegisterTests(void);
+void JsonBitTorrentDHTLogRegister(void);
 
-#endif /* __APP_LAYER_DCERPC_COMMON_H__ */
+#endif /* __OUTPUT_JSON_BITTORRENT_DHT_H__ */

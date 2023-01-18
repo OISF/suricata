@@ -20,7 +20,7 @@ use nom7::error::{ErrorKind, ParseError};
 /// Custom rule parse errors.
 ///
 /// Implemented based on the Nom example for implementing custom errors.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RuleParseError<I> {
     InvalidByteMath(String),
 

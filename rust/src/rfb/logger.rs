@@ -44,6 +44,7 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     if let Some(chosen_security_type) = tx.chosen_security_type {
         js.set_uint("security_type", chosen_security_type as u64)?;
     }
+    #[allow(clippy::single_match)]
     match tx.chosen_security_type {
         Some(2) => {
             js.open_object("vnc")?;

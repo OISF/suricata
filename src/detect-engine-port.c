@@ -100,13 +100,16 @@ void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *dp)
 void DetectPortPrintList(DetectPort *head)
 {
     DetectPort *cur;
+#ifdef DEBUG
     uint16_t cnt = 0;
-
+#endif
     SCLogDebug("= list start:");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
              DetectPortPrint(cur);
+#ifdef DEBUG
              cnt++;
+#endif
         }
         SCLogDebug(" ");
     }
@@ -757,7 +760,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     /** parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT," failed to parse port \"%s\"",s);
+        SCLogError(" failed to parse port \"%s\"", s);
         return -1;
     }
 
@@ -803,7 +806,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     return 0;
 
 error:
-    SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING,"DetectPortParseInsertString error");
+    SCLogError("DetectPortParseInsertString error");
     if (ad != NULL)
         DetectPortCleanupList(de_ctx, ad);
     if (ad_any != NULL)
@@ -849,8 +852,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     int r = 0;
 
     if (recur++ > 64) {
-        SCLogError(SC_ERR_PORT_ENGINE_GENERIC, "port block recursion "
-                "limit reached (max 64)");
+        SCLogError("port block recursion "
+                   "limit reached (max 64)");
         goto error;
     }
 
@@ -864,7 +867,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             range = 1;
 
         if (range == 1 && s[u] == '!') {
-            SCLogError(SC_ERR_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
+            SCLogError("Can't have a negated value in a range.");
             return -1;
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
@@ -905,10 +908,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 if (rule_var_port == NULL)
                     goto error;
                 if (strlen(rule_var_port) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated port needs to be quoted, "
-                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated port needs to be quoted, "
+                               "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.",
+                            s);
                     goto error;
                 }
                 if (negate == 1 || n_set == 1) {
@@ -960,8 +964,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             SCLogDebug("%s", address);
 
             if (AddVariableToResolveList(var_list, address) == -1) {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a port "
-                   "groups declaration. This is likely a misconfiguration.");
+                SCLogError("Found a loop in a port "
+                           "groups declaration. This is likely a misconfiguration.");
                 goto error;
             }
 
@@ -975,10 +979,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 if (rule_var_port == NULL)
                     goto error;
                 if (strlen(rule_var_port) == 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
-                            "to nothing. This is likely a misconfiguration. "
-                            "Note that a negated port needs to be quoted, "
-                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    SCLogError("variable %s resolved "
+                               "to nothing. This is likely a misconfiguration. "
+                               "Note that a negated port needs to be quoted, "
+                               "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.",
+                            s);
                     goto error;
                 }
                 if ((negate + n_set) % 2) {
@@ -1016,14 +1021,16 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     }
 
     if (depth > 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
-                "properly closed in \"%s\", %d missing closing brackets (]). "
-                "Note: problem might be in a variable.", s, depth);
+        SCLogError("not every port block was "
+                   "properly closed in \"%s\", %d missing closing brackets (]). "
+                   "Note: problem might be in a variable.",
+                s, depth);
         goto error;
     } else if (depth < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
-                "properly opened in \"%s\", %d missing opening brackets ([). "
-                "Note: problem might be in a variable.", s, depth*-1);
+        SCLogError("not every port block was "
+                   "properly opened in \"%s\", %d missing opening brackets ([). "
+                   "Note: problem might be in a variable.",
+                s, depth * -1);
         goto error;
     }
 
@@ -1086,7 +1093,7 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
 
     /** check if the full port space is negated */
     if (DetectPortIsCompletePortSpace(*nhead) == 1) {
-        SCLogError(SC_ERR_COMPLETE_PORT_SPACE_NEGATED,"Complete port space is negated");
+        SCLogError("Complete port space is negated");
         goto error;
     }
 
@@ -1155,7 +1162,7 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
     }
 
     if (*head == NULL) {
-        SCLogError(SC_ERR_NO_PORTS_LEFT_AFTER_MERGE,"no ports left after merging ports with negated ports");
+        SCLogError("no ports left after merging ports with negated ports");
         goto error;
     }
 
@@ -1188,10 +1195,10 @@ int DetectPortTestConfVars(void)
         DetectPort *ghn = NULL;
 
         if (seq_node->val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                       "Port var \"%s\" probably has a sequence(something "
+            SCLogError("Port var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
-                       "quote it using \"..\".", seq_node->name);
+                       "quote it using \"..\".",
+                    seq_node->name);
             DetectPortCleanupList(NULL, gh);
             goto error;
         }
@@ -1203,19 +1210,17 @@ int DetectPortTestConfVars(void)
 
         if (r < 0) {
             DetectPortCleanupList(NULL, gh);
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "failed to parse port var \"%s\" with value \"%s\". "
-                    "Please check its syntax",
+            SCLogError("failed to parse port var \"%s\" with value \"%s\". "
+                       "Please check its syntax",
                     seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectPortIsCompletePortSpace(ghn)) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "Port var - \"%s\" has the complete Port range negated "
-                    "with its value \"%s\".  Port space range is NIL. "
-                    "Probably have a !any or a port range that supplies "
-                    "a NULL address range",
+            SCLogError("Port var - \"%s\" has the complete Port range negated "
+                       "with its value \"%s\".  Port space range is NIL. "
+                       "Probably have a !any or a port range that supplies "
+                       "a NULL address range",
                     seq_node->name, seq_node->val);
             DetectPortCleanupList(NULL, gh);
             DetectPortCleanupList(NULL, ghn);
@@ -1284,13 +1289,17 @@ DetectPort *PortParse(const char *str)
 {
     char *port2 = NULL;
     char portstr[16];
+
+    /* strip leading spaces */
+    while (isspace(*str))
+        str++;
+    if (strlen(str) >= 16)
+        return NULL;
     strlcpy(portstr, str, sizeof(portstr));
 
     DetectPort *dp = DetectPortInit();
     if (dp == NULL)
         goto error;
-
-    /* XXX better input validation */
 
     /* we dup so we can put a nul-termination in it later */
     char *port = portstr;
@@ -1494,6 +1503,8 @@ void DetectPortHashFree(DetectEngineCtx *de_ctx)
 /*---------------------- Unittests -------------------------*/
 
 #ifdef UNITTESTS
+#include "packet.h"
+
 /**
  * \brief Do a sorted insert, where the top of the list should be the biggest
  * port range.
@@ -2466,6 +2477,80 @@ static int PortTestMatchDoubleNegation(void)
     return result;
 }
 
+// Test that negation is successfully parsed with whitespace for port strings of
+// length < 16
+static int DetectPortParseDoTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    DetectPort *head = NULL;
+    DetectPort *nhead = NULL;
+    const char *str = "[30:50, !45]";
+    int r = DetectPortParseDo(de_ctx, &head, &nhead, str, 0, NULL, 0);
+
+    // Assertions
+    FAIL_IF_NULL(head);
+    FAIL_IF_NULL(nhead);
+    FAIL_IF(r < 0);
+    FAIL_IF(head->port != 30);
+    FAIL_IF(head->port2 != 50);
+    FAIL_IF(nhead->port != 45);
+    FAIL_IF(nhead->port2 != 45);
+    DetectPortCleanupList(NULL, head);
+    DetectPortCleanupList(NULL, nhead);
+    PASS;
+}
+
+static int DetectPortParseDoTest2(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    DetectPort *head = NULL;
+    DetectPort *nhead = NULL;
+    const char *str = "[30:50,              !45]";
+    int r = DetectPortParseDo(de_ctx, &head, &nhead, str, 0, NULL, 0);
+    FAIL_IF(r < 0);
+    DetectPortCleanupList(NULL, head);
+    DetectPortCleanupList(NULL, nhead);
+    PASS;
+}
+
+// Verifies correct parsing when negation port string length < 16
+static int PortParseTestLessThan14Spaces(void)
+{
+    const char *str = "       45";
+    DetectPort *dp = PortParse(str);
+    FAIL_IF_NULL(dp);
+    FAIL_IF(dp->port != 45);
+    FAIL_IF(dp->port2 != 45);
+    DetectPortFree(NULL, dp);
+    PASS;
+}
+
+// Verifies NULL returned when negation port string length == 16
+static int PortParseTest14Spaces(void)
+{
+    const char *str = "              45";
+    DetectPort *dp = PortParse(str);
+    FAIL_IF_NULL(dp);
+    FAIL_IF(dp->port != 45);
+    FAIL_IF(dp->port2 != 45);
+    DetectPortFree(NULL, dp);
+    PASS;
+}
+
+// Verifies NULL returned when negation port string length >= 16
+static int PortParseTestMoreThan14Spaces(void)
+{
+    const char *str = "                                   45";
+    DetectPort *dp = PortParse(str);
+    FAIL_IF_NULL(dp);
+    FAIL_IF(dp->port != 45);
+    FAIL_IF(dp->port2 != 45);
+    DetectPortFree(NULL, dp);
+    PASS;
+}
+
 void DetectPortTests(void)
 {
     UtRegisterTest("PortTestParse01", PortTestParse01);
@@ -2510,6 +2595,11 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18);
     UtRegisterTest("PortTestMatchReal19", PortTestMatchReal19);
     UtRegisterTest("PortTestMatchDoubleNegation", PortTestMatchDoubleNegation);
+    UtRegisterTest("DetectPortParseDoTest", DetectPortParseDoTest);
+    UtRegisterTest("DetectPortParseDoTest2", DetectPortParseDoTest2);
+    UtRegisterTest("PortParseTestLessThan14Spaces", PortParseTestLessThan14Spaces);
+    UtRegisterTest("PortParseTest14Spaces", PortParseTest14Spaces);
+    UtRegisterTest("PortParseTestMoreThan14Spaces", PortParseTestMoreThan14Spaces);
 }
 
 #endif /* UNITTESTS */

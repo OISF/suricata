@@ -63,8 +63,6 @@
 #include "util-unittest.h"
 #endif
 
-#include "util-validate.h"
-
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
 #define DEFAULT_DEFRAG_POOL_SIZE 0xffff
 
@@ -199,12 +197,10 @@ DefragContextNew(void)
         sizeof(Frag),
         NULL, DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize fragment pool.");
+        FatalError("Defrag: Failed to initialize fragment pool.");
     }
     if (SCMutexInit(&dc->frag_pool_lock, NULL) != 0) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize frag pool mutex.");
+        FatalError("Defrag: Failed to initialize frag pool mutex.");
     }
 
     /* Set the default timeout. */
@@ -214,12 +210,10 @@ DefragContextNew(void)
     }
     else {
         if (timeout < TIMEOUT_MIN) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Timeout less than minimum allowed value.");
+            FatalError("defrag: Timeout less than minimum allowed value.");
         }
         else if (timeout > TIMEOUT_MAX) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Tiemout greater than maximum allowed value.");
+            FatalError("defrag: Tiemout greater than maximum allowed value.");
         }
         dc->timeout = timeout;
     }
@@ -290,8 +284,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
      * SCFree all the resources held by this tracker. */
     rp = PacketDefragPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                   "fragmentation re-assembly, dumping fragments.");
         goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
@@ -299,8 +291,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     rp->recursion_level = p->recursion_level;
 
     int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int hlen = 0;
+    uint16_t fragmentable_len = 0;
+    uint16_t hlen = 0;
     int ip_hdr_offset = 0;
 
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
@@ -328,14 +320,19 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         else {
             int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
             if (pkt_end > (int)MAX_PAYLOAD_SIZE) {
-                SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble "
-                        "fragmented packet, exceeds size of packet buffer.");
+                SCLogDebug("Failed re-assemble "
+                           "fragmented packet, exceeds size of packet buffer.");
                 goto error_remove_tracker;
             }
             if (PacketCopyDataOffset(rp,
                     fragmentable_offset + frag->offset + frag->ltrim,
                     frag->pkt + frag->data_offset + frag->ltrim,
                     frag->data_len - frag->ltrim) == -1) {
+                goto error_remove_tracker;
+            }
+            if (frag->offset > UINT16_MAX - frag->data_len) {
+                SCLogDebug("Failed re-assemble "
+                           "fragmentable_len exceeds UINT16_MAX");
                 goto error_remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
@@ -347,11 +344,12 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         }
     }
 
-    SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u",
-            ip_hdr_offset, hlen, fragmentable_len);
+    SCLogDebug("ip_hdr_offset %u, hlen %" PRIu16 ", fragmentable_len %" PRIu16, ip_hdr_offset, hlen,
+            fragmentable_len);
 
     rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     uint16_t old = rp->ip4h->ip_len + rp->ip4h->ip_off;
+    DEBUG_VALIDATE_BUG_ON(hlen > UINT16_MAX - fragmentable_len);
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
     rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
@@ -429,15 +427,13 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
             IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                "fragmentation re-assembly, dumping fragments.");
         goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
 
-    int unfragmentable_len = 0;
+    uint16_t unfragmentable_len = 0;
     int fragmentable_offset = 0;
-    int fragmentable_len = 0;
+    uint16_t fragmentable_len = 0;
     int ip_hdr_offset = 0;
     uint8_t next_hdr = 0;
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
@@ -469,7 +465,10 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
             /* unfragmentable part is the part between the ipv6 header
              * and the frag header. */
-            unfragmentable_len = (fragmentable_offset - ip_hdr_offset) - IPV6_HEADER_LEN;
+            DEBUG_VALIDATE_BUG_ON(fragmentable_offset < ip_hdr_offset + IPV6_HEADER_LEN);
+            DEBUG_VALIDATE_BUG_ON(
+                    fragmentable_offset - ip_hdr_offset - IPV6_HEADER_LEN > UINT16_MAX);
+            unfragmentable_len = (uint16_t)(fragmentable_offset - ip_hdr_offset - IPV6_HEADER_LEN);
             if (unfragmentable_len >= fragmentable_offset)
                 goto error_remove_tracker;
         }
@@ -488,6 +487,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
 
     rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
+    DEBUG_VALIDATE_BUG_ON(unfragmentable_len > UINT16_MAX - fragmentable_len);
     rp->ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
     /* if we have no unfragmentable part, so no ext hdrs before the frag
      * header, we need to update the ipv6 headers next header field. This
@@ -1064,8 +1064,7 @@ DefragInit(void)
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
     if (defrag_context == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Failed to allocate memory for the Defrag module.");
+        FatalError("Failed to allocate memory for the Defrag module.");
     }
 
     DefragSetDefaultTimeout(defrag_context->timeout);
@@ -1082,6 +1081,8 @@ void DefragDestroy(void)
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
+
 #define IP_MF 0x2000
 
 /**

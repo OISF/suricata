@@ -102,9 +102,15 @@ pub fn to_hex_string(bytes: &[u8]) -> String {
     s
 }
 
+impl Default for KRB5State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KRB5State {
     pub fn new() -> KRB5State {
-        KRB5State{
+        Self {
             state_data: AppLayerStateData::new(),
             req_id: 0,
             record_ts: 0,
@@ -242,7 +248,7 @@ impl KRB5Transaction {
             etype: None,
             ticket_etype: None,
             error_code: None,
-            id: id,
+            id,
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
@@ -339,6 +345,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
             // Check kerberos version
             if let Ok((rem,_hdr)) = der_read_element_header(rem) {
                 if rem.len() > 5 {
+                    #[allow(clippy::single_match)]
                     match (rem[2],rem[3],rem[4]) {
                         // Encoding of DER integer 5 (version)
                         (2,1,5) => { return alproto; },
@@ -437,7 +444,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
         }
     };
     let mut cur_i = tcp_buffer;
-    while cur_i.len() > 0 {
+    while !cur_i.is_empty() {
         if state.record_ts == 0 {
             match be_u32(cur_i) as IResult<&[u8],u32> {
                 Ok((rem,record)) => {
@@ -495,7 +502,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
         }
     };
     let mut cur_i = tcp_buffer;
-    while cur_i.len() > 0 {
+    while !cur_i.is_empty() {
         if state.record_tc == 0 {
             match be_u32(cur_i) as IResult<&[u8],_> {
                 Ok((rem,record)) => {
@@ -530,7 +537,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
 export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
 export_state_data_get!(rs_krb5_get_state_data, KRB5State);
 
-const PARSER_NAME : &'static [u8] = b"krb5\0";
+const PARSER_NAME : &[u8] = b"krb5\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_krb5_parser() {

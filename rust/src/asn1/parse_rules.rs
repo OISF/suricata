@@ -83,7 +83,7 @@ pub unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
 }
 
 /// Struct to hold parsed asn1 keyword options
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DetectAsn1Data {
     pub bitstring_overflow: bool,
     pub double_overflow: bool,

@@ -24,9 +24,8 @@
 #ifndef __DETECT_BSIZE_H__
 #define	__DETECT_BSIZE_H__
 
-//bool DetectBsizeValidateContent(const Signature *s, int list, const char **);
-//void DetectBsizeApplyToContent(Signature *s, int list);
 void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
+bool DetectBsizeValidateContentCallback(Signature *s, int list);
 
 #endif	/* __DETECT_URILEN_H__ */

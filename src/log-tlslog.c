@@ -209,7 +209,7 @@ static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
     LogFileCtx* file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
-        SCLogError(SC_ERR_TLS_LOG_GENERIC, "LogTlsLogInitCtx: Couldn't "
+        SCLogError("LogTlsLogInitCtx: Couldn't "
                    "create new file_ctx");
         return result;
     }
@@ -273,7 +273,7 @@ static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
     return result;
 
 parser_error:
-    SCLogError(SC_ERR_INVALID_ARGUMENT, "Syntax error in custom tls log "
+    SCLogError("Syntax error in custom tls log "
                "format string.");
 tlslog_error:
     LogCustomFormatFree(tlslog_ctx->cf);

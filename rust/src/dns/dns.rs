@@ -81,6 +81,7 @@ pub const DNS_RECORD_TYPE_TLSA        : u16 = 52;
 pub const DNS_RECORD_TYPE_HIP         : u16 = 55;
 pub const DNS_RECORD_TYPE_CDS         : u16 = 59;
 pub const DNS_RECORD_TYPE_CDNSKEY     : u16 = 60;
+pub const DNS_RECORD_TYPE_HTTPS       : u16 = 65;
 pub const DNS_RECORD_TYPE_SPF         : u16 = 99;  // Obsolete
 pub const DNS_RECORD_TYPE_TKEY        : u16 = 249;
 pub const DNS_RECORD_TYPE_TSIG        : u16 = 250;
@@ -123,7 +124,7 @@ pub enum DnsFrameType {
 }
 
 
-#[derive(Debug, PartialEq, AppLayerEvent)]
+#[derive(Debug, PartialEq, Eq, AppLayerEvent)]
 pub enum DNSEvent {
     MalformedData,
     NotRequest,
@@ -131,7 +132,7 @@ pub enum DNSEvent {
     ZFlagSet,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 #[repr(C)]
 pub struct DNSHeader {
     pub tx_id: u16,
@@ -149,7 +150,7 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
     pub mname: Vec<u8>,
@@ -167,7 +168,7 @@ pub struct DNSRDataSOA {
     pub minimum: u32,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSSHFP {
     /// Algorithm number
     pub algo: u8,
@@ -177,7 +178,7 @@ pub struct DNSRDataSSHFP {
     pub fingerprint: Vec<u8>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSRDataSRV {
     /// Priority
     pub priority: u16,
@@ -190,7 +191,7 @@ pub struct DNSRDataSRV {
 }
 
 /// Represents RData of various formats
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub enum DNSRData {
     // RData is an address
     A(Vec<u8>),
@@ -211,7 +212,7 @@ pub enum DNSRData {
     Unknown(Vec<u8>),
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
@@ -234,7 +235,7 @@ pub struct DNSResponse {
     pub authorities: Vec<DNSAnswerEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
@@ -249,14 +250,8 @@ impl Transaction for DNSTransaction {
 }
 
 impl DNSTransaction {
-
     pub fn new() -> Self {
-        return Self {
-            id: 0,
-            request: None,
-            response: None,
-            tx_data: AppLayerTxData::new(),
-        }
+        Default::default()
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
@@ -341,11 +336,7 @@ impl State<DNSTransaction> for DNSState {
 impl DNSState {
 
     pub fn new() -> Self {
-            Default::default()
-    }
-
-    pub fn new_tcp() -> Self {
-            Default::default()
+        Default::default()
     }
 
     pub fn new_tx(&mut self) -> DNSTransaction {
@@ -505,9 +496,9 @@ impl DNSState {
 
         let mut cur_i = input;
         let mut consumed = 0;
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             if cur_i.len() == 1 {
-                return AppLayerResult::incomplete(consumed as u32, 2 as u32);
+                return AppLayerResult::incomplete(consumed as u32, 2_u32);
             }
             let size = match be_u16(cur_i) as IResult<&[u8],u16> {
                 Ok((_, len)) => len,
@@ -554,9 +545,9 @@ impl DNSState {
 
         let mut cur_i = input;
         let mut consumed = 0;
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             if cur_i.len() == 1 {
-                return AppLayerResult::incomplete(consumed as u32, 2 as u32);
+                return AppLayerResult::incomplete(consumed as u32, 2_u32);
             }
             let size = match be_u16(cur_i) as IResult<&[u8],u16> {
                 Ok((_, len)) => len,
@@ -683,7 +674,7 @@ pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 /// Returns *mut DNSState
 #[no_mangle]
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
-    let state = DNSState::new_tcp();
+    let state = DNSState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
@@ -749,7 +740,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.request_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state.parse_request_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
@@ -766,7 +757,7 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.response_gap(stream_slice.gap_size());
-    } else if stream_slice.len() > 0 {
+    } else if !stream_slice.is_empty() {
         return state.parse_response_tcp(flow, stream_slice);
     }
     AppLayerResult::ok()
@@ -838,7 +829,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if query.name.len() > 0 {
+            if !query.name.is_empty() {
                 *len = query.name.len() as u32;
                 *buf = query.name.as_ptr();
                 return 1;
@@ -876,7 +867,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if query.name.len() > 0 {
+            if !query.name.is_empty() {
                 *rrtype = query.rrtype;
                 return 1;
             }

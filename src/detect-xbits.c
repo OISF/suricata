@@ -203,7 +203,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for xbits.", rawstr);
+        SCLogError("\"%s\" is not a valid setting for xbits.", rawstr);
         return -1;
     }
     SCLogDebug("ret %d, %s", ret, rawstr);
@@ -211,7 +211,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
@@ -220,7 +220,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(
                 parse_regex.match, 2, (PCRE2_UCHAR8 *)fb_name, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+            SCLogError("pcre2_substring_copy_bynumber failed");
             return -1;
         }
         if (ret >= 4) {
@@ -228,7 +228,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
             res = pcre2_substring_copy_bynumber(
                     parse_regex.match, 3, (PCRE2_UCHAR8 *)hb_dir_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                SCLogError("pcre2_substring_copy_bynumber failed");
                 return -1;
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
@@ -254,17 +254,18 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                 res = pcre2_substring_copy_bynumber(
                         parse_regex.match, 4, (PCRE2_UCHAR8 *)expire_str, &pcre2len);
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+                    SCLogError("pcre2_substring_copy_bynumber failed");
                     return -1;
                 }
                 SCLogDebug("expire_str %s", expire_str);
                 if (StringParseUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                               "expire: \"%s\"", expire_str);
+                    SCLogError("Invalid value for "
+                               "expire: \"%s\"",
+                            expire_str);
                     return -1;
                 }
                 if (expire == 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "expire must be bigger than 0");
+                    SCLogError("expire must be bigger than 0");
                     return -1;
                 }
                 SCLogDebug("expire %d", expire);
@@ -285,7 +286,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_XBITS_CMD_TOGGLE;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "xbits action \"%s\" is not supported.", fb_cmd_str);
+        SCLogError("xbits action \"%s\" is not supported.", fb_cmd_str);
         return -1;
     }
 

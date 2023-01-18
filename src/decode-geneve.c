@@ -116,8 +116,7 @@ static void DecodeGeneveConfigPorts(const char *pstr)
     g_geneve_ports_idx = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
         if (g_geneve_ports_idx >= GENEVE_MAX_PORTS) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "more than %d Geneve ports defined",
-                    GENEVE_MAX_PORTS);
+            SCLogWarning("more than %d Geneve ports defined", GENEVE_MAX_PORTS);
             break;
         }
         g_geneve_ports[g_geneve_ports_idx++] = (int)p->port;
@@ -301,7 +300,6 @@ static int DecodeGeneveTest01(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -344,7 +342,6 @@ static int DecodeGeneveTest02(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -392,7 +389,6 @@ static int DecodeGeneveTest03(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -437,7 +433,6 @@ static int DecodeGeneveTest04(void)
     DecodeGeneveConfigPorts("1"); /* Set Suricata to use a non-default port for Geneve*/
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
@@ -478,7 +473,6 @@ static int DecodeGeneveTest05(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);

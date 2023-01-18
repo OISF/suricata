@@ -222,8 +222,9 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 
         if (cd->depth && cd->depth < cd->content_len) {
             *sigerror = "depth or urilen smaller than content len";
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth or urilen %u smaller "
-                    "than content len %u", cd->depth, cd->content_len);
+            SCLogError("depth or urilen %u smaller "
+                       "than content len %u",
+                    cd->depth, cd->content_len);
             return false;
         }
     }
@@ -235,9 +236,9 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
+#include "detect-engine-alert.h"
 
 /** \test   Test the Urilen keyword setup */
 static int DetectUrilenParseTest01(void)

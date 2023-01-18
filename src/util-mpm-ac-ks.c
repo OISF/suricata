@@ -238,7 +238,7 @@ static void SCACTileReallocOutputTable(SCACTileCtx *ctx, int new_state_count)
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->output_table = ptmp;
 }
@@ -251,7 +251,7 @@ static void SCACTileReallocState(SCACTileCtx *ctx, int new_state_count)
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     ctx->goto_table = ptmp;
 
@@ -324,7 +324,7 @@ static void SCACTileSetOutputState(int32_t state, MpmPatternIndex pindex, MpmCtx
     if (ptmp == NULL) {
         SCFree(output_state->patterns);
         output_state->patterns = NULL;
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     output_state->patterns = ptmp;
 
@@ -427,9 +427,8 @@ static inline void SCACTileEnqueue(StateQueue *q, int32_t state)
         q->top = 0;
 
     if (q->top == q->bot) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("Just ran out of space in the queue.  "
+                   "Fatal Error.  Exiting.  Please file a bug report on this");
     }
 }
 
@@ -439,9 +438,8 @@ static inline int32_t SCACTileDequeue(StateQueue *q)
         q->bot = 0;
 
     if (q->bot == q->top) {
-        SCLogCritical(SC_ERR_AHO_CORASICK, "StateQueue behaving weirdly.  "
-                      "Fatal Error.  Exiting.  Please file a bug report on this");
-        exit(EXIT_FAILURE);
+        FatalError("StateQueue behaving weirdly.  "
+                   "Fatal Error.  Exiting.  Please file a bug report on this");
     }
 
     return q->store[q->bot++];
@@ -484,7 +482,7 @@ static void SCACTileClubOutputStates(int32_t dst_state,
             if (ptmp == NULL) {
                 SCFree(output_dst_state->patterns);
                 output_dst_state->patterns = NULL;
-                FatalError(SC_ERR_FATAL, "Error allocating memory");
+                FatalError("Error allocating memory");
             }
             output_dst_state->patterns = ptmp;
 
@@ -516,7 +514,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
      * every state(SCACTileCtx->state_count) */
     ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
@@ -561,7 +559,7 @@ static void SCACTileSetState1Byte(SCACTileCtx *ctx, int state, int aa,
     uint8_t encoded_next_state = (uint8_t)next_state;
 
     if (next_state == SC_AC_TILE_FAIL) {
-        FatalError(SC_ERR_FATAL, "Error FAIL state in output");
+        FatalError("Error FAIL state in output");
     }
 
     if (outputs == 0)
@@ -581,7 +579,7 @@ static void SCACTileSetState2Bytes(SCACTileCtx *ctx, int state, int aa,
     uint16_t encoded_next_state = (uint16_t)next_state;
 
     if (next_state == SC_AC_TILE_FAIL) {
-        FatalError(SC_ERR_FATAL, "Error FAIL state in output");
+        FatalError("Error FAIL state in output");
     }
 
     if (outputs == 0)
@@ -600,7 +598,7 @@ static void SCACTileSetState4Bytes(SCACTileCtx *ctx, int state, int aa,
     uint32_t encoded_next_state = next_state;
 
     if (next_state == SC_AC_TILE_FAIL) {
-        FatalError(SC_ERR_FATAL, "Error FAIL state in output");
+        FatalError("Error FAIL state in output");
     }
 
     if (outputs == 0)
@@ -717,7 +715,7 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     int size = ctx->state_count * ctx->bytes_per_state * ctx->alphabet_storage;
     void *state_table = SCMalloc(size);
     if (unlikely(state_table == NULL)) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     memset(state_table, 0, size);
     ctx->state_table = state_table;
@@ -923,7 +921,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     size_t mem_size = string_space_needed + pattern_list_size;
     void *mem_block = SCCalloc(1, mem_size);
     if (mem_block == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory");
+        FatalError("Error allocating memory");
     }
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += mem_size;
@@ -1480,6 +1478,7 @@ void MpmACTileRegister(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 
 static int SCACTileTest01(void)
 {

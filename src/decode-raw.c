@@ -75,6 +75,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "packet.h"
 
 /** DecodeRawtest01
  *  \brief Valid Raw packet

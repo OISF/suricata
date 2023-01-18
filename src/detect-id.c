@@ -129,9 +129,9 @@ static DetectIdData *DetectIdParse (const char *idstr)
     ret = DetectParsePcreExec(&parse_regex, idstr, 0, 0);
 
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
-                    "value must be in the range %u - %u",
-                    idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
+        SCLogError("invalid id option '%s'. The id option "
+                   "value must be in the range %u - %u",
+                idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
         return NULL;
     }
 
@@ -140,7 +140,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
     pcre2len = sizeof(copy_str);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     tmp_str = copy_str;
@@ -154,7 +154,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
 
     /* ok, fill the id data */
     if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'", tmp_str);
+        SCLogError("invalid id option '%s'", tmp_str);
         return NULL;
     }
 

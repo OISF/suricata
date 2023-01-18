@@ -43,6 +43,7 @@ http.accept_lang               http_accept_lang (*)     Request
 http.accept_enc                http_accept_enc (*)      Request
 http.referer                   http_referer (*)         Request
 http.connection                http_connection (*)      Request
+file.data                      file_data (*)            Both
 http.content_type              http_content_type (*)    Both
 http.content_len               http_content_len (*)     Both
 http.start                     http_start (*)           Both
@@ -66,7 +67,7 @@ http.cookie                    http_cookie              Both
 http.response_body             http_server_body         Response
 http.server                    N/A                      Response
 http.location                  N/A                      Response
-file.data                      file_data (*)            Response
+file.data                      file_data (*)            Both
 http.content_type              http_content_type (*)    Both
 http.content_len               http_content_len (*)     Both
 http.start                     http_start (*)           Both
@@ -316,22 +317,34 @@ Example of the purpose of ``http.header``:
 http.cookie
 -----------
 
-With the ``http.cookie`` content modifier, it is possible to match
-specifically and only on the cookie buffer. The keyword can be used in
-combination with all previously mentioned content modifiers like
-``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
+With the ``http.cookie`` sticky buffer it is possible to match
+specifically on the HTTP cookie contents. Keywords like ``depth``,
+``distance``, ``offset``, ``nocase`` and ``within`` can be used
+with ``http.cookie``.
 
-Note that cookies are passed in HTTP headers, but are extracted to a
-dedicated buffer and matched using their own specific content
-modifier.
+Note that cookies are passed in HTTP headers but Suricata extracts
+the cookie data to ``http.cookie`` and will not match cookie content
+put in the ``http.header`` sticky buffer.
 
 Example of a cookie in a HTTP request:
 
-.. image:: http-keywords/cookie.png
+Examples::
 
-Example of the purpose of ``http.cookie``:
+    GET / HTTP/1.1
+    User-Agent: Mozilla/5.0
+    Host: www.example.com
+    Cookie: PHPSESSIONID=1234
+    Connection: close
 
-.. image:: http-keywords/cookie1.png
+Example ``http.cookie`` keyword in a signature:
+
+.. container:: example-rule
+
+    alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request
+    with Cookie"; flow:established,to_server; http.method; content:"GET";
+    http.uri; content:"/"; fast_pattern; :example-rule-emphasis:`http.cookie;
+    content:"PHPSESSIONID="; startswith;` classtype:bad-unknown; sid:123;
+    rev:1;)
 
 http.user_agent
 ---------------
@@ -728,6 +741,8 @@ file.data
 
 With ``file.data``, the HTTP response body is inspected, just like
 with ``http.response_body``. The ``file.data`` keyword is a sticky buffer.
+``file.data`` also works for HTTP request body and can be used in other
+protocols than HTTP1.
 
 Example::
 

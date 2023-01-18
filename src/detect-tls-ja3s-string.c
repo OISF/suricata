@@ -44,7 +44,6 @@
 #include "conf-yaml-loader.h"
 
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-spm.h"
 #include "util-print.h"
 #include "util-ja3.h"
@@ -63,26 +62,6 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        Flow *f, const uint8_t flow_flags,
        void *txv, const int list_id);
 static int g_tls_ja3s_str_buffer_id = 0;
-
-static InspectionBuffer *GetJa3Data(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
-        const int list_id)
-{
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
-        uint32_t b_len = 0;
-        const uint8_t *b = NULL;
-
-        if (rs_quic_tx_get_ja3(txv, &b, &b_len) != 1)
-            return NULL;
-        if (b == NULL || b_len == 0)
-            return NULL;
-
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
-    }
-    return buffer;
-}
 
 /**
  * \brief Registration function for keyword: ja3s.string
@@ -104,10 +83,10 @@ void DetectTlsJa3SStringRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
     DetectAppLayerMpmRegister2("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetJa3Data, ALPROTO_QUIC, 1);
+            Ja3DetectGetString, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2("ja3s.string", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectBufferGeneric, GetJa3Data);
+            DetectEngineInspectBufferGeneric, Ja3DetectGetString);
 
     DetectBufferTypeSetDescriptionByName("ja3s.string", "TLS JA3S string");
 
@@ -130,7 +109,7 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
         return -1;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting protocols.");
+        SCLogError("rule contains conflicting protocols.");
         return -1;
     }
 
@@ -140,10 +119,11 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
         if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3S_STRING)) {
-            SCLogError(SC_WARN_JA3_DISABLED, "ja3(s) support is not enabled");
+            SCLogError("ja3(s) support is not enabled");
         }
         return -2;
     }
+    s->init_data->init_flags |= SIG_FLAG_INIT_JA3;
 
     return 0;
 }

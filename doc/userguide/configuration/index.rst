@@ -10,3 +10,4 @@ Configuration
    multi-tenant
    dropping-privileges
    landlock
+   systemd-notify

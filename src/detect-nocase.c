@@ -62,23 +62,23 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     int ret = -1;
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has value");
+        SCLogError("nocase has value");
         goto end;
     }
 
     /* retrive the sm to apply the nocase against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs "
+        SCLogError("nocase needs "
                    "preceding content option");
         goto end;
     }
 
     /* verify other conditions. */
-    DetectContentData *cd = (DetectContentData *)pm->ctx;;
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
 
     if (cd->flags & DETECT_CONTENT_NOCASE) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple nocase modifiers with the same content");
+        SCLogError("can't use multiple nocase modifiers with the same content");
         goto end;
     }
 

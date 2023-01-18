@@ -33,6 +33,7 @@
 #include "packet.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "action-globals.h"
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
@@ -142,9 +143,6 @@ void PacketPoolWaitForN(int n)
  */
 static void PacketPoolStorePacket(Packet *p)
 {
-    /* Clear the PKT_ALLOC flag, since that indicates to push back
-     * onto the ring buffer. */
-    p->flags &= ~PKT_ALLOC;
     p->pool = GetThreadPacketPool();
     p->ReleasePacket = PacketPoolReturnPacket;
     PacketPoolReturnPacket(p);
@@ -306,8 +304,7 @@ void PacketPoolInit(void)
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
         if (unlikely(p == NULL)) {
-            FatalError(SC_ERR_FATAL,
-                       "Fatal error encountered while allocating a packet. Exiting...");
+            FatalError("Fatal error encountered while allocating a packet. Exiting...");
         }
         PacketPoolStorePacket(p);
     }
@@ -361,15 +358,15 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     bool proot = false;
 
     SCEnter();
-    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
+    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
     if (IS_TUNNEL_PKT(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");
 
         /* get a lock to access root packet fields */
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-        SCMutexLock(m);
+        SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
+        SCSpinLock(lock);
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
@@ -393,7 +390,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 SET_TUNNEL_PKT_VERDICTED(p);
 
                 PACKET_PROFILING_END(p);
-                SCMutexUnlock(m);
+                SCSpinUnlock(lock);
                 SCReturn;
             }
         } else {
@@ -429,7 +426,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 /* fall through */
             }
         }
-        SCMutexUnlock(m);
+        SCSpinUnlock(lock);
 
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
@@ -441,7 +438,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     /* we're done with the tunnel root now as well */
     if (proot == true) {
-        SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
+        SCLogDebug("getting rid of root pkt... alloc'd %s", BOOL2STR(p->root->pool == NULL));
 
         PacketReleaseRefs(p->root);
         p->root->ReleasePacket(p->root);
@@ -503,8 +500,9 @@ void PacketPoolPostRunmodes(void)
     extern intmax_t max_pending_packets;
     intmax_t pending_packets = max_pending_packets;
     if (pending_packets < RESERVED_PACKETS) {
-        FatalError(SC_ERR_INVALID_ARGUMENT, "'max-pending-packets' setting "
-                "must be at least %d", RESERVED_PACKETS);
+        FatalError("'max-pending-packets' setting "
+                   "must be at least %d",
+                RESERVED_PACKETS);
     }
     uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
     if (threads == 0)

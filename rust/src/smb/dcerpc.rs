@@ -36,7 +36,7 @@ impl SMBCommonHdr {
         match vercmd.get_version() {
             2 => {
                 let (_, cmd2) = vercmd.get_smb2_cmd();
-                let x = match cmd2 as u16 {
+                let x = match cmd2 {
                     SMB2_COMMAND_READ => { 0 },
                     SMB2_COMMAND_WRITE => { 0 },
                     SMB2_COMMAND_IOCTL => { self.msg_id },
@@ -76,9 +76,9 @@ pub struct DCERPCIface {
 impl DCERPCIface {
     pub fn new(uuid: Vec<u8>, ver: u16, ver_min: u16) -> Self {
         Self {
-            uuid: uuid,
-            ver:ver,
-            ver_min:ver_min,
+            uuid,
+            ver,
+            ver_min,
             ..Default::default()
         }
     }
@@ -106,15 +106,15 @@ impl SMBTransactionDCERPC {
             context_id: 0,
             req_cmd: req,
             req_set: true,
-            call_id: call_id,
+            call_id,
             ..Default::default()
         }
     }
     fn new_response(call_id: u32) -> Self {
-        return Self {
-            call_id: call_id,
+       return  Self {
+            call_id,
             ..Default::default()
-        }
+        };
     }
     pub fn set_result(&mut self, res: u8) {
         self.res_set = true;
@@ -133,8 +133,8 @@ impl SMBState {
                     SMBTransactionDCERPC::new_request(cmd, call_id)));
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
@@ -148,8 +148,8 @@ impl SMBState {
                     SMBTransactionDCERPC::new_response(call_id)));
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
-        self.transactions.push(tx);
-        let tx_ref = self.transactions.last_mut();
+        self.transactions.push_back(tx);
+        let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
@@ -178,10 +178,10 @@ impl SMBState {
 /// Handle DCERPC request data from a WRITE, IOCTL or TRANS record.
 /// return bool indicating whether an tx has been created/updated.
 ///
-pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
+pub fn smb_write_dcerpc_record(state: &mut SMBState,
         vercmd: SMBVerCmdStat,
         hdr: SMBCommonHdr,
-        data: &'b [u8]) -> bool
+        data: &[u8]) -> bool
 {
     let mut bind_ifaces : Option<Vec<DCERPCIface>> = None;
     let mut is_bind = false;
@@ -194,7 +194,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
 
             /* if this isn't the first frag, simply update the existing
              * tx with the additional stub data */
-            if dcer.packet_type == DCERPC_TYPE_REQUEST && dcer.first_frag == false {
+            if dcer.packet_type == DCERPC_TYPE_REQUEST && !dcer.first_frag {
                 SCLogDebug!("NOT the first frag. Need to find an existing TX");
                 match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
                     Ok((_, recr)) => {
@@ -258,7 +258,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                     }
                 },
                 DCERPC_TYPE_BIND => {
-                    let brec = if dcer.little_endian == true {
+                    let brec = if dcer.little_endian {
                         parse_dcerpc_bind_record(dcer.data)
                     } else {
                         parse_dcerpc_bind_record_big(dcer.data)
@@ -268,10 +268,10 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             is_bind = true;
                             SCLogDebug!("SMB DCERPC {:?} BIND {:?}", dcer, bindr);
 
-                            if bindr.ifaces.len() > 0 {
+                            if !bindr.ifaces.is_empty() {
                                 let mut ifaces: Vec<DCERPCIface> = Vec::new();
                                 for i in bindr.ifaces {
-                                    let x = if dcer.little_endian == true {
+                                    let x = if dcer.little_endian {
                                         vec![i.iface[3],  i.iface[2],  i.iface[1],  i.iface[0],
                                              i.iface[5],  i.iface[4],  i.iface[7],  i.iface[6],
                                              i.iface[8],  i.iface[9],  i.iface[10], i.iface[11],
@@ -346,20 +346,15 @@ fn smb_dcerpc_response_bindack(
                 None => false,
             };
             if found {
-                match state.dcerpc_ifaces {
-                    Some(ref mut ifaces) => {
-                        let mut i = 0;
-                        for r in bindackr.results {
-                            if i >= ifaces.len() {
-                                // TODO set event: more acks that requests
-                                break;
-                            }
-                            ifaces[i].ack_result = r.ack_result;
-                            ifaces[i].acked = true;
-                            i = i + 1;
+                if let Some(ref mut ifaces) = state.dcerpc_ifaces {
+                    for (i, r) in bindackr.results.into_iter().enumerate() {
+                        if i >= ifaces.len() {
+                            // TODO set event: more acks that requests
+                            break;
                         }
-                    },
-                    _ => {},
+                        ifaces[i].ack_result = r.ack_result;
+                        ifaces[i].acked = true;
+                    }
                 }
             }
         },
@@ -397,7 +392,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
     return found;
 }
 
-fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
+fn dcerpc_response_handle(tx: &mut SMBTransaction,
         vercmd: SMBVerCmdStat,
         dcer: &DceRpcRecord)
 {
@@ -459,7 +454,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
     SCLogDebug!("lets first see if we have prior data");
     // msg_id 0 as this data crosses cmd/reply pairs
     let ehdr = SMBHashKeyHdrGuid::new(SMBCommonHdr::new(SMBHDR_TYPE_TRANS_FRAG,
-            hdr.ssn_id as u64, hdr.tree_id as u32, 0 as u64), guid.to_vec());
+            hdr.ssn_id, hdr.tree_id, 0_u64), guid.to_vec());
     let mut prevdata = match state.ssnguid2vec_map.remove(&ehdr) {
         Some(s) => s,
         None => Vec::new(),
@@ -470,7 +465,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 
     let mut malformed = false;
 
-    if data.len() == 0 {
+    if data.is_empty() {
         SCLogDebug!("weird: no DCERPC data"); // TODO
         // TODO set event?
         return false;
@@ -523,7 +518,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 }
 
 /// Try to find out if the input data looks like DCERPC
-pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
+pub fn smb_dcerpc_probe(data: &[u8]) -> bool
 {
     if let Ok((_, recr)) = parse_dcerpc_record(data) {
         SCLogDebug!("SMB: could be DCERPC {:?}", recr);

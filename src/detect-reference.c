@@ -102,8 +102,9 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 2) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
-                   "keyword argument - \"%s\".   Invalid argument.", rawstr);
+        SCLogError("Unable to parse \"reference\" "
+                   "keyword argument - \"%s\".   Invalid argument.",
+                rawstr);
         return NULL;
     }
 
@@ -115,14 +116,14 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     pcre2len = sizeof(key);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)key, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     pcre2len = sizeof(content);
     res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)content, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -134,13 +135,11 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         ref->key = lookup_ref_conf->url;
     } else {
         if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
-            SCLogError(SC_ERR_REFERENCE_UNKNOWN,
-                    "unknown reference key \"%s\"", key);
+            SCLogError("unknown reference key \"%s\"", key);
             goto error;
         }
 
-        SCLogWarning(SC_ERR_REFERENCE_UNKNOWN,
-                "unknown reference key \"%s\"", key);
+        SCLogWarning("unknown reference key \"%s\"", key);
 
         char str[2048];
         snprintf(str, sizeof(str), "config reference: %s undefined\n", key);
@@ -155,7 +154,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     /* make a copy so we can free pcre's substring */
     ref->reference = SCStrdup(content);
     if (ref->reference == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
+        SCLogError("strdup failed: %s", strerror(errno));
         goto error;
     }
 

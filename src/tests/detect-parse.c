@@ -1,5 +1,4 @@
-
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,8 +15,12 @@
  * 02110-1301, USA.
  */
 
+#include "../detect.h"
 #include "../detect-parse.h"
+#include "../detect-engine-port.h"
 #include "../util-unittest.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 /**
  * \test DetectParseTest01 is a regression test against a memory leak
@@ -56,6 +59,87 @@ static int DetectParseTestNoOpt(void)
     PASS;
 }
 
+static int SigParseTestNegatationNoWhitespace(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any [30:50,!45] -> any [30:50,!45] (msg:\"sid 2 version 0\"; "
+            "content:\"dummy2\"; sid:2;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sp);
+    FAIL_IF_NULL(s->dp);
+    FAIL_IF_NOT(s->sp->port == 30);
+    FAIL_IF_NOT(s->sp->port2 == 44);
+    FAIL_IF_NULL(s->sp->next);
+    FAIL_IF_NOT(s->sp->next->port == 46);
+    FAIL_IF_NOT(s->sp->next->port2 == 50);
+    FAIL_IF_NOT_NULL(s->sp->next->next);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+// // Tests proper Signature is parsed from portstring length < 16 ie [30:50, !45]
+static int SigParseTestWhitespaceLessThan14(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any [30:50, !45] -> any [30:50,!45] (msg:\"sid 2 version 0\"; "
+            "content:\"dummy2\"; sid:2;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sp);
+    FAIL_IF_NULL(s->dp);
+    FAIL_IF_NOT(s->sp->port == 30);
+    FAIL_IF_NOT(s->sp->port2 == 44);
+    FAIL_IF_NULL(s->sp->next);
+    FAIL_IF_NOT(s->sp->next->port == 46);
+    FAIL_IF_NOT(s->sp->next->port2 == 50);
+    FAIL_IF_NOT_NULL(s->sp->next->next);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int SigParseTestWhitespace14Spaces(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any [30:50,              !45] -> any [30:50,!45] (msg:\"sid 2 "
+            "version 0\"; content:\"dummy2\"; sid:2;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sp);
+    FAIL_IF_NULL(s->dp);
+    FAIL_IF_NOT(s->sp->port == 30);
+    FAIL_IF_NOT(s->sp->port2 == 44);
+    FAIL_IF_NULL(s->sp->next);
+    FAIL_IF_NOT(s->sp->next->port == 46);
+    FAIL_IF_NOT(s->sp->next->port2 == 50);
+    FAIL_IF_NOT_NULL(s->sp->next->next);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int SigParseTestWhitespaceMoreThan14(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any [30:50,                          !45] -> any [30:50,!45] "
+            "(msg:\"sid 2 version 0\"; content:\"dummy2\"; sid:2;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sp);
+    FAIL_IF_NULL(s->dp);
+    FAIL_IF_NOT(s->sp->port == 30);
+    FAIL_IF_NOT(s->sp->port2 == 44);
+    FAIL_IF_NULL(s->sp->next);
+    FAIL_IF_NOT(s->sp->next->port == 46);
+    FAIL_IF_NOT(s->sp->next->port2 == 50);
+    FAIL_IF_NOT_NULL(s->sp->next->next);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for DetectParse
  */
@@ -63,4 +147,8 @@ void DetectParseRegisterTests(void)
 {
     UtRegisterTest("DetectParseTest01", DetectParseTest01);
     UtRegisterTest("DetectParseTestNoOpt", DetectParseTestNoOpt);
+    UtRegisterTest("SigParseTestNegatationNoWhitespace", SigParseTestNegatationNoWhitespace);
+    UtRegisterTest("SigParseTestWhitespaceLessThan14", SigParseTestWhitespaceLessThan14);
+    UtRegisterTest("SigParseTestWhitespace14Spaces", SigParseTestWhitespace14Spaces);
+    UtRegisterTest("SigParseTestWhitespaceMoreThan14", SigParseTestWhitespaceMoreThan14);
 }

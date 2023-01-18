@@ -75,7 +75,7 @@ int TmModuleGetIdByName(const char *name)
 {
     TmModule *tm = TmModuleGetByName(name);
     if (tm == NULL)
-        return -1;;
+        return -1;
     return TmModuleGetIDForTM(tm);
 }
 
@@ -91,8 +91,9 @@ TmModule *TmModuleGetById(int id)
 {
 
     if (id < 0 || id >= TMM_SIZE) {
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Threading module with the id "
-                   "\"%d\" doesn't exist", id);
+        SCLogError("Threading module with the id "
+                   "\"%d\" doesn't exist",
+                id);
         return NULL;
     }
 
@@ -179,8 +180,9 @@ void TmModuleRegisterTests(void)
 
         if (t->RegisterTests == NULL) {
             if (coverage_unittests)
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "threading module %s has no unittest "
-                        "registration function.", t->name);
+                SCLogWarning("threading module %s has no unittest "
+                             "registration function.",
+                        t->name);
         } else {
             t->RegisterTests();
             g_ut_covered++;
@@ -229,8 +231,10 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_RECEIVENAPATECH);
         CASE_CODE (TMM_DECODENAPATECH);
         CASE_CODE (TMM_RECEIVEAFP);
+        CASE_CODE(TMM_RECEIVEAFXDP);
         CASE_CODE (TMM_ALERTPCAPINFO);
         CASE_CODE (TMM_DECODEAFP);
+        CASE_CODE(TMM_DECODEAFXDP);
         CASE_CODE (TMM_STATSLOGGER);
         CASE_CODE (TMM_FLOWMANAGER);
         CASE_CODE (TMM_FLOWRECYCLER);

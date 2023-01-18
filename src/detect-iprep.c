@@ -217,7 +217,7 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
     DetectIPRepData *cd = rs_detect_iprep_parse(rawstr);
     if (cd == NULL) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "\"%s\" is not a valid setting for iprep", rawstr);
+        SCLogError("\"%s\" is not a valid setting for iprep", rawstr);
         goto error;
     }
 
@@ -255,6 +255,9 @@ void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
+#include "packet.h"
+#include "action-globals.h"
+
 static FILE *DetectIPRepGenerateCategoriesDummy(void)
 {
     FILE *fd = NULL;

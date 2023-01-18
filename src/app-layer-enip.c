@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "util-debug.h"
 #include "util-byte.h"
@@ -47,7 +48,6 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "pkt-var.h"
@@ -108,8 +108,9 @@ static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayer
     *event_id = SCMapEnumNameToValue(event_name, enip_decoder_event_table);
 
     if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "enip's enum map table.",  event_name);
+        SCLogError("event \"%s\" not present in "
+                   "enip's enum map table.",
+                event_name);
         /* yes this is fatal */
         return -1;
     }
@@ -124,8 +125,9 @@ static int ENIPStateGetEventInfoById(int event_id, const char **event_name,
 {
     *event_name = SCMapEnumValueToName(event_id, enip_decoder_event_table);
     if (*event_name == NULL) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
-                   "enip's enum map table.",  event_id);
+        SCLogError("event \"%d\" not present in "
+                   "enip's enum map table.",
+                event_id);
         /* yes this is fatal */
         return -1;
     }
@@ -606,13 +608,8 @@ void RegisterENIPTCPParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "app-layer-parser.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 
 static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
                                  /* Length */     0x00, 0x00,

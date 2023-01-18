@@ -88,13 +88,13 @@ static void * DetectMarkParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         return NULL;
     }
 
     res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         return NULL;
     }
 
@@ -106,24 +106,24 @@ static void * DetectMarkParse (const char *rawstr)
     errno = 0;
     mark = strtoul(ptr, &endptr, 0);
     if (errno == ERANGE) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        SCLogError("Numeric value out of range");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     }     /* If there is no numeric value in the given string then strtoull(), makes
              endptr equals to ptr and return 0 as result */
     else if (endptr == ptr && mark == 0) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "No numeric value");
+        SCLogError("No numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     } else if (endptr == ptr) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        SCLogError("Invalid numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     }
 
     res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         return NULL;
     }
 
@@ -143,18 +143,18 @@ static void * DetectMarkParse (const char *rawstr)
     errno = 0;
     mask = strtoul(ptr, &endptr, 0);
     if (errno == ERANGE) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        SCLogError("Numeric value out of range");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     }     /* If there is no numeric value in the given string then strtoull(), makes
              endptr equals to ptr and return 0 as result */
     else if (endptr == ptr && mask == 0) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "No numeric value");
+        SCLogError("No numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     }
     else if (endptr == ptr) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        SCLogError("Invalid numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         return NULL;
     }
@@ -233,11 +233,11 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
              * are fine. */
             if (p->flags & PKT_REBUILT_FRAGMENT) {
                 Packet *tp = p->root ? p->root : p;
-                SCMutexLock(&tp->tunnel_mutex);
+                SCSpinLock(&tp->persistent.tunnel_lock);
                 tp->nfq_v.mark = (nf_data->mark & nf_data->mask)
                     | (tp->nfq_v.mark & ~(nf_data->mask));
                 tp->flags |= PKT_MARK_MODIFIED;
-                SCMutexUnlock(&tp->tunnel_mutex);
+                SCSpinUnlock(&tp->persistent.tunnel_lock);
             }
         }
     }

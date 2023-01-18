@@ -603,6 +603,10 @@ static int TCPProtoDetect(ThreadVars *tv,
                 AppLayerIncFlowCounter(tv, f);
                 FlagPacketFlow(p, f, flags);
 
+            } else if (flags & STREAM_EOF) {
+                *alproto = f->alproto;
+                StreamTcpSetStreamFlagAppProtoDetectionCompleted(*stream);
+                AppLayerIncFlowCounter(tv, f);
             }
         } else {
             /* both sides unknown, let's see if we need to give up */
@@ -676,6 +680,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             if (f->alproto == ALPROTO_UNKNOWN) {
                 goto failure;
             }
+            AppLayerIncFlowCounter(tv, f);
         }
         if (FlowChangeProto(f)) {
             FlowUnsetChangeProtoFlag(f);
@@ -1047,7 +1052,7 @@ void AppLayerRegisterGlobalCounters(void)
 }
 
 #define IPPROTOS_MAX 2
-void AppLayerSetupCounters()
+void AppLayerSetupCounters(void)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
     AppProto alprotos[ALPROTO_MAX];
@@ -1168,7 +1173,7 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
     }
 }
 
-void AppLayerDeSetupCounters()
+void AppLayerDeSetupCounters(void)
 {
     memset(applayer_counter_names, 0, sizeof(applayer_counter_names));
     memset(applayer_counters, 0, sizeof(applayer_counters));
@@ -1178,7 +1183,6 @@ void AppLayerDeSetupCounters()
 
 #ifdef UNITTESTS
 #include "pkt-var.h"
-#include "stream-tcp.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 #include "util-unittest.h"
@@ -1192,7 +1196,6 @@ void AppLayerDeSetupCounters()
     TCPHdr tcph;                                                                                   \
     PacketQueueNoLock pq;                                                                          \
     memset(&pq, 0, sizeof(PacketQueueNoLock));                                                     \
-    memset(p, 0, SIZE_OF_PACKET);                                                                  \
     memset(&f, 0, sizeof(Flow));                                                                   \
     memset(&tv, 0, sizeof(ThreadVars));                                                            \
     memset(&tcph, 0, sizeof(TCPHdr));                                                              \

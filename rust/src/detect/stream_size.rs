@@ -25,7 +25,7 @@ use std::ffi::CStr;
 use std::str::FromStr;
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum DetectStreamSizeDataFlags {
     StreamSizeServer = 1,
     StreamSizeClient = 2,
@@ -70,9 +70,9 @@ pub fn detect_parse_stream_size(i: &str) -> IResult<&str, DetectStreamSizeData> 
     let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
     let du32 = DetectUintData::<u32> {
-        arg1: arg1,
+        arg1,
         arg2: 0,
-        mode: mode,
+        mode,
     };
     Ok((i, DetectStreamSizeData { flags, du32 }))
 }

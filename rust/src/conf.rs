@@ -35,6 +35,22 @@ extern {
                          vptr: *mut *const c_char) -> i8;
     fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
                              vptr: *mut c_int) -> i8;
+    fn ConfGetNode(key: *const c_char) -> *const c_void;
+}
+
+pub fn conf_get_node(key: &str) -> Option<ConfNode> {
+    let key = if let Ok(key) = CString::new(key) {
+        key
+    } else {
+        return None;
+    };
+
+    let node = unsafe { ConfGetNode(key.as_ptr()) };
+    if node.is_null() {
+        None
+    } else {
+        Some(ConfNode::wrap(node))
+    }
 }
 
 // Return the string value of a configuration value.
@@ -63,16 +79,13 @@ pub fn conf_get(key: &str) -> Option<&str> {
 // Return the value of key as a boolean. A value that is not set is
 // the same as having it set to false.
 pub fn conf_get_bool(key: &str) -> bool {
-    match conf_get(key) {
-        Some(val) => {
-            match val {
-                "1" | "yes" | "true" | "on" => {
-                    return true;
-                },
-                _ => {},
-            }
-        },
-        None => {},
+    if let Some(val) = conf_get(key) {
+        match val {
+            "1" | "yes" | "true" | "on" => {
+                return true;
+            },
+            _ => {},
+        }
     }
 
     return false;
@@ -181,7 +194,7 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     if unit.is_empty() {
         unit = "B";
     }
-    let unit = get_memunit(unit) as u64;
+    let unit = get_memunit(unit);
     if unit == 0 {
         return Err("Invalid memory unit");
     }

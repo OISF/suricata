@@ -48,6 +48,7 @@
 #include "util-syslog.h"
 #include "util-optimize.h"
 #include "util-logopenfile.h"
+#include "action-globals.h"
 
 #ifndef OS_WIN32
 
@@ -100,9 +101,9 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 
     int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
     if (facility == -1) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid syslog facility: \"%s\","
-                " now using \"%s\" as syslog facility", facility_s,
-                DEFAULT_ALERT_SYSLOG_FACILITY_STR);
+        SCLogWarning("Invalid syslog facility: \"%s\","
+                     " now using \"%s\" as syslog facility",
+                facility_s, DEFAULT_ALERT_SYSLOG_FACILITY_STR);
         facility = DEFAULT_ALERT_SYSLOG_FACILITY;
     }
 

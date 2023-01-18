@@ -45,6 +45,6 @@ TmEcode UnixManagerRegisterBackgroundTask(
 #endif
 
 void TmModuleUnixManagerRegister(void);
-void UnixManagerThreadSpawnNonRunmode(void);
+void UnixManagerThreadSpawnNonRunmode(const bool unix_socket_enabled);
 
 #endif /* UNIX_MANAGER_H */

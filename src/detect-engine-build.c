@@ -1222,8 +1222,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) &&
             (!(s->dp->port == 0 && s->dp->port2 == 65535)))
         {
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: SYN-only to port(s) %u:%u "
-                    "w/o direction specified, disabling for toclient direction",
+            SCLogWarning("rule %u: SYN-only to port(s) %u:%u "
+                         "w/o direction specified, disabling for toclient direction",
                     s->id, s->dp->port, s->dp->port2);
             goto next;
         }
@@ -1743,9 +1743,8 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
 {
     BUG_ON(de_ctx == NULL);
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogDebug("cleaning up signature grouping structure...");
-    }
+    SCLogDebug("cleaning up signature grouping structure...");
+
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
@@ -1777,9 +1776,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
 
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("cleaning up signature grouping structure... complete");
-    }
+    SCLogDebug("cleaning up signature grouping structure... complete");
     return 0;
 }
 
@@ -1973,18 +1970,18 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     SigInitStandardMpmFactoryContexts(de_ctx);
 
     if (SigAddressPrepareStage1(de_ctx) != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
 
     if (SigAddressPrepareStage2(de_ctx) != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
 
     if (SigAddressPrepareStage3(de_ctx) != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
     if (SigAddressPrepareStage4(de_ctx) != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
 
     int r = DetectMpmPrepareBuiltinMpms(de_ctx);
@@ -1992,11 +1989,11 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     r |= DetectMpmPreparePktMpms(de_ctx);
     r |= DetectMpmPrepareFrameMpms(de_ctx);
     if (r != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
 
     if (SigMatchPrepare(de_ctx) != 0) {
-        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
+        FatalError("initializing the detection engine failed");
     }
 
 #ifdef PROFILING

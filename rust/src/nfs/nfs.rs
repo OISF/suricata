@@ -211,6 +211,12 @@ pub struct NFSTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Default for NFSTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NFSTransaction {
     pub fn new() -> Self {
         return Self {
@@ -286,7 +292,7 @@ impl NFSRequestXidMap {
 
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
+        flags: u16, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
     match unsafe {SURICATA_NFS_FILE_CONFIG} {
@@ -340,6 +346,12 @@ pub struct NFSState {
     /// Timestamp in seconds of last update. This is packet time,
     /// potentially coming from pcaps.
     ts: u64,
+}
+
+impl Default for NFSState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl State<NFSTransaction> for NFSState {
@@ -461,21 +473,18 @@ impl NFSState {
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
-        match self.get_tx_by_xid(xid) {
-            Some(mytx) => {
-                mytx.response_done = true;
-                mytx.rpc_response_status = rpc_status;
-                mytx.nfs_response_status = nfs_status;
-                if mytx.file_handle.len() == 0 && resp_handle.len() > 0 {
-                    mytx.file_handle = resp_handle.to_vec();
-                }
-
-                SCLogDebug!("process_reply_record: tx ID {} XID {:04X} REQUEST {} RESPONSE {}",
+        if let Some(mytx) = self.get_tx_by_xid(xid) {
+            mytx.response_done = true;
+            mytx.rpc_response_status = rpc_status;
+            mytx.nfs_response_status = nfs_status;
+            if mytx.file_handle.is_empty() && !resp_handle.is_empty() {
+                mytx.file_handle = resp_handle.to_vec();
+            }
+            
+            SCLogDebug!("process_reply_record: tx ID {} XID {:04X} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
-            },
-            None => {
-                //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
-            },
+        } else {
+            //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
         }
     }
 
@@ -685,7 +694,7 @@ impl NFSState {
         }
     }
 
-    pub fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
+    pub fn new_file_tx(&mut self, file_handle: &[u8], file_name: &[u8], direction: Direction)
         -> &mut NFSTransaction
     {
         let mut tx = self.new_tx();
@@ -709,7 +718,7 @@ impl NFSState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: Direction)
+    pub fn get_file_tx_by_handle(&mut self, file_handle: &[u8], direction: Direction)
         -> Option<&mut NFSTransaction>
     {
         let fh = file_handle.to_vec();
@@ -743,7 +752,7 @@ impl NFSState {
         }
 
         // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
+        let is_last = w.stable == 2;
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -1116,7 +1125,7 @@ impl NFSState {
         }
     }
 
-    pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
+    pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(Direction::ToServer, &gap, gap_size);
@@ -1130,7 +1139,7 @@ impl NFSState {
         return AppLayerResult::ok();
     }
 
-    pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
+    pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(Direction::ToClient, &gap, gap_size);
@@ -1162,7 +1171,7 @@ impl NFSState {
                     Ok((_rem, ref hdr)) => {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
-                        debug_validate_bug_on!(_rem.len() != 0);
+                        debug_validate_bug_on!(!_rem.is_empty());
 
                         match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
@@ -1201,7 +1210,7 @@ impl NFSState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_tcp_data_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
@@ -1212,14 +1221,14 @@ impl NFSState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
 
             let mut _cnt = 0;
-            while cur_i.len() > 0 {
+            while !cur_i.is_empty() {
                 _cnt += 1;
                 match nfs_probe(cur_i, Direction::ToServer) {
                     1 => {
@@ -1234,7 +1243,7 @@ impl NFSState {
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
-                        if cur_i.len() == 0 {
+                        if cur_i.is_empty() {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
@@ -1246,7 +1255,7 @@ impl NFSState {
             SCLogDebug!("TS GAP handling done (input {})", cur_i.len());
         }
 
-        while cur_i.len() > 0 { // min record size
+        while !cur_i.is_empty() { // min record size
             self.add_rpc_tcp_ts_pdu(flow, stream_slice, cur_i, cur_i.len() as i64);
             match parse_rpc_request_partial(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
@@ -1326,7 +1335,7 @@ impl NFSState {
                     Ok((_rem, ref hdr)) => {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
-                        debug_validate_bug_on!(_rem.len() != 0);
+                        debug_validate_bug_on!(!_rem.is_empty());
 
                         match parse_nfs3_reply_read(hdr.prog_data, false) {
                             Ok((_, ref r)) => {
@@ -1365,7 +1374,7 @@ impl NFSState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_tcp_data_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
@@ -1376,14 +1385,14 @@ impl NFSState {
             }
             cur_i = &cur_i[consumed as usize..];
         }
-        if cur_i.len() == 0 {
+        if cur_i.is_empty() {
             return AppLayerResult::ok();
         }
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
 
             let mut _cnt = 0;
-            while cur_i.len() > 0 {
+            while !cur_i.is_empty() {
                 _cnt += 1;
                 match nfs_probe(cur_i, Direction::ToClient) {
                     1 => {
@@ -1398,7 +1407,7 @@ impl NFSState {
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
-                        if cur_i.len() == 0 {
+                        if cur_i.is_empty() {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
@@ -1410,7 +1419,7 @@ impl NFSState {
             SCLogDebug!("TC GAP handling done (input {})", cur_i.len());
         }
 
-        while cur_i.len() > 0 {
+        while !cur_i.is_empty() {
             self.add_rpc_tcp_tc_pdu(flow, stream_slice, cur_i, cur_i.len() as i64);
             match parse_rpc_packet_header(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
@@ -1469,11 +1478,11 @@ impl NFSState {
         AppLayerResult::ok()
     }
     /// Parsing function
-    pub fn parse_udp_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_udp_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
         self.add_rpc_udp_ts_pdu(flow, stream_slice, input, input.len() as i64);
-        if input.len() > 0 {
+        if !input.is_empty() {
             match parse_rpc_udp_request(input) {
                 Ok((_, ref rpc_record)) => {
                     self.is_udp = true;
@@ -1501,11 +1510,11 @@ impl NFSState {
     }
 
     /// Parsing function
-    pub fn parse_udp_tc<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+    pub fn parse_udp_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_tc ({})", input.len());
         self.add_rpc_udp_tc_pdu(flow, stream_slice, input, input.len() as i64);
-        if input.len() > 0 {
+        if !input.is_empty() {
             match parse_rpc_udp_reply(input) {
                 Ok((_, ref rpc_record)) => {
                     self.is_udp = true;
@@ -1569,7 +1578,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_ts_gap(input_len as u32)
+    state.parse_tcp_data_ts_gap(input_len)
 }
 
 #[no_mangle]
@@ -1598,7 +1607,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
                                         input_len: u32)
                                         -> AppLayerResult
 {
-    state.parse_tcp_data_tc_gap(input_len as u32)
+    state.parse_tcp_data_tc_gap(input_len)
 }
 
 /// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
@@ -1669,13 +1678,13 @@ pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c
 {
     let tx = cast_pointer!(tx, NFSTransaction);
     if direction == Direction::ToServer.into() && tx.request_done {
-        //SCLogNotice!("TOSERVER progress 1");
+        SCLogDebug!("TOSERVER progress 1");
         return 1;
     } else if direction == Direction::ToClient.into() && tx.response_done {
-        //SCLogNotice!("TOCLIENT progress 1");
+        SCLogDebug!("TOCLIENT progress 1");
         return 1;
     } else {
-        //SCLogNotice!("{} progress 0", direction);
+        SCLogDebug!("{} progress 0", direction);
         return 0;
     }
 }
@@ -1701,7 +1710,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
                                            -> u8
 {
     if i == 0 {
-        *procedure = tx.procedure as u32;
+        *procedure = tx.procedure;
         return 1;
     }
 
@@ -1715,7 +1724,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
         let idx = i as usize - 1;
         if idx < tdf.file_additional_procs.len() {
             let p = tdf.file_additional_procs[idx];
-            *procedure = p as u32;
+            *procedure = p;
             return 1;
         }
     }
@@ -1935,7 +1944,7 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"nfs\0";
+const PARSER_NAME: &[u8] = b"nfs\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_register_parser() {
@@ -1984,21 +1993,21 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
-        if midstream == true {
-            if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP as u8,
+        if midstream {
+            if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
                 SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP
                             detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8,
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     default_port.as_ptr(), ALPROTO_NFS, 0,
                     NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                     rs_nfs_probe_ms, rs_nfs_probe_ms);
             }
         } else {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8,
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe, rs_nfs_probe);
@@ -2062,13 +2071,13 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_NFS = alproto;
 
-        if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP as u8,
+        if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP,
                 parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
             SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP
                         detection UDP detection on port {:?}.",
                         default_port);
-            AppLayerProtoDetectPPRegister(IPPROTO_UDP as u8,
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc);

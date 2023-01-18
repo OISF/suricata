@@ -41,15 +41,17 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
     const char *ip_proto_str = NULL;
 
     if (p == NULL)
-        FatalError(SC_ERR_FATAL, "Call to %s with NULL pointer.", __FUNCTION__);
+        FatalError("Call to %s with NULL pointer.", __FUNCTION__);
 
     alproto = StringToAppProto(p->name);
     if (alproto == ALPROTO_UNKNOWN || alproto == ALPROTO_FAILED)
-        FatalError(SC_ERR_FATAL, "Unknown or invalid AppProto '%s'.", p->name);
+        FatalError("Unknown or invalid AppProto '%s'.", p->name);
+
+    BUG_ON(strcmp(p->name, AppProtoToString(alproto)) != 0);
 
     ip_proto_str = IpProtoToString(p->ip_proto);
     if (ip_proto_str == NULL)
-        FatalError(SC_ERR_FATAL, "Unknown or unsupported ip_proto field in parser '%s'", p->name);
+        FatalError("Unknown or unsupported ip_proto field in parser '%s'", p->name);
 
     SCLogDebug("%s %s protocol detection enabled.", ip_proto_str, p->name);
 
@@ -97,14 +99,16 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     const char *ip_proto_str = NULL;
 
     if (p == NULL)
-        FatalError(SC_ERR_FATAL, "Call to %s with NULL pointer.", __FUNCTION__);
+        FatalError("Call to %s with NULL pointer.", __FUNCTION__);
 
     if (alproto == ALPROTO_UNKNOWN || alproto >= ALPROTO_FAILED)
-        FatalError(SC_ERR_FATAL, "Unknown or invalid AppProto '%s'.", p->name);
+        FatalError("Unknown or invalid AppProto '%s'.", p->name);
+
+    BUG_ON(strcmp(p->name, AppProtoToString(alproto)) != 0);
 
     ip_proto_str = IpProtoToString(p->ip_proto);
     if (ip_proto_str == NULL)
-        FatalError(SC_ERR_FATAL, "Unknown or unsupported ip_proto field in parser '%s'", p->name);
+        FatalError("Unknown or unsupported ip_proto field in parser '%s'", p->name);
 
     SCLogDebug("Registering %s protocol parser.", p->name);
 

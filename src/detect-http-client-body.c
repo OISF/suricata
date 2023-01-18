@@ -389,6 +389,7 @@ static int PrefilterMpmHttpRequestBodyRegister(DetectEngineCtx *de_ctx, SigGroup
 }
 
 #ifdef UNITTESTS
+#include "detect-engine-alert.h"
 #include "tests/detect-http-client-body.c"
 #endif /* UNITTESTS */
 

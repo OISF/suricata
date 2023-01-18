@@ -42,7 +42,7 @@ use nom7::{Err, IResult};
 /// constrains dimension to a range, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
 fn millimeters_to_opt(x: u32) -> Option<u32> {
-    if x >= 10 && x <= 10_000 {
+    if (10..=10_000).contains(&x) {
         Some(x)
     } else {
         None
@@ -52,7 +52,7 @@ fn millimeters_to_opt(x: u32) -> Option<u32> {
 /// constrains desktop scale to a range, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
 fn desktop_scale_to_opt(x: u32) -> Option<u32> {
-    if x >= 100 && x <= 500 {
+    if (100..=500).contains(&x) {
         Some(x)
     } else {
         None
@@ -72,19 +72,19 @@ fn device_scale_to_opt(x: u32) -> Option<u32> {
 // ================
 
 /// t.123-spec, section 8
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TpktVersion {
     T123 = 0x3,
 }
 
 /// t.123-spec, section 8
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct T123Tpkt {
     pub child: T123TpktChild,
 }
 
 /// variants that a t.123 tpkt can hold
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum T123TpktChild {
     X224ConnectionRequest(X224ConnectionRequest),
     X224ConnectionConfirm(X224ConnectionConfirm),
@@ -95,7 +95,7 @@ pub enum T123TpktChild {
 // ================
 
 /// x.224-spec, sections 13.3.3, 13.4.3, 13.7.3
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum X224Type {
     ConnectionConfirm = 0xd,
     ConnectionRequest = 0xe,
@@ -104,7 +104,7 @@ pub enum X224Type {
 
 /// x.224-spec, section 13.3
 // rdp-spec, section 2.2.1.1
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct X224ConnectionRequest {
     pub cdt: u8,
     pub dst_ref: u16,
@@ -117,13 +117,13 @@ pub struct X224ConnectionRequest {
 }
 
 /// rdp-spec, section 2.2.1.1.1
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RdpCookie {
     pub mstshash: String,
 }
 
 /// rdp-spec, sections 2.2.1.1.1, 2.2.1.2.1, 2.2.1.2.2
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum X224ConnectionRequestType {
     NegotiationRequest = 0x1,
     NegotiationResponse = 0x2,
@@ -131,7 +131,7 @@ pub enum X224ConnectionRequestType {
 }
 
 /// rdp-spec, section 2.2.1.1.1
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NegotiationRequest {
     pub flags: NegotiationRequestFlags,
     pub protocols: ProtocolFlags,
@@ -148,7 +148,7 @@ bitflags! {
 }
 
 /// rdp-spec, section 2.2.1.1.1
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum Protocol {
     ProtocolRdp = 0x0,
     ProtocolSsl = 0x1,
@@ -170,7 +170,7 @@ bitflags! {
 
 /// rdp-spec, section 2.2.1.2
 /// x.224-spec, section 13.3
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct X224ConnectionConfirm {
     pub cdt: u8,
     pub dst_ref: u16,
@@ -181,14 +181,14 @@ pub struct X224ConnectionConfirm {
 }
 
 /// variants of a server negotiation
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NegotiationFromServer {
     Response(NegotiationResponse),
     Failure(NegotiationFailure),
 }
 
 /// rdp-spec, section 2.2.1.1.1
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NegotiationResponse {
     pub flags: NegotiationResponseFlags,
     pub protocol: Protocol,
@@ -207,13 +207,13 @@ bitflags! {
 }
 
 /// rdp-spec, section 2.2.1.1.1
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NegotiationFailure {
     pub code: NegotiationFailureCode,
 }
 
 /// rdp-spec, section 2.2.1.2.2
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum NegotiationFailureCode {
     SslRequiredByServer = 0x1,
     SslNotAllowedByServer = 0x2,
@@ -226,13 +226,13 @@ pub enum NegotiationFailureCode {
 // ================
 
 /// x224-spec, section 13.7
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct X223Data {
     pub child: X223DataChild,
 }
 
 /// variants that an x.223 data message can hold
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum X223DataChild {
     McsConnectRequest(McsConnectRequest),
     McsConnectResponse(McsConnectResponse),
@@ -240,20 +240,20 @@ pub enum X223DataChild {
 }
 
 /// t.125-spec, section 7, part 2
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum T125Type {
     T125TypeMcsConnectRequest = 0x65,  // 101
     T125TypeMcsConnectResponse = 0x66, // 102
 }
 
 /// rdp-spec, section 2.2.1.3.2
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct McsConnectRequest {
     pub children: Vec<McsConnectRequestChild>,
 }
 
 /// variants that an mcs connection message can hold
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum McsConnectRequestChild {
     CsClientCore(CsClientCoreData),
     CsNet(CsNet),
@@ -261,14 +261,14 @@ pub enum McsConnectRequestChild {
 }
 
 /// rdp-spec, section 2.2.1.3.1
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum CsType {
     Core = 0xc001,
     Net = 0xc003,
 }
 
 /// rdp-spec, section 2.2.1.3.2
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CsClientCoreData {
     pub version: Option<RdpClientVersion>,
     pub desktop_width: u16,
@@ -300,7 +300,7 @@ pub struct CsClientCoreData {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum RdpClientVersion {
     V4 = 0x80001,
@@ -316,14 +316,14 @@ pub enum RdpClientVersion {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum ColorDepth {
     RnsUdColor4Bpp = 0xca00,
     RnsUdColor8Bpp = 0xca01,
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum SasSequence {
     RnsUdSasDel = 0xaa03,
 }
@@ -331,7 +331,7 @@ pub enum SasSequence {
 // for keyboard layout, see windows::lcid_to_string
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum KeyboardType {
     KbXt = 0x1,
     KbIco = 0x2,
@@ -343,7 +343,7 @@ pub enum KeyboardType {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum PostBeta2ColorDepth {
     RnsUdColorNotProvided = 0x0,
     RnsUdColor4Bpp = 0xca00,
@@ -354,7 +354,7 @@ pub enum PostBeta2ColorDepth {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum HighColorDepth {
     HighColorNotProvided = 0x0,
     HighColor4Bpp = 0x4,
@@ -394,7 +394,7 @@ bitflags! {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data, `connectionType`
-#[derive(Clone, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum ConnectionHint {
     ConnectionHintNotProvided = 0x0,
     ConnectionHintModem = 0x1,
@@ -407,7 +407,7 @@ pub enum ConnectionHint {
 }
 
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
-#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
+#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum DesktopOrientation {
     OrientationLandscape = 0,
     OrientationPortrait = 90,          // 0x5a
@@ -416,21 +416,21 @@ pub enum DesktopOrientation {
 }
 
 /// rdp-spec, section 2.2.1.3.4
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CsNet {
     pub channels: Vec<String>,
 }
 
 /// generic structure
 /// cf. rdp-spec, section 2.2.1.3.4
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CsUnknown {
     pub typ: u16,
     pub data: Vec<u8>,
 }
 
 /// rdp-spec, section 2.2.1.4
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct McsConnectResponse {}
 
 // ==================
@@ -501,7 +501,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     let (i4, src_ref) = be_u16(i3)?;
     let (i5, class_options) = parse_class_options(i4).map_err(Err::convert)?;
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if !(length >= 6) {
+    if length < 6 {
         return Err(Err::Error(make_error(i1, ErrorKind::Verify)));
     }
     let i6 = i5;
@@ -520,7 +520,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     };
 
     let (j1, cookie) = {
-        if data.len() > 0 {
+        if !data.is_empty() {
             match opt(parse_rdp_cookie)(data) {
                 Ok((remainder, opt)) => (remainder, opt),
                 Err(e) => return Err(e),
@@ -531,7 +531,7 @@ fn parse_x224_connection_request(input: &[u8]) -> IResult<&[u8], X224ConnectionR
     };
 
     let (j2, negotiation_request) = {
-        if j1.len() > 0 {
+        if !j1.is_empty() {
             match opt(parse_negotiation_request)(j1) {
                 Ok((remainder, opt)) => (remainder, opt),
                 Err(e) => return Err(e),
@@ -606,7 +606,7 @@ fn parse_x224_connection_confirm(input: &[u8]) -> IResult<&[u8], X224ConnectionC
     let (i5, class_options) = parse_class_options(i4).map_err(Err::convert)?;
 
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if !(length >= 6) {
+    if length < 6 {
         return Err(Err::Error(make_error(i1, ErrorKind::Verify)));
     }
     let i6 = i5;
@@ -782,7 +782,7 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError
             Err(Err::Incomplete(i)) => return Err(Err::Incomplete(i)),
             Err(Err::Failure(_)) | Err(Err::Error(_)) => break,
         };
-        if remainder.len() == 0 {
+        if remainder.is_empty() {
             break;
         }
     }

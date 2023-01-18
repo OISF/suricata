@@ -24,8 +24,6 @@
 #ifndef __STREAM_TCP_CACHE_H__
 #define __STREAM_TCP_CACHE_H__
 
-#include "suricata.h"
-#include "flow.h"
 #include "stream-tcp-private.h"
 
 void StreamTcpThreadCacheEnable(void);

@@ -43,6 +43,7 @@
 #include "../app-layer-protos.h"
 #include "../detect-isdataat.h"
 #include "../detect-engine-build.h"
+#include "../detect-engine-alert.h"
 
 /**
  * \test Test that the http_method content matches against a http request

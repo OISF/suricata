@@ -59,6 +59,9 @@ impl StreamSlice {
     pub fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
     }
+    pub fn is_empty(&self) -> bool {
+        self.input_len == 0
+    }
     pub fn len(&self) -> u32 {
         self.input_len
     }
@@ -71,7 +74,7 @@ impl StreamSlice {
 }
 
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq, Eq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
     log_flags: u8,
@@ -96,7 +99,7 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
@@ -167,7 +170,7 @@ impl AppLayerTxData {
     }
 
     pub fn set_event(&mut self, event: u8) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event);
     }
 
     pub fn update_file_flags(&mut self, state_flags: u16) {
@@ -183,7 +186,7 @@ macro_rules!export_tx_data_get {
     ($name:ident, $type:ty) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut crate::applayer::AppLayerTxData
+            -> *mut $crate::applayer::AppLayerTxData
         {
             let tx = &mut *(tx as *mut $type);
             &mut tx.tx_data
@@ -192,7 +195,7 @@ macro_rules!export_tx_data_get {
 }
 
 #[repr(C)]
-#[derive(Default,Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
 pub struct AppLayerStateData {
     pub file_flags: u16,
 }
@@ -213,7 +216,7 @@ macro_rules!export_state_data_get {
     ($name:ident, $type:ty) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
-            -> *mut crate::applayer::AppLayerStateData
+            -> *mut $crate::applayer::AppLayerStateData
         {
             let state = &mut *(state as *mut $type);
             &mut state.state_data
@@ -222,7 +225,7 @@ macro_rules!export_state_data_get {
 }
 
 #[repr(C)]
-#[derive(Default,Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -250,8 +253,8 @@ impl AppLayerResult {
     pub fn incomplete(consumed: u32, needed: u32) -> Self {
         return Self {
             status: 1,
-            consumed: consumed,
-            needed: needed,
+            consumed,
+            needed,
         };
     }
 
@@ -268,7 +271,7 @@ impl AppLayerResult {
 
 impl From<bool> for AppLayerResult {
     fn from(v: bool) -> Self {
-        if v == false {
+        if !v {
             Self::err()
         } else {
             Self::ok()
@@ -431,6 +434,9 @@ extern {
                                                alproto_name: *const c_char, alproto: AppProto,
                                                min_depth: u16, max_depth: u16,
                                                pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
+    pub fn AppLayerProtoDetectPMRegisterPatternCS(ipproto: u8, alproto: AppProto,
+                                                  pattern: *const c_char, depth: u16,
+                                                  offset: u16, direction: u8) -> c_int;
     pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(ipproto: u8, alproto: AppProto,
                                                      pattern: *const c_char, depth: u16,
                                                      offset: u16, direction: u8, ppfn: ProbeFn,
@@ -479,7 +485,7 @@ pub struct AppLayerGetTxIterTuple {
 impl AppLayerGetTxIterTuple {
     pub fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
         AppLayerGetTxIterTuple {
-            tx_ptr: tx_ptr, tx_id: tx_id, has_next: has_next,
+            tx_ptr, tx_id, has_next,
         }
     }
     pub fn not_found() -> AppLayerGetTxIterTuple {
@@ -491,7 +497,7 @@ impl AppLayerGetTxIterTuple {
 
 /// LoggerFlags tracks which loggers have already been executed.
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq, Eq)]
 pub struct LoggerFlags {
     flags: u32,
 }
@@ -580,7 +586,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
-    if let Some(e) = T::from_id(event_id as i32) {
+    if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;

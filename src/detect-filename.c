@@ -159,8 +159,7 @@ void DetectFilenameRegister(void)
                 0);
     }
 
-    DetectBufferTypeSetDescriptionByName("file.name",
-            "http user agent");
+    DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
     g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
 	SCLogDebug("registering filename rule option");
@@ -505,11 +504,9 @@ static int DetectFilenameSignatureParseTest01(void)
 static int DetectFilenameTestParse01 (void)
 {
     DetectFilenameData *dnd = DetectFilenameParse(NULL, "secret.pdf", false);
-    if (dnd != NULL) {
-        DetectFilenameFree(NULL, dnd);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    DetectFilenameFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -517,18 +514,12 @@ static int DetectFilenameTestParse01 (void)
  */
 static int DetectFilenameTestParse02 (void)
 {
-    int result = 0;
-
     DetectFilenameData *dnd = DetectFilenameParse(NULL, "backup.tar.gz", false);
-    if (dnd != NULL) {
-        if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
-            result = 1;
-        }
-
-        DetectFilenameFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 13);
+    FAIL_IF_NOT(memcmp(dnd->name, "backup.tar.gz", 13) == 0);
+    DetectFilenameFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -536,20 +527,13 @@ static int DetectFilenameTestParse02 (void)
  */
 static int DetectFilenameTestParse03 (void)
 {
-    int result = 0;
-
     DetectFilenameData *dnd = DetectFilenameParse(NULL, "cmd.exe", false);
-    if (dnd != NULL) {
-        if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
-            result = 1;
-        }
-
-        DetectFilenameFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 7);
+    FAIL_IF_NOT(memcmp(dnd->name, "cmd.exe", 7) == 0);
+    DetectFilenameFree(NULL, dnd);
+    PASS;
 }
-
 
 /**
  * \brief this function registers unit tests for DetectFilename

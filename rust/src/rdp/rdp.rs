@@ -33,12 +33,12 @@ static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 // transactions
 //
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CertificateBlob {
     pub data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RdpTransactionItem {
     X224ConnectionRequest(X224ConnectionRequest),
     X224ConnectionConfirm(X224ConnectionConfirm),
@@ -47,7 +47,7 @@ pub enum RdpTransactionItem {
     TlsCertificateChain(Vec<CertificateBlob>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RdpTransaction {
     pub id: u64,
     pub item: RdpTransactionItem,
@@ -105,7 +105,7 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 // state
 //
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RdpState {
     state_data: AppLayerStateData,
     next_id: u64,
@@ -153,12 +153,7 @@ impl RdpState {
     }
 
     fn get_tx(&self, tx_id: u64) -> Option<&RdpTransaction> {
-        for tx in &self.transactions {
-            if tx.id == tx_id {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|&tx| tx.id == tx_id)
     }
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
@@ -176,7 +171,7 @@ impl RdpState {
         let mut available = input;
 
         loop {
-            if available.len() == 0 {
+            if available.is_empty() {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
@@ -216,6 +211,7 @@ impl RdpState {
 
                             // X.223 data packet, evaluate what it encapsulates
                             T123TpktChild::Data(x223) => {
+                                #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectRequest(mcs) => {
                                         let tx =
@@ -269,7 +265,7 @@ impl RdpState {
         let mut available = input;
 
         loop {
-            if available.len() == 0 {
+            if available.is_empty() {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
@@ -278,6 +274,7 @@ impl RdpState {
                         // bytes available for futher parsing are what remain
                         available = remainder;
                         for message in &tls.msg {
+                            #[allow(clippy::single_match)]
                             match message {
                                 TlsMessage::Handshake(TlsMessageHandshake::Certificate(
                                     contents,
@@ -328,6 +325,7 @@ impl RdpState {
 
                             // X.223 data packet, evaluate what it encapsulates
                             T123TpktChild::Data(x223) => {
+                                #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectResponse(mcs) => {
                                         let tx = self
@@ -400,7 +398,7 @@ pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, 
 
 /// probe for T.123 type identifier, as each message is encapsulated in T.123
 fn probe_rdp(input: &[u8]) -> bool {
-    input.len() > 0 && input[0] == TpktVersion::T123 as u8
+    !input.is_empty() && input[0] == TpktVersion::T123 as u8
 }
 
 /// probe for T.123 message, whether to client or to server
@@ -424,7 +422,7 @@ pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
 
 /// probe for TLS
 fn probe_tls_handshake(input: &[u8]) -> bool {
-    input.len() > 0 && input[0] == u8::from(TlsRecordType::Handshake)
+    !input.is_empty() && input[0] == u8::from(TlsRecordType::Handshake)
 }
 
 //
@@ -462,7 +460,7 @@ export_state_data_get!(rs_rdp_get_state_data, RdpState);
 // registration
 //
 
-const PARSER_NAME: &'static [u8] = b"rdp\0";
+const PARSER_NAME: &[u8] = b"rdp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_register_parser() {

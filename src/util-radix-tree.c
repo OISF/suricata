@@ -48,7 +48,7 @@ static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 {
     SCRadixUserData *user_data = SCMalloc(sizeof(SCRadixUserData));
     if (unlikely(user_data == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError("Error allocating memory");
         return NULL;
     }
 
@@ -89,7 +89,7 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
     SCRadixUserData *prev = NULL;
 
     if (new == NULL || list == NULL) {
-        FatalError(SC_ERR_FATAL, "new or list supplied as NULL");
+        FatalError("new or list supplied as NULL");
     }
 
     /* add to the list in descending order.  The reason we do this is for
@@ -133,13 +133,12 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
     SCRadixPrefix *prefix = NULL;
 
     if ((key_bitlen % 8 != 0)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid argument bitlen - %d",
-                   key_bitlen);
+        SCLogError("Invalid argument bitlen - %d", key_bitlen);
         return NULL;
     }
 
     if (key_stream == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"stream\" NULL");
+        SCLogError("Argument \"stream\" NULL");
         return NULL;
     }
 
@@ -188,7 +187,7 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
                                               void *user)
 {
     if (prefix == NULL || user == NULL) {
-        FatalError(SC_ERR_FATAL, "prefix or user NULL");
+        FatalError("prefix or user NULL");
     }
 
     SCRadixAppendToSCRadixUserDataList(SCRadixAllocSCRadixUserData(netmask, user),
@@ -211,7 +210,7 @@ static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
     SCRadixUserData *temp = NULL, *prev = NULL;
 
     if (prefix == NULL) {
-        FatalError(SC_ERR_FATAL, "prefix NULL");
+        FatalError("prefix NULL");
     }
 
     prev = temp = prefix->user_data;
@@ -247,7 +246,7 @@ static int SCRadixPrefixContainNetmask(SCRadixPrefix *prefix, uint8_t netmask)
     SCRadixUserData *user_data = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError("prefix is NULL");
         goto no_match;
     }
 
@@ -275,7 +274,7 @@ static int SCRadixPrefixNetmaskCount(SCRadixPrefix *prefix)
     uint32_t count = 0;
 
     if (prefix == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError("prefix is NULL");
         return 0;
     }
 
@@ -309,7 +308,7 @@ static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
     SCRadixUserData *user_data = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError("prefix is NULL");
         goto no_match;
     }
 
@@ -385,7 +384,7 @@ static inline SCRadixNode *SCRadixCreateNode(void)
     SCRadixNode *node = NULL;
 
     if ( (node = SCMalloc(sizeof(SCRadixNode))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixCreateNode. Mem not allocated...");
+        SCLogError("Fatal error encountered in SCRadixCreateNode. Mem not allocated...");
         return NULL;
     }
     memset(node, 0, sizeof(SCRadixNode));
@@ -428,8 +427,7 @@ SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*
     SCRadixTree *tree = NULL;
 
     if ( (tree = SCMalloc(sizeof(SCRadixTree))) == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
+        FatalError("Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
     }
     memset(tree, 0, sizeof(SCRadixTree));
 
@@ -508,7 +506,7 @@ static SCRadixNode *SCRadixAddKey(
     uint16_t j = 0;
 
     if (tree == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"tree\" NULL");
+        SCLogError("Argument \"tree\" NULL");
         return NULL;
     }
 
@@ -520,7 +518,7 @@ static SCRadixNode *SCRadixAddKey(
         SCRadixPrefix *prefix = NULL;
         if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                         netmask)) == NULL) {
-            SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+            SCLogError("Error creating prefix");
             return NULL;
         }
         node = SCRadixCreateNode();
@@ -547,7 +545,7 @@ static SCRadixNode *SCRadixAddKey(
                                                         sizeof(uint8_t)))) == NULL) {
             SCFree(node->netmasks);
             node->netmasks = NULL;
-            SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated");
+            SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated");
             return NULL;
         }
         node->netmasks = ptmp;
@@ -671,7 +669,7 @@ static SCRadixNode *SCRadixAddKey(
                                                                 sizeof(uint8_t)))) == NULL) {
                     SCFree(node->netmasks);
                     node->netmasks = NULL;
-                    SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
+                    SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
                     return NULL;
                 }
                 node->netmasks = ptmp;
@@ -704,7 +702,7 @@ static SCRadixNode *SCRadixAddKey(
     SCRadixPrefix *prefix = NULL;
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                     netmask)) == NULL) {
-        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+        SCLogError("Error creating prefix");
         return NULL;
     }
     new_node = SCRadixCreateNode();
@@ -751,7 +749,7 @@ static SCRadixNode *SCRadixAddKey(
             if (i < node->netmask_cnt) {
                 if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
                                 sizeof(uint8_t))) == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
+                    SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
                     SCRadixReleaseNode(inter_node, tree);
                     SCRadixReleaseNode(new_node, tree);
                     return NULL;
@@ -799,8 +797,7 @@ static SCRadixNode *SCRadixAddKey(
                                                         sizeof(uint8_t)))) == NULL) {
             SCFree(node->netmasks);
             node->netmasks = NULL;
-            FatalError(SC_ERR_FATAL,
-                       "Fatal error encountered in SCRadixAddKey. Exiting...");
+            FatalError("Fatal error encountered in SCRadixAddKey. Exiting...");
         }
         node->netmasks = ptmp;
 
@@ -1003,7 +1000,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         if (masked != ip) {
             char nstr[16];
             PrintInet(AF_INET, (void *)&masked, nstr, sizeof(nstr));
-            SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+            SCLogWarning("adding '%s' as '%s/%u'", str, nstr, netmask);
             ip = masked;
         }
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
@@ -1058,14 +1055,19 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
     }
 
     if (netmask != 128) {
-        struct in6_addr mask6;
+        struct in6_addr mask6, check;
         CIDRGetIPv6(netmask, &mask6);
+        memcpy(&check, &addr, sizeof(check));
+        bool diff = false;
         for (int i = 0; i < 16; i++) {
             addr.s6_addr[i] &= mask6.s6_addr[i];
+            diff |= (addr.s6_addr[i] != check.s6_addr[i]);
         }
-        char nstr[64];
-        PrintInet(AF_INET6, (void *)&addr.s6_addr, nstr, sizeof(nstr));
-        SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+        if (diff) {
+            char nstr[64];
+            PrintInet(AF_INET6, (void *)&addr.s6_addr, nstr, sizeof(nstr));
+            SCLogWarning("adding '%s' as '%s/%u'", str, nstr, netmask);
+        }
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
         SCRadixValidateIPv6Key((uint8_t *)&addr.s6_addr, netmask);
 #endif
@@ -1080,7 +1082,7 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
     void *ptmp = NULL;
 
     if (src == NULL || dest == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "src or dest NULL");
+        SCLogError("src or dest NULL");
         return;
     }
 
@@ -1119,7 +1121,7 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
     int i = 0;
 
     if (node == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument.  Node is NULL");
+        SCLogError("Invalid argument.  Node is NULL");
         return;
     }
 

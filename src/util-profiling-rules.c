@@ -144,8 +144,7 @@ void SCProfilingRulesGlobalInit(void)
                     SET_ONE(SC_PROFILING_RULES_SORT_BY_MAX_TICKS);
                 }
                 else {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                            "Invalid profiling sort order: %s", val);
+                    SCLogError("Invalid profiling sort order: %s", val);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -154,7 +153,7 @@ void SCProfilingRulesGlobalInit(void)
             if (val != NULL) {
                 if (StringParseUint32(&profiling_rules_limit, 10,
                             (uint16_t)strlen(val), val) <= 0) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid limit: %s", val);
+                    SCLogError("Invalid limit: %s", val);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -340,7 +339,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary,
 
     if (unlikely(js_s == NULL))
         return;
-    fprintf(fp, "%s", js_s);
+    fprintf(fp, "%s\n", js_s);
     free(js_s);
     json_decref(js);
 }
@@ -425,8 +424,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
         fp = fopen(profiling_file_name, profiling_file_mode);
 
         if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
+            SCLogError("failed to open %s: %s", profiling_file_name, strerror(errno));
             return;
         }
     } else {
@@ -436,7 +434,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     int summary_size = sizeof(SCProfileSummary) * rules_ctx->size;
     SCProfileSummary *summary = SCMalloc(summary_size);
     if (unlikely(summary == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
+        SCLogError("Error allocating memory for profiling summary");
         return;
     }
 
@@ -571,8 +569,7 @@ static SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
         memset(ctx, 0x00, sizeof(SCProfileDetectCtx));
 
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
-                    FatalError(SC_ERR_FATAL,
-                               "Failed to initialize hash table mutex.");
+            FatalError("Failed to initialize hash table mutex.");
         }
     }
 

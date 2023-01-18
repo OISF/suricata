@@ -76,20 +76,19 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
 
     int ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
+        SCLogError("Invalid Classtype in Signature");
         return -1;
     }
 
     pcre2len = esize;
     ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)e, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
     if (strlen(e) >= CLASSTYPE_NAME_MAX_LEN) {
-        SCLogError(SC_ERR_INVALID_VALUE, "classtype '%s' is too big: max %d",
-                rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
+        SCLogError("classtype '%s' is too big: max %d", rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
         return -1;
     }
     (void)strlcpy(out, e, outsize);
@@ -114,18 +113,19 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if ((s->class_id > 0) || (s->class_msg != NULL)) {
         if (SigMatchStrictEnabled(DETECT_CLASSTYPE)) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
-                    "keyword detected.");
+            SCLogError("duplicated 'classtype' "
+                       "keyword detected.");
             return -1;
         } else {
-            SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
-                    "keyword detected. Using instance with highest priority");
+            SCLogWarning("duplicated 'classtype' "
+                         "keyword detected. Using instance with highest priority");
         }
     }
 
     if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < 0) {
-        SCLogError(SC_ERR_PCRE_PARSE, "invalid value for classtype keyword: "
-                "\"%s\"", rawstr);
+        SCLogError("invalid value for classtype keyword: "
+                   "\"%s\"",
+                rawstr);
         return -1;
     }
 
@@ -133,26 +133,24 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
         if (SigMatchStrictEnabled(DETECT_CLASSTYPE)) {
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown classtype '%s'",
-                    parsed_ct_name);
+            SCLogError("unknown classtype '%s'", parsed_ct_name);
             return -1;
         }
 
         if (s->id > 0) {
-            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "signature sid:%u uses "
-                    "unknown classtype: \"%s\", using default priority %d. "
-                    "This message won't be shown again for this classtype",
+            SCLogWarning("signature sid:%u uses "
+                         "unknown classtype: \"%s\", using default priority %d. "
+                         "This message won't be shown again for this classtype",
                     s->id, parsed_ct_name, DETECT_DEFAULT_PRIO);
         } else if (de_ctx->rule_file != NULL) {
-            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "signature at %s:%u uses "
-                    "unknown classtype: \"%s\", using default priority %d. "
-                    "This message won't be shown again for this classtype",
-                    de_ctx->rule_file, de_ctx->rule_line,
-                    parsed_ct_name, DETECT_DEFAULT_PRIO);
+            SCLogWarning("signature at %s:%u uses "
+                         "unknown classtype: \"%s\", using default priority %d. "
+                         "This message won't be shown again for this classtype",
+                    de_ctx->rule_file, de_ctx->rule_line, parsed_ct_name, DETECT_DEFAULT_PRIO);
         } else {
-            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\", "
-                    "using default priority %d. "
-                    "This message won't be shown again for this classtype",
+            SCLogWarning("unknown classtype: \"%s\", "
+                         "using default priority %d. "
+                         "This message won't be shown again for this classtype",
                     parsed_ct_name, DETECT_DEFAULT_PRIO);
         }
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -122,7 +122,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *sm = NULL;
 
     if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
+        SCLogError("Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
         goto error;
     }
@@ -131,7 +131,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 
     dd = DetectU16Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
     }
 
@@ -139,7 +139,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
      * and put it in the Signature. */
     sm = SigMatchAlloc();
     if (sm == NULL){
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for SigMatch");
+        SCLogError("Failed to allocate memory for SigMatch");
         rs_detect_u16_free(dd);
         goto error;
     }
@@ -290,6 +290,48 @@ void SigParseSetDsizePair(Signature *s)
 }
 
 /**
+ *  \brief Determine the required dsize for the signature
+ *  \param s signature to get dsize value from
+ *
+ *  Note that negated content does not contribute to the maximum
+ *  required dsize value. However, each negated content's values
+ *  must not exceed the dsize value. See SigParseRequiredContentSize.
+ *
+ * \retval -1 Signature doesn't have a dsize keyword
+ * \retval >= 0 Dsize value required to not exclude content matches
+ */
+int SigParseMaxRequiredDsize(const Signature *s)
+{
+    SCEnter();
+
+    if (!(s->flags & SIG_FLAG_DSIZE)) {
+        SCReturnInt(-1);
+    }
+
+    const int dsize = SigParseGetMaxDsize(s);
+    if (dsize < 0) {
+        /* nothing to do */
+        SCReturnInt(-1);
+    }
+
+    int total_length, offset;
+    SigParseRequiredContentSize(s, dsize, DETECT_SM_LIST_PMATCH, &total_length, &offset);
+    SCLogDebug("dsize: %d  len: %d; offset: %d [%s]", dsize, total_length, offset, s->sig_str);
+
+    if (total_length > dsize) {
+        SCLogDebug("required_dsize: %d exceeds dsize: %d", total_length, dsize);
+        return total_length;
+    }
+
+    if ((total_length + offset) > dsize) {
+        SCLogDebug("length + offset: %d exceeds dsize: %d", total_length + offset, dsize);
+        return total_length + offset;
+    }
+
+    SCReturnInt(-1);
+}
+
+/**
  *  \brief Apply dsize as depth to content matches in the rule
  *  \param s signature to get dsize value from
  */
@@ -333,6 +375,9 @@ void SigParseApplyDsizeToContent(Signature *s)
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "detect-engine.h"
+#include "detect-engine-alert.h"
+#include "packet.h"
 
 /**
  * \test this is a test for a valid dsize value 1

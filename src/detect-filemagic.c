@@ -61,7 +61,7 @@
 
 static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    SCLogError(SC_ERR_NO_MAGIC_SUPPORT, "no libmagic support built in, needed for filemagic keyword");
+    SCLogError("no libmagic support built in, needed for filemagic keyword");
     return -1;
 }
 
@@ -325,7 +325,7 @@ static void *DetectFilemagicThreadInit(void *data /*@unused@*/)
 {
     DetectFilemagicThreadData *t = SCCalloc(1, sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "couldn't alloc ctx memory");
+        SCLogError("couldn't alloc ctx memory");
         return NULL;
     }
 
@@ -590,11 +590,9 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
 static int DetectFilemagicTestParse01 (void)
 {
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "secret.pdf", false);
-    if (dnd != NULL) {
-        DetectFilemagicFree(NULL, dnd);
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -602,18 +600,12 @@ static int DetectFilemagicTestParse01 (void)
  */
 static int DetectFilemagicTestParse02 (void)
 {
-    int result = 0;
-
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "backup.tar.gz", false);
-    if (dnd != NULL) {
-        if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
-            result = 1;
-        }
-
-        DetectFilemagicFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 13);
+    FAIL_IF_NOT(memcmp(dnd->name, "backup.tar.gz", 13) == 0);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**
@@ -621,18 +613,12 @@ static int DetectFilemagicTestParse02 (void)
  */
 static int DetectFilemagicTestParse03 (void)
 {
-    int result = 0;
-
     DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "cmd.exe", false);
-    if (dnd != NULL) {
-        if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
-            result = 1;
-        }
-
-        DetectFilemagicFree(NULL, dnd);
-        return result;
-    }
-    return 0;
+    FAIL_IF_NULL(dnd);
+    FAIL_IF_NOT(dnd->len == 7);
+    FAIL_IF_NOT(memcmp(dnd->name, "cmd.exe", 7) == 0);
+    DetectFilemagicFree(NULL, dnd);
+    PASS;
 }
 
 /**

@@ -69,6 +69,7 @@ typedef struct DPDKIfaceConfig_ {
     SC_ATOMIC_DECLARE(unsigned int, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
+    SC_ATOMIC_DECLARE(uint16_t, inconsitent_numa_cnt);
     void (*DerefFunc)(void *);
 
     struct rte_flow *flow[100];

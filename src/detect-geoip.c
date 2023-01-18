@@ -43,7 +43,7 @@
 
 static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
 {
-    SCLogError(SC_ERR_NO_GEOIP_SUPPORT, "no GeoIP support built in, needed for geoip keyword");
+    SCLogError("no GeoIP support built in, needed for geoip keyword");
     return -1;
 }
 
@@ -103,7 +103,7 @@ static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
     (void)ConfGet("geoip-database", &filename);
 
     if (filename == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Unable to locate a GeoIP2"
+        SCLogWarning("Unable to locate a GeoIP2"
                      "database filename in YAML conf.  GeoIP rule matching "
                      "is disabled.");
         geoipdata->mmdb_status = MMDB_FILE_OPEN_ERROR;
@@ -118,9 +118,9 @@ static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
         return true;
     }
 
-    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Failed to open GeoIP2 database: %s. "
-                 "Error was: %s.  GeoIP rule matching is disabled.", filename,
-                 MMDB_strerror(status));
+    SCLogWarning("Failed to open GeoIP2 database: %s. "
+                 "Error was: %s.  GeoIP rule matching is disabled.",
+            filename, MMDB_strerror(status));
     geoipdata->mmdb_status = status;
     return false;
 }
@@ -351,7 +351,7 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
                 }
 
                 if (geoipdata->nlocations >= GEOOPTION_MAXLOCATIONS) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "too many arguements for geoip keyword");
+                    SCLogError("too many arguements for geoip keyword");
                     goto error;
                 }
 

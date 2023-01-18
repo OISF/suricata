@@ -156,15 +156,20 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                     *type = DATASET_TYPE_SHA256;
                 } else if (strcmp(val, "string") == 0) {
                     *type = DATASET_TYPE_STRING;
+                } else if (strcmp(val, "ipv4") == 0) {
+                    *type = DATASET_TYPE_IPV4;
+                } else if (strcmp(val, "ipv6") == 0) {
+                    *type = DATASET_TYPE_IPV6;
+                } else if (strcmp(val, "ip") == 0) {
+                    *type = DATASET_TYPE_IPV6;
                 } else {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "bad type %s", val);
+                    SCLogError("bad type %s", val);
                     return -1;
                 }
 
             } else if (strcmp(key, "save") == 0) {
                 if (save_set) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE,
-                        "'save' can only appear once");
+                    SCLogWarning("'save' can only appear once");
                     return -1;
                 }
                 SCLogDebug("save %s", val);
@@ -172,8 +177,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 save_set = true;
             } else if (strcmp(key, "load") == 0) {
                 if (load_set) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE,
-                        "'load' can only appear once");
+                    SCLogWarning("'load' can only appear once");
                     return -1;
                 }
                 SCLogDebug("load %s", val);
@@ -181,8 +185,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 load_set = true;
             } else if (strcmp(key, "state") == 0) {
                 if (state_set) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE,
-                        "'state' can only appear once");
+                    SCLogWarning("'state' can only appear once");
                     return -1;
                 }
                 SCLogDebug("state %s", val);
@@ -192,18 +195,16 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
             }
             if (strcmp(key, "memcap") == 0) {
                 if (ParseSizeStringU64(val, memcap) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
-                            "invalid value for memcap: %s,"
-                            " resetting to default",
+                    SCLogWarning("invalid value for memcap: %s,"
+                                 " resetting to default",
                             val);
                     *memcap = 0;
                 }
             }
             if (strcmp(key, "hashsize") == 0) {
                 if (ParseSizeStringU32(val, hashsize) < 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE,
-                            "invalid value for hashsize: %s,"
-                            " resetting to default",
+                    SCLogWarning("invalid value for hashsize: %s,"
+                                 " resetting to default",
                             val);
                     *hashsize = 0;
                 }
@@ -217,8 +218,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
     }
 
     if ((load_set || save_set) && state_set) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE,
-                "'state' can not be mixed with 'load' and 'save'");
+        SCLogWarning("'state' can not be mixed with 'load' and 'save'");
         return -1;
     }
 
@@ -230,8 +230,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
     /* Validate name, spaces are not allowed. */
     for (size_t i = 0; i < strlen(name); i++) {
         if (isblank(name[i])) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "spaces not allowed in dataset names");
+            SCLogError("spaces not allowed in dataset names");
             return 0;
         }
     }
@@ -335,15 +334,13 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     char save[PATH_MAX] = "";
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "datasets are only supported for sticky buffers");
+        SCLogError("datasets are only supported for sticky buffers");
         SCReturnInt(-1);
     }
 
     int list = s->init_data->list;
     if (list == DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "datasets are only supported for sticky buffers");
+        SCLogError("datasets are only supported for sticky buffers");
         SCReturnInt(-1);
     }
 
@@ -361,8 +358,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     } else if (strcmp(cmd_str,"unset") == 0) {
         cmd = DETECT_DATASET_CMD_UNSET;
     } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE,
-                "dataset action \"%s\" is not supported.", cmd_str);
+        SCLogError("dataset action \"%s\" is not supported.", cmd_str);
         return -1;
     }
 
@@ -388,12 +384,11 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     SCLogDebug("name '%s' load '%s' save '%s'", name, load, save);
     Dataset *set = DatasetGet(name, type, save, load, memcap, hashsize);
     if (set == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "failed to set up dataset '%s'.", name);
+        SCLogError("failed to set up dataset '%s'.", name);
         return -1;
     }
     if (set->hash && SC_ATOMIC_GET(set->hash->memcap_reached)) {
-        SCLogError(SC_ERR_THASH_INIT, "dataset too large for set memcap");
+        SCLogError("dataset too large for set memcap");
         return -1;
     }
 

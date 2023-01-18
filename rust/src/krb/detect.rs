@@ -87,9 +87,15 @@ pub struct DetectKrb5TicketEncryptionList {
     other: Vec<EncryptionType>,
 }
 
+impl Default for DetectKrb5TicketEncryptionList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DetectKrb5TicketEncryptionList {
-    pub fn new() -> DetectKrb5TicketEncryptionList {
-        DetectKrb5TicketEncryptionList {
+    pub fn new() -> Self {
+        Self {
             positive: [false; KRB_TICKET_FASTARRAY_SIZE],
             negative: [false; KRB_TICKET_FASTARRAY_SIZE],
             other: Vec::new(),
@@ -97,7 +103,11 @@ impl DetectKrb5TicketEncryptionList {
     }
 }
 
+
+// Suppress large enum variant lint as the LIST is very large compared
+// to the boolean variant.
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum DetectKrb5TicketEncryptionData {
     WEAK(bool),
     LIST(DetectKrb5TicketEncryptionList),

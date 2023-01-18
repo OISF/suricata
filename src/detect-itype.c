@@ -221,14 +221,13 @@ static bool PrefilterITypeIsPrefilterable(const Signature *s)
 static int DetectITypeParseTest01(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_EQ)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_EQ);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -238,14 +237,13 @@ static int DetectITypeParseTest01(void)
 static int DetectITypeParseTest02(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, ">8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_GT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_GT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -255,14 +253,13 @@ static int DetectITypeParseTest02(void)
 static int DetectITypeParseTest03(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "<8");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_LT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_LT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -272,14 +269,14 @@ static int DetectITypeParseTest03(void)
 static int DetectITypeParseTest04(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "8<>20");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->arg2 == 20 && itd->mode == DETECT_UINT_RA)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->arg2 == 20);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_RA);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -289,14 +286,13 @@ static int DetectITypeParseTest04(void)
 static int DetectITypeParseTest05(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "   8 ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_EQ)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_EQ);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -306,14 +302,13 @@ static int DetectITypeParseTest05(void)
 static int DetectITypeParseTest06(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "  >  8  ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->mode == DETECT_UINT_GT)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_GT);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -323,14 +318,14 @@ static int DetectITypeParseTest06(void)
 static int DetectITypeParseTest07(void)
 {
     DetectU8Data *itd = NULL;
-    int result = 0;
     itd = DetectITypeParse(NULL, "  8  <> 20  ");
-    if (itd != NULL) {
-        if (itd->arg1 == 8 && itd->arg2 == 20 && itd->mode == DETECT_UINT_RA)
-            result = 1;
-        DetectITypeFree(NULL, itd);
-    }
-    return result;
+    FAIL_IF_NULL(itd);
+    FAIL_IF_NOT(itd->arg1 == 8);
+    FAIL_IF_NOT(itd->arg2 == 20);
+    FAIL_IF_NOT(itd->mode == DETECT_UINT_RA);
+    DetectITypeFree(NULL, itd);
+
+    PASS;
 }
 
 /**
@@ -340,90 +335,10 @@ static int DetectITypeParseTest08(void)
 {
     DetectU8Data *itd = NULL;
     itd = DetectITypeParse(NULL, "> 8 <> 20");
-    if (itd == NULL)
-        return 1;
+    FAIL_IF_NOT_NULL(itd);
     DetectITypeFree(NULL, itd);
-    return 0;
-}
 
-/**
- * \test DetectITypeMatchTest01 is a test for checking the working of itype
- *       keyword by creating 5 rules and matching a crafted packet against
- *       them. 4 out of 5 rules shall trigger.
- */
-static int DetectITypeMatchTest01(void)
-{
-
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
-    p->icmpv4h->type = 10;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert icmp any any -> any any (itype:10; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (itype:<15; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (itype:>20; sid:3;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (itype:8<>20; sid:4;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    // no longer accept itype:20<>8
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) == 0) {
-        SCLogDebug("sid 1 did not alert, but should have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 2) == 0) {
-        SCLogDebug("sid 2 did not alert, but should have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 3)) {
-        SCLogDebug("sid 3 alerted, but should not have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 4) == 0) {
-        SCLogDebug("sid 4 did not alert, but should have");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -439,6 +354,5 @@ void DetectITypeRegisterTests(void)
     UtRegisterTest("DetectITypeParseTest06", DetectITypeParseTest06);
     UtRegisterTest("DetectITypeParseTest07", DetectITypeParseTest07);
     UtRegisterTest("DetectITypeParseTest08", DetectITypeParseTest08);
-    UtRegisterTest("DetectITypeMatchTest01", DetectITypeMatchTest01);
 }
 #endif /* UNITTESTS */

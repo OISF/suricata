@@ -162,13 +162,13 @@ static DetectTagData *DetectTagParse(const char *tagstr)
 
     ret = DetectParsePcreExec(&parse_regex, tagstr, 0, 0);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, tagstr);
+        SCLogError("parse error, ret %" PRId32 ", string %s", ret, tagstr);
         goto error;
     }
 
     res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -178,7 +178,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     } else if (strcasecmp("host", str_ptr) == 0) {
         td.type = DETECT_TAG_TYPE_HOST;
     } else {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument type. Must be session or host (%s)", tagstr);
+        SCLogError("Invalid argument type. Must be session or host (%s)", tagstr);
         goto error;
     }
     pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
@@ -193,14 +193,16 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0 || str_ptr == NULL) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 
         /* count */
         if (StringParseUint32(&td.count, 10, strlen(str_ptr),
                     str_ptr) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument for count. Must be a value in the range of 0 to %"PRIu32" (%s)", UINT32_MAX, tagstr);
+            SCLogError("Invalid argument for count. Must be a value in the range of 0 to %" PRIu32
+                       " (%s)",
+                    UINT32_MAX, tagstr);
             goto error;
         }
 
@@ -210,7 +212,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0 || str_ptr == NULL) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -225,7 +227,10 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         } else if (strcasecmp("bytes", str_ptr) == 0) {
             td.metric = DETECT_TAG_METRIC_BYTES;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument metric. Must be one of \"seconds\", \"packets\" or \"bytes\" (%s)", tagstr);
+            SCLogError(
+                    "Invalid argument metric. Must be one of \"seconds\", \"packets\" or \"bytes\" "
+                    "(%s)",
+                    tagstr);
             goto error;
         }
 
@@ -237,7 +242,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
             res = pcre2_substring_get_bynumber(
                     parse_regex.match, 6, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0 || str_ptr == NULL) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+                SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
             }
 
@@ -247,12 +252,18 @@ static DetectTagData *DetectTagParse(const char *tagstr)
             } else if (strcasecmp("dst", str_ptr) == 0) {
                 td.direction = DETECT_TAG_DIR_DST;
             } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument direction. Must be one of \"src\" or \"dst\" (only valid for tag host type, not sessions) (%s)", tagstr);
+                SCLogError(
+                        "Invalid argument direction. Must be one of \"src\" or \"dst\" (only valid "
+                        "for tag host type, not sessions) (%s)",
+                        tagstr);
                 goto error;
             }
 
             if (td.type != DETECT_TAG_TYPE_HOST) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Argument direction doesn't make sense for type \"session\" (%s [%"PRIu8"])", tagstr, td.type);
+                SCLogWarning(
+                        "Argument direction doesn't make sense for type \"session\" (%s [%" PRIu8
+                        "])",
+                        tagstr, td.type);
             }
 
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
@@ -262,7 +273,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
 
     DetectTagData *real_td = SCMalloc(sizeof(DetectTagData));
     if (unlikely(real_td == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError("Error allocating memory");
         goto error;
     }
 

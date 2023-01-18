@@ -42,12 +42,12 @@ pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState,
     };
 
     if let &Some(ref request) = &tx.request {
-        for query in &request.queries {
+        if let Some(query) = request.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
     } else if let &Some(ref response) = &tx.response {
-        for query in &response.queries {
+        if let Some(query) = response.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
@@ -168,9 +168,9 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             // All rdata types are pushed to "addr" for backwards compatibility
             match answer.data {
                 DNSRData::A(ref bytes) | DNSRData::AAAA(ref bytes) => {
-                    if bytes.len() > 0 {
+                    if !bytes.is_empty() {
                         lua.pushstring("addr");
-                        lua.pushstring(&dns_print_addr(&bytes));
+                        lua.pushstring(&dns_print_addr(bytes));
                         lua.settable(-3);
                     }
                 },
@@ -181,14 +181,14 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 DNSRData::NULL(ref bytes) |
                 DNSRData::PTR(ref bytes) |
                 DNSRData::Unknown(ref bytes) => {
-                    if bytes.len() > 0 {
+                    if !bytes.is_empty() {
                         lua.pushstring("addr");
-                        lua.pushstring(&String::from_utf8_lossy(&bytes));
+                        lua.pushstring(&String::from_utf8_lossy(bytes));
                         lua.settable(-3);
                     }
                 },
                 DNSRData::SOA(ref soa) => {
-                    if soa.mname.len() > 0 {
+                    if !soa.mname.is_empty() {
                         lua.pushstring("addr");
                         lua.pushstring(&String::from_utf8_lossy(&soa.mname));
                         lua.settable(-3);

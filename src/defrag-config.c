@@ -44,7 +44,7 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
     uint64_t *user_data = NULL;
 
     if ( (user_data = SCMalloc(sizeof(uint64_t))) == NULL) {
-        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        FatalError("Error allocating memory. Exiting");
     }
 
     *user_data = timeout;
@@ -52,14 +52,12 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
     if (strchr(host_ip_range, ':') != NULL) {
         SCLogDebug("adding ipv6 host %s", host_ip_range);
         if (SCRadixAddKeyIPV6String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                        "failed to add ipv6 host %s", host_ip_range);
+            SCLogWarning("failed to add ipv6 host %s", host_ip_range);
         }
     } else {
         SCLogDebug("adding ipv4 host %s", host_ip_range);
         if (SCRadixAddKeyIPV4String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                        "failed to add ipv4 host %s", host_ip_range);
+            SCLogWarning("failed to add ipv4 host %s", host_ip_range);
         }
     }
 }
@@ -108,8 +106,8 @@ static void DefragParseParameters(ConfNode *n)
         if (strcasecmp("timeout", si->name) == 0) {
             SCLogDebug("timeout value  %s", si->val);
             if (ParseSizeStringU64(si->val, &timeout) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing timeout "
-                        "from conf file");
+                SCLogError("Error parsing timeout "
+                           "from conf file");
             }
         }
         if (strcasecmp("address", si->name) == 0) {
@@ -133,8 +131,7 @@ void DefragPolicyLoadFromConfig(void)
 
     defrag_tree = SCRadixCreateRadixTree(DefragPolicyFreeUserData, NULL);
     if (defrag_tree == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Can't alloc memory for the defrag config tree.");
+        FatalError("Can't alloc memory for the defrag config tree.");
     }
 
     ConfNode *server_config = ConfGetNode("defrag.host-config");

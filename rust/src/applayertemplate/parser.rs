@@ -56,11 +56,9 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
     }
-
 }

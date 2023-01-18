@@ -1722,7 +1722,7 @@ incompatible with ``decode-mime``. If both are enabled,
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 
-MQTT, FTP, PostgreSQL and NFS have each a `max-tx` parameter that can be customized.
+MQTT, FTP, PostgreSQL, SMB and NFS have each a `max-tx` parameter that can be customized.
 `max-tx` refers to the maximum number of live transactions for each flow.
 An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
 The point of this parameter is to find a balance between the completeness of analysis
@@ -1780,8 +1780,11 @@ Default Configuration Example
     # something reasonable if not provided.  Can be overridden in an
     # output section.  You can leave this out to get the default.
     #
-    # This value is overridden by the SC_LOG_FORMAT env var.
-    #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+    # This console log format value can be overridden by the SC_LOG_FORMAT env var.
+    #default-log-format: "%D: %S: %M"
+    #
+    # For the pre-7.0 log format use:
+    #default-log-format: "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 
     # A regex to filter output.  Can be overridden in an output section.
     # Defaults to empty (no filter).
@@ -1799,6 +1802,7 @@ Default Configuration Example
         enabled: yes
         level: info
         filename: suricata.log
+        # format: "[%i - %m] %z %d: %S: %M"
         # type: json
     - syslog:
         enabled: no
@@ -1850,8 +1854,8 @@ specified signs:
 
 ::
 
-  t:      Time, timestamp, time and date
-			example: 15/10/2010 - -11:40:07
+  z:      ISO-like formatted timestamp: YYYY-MM-DD HH:MM:SS
+  t:      Original Suricata log timestamp: DD/MM/YYYY -- HH:MM::SS
   p:      Process ID. Suricata's whole processing consists of multiple threads.
   i:      Thread ID. ID of individual threads.
   m:      Thread module name. (Outputs, Detect etc.)
@@ -2613,3 +2617,25 @@ detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
 .. _deprecation policy: https://suricata.io/about/deprecation-policy/
+
+.. _suricata-yaml-config-hardening:
+
+Configuration hardening
+-----------------------
+
+The `security` section of suricata.yaml is meant to provide in-depth security configuration options.
+
+Besides landlock, (see :ref:`landlock`), one setting is available.
+`limit-noproc` is a boolean to prevent process creation by Suricata.
+If you do not need Suricata to create other processes or threads
+(you may need it for LUA scripts for instance or plugins), enable this to
+call `setrlimit` with `RLIMIT_NPROC` argument (see `man setrlimit`).
+This prevents potential exploits against Suricata to fork a new process,
+even if it does not prevent the call of `exec`.
+
+Warning! This has no effect on Linux when running as root. If you want a hardened configuration,
+you probably want to set `run-as` configuration parameter so as to drop root privileges.
+
+Beyond suricata.yaml, other ways to harden Suricata are
+- compilation : enabling ASLR and other exploit mitigation techniques.
+- environment : running Suricata on a device that has no direct access to Internet.

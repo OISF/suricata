@@ -35,17 +35,15 @@ pub enum TelnetFrameType {
     Data,
 }
 
+#[derive(Default)]
 pub struct TelnetTransaction {
     tx_id: u64,
     tx_data: AppLayerTxData,
 }
 
 impl TelnetTransaction {
-    pub fn new() -> TelnetTransaction {
-        TelnetTransaction {
-            tx_id: 0,
-            tx_data: AppLayerTxData::new(),
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
@@ -92,6 +90,12 @@ impl State<TelnetTransaction> for TelnetState {
     }
 }
 
+impl Default for TelnetState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TelnetState {
     pub fn new() -> Self {
         Self {
@@ -127,12 +131,7 @@ impl TelnetState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&TelnetTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
     fn _new_tx(&mut self) -> TelnetTransaction {
@@ -152,7 +151,7 @@ impl TelnetState {
         &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
     ) -> AppLayerResult {
         // We're not interested in empty requests.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -170,13 +169,13 @@ impl TelnetState {
         }
 
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             if self.request_frame.is_none() {
                 self.request_frame = Frame::new(
                     flow,
                     stream_slice,
                     start,
-                    -1 as i64,
+                    -1_i64,
                     TelnetFrameType::Pdu as u8,
                 );
             }
@@ -187,7 +186,7 @@ impl TelnetState {
                             flow,
                             stream_slice,
                             start,
-                            -1 as i64,
+                            -1_i64,
                             TelnetFrameType::Ctl as u8,
                         )
                     } else {
@@ -195,7 +194,7 @@ impl TelnetState {
                             flow,
                             stream_slice,
                             start,
-                            -1 as i64,
+                            -1_i64,
                             TelnetFrameType::Data as u8,
                         )
                     // app-layer-frame-documentation tag end: parse_request
@@ -262,7 +261,7 @@ impl TelnetState {
 
     fn parse_response(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
-        if input.len() == 0 {
+        if input.is_empty() {
             return AppLayerResult::ok();
         }
 
@@ -278,16 +277,16 @@ impl TelnetState {
             self.response_gap = false;
         }
         let mut start = input;
-        while start.len() > 0 {
+        while !start.is_empty() {
             if self.response_frame.is_none() {
-                self.response_frame = Frame::new(flow, stream_slice, start, -1 as i64, TelnetFrameType::Pdu as u8);
+                self.response_frame = Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Pdu as u8);
             }
             if self.response_specific_frame.is_none() {
                 if let Ok((_, is_ctl)) = parser::peek_message_is_ctl(start) {
                     self.response_specific_frame = if is_ctl {
-                        Frame::new(flow, stream_slice, start, -1 as i64, TelnetFrameType::Ctl as u8)
+                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Ctl as u8)
                     } else {
-                        Frame::new(flow, stream_slice, start, -1 as i64, TelnetFrameType::Data as u8)
+                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Data as u8)
                     };
                 }
             }
@@ -435,11 +434,7 @@ pub unsafe extern "C" fn rs_telnet_parse_request(
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
-        true
-    } else {
-        false
-    };
+    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
     if eof {
         // If needed, handle EOF, or pass it into the parser.
@@ -467,11 +462,7 @@ pub unsafe extern "C" fn rs_telnet_parse_response(
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-        true
-    } else {
-        false
-    };
+    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TelnetState);
 
     if stream_slice.is_gap() {
@@ -523,7 +514,7 @@ export_tx_data_get!(rs_telnet_get_tx_data, TelnetTransaction);
 export_state_data_get!(rs_telnet_get_state_data, TelnetState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"telnet\0";
+const PARSER_NAME: &[u8] = b"telnet\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_telnet_register_parser() {

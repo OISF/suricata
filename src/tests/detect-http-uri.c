@@ -33,6 +33,7 @@
 
 #include "../detect-isdataat.h"
 #include "../detect-engine-build.h"
+#include "../detect-engine-alert.h"
 
 /** \test Test a simple uricontent option */
 static int UriTestSig01(void)

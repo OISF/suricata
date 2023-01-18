@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,10 +51,10 @@ fn convert_varint(continued: Vec<u8>, last: u8) -> u32 {
     let mut multiplier = 1u32;
     let mut value = 0u32;
     for val in &continued {
-        value = value + ((val & 127) as u32 * multiplier);
-        multiplier = multiplier * 128u32;
+        value += (val & 127) as u32 * multiplier;
+        multiplier *= 128u32;
     }
-    value = value + ((last & 127) as u32 * multiplier);
+    value += (last & 127) as u32 * multiplier;
     return value;
 }
 
@@ -114,7 +114,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
             // parse properties
             let mut props = Vec::<MQTTProperty>::new();
             let (rem, mut newrem) = take(proplen as usize)(rem)?;
-            while newrem.len() > 0 {
+            while !newrem.is_empty() {
                 match parse_property(newrem) {
                     Ok((rem2, val)) => {
                         props.push(val);
@@ -166,7 +166,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
         FixedHeader {
             message_type: parse_message_type(flags.0),
             dup_flag: flags.1 != 0,
-            qos_level: flags.2 as u8,
+            qos_level: flags.2,
             retain: flags.3 != 0,
             remaining_length,
         },
@@ -174,6 +174,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 }
 
 #[inline]
+#[allow(clippy::type_complexity)]
 fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8, u8, u8)> {
     bits(tuple((
         take_bits(1u8),
@@ -207,7 +208,7 @@ fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
             username_flag: flags.0 != 0,
             password_flag: flags.1 != 0,
             will_retain: flags.2 != 0,
-            will_qos: flags.3 as u8,
+            will_qos: flags.3,
             will_flag: flags.4 != 0,
             clean_session: flags.5 != 0,
             keepalive,
@@ -241,7 +242,8 @@ fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTC
 
 #[inline]
 fn parse_publish(
-    protocol_version: u8, has_id: bool,
+    protocol_version: u8,
+    has_id: bool,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData> {
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
@@ -412,7 +414,8 @@ fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTT
 
 #[inline]
 fn parse_disconnect(
-    remaining_len: usize, protocol_version: u8,
+    remaining_len: usize,
+    protocol_version: u8,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData> {
     move |input: &[u8]| {
         if protocol_version < 5 {
@@ -483,7 +486,11 @@ fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
 
 #[inline]
 fn parse_remaining_message<'a>(
-    full: &'a [u8], len: usize, skiplen: usize, header: FixedHeader, message_type: MQTTTypeCode,
+    full: &'a [u8],
+    len: usize,
+    skiplen: usize,
+    header: FixedHeader,
+    message_type: MQTTTypeCode,
     protocol_version: u8,
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], MQTTMessage> {
     move |input: &'a [u8]| {
@@ -625,7 +632,9 @@ fn parse_remaining_message<'a>(
 }
 
 pub fn parse_message(
-    input: &[u8], protocol_version: u8, max_msg_size: usize,
+    input: &[u8],
+    protocol_version: u8,
+    max_msg_size: usize,
 ) -> IResult<&[u8], MQTTMessage> {
     // Parse the fixed header first. This is identical across versions and can
     // be between 2 and 5 bytes long.
@@ -740,5 +749,387 @@ mod tests {
     #[test]
     fn test_mqtt_parse_variable_integer_smallest_valid() {
         test_mqtt_parse_variable_check(&[0x0], 0);
+    }
+
+    #[test]
+    fn test_parse_fixed_header() {
+        let buf = [
+            0x30, /* Header Flags: 0x30, Message Type: Publish Message, QoS Level: At most once delivery (Fire and Forget) */
+            0xb7, 0x97, 0x02, /* Msg Len: 35767 */
+            0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_fixed_header(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.message_type, MQTTTypeCode::PUBLISH);
+                assert_eq!(message.dup_flag, false);
+                assert_eq!(message.qos_level, 0);
+                assert_eq!(message.retain, false);
+                assert_eq!(message.remaining_length, 35767);
+                assert_eq!(remainder.len(), 17);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_properties() {
+        let buf = [
+            0x03, 0x21, 0x00, 0x14, /* Properties */
+            0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0xa0,
+        ];
+
+        let result = parse_properties(&buf, true);
+        match result {
+            Ok((remainder, message)) => {
+                let res = message.unwrap();
+                assert_eq!(res[0], MQTTProperty::RECEIVE_MAXIMUM(20));
+                assert_eq!(remainder.len(), 17);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+    #[test]
+    fn test_parse_connect() {
+        let buf = [
+            0x00, 0x04, /* Protocol Name Length: 4 */
+            0x4d, 0x51, 0x54, 0x54, /* Protocol Name: MQTT */
+            0x05, /* Version: MQTT v5.0 (5) */
+            0xc2, /*Connect Flags: 0xc2, User Name Flag, Password Flag, QoS Level: At most once delivery (Fire and Forget), Clean Session Flag */
+            0x00, 0x3c, /* Keep Alive: 60 */
+            0x03, 0x21, 0x00, 0x14, /* Properties */
+            0x00, 0x00, /* Client ID Length: 0 */
+            0x00, 0x04, /* User Name Length: 4 */
+            0x75, 0x73, 0x65, 0x72, /* User Name: user */
+            0x00, 0x04, /* Password Length: 4 */
+            0x71, 0x61, 0x71, 0x73, /* Password: pass */
+        ];
+
+        let result = parse_connect(&buf);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.protocol_string, "MQTT");
+                assert_eq!(message.protocol_version, 5);
+                assert_eq!(message.username_flag, true);
+                assert_eq!(message.password_flag, true);
+                assert_eq!(message.will_retain, false);
+                assert_eq!(message.will_qos, 0);
+                assert_eq!(message.will_flag, false);
+                assert_eq!(message.clean_session, true);
+                assert_eq!(message.keepalive, 60);
+                assert_eq!(remainder.len(), 0);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_connack() {
+        let buf = [
+            0x00, /* Acknowledge Flags: 0x00 (0000 000. = Reserved: Not set )(.... ...0 = Session Present: Not set) */
+            0x00, /* Reason Code: Success (0) */
+            0x2f, /* Total Length: 47 */
+            0x22, /* ID: Topic Alias Maximum (0x22) */
+            0x00, 0x0a, /* Value: 10 */
+            0x12, /* ID: Assigned Client Identifier (0x12) */
+            0x00, 0x29, /* Length: 41 */
+            0x61, 0x75, 0x74, 0x6f, 0x2d, 0x31, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30, 0x30, 0x2d,
+            0x30, 0x38, 0x45, 0x33, 0x2d, 0x33, 0x42, 0x41, 0x31, 0x2d, 0x32, 0x45, 0x39, 0x37,
+            0x2d, 0x45, 0x39, 0x41, 0x30, 0x42, 0x34, 0x30, 0x36, 0x34, 0x42, 0x46,
+            0x35, /* 41 byte Value: auto-1B43E800-08E3-3BA1-2E97-E9A0B4064BF5 */
+        ];
+        let client_identifier = "auto-1B43E800-08E3-3BA1-2E97-E9A0B4064BF5";
+
+        let result = parse_connack(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                let props = message.properties.unwrap();
+                assert_eq!(props[0], MQTTProperty::TOPIC_ALIAS_MAXIMUM(10));
+                assert_eq!(
+                    props[1],
+                    MQTTProperty::ASSIGNED_CLIENT_IDENTIFIER(client_identifier.to_string())
+                );
+                assert_eq!(message.return_code, 0);
+                assert_eq!(message.session_present, false);
+                assert_eq!(remainder.len(), 0);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_publish() {
+        let buf = [
+            0x00, 06, /* Topic Length: 6 */
+            0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, /* Topic: topicX */
+            0x00, 0x01, /* Message Identifier: 1 */
+            0x00, /* Properties 6 */
+            0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30,
+        ];
+
+        let result = parse_publish(5, true);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                let message_id = message.message_id.unwrap();
+                assert_eq!(message.topic, "topicX");
+                assert_eq!(message_id, 1);
+                assert_eq!(remainder.len(), 13);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_msgidonly_v3() {
+        let buf = [
+            0x00, 01, /* Message Identifier: 1 */
+            0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, 0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34,
+            0x33, 0x45, 0x38, 0x30,
+        ];
+
+        let result = parse_msgidonly(3);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                assert_eq!(message.message_id, 1);
+                assert_eq!(remainder.len(), 18);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_msgidonly_v5() {
+        let buf = [
+            0x00, 01,   /* Message Identifier: 1 */
+            0x00, /* Reason Code: 0 */
+            0x00, /* Properties */
+            0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30,
+        ];
+
+        let result = parse_msgidonly(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                let reason_code = message.reason_code.unwrap();
+                assert_eq!(message.message_id, 1);
+                assert_eq!(reason_code, 0);
+                assert_eq!(remainder.len(), 12);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_subscribe() {
+        let buf = [
+            0x00, 0x01, /* Message Identifier: 1 */
+            0x00, /* Properties 6 */
+            0x00, 0x06, /* Topic Length: 6  */
+            0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, /* Topic: topicX */
+            0x00, /*Subscription Options: 0x00, Retain Handling: Send msgs at subscription time, QoS: At most once delivery (Fire and Forget) */
+            0x00, 0x06, /* Topic Length: 6  */
+            0x74, 0x6f, 0x70, 0x69, 0x63, 0x59, /* Topic: topicY */
+            0x00, /*Subscription Options: 0x00, Retain Handling: Send msgs at subscription time, QoS: At most once delivery (Fire and Forget) */
+            0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30,
+        ];
+
+        let result = parse_subscribe(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                assert_eq!(message.topics[0].topic_name, "topicX");
+                assert_eq!(message.topics[1].topic_name, "topicY");
+                assert_eq!(message.topics[0].qos, 0);
+                assert_eq!(message.message_id, 1);
+                assert_eq!(remainder.len(), 12);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+    #[test]
+    fn test_parse_suback() {
+        let buf = [
+            0x00, 0x01, /* Message Identifier: 1 */
+            0x00, /* Properties 6 */
+            0x00, 0x00, /* Topic Length: 6  */
+        ];
+
+        let result = parse_suback(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                assert_eq!(message.qoss[0], 0);
+                assert_eq!(message.message_id, 1);
+                assert_eq!(remainder.len(), 3);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+    #[test]
+    fn test_parse_unsubscribe() {
+        let buf = [
+            0x00, 0x01, /* Message Identifier: 1 */
+            0x00, /* Properties 6 */
+            0x00, 0x06, /* Topic Length: 6  */
+            0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, /* Topic: topicX */
+            0x00, /*Subscription Options: 0x00, Retain Handling: Send msgs at subscription time, QoS: At most once delivery (Fire and Forget) */
+        ];
+
+        let result = parse_unsubscribe(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                assert_eq!(message.topics[0], "topicX");
+                assert_eq!(message.message_id, 1);
+                assert_eq!(remainder.len(), 1);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_unsuback() {
+        let buf = [
+            0x00, 0x01, /* Message Identifier: 1 */
+            0x00, /* Properties 6 */
+            0x00, /* Reason Code */
+        ];
+
+        let result = parse_unsuback(5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                let reason_codes = message.reason_codes.unwrap();
+                assert_eq!(reason_codes[0], 0);
+                assert_eq!(message.message_id, 1);
+                assert_eq!(remainder.len(), 0);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_disconnect() {
+        let buf = [
+            0xe0, /* Reason: 0 */
+            0x00, /* Message Identifier: 1 */
+        ];
+
+        let result = parse_disconnect(0, 5);
+        let input = result(&buf);
+        match input {
+            Ok((remainder, message)) => {
+                let reason_code = message.reason_code.unwrap();
+                assert_eq!(reason_code, 0);
+                assert_eq!(remainder.len(), 2);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_message() {
+        let buf = [
+            0x10, /* Message Identifier: 1 */
+            0x2f, 0x00, 0x04, 0x4d, 0x51, 0x54, 0x54, 0x05,
+            0xc2, /* Connect Flags: 0xc2, User Name Flag, Password Flag, QoS Level: At most once delivery (Fire and Forget), Clean Session Flag */
+            0x00, 0x3c, 0x03, 0x21, 0x00, 0x14, /* Properties */
+            0x00, 0x13, 0x6d, 0x79, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x69, 0x73, 0x6d, 0x79, 0x70,
+            0x61, 0x73, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x00, 0x04, 0x75, 0x73, 0x65, 0x72, 0x00,
+            0x04, 0x70, 0x61, 0x73, 0x73,
+        ];
+
+        let result = parse_message(&buf, 5, 40);
+        match result {
+            Ok((remainder, message)) => {
+                assert_eq!(message.header.message_type, MQTTTypeCode::CONNECT);
+                assert_eq!(message.header.dup_flag, false);
+                assert_eq!(message.header.qos_level, 0);
+                assert_eq!(message.header.retain, false);
+                assert_eq!(remainder.len(), 49);
+            }
+
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
     }
 }

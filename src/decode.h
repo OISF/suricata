@@ -78,8 +78,9 @@ enum PktSrcEnum {
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
 #endif
-
-#include "action-globals.h"
+#ifdef HAVE_AF_XDP
+#include "source-af-xdp.h"
+#endif
 
 #include "decode-ethernet.h"
 #include "decode-gre.h"
@@ -500,6 +501,9 @@ typedef struct Packet_
 #ifdef HAVE_NAPATECH
         NapatechPacketVars ntpv;
 #endif
+#ifdef HAVE_AF_XDP
+        AFXDPPacketVars afxdp_v;
+#endif
         /* A chunk of memory that a plugin can use for its packet vars. */
         uint8_t plugin_v[PLUGIN_VAR_SIZE];
 
@@ -617,11 +621,6 @@ typedef struct Packet_
                            * It should always point to the lowest
                            * packet in a encapsulated packet */
 
-    /** mutex to protect access to:
-     *  - tunnel_rtv_cnt
-     *  - tunnel_tpr_cnt
-     */
-    SCMutex tunnel_mutex;
     /* ready to set verdict counter, only set in root */
     uint16_t tunnel_rtv_cnt;
     /* tunnel packet ref count */
@@ -638,10 +637,19 @@ typedef struct Packet_
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
+    /* things in the packet that live beyond a reinit */
+    struct {
+        /** lock to protect access to:
+         *  - tunnel_rtv_cnt
+         *  - tunnel_tpr_cnt
+         *  - nfq_v.mark
+         *  - flags
+         */
+        SCSpinlock tunnel_lock;
+    } persistent;
 } Packet;
 
 /** highest mtu of the interfaces we monitor */
-extern int g_default_mtu;
 #define DEFAULT_MTU 1500
 #define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
 
@@ -773,11 +781,13 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
     } while (0)
 
-#define TUNNEL_INCR_PKT_TPR(p) do {                                                 \
-        SCMutexLock((p)->root ? &(p)->root->tunnel_mutex : &(p)->tunnel_mutex);     \
-        ((p)->root ? (p)->root->tunnel_tpr_cnt++ : (p)->tunnel_tpr_cnt++);          \
-        SCMutexUnlock((p)->root ? &(p)->root->tunnel_mutex : &(p)->tunnel_mutex);   \
-    } while (0)
+static inline void TUNNEL_INCR_PKT_TPR(Packet *p)
+{
+    Packet *rp = p->root ? p->root : p;
+    SCSpinLock(&rp->persistent.tunnel_lock);
+    rp->tunnel_tpr_cnt++;
+    SCSpinUnlock(&rp->persistent.tunnel_lock);
+}
 
 #define TUNNEL_PKT_RTV(p) ((p)->root ? (p)->root->tunnel_rtv_cnt : (p)->tunnel_rtv_cnt)
 #define TUNNEL_PKT_TPR(p) ((p)->root ? (p)->root->tunnel_tpr_cnt : (p)->tunnel_tpr_cnt)
@@ -978,8 +988,8 @@ void DecodeUnregisterCounters(void);
 
 /** Flag to indicate that packet contents should not be inspected */
 #define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
-/** Packet was alloc'd this run, needs to be freed */
-#define PKT_ALLOC BIT_U32(3)
+// vacancy
+
 /** Packet has matched a tag */
 #define PKT_HAS_TAG BIT_U32(4)
 /** Packet payload was added to reassembled stream */
@@ -1093,8 +1103,8 @@ static inline void DecodeSetNoPacketInspectionFlag(Packet *p)
 static inline bool VerdictTunnelPacket(Packet *p)
 {
     bool verdict = true;
-    SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-    SCMutexLock(m);
+    SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
+    SCSpinLock(lock);
     const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
     SCLogDebug("tunnel: outstanding %u", outstanding);
 
@@ -1108,7 +1118,7 @@ static inline bool VerdictTunnelPacket(Packet *p)
     } else {
         verdict = false;
     }
-    SCMutexUnlock(m);
+    SCSpinUnlock(lock);
     return verdict;
 }
 
@@ -1137,8 +1147,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeCHDLC(tv, dtv, p, data, len);
             break;
         default:
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "datalink type "
-                    "%"PRId32" not yet supported", datalink);
+            SCLogError("datalink type "
+                       "%" PRId32 " not yet supported",
+                    datalink);
             break;
     }
 }

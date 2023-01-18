@@ -279,8 +279,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     /* Execute the regex and populate args with captures. */
     ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
     if (ret < 4 || ret > 9) {
-        SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
-               ", string %s", ret, optstr);
+        SCLogError("parse error, ret %" PRId32 ", string %s", ret, optstr);
         goto error;
     }
 
@@ -289,9 +288,8 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         res = pcre2_substring_get_bynumber(
                 parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
-                    "pcre2_substring_get_bynumber failed "
-                    "for arg %d",
+            SCLogError("pcre2_substring_get_bynumber failed "
+                       "for arg %d",
                     i + 1);
             goto error;
         }
@@ -327,7 +325,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     /* Number of bytes */
     if (StringParseUint32(&nbytes, 10, 0, args[0]) <= 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", str_ptr);
+        SCLogError("Malformed number of bytes: %s", str_ptr);
         goto error;
     }
 
@@ -361,7 +359,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         } else if (strcmp("<=", op_ptr) == 0) {
             data->op |= DETECT_BYTETEST_OP_LE;
         } else {
-            SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
+            SCLogError("Invalid operator");
             goto error;
         }
     }
@@ -378,7 +376,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
         if (test_value[0] != '-' && isalpha((unsigned char)test_value[0])) {
             if (value == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_test supplied with "
+                SCLogError("byte_test supplied with "
                            "var name for value.  \"value\" argument supplied to "
                            "this function has to be non-NULL");
                 goto error;
@@ -388,7 +386,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
                 goto error;
         } else {
             if (ByteExtractStringUint64(&data->value, 0, 0, test_value) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed value: %s", test_value);
+                SCLogError("Malformed value: %s", test_value);
                 goto error;
             }
         }
@@ -407,7 +405,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         data_offset[end_ptr-str_ptr] = '\0';
         if (data_offset[0] != '-' && isalpha((unsigned char)data_offset[0])) {
             if (data_offset == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_test supplied with "
+                SCLogError("byte_test supplied with "
                            "var name for offset.  \"offset\" argument supplied to "
                            "this function has to be non-NULL");
                 goto error;
@@ -417,7 +415,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
                 goto error;
         } else {
             if (StringParseInt32(&data->offset, 0, 0, data_offset) <= 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", data_offset);
+                SCLogError("Malformed offset: %s", data_offset);
                 goto error;
             }
         }
@@ -451,8 +449,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
                 data->flags |= DETECT_BYTETEST_BITMASK;
                 bitmask_index = i;
             } else {
-                SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown value: \"%s\"",
-                        args[i]);
+                SCLogError("Unknown value: \"%s\"", args[i]);
                 goto error;
             }
         }
@@ -467,18 +464,16 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 23 bytes with \"string\": %s",
-                        optstr);
+            SCLogError("Cannot test more than 23 bytes with \"string\": %s", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 8 bytes without \"string\": %s",
-                        optstr);
+            SCLogError("Cannot test more than 8 bytes without \"string\": %s", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Cannot use a base without \"string\": %s", optstr);
+            SCLogError("Cannot use a base without \"string\": %s", optstr);
             goto error;
         }
     }
@@ -488,7 +483,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     if (bitmask_index != -1 && data->flags & DETECT_BYTETEST_BITMASK) {
         if (ByteExtractStringUint32(&data->bitmask, 0, 0, args[bitmask_index]+strlen("bitmask")) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed bitmask value: %s", args[bitmask_index]+strlen("bitmask"));
+            SCLogError("Malformed bitmask value: %s", args[bitmask_index] + strlen("bitmask"));
             goto error;
         }
         /* determine how many trailing 0's are in the bitmask. This will be used
@@ -592,7 +587,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             (data->base == DETECT_BYTETEST_BASE_DEC) ||
             (data->base == DETECT_BYTETEST_BASE_HEX) ||
             (data->base == DETECT_BYTETEST_BASE_OCT) ) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+            SCLogError("Invalid option. "
                        "A byte_test keyword with dce holds other invalid modifiers.");
             goto error;
         }
@@ -601,8 +596,9 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (value != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(value, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                       "seen in byte_test - %s\n", value);
+            SCLogError("Unknown byte_extract var "
+                       "seen in byte_test - %s\n",
+                    value);
             goto error;
         }
         data->value = index;
@@ -614,8 +610,9 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (offset != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(offset, s, &index)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                       "seen in byte_test - %s\n", offset);
+            SCLogError("Unknown byte_extract var "
+                       "seen in byte_test - %s\n",
+                    offset);
             goto error;
         }
         data->offset = index;

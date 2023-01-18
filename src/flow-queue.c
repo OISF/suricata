@@ -32,11 +32,11 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-FlowQueue *FlowQueueNew()
+FlowQueue *FlowQueueNew(void)
 {
     FlowQueue *q = (FlowQueue *)SCMalloc(sizeof(FlowQueue));
     if (q == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowQueueNew. Exiting...");
+        SCLogError("Fatal error encountered in FlowQueueNew. Exiting...");
         exit(EXIT_SUCCESS);
     }
     q = FlowQueueInit(q);

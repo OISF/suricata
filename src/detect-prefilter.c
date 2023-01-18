@@ -57,18 +57,18 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "prefilter has value");
+        SCLogError("prefilter has value");
         SCReturnInt(-1);
     }
 
     if (s->flags & SIG_FLAG_PREFILTER) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter already set");
+        SCLogError("prefilter already set");
         SCReturnInt(-1);
     }
 
     SigMatch *sm = DetectGetLastSM(s);
     if (sm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter needs preceding match");
+        SCLogError("prefilter needs preceding match");
         SCReturnInt(-1);
     }
 
@@ -82,15 +82,14 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
                  (cd->flags & DETECT_CONTENT_OFFSET) ||
                  (cd->flags & DETECT_CONTENT_DEPTH)))
         {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter; cannot be "
-                    "used with negated content, along with relative modifiers");
+            SCLogError("prefilter; cannot be "
+                       "used with negated content, along with relative modifiers");
             SCReturnInt(-1);
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
     } else {
         if (sigmatch_table[sm->type].SupportsPrefilter == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter is not supported for %s",
-                    sigmatch_table[sm->type].name);
+            SCLogError("prefilter is not supported for %s", sigmatch_table[sm->type].name);
             SCReturnInt(-1);
         }
         s->flags |= SIG_FLAG_PREFILTER;

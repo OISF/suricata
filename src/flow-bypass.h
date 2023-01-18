@@ -24,7 +24,6 @@
 #ifndef __FLOW_BYPASS_H__
 #define __FLOW_BYPASS_H__
 
-#include "threadvars.h"
 #include "flow.h"
 
 struct flows_stats {

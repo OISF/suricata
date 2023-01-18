@@ -44,7 +44,7 @@ void RegisterMQTTParsers(void)
         if (p != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(p->val, &value) < 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "invalid value for max-msg-length: %s", p->val);
+                SCLogError("invalid value for max-msg-length: %s", p->val);
             } else {
                 max_msg_len = value;
             }

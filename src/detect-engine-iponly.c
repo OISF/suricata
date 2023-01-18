@@ -339,8 +339,7 @@ static int IPOnlyCIDRItemSetup(IPOnlyCIDRItem **gh, char *s)
 
     /* parse the address */
     if (IPOnlyCIDRItemParseSingle(gh, s) == -1) {
-        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
-                   "address parsing error \"%s\"", s);
+        SCLogError("address parsing error \"%s\"", s);
         goto error;
     }
 
@@ -448,8 +447,9 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead)
 {
     SCEnter();
+#ifdef DEBUG
     uint32_t i = 0;
-
+#endif
     IPOnlyCIDRItem *it, *next = NULL;
 
     if (tmphead == NULL) {
@@ -461,8 +461,10 @@ void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead)
     next = it->next;
 
     while (it != NULL) {
+#ifdef DEBUG
         i++;
         SCLogDebug("Item(%p) %"PRIu32" removed", it, i);
+#endif
         SCFree(it);
         it = next;
 
@@ -549,8 +551,7 @@ static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in SigNumArrayNew. Exiting...");
+        FatalError("Fatal error encountered in SigNumArrayNew. Exiting...");
     }
     memset(new, 0, sizeof(SigNumArray));
 
@@ -580,8 +581,7 @@ static SigNumArray *SigNumArrayCopy(SigNumArray *orig)
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in SigNumArrayCopy. Exiting...");
+        FatalError("Fatal error encountered in SigNumArrayCopy. Exiting...");
     }
 
     memset(new, 0, sizeof(SigNumArray));
@@ -783,7 +783,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(
     return head;
 
 error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,"Error parsing addresses");
+    SCLogError("Error parsing addresses");
     return head;
 }
 
@@ -863,7 +863,7 @@ int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
     return 0;
 
 error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "failed to parse addresses");
+    SCLogError("failed to parse addresses");
     return -1;
 }
 
@@ -1188,8 +1188,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                          sna, src->netmask);
 
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the "
-                                                        "src ipv4 radix tree");
+                        SCLogError("Error inserting in the "
+                                   "src ipv4 radix tree");
                 } else {
                     SCLogDebug("Best match found");
 
@@ -1218,8 +1218,9 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     if (node == NULL) {
                         char tmpstr[64];
                         PrintInet(src->family, &src->ip[0], tmpstr, sizeof(tmpstr));
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the"
-                                   " src ipv4 radix tree ip %s netmask %"PRIu8, tmpstr, src->netmask);
+                        SCLogError("Error inserting in the"
+                                   " src ipv4 radix tree ip %s netmask %" PRIu8,
+                                tmpstr, src->netmask);
                         //SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
                         exit(-1);
                     }
@@ -1281,7 +1282,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                          (de_ctx->io_ctx).tree_ipv6src,
                                                          sna, src->netmask);
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the src "
+                        SCLogError("Error inserting in the src "
                                    "ipv6 radix tree");
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
@@ -1305,7 +1306,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                          (de_ctx->io_ctx).tree_ipv6src,
                                                          sna, src->netmask);
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the src "
+                        SCLogError("Error inserting in the src "
                                    "ipv6 radix tree");
                 }
             } else {
@@ -1383,7 +1384,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                          sna, dst->netmask);
 
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                        SCLogError("Error inserting in the dst "
                                    "ipv4 radix tree");
                 } else {
                     SCLogDebug("Best match found");
@@ -1410,7 +1411,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                           sna, dst->netmask);
 
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                        SCLogError("Error inserting in the dst "
                                    "ipv4 radix tree");
                 }
             } else {
@@ -1471,7 +1472,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                           sna, dst->netmask);
 
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                        SCLogError("Error inserting in the dst "
                                    "ipv6 radix tree");
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
@@ -1496,7 +1497,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                                          sna, dst->netmask);
 
                     if (node == NULL)
-                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                        SCLogError("Error inserting in the dst "
                                    "ipv6 radix tree");
                 }
             } else {

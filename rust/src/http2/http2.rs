@@ -48,7 +48,7 @@ pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum HTTP2ConnectionState {
     Http2StateInit = 0,
     Http2StateMagicDone = 1,
@@ -64,7 +64,7 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
 static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2FrameUnhandledReason {
     UnknownType = 0,
     TooLong = 1,
@@ -100,7 +100,7 @@ pub enum HTTP2FrameTypeData {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2TransactionState {
     HTTP2StateIdle = 0,
     HTTP2StateOpen = 1,
@@ -152,9 +152,15 @@ impl Transaction for HTTP2Transaction {
     }
 }
 
+impl Default for HTTP2Transaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HTTP2Transaction {
-    pub fn new() -> HTTP2Transaction {
-        HTTP2Transaction {
+    pub fn new() -> Self {
+        Self {
             tx_id: 0,
             stream_id: 0,
             child_stream_id: 0,
@@ -195,10 +201,10 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
-        for i in 0..blocks.len() {
-            if blocks[i].name == b"content-encoding" {
-                self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
+        for block in blocks {
+            if block.name == b"content-encoding" {
+                self.decoder.http2_encoding_fromvec(&block.value, dir);
             }
         }
     }
@@ -237,13 +243,11 @@ impl HTTP2Transaction {
                         }
                     }
                 }
-            } else {
-                if !self.file_range.is_null() {
-                    if over {
-                        range::http2_range_close(self, Direction::ToClient, decompressed)
-                    } else {
-                        range::http2_range_append(self.file_range, decompressed)
-                    }
+            } else if !self.file_range.is_null() {
+                if over {
+                    range::http2_range_close(self, Direction::ToClient, decompressed)
+                } else {
+                    range::http2_range_append(self.file_range, decompressed)
                 }
             }
             let (files, flags) = self.files.get(Direction::ToClient);
@@ -342,16 +346,14 @@ impl HTTP2Transaction {
                             }
                         }
                     }
-                } else if header.ftype == parser::HTTP2FrameType::DATA as u8 {
+                } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
                     //not end of stream
                     if dir == Direction::ToServer {
                         if self.state < HTTP2TransactionState::HTTP2StateDataClient {
                             self.state = HTTP2TransactionState::HTTP2StateDataClient;
                         }
-                    } else {
-                        if self.state < HTTP2TransactionState::HTTP2StateDataServer {
-                            self.state = HTTP2TransactionState::HTTP2StateDataServer;
-                        }
+                    } else if self.state < HTTP2TransactionState::HTTP2StateDataServer {
+                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
                     }
                 }
             }
@@ -390,6 +392,12 @@ pub struct HTTP2DynTable {
     pub overflow: u8,
 }
 
+impl Default for HTTP2DynTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HTTP2DynTable {
     pub fn new() -> Self {
         Self {
@@ -419,6 +427,12 @@ impl State<HTTP2Transaction> for HTTP2State {
 
     fn get_transaction_by_index(&self, index: usize) -> Option<&HTTP2Transaction> {
         self.transactions.get(index)
+    }
+}
+
+impl Default for HTTP2State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -581,9 +595,9 @@ impl HTTP2State {
         if index > 0 {
             if self.transactions[index - 1].state == HTTP2TransactionState::HTTP2StateClosed {
                 //these frames can be received in this state for a short period
-                if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
-                    && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
-                    && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
+                if header.ftype != parser::HTTP2FrameType::RstStream as u8
+                    && header.ftype != parser::HTTP2FrameType::WindowUpdate as u8
+                    && header.ftype != parser::HTTP2FrameType::Priority as u8
                 {
                     self.set_event(HTTP2Event::StreamIdReuse);
                 }
@@ -621,17 +635,17 @@ impl HTTP2State {
 
     fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
         let (mut update, mut sizeup) = (false, 0);
-        for i in 0..blocks.len() {
-            if blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
+        for block in blocks {
+            if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 self.set_event(HTTP2Event::InvalidHeader);
-            } else if blocks[i].error
+            } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
             {
                 update = true;
-                if blocks[i].sizeupdate > sizeup {
-                    sizeup = blocks[i].sizeupdate;
+                if block.sizeupdate > sizeup {
+                    sizeup = block.sizeupdate;
                 }
-            } else if blocks[i].error
+            } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
                 self.set_event(HTTP2Event::HeaderIntegerOverflow);
@@ -652,7 +666,7 @@ impl HTTP2State {
         &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: Direction,
     ) -> HTTP2FrameTypeData {
         match num::FromPrimitive::from_u8(ftype) {
-            Some(parser::HTTP2FrameType::GOAWAY) => {
+            Some(parser::HTTP2FrameType::GoAway) => {
                 if input.len() < HTTP2_FRAME_GOAWAY_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -671,19 +685,19 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::SETTINGS) => {
+            Some(parser::HTTP2FrameType::Settings) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
-                        for i in 0..set.len() {
-                            if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                        for e in &set {
+                            if e.id == parser::HTTP2SettingsId::HeaderTableSize {
                                 //reverse order as this is what we accept from the other endpoint
                                 let dyn_headers = if dir == Direction::ToClient {
                                     &mut self.dynamic_headers_ts
                                 } else {
                                     &mut self.dynamic_headers_tc
                                 };
-                                dyn_headers.max_size = set[i].value as usize;
-                                if set[i].value > unsafe { HTTP2_MAX_TABLESIZE } {
+                                dyn_headers.max_size = e.value as usize;
+                                if e.value > unsafe { HTTP2_MAX_TABLESIZE } {
                                     //mark potential overflow
                                     dyn_headers.overflow = 1;
                                 } else {
@@ -715,7 +729,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::RSTSTREAM) => {
+            Some(parser::HTTP2FrameType::RstStream) => {
                 if input.len() != HTTP2_FRAME_RSTSTREAM_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -735,7 +749,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PRIORITY) => {
+            Some(parser::HTTP2FrameType::Priority) => {
                 if input.len() != HTTP2_FRAME_PRIORITY_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -755,7 +769,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::WINDOWUPDATE) => {
+            Some(parser::HTTP2FrameType::WindowUpdate) => {
                 if input.len() != HTTP2_FRAME_WINDOWUPDATE_LEN {
                     self.set_event(HTTP2Event::InvalidFrameLength);
                     return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -775,7 +789,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PUSHPROMISE) => {
+            Some(parser::HTTP2FrameType::PushPromise) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -806,10 +820,10 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::DATA) => {
+            Some(parser::HTTP2FrameType::Data) => {
                 return HTTP2FrameTypeData::DATA;
             }
-            Some(parser::HTTP2FrameType::CONTINUATION) => {
+            Some(parser::HTTP2FrameType::Continuation) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -840,7 +854,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::HEADERS) => {
+            Some(parser::HTTP2FrameType::Headers) => {
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -849,7 +863,7 @@ impl HTTP2State {
                 match parser::http2_parse_frame_headers(input, hflags, dyn_headers) {
                     Ok((hrem, hs)) => {
                         self.process_headers(&hs.blocks, dir);
-                        if hrem.len() > 0 {
+                        if !hrem.is_empty() {
                             SCLogDebug!("Remaining data for HTTP2 headers");
                             self.set_event(HTTP2Event::ExtraHeaderData);
                         }
@@ -875,7 +889,7 @@ impl HTTP2State {
                     }
                 }
             }
-            Some(parser::HTTP2FrameType::PING) => {
+            Some(parser::HTTP2FrameType::Ping) => {
                 return HTTP2FrameTypeData::PING;
             }
             _ => {
@@ -889,7 +903,7 @@ impl HTTP2State {
     fn parse_frames(
         &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
     ) -> AppLayerResult {
-        while input.len() > 0 {
+        while !input.is_empty() {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
                     let hl = head.length as usize;
@@ -920,7 +934,7 @@ impl HTTP2State {
                         (hl, true)
                     };
 
-                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::SETTINGS as u8 {
+                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::Settings as u8 {
                         input = &rem[hlsafe..];
                         continue;
                     }
@@ -937,6 +951,7 @@ impl HTTP2State {
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
+                    let padded = head.flags & parser::HTTP2_FLAG_HEADER_PADDED != 0;
                     if dir == Direction::ToServer {
                         tx.frames_ts.push(HTTP2Frame {
                             header: head,
@@ -948,7 +963,7 @@ impl HTTP2State {
                             data: txdata,
                         });
                     }
-                    if ftype == parser::HTTP2FrameType::DATA as u8 {
+                    if ftype == parser::HTTP2FrameType::Data as u8 {
                         match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             Some(sfcm) => {
                                 //borrow checker forbids to reuse directly tx
@@ -960,18 +975,17 @@ impl HTTP2State {
                                     } else {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
-
-                                    match tx_same.decompress(
-                                        &rem[..hlsafe],
+                                    let mut dinput = &rem[..hlsafe];
+                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
+                                        dinput = &rem[1..hlsafe - usize::from(rem[0])];
+                                    }
+                                    if tx_same.decompress(
+                                        dinput,
                                         dir,
                                         sfcm,
                                         over,
-                                        flow,
-                                    ) {
-                                        Err(_e) => {
-                                            self.set_event(HTTP2Event::FailedDecompression);
-                                        }
-                                        _ => {}
+                                        flow).is_err() {
+                                        self.set_event(HTTP2Event::FailedDecompression);
                                     }
                                 }
                             }
@@ -1018,7 +1032,7 @@ impl HTTP2State {
                 self.progress = HTTP2ConnectionState::Http2StateMagicDone;
             } else {
                 //still more buffer
-                return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
+                return AppLayerResult::incomplete(0_u32, HTTP2_MAGIC_LEN as u32);
             }
         }
         //first consume frame bytes
@@ -1081,7 +1095,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
-                    || header.ftype != parser::HTTP2FrameType::SETTINGS as u8
+                    || header.ftype != parser::HTTP2FrameType::Settings as u8
                 {
                     return ALPROTO_FAILED;
                 }
@@ -1205,7 +1219,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"http2\0";
+const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {

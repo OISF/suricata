@@ -38,11 +38,11 @@ DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
     return q;
 }
 
-DefragTrackerQueue *DefragTrackerQueueNew()
+DefragTrackerQueue *DefragTrackerQueueNew(void)
 {
     DefragTrackerQueue *q = (DefragTrackerQueue *)SCMalloc(sizeof(DefragTrackerQueue));
     if (q == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in DefragTrackerQueueNew. Exiting...");
+        SCLogError("Fatal error encountered in DefragTrackerQueueNew. Exiting...");
         exit(EXIT_SUCCESS);
     }
     q = DefragTrackerQueueInit(q);

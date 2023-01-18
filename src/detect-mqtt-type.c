@@ -108,7 +108,7 @@ static uint8_t *DetectMQTTTypeParse(const char *rawstr)
     ret = rs_mqtt_cstr_message_code(rawstr);
     // negative value denotes invalid input
     if(ret < 0) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown mqtt.type value %s", rawstr);
+        SCLogError("unknown mqtt.type value %s", rawstr);
         goto error;
     }
 

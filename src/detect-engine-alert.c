@@ -35,6 +35,8 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 
+#include "action-globals.h"
+
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
 /** tag packet alert structure for tag alerts */
@@ -222,7 +224,7 @@ void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
     det_ctx->alert_queue_size = 0;
     det_ctx->alert_queue = SCCalloc(packet_alert_max, sizeof(PacketAlert));
     if (det_ctx->alert_queue == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIu64 " bytes for the alert queue",
+        FatalError("failed to allocate %" PRIu64 " bytes for the alert queue",
                 (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
     }
     det_ctx->alert_queue_capacity = packet_alert_max;

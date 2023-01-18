@@ -84,7 +84,7 @@ pub fn ssh_parse_line(i: &[u8]) -> IResult<&[u8], &[u8]> {
         )(i)
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct SshBanner<'a> {
     pub protover: &'a [u8],
     pub swver: &'a [u8],
@@ -101,7 +101,7 @@ pub fn ssh_parse_banner(i: &[u8]) -> IResult<&[u8], SshBanner> {
     Ok((i, SshBanner { protover, swver }))
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct SshRecordHeader {
     pub pkt_len: u32,
     padding_len: u8,
@@ -148,7 +148,7 @@ pub fn ssh_parse_record(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
     ))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SshPacketKeyExchange<'a> {
     pub cookie: &'a [u8],
     pub kex_algs: &'a [u8],

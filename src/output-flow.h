@@ -26,6 +26,7 @@
 #ifndef __OUTPUT_FLOW_H__
 #define __OUTPUT_FLOW_H__
 
+#include "tm-modules.h"
 
 /** flow logger function pointer type */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);

@@ -31,9 +31,12 @@
 
 MemBuffer *MemBufferCreateNew(uint32_t size)
 {
+    sc_errno = SC_OK;
     if (size > MAX_LIMIT) {
-        SCLogWarning(SC_ERR_MEM_BUFFER_API, "Mem buffer asked to create "
-                     "buffer with size greater than API limit - %d", MAX_LIMIT);
+        SCLogWarning("Mem buffer asked to create "
+                     "buffer with size greater than API limit - %d",
+                MAX_LIMIT);
+        sc_errno = SC_EINVAL;
         return NULL;
     }
 
@@ -41,6 +44,7 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
 
     MemBuffer *buffer = SCMalloc(total_size);
     if (unlikely(buffer == NULL)) {
+        sc_errno = SC_ENOMEM;
         return NULL;
     }
     memset(buffer, 0, total_size);
@@ -59,8 +63,9 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
  */
 int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
     if (((*buffer)->size + expand_by) > MAX_LIMIT) {
-        SCLogWarning(SC_ERR_MEM_BUFFER_API, "Mem buffer asked to create "
-                     "buffer with size greater than API limit - %d", MAX_LIMIT);
+        SCLogWarning("Mem buffer asked to create "
+                     "buffer with size greater than API limit - %d",
+                MAX_LIMIT);
         return -1;
     }
 

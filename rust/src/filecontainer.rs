@@ -47,7 +47,6 @@ impl Files {
     }
 }
 
-pub struct File;
 #[repr(C)]
 #[derive(Debug)]
 pub struct FileContainer {
@@ -69,9 +68,6 @@ impl Default for FileContainer {
 }
 
 impl FileContainer {
-    pub fn default() -> FileContainer {
-        FileContainer { head:ptr::null_mut(), tail:ptr::null_mut() }
-    }
     pub fn free(&mut self) {
         SCLogDebug!("freeing self");
         if let Some(c) = unsafe {SC} {
@@ -79,13 +75,13 @@ impl FileContainer {
         }
     }
 
-    pub fn file_open(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, name: &[u8], flags: u16) -> i32 {
+    pub fn file_open(&mut self, cfg: &'static SuricataFileContext, track_id: u32, name: &[u8], flags: u16) -> i32 {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
 
-                let res = (c.FileOpenFile)(self, cfg.files_sbcfg, *track_id,
+                let res = (c.FileOpenFile)(self, cfg.files_sbcfg, track_id,
                         name.as_ptr(), name.len() as u16,
                         ptr::null(), 0u32, flags);
                 res
@@ -95,7 +91,7 @@ impl FileContainer {
 
     pub fn file_append(&mut self, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
-        if data.len() == 0 {
+        if data.is_empty() {
             return 0
         }
         match unsafe {SC} {

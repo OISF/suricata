@@ -67,15 +67,16 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Invalid Priority in Signature "
-                     "- %s", rawstr);
+        SCLogError("Invalid Priority in Signature "
+                   "- %s",
+                rawstr);
         return -1;
     }
 
     pcre2len = sizeof(copy_str);
     ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
@@ -83,14 +84,14 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     char *endptr = NULL;
     prio = strtol(copy_str, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+        SCLogError("Saw an invalid character as arg "
                    "to priority keyword");
         return -1;
     }
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICT) {
-        SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicate priority "
-                "keyword. Using highest priority in the rule");
+        SCLogWarning("duplicate priority "
+                     "keyword. Using highest priority in the rule");
         s->prio = MIN(s->prio, prio);
     } else {
         s->prio = prio;

@@ -56,6 +56,8 @@
 #include "util-time.h"
 #include "util-buffer.h"
 
+#include "action-globals.h"
+
 #define MODULE_NAME "JsonDropLog"
 
 #define LOG_DROP_ALERTS 1
@@ -250,8 +252,8 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
 {
     OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
-            "can be enabled");
+        SCLogError("only one 'drop' logger "
+                   "can be enabled");
         return result;
     }
 
@@ -281,8 +283,8 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
             } else if (strcasecmp(extended, "all") == 0) {
                 g_droplog_flows_start = 0;
             } else {
-                SCLogWarning(SC_ERR_CONF_YAML_ERROR, "valid options for "
-                        "'flow' are 'start' and 'all'");
+                SCLogWarning("valid options for "
+                             "'flow' are 'start' and 'all'");
             }
         }
     }

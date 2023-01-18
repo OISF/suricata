@@ -40,11 +40,13 @@ impl DHCPLogger {
         let options = &tx.message.options;
         for option in options {
             let code = option.code;
+            #[allow(clippy::single_match)]
             match &option.option {
                 &DHCPOptionWrapper::Generic(ref option) => {
+                    #[allow(clippy::single_match)]
                     match code {
                         DHCP_OPT_TYPE => {
-                            if option.data.len() > 0 {
+                            if !option.data.is_empty() {
                                 return Some(option.data[0]);
                             }
                         }
@@ -102,12 +104,12 @@ impl DHCPLogger {
         
         for option in options {
             let code = option.code;
-            match &option.option {
-                &DHCPOptionWrapper::ClientId(ref clientid) => {
+            match option.option {
+                DHCPOptionWrapper::ClientId(ref clientid) => {
                     js.set_string("client_id",
                                   &format_addr_hex(&clientid.data))?;
                 }
-                &DHCPOptionWrapper::TimeValue(ref time_value) => {
+                DHCPOptionWrapper::TimeValue(ref time_value) => {
                     match code {
                         DHCP_OPT_ADDRESS_TIME => {
                             if self.extended {
@@ -128,7 +130,7 @@ impl DHCPLogger {
                         _ => {}
                     }
                 }
-                &DHCPOptionWrapper::Generic(ref option) => {
+                DHCPOptionWrapper::Generic(ref option) => {
                     match code {
                         DHCP_OPT_SUBNET_MASK => {
                             if self.extended {
@@ -137,7 +139,7 @@ impl DHCPLogger {
                             }
                         }
                         DHCP_OPT_HOSTNAME => {
-                            if option.data.len() > 0 {
+                            if !option.data.is_empty() {
                                 js.set_string_from_bytes("hostname",
                                                          &option.data)?;
                             }
@@ -179,7 +181,7 @@ impl DHCPLogger {
     }
 
     fn log_opt_type(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
-        if option.data.len() > 0 {
+        if !option.data.is_empty() {
             let dhcp_type = match option.data[0] {
                 DHCP_TYPE_DISCOVER => "discover",
                 DHCP_TYPE_OFFER => "offer",
@@ -210,7 +212,7 @@ impl DHCPLogger {
                 DHCP_PARAM_TFTP_SERVER_IP => "tftp_server_ip",
                 _ => ""
             };
-            if param.len() > 0 {
+            if !param.is_empty() {
                 js.append_string(param)?;
             }
         }
@@ -240,7 +242,7 @@ impl DHCPLogger {
 
 }
 
-fn format_addr_hex(input: &Vec<u8>) -> String {
+fn format_addr_hex(input: &[u8]) -> String {
     let parts: Vec<String> = input.iter()
         .map(|b| format!("{:02x}", b))
         .collect();

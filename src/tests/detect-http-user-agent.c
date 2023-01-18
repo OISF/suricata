@@ -42,6 +42,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 #include "detect-engine-build.h"
+#include "detect-engine-alert.h"
 
 static int DetectEngineHttpUATest(
         const uint8_t *buf, const uint32_t buf_len, const char *sig, const bool expect)

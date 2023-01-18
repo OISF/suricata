@@ -127,7 +127,7 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    return FragOffsetMatch(frag, fragoff->mode, fragoff->frag_off);;
+    return FragOffsetMatch(frag, fragoff->mode, fragoff->frag_off);
 }
 
 /**
@@ -151,14 +151,14 @@ static DetectFragOffsetData *DetectFragOffsetParse (DetectEngineCtx *de_ctx, con
 
     ret = DetectParsePcreExec(&parse_regex, fragoffsetstr, 0, 0);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", fragoffsetstr);
+        SCLogError("Parse error %s", fragoffsetstr);
         goto error;
     }
 
     for (i = 1; i < ret; i++) {
         res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+            SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;
@@ -189,8 +189,9 @@ static DetectFragOffsetData *DetectFragOffsetParse (DetectEngineCtx *de_ctx, con
     }
 
     if (StringParseUint16(&fragoff->frag_off, 10, 0, substr[1]) < 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified frag offset %s is not "
-                                        "valid", substr[1]);
+        SCLogError("specified frag offset %s is not "
+                   "valid",
+                substr[1]);
         goto error;
     }
 
@@ -328,6 +329,8 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "detect-engine.h"
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value

@@ -46,8 +46,7 @@ magic_t MagicInitContext(void)
 
     ctx = magic_open(0);
     if (ctx == NULL) {
-        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s",
-                magic_error(ctx));
+        SCLogError("magic_open failed: %s", magic_error(ctx));
         goto error;
     }
 
@@ -65,8 +64,7 @@ magic_t MagicInitContext(void)
             SCLogConfig("using magic-file %s", filename);
 
             if ( (fd = fopen(filename, "r")) == NULL) {
-                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
-                        filename, strerror(errno));
+                SCLogWarning("Error opening file: \"%s\": %s", filename, strerror(errno));
                 goto error;
             }
             fclose(fd);
@@ -74,8 +72,7 @@ magic_t MagicInitContext(void)
     }
 
     if (magic_load(ctx, filename) != 0) {
-        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s",
-                magic_error(ctx));
+        SCLogError("magic_load failed: %s", magic_error(ctx));
         goto error;
     }
     return ctx;
@@ -113,7 +110,7 @@ char *MagicThreadLookup(magic_t *ctx, const uint8_t *buf, uint32_t buflen)
         if (result != NULL) {
             magic = SCStrdup(result);
             if (unlikely(magic == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+                SCLogError("Unable to dup magic");
             }
         }
     }

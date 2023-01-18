@@ -55,7 +55,6 @@
 #include "app-layer-frames.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
-#include "util-logopenfile.h"
 #include "log-pcap.h"
 
 #include "output.h"
@@ -87,6 +86,8 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-validate.h"
+
+#include "action-globals.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -198,13 +199,13 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
             jb_get_mark(js, &mark);
             bool logged = false;
             jb_open_object(js, "dnp3");
-            if (tx->has_request && tx->request_done) {
+            if (tx->is_request && tx->done) {
                 jb_open_object(js, "request");
                 JsonDNP3LogRequest(js, tx);
                 jb_close(js);
                 logged = true;
             }
-            if (tx->has_response && tx->response_done) {
+            if (!tx->is_request && tx->done) {
                 jb_open_object(js, "response");
                 JsonDNP3LogResponse(js, tx);
                 jb_close(js);
@@ -268,6 +269,25 @@ static void AlertJsonRDP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
             JsonBuilderMark mark = { 0, 0, 0 };
             jb_get_mark(js, &mark);
             if (!rs_rdp_to_json(tx, js)) {
+                jb_restore_mark(js, &mark);
+            }
+        }
+    }
+}
+
+static void AlertJsonBitTorrentDHT(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
+{
+    void *bittorrent_dht_state = (void *)FlowGetAppState(f);
+    if (bittorrent_dht_state != NULL) {
+        void *tx =
+                AppLayerParserGetTx(f->proto, ALPROTO_BITTORRENT_DHT, bittorrent_dht_state, tx_id);
+        if (tx != NULL) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "bittorrent_dht");
+            if (rs_bittorrent_dht_logger_log(tx, js)) {
+                jb_close(js);
+            } else {
                 jb_restore_mark(js, &mark);
             }
         }
@@ -408,17 +428,12 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
 
     jb_open_object(js, "tunnel");
 
-    /* get a lock to access root packet fields */
-    SCMutex *m = &p->root->tunnel_mutex;
-
     enum PktSrcEnum pkt_src;
     uint64_t pcap_cnt;
     JsonAddrInfo addr = json_addr_info_zero;
-    SCMutexLock(m);
     JsonAddrInfoInit(p->root, 0, &addr);
     pcap_cnt = p->root->pcap_cnt;
     pkt_src = p->root->pkt_src;
-    SCMutexUnlock(m);
 
     jb_set_string(js, "src_ip", addr.src_ip);
     jb_set_uint(js, "src_port", addr.sp);
@@ -573,6 +588,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
+        case ALPROTO_BITTORRENT_DHT:
+            AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
+            break;
         default:
             break;
     }
@@ -584,7 +602,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
             (p->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT;
     FileContainer *ffc = NULL;
     if (p->flow->alstate != NULL) {
-        void *tx = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, tx_id);
+        void *tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, p->flow->alstate, tx_id);
         if (tx) {
             ffc = AppLayerParserGetTxFiles(p->flow, tx, direction);
         }
@@ -664,8 +682,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
         /* Check for XFF, overwriting address info if needed. */
-        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ?
-            json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
+        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ? json_output_ctx->xff_cfg
+                                                               : json_output_ctx->parent_xff_cfg;
         int have_xff_ip = 0;
         char xff_buffer[XFF_MAXLEN];
         xff_buffer[0] = 0;
@@ -1017,9 +1035,9 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         if (payload_buffer_value != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {
-                SCLogError(SC_ERR_ALERT_PAYLOAD_BUFFER, "Error parsing "
+                SCLogError("Error parsing "
                            "payload-buffer-size - %s. Killing engine",
-                           payload_buffer_value);
+                        payload_buffer_value);
                 exit(EXIT_FAILURE);
             } else {
                 payload_buffer_size = value;
@@ -1028,8 +1046,9 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
 
         if (!warn_no_meta && flags & JSON_BODY_LOGGING) {
             if (((flags & LOG_JSON_APP_LAYER) == 0)) {
-                SCLogWarning(SC_WARN_ALERT_CONFIG, "HTTP body logging has been configured, however, "
-                             "metadata logging has not been enabled. HTTP body logging will be disabled.");
+                SCLogWarning("HTTP body logging has been configured, however, "
+                             "metadata logging has not been enabled. HTTP body logging will be "
+                             "disabled.");
                 flags &= ~JSON_BODY_LOGGING;
                 warn_no_meta = true;
             }

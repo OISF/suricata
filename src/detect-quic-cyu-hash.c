@@ -195,14 +195,14 @@ static bool DetectQuicHashValidateCallback(const Signature *s, const char **sige
             *sigerror = BUFFER_NAME " should not be used together with "
                                     "nocase, since the rule is automatically "
                                     "lowercased anyway which makes nocase redundant.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
         }
 
         if (cd->content_len != 32) {
             *sigerror = "Invalid length of the specified" BUFFER_NAME " (should "
                         "be 32 characters long). This rule will therefore "
                         "never match.";
-            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
             return FALSE;
         }
         for (size_t i = 0; i < cd->content_len; ++i) {
@@ -210,7 +210,7 @@ static bool DetectQuicHashValidateCallback(const Signature *s, const char **sige
                 *sigerror = "Invalid " BUFFER_NAME
                             " string (should be string of hexadecimal characters)."
                             "This rule will therefore never match.";
-                SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
                 return FALSE;
             }
         }
@@ -249,6 +249,7 @@ void DetectQuicCyuHashRegister(void)
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
+#include "detect-engine-alert.h"
 
 /**
  * \test DetectQuicCyuHashTest01 is a test for a valid quic packet, matching

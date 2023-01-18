@@ -97,9 +97,10 @@ static void *ParsePcapConfig(const char *iface)
             SCLogInfo("Pcap will use %d buffer size", (int)value);
             aconf->buffer_size = value;
         } else {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "pcap.buffer-size "
-                    "value of %"PRIiMAX" is invalid. Valid range is "
-                    "0-2147483647", value);
+            SCLogWarning("pcap.buffer-size "
+                         "value of %" PRIiMAX " is invalid. Valid range is "
+                         "0-2147483647",
+                    value);
         }
     }
 
@@ -142,8 +143,9 @@ static void *ParsePcapConfig(const char *iface)
     } else {
         if (threadsstr != NULL) {
             if (StringParseInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
-                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
-                             "pcap.threads: %s, resetting to 1", threadsstr);
+                SCLogWarning("Invalid value for "
+                             "pcap.threads: %s, resetting to 1",
+                        threadsstr);
                 aconf->threads = 1;
             }
         }
@@ -161,9 +163,7 @@ static void *ParsePcapConfig(const char *iface)
             uint64_t bsize = 0;
 
             if (ParseSizeStringU64(s_limit, &bsize) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Failed to parse pcap buffer size: %s",
-                    s_limit);
+                SCLogError("Failed to parse pcap buffer size: %s", s_limit);
             } else {
                 /* the string 2gb returns 2147483648 which is 1 to high
                  * for a int. */
@@ -171,8 +171,8 @@ static void *ParsePcapConfig(const char *iface)
                     bsize = (uint64_t)INT_MAX;
 
                 if (bsize > INT_MAX) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                            "Failed to set pcap buffer size: 2gb max. %"PRIu64" > %d", bsize, INT_MAX);
+                    SCLogError("Failed to set pcap buffer size: 2gb max. %" PRIu64 " > %d", bsize,
+                            INT_MAX);
                 } else {
                     aconf->buffer_size = (int)bsize;
                 }
@@ -199,7 +199,7 @@ static void *ParsePcapConfig(const char *iface)
         } else if (ConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface);
+            SCLogError("Invalid value for checksum-checks for %s", aconf->iface);
         }
     }
 
@@ -247,7 +247,7 @@ int RunModeIdsPcapSingle(void)
                                     "DecodePcap", thread_name_single,
                                     live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Runmode start failed");
+        FatalError("Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPcapSingle initialised");
@@ -287,7 +287,7 @@ int RunModeIdsPcapAutoFp(void)
                               "DecodePcap", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Runmode start failed");
+        FatalError("Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPcapAutoFp initialised");
@@ -318,7 +318,7 @@ int RunModeIdsPcapWorkers(void)
                                     "DecodePcap", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
+        FatalError("Unable to start runmode");
     }
 
     SCLogInfo("RunModeIdsPcapWorkers initialised");

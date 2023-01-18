@@ -36,18 +36,18 @@ Tmq *TmqCreateQueue(const char *name)
 {
     Tmq *q = SCCalloc(1, sizeof(*q));
     if (q == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "SCCalloc failed");
+        FatalError("SCCalloc failed");
 
     q->name = SCStrdup(name);
     if (q->name == NULL)
-        FatalError(SC_ERR_MEM_ALLOC, "SCStrdup failed");
+        FatalError("SCStrdup failed");
 
     q->id = tmq_id++;
     q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
     if (!q->is_packet_pool) {
         q->pq = PacketQueueAlloc();
         if (q->pq == NULL)
-            FatalError(SC_ERR_MEM_ALLOC, "PacketQueueAlloc failed");
+            FatalError("PacketQueueAlloc failed");
     }
 
     TAILQ_INSERT_HEAD(&tmq_list, q, next);
@@ -106,12 +106,12 @@ void TmValidateQueueState(void)
     TAILQ_FOREACH(tmq, &tmq_list, next) {
         SCMutexLock(&tmq->pq->mutex_q);
         if (tmq->reader_cnt == 0) {
-            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d max %u)",
-                    tmq->name, tmq->id, tmq_id);
+            SCLogError("queue \"%s\" doesn't have a reader (id %d max %u)", tmq->name, tmq->id,
+                    tmq_id);
             err = true;
         } else if (tmq->writer_cnt == 0) {
-            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)",
-                    tmq->name, tmq->id, tmq_id);
+            SCLogError("queue \"%s\" doesn't have a writer (id %d, max %u)", tmq->name, tmq->id,
+                    tmq_id);
             err = true;
         }
         SCMutexUnlock(&tmq->pq->mutex_q);
@@ -123,5 +123,5 @@ void TmValidateQueueState(void)
     return;
 
 error:
-    FatalError(SC_ERR_FATAL, "fatal error during threading setup");
+    FatalError("fatal error during threading setup");
 }

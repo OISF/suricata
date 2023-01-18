@@ -143,6 +143,9 @@ void DetectTlsRegister (void)
 
     DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
+
+    DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 }
 
 /**
@@ -223,7 +226,7 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
 
     ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
+        SCLogError("invalid tls.subject option");
         goto error;
     }
 
@@ -233,7 +236,7 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     res = pcre2_substring_get_bynumber(
             subject_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -415,7 +418,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
 
     ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0);
     if (ret != 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
+        SCLogError("invalid tls.issuerdn option");
         goto error;
     }
 
@@ -425,7 +428,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
     res = pcre2_substring_get_bynumber(
             issuerdn_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
+        SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -619,6 +622,14 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    ssl_state->server_connp.cert_log_flag |= SSL_TLS_LOG_PEM;
+    SSLStateConnp *connp;
+
+    if (p->flow->flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    connp->cert_log_flag |= SSL_TLS_LOG_PEM;
     SCReturnInt(1);
 }

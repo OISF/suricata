@@ -43,7 +43,6 @@
 #include "flow-var.h"
 
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-spm.h"
 #include "util-print.h"
 
@@ -103,6 +102,12 @@ void DetectTlsCertsRegister(void)
             PrefilterMpmTlsCertsRegister, NULL, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
+    DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CERT_READY, DetectEngineInspectTlsCerts, NULL);
+
+    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOSERVER, 2, PrefilterMpmTlsCertsRegister,
+            NULL, ALPROTO_TLS, TLS_STATE_CERT_READY);
+
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
     g_tls_certs_buffer_id = DetectBufferTypeGetByName("tls.certs");
@@ -142,13 +147,20 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         return NULL;
 
     const SSLState *ssl_state = (SSLState *)f->alstate;
+    const SSLStateConnp *connp;
 
-    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
+    if (f->flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (TAILQ_EMPTY(&connp->certs)) {
         return NULL;
     }
 
     if (cbdata->cert == NULL) {
-        cbdata->cert = TAILQ_FIRST(&ssl_state->server_connp.certs);
+        cbdata->cert = TAILQ_FIRST(&connp->certs);
     } else {
         cbdata->cert = TAILQ_NEXT(cbdata->cert, next);
     }
@@ -324,8 +336,7 @@ static int DetectTLSCertChainLenSetup(DetectEngineCtx *de_ctx, Signature *s, con
 
     DetectU32Data *dd = DetectU32Parse(rawstr);
     if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Parsing \'%s\' failed for %s", rawstr,
-                sigmatch_table[KEYWORD_ID].name);
+        SCLogError("Parsing \'%s\' failed for %s", rawstr, sigmatch_table[KEYWORD_ID].name);
         return -1;
     }
 

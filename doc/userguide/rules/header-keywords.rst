@@ -1,4 +1,3 @@
-
 .. role:: example-rule-emphasis
 
 IP Keywords
@@ -10,7 +9,7 @@ ttl
 The ttl keyword is used to check for a specific IP time-to-live value
 in the header of a packet. The format is::
 
-  ttl:<number>
+  ttl:<number>;
 
 For example::
 
@@ -20,7 +19,7 @@ At the end of the ttl keyword you can enter the value on which you
 want to match. The Time-to-live value determines the maximal amount
 of time a packet can be in the Internet-system. If this field is set
 to 0, then the packet has to be destroyed. The time-to-live is based
-on hop count. Each hop/router the packet passes subtracts one of the
+on hop count. Each hop/router the packet passes subtracts one from the
 packet TTL counter. The purpose of this mechanism is to limit the
 existence of packets so that packets can not end up in infinite
 routing loops.
@@ -29,7 +28,8 @@ Example of the ttl keyword in a rule:
 
 .. container:: example-rule
 
-    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC 0 ttl"; :example-rule-emphasis:`ttl:0;` reference:url,support.microsoft.com/default.aspx?scid=kb#-#-EN-US#-#-q138268; reference:url,www.isi.edu/in-notes/rfc1122.txt; classtype:misc-activity; sid:2101321; rev:9;)
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"IP Packet With TTL 0";
+    :example-rule-emphasis:`ttl:0;` classtype:misc-activity; sid:1; rev:1;)
 
 ipopts
 ^^^^^^
@@ -55,17 +55,17 @@ any        any IP options are set
 
 Format of the ipopts keyword::
 
-  ipopts: <name>
+  ipopts: <name>;
 
 For example::
 
-  ipopts: lsrr;
+  ipopts: ts;
 
 Example of ipopts in a rule:
 
 .. container:: example-rule
 
-    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC source route ssrr"; :example-rule-emphasis:`ipopts:ssrr;` reference:arachnids,422; classtype:bad-unknown; sid:2100502; rev:3;)
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"IP Packet with timestamp option"; :example-rule-emphasis:`ipopts:ts;` classtype:misc-activity; sid:2; rev:1;)
 
 sameip
 ^^^^^^
@@ -82,7 +82,7 @@ Example of sameip in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"GPL SCAN same SRC/DST"; :example-rule-emphasis:`sameip;` reference:bugtraq,2666; reference:cve,1999-0016; reference:url,www.cert.org/advisories/CA-1997-28.html; classtype:bad-unknown; sid:2100527; rev:9;)
+    alert ip any any -> any any (msg:"IP Packet with the same source and destination IP"; :example-rule-emphasis:`sameip;` classtype:bad-unknown; sid:3; rev:1;)
 
 ip_proto
 ^^^^^^^^
@@ -105,30 +105,39 @@ Example of ip_proto in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"GPL MISC IP Proto 103 PIM"; :example-rule-emphasis:`ip_proto:103;` reference:bugtraq,8211; reference:cve,2003-0567; classtype:non-standard-protocol; sid:2102189; rev:4;)
+    alert ip any any -> any any (msg:"IP Packet with protocol 1"; :example-rule-emphasis:`ip_proto:1;` classtype:bad-unknown; sid:5; rev:1;)
 
 The named variant of that example would be::
 
-    ip_proto:PIM
+    ip_proto:ICMP;
 
 ipv4.hdr
 ^^^^^^^^
 
-Sticky buffer to match on the whole IPv4 header.
+Sticky buffer to match on content contained within an IPv4 header.
 
 Example rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (:example-rule-emphasis:`ipv4.hdr; content:"|3A|"; offset:9; depth:1;` sid:1234; rev:5;)
+    alert ip any any -> any any (msg:"IPv4 header keyword example"; :example-rule-emphasis:`ipv4.hdr; content:"|06|"; offset:9; depth:1;` sid:1; rev:1;)
 
-This example looks if byte 9 of IPv4 header has value 3A.
-That means that the IPv4 protocol is ICMPv6.
+This example looks if byte 10 of IPv4 header has value 06, which indicates that
+the IPv4 protocol is TCP.
 
 ipv6.hdr
 ^^^^^^^^
 
-Sticky buffer to match on the whole IPv6 header.
+Sticky buffer to match on content contained within an IPv6 header.
+
+Example rule:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"IPv6 header keyword example"; :example-rule-emphasis:`ipv6.hdr; content:"|06|"; offset:6; depth:1;` sid:1; rev:1;)
+
+This example looks if byte 7 of IP64 header has value 06, which indicates that
+the IPv6 protocol is TCP.
 
 id
 ^^
@@ -150,11 +159,11 @@ Example of id in a rule:
 
 .. container:: example-rule
 
-    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET DELETED F5 BIG-IP 3DNS TCP Probe 1"; :example-rule-emphasis:`id: 1;` dsize: 24; flags: S,12; content:"\|00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\|"; window: 2048; reference:url,www.f5.com/f5products/v9intro/index.html; reference:url,doc.emergingthreats.net/2001609; classtype:misc-activity; sid:2001609; rev:13;)
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"id keyword example"; :example-rule-emphasis:`id:1;` content:"content|3a 20|"; fast_pattern; classtype:misc-activity; sid:12; rev:1;)
 
 geoip
 ^^^^^
-The geoip keyword enables (you) to match on the source, destination or
+The geoip keyword enables matching on the source, destination or
 source and destination IPv4 addresses of network traffic, and to see to
 which country it belongs. To be able to do this, Suricata uses the GeoIP2
 API of MaxMind.
@@ -167,22 +176,19 @@ The syntax of geoip::
   geoip: both,US,CA,UK;
   geoip: any,CN,IR;
 
-So, you can see you can use the following to make clear on which
-direction you would like to match
-
 ====== =============================================================
 Option Description
 ====== =============================================================
-both   Both directions have to match with the given geoip(s)
-any    One of the directions has to match with the given geoip(s).
-dest   If the destination matches with the given geoip.
+both   Both source and destination have to match with the given geoip(s)
+any    Either the source or the destination has to match with the given geoip(s).
+dest   The destination matches with the given geoip.
 src    The source matches with the given geoip.
 ====== =============================================================
 
-The keyword only supports IPv4. As it uses the GeoIP2 API of MaxMind,
+geoip currently only supports IPv4. As it uses the GeoIP2 API of MaxMind,
 libmaxminddb must be compiled in. You must download and install the
 GeoIP2 or GeoLite2 database editions desired. Visit the MaxMind site
-at https://dev.maxmind.com/geoip/geoip2/geolite2/ for details.
+at https://dev.maxmind.com/geoip/geolite2-free-geolocation-data for details.
 
 You must also supply the location of the GeoIP2 or GeoLite2 database
 file on the local system in the YAML-file configuration (for example)::
@@ -222,7 +228,7 @@ Example of fragbits in a rule:
 
 .. container:: example-rule
 
-   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; :example-rule-emphasis:`fragbits: M;` fragoffset: >0; reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"fragbits keyword example non-fragmented packet with fragment offset>0"; :example-rule-emphasis:`fragbits:M;` fragoffset:>0; classtype:bad-unknown; sid:123; rev:1;)
 
 fragoffset
 ^^^^^^^^^^
@@ -249,13 +255,13 @@ Example of fragoffset in a rule:
 
 .. container:: example-rule
 
-   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; fragbits: M; :example-rule-emphasis:`fragoffset: >0;` reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"fragoffset keyword example invalid non-fragmented packet with fragment offset>0"; fragbits:M; :example-rule-emphasis:`fragoffset:>0;` classtype:bad-unknown; sid:13; rev:1;)
 
 tos
 ^^^
 
 The tos keyword can match on specific decimal values of the IP header TOS
-field. The tos keyword can be have a value from 0 - 255. This field of the
+field. The tos keyword can have a value from 0 - 255. This field of the
 IP header has been updated by `rfc2474 <https://tools.ietf.org/html/rfc2474>`_
 to include functionality for
 `Differentiated services <https://en.wikipedia.org/wiki/Differentiated_services>`_.
@@ -265,7 +271,7 @@ the value 0. When specifying a value for tos, ensure that the value follows this
 E.g, instead of specifying the decimal value 34 (hex 22), right shift twice and use
 decimal 136 (hex 88).
 
-You can specify hexadecimal values as with a leading `x`, e.g, `x88`.
+You can specify hexadecimal values with a leading `x`, e.g, `x88`.
 
 Format of tos::
 
@@ -275,13 +281,13 @@ Example of tos in a rule:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"Differentiated Services Codepoint: Class Selector 1 (8)"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:2600115; rev:1;)
+    alert ip any any -> any any (msg:"tos keyword example tos value 8"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:123; rev:1;)
 
-Example of tos with negated values:
+Example of tos with a negated value:
 
 .. container:: example-rule
 
-    alert ip any any -> any any (msg:"TGI HUNT non-DiffServ aware TOS setting"; flow:established,to_server; :example-rule-emphasis:`tos:!0; tos:!8; tos:!16; tos:!24; tos:!32; tos:!40; tos:!48; tos:!56;` threshold:type limit, track by_src, seconds 60, count 1; classtype:bad-unknown; sid:2600124; rev:1;)
+    alert ip any any -> any any (msg:"tos keyword example with negated content"; flow:established,to_server; :example-rule-emphasis:`tos:!8;` classtype:bad-unknown; sid:14; rev:1;)
 
 
 TCP keywords

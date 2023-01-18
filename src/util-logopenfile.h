@@ -27,6 +27,7 @@
 #include "threads.h"
 #include "conf.h"            /* ConfNode   */
 #include "util-buffer.h"
+#include "util-hash.h"
 
 #ifdef HAVE_LIBHIREDIS
 #include "util-log-redis.h"
@@ -47,11 +48,18 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
+typedef struct ThreadSlotHashEntry_ {
+    uint64_t thread_id;
+    int slot; /* table slot */
+} ThreadSlotHashEntry;
+
 struct LogFileCtx_;
 typedef struct LogThreadedFileCtx_ {
-    int slot_count;
     SCMutex mutex;
-    struct LogFileCtx_ **lf_slots;
+    int slot_count;                /* Allocated slot count */
+    struct LogFileCtx_ **lf_slots; /* Slots */
+    int last_slot;                 /* Last slot allocated */
+    HashTable *ht;
     char *append;
 } LogThreadedFileCtx;
 
@@ -90,7 +98,7 @@ typedef struct LogFileCtx_ {
     /** When threaded, track of the parent and thread id */
     bool threaded;
     struct LogFileCtx_ *parent;
-    int id;
+    int slot;
 
     /** the type of file */
     enum LogFileType type;
@@ -167,7 +175,7 @@ LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
-LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx, int thread_id);
+LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(

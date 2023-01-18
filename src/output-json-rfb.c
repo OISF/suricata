@@ -93,7 +93,7 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf,
 void JsonRFBLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_RFB, "eve-log", "JsonRFBLog", "eve-log.rfb",
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
             OutputRFBLogInitSub, ALPROTO_RFB, JsonRFBLogger, JsonLogThreadInit, JsonLogThreadDeinit,
             NULL);
 }

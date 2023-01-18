@@ -109,7 +109,7 @@ static inline libnet_t *GetCtx(const Packet *p, int injection_type)
     char ebuf[LIBNET_ERRBUF_SIZE];
     libnet_t *c = libnet_init(injection_type, LIBNET_INIT_CAST devname, ebuf);
     if (c == NULL) {
-        SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
+        SCLogError("libnet_init failed: %s", ebuf);
     }
     if (store_ctx) {
         t_c = c;
@@ -186,7 +186,7 @@ static inline int BuildTCP(libnet_t *c, Libnet11Packet *lpacket)
                     c,                     /* libnet context */
                     0)) < 0)               /* libnet ptag */
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_tcp %s", libnet_geterror(c));
+        SCLogError("libnet_build_tcp %s", libnet_geterror(c));
         return -1;
     }
     return 0;
@@ -209,7 +209,7 @@ static inline int BuildIPv4(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
                     c,                            /* libnet context pointer */
                     0)) < 0)                      /* packet id */
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_ipv4 %s", libnet_geterror(c));
+        SCLogError("libnet_build_ipv4 %s", libnet_geterror(c));
         return -1;
     }
     return 0;
@@ -230,7 +230,7 @@ static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
                     c,                            /* libnet context pointer */
                     0)) < 0)                      /* packet id */
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_ipv6 %s", libnet_geterror(c));
+        SCLogError("libnet_build_ipv6 %s", libnet_geterror(c));
         return -1;
     }
     return 0;
@@ -254,7 +254,7 @@ static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, enum Reject
 static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto)
 {
     if ((libnet_build_ethernet(lpacket->dmac,lpacket->smac, proto , NULL, 0, c, 0)) < 0) {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_ethernet %s", libnet_geterror(c));
+        SCLogError("libnet_build_ethernet %s", libnet_geterror(c));
         return -1;
     }
     return 0;
@@ -270,7 +270,7 @@ static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16
                 c,                                      /* libnet handle */
                 0) < 0)
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_802_1q %s", libnet_geterror(c));
+        SCLogError("libnet_build_802_1q %s", libnet_geterror(c));
         return -1;
     }
     return 0;
@@ -333,7 +333,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
 
     result = libnet_write(c);
     if (result == -1) {
-        SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write failed: %s", libnet_geterror(c));
+        SCLogError("libnet_write failed: %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -389,7 +389,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
                     c,                        /* libnet context */
                     0)) < 0)                  /* libnet ptag */
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_icmpv4_unreach %s", libnet_geterror(c));
+        SCLogError("libnet_build_icmpv4_unreach %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -410,7 +410,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
 
     result = libnet_write(c);
     if (result == -1) {
-        SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write_raw_ipv4 failed: %s", libnet_geterror(c));
+        SCLogError("libnet_write_raw_ipv4 failed: %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -474,7 +474,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
 
     result = libnet_write(c);
     if (result == -1) {
-        SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write failed: %s", libnet_geterror(c));
+        SCLogError("libnet_write failed: %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -531,7 +531,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
                     c,                        /* libnet context */
                     0)) < 0)                  /* libnet ptag */
     {
-        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_icmpv6_unreach %s", libnet_geterror(c));
+        SCLogError("libnet_build_icmpv6_unreach %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -551,7 +551,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
 
     result = libnet_write(c);
     if (result == -1) {
-        SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write_raw_ipv6 failed: %s", libnet_geterror(c));
+        SCLogError("libnet_write_raw_ipv6 failed: %s", libnet_geterror(c));
         goto cleanup;
     }
 
@@ -564,9 +564,9 @@ cleanup:
 
 int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
-                "Usually this means that you don't have a patched libnet installed,"
-                " or configure couldn't find it.");
+    SCLogError("Libnet ICMPv6 based rejects are disabled."
+               "Usually this means that you don't have a patched libnet installed,"
+               " or configure couldn't find it.");
     return 0;
 }
 #endif /* HAVE_LIBNET_ICMPV6_UNREACH */
@@ -576,33 +576,33 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
 
 int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
-                "Usually this means that you don't have libnet installed,"
-                " or configure couldn't find it.");
+    SCLogError("Libnet based rejects are disabled."
+               "Usually this means that you don't have libnet installed,"
+               " or configure couldn't find it.");
     return 0;
 }
 
 int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
-                "Usually this means that you don't have libnet installed,"
-                " or configure couldn't find it.");
+    SCLogError("Libnet based rejects are disabled."
+               "Usually this means that you don't have libnet installed,"
+               " or configure couldn't find it.");
     return 0;
 }
 
 int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
-                "Usually this means that you don't have libnet installed,"
-                " or configure couldn't find it.");
+    SCLogError("Libnet based rejects are disabled."
+               "Usually this means that you don't have libnet installed,"
+               " or configure couldn't find it.");
     return 0;
 }
 
 int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
-                "Usually this means that you don't have libnet installed,"
-                " or configure couldn't find it.");
+    SCLogError("Libnet based rejects are disabled."
+               "Usually this means that you don't have libnet installed,"
+               " or configure couldn't find it.");
     return 0;
 }
 

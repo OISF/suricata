@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2021 Open Information Security Foundation
+/* Copyright (C) 2011-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -66,9 +66,8 @@
 */
 static TmEcode NoNetmapSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
-    FatalError(SC_ERR_NO_NETMAP,
-            "Error creating thread %s: Netmap is not enabled. "
-            "Make sure to pass --enable-netmap to configure when building.",
+    FatalError("Error creating thread %s: Netmap is not enabled. "
+               "Make sure to pass --enable-netmap to configure when building.",
             tv->name);
 }
 
@@ -90,6 +89,8 @@ void TmModuleDecodeNetmapRegister (void)
 }
 
 #else /* We have NETMAP support */
+
+#include "action-globals.h"
 
 #define POLL_TIMEOUT 100
 
@@ -183,9 +184,7 @@ int NetmapGetRSSCount(const char *ifname)
     /* open netmap device */
     int fd = open("/dev/netmap", O_RDWR);
     if (fd == -1) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                "Couldn't open netmap device, error %s",
-                strerror(errno));
+        SCLogError("%s: open netmap device failed: %s", ifname, strerror(errno));
         goto error_open;
     }
 
@@ -198,8 +197,7 @@ int NetmapGetRSSCount(const char *ifname)
     strlcpy(hdr.nr_name, base_name, sizeof(hdr.nr_name));
 
     if (ioctl(fd, NIOCCTRL, &hdr) != 0) {
-        SCLogError(SC_ERR_NETMAP_CREATE, "Couldn't query netmap for info about %s, error %s",
-                ifname, strerror(errno));
+        SCLogError("%s: failed to query netmap for device info: %s", ifname, strerror(errno));
         goto error_fd;
     };
 
@@ -295,15 +293,14 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
         int if_flags = GetIfaceFlags(base_name);
         if (if_flags == -1) {
             if (verbose) {
-                SCLogError(SC_ERR_NETMAP_CREATE, "Cannot access network interface '%s' (%s)",
-                        base_name, ns->iface);
+                SCLogError("%s: cannot access network interface: %s", base_name, ns->iface);
             }
             goto error;
         }
 
         /* bring iface up if it is down */
         if ((if_flags & IFF_UP) == 0) {
-            SCLogError(SC_ERR_NETMAP_CREATE, "interface '%s' (%s) is down", base_name, ns->iface);
+            SCLogError("%s: interface is down", base_name);
             goto error;
         }
         /* if needed, try to set iface in promisc mode */
@@ -316,7 +313,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
     NetmapDevice *pdev = NULL, *spdev = NULL;
     pdev = SCCalloc(1, sizeof(*pdev));
     if (unlikely(pdev == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+        SCLogError("%s: memory allocation failed", base_name);
         goto error;
     }
     SC_ATOMIC_INIT(pdev->threads_run);
@@ -443,18 +440,20 @@ retry:
     if (pdev->nmd == NULL) {
         if (errno == EINVAL) {
             if (opt_z[0] == 'z') {
-                SCLogNotice("got '%s' EINVAL: going to retry without 'z'", devname);
+                SCLogNotice(
+                        "%s: dev '%s' got EINVAL: going to retry without 'z'", base_name, devname);
                 opt_z = "";
                 goto retry;
             } else if (opt_x[0] == 'x') {
-                SCLogNotice("dev '%s' got EINVAL: going to retry without 'x'", devname);
+                SCLogNotice(
+                        "%s: dev '%s' got EINVAL: going to retry without 'x'", base_name, devname);
                 opt_x = "";
                 goto retry;
             }
         }
 
         NetmapCloseAll();
-        FatalError(SC_ERR_FATAL, "opening devname %s failed: %s", devname, strerror(errno));
+        FatalError("opening devname %s failed: %s", devname, strerror(errno));
     }
 
     /* Work around bug in libnetmap library where "cur_{r,t}x_ring" values not initialized */
@@ -463,7 +462,7 @@ retry:
     pdev->nmd->cur_rx_ring = pdev->nmd->first_rx_ring;
     pdev->nmd->cur_tx_ring = pdev->nmd->first_tx_ring;
 
-    SCLogInfo("devname [fd: %d] %s %s opened", pdev->nmd->fd, devname, ns->iface);
+    SCLogInfo("%s: %s opened [fd: %d]", devname, ns->iface, pdev->nmd->fd);
 
     pdev->direction = direction;
     pdev->ring = ring;
@@ -504,19 +503,19 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
 
     NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)initdata;
     if (initdata == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        SCLogError("initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     NetmapThreadVars *ntv = SCCalloc(1, sizeof(*ntv));
     if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+        SCLogError("Memory allocation failed");
         goto error;
     }
 
     ntv->livedev = LiveGetDevice(aconf->iface_name);
     if (ntv->livedev == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCLogError("Unable to find Live device");
         goto error_ntv;
     }
 
@@ -554,8 +553,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
             ntv->tv);
 
     if (aconf->in.bpf_filter) {
-        SCLogConfig("Using BPF '%s' on iface '%s'",
-                  aconf->in.bpf_filter, ntv->ifsrc->ifname);
+        SCLogConfig("%s: using BPF '%s'", ntv->ifsrc->ifname, aconf->in.bpf_filter);
         char errbuf[PCAP_ERRBUF_SIZE];
         if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
                     LINKTYPE_ETHERNET,    /* linktype_arg */
@@ -566,9 +564,8 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
                     errbuf,
                     sizeof(errbuf)) == -1)
         {
-            SCLogError(SC_ERR_NETMAP_CREATE, "Failed to compile BPF \"%s\": %s",
-                   aconf->in.bpf_filter,
-                   errbuf);
+            SCLogError("%s: failed to compile BPF \"%s\": %s", ntv->ifsrc->ifname,
+                    aconf->in.bpf_filter, errbuf);
             goto error_dst;
         }
     }
@@ -787,6 +784,11 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
     fds.events = POLLIN;
 
     SCLogDebug("thread %s polling on %d", tv->name, fds.fd);
+
+    // Indicate that the thread is actually running its application level code (i.e., it can poll
+    // packets)
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     for(;;) {
         if (unlikely(suricata_ctl_flags != 0)) {
             break;
@@ -797,13 +799,10 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
         PacketPoolWait();
 
         int r = poll(&fds, 1, POLL_TIMEOUT);
-
         if (r < 0) {
             /* error */
             if (errno != EINTR)
-                SCLogError(SC_ERR_NETMAP_READ,
-                        "Error polling netmap from iface '%s': (%d" PRIu32 ") %s",
-                        ntv->ifsrc->ifname, errno, strerror(errno));
+                SCLogError("%s: error polling netmap: %s", ntv->ifsrc->ifname, strerror(errno));
             continue;
 
         } else if (r == 0) {
@@ -819,11 +818,10 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
 
         if (unlikely(fds.revents & POLL_EVENTS)) {
             if (fds.revents & POLLERR) {
-                SCLogError(SC_ERR_NETMAP_READ,
-                        "Error reading netmap data via polling from iface '%s': (%d" PRIu32 ") %s",
-                        ntv->ifsrc->ifname, errno, strerror(errno));
+                SCLogError("%s: error reading netmap data via polling: %s", ntv->ifsrc->ifname,
+                        strerror(errno));
             } else if (fds.revents & POLLNVAL) {
-                SCLogError(SC_ERR_NETMAP_READ, "Invalid polling request");
+                SCLogError("%s: invalid polling request", ntv->ifsrc->ifname);
             }
             continue;
         }
@@ -853,11 +851,10 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapThreadVars *ntv = (NetmapThreadVars *)data;
 
     NetmapDumpCounters(ntv);
-    SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
-              tv->name,
-              StatsGetLocalCounterValue(tv, ntv->capture_kernel_packets),
-              StatsGetLocalCounterValue(tv, ntv->capture_kernel_drops),
-              ntv->bytes);
+    SCLogPerf("%s: (%s) packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
+            ntv->ifsrc->ifname, tv->name,
+            StatsGetLocalCounterValue(tv, ntv->capture_kernel_packets),
+            StatsGetLocalCounterValue(tv, ntv->capture_kernel_drops), ntv->bytes);
 }
 
 /**

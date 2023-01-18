@@ -27,6 +27,8 @@
 #ifndef __UTIL_MEMCPY_H__
 #define __UTIL_MEMCPY_H__
 
+#include "suricata-common.h"
+
 /**
  * \internal
  * \brief Does a memcpy of the input string to lowercase.
