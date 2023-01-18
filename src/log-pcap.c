@@ -1106,11 +1106,14 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 #endif /* INIT_RING_BUFFER */
     }
 
-    if (pl->mode == LOGMODE_MULTI) {
-        PcapLogOpenFileCtx(td->pcap_log);
-    } else {
-        if (pl->filename == NULL) {
-            PcapLogOpenFileCtx(pl);
+    /* Don't early initialize output files if in a PCAP file mode. */
+    if (IsRunModeOffline(RunmodeGetCurrent())) {
+        if (pl->mode == LOGMODE_MULTI) {
+            PcapLogOpenFileCtx(td->pcap_log);
+        } else {
+            if (pl->filename == NULL) {
+                PcapLogOpenFileCtx(pl);
+            }
         }
     }
 
