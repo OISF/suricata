@@ -126,7 +126,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                 // Record claims more bytes than are in NBSS record...
                 state.set_event(SMBEvent::ReadResponseTooLarge);
                 // Skip the remaining bytes of the record.
-                state.set_skip(Direction::ToClient, nbss_remaining, 0);
+                state.set_skip(Direction::ToClient, nbss_remaining);
                 return;
             }
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
@@ -135,7 +135,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
 
             } else if r.nt_status != SMB_NTSTATUS_SUCCESS {
                 SCLogDebug!("SMBv2: read response error code received: skip record");
-                state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                state.set_skip(Direction::ToClient, nbss_remaining);
                 return;
             }
 
@@ -143,7 +143,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                (unsafe { SMB_CFG_MAX_READ_SIZE != 0 && SMB_CFG_MAX_READ_SIZE < rd.len })
             {
                 state.set_event(SMBEvent::ReadResponseTooLarge);
-                state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                state.set_skip(Direction::ToClient, nbss_remaining);
                 return;
             }
 
@@ -156,7 +156,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                 Some(o) => (o.offset, o.guid),
                 None => {
                     SCLogDebug!("SMBv2 READ response: reply to unknown request {:?}",rd);
-                    state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                    state.set_skip(Direction::ToClient, nbss_remaining);
                     return;
                 },
             };
@@ -173,10 +173,10 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::ReadQueueSizeExceeded);
-                            state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                            state.set_skip(Direction::ToClient, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::ReadQueueCntExceeded);
-                            state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                            state.set_skip(Direction::ToClient, nbss_remaining);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &tdf.file_name, rd.data, offset,
@@ -227,7 +227,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     smb_read_dcerpc_record(state, vercmd, hdr, &file_guid, rd.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe");
-                    state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                    state.set_skip(Direction::ToClient, nbss_remaining);
                 } else {
                     let file_name = match state.guid2name_map.get(&file_guid) {
                         Some(n) => { n.to_vec() }
@@ -246,10 +246,10 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::ReadQueueSizeExceeded);
-                            state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                            state.set_skip(Direction::ToClient, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::ReadQueueCntExceeded);
-                            state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
+                            state.set_skip(Direction::ToClient, nbss_remaining);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, rd.data, offset,
@@ -288,13 +288,13 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                 // Record claims more bytes than are in NBSS record...
                 state.set_event(SMBEvent::WriteRequestTooLarge);
                 // Skip the remaining bytes of the record.
-                state.set_skip(Direction::ToServer, nbss_remaining, 0);
+                state.set_skip(Direction::ToServer, nbss_remaining);
                 return;
             }
             if (state.max_write_size != 0 && wr.wr_len > state.max_write_size) ||
                (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < wr.wr_len }) {
                 state.set_event(SMBEvent::WriteRequestTooLarge);
-                state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                state.set_skip(Direction::ToServer, nbss_remaining);
                 return;
             }
 
@@ -318,10 +318,10 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         }
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::WriteQueueSizeExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, nbss_remaining);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, wr.data, wr.wr_offset,
@@ -372,7 +372,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     smb_write_dcerpc_record(state, vercmd, hdr, wr.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
-                    state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                    state.set_skip(Direction::ToServer, nbss_remaining);
                 } else {
                     let tx = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
@@ -386,10 +386,10 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
 
                         if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
                             state.set_event(SMBEvent::WriteQueueSizeExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
-                            state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
+                            state.set_skip(Direction::ToServer, nbss_remaining);
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, wr.data, wr.wr_offset,
