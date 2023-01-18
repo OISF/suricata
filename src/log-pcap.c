@@ -1282,7 +1282,7 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
         }
 
         if ((tok == 0) && (pl->mode == LOGMODE_MULTI)) {
-            SCLogError("Invalid filename for multimode. Need at list one %%-sign option");
+            SCLogError("Invalid filename for multimode. Need at least one %%-sign option");
             goto error;
         }
 
