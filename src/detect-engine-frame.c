@@ -282,8 +282,6 @@ static int FrameStreamDataFunc(
             }
             data_len = input_len - in_data_offset - in_data_excess;
         } else {
-            /* so: relative to start of stream */
-            const uint64_t so_frame_inspect_offset = frame->inspect_progress + frame->offset;
             /* in: relative to start of input data */
             BUG_ON(so_frame_inspect_offset < offset);
             const uint32_t in_data_offset = so_frame_inspect_offset - offset;
