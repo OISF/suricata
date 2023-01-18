@@ -1264,13 +1264,12 @@ impl SMBState {
         }
     }
 
-    pub fn set_skip(&mut self, direction: u8, rec_size: u32, data_size: u32)
+    pub fn set_skip(&mut self, direction: u8, nbss_remaining: u32)
     {
-        let skip = rec_size.saturating_sub(data_size);
         if direction == STREAM_TOSERVER {
-            self.skip_ts = skip;
+            self.skip_ts = nbss_remaining;
         } else {
-            self.skip_tc = skip;
+            self.skip_tc = nbss_remaining;
         }
     }
 
