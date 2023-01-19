@@ -149,7 +149,7 @@ void TimeSetToCurrentTime(void)
 }
 #endif
 
-SCTime_t TimeGet()
+SCTime_t TimeGet(void)
 {
     struct timeval tv = { 0 };
     if (live_time_tracking) {
