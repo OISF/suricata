@@ -53,7 +53,7 @@
 #include "util-ioctl.h"
 #include "util-byte.h"
 
-#ifdef HAVE_NETMAP
+#if HAVE_NETMAP && USE_NEW_NETMAP_API
 #define NETMAP_WITH_LIBS
 #include <net/netmap_user.h>
 #endif /* HAVE_NETMAP */
@@ -70,14 +70,11 @@ const char *RunModeNetmapGetDefaultMode(void)
 void RunModeIdsNetmapRegister(void)
 {
 #if HAVE_NETMAP
-    SCLogInfo("Using netmap version %d ["
 #if USE_NEW_NETMAP_API
-              "new"
-#else
-              "legacy"
-#endif
+    SCLogInfo("Using netmap version %d"
               " API interfaces]",
             NETMAP_API);
+#endif
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single",
             "Single threaded netmap mode",
             RunModeIdsNetmapSingle);
@@ -127,6 +124,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
+#ifdef USE_NEW_NETMAP_API
     /* we will need the base interface name for later */
     char base_name[IFNAMSIZ];
     strlcpy(base_name, ns->iface, sizeof(base_name));
@@ -134,6 +132,9 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             (base_name[strlen(base_name) - 1] == '^' || base_name[strlen(base_name) - 1] == '*')) {
         base_name[strlen(base_name) - 1] = '\0';
     }
+#else
+    char *base_name = ns->iface;
+#endif
 
     /* prefixed with netmap or vale means it's not a real interface
      * and we don't check offloading. */
@@ -254,6 +255,7 @@ finalize:
         ns->threads = 1;
     }
 
+    SCLogDebug("Setting thread count to %d", ns->threads);
     return 0;
 }
 
