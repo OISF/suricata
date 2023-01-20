@@ -1127,8 +1127,9 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
     if (unlikely(IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
-        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateGetProgress(alstate, flags);
+        uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetProgress(
+                alstate, direction);
     }
     SCReturnInt(r);
 }
