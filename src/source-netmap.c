@@ -187,10 +187,15 @@ static SCMutex netmap_devlist_lock = SCMUTEX_INITIALIZER;
  */
 int NetmapGetRSSCount(const char *ifname)
 {
+#if USE_NEW_NETMAP_API
     struct nmreq_port_info_get req;
     struct nmreq_header hdr;
+#else
+    struct nmreq nm_req;
+#endif
     int rx_rings = 0;
 
+#if USE_NEW_NETMAP_API
     /* we need the base interface name to query queues */
     char base_name[IFNAMSIZ];
     strlcpy(base_name, ifname, sizeof(base_name));
@@ -198,7 +203,7 @@ int NetmapGetRSSCount(const char *ifname)
             (base_name[strlen(base_name) - 1] == '^' || base_name[strlen(base_name) - 1] == '*')) {
         base_name[strlen(base_name) - 1] = '\0';
     }
-
+#endif
     SCMutexLock(&netmap_devlist_lock);
 
     /* open netmap device */
@@ -211,23 +216,36 @@ int NetmapGetRSSCount(const char *ifname)
     }
 
     /* query netmap interface info */
+#if USE_NEW_NETMAP_API
     memset(&req, 0, sizeof(req));
     memset(&hdr, 0, sizeof(hdr));
     hdr.nr_version = NETMAP_API;
     hdr.nr_reqtype = NETMAP_REQ_PORT_INFO_GET;
     hdr.nr_body = (uintptr_t)&req;
     strlcpy(hdr.nr_name, base_name, sizeof(hdr.nr_name));
+#else
+    memset(&nm_req, 0, sizeof(nm_req));
+    strlcpy(nm_req.nr_name, ifname, sizeof(nm_req.nr_name));
+    nm_req.nr_version = NETMAP_API;
+#endif
 
+#if USE_NEW_NETMAP_API
     if (ioctl(fd, NIOCCTRL, &hdr) != 0) {
+#else
+    if (ioctl(fd, NIOCGINFO, &nm_req) != 0) {
+#endif
         SCLogError(SC_ERR_NETMAP_CREATE, "Couldn't query netmap for info about %s, error %s",
                 ifname, strerror(errno));
         goto error_fd;
     };
 
+#if USE_NEW_NETMAP_API
     /* return RX rings count if it equals TX rings count */
-    if (req.nr_rx_rings == req.nr_tx_rings) {
+    if (req.nr_rx_rings == req.nr_tx_rings)
         rx_rings = req.nr_rx_rings;
-    }
+#else
+    rx_rings = nm_req.nr_rx_rings;
+#endif
 
 error_fd:
     close(fd);
@@ -412,7 +430,7 @@ retry:
                 ns->iface, ring, strlen(optstr) ? "/" : "", optstr);
     } else if (strlen(ns->iface) > 5 && strncmp(ns->iface, "vale", 4) == 0 && isdigit(ns->iface[4])) {
         snprintf(devname, sizeof(devname), "%s", ns->iface);
-#if NETMAP_API < 14 || !USET_NET_NETMAP_API
+#if NETMAP_API < 14 || !USE_NEW_NETMAP_API
     } else if (ns->iface[strlen(ns->iface)-1] == '*' ||
             ns->iface[strlen(ns->iface)-1] == '^') {
         SCLogDebug("device with SW-ring enabled (ns->iface): %s",ns->iface);
@@ -500,11 +518,13 @@ retry:
         FatalError(SC_ERR_FATAL, "opening devname %s failed: %s", devname, strerror(errno));
     }
 
+#if USE_NEW_NETMAP_API
     /* Work around bug in libnetmap library where "cur_{r,t}x_ring" values not initialized */
     SCLogDebug("%s -- cur rings: [%d, %d] first rings: [%d, %d]", devname, pdev->nmd->cur_rx_ring,
             pdev->nmd->cur_tx_ring, pdev->nmd->first_rx_ring, pdev->nmd->first_tx_ring);
     pdev->nmd->cur_rx_ring = pdev->nmd->first_rx_ring;
     pdev->nmd->cur_tx_ring = pdev->nmd->first_tx_ring;
+#endif
 
     SCLogInfo("devname [fd: %d] %s %s opened", pdev->nmd->fd, devname, ns->iface);
 
@@ -597,7 +617,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     if (aconf->in.copy_mode != NETMAP_COPY_MODE_NONE) {
         if (NetmapOpen(&aconf->out, &ntv->ifdst, 1, 0, (ntv->flags & NETMAP_FLAG_ZERO_COPY) != 0,
                     soft) != 0) {
-            goto error_src;
+            goto error_dst;
         }
     }
 
@@ -627,7 +647,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
         }
     }
 
-    SCLogNotice("thread: %s polling on fd: %d", tv->name, ntv->ifsrc->nmd->fd);
+    SCLogDebug("thread: %s polling on fd: %d", tv->name, ntv->ifsrc->nmd->fd);
 
     *data = (void *)ntv;
     aconf->DerefFunc(aconf);
@@ -667,12 +687,12 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
     /* attempt to write the packet into the netmap ring buffer(s) */
 #if USE_NEW_NETMAP_API
     if (nmport_inject(ntv->ifdst->nmd, GET_PKT_DATA(p), GET_PKT_LEN(p)) == 0) {
-        if (ntv->flags & NETMAP_FLAG_EXCL_RING_ACCESS) {
-            SCMutexUnlock(&ntv->ifdst->netmap_dev_lock);
-        }
 #else
     if (nm_inject(ntv->ifdst->nmd, GET_PKT_DATA(p), GET_PKT_LEN(p)) == 0) {
 #endif
+        if (ntv->flags & NETMAP_FLAG_EXCL_RING_ACCESS) {
+            SCMutexUnlock(&ntv->ifdst->netmap_dev_lock);
+        }
         SCLogDebug("failed to send %s -> %s", ntv->ifsrc->ifname, ntv->ifdst->ifname);
         ntv->drops++;
         return TM_ECODE_FAILED;
@@ -703,12 +723,21 @@ static void NetmapReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
+#if USE_NEW_NETMAP_API
 static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *ph)
+#else
+static void NetmapCallback(u_char *user, const struct nm_pkthdr *ph, const u_char *d)
+#endif
 {
 
+#if USE_NEW_NETMAP_API
+    const u_char *d = ph->buf;
+#else
+    NetmapThreadVars *ntv = (NetmapThreadVars *)user;
+#endif
     if (ntv->bpf_prog.bf_len) {
         struct pcap_pkthdr pkthdr = { {0, 0}, ph->len, ph->len };
-        if (pcap_offline_filter(&ntv->bpf_prog, &pkthdr, ph->buf) == 0) {
+        if (pcap_offline_filter(&ntv->bpf_prog, &pkthdr, d) == 0) {
             return;
         }
     }
@@ -726,12 +755,12 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     ntv->bytes += ph->len;
 
     if (ntv->flags & NETMAP_FLAG_ZERO_COPY) {
-        if (PacketSetData(p, (uint8_t *)ph->buf, ph->len) == -1) {
+        if (PacketSetData(p, (uint8_t *)d, ph->len) == -1) {
             TmqhOutputPacketpool(ntv->tv, p);
             return;
         }
     } else {
-        if (PacketCopyData(p, (uint8_t *)ph->buf, ph->len) == -1) {
+        if (PacketCopyData(p, (uint8_t *)d, ph->len) == -1) {
             TmqhOutputPacketpool(ntv->tv, p);
             return;
         }
@@ -754,9 +783,6 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
  */
 #if USE_NEW_NETMAP_API
 static TmEcode NetmapReadPackets(struct nmport_d *d, int cnt, NetmapThreadVars *ntv)
-#else
-static TmEcode NetmapReadPackets(struct nm_desc *d, int cnt, NetmapThreadVars *ntv)
-#endif
 {
     struct nm_pkthdr hdr;
     int last_ring = d->last_rx_ring - d->first_rx_ring + 1;
@@ -826,6 +852,7 @@ static TmEcode NetmapReadPackets(struct nm_desc *d, int cnt, NetmapThreadVars *n
     }
     return got;
 }
+#endif
 
 /**
  *  \brief Main netmap reading loop function
@@ -890,8 +917,12 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         if (likely(fds.revents & POLLIN)) {
+#if USE_NEW_NETMAP_API
             /* have data on RX ring, so copy to Packet for processing */
             NetmapReadPackets(ntv->ifsrc->nmd, -1, ntv);
+#else
+            nm_dispatch(ntv->ifsrc->nmd, -1, NetmapCallback, (void *)ntv);
+#endif
         }
 
         NetmapDumpCounters(ntv);
