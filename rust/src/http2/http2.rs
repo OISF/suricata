@@ -364,6 +364,8 @@ impl HTTP2Transaction {
 
 impl Drop for HTTP2Transaction {
     fn drop(&mut self) {
+        self.files.files_ts.free();
+        self.files.files_tc.free();
         self.free();
     }
 }
