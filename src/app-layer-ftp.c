@@ -364,38 +364,48 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
 
     if (lf_idx == NULL) {
         if (!state->current_line_truncated &&
-                (uint32_t)input->len >= ftp_max_line_len) { // TODO is the cast safe?
+                (uint32_t)input->len >= ftp_max_line_len) {
             state->current_line_truncated = true;
-            line->buf = input->buf;
+           line->buf = input->buf;
             line->len = ftp_max_line_len;
             line->delim_len = 0;
+            input->len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
         SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
-    } else {
-        uint32_t o_consumed = input->consumed;
-        input->consumed = lf_idx - input->buf + 1;
-#if 0
-        if (!state->current_line_truncated &&
-                (uint32_t)input->len >= ftp_max_line_len) { // TODO is the cast safe?
-            state->current_line_truncated = true;
-            line->buf = input->buf;
-            line->len = ftp_max_line_len;
-            line->delim_len = 0;
-            input->len -= line->len;
-            SCReturnStruct(APP_LAYER_OK);
-        }
-#endif
-        line->len = input->consumed - o_consumed;
-        input->len -= line->len;
-        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
-        if (state->current_line_truncated) {
+    } else if (state->current_line_truncated) {
             // Whatever came in with first LF should also get discarded
+            SCLogNotice("We found first LF post truncation");
             state->current_line_truncated = false;
             line->len = 0;
             line->delim_len = 0;
+            input->len = 0;
+            SCReturnStruct(APP_LAYER_ERROR);
+    } else {
+        // There could be one chunk of command data that has LF but post the line limit
+        // e.g. input_len = 5077
+        //      lf_idx = 5010
+        //      max_line_len = 4096
+        if (!state->current_line_truncated &&
+                (uint32_t)input->len >= ftp_max_line_len) {
+            state->current_line_truncated = true;
+            line->buf = input->buf;
+            line->len = ftp_max_line_len;
+            if (input->consumed >= 2 && input->buf[input->consumed - 2] == 0x0D) {
+                line->delim_len = 2;
+                line->len -= 2;
+            } else {
+                line->delim_len = 1;
+                line->len -= 1;
+            }
+            input->len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
+        uint32_t o_consumed = input->consumed;
+        input->consumed = lf_idx - input->buf + 1;
+        line->len = input->consumed - o_consumed;
+        input->len -= line->len;
+        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
         line->buf = input->buf + o_consumed;
         if (input->consumed >= 2 && input->buf[input->consumed - 2] == 0x0D) {
             line->delim_len = 2;
@@ -404,6 +414,7 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
             line->delim_len = 1;
             line->len -= 1;
         }
+//        DEBUG_VALIDATE_BUG_ON(line->len + line->delim_len == input->consumed);
         SCReturnStruct(APP_LAYER_OK);
     }
 }
@@ -675,7 +686,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
             if (!FTPParseRequestCommand(thread_data, &line, &cmd_descriptor)) {
                 state->command = FTP_COMMAND_UNKNOWN;
-                abort();
+//                abort();
                 goto call_getline;
             }
 
@@ -683,8 +694,8 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             FTPTransaction *tx = FTPTransactionCreate(state);
             if (unlikely(tx == NULL))
                 SCReturnStruct(APP_LAYER_ERROR);
-            if (state->command == FTP_COMMAND_UNKNOWN && tx->tx_id == 6)
-                abort();
+//            if (state->command == FTP_COMMAND_UNKNOWN && tx->tx_id == 6)
+//                abort();
             state->curr_tx = tx;
 
             tx->command_descriptor = cmd_descriptor;
@@ -873,8 +884,8 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             lasttx = tx;
             if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
                 /* unknown */
-                if (tx->tx_id == 6)
-                    abort();
+//                if (tx->tx_id == 6)
+//                    abort();
                 tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX - 1];
             }
 
