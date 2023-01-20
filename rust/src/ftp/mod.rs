@@ -24,6 +24,8 @@ use std;
 use std::str;
 use std::str::FromStr;
 
+pub mod event;
+
 // We transform an integer string into a i64, ignoring surrounding whitespaces
 // We look for a digit suite, and try to convert it.
 // If either str::from_utf8 or FromStr::from_str fail,

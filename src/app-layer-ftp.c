@@ -340,6 +340,10 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPStringFree(str);
     }
 
+    if (tx->tx_data.events) {
+        AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
+    }
+
     FTPFree(tx, sizeof(*tx));
 }
 
@@ -622,6 +626,10 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 state->current_line, state->current_line_len);
         tx->request_truncated = state->current_line_truncated;
 
+        if (tx->request_truncated) {
+            AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
+        }
+
         /* change direction (default to server) so expectation will handle
          * the correct message when expectation will match.
          * For ftp active mode, data connection direction is opposite to
@@ -848,6 +856,10 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             if (likely(response)) {
                 response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
                 response->truncated = state->current_line_truncated;
+                if (response->truncated) {
+                    AppLayerDecoderEventsSetEventRaw(
+                            &tx->tx_data.events, FtpEventResponseCommandTooLong);
+                }
                 TAILQ_INSERT_TAIL(&tx->response_list, response, next);
             }
         }
@@ -1425,6 +1437,9 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterStateProgressCompletionStatus(
                 ALPROTO_FTPDATA, FTPDATA_STATE_FINISHED, FTPDATA_STATE_FINISHED);
+
+        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_FTP, ftp_get_event_info);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_FTP, ftp_get_event_info_by_id);
 
         sbcfg.buf_size = 4096;
         sbcfg.Calloc = FTPCalloc;
