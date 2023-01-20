@@ -55,12 +55,28 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
         flags: u16, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
 {
-    match unsafe {SURICATA_SMB_FILE_CONFIG} {
-        Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
-                    chunk_size, 0, is_last, xid); }
-        None => panic!("no SURICATA_SMB_FILE_CONFIG"),
+    if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
+        ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
+                chunk_size, 0, is_last, xid);
     }
+}
+
+pub fn filetracker_trunc(ft: &mut FileTransferTracker, files: &mut FileContainer,
+        flags: u16)
+{
+    ft.trunc(files, flags);
+}
+
+pub fn filetracker_close(ft: &mut FileTransferTracker, files: &mut FileContainer,
+        flags: u16)
+{
+    ft.close(files, flags);
+}
+
+fn filetracker_update(ft: &mut FileTransferTracker, files: &mut FileContainer,
+        flags: u16, data: &[u8], gap_size: u32) -> u32
+{
+    ft.update(files, flags, data, gap_size)
 }
 
 impl SMBState {
@@ -185,7 +201,7 @@ impl SMBState {
                         let queued_data = tdf.file_tracker.get_queued_size();
                         if queued_data > 2000000 { // TODO should probably be configurable
                             SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
-                            tdf.file_tracker.trunc(files, flags);
+                            filetracker_trunc(&mut tdf.file_tracker, files, flags);
                         }
                     }
 
@@ -195,8 +211,7 @@ impl SMBState {
                     }
 
                     let file_data = &data[0..data_to_handle_len];
-                    let cs = tdf.file_tracker.update(files, flags, file_data, gap_size);
-                    cs
+                    filetracker_update(&mut tdf.file_tracker, files, flags, file_data, gap_size)
                 } else {
                     0
                 }

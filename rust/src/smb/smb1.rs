@@ -156,7 +156,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &[u8], direction: Direction)
             if !tx.request_done {
                 SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
                 let (files, flags) = tdf.files.get(direction);
-                tdf.file_tracker.close(files, flags);
+                filetracker_close(&mut tdf.file_tracker, files, flags);
                 tx.request_done = true;
                 tx.response_done = true;
                 SCLogDebug!("tx {} is done", tx.id);

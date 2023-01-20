@@ -595,7 +595,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                     let (files, flags) = tdf.files.get(Direction::ToServer);
-                                    tdf.file_tracker.close(files, flags);
+                                    filetracker_close(&mut tdf.file_tracker, files, flags);
                                 }
                             }
                             tx.request_done = true;
@@ -610,7 +610,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                     let (files, flags) = tdf.files.get(Direction::ToClient);
-                                    tdf.file_tracker.close(files, flags);
+                                    filetracker_close(&mut tdf.file_tracker, files, flags);
                                 }
                             }
                             tx.request_done = true;
@@ -709,7 +709,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         if !tx.request_done {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                 let (files, flags) = tdf.files.get(Direction::ToClient);
-                                tdf.file_tracker.close(files, flags);
+                                filetracker_close(&mut tdf.file_tracker, files, flags);
                             }
                         }
                         tx.set_status(r.nt_status, false);
