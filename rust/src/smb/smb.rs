@@ -528,6 +528,10 @@ impl SMBTransaction {
 
 impl Drop for SMBTransaction {
     fn drop(&mut self) {
+        if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
+            tdf.files.files_ts.free();
+            tdf.files.files_tc.free();
+        }
         self.free();
     }
 }
