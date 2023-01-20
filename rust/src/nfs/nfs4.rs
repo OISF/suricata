@@ -118,7 +118,7 @@ impl NFSState {
         if let Some(tx) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                 let (files, flags) = tdf.files.get(Direction::ToServer);
-                tdf.file_tracker.close(files, flags);
+                filetracker_close(&mut tdf.file_tracker, files, flags);
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
