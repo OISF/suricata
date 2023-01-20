@@ -123,7 +123,7 @@ impl NFSState {
                         let (files, flags) = tdf.files.get(Direction::ToServer);
                         tdf.chunk_count += 1;
                         tdf.file_additional_procs.push(NFSPROC3_COMMIT);
-                        tdf.file_tracker.close(files, flags);
+                        filetracker_close(&mut tdf.file_tracker, files, flags);
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;
