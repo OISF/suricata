@@ -7,6 +7,7 @@ dhcp-events.rules \
 dnp3-events.rules \
 dns-events.rules \
 files.rules \
+ftp-events.rules \
 http-events.rules \
 http2-events.rules \
 ipsec-events.rules \

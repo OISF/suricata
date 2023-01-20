@@ -80,7 +80,8 @@ include = [
     "ModbusState",
     "CMark",
     "QuicState",
-    "QuicTransaction"
+    "QuicTransaction",
+    "FtpEvent",
 ]
 
 # A list of items to not include in the generated bindings
