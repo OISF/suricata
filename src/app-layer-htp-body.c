@@ -162,15 +162,10 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         SCReturn;
     }
 
-    /* get the configured inspect sizes. Default to response values */
-    uint32_t min_size = state->cfg->response.inspect_min_size;
-    uint32_t window = state->cfg->response.inspect_window;
-
-    if (direction == STREAM_TOSERVER) {
-        min_size = state->cfg->request.inspect_min_size;
-        window = state->cfg->request.inspect_window;
-    }
-
+    const HTPCfgDir *cfg =
+            (direction == STREAM_TOCLIENT) ? &state->cfg->response : &state->cfg->request;
+    uint32_t min_size = cfg->inspect_min_size;
+    uint32_t window = cfg->inspect_window;
     uint64_t max_window = ((min_size > window) ? min_size : window);
     uint64_t in_flight = body->content_len_so_far - body->body_inspected;
 
