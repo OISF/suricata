@@ -898,7 +898,6 @@ static DetectRunScratchpad DetectRunSetup(
             if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                 p->flags |= PKT_DETECT_HAS_STREAMDATA;
-                flow_flags |= STREAM_FLUSH;
             }
             SCLogDebug("alproto %u", alproto);
         } else {
@@ -1078,12 +1077,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
 
-    /* see if we want to pass on the FLUSH flag */
-    if ((s->flags & SIG_FLAG_FLUSH) == 0)
-        flow_flags &=~ STREAM_FLUSH;
-
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
-    TRACE_SID_TXS(s->id, tx, "FLUSH? %s", (flow_flags & STREAM_FLUSH)?"true":"false");
 
     /* for a new inspection we inspect pkt header and packet matches */
     if (likely(stored_flags == NULL)) {
