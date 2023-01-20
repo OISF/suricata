@@ -279,8 +279,6 @@ void RegisterHTPParsers(void);
 void HTPAtExitPrintStats(void);
 void HTPFreeConfig(void);
 
-void HtpBodyPrint(HtpBody *);
-void HtpBodyFree(HtpBody *);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
 void AppLayerHtpEnableRequestBodyCallback(void);
