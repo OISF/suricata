@@ -162,7 +162,7 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
          * close the logger(s) */
         if (FileDataSize(ff) == ff->content_stored && (file_trunc || file_close)) {
             if (ff->state < FILE_STATE_CLOSED) {
-                FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
+                ff->state = FILE_STATE_TRUNCATED;
             }
             file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
             CallLoggers(tv, store, p, ff, txv, tx_id, NULL, 0, file_flags, dir);
@@ -173,7 +173,7 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
         /* if file needs to be closed or truncated, inform
          * loggers */
         if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
-            FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
+            ff->state = FILE_STATE_TRUNCATED;
         }
 
         /* tell the logger we're closing up */
