@@ -1073,8 +1073,9 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
         r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
             StateGetProgressCompletionStatus(flags);
     } else {
-        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateGetProgress(alstate, flags);
+        uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetProgress(
+                alstate, direction);
     }
     SCReturnInt(r);
 }
