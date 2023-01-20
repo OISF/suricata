@@ -138,6 +138,7 @@ item_types = ["enums","structs","opaque","functions","constants"]
 "DNSTransaction" = "RSDNSTransaction"
 "JsonT" = "json_t"
 "CLuaState" = "lua_State"
+"Base64ReturnCode" = "SC_BASE64"
 
 #
 # You get the following results:
@@ -165,3 +166,21 @@ exclude = ["libc"]
 #
 # default: []
 features = ["cbindgen"]
+
+# Enum configuration.
+#
+# This will rename Rust enums to work better with C. For example:
+#
+#    enum LzmaStatus {
+#        Ok,
+#        IoError,
+#    }
+#
+#    will become:
+#
+#    typedef enum LzmaStatus {
+#        LZMA_STATUS_OK,
+#        LZMA_STATUS_IO_ERROR,
+#    }
+[enum]
+rename_variants = "QualifiedScreamingSnakeCase"

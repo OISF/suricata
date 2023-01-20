@@ -123,7 +123,7 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
     de = SCCalloc(1, sizeof(DetectMQTTFlagsData));
     if (unlikely(de == NULL))
         return NULL;
-    de->retain = de->dup = MQTT_DONT_CARE;
+    de->retain = de->dup = MQTT_FLAG_STATE_DONT_CARE;
 
     char copy[strlen(rawstr)+1];
     strlcpy(copy, rawstr, sizeof(copy));
@@ -142,20 +142,20 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
             goto error;
         }  else {
             int offset = 0;
-            MQTTFlagState fs_to_set = MQTT_MUST_BE_SET;
+            MQTTFlagState fs_to_set = MQTT_FLAG_STATE_MUST_BE_SET;
             if (flagv[0] == '!') {
                 /* negated flag */
                 offset = 1;  /* skip negation operator during comparison */
-                fs_to_set = MQTT_CANT_BE_SET;
+                fs_to_set = MQTT_FLAG_STATE_CANT_BE_SET;
             }
             if (strcmp(flagv+offset, "dup") == 0) {
-                if (de->dup != MQTT_DONT_CARE) {
+                if (de->dup != MQTT_FLAG_STATE_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->dup = fs_to_set;
             } else if (strcmp(flagv+offset, "retain") == 0) {
-                if (de->retain != MQTT_DONT_CARE) {
+                if (de->retain != MQTT_FLAG_STATE_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }

@@ -189,25 +189,26 @@ static void DetectHttpHeadersRegisterStub(void)
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRequestData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRequestData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+            GetRequestData2, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_CLIENT);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData, ALPROTO_HTTP1, HTP_RESPONSE_HEADERS);
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetResponseData2, ALPROTO_HTTP2, HTTP2StateDataServer);
+            GetResponseData2, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_SERVER);
 #endif
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
+            HTTP2_TRANSACTION_STATE_DATA_CLIENT, DetectEngineInspectBufferGeneric, GetRequestData2);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetResponseData2);
+            HTTP2_TRANSACTION_STATE_DATA_SERVER, DetectEngineInspectBufferGeneric,
+            GetResponseData2);
 #endif
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);

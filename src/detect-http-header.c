@@ -449,14 +449,14 @@ void DetectHttpHeaderRegister(void)
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2_TRANSACTION_STATE_DATA_CLIENT, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataClient);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_CLIENT);
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2_TRANSACTION_STATE_DATA_SERVER, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_SERVER);
 
     DetectBufferTypeSetDescriptionByName("http_header",
             "http headers");

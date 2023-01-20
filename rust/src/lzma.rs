@@ -22,34 +22,34 @@ use std::io::{Cursor, Write};
 /// Propagate lzma crate errors
 #[repr(C)]
 pub enum LzmaStatus {
-    LzmaOk,
-    LzmaIoError,
-    LzmaHeaderTooShortError,
-    LzmaError,
-    LzmaMemoryError,
-    LzmaXzError,
+    Ok,
+    IoError,
+    HeaderTooShortError,
+    Error,
+    MemoryError,
+    XzError,
 }
 
 impl From<Error> for LzmaStatus {
     fn from(e: Error) -> LzmaStatus {
         match e {
-            Error::IoError(_) => LzmaStatus::LzmaIoError,
-            Error::HeaderTooShort(_) => LzmaStatus::LzmaHeaderTooShortError,
+            Error::IoError(_) => LzmaStatus::IoError,
+            Error::HeaderTooShort(_) => LzmaStatus::HeaderTooShortError,
             Error::LzmaError(e) => {
                 if e.contains("exceeded memory limit") {
-                    LzmaStatus::LzmaMemoryError
+                    LzmaStatus::MemoryError
                 } else {
-                    LzmaStatus::LzmaError
+                    LzmaStatus::Error
                 }
             }
-            Error::XzError(_) => LzmaStatus::LzmaXzError,
+            Error::XzError(_) => LzmaStatus::XzError,
         }
     }
 }
 
 impl From<std::io::Error> for LzmaStatus {
     fn from(_e: std::io::Error) -> LzmaStatus {
-        LzmaStatus::LzmaIoError
+        LzmaStatus::IoError
     }
 }
 
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn lzma_decompress(
     match stream.finish() {
         Ok(output) => {
             *output_len = output.position() as usize;
-            LzmaStatus::LzmaOk
+            LzmaStatus::Ok
         }
         Err(e) => e.into(),
     }

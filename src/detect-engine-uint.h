@@ -29,13 +29,13 @@
 
 // These definitions are kept to minimize the diff
 // We can run a big sed commit next
-#define DETECT_UINT_GT  DetectUintModeGt
-#define DETECT_UINT_GTE DetectUintModeGte
-#define DETECT_UINT_RA  DetectUintModeRange
-#define DETECT_UINT_EQ  DetectUintModeEqual
-#define DETECT_UINT_NE  DetectUintModeNe
-#define DETECT_UINT_LT  DetectUintModeLt
-#define DETECT_UINT_LTE DetectUintModeLte
+#define DETECT_UINT_GT  DETECT_UINT_MODE_GT
+#define DETECT_UINT_GTE DETECT_UINT_MODE_GTE
+#define DETECT_UINT_RA  DETECT_UINT_MODE_RANGE
+#define DETECT_UINT_EQ  DETECT_UINT_MODE_EQUAL
+#define DETECT_UINT_NE  DETECT_UINT_MODE_NE
+#define DETECT_UINT_LT  DETECT_UINT_MODE_LT
+#define DETECT_UINT_LTE DETECT_UINT_MODE_LTE
 
 typedef DetectUintData_u64 DetectU64Data;
 typedef DetectUintData_u32 DetectU32Data;

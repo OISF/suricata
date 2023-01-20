@@ -19,11 +19,10 @@ use std::os::raw::c_uchar;
 use libc::c_ulong;
 
 #[repr(C)]
-#[allow(non_camel_case_types)]
 pub enum Base64ReturnCode {
-    SC_BASE64_OK = 0,
-    SC_BASE64_INVALID_ARG,
-    SC_BASE64_OVERFLOW,
+    Ok = 0,
+    InvalidArg,
+    Overflow,
 }
 
 /// Base64 encode a buffer.
@@ -39,18 +38,18 @@ pub unsafe extern "C" fn Base64Encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> Base64ReturnCode {
     if input.is_null() || output.is_null() || output_len.is_null() {
-        return Base64ReturnCode::SC_BASE64_INVALID_ARG;
+        return Base64ReturnCode::InvalidArg;
     }
     let input = std::slice::from_raw_parts(input, input_len as usize);
     let encoded = base64::encode(input);
     if encoded.len() + 1 > *output_len as usize {
-        return Base64ReturnCode::SC_BASE64_OVERFLOW;
+        return Base64ReturnCode::Overflow;
     }
     let output = std::slice::from_raw_parts_mut(&mut *(output as *mut u8), *output_len as usize);
     output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
     output[encoded.len()] = 0;
     *output_len = encoded.len() as c_ulong;
-    Base64ReturnCode::SC_BASE64_OK
+    Base64ReturnCode::Ok
 }
 
 /// Ratio of output bytes to input bytes for Base64 Encoding is 4:3, hence the

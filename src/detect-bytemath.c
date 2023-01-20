@@ -60,8 +60,8 @@ static void DetectByteMathRegisterTests(void);
 #endif
 static void DetectByteMathFree(DetectEngineCtx *, void *);
 
-#define DETECT_BYTEMATH_ENDIAN_DEFAULT (uint8_t) BigEndian
-#define DETECT_BYTEMATH_BASE_DEFAULT   (uint8_t) BaseDec
+#define DETECT_BYTEMATH_ENDIAN_DEFAULT (uint8_t) BYTE_MATH_ENDIAN_BIG
+#define DETECT_BYTEMATH_BASE_DEFAULT   (uint8_t) BYTE_MATH_BASE_DEC
 /**
  * \brief Registers the keyword handlers for the "byte_math" keyword.
  */
@@ -138,7 +138,7 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
         }
     } else {
         ByteMathEndian bme = endian;
-        int endianness = (bme == BigEndian) ? BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
+        int endianness = (bme == BYTE_MATH_ENDIAN_BIG) ? BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
             SCLogDebug("error extracting %d bytes of numeric data: %d",
@@ -153,24 +153,24 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
     det_ctx->buffer_offset = ptr - payload;
 
     switch (data->oper) {
-        case OperatorNone:
+        case BYTE_MATH_OPERATOR_NONE:
             break;
-        case Addition:
+        case BYTE_MATH_OPERATOR_ADDITION:
             val += rvalue;
             break;
-        case Subtraction:
+        case BYTE_MATH_OPERATOR_SUBTRACTION:
             val -= rvalue;
             break;
-        case Division:
+        case BYTE_MATH_OPERATOR_DIVISION:
             val /= rvalue;
             break;
-        case Multiplication:
+        case BYTE_MATH_OPERATOR_MULTIPLICATION:
             val *= rvalue;
             break;
-        case LeftShift:
+        case BYTE_MATH_OPERATOR_LEFT_SHIFT:
             val <<= rvalue;
             break;
-        case RightShift:
+        case BYTE_MATH_OPERATOR_RIGHT_SHIFT:
             val >>= rvalue;
             break;
     }
@@ -274,7 +274,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                 goto error;
             }
         }
-    } else if (data->endian == EndianDCE) {
+    } else if (data->endian == BYTE_MATH_ENDIAN_DCE) {
         if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
                                                DETECT_BYTETEST, DETECT_BYTEJUMP,
@@ -315,12 +315,12 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         sm_list = DETECT_SM_LIST_PMATCH;
     }
 
-    if (data->endian == EndianDCE) {
+    if (data->endian == BYTE_MATH_ENDIAN_DCE) {
         if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
             goto error;
 
-        if ((data->flags & DETECT_BYTEMATH_FLAG_STRING) || (data->base == BaseDec) ||
-                (data->base == BaseHex) || (data->base == BaseOct)) {
+        if ((data->flags & DETECT_BYTEMATH_FLAG_STRING) || (data->base == BYTE_MATH_BASE_DEC) ||
+                (data->base == BYTE_MATH_BASE_HEX) || (data->base == BYTE_MATH_BASE_OCT)) {
             SCLogError("Invalid option. "
                        "A bytemath keyword with dce holds other invalid modifiers.");
             goto error;
@@ -434,7 +434,7 @@ static int DetectByteMathParseTest01(void)
 
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 10);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->endian == DETECT_BYTEMATH_ENDIAN_DEFAULT);
@@ -499,7 +499,7 @@ static int DetectByteMathParseTest06(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 0);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 248);
     FAIL_IF_NOT(strcmp(bmd->result, "var") == 0);
     FAIL_IF_NOT(bmd->flags == flags);
@@ -521,7 +521,7 @@ static int DetectByteMathParseTest07(void)
     FAIL_IF_NOT(rvalue);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(strcmp(rvalue, "foo") == 0);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->endian == DETECT_BYTEMATH_ENDIAN_DEFAULT);
@@ -555,7 +555,7 @@ static int DetectByteMathParseTest09(void)
 
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->flags == flags);
@@ -578,11 +578,11 @@ static int DetectByteMathParseTest10(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->flags == flags);
-    FAIL_IF_NOT(bmd->endian == BigEndian);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_BIG);
     FAIL_IF_NOT(bmd->base == DETECT_BYTEMATH_BASE_DEFAULT);
 
     DetectByteMathFree(NULL, bmd);
@@ -601,11 +601,11 @@ static int DetectByteMathParseTest11(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->flags == flags);
-    FAIL_IF_NOT(bmd->endian == EndianDCE);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_DCE);
     FAIL_IF_NOT(bmd->base == DETECT_BYTEMATH_BASE_DEFAULT);
 
     DetectByteMathFree(NULL, bmd);
@@ -624,12 +624,12 @@ static int DetectByteMathParseTest12(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->flags == flags);
-    FAIL_IF_NOT(bmd->endian == BigEndian);
-    FAIL_IF_NOT(bmd->base == BaseDec);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_BIG);
+    FAIL_IF_NOT(bmd->base == BYTE_MATH_BASE_DEC);
 
     DetectByteMathFree(NULL, bmd);
 
@@ -650,14 +650,14 @@ static int DetectByteMathParseTest13(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->bitmask_val == 0x8f40);
     FAIL_IF_NOT(bmd->bitmask_shift_count == 6);
     FAIL_IF_NOT(bmd->flags == flags);
-    FAIL_IF_NOT(bmd->endian == BigEndian);
-    FAIL_IF_NOT(bmd->base == BaseDec);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_BIG);
+    FAIL_IF_NOT(bmd->base == BYTE_MATH_BASE_DEC);
 
     DetectByteMathFree(NULL, bmd);
 
@@ -703,14 +703,14 @@ static int DetectByteMathParseTest16(void)
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == -2);
-    FAIL_IF_NOT(bmd->oper == Addition);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
     FAIL_IF_NOT(bmd->rvalue == 39);
     FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
     FAIL_IF_NOT(bmd->bitmask_val == 0x8f40);
     FAIL_IF_NOT(bmd->bitmask_shift_count == 6);
     FAIL_IF_NOT(bmd->flags == flags);
-    FAIL_IF_NOT(bmd->endian == BigEndian);
-    FAIL_IF_NOT(bmd->base == BaseDec);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_BIG);
+    FAIL_IF_NOT(bmd->base == BYTE_MATH_BASE_DEC);
 
     DetectByteMathFree(NULL, bmd);
 
@@ -963,9 +963,9 @@ static int DetectByteMathContext01(void)
     FAIL_IF_NOT(bmd->rvalue == 248);
     FAIL_IF_NOT(strcmp(bmd->result, "var") == 0);
     FAIL_IF_NOT(bmd->flags == DETECT_BYTEMATH_FLAG_RELATIVE);
-    FAIL_IF_NOT(bmd->endian == BigEndian);
-    FAIL_IF_NOT(bmd->oper == Addition);
-    FAIL_IF_NOT(bmd->base == BaseDec);
+    FAIL_IF_NOT(bmd->endian == BYTE_MATH_ENDIAN_BIG);
+    FAIL_IF_NOT(bmd->oper == BYTE_MATH_OPERATOR_ADDITION);
+    FAIL_IF_NOT(bmd->base == BYTE_MATH_BASE_DEC);
 
     DetectEngineCtxFree(de_ctx);
 

@@ -930,7 +930,7 @@ mod tests {
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 42);
-                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeRange);
+                        assert_eq!(ctxval.mode, DetectUintMode::Range);
                         assert_eq!(ctxval.arg2, 68);
                     }
                     None => {
@@ -952,7 +952,7 @@ mod tests {
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 54);
-                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeLt);
+                        assert_eq!(ctxval.mode, DetectUintMode::Lt);
                     }
                     None => {
                         panic!("No value");
@@ -973,7 +973,7 @@ mod tests {
                 match ctx.value {
                     Some(ctxval) => {
                         assert_eq!(ctxval.arg1, 76);
-                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeGt);
+                        assert_eq!(ctxval.mode, DetectUintMode::Gt);
                     }
                     None => {
                         panic!("No value");

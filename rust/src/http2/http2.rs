@@ -102,18 +102,18 @@ pub enum HTTP2FrameTypeData {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub enum HTTP2TransactionState {
-    HTTP2StateIdle = 0,
-    HTTP2StateOpen = 1,
-    HTTP2StateReserved = 2,
-    HTTP2StateDataClient = 3,
-    HTTP2StateHalfClosedClient = 4,
-    HTTP2StateDataServer = 5,
-    HTTP2StateHalfClosedServer = 6,
-    HTTP2StateClosed = 7,
+    Idle = 0,
+    Open = 1,
+    Reserved = 2,
+    DataClient = 3,
+    HalfClosedClient = 4,
+    DataServer = 5,
+    HalfClosedServer = 6,
+    Closed = 7,
     //not a RFC-defined state, used for stream 0 frames appyling to the global connection
-    HTTP2StateGlobal = 8,
+    Global = 8,
     //not a RFC-defined state, dropping this old tx because we have too many
-    HTTP2StateTodrop = 9,
+    Todrop = 9,
 }
 
 #[derive(Debug)]
@@ -164,7 +164,7 @@ impl HTTP2Transaction {
             tx_id: 0,
             stream_id: 0,
             child_stream_id: 0,
-            state: HTTP2TransactionState::HTTP2StateIdle,
+            state: HTTP2TransactionState::Idle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
@@ -296,7 +296,7 @@ impl HTTP2Transaction {
                     if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
                         self.child_stream_id = hs.stream_id;
                     }
-                    self.state = HTTP2TransactionState::HTTP2StateReserved;
+                    self.state = HTTP2TransactionState::Reserved;
                 }
                 self.handle_headers(&hs.blocks, dir);
             }
@@ -324,36 +324,36 @@ impl HTTP2Transaction {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
                 if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
                     match self.state {
-                        HTTP2TransactionState::HTTP2StateHalfClosedClient
-                        | HTTP2TransactionState::HTTP2StateDataServer => {
+                        HTTP2TransactionState::HalfClosedClient
+                        | HTTP2TransactionState::DataServer => {
                             if dir == Direction::ToClient {
-                                self.state = HTTP2TransactionState::HTTP2StateClosed;
+                                self.state = HTTP2TransactionState::Closed;
                             }
                         }
-                        HTTP2TransactionState::HTTP2StateHalfClosedServer => {
+                        HTTP2TransactionState::HalfClosedServer => {
                             if dir == Direction::ToServer {
-                                self.state = HTTP2TransactionState::HTTP2StateClosed;
+                                self.state = HTTP2TransactionState::Closed;
                             }
                         }
                         // do not revert back to a half closed state
-                        HTTP2TransactionState::HTTP2StateClosed => {}
-                        HTTP2TransactionState::HTTP2StateGlobal => {}
+                        HTTP2TransactionState::Closed => {}
+                        HTTP2TransactionState::Global => {}
                         _ => {
                             if dir == Direction::ToClient {
-                                self.state = HTTP2TransactionState::HTTP2StateHalfClosedServer;
+                                self.state = HTTP2TransactionState::HalfClosedServer;
                             } else {
-                                self.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
+                                self.state = HTTP2TransactionState::HalfClosedClient;
                             }
                         }
                     }
                 } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
                     //not end of stream
                     if dir == Direction::ToServer {
-                        if self.state < HTTP2TransactionState::HTTP2StateDataClient {
-                            self.state = HTTP2TransactionState::HTTP2StateDataClient;
+                        if self.state < HTTP2TransactionState::DataClient {
+                            self.state = HTTP2TransactionState::DataClient;
                         }
-                    } else if self.state < HTTP2TransactionState::HTTP2StateDataServer {
-                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
+                    } else if self.state < HTTP2TransactionState::DataServer {
+                        self.state = HTTP2TransactionState::DataServer;
                     }
                 }
             }
@@ -563,7 +563,7 @@ impl HTTP2State {
         let mut tx = HTTP2Transaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        tx.state = HTTP2TransactionState::HTTP2StateGlobal;
+        tx.state = HTTP2TransactionState::Global;
         tx.tx_data.update_file_flags(self.state_data.file_flags);
         // TODO can this tx hold files?
         tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
@@ -593,7 +593,7 @@ impl HTTP2State {
         };
         let index = self.find_tx_index(sid);
         if index > 0 {
-            if self.transactions[index - 1].state == HTTP2TransactionState::HTTP2StateClosed {
+            if self.transactions[index - 1].state == HTTP2TransactionState::Closed {
                 //these frames can be received in this state for a short period
                 if header.ftype != parser::HTTP2FrameType::RstStream as u8
                     && header.ftype != parser::HTTP2FrameType::WindowUpdate as u8
@@ -612,15 +612,15 @@ impl HTTP2State {
             self.tx_id += 1;
             tx.tx_id = self.tx_id;
             tx.stream_id = sid;
-            tx.state = HTTP2TransactionState::HTTP2StateOpen;
+            tx.state = HTTP2TransactionState::Open;
             // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
             if self.transactions.len() > unsafe { HTTP2_MAX_STREAMS } {
                 // set at least one another transaction to the drop state
                 for tx_old in &mut self.transactions {
-                    if tx_old.state != HTTP2TransactionState::HTTP2StateTodrop {
+                    if tx_old.state != HTTP2TransactionState::Todrop {
                         // use a distinct state, even if we do not log it
                         tx_old.set_event(HTTP2Event::TooManyStreams);
-                        tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                        tx_old.state = HTTP2TransactionState::Todrop;
                         break;
                     }
                 }
@@ -1239,8 +1239,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         parse_tc: rs_http2_parse_tc,
         get_tx_count: rs_http2_state_get_tx_count,
         get_tx: rs_http2_state_get_tx,
-        tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
-        tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
+        tx_comp_st_ts: HTTP2TransactionState::Closed as i32,
+        tx_comp_st_tc: HTTP2TransactionState::Closed as i32,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
         get_eventinfo: Some(HTTP2Event::get_event_info),
         get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),

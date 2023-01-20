@@ -148,28 +148,28 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
             MAX_SWF_DECOMPRESSED_LEN);
 
     switch(ret) {
-        case LzmaOk:
+        case LZMA_STATUS_OK:
             ret = 1;
             break;
-        case LzmaIoError:
+        case LZMA_STATUS_IO_ERROR:
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_IO_ERROR);
             ret = 0;
             break;
-        case LzmaHeaderTooShortError:
+        case LZMA_STATUS_HEADER_TOO_SHORT_ERROR:
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR);
             ret = 0;
             break;
-        case LzmaError:
+        case LZMA_STATUS_ERROR:
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DECODER_ERROR);
             ret = 0;
             break;
-        case LzmaMemoryError:
+        case LZMA_STATUS_MEMORY_ERROR:
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR);
             ret = 0;
             break;
-        case LzmaXzError:
+        case LZMA_STATUS_XZ_ERROR:
             /* We should not see XZ compressed SWF files */
-            DEBUG_VALIDATE_BUG_ON(ret == LzmaXzError);
+            DEBUG_VALIDATE_BUG_ON(ret == LZMA_STATUS_XZ_ERROR);
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_XZ_ERROR);
             ret = 0;
             break;

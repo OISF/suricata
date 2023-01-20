@@ -543,12 +543,13 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) && endian == (int)EndianDCE &&
+        if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) && endian == (int)BYTE_MATH_ENDIAN_DCE &&
                 flags & (DETECT_CI_FLAGS_DCE_LE | DETECT_CI_FLAGS_DCE_BE)) {
 
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= (uint8_t)((flags & DETECT_CI_FLAGS_DCE_LE) ? LittleEndian : BigEndian);
+            endian |= (uint8_t)((flags & DETECT_CI_FLAGS_DCE_LE) ? BYTE_MATH_ENDIAN_LITTLE
+                                                                 : BYTE_MATH_ENDIAN_BIG);
         }
         uint64_t rvalue;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {

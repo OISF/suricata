@@ -866,7 +866,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         data: txdata,
     });
     //we do not expect more data from client
-    tx.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
+    tx.state = HTTP2TransactionState::HalfClosedClient;
 }
 
 #[no_mangle]

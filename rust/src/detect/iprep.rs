@@ -29,10 +29,10 @@ use std::str::FromStr;
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
 pub enum DetectIPRepDataCmd {
-    IPRepCmdAny = 0,
-    IPRepCmdBoth = 1,
-    IPRepCmdSrc = 2,
-    IPRepCmdDst = 3,
+    Any = 0,
+    Both = 1,
+    Src = 2,
+    Dst = 3,
 }
 
 impl std::str::FromStr for DetectIPRepDataCmd {
@@ -40,10 +40,10 @@ impl std::str::FromStr for DetectIPRepDataCmd {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "any" => Ok(DetectIPRepDataCmd::IPRepCmdAny),
-            "both" => Ok(DetectIPRepDataCmd::IPRepCmdBoth),
-            "src" => Ok(DetectIPRepDataCmd::IPRepCmdSrc),
-            "dst" => Ok(DetectIPRepDataCmd::IPRepCmdDst),
+            "any" => Ok(DetectIPRepDataCmd::Any),
+            "both" => Ok(DetectIPRepDataCmd::Both),
+            "src" => Ok(DetectIPRepDataCmd::Src),
+            "dst" => Ok(DetectIPRepDataCmd::Dst),
             _ => Err(format!(
                 "'{}' is not a valid value for DetectIPRepDataCmd",
                 s

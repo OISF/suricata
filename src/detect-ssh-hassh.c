@@ -197,13 +197,10 @@ void DetectSshHasshRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH].Setup = DetectSshHasshSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, 
-            PrefilterGenericMpmRegister, GetSshData, 
-            ALPROTO_SSH, SshStateBannerDone),
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOSERVER, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SSH_CONNECTION_STATE_BANNER_DONE),
+            DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
+                    SSH_CONNECTION_STATE_BANNER_DONE, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

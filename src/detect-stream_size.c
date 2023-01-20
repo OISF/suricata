@@ -75,24 +75,24 @@ static int DetectStreamSizeMatchAux(const DetectStreamSizeData *sd, const TcpSes
     uint32_t csdiff = 0;
     uint32_t ssdiff = 0;
 
-    if (sd->flags == StreamSizeServer) {
+    if (sd->flags == DETECT_STREAM_SIZE_SERVER) {
         /* get the server stream size */
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         ret = DetectU32Match(ssdiff, &sd->du32);
 
-    } else if (sd->flags == StreamSizeClient) {
+    } else if (sd->flags == DETECT_STREAM_SIZE_CLIENT) {
         /* get the client stream size */
         csdiff = ssn->client.next_seq - ssn->client.isn;
         ret = DetectU32Match(csdiff, &sd->du32);
 
-    } else if (sd->flags == StreamSizeBoth) {
+    } else if (sd->flags == DETECT_STREAM_SIZE_BOTH) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
 
         if (DetectU32Match(ssdiff, &sd->du32) && DetectU32Match(csdiff, &sd->du32))
             ret = 1;
 
-    } else if (sd->flags == StreamSizeEither) {
+    } else if (sd->flags == DETECT_STREAM_SIZE_EITHER) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
 
@@ -244,7 +244,8 @@ static int DetectStreamSizeParseTest01 (void)
     DetectStreamSizeData *sd = NULL;
     sd = rs_detect_stream_size_parse("server,<,6");
     if (sd != NULL) {
-        if (sd->flags & StreamSizeServer && sd->du32.mode == DETECT_UINT_LT && sd->du32.arg1 == 6)
+        if (sd->flags & DETECT_STREAM_SIZE_SERVER && sd->du32.mode == DETECT_UINT_LT &&
+                sd->du32.arg1 == 6)
             result = 1;
         DetectStreamSizeFree(NULL, sd);
     }
@@ -304,7 +305,7 @@ static int DetectStreamSizeParseTest03 (void)
 
     sd = rs_detect_stream_size_parse("client,>,8");
     if (sd != NULL) {
-        if (!(sd->flags & StreamSizeClient)) {
+        if (!(sd->flags & DETECT_STREAM_SIZE_CLIENT)) {
             printf("sd->flags not STREAM_SIZE_CLIENT: ");
             DetectStreamSizeFree(NULL, sd);
             SCFree(p);
@@ -380,7 +381,7 @@ static int DetectStreamSizeParseTest04 (void)
 
     sd = rs_detect_stream_size_parse(" client , > , 8 ");
     if (sd != NULL) {
-        if (!(sd->flags & StreamSizeClient) && sd->du32.mode != DETECT_UINT_GT &&
+        if (!(sd->flags & DETECT_STREAM_SIZE_CLIENT) && sd->du32.mode != DETECT_UINT_GT &&
                 sd->du32.arg1 != 8) {
             SCFree(p);
             return 0;

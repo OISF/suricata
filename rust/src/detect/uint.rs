@@ -28,13 +28,13 @@ use std::ffi::CStr;
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
 pub enum DetectUintMode {
-    DetectUintModeEqual,
-    DetectUintModeLt,
-    DetectUintModeLte,
-    DetectUintModeGt,
-    DetectUintModeGte,
-    DetectUintModeRange,
-    DetectUintModeNe,
+    Equal,
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Range,
+    Ne,
 }
 
 #[derive(Debug)]
@@ -65,7 +65,7 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
         DetectUintData {
             arg1,
             arg2: T::min_value(),
-            mode: DetectUintMode::DetectUintModeEqual,
+            mode: DetectUintMode::Equal,
         },
     ))
 }
@@ -85,7 +85,7 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
         DetectUintData {
             arg1,
             arg2,
-            mode: DetectUintMode::DetectUintModeRange,
+            mode: DetectUintMode::Range,
         },
     ))
 }
@@ -107,20 +107,20 @@ fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
         DetectUintData {
             arg1: arg1 - T::one(),
             arg2: arg2 + T::one(),
-            mode: DetectUintMode::DetectUintModeRange,
+            mode: DetectUintMode::Range,
         },
     ))
 }
 
 pub fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
     let (i, mode) = alt((
-        value(DetectUintMode::DetectUintModeGte, tag(">=")),
-        value(DetectUintMode::DetectUintModeLte, tag("<=")),
-        value(DetectUintMode::DetectUintModeGt, tag(">")),
-        value(DetectUintMode::DetectUintModeLt, tag("<")),
-        value(DetectUintMode::DetectUintModeNe, tag("!=")),
-        value(DetectUintMode::DetectUintModeNe, tag("!")),
-        value(DetectUintMode::DetectUintModeEqual, tag("=")),
+        value(DetectUintMode::Gte, tag(">=")),
+        value(DetectUintMode::Lte, tag("<=")),
+        value(DetectUintMode::Gt, tag(">")),
+        value(DetectUintMode::Lt, tag("<")),
+        value(DetectUintMode::Ne, tag("!=")),
+        value(DetectUintMode::Ne, tag("!")),
+        value(DetectUintMode::Equal, tag("=")),
     ))(i)?;
     return Ok((i, mode));
 }
@@ -131,23 +131,23 @@ fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, De
     let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
 
     match mode {
-        DetectUintMode::DetectUintModeNe => {}
-        DetectUintMode::DetectUintModeLt => {
+        DetectUintMode::Ne => {}
+        DetectUintMode::Lt => {
             if arg1 == T::min_value() {
                 return Err(Err::Error(make_error(i, ErrorKind::Verify)));
             }
         }
-        DetectUintMode::DetectUintModeLte => {
+        DetectUintMode::Lte => {
             if arg1 == T::max_value() {
                 return Err(Err::Error(make_error(i, ErrorKind::Verify)));
             }
         }
-        DetectUintMode::DetectUintModeGt => {
+        DetectUintMode::Gt => {
             if arg1 == T::max_value() {
                 return Err(Err::Error(make_error(i, ErrorKind::Verify)));
             }
         }
-        DetectUintMode::DetectUintModeGte => {
+        DetectUintMode::Gte => {
             if arg1 == T::min_value() {
                 return Err(Err::Error(make_error(i, ErrorKind::Verify)));
             }
@@ -169,37 +169,37 @@ fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, De
 
 pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> bool {
     match x.mode {
-        DetectUintMode::DetectUintModeEqual => {
+        DetectUintMode::Equal => {
             if val == x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeNe => {
+        DetectUintMode::Ne => {
             if val != x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeLt => {
+        DetectUintMode::Lt => {
             if val < x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeLte => {
+        DetectUintMode::Lte => {
             if val <= x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeGt => {
+        DetectUintMode::Gt => {
             if val > x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeGte => {
+        DetectUintMode::Gte => {
             if val >= x.arg1 {
                 return true;
             }
         }
-        DetectUintMode::DetectUintModeRange => {
+        DetectUintMode::Range => {
             if val > x.arg1 && val < x.arg2 {
                 return true;
             }

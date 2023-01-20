@@ -105,12 +105,10 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataClient);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataServer);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
+            NULL, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_CLIENT);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
+            NULL, ALPROTO_HTTP2, HTTP2_TRANSACTION_STATE_DATA_SERVER);
     DetectAppLayerMpmRegister2(
             "file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_NFS, 0);
     DetectAppLayerMpmRegister2(
@@ -139,12 +137,10 @@ void DetectFiledataRegister(void)
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateDataClient,
-            DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
-            DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2_TRANSACTION_STATE_DATA_CLIENT, DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2_TRANSACTION_STATE_DATA_SERVER, DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2(
             "file_data", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2(

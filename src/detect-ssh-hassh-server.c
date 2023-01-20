@@ -195,12 +195,10 @@ void DetectSshHasshServerRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].Setup = DetectSshHasshServerSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, 
-            PrefilterGenericMpmRegister, GetSshData, 
-            ALPROTO_SSH, SshStateBannerDone);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOCLIENT, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SSH_CONNECTION_STATE_BANNER_DONE);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SSH_CONNECTION_STATE_BANNER_DONE, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

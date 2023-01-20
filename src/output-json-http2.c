@@ -179,6 +179,6 @@ void JsonHttp2LogRegister (void)
 {
     /* also register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.http2",
-            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonHttp2Logger, HTTP2StateClosed,
-            HTTP2StateClosed, JsonHttp2LogThreadInit, JsonHttp2LogThreadDeinit, NULL);
+            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonHttp2Logger, HTTP2_TRANSACTION_STATE_CLOSED,
+            HTTP2_TRANSACTION_STATE_CLOSED, JsonHttp2LogThreadInit, JsonHttp2LogThreadDeinit, NULL);
 }

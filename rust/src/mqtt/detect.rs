@@ -24,23 +24,22 @@ use std::ptr;
 use std::str::FromStr;
 
 #[derive(FromPrimitive, Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
 #[repr(u8)]
 pub enum MQTTFlagState {
-    MQTT_DONT_CARE = 0,
-    MQTT_MUST_BE_SET = 1,
-    MQTT_CANT_BE_SET = 2,
+    DontCare = 0,
+    MustBeSet = 1,
+    CantBeSet = 2,
 }
 
 #[inline]
 fn check_flag_state(flag_state: MQTTFlagState, flag_value: bool, ok: &mut bool) {
     match flag_state {
-        MQTTFlagState::MQTT_MUST_BE_SET => {
+        MQTTFlagState::MustBeSet => {
             if !flag_value {
                 *ok = false;
             }
         }
-        MQTTFlagState::MQTT_CANT_BE_SET => {
+        MQTTFlagState::CantBeSet => {
             if flag_value {
                 *ok = false;
             }

@@ -53,10 +53,10 @@ typedef struct PrefilterPacketU8HashCtx_ {
     SigsArray *array[256];
 } PrefilterPacketU8HashCtx;
 
-#define PREFILTER_U8HASH_MODE_EQ DetectUintModeEqual
-#define PREFILTER_U8HASH_MODE_LT DetectUintModeLt
-#define PREFILTER_U8HASH_MODE_GT DetectUintModeGt
-#define PREFILTER_U8HASH_MODE_RA DetectUintModeRange
+#define PREFILTER_U8HASH_MODE_EQ DETECT_UINT_MODE_EQUAL
+#define PREFILTER_U8HASH_MODE_LT DETECT_UINT_MODE_LT
+#define PREFILTER_U8HASH_MODE_GT DETECT_UINT_MODE_GT
+#define PREFILTER_U8HASH_MODE_RA DETECT_UINT_MODE_RANGE
 
 int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,

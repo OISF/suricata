@@ -129,9 +129,9 @@ void DetectFilenameRegister(void)
 
     //this is used by filestore
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectFileInspectGeneric, NULL);
+            HTTP2_TRANSACTION_STATE_DATA_CLIENT, DetectFileInspectGeneric, NULL);
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectFileInspectGeneric, NULL);
+            HTTP2_TRANSACTION_STATE_DATA_SERVER, DetectFileInspectGeneric, NULL);
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 

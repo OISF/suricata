@@ -50,7 +50,7 @@ const DETECT_BYTEMATH_FLAG_REQUIRED: u8 = DETECT_BYTEMATH_FLAG_RESULT
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // operators: +, -, /, *, <<, >>
 pub enum ByteMathOperator {
-    OperatorNone = 1,
+    None = 1,
     Addition = 2,
     Subtraction = 3,
     Division = 4,
@@ -63,22 +63,22 @@ pub enum ByteMathOperator {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>
 pub enum ByteMathEndian {
-    EndianNone = 0,
-    BigEndian = 1,
-    LittleEndian = 2,
-    EndianDCE = 3,
+    None = 0,
+    Big = 1,
+    Little = 2,
+    DCE = 3,
 }
-pub const DETECT_BYTEMATH_ENDIAN_DEFAULT: ByteMathEndian = ByteMathEndian::BigEndian;
+pub const DETECT_BYTEMATH_ENDIAN_DEFAULT: ByteMathEndian = ByteMathEndian::Big;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ByteMathBase {
-    BaseNone = 0,
-    BaseOct = 8,
-    BaseDec = 10,
-    BaseHex = 16,
+    None = 0,
+    Oct = 8,
+    Dec = 10,
+    Hex = 16,
 }
-const BASE_DEFAULT: ByteMathBase = ByteMathBase::BaseDec;
+const BASE_DEFAULT: ByteMathBase = ByteMathBase::Dec;
 
 // Fixed position parameter count: bytes, offset, oper, rvalue, result
 // result is not parsed with the fixed position parameters as it's
@@ -131,7 +131,7 @@ impl Default for DetectByteMathData {
             flags: 0,
             nbytes: 0,
             offset: 0,
-            oper: ByteMathOperator::OperatorNone,
+            oper: ByteMathOperator::None,
             rvalue_str: std::ptr::null_mut(),
             rvalue: 0,
             result: std::ptr::null_mut(),
@@ -154,9 +154,9 @@ impl DetectByteMathData {
 
 fn get_string_value(value: &str) -> Result<ByteMathBase, ()> {
     let res = match value {
-        "hex" => ByteMathBase::BaseHex,
-        "oct" => ByteMathBase::BaseOct,
-        "dec" => ByteMathBase::BaseDec,
+        "hex" => ByteMathBase::Hex,
+        "oct" => ByteMathBase::Oct,
+        "dec" => ByteMathBase::Dec,
         _ => return Err(()),
     };
 
@@ -179,9 +179,9 @@ fn get_oper_value(value: &str) -> Result<ByteMathOperator, ()> {
 
 fn get_endian_value(value: &str) -> Result<ByteMathEndian, ()> {
     let res = match value {
-        "big" => ByteMathEndian::BigEndian,
-        "little" => ByteMathEndian::LittleEndian,
-        "dce" => ByteMathEndian::EndianDCE,
+        "big" => ByteMathEndian::Big,
+        "little" => ByteMathEndian::Little,
+        "dce" => ByteMathEndian::DCE,
         _ => return Err(()),
     };
 
@@ -304,7 +304,7 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                     return Err(make_error("endianess already set".to_string()));
                 }
                 byte_math.flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
-                byte_math.endian = ByteMathEndian::EndianDCE;
+                byte_math.endian = ByteMathEndian::DCE;
             }
             "string" => {
                 if 0 != (byte_math.flags & DETECT_BYTEMATH_FLAG_STRING) {
@@ -503,8 +503,8 @@ mod tests {
             "myrvalue",
             0,
             "myresult",
-            ByteMathBase::BaseDec,
-            ByteMathEndian::EndianDCE,
+            ByteMathBase::Dec,
+            ByteMathEndian::DCE,
             0,
             DETECT_BYTEMATH_FLAG_RVALUE_VAR
                 | DETECT_BYTEMATH_FLAG_STRING
@@ -519,8 +519,8 @@ mod tests {
             "",
             99,
             "other",
-            ByteMathBase::BaseDec,
-            ByteMathEndian::EndianDCE,
+            ByteMathBase::Dec,
+            ByteMathEndian::DCE,
             0,
             DETECT_BYTEMATH_FLAG_STRING | DETECT_BYTEMATH_FLAG_ENDIAN,
         );
@@ -534,7 +534,7 @@ mod tests {
             0,
             "foo",
             BASE_DEFAULT,
-            ByteMathEndian::BigEndian,
+            ByteMathEndian::Big,
             0,
             DETECT_BYTEMATH_FLAG_RVALUE_VAR,
         );
@@ -548,8 +548,8 @@ mod tests {
             "",
             99,
             "other",
-            ByteMathBase::BaseDec,
-            ByteMathEndian::BigEndian,
+            ByteMathBase::Dec,
+            ByteMathEndian::Big,
             0,
             DETECT_BYTEMATH_FLAG_STRING | DETECT_BYTEMATH_FLAG_ENDIAN,
         );
@@ -565,7 +565,7 @@ mod tests {
             rvalue: 0,
             result: CString::new("foo").unwrap().into_raw(),
             endian: DETECT_BYTEMATH_ENDIAN_DEFAULT,
-            base: ByteMathBase::BaseDec,
+            base: ByteMathBase::Dec,
             flags: DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_STRING,
             ..Default::default()
         };
@@ -593,7 +593,7 @@ mod tests {
         }
 
         bmd.flags = DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_STRING;
-        bmd.base = ByteMathBase::BaseHex;
+        bmd.base = ByteMathBase::Hex;
         match parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string hex",
         ) {
@@ -605,7 +605,7 @@ mod tests {
             }
         }
 
-        bmd.base = ByteMathBase::BaseOct;
+        bmd.base = ByteMathBase::Oct;
         match parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string oct",
         ) {
@@ -729,7 +729,7 @@ mod tests {
             rvalue_str: CString::new("myrvalue").unwrap().into_raw(),
             rvalue: 0,
             result: CString::new("foo").unwrap().into_raw(),
-            endian: ByteMathEndian::BigEndian,
+            endian: ByteMathEndian::Big,
             base: BASE_DEFAULT,
             flags: DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_BITMASK,
             ..Default::default()
@@ -780,7 +780,7 @@ mod tests {
             rvalue_str: CString::new("myrvalue").unwrap().into_raw(),
             rvalue: 0,
             result: CString::new("foo").unwrap().into_raw(),
-            endian: ByteMathEndian::BigEndian,
+            endian: ByteMathEndian::Big,
             base: BASE_DEFAULT,
             flags: DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_ENDIAN,
             ..Default::default()
@@ -797,7 +797,7 @@ mod tests {
             }
         }
 
-        bmd.endian = ByteMathEndian::LittleEndian;
+        bmd.endian = ByteMathEndian::Little;
         match parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian little",
         ) {
@@ -809,7 +809,7 @@ mod tests {
             }
         }
 
-        bmd.endian = ByteMathEndian::EndianDCE;
+        bmd.endian = ByteMathEndian::DCE;
         match parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, dce") {
             Ok((_, val)) => {
                 assert_eq!(val, bmd);
@@ -881,7 +881,7 @@ mod tests {
             rvalue_str: CString::new("myrvalue").unwrap().into_raw(),
             rvalue: 0,
             result: CString::new("foo").unwrap().into_raw(),
-            endian: ByteMathEndian::BigEndian,
+            endian: ByteMathEndian::Big,
             base: BASE_DEFAULT,
             flags: DETECT_BYTEMATH_FLAG_RVALUE_VAR,
             ..Default::default()

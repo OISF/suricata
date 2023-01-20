@@ -26,22 +26,22 @@ use std::str::FromStr;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
-pub enum DetectStreamSizeDataFlags {
-    StreamSizeServer = 1,
-    StreamSizeClient = 2,
-    StreamSizeBoth = 3,
-    StreamSizeEither = 4,
+pub enum DetectStreamSize {
+    Server = 1,
+    Client = 2,
+    Both = 3,
+    Either = 4,
 }
 
-impl std::str::FromStr for DetectStreamSizeDataFlags {
+impl std::str::FromStr for DetectStreamSize {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "server" => Ok(DetectStreamSizeDataFlags::StreamSizeServer),
-            "client" => Ok(DetectStreamSizeDataFlags::StreamSizeClient),
-            "both" => Ok(DetectStreamSizeDataFlags::StreamSizeBoth),
-            "either" => Ok(DetectStreamSizeDataFlags::StreamSizeEither),
+            "server" => Ok(DetectStreamSize::Server),
+            "client" => Ok(DetectStreamSize::Client),
+            "both" => Ok(DetectStreamSize::Both),
+            "either" => Ok(DetectStreamSize::Either),
             _ => Err(format!(
                 "'{}' is not a valid value for DetectStreamSizeDataFlags",
                 s
@@ -53,13 +53,13 @@ impl std::str::FromStr for DetectStreamSizeDataFlags {
 #[derive(Debug)]
 #[repr(C)]
 pub struct DetectStreamSizeData {
-    pub flags: DetectStreamSizeDataFlags,
+    pub flags: DetectStreamSize,
     pub du32: DetectUintData<u32>,
 }
 
 pub fn detect_parse_stream_size(i: &str) -> IResult<&str, DetectStreamSizeData> {
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, flags) = map_res(alpha0, DetectStreamSizeDataFlags::from_str)(i)?;
+    let (i, flags) = map_res(alpha0, DetectStreamSize::from_str)(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = char(',')(i)?;
     let (i, _) = opt(is_a(" "))(i)?;

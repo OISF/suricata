@@ -315,25 +315,25 @@ mod test {
     fn test_extract_op_version() {
         let op_version = "<1";
         assert_eq!(
-            Ok((DetectUintMode::DetectUintModeLt, 1)),
+            Ok((DetectUintMode::Lt, 1)),
             extract_op_version(op_version)
         );
 
         let op_version = ">10";
         assert_eq!(
-            Ok((DetectUintMode::DetectUintModeGt, 10)),
+            Ok((DetectUintMode::Gt, 10)),
             extract_op_version(op_version)
         );
 
         let op_version = "=45";
         assert_eq!(
-            Ok((DetectUintMode::DetectUintModeEqual, 45)),
+            Ok((DetectUintMode::Equal, 45)),
             extract_op_version(op_version)
         );
 
         let op_version = "!0";
         assert_eq!(
-            Ok((DetectUintMode::DetectUintModeNe, 0)),
+            Ok((DetectUintMode::Ne, 0)),
             extract_op_version(op_version)
         );
 
@@ -347,7 +347,7 @@ mod test {
     #[test]
     fn test_match_iface_version() {
         let iface_data = DetectUintData::<u16> {
-            mode: DetectUintMode::DetectUintModeEqual,
+            mode: DetectUintMode::Equal,
             arg1: 10,
             arg2: 0,
         };
@@ -374,7 +374,7 @@ mod test {
         let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
         let du16 = iface_data.du16.unwrap();
-        assert_eq!(DetectUintMode::DetectUintModeGt, du16.mode);
+        assert_eq!(DetectUintMode::Gt, du16.mode);
         assert_eq!(1, du16.arg1);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,any_frag";
@@ -394,7 +394,7 @@ mod test {
         assert_eq!(expected_uuid, uuid);
         assert_eq!(1, iface_data.any_frag);
         let du16 = iface_data.du16.unwrap();
-        assert_eq!(DetectUintMode::DetectUintModeNe, du16.mode);
+        assert_eq!(DetectUintMode::Ne, du16.mode);
         assert_eq!(10, du16.arg1);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>1,ay_frag";

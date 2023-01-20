@@ -156,7 +156,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     SCLogDebug("rd->cmd %u", rd->cmd);
     switch(rd->cmd) {
-        case IPRepCmdAny:
+        case DETECT_IP_REP_DATA_CMD_ANY:
             val = GetHostRepSrc(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
@@ -172,7 +172,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             }
             break;
 
-        case IPRepCmdSrc:
+        case DETECT_IP_REP_DATA_CMD_SRC:
             val = GetHostRepSrc(p, rd->cat, version);
             SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat,
                     rd->du8.arg1);
@@ -183,7 +183,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             }
             break;
 
-        case IPRepCmdDst:
+        case DETECT_IP_REP_DATA_CMD_DST:
             SCLogDebug("checking dst");
             val = GetHostRepDst(p, rd->cat, version);
             if (val == 0)
@@ -193,7 +193,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             }
             break;
 
-        case IPRepCmdBoth:
+        case DETECT_IP_REP_DATA_CMD_BOTH:
             val = GetHostRepSrc(p, rd->cat, version);
             if (val == 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
