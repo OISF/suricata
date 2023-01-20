@@ -74,7 +74,7 @@ typedef struct StreamingBufferConfig_ {
 
 #define STREAMING_BUFFER_CONFIG_INITIALIZER                                                        \
     {                                                                                              \
-        0, 0, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL,                               \
+        2048, 8, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL,                            \
     }
 
 #define STREAMING_BUFFER_REGION_INIT                                                               \
