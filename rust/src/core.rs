@@ -38,7 +38,6 @@ pub const STREAM_TOCLIENT: u8 = 0x08;
 pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
-pub const STREAM_FLUSH:    u8 = 0x80;
 pub const DIR_BOTH:        u8 = 0b0000_1100;
 const DIR_TOSERVER:        u8 = 0b0000_0100;
 const DIR_TOCLIENT:        u8 = 0b0000_1000;
