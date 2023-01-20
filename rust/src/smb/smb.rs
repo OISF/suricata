@@ -1098,7 +1098,7 @@ impl SMBState {
                         tx.request_done = true;
                         tx.response_done = true;
                         let (files, flags) = f.files.get(f.direction);
-                        f.file_tracker.trunc(files, flags);
+                        filetracker_trunc(&mut f.file_tracker, files, flags);
                     } else {
                         post_gap_txs = true;
                     }
