@@ -593,7 +593,7 @@ static void FileFree(File *ff, const StreamingBufferConfig *sbcfg)
         SCFree(ff->magic);
 #endif
     if (ff->sb != NULL) {
-        StreamingBufferFree(ff->sb);
+        StreamingBufferFree(ff->sb, sbcfg);
     }
 
     if (ff->md5_ctx)
