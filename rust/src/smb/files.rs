@@ -64,19 +64,27 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 pub fn filetracker_trunc(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16)
 {
-    ft.trunc(files, flags);
+    if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
+        ft.trunc(sfcm, files, flags);
+    }
 }
 
 pub fn filetracker_close(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16)
 {
-    ft.close(files, flags);
+    if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
+        ft.close(sfcm, files, flags);
+    }
 }
 
 fn filetracker_update(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, data: &[u8], gap_size: u32) -> u32
 {
-    ft.update(files, flags, data, gap_size)
+    if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
+        ft.update(sfcm, files, flags, data, gap_size)
+    } else {
+        0
+    }
 }
 
 impl SMBState {

@@ -121,7 +121,7 @@ void HtpBodyPrint(HtpBody *body)
  * \param body pointer to the HtpBody holding the list
  * \retval none
  */
-void HtpBodyFree(HtpBody *body)
+void HtpBodyFree(const HTPCfgDir *hcfg, HtpBody *body)
 {
     SCEnter();
 

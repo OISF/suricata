@@ -116,9 +116,9 @@ typedef struct FileContainer_ {
 } FileContainer;
 
 FileContainer *FileContainerAlloc(void);
-void FileContainerFree(FileContainer *);
+void FileContainerFree(FileContainer *, const StreamingBufferConfig *cfg);
 
-void FileContainerRecycle(FileContainer *);
+void FileContainerRecycle(FileContainer *, const StreamingBufferConfig *cfg);
 
 void FileContainerAdd(FileContainer *, File *);
 
@@ -157,11 +157,11 @@ int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *, const uint8_t *data, uint32_t data_len,
-        uint16_t flags);
-int FileCloseFileById(FileContainer *, uint32_t track_id,
+int FileCloseFile(FileContainer *, const StreamingBufferConfig *sbcfg, const uint8_t *data,
+        uint32_t data_len, uint16_t flags);
+int FileCloseFileById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
-int FileCloseFilePtr(File *ff, const uint8_t *data,
+int FileCloseFilePtr(File *ff, const StreamingBufferConfig *sbcfg, const uint8_t *data,
         uint32_t data_len, uint16_t flags);
 
 /**
@@ -175,10 +175,11 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileAppendData(FileContainer *, const uint8_t *data, uint32_t data_len);
-int FileAppendDataById(FileContainer *, uint32_t track_id,
+int FileAppendData(FileContainer *, const StreamingBufferConfig *sbcfg, const uint8_t *data,
+        uint32_t data_len);
+int FileAppendDataById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
-int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
+int FileAppendGAPById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
 
 void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
@@ -213,7 +214,6 @@ int FileStore(File *);
 void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id);
 
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint64_t tx_id);
-void FilePrune(FileContainer *ffc);
 
 void FileForceFilestoreEnable(void);
 int FileForceFilestore(void);
@@ -240,8 +240,6 @@ void FileForceTrackingEnable(void);
 
 void FileStoreFileById(FileContainer *fc, uint32_t);
 
-void FileTruncateAllOpenFiles(FileContainer *);
-
 uint64_t FileDataSize(const File *file);
 uint64_t FileTrackedSize(const File *file);
 
@@ -253,5 +251,7 @@ void FilePrintFlags(const File *file);
 #else
 #define FilePrintFlags(file)
 #endif
+
+void FilesPrune(FileContainer *fc, const StreamingBufferConfig *sbcfg, const bool trunc);
 
 #endif /* __UTIL_FILE_H__ */

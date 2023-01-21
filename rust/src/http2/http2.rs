@@ -179,17 +179,17 @@ impl HTTP2Transaction {
 
     pub fn free(&mut self) {
         if !self.file_range.is_null() {
-            match unsafe { SC } {
-                None => panic!("BUG no suricata_config"),
-                Some(c) => {
+            if let Some(c) = unsafe { SC } {
+                if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                     //TODO get a file container instead of NULL
                     (c.HTPFileCloseHandleRange)(
-                        std::ptr::null_mut(),
-                        0,
-                        self.file_range,
-                        std::ptr::null_mut(),
-                        0,
-                    );
+                            &sfcm.files_sbcfg,
+                            std::ptr::null_mut(),
+                            0,
+                            self.file_range,
+                            std::ptr::null_mut(),
+                            0,
+                            );
                     (c.HttpRangeFreeBlock)(self.file_range);
                     self.file_range = std::ptr::null_mut();
                 }
@@ -247,7 +247,7 @@ impl HTTP2Transaction {
                 if over {
                     range::http2_range_close(self, Direction::ToClient, decompressed)
                 } else {
-                    range::http2_range_append(self.file_range, decompressed)
+                    range::http2_range_append(sfcm, self.file_range, decompressed)
                 }
             }
             let (files, flags) = self.files.get(Direction::ToClient);
@@ -364,8 +364,10 @@ impl HTTP2Transaction {
 
 impl Drop for HTTP2Transaction {
     fn drop(&mut self) {
-        self.files.files_ts.free();
-        self.files.files_tc.free();
+        if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+            self.files.files_ts.free(sfcm);
+            self.files.files_tc.free(sfcm);
+        }
         self.free();
     }
 }
@@ -460,10 +462,10 @@ impl HTTP2State {
         // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
         for tx in &mut self.transactions {
             if !tx.file_range.is_null() {
-                match unsafe { SC } {
-                    None => panic!("BUG no suricata_config"),
-                    Some(c) => {
+                if let Some(c) = unsafe { SC } {
+                    if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                         (c.HTPFileCloseHandleRange)(
+                            &sfcm.files_sbcfg,
                             &mut tx.files.files_tc,
                             0,
                             tx.file_range,
@@ -501,10 +503,10 @@ impl HTTP2State {
                 // this should be in HTTP2Transaction::free
                 // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
                 if !tx.file_range.is_null() {
-                    match unsafe { SC } {
-                        None => panic!("BUG no suricata_config"),
-                        Some(c) => {
+                    if let Some(c) = unsafe { SC } {
+                        if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             (c.HTPFileCloseHandleRange)(
+                                &sfcm.files_sbcfg,
                                 &mut tx.files.files_tc,
                                 0,
                                 tx.file_range,

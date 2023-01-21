@@ -529,8 +529,10 @@ impl SMBTransaction {
 impl Drop for SMBTransaction {
     fn drop(&mut self) {
         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
-            tdf.files.files_ts.free();
-            tdf.files.files_tc.free();
+            if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
+                tdf.files.files_ts.free(sfcm);
+                tdf.files.files_tc.free(sfcm);
+            }
         }
         self.free();
     }
