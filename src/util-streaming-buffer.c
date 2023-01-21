@@ -650,7 +650,7 @@ static inline bool RegionContainsOffset(const StreamingBufferRegion *r, const ui
  *     - no shift
  */
 static inline void StreamingBufferSlideToOffsetWithRegions(
-        StreamingBuffer *sb, const uint64_t slide_offset)
+        StreamingBuffer *sb, const StreamingBufferConfig *cfg, const uint64_t slide_offset)
 {
     ListRegions(sb);
     BUG_ON(slide_offset == sb->region.stream_offset);
@@ -760,7 +760,8 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
  *  \brief slide to absolute offset
  *  \todo if sliding beyond window, we could perhaps reset?
  */
-void StreamingBufferSlideToOffset(StreamingBuffer *sb, uint64_t offset)
+void StreamingBufferSlideToOffset(
+        StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint64_t offset)
 {
     SCLogDebug("sliding to offset %" PRIu64, offset);
     ListRegions(sb);
@@ -769,7 +770,7 @@ void StreamingBufferSlideToOffset(StreamingBuffer *sb, uint64_t offset)
 #endif
 
     if (sb->region.next) {
-        StreamingBufferSlideToOffsetWithRegions(sb, offset);
+        StreamingBufferSlideToOffsetWithRegions(sb, cfg, offset);
         SBBPrune(sb);
         SCLogDebug("post SBBPrune");
         ListRegions(sb);
@@ -1664,7 +1665,7 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlideToOffset(sb, 6);
+    StreamingBufferSlideToOffset(sb, &cfg, 6);
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
@@ -1683,7 +1684,7 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlideToOffset(sb, 12);
+    StreamingBufferSlideToOffset(sb, &cfg, 12);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
@@ -1737,7 +1738,7 @@ static int StreamingBufferTest03(void)
     FAIL_IF_NOT(sb->sbb_size == 22);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferSlideToOffset(sb, 10);
+    StreamingBufferSlideToOffset(sb, &cfg, 10);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));

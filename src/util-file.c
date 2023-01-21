@@ -412,7 +412,7 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
     }
 
     if (left_edge) {
-        StreamingBufferSlideToOffset(file->sb, left_edge);
+        StreamingBufferSlideToOffset(file->sb, cfg, left_edge);
     }
 
     SCReturnInt(0);
