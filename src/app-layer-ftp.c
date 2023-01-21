@@ -1284,14 +1284,15 @@ static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
         return FTPDATA_STATE_FINISHED;
 }
 
-static FileContainer *FTPDataStateGetTxFiles(void *tx, uint8_t direction)
+static AppLayerGetFileState FTPDataStateGetTxFiles(void *_state, void *tx, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)tx;
+    AppLayerGetFileState files = { .fc = NULL, .cfg = &sbcfg };
 
-    if (direction != ftpdata_state->direction)
-        SCReturnPtr(NULL, "FileContainer");
+    if (direction == ftpdata_state->direction)
+        files.fc = ftpdata_state->files;
 
-    SCReturnPtr(ftpdata_state->files, "FileContainer");
+    return files;
 }
 
 static void FTPSetMpmState(void)

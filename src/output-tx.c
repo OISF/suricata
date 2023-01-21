@@ -168,8 +168,12 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
             opposing_dir == STREAM_TOSERVER ? "TOSERVER" : "TOCLIENT", packet_dir_ready,
             opposing_dir_ready);
 
-    FileContainer *ffc = AppLayerParserGetTxFiles(f, tx, packet_dir);
-    FileContainer *ffc_opposing = AppLayerParserGetTxFiles(f, tx, opposing_dir);
+    AppLayerGetFileState app_files =
+            AppLayerParserGetTxFiles(f, FlowGetAppState(f), tx, packet_dir);
+    FileContainer *ffc = app_files.fc;
+    AppLayerGetFileState app_files_opposing =
+            AppLayerParserGetTxFiles(f, FlowGetAppState(f), tx, opposing_dir);
+    FileContainer *ffc_opposing = app_files_opposing.fc;
 
     /* see if opposing side is finished: if no file support in this direction, of is not
      * files and tx is done for opposing dir. */

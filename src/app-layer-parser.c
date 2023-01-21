@@ -95,7 +95,7 @@ typedef struct AppLayerParserProtoCtx_
 
     /** get FileContainer reference from the TX. MUST return a non-NULL reference if the TX
      *  has or may have files in the requested direction at some point. */
-    FileContainer *(*GetTxFiles)(void *, uint8_t);
+    AppLayerGetFileState (*GetTxFiles)(void *, void *, uint8_t);
 
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -455,8 +455,8 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetTxFilesFunc(
-        uint8_t ipproto, AppProto alproto, FileContainer *(*GetTxFiles)(void *, uint8_t))
+void AppLayerParserRegisterGetTxFilesFunc(uint8_t ipproto, AppProto alproto,
+        AppLayerGetFileState (*GetTxFiles)(void *, void *, uint8_t))
 {
     SCEnter();
 
@@ -887,28 +887,28 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
     SCReturnPtr(ptr, "AppLayerDecoderEvents *");
 }
 
-FileContainer *AppLayerParserGetTxFiles(const Flow *f, void *tx, const uint8_t direction)
+AppLayerGetFileState AppLayerParserGetTxFiles(
+        const Flow *f, void *state, void *tx, const uint8_t direction)
 {
     SCEnter();
 
-    FileContainer *ptr = NULL;
-
     if (alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles != NULL) {
-        ptr = alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles(tx, direction);
+        return alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles(state, tx, direction);
     }
 
-    SCReturnPtr(ptr, "FileContainer *");
+    AppLayerGetFileState files = { .fc = NULL, .cfg = NULL };
+    return files;
 }
 
 static void AppLayerParserFileTxHousekeeping(
         const Flow *f, void *tx, const uint8_t pkt_dir, const bool trunc)
 {
-    FileContainer *fc = AppLayerParserGetTxFiles(f, tx, pkt_dir);
-    if (fc) {
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, FlowGetAppState(f), tx, pkt_dir);
+    if (files.fc) {
         if (trunc) {
-            FileTruncateAllOpenFiles(fc);
+            FileTruncateAllOpenFiles(files.fc);
         }
-        FilePrune(fc);
+        FilePrune(files.fc);
     }
 }
 

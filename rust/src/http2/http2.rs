@@ -1210,14 +1210,15 @@ pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
+    _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void, direction: u8,
-) -> *mut FileContainer {
+) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    if direction == Direction::ToClient.into() {
-        &mut tx.files.files_tc as *mut FileContainer
-    } else {
-        &mut tx.files.files_ts as *mut FileContainer
+    let (files, _flags) = tx.files.get(direction.into());
+    if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
+        return AppLayerGetFileState { fc: files, cfg: sfcm.files_sbcfg }
     }
+    AppLayerGetFileState::err()
 }
 
 // Parser name as a C style string.

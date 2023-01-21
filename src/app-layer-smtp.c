@@ -1691,16 +1691,15 @@ static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
     return tx->done;
 }
 
-static FileContainer *SMTPGetTxFiles(void *txv, uint8_t direction)
+static AppLayerGetFileState SMTPGetTxFiles(void *state, void *txv, uint8_t direction)
 {
+    AppLayerGetFileState files = { .fc = NULL, .cfg = &smtp_config.sbcfg };
     SMTPTransaction *tx = (SMTPTransaction *)txv;
 
-    if (direction & STREAM_TOCLIENT) {
-        SCReturnPtr(NULL, "FileContainer");
-    } else {
-        SCLogDebug("tx->files_ts %p", &tx->files_ts);
-        SCReturnPtr(&tx->files_ts, "FileContainer");
+    if (direction & STREAM_TOSERVER) {
+        files.fc = &tx->files_ts;
     }
+    return files;
 }
 
 static AppLayerTxData *SMTPGetTxData(void *vtx)

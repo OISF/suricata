@@ -24,6 +24,7 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
+use crate::core::StreamingBufferConfig;
 
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
@@ -383,6 +384,20 @@ macro_rules! cast_pointer {
     ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
 
+/// helper for the GetTxFilesFn. Not meant to be embedded as the config
+/// pointer is passed around in the API.
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct AppLayerGetFileState {
+    pub fc: *mut FileContainer,
+    pub cfg: *const StreamingBufferConfig,
+}
+impl AppLayerGetFileState {
+    pub fn err() -> AppLayerGetFileState {
+        AppLayerGetFileState { fc: std::ptr::null_mut(), cfg: std::ptr::null() }
+    }
+}
+
 pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
@@ -399,7 +414,7 @@ pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
-pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
+pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, *mut c_void, u8) -> AppLayerGetFileState;
 pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
                                              min_tx_id: u64,

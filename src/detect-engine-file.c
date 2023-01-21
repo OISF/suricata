@@ -182,13 +182,14 @@ static uint8_t DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const 
  */
 uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *_alstate, void *tx, uint64_t tx_id)
+        uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();
-    DEBUG_VALIDATE_BUG_ON(f->alstate != _alstate);
+    DEBUG_VALIDATE_BUG_ON(f->alstate != alstate);
 
     const uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-    FileContainer *ffc = AppLayerParserGetTxFiles(f, tx, direction);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, alstate, tx, direction);
+    FileContainer *ffc = files.fc;
     SCLogDebug("tx %p tx_id %" PRIu64 " ffc %p ffc->head %p sid %u", tx, tx_id, ffc,
             ffc ? ffc->head : NULL, s->id);
     if (ffc == NULL) {
