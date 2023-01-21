@@ -604,7 +604,9 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
     if (p->flow->alstate != NULL) {
         void *tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, p->flow->alstate, tx_id);
         if (tx) {
-            ffc = AppLayerParserGetTxFiles(p->flow, tx, direction);
+            AppLayerGetFileState files =
+                    AppLayerParserGetTxFiles(p->flow, p->flow->alstate, tx, direction);
+            ffc = files.fc;
         }
     }
     if (ffc != NULL) {

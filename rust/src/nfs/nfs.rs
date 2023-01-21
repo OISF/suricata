@@ -158,14 +158,15 @@ impl NFSTransactionFile {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_gettxfiles(tx_ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
-    let tx = cast_pointer!(tx_ptr, NFSTransaction);
+pub unsafe extern "C" fn rs_nfs_gettxfiles(_state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
+    let tx = cast_pointer!(tx, NFSTransaction);
     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
         let (files, _flags) = tdf.files.get(direction.into());
-        files
-    } else {
-        std::ptr::null_mut()
+        if let Some(sfcm) = { SURICATA_NFS_FILE_CONFIG } {
+            return AppLayerGetFileState { fc: files, cfg: sfcm.files_sbcfg }
+        }
     }
+    AppLayerGetFileState::err()
 }
 
 #[derive(Debug)]

@@ -216,14 +216,16 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
     for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
-        AppLayerParserSetStreamDepthFlag(p->flow->proto, p->flow->alproto, FlowGetAppState(p->flow),
-                det_ctx->filestore[u].tx_id, flags);
+        void *alstate = FlowGetAppState(p->flow);
+        AppLayerParserSetStreamDepthFlag(
+                p->flow->proto, p->flow->alproto, alstate, det_ctx->filestore[u].tx_id, flags);
 
-        void *txv = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, FlowGetAppState(p->flow),
-                det_ctx->filestore[u].tx_id);
+        void *txv = AppLayerParserGetTx(
+                p->flow->proto, p->flow->alproto, alstate, det_ctx->filestore[u].tx_id);
         DEBUG_VALIDATE_BUG_ON(txv == NULL);
         if (txv) {
-            FileContainer *ffc_tx = AppLayerParserGetTxFiles(p->flow, txv, flags);
+            AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, alstate, txv, flags);
+            FileContainer *ffc_tx = files.fc;
             DEBUG_VALIDATE_BUG_ON(ffc_tx == NULL);
             if (ffc_tx) {
                 SCLogDebug("u %u txv %p ffc_tx %p file_id %u", u, txv, ffc_tx,

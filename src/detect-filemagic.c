@@ -484,7 +484,8 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
         transforms = engine->v2.transforms;
     }
 
-    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, alstate, txv, flags);
+    FileContainer *ffc = files.fc;
     if (ffc == NULL) {
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
@@ -542,7 +543,8 @@ static void PrefilterTxFilemagic(DetectEngineThreadCtx *det_ctx, const void *pec
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, f->alstate, txv, flags);
+    FileContainer *ffc = files.fc;
     if (ffc != NULL) {
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {

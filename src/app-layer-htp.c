@@ -3021,18 +3021,22 @@ void AppLayerHtpPrintStats(void)
  *  \param direction flow direction
  *  \retval files files ptr
  */
-static FileContainer *HTPGetTxFiles(void *txv, uint8_t direction)
+static AppLayerGetFileState HTPGetTxFiles(void *state, void *txv, uint8_t direction)
 {
+    AppLayerGetFileState files = { .fc = NULL, .cfg = NULL };
+    HtpState *s = state;
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud) {
         if (direction & STREAM_TOCLIENT) {
-            SCReturnPtr(&tx_ud->files_tc, "FileContainer");
+            files.fc = &tx_ud->files_tc;
+            files.cfg = &s->cfg->response.sbcfg;
         } else {
-            SCReturnPtr(&tx_ud->files_ts, "FileContainer");
+            files.fc = &tx_ud->files_ts;
+            files.cfg = &s->cfg->request.sbcfg;
         }
     }
-    SCReturnPtr(NULL, "FileContainer");
+    return files;
 }
 
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
@@ -6962,7 +6966,8 @@ libhtp:\n\
     void *tx_ptr = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx_ptr);
 
-    FileContainer *ffc = HTPGetTxFiles(tx_ptr, STREAM_TOCLIENT);
+    AppLayerGetFileState files = HTPGetTxFiles(http_state, tx_ptr, STREAM_TOCLIENT);
+    FileContainer *ffc = files.fc;
     FAIL_IF_NULL(ffc);
 
     File *ptr = ffc->head;
