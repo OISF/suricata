@@ -107,7 +107,6 @@ RB_PROTOTYPE(SBB, StreamingBufferBlock, rb, SBBCompare);
 StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlock *elm);
 
 typedef struct StreamingBuffer_ {
-    const StreamingBufferConfig *cfg;
     StreamingBufferRegion region;
     struct SBB sbb_tree;    /**< red black tree of Stream Buffer Blocks */
     StreamingBufferBlock *head; /**< head, should always be the same as RB_MIN */
@@ -136,9 +135,8 @@ static inline uint64_t StreamingBufferGetOffset(const StreamingBuffer *sb)
 }
 
 #ifndef DEBUG
-#define STREAMING_BUFFER_INITIALIZER(cfg)                                                          \
+#define STREAMING_BUFFER_INITIALIZER                                                               \
     {                                                                                              \
-        (cfg),                                                                                     \
         STREAMING_BUFFER_REGION_INIT,                                                              \
         { NULL },                                                                                  \
         NULL,                                                                                      \
@@ -147,8 +145,7 @@ static inline uint64_t StreamingBufferGetOffset(const StreamingBuffer *sb)
         1,                                                                                         \
     };
 #else
-#define STREAMING_BUFFER_INITIALIZER(cfg)                                                          \
-    { (cfg), STREAMING_BUFFER_REGION_INIT, { NULL }, NULL, 0, 1, 1, 0 };
+#define STREAMING_BUFFER_INITIALIZER { STREAMING_BUFFER_REGION_INIT, { NULL }, NULL, 0, 1, 1, 0 };
 #endif
 
 typedef struct StreamingBufferSegment_ {

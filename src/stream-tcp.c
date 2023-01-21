@@ -735,7 +735,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
         ssn->server.flags = stream_config.stream_init_flags;
         ssn->client.flags = stream_config.stream_init_flags;
 
-        StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+        StreamingBuffer x = STREAMING_BUFFER_INITIALIZER;
         ssn->client.sb = x;
         ssn->server.sb = x;
 
