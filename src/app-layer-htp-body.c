@@ -187,7 +187,7 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
 
     if (left_edge) {
         SCLogDebug("sliding body to offset %"PRIu64, left_edge);
-        StreamingBufferSlideToOffset(body->sb, left_edge);
+        StreamingBufferSlideToOffset(body->sb, &cfg->sbcfg, left_edge);
     }
 
     SCLogDebug("pruning chunks of body %p", body);

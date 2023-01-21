@@ -936,7 +936,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
             AppLayerFramesSlide(f, slide, flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
         }
-        StreamingBufferSlideToOffset(&stream->sb, left_edge);
+        StreamingBufferSlideToOffset(&stream->sb, &stream_config.sbcnf, left_edge);
         stream->base_seq += slide;
 
         if (slide <= stream->app_progress_rel) {
