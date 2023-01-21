@@ -138,7 +138,7 @@ void HtpBodyFree(const HTPCfgDir *hcfg, HtpBody *body)
     }
     body->first = body->last = NULL;
 
-    StreamingBufferFree(body->sb);
+    StreamingBufferFree(body->sb, &hcfg->sbcfg);
 }
 
 /**

@@ -158,7 +158,7 @@ typedef struct StreamingBufferSegment_ {
 
 StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg);
 void StreamingBufferClear(StreamingBuffer *sb);
-void StreamingBufferFree(StreamingBuffer *sb);
+void StreamingBufferFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg);
 
 void StreamingBufferSlideToOffset(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint64_t offset);
