@@ -154,7 +154,7 @@ StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg)
     return NULL;
 }
 
-void StreamingBufferClear(StreamingBuffer *sb)
+void StreamingBufferClear(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 {
     if (sb != NULL) {
         SCLogDebug("sb->region.buf_size %u max %u", sb->region.buf_size, sb->buf_size_max);
@@ -180,7 +180,7 @@ void StreamingBufferClear(StreamingBuffer *sb)
 void StreamingBufferFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 {
     if (sb != NULL) {
-        StreamingBufferClear(sb);
+        StreamingBufferClear(sb, cfg);
         FREE(sb->cfg, sb, sizeof(StreamingBuffer));
     }
 }

@@ -914,7 +914,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         SCLogDebug("ssn %p / stream %p: reassembly depth reached, "
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn, stream);
         StreamTcpReturnStreamSegments(stream);
-        StreamingBufferClear(&stream->sb);
+        StreamingBufferClear(&stream->sb, &stream_config.sbcnf);
         return;
 
     } else if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
@@ -923,7 +923,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn, stream);
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         StreamTcpReturnStreamSegments(stream);
-        StreamingBufferClear(&stream->sb);
+        StreamingBufferClear(&stream->sb, &stream_config.sbcnf);
         return;
     }
 
