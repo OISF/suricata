@@ -168,9 +168,9 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
         const uint8_t *data, uint32_t data_len) WARN_UNUSED;
 int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         const uint8_t *data, uint32_t data_len) WARN_UNUSED;
-int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
-                             const uint8_t *data, uint32_t data_len,
-                             uint64_t offset) WARN_UNUSED;
+int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+        StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len,
+        uint64_t offset) WARN_UNUSED;
 
 void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
                                    const StreamingBufferSegment *seg,
