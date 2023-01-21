@@ -219,7 +219,8 @@ impl HTTP2Transaction {
         let xid: u32 = self.tx_id as u32;
         if dir == Direction::ToClient {
             self.ft_tc.tx_id = self.tx_id - 1;
-            if !self.ft_tc.file_open {
+            // Check that we are at the beginning of the file
+            if !self.ft_tc.is_initialized() {
                 // we are now sure that new_chunk will open a file
                 // even if it may close it right afterwards
                 self.tx_data.incr_files_opened();
