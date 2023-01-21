@@ -659,7 +659,7 @@ static int AppendData(
         const StreamingBufferConfig *sbcfg, File *file, const uint8_t *data, uint32_t data_len)
 {
     SCLogDebug("file %p data_len %u", file, data_len);
-    if (StreamingBufferAppendNoTrack(file->sb, data, data_len) != 0) {
+    if (StreamingBufferAppendNoTrack(file->sb, sbcfg, data, data_len) != 0) {
         SCLogDebug("file %p StreamingBufferAppendNoTrack failed", file);
         SCReturnInt(-1);
     }

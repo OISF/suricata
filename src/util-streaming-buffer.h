@@ -166,7 +166,7 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
         const uint8_t *data, uint32_t data_len) WARN_UNUSED;
 int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
         const uint8_t *data, uint32_t data_len) WARN_UNUSED;
-int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
+int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         const uint8_t *data, uint32_t data_len) WARN_UNUSED;
 int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                              const uint8_t *data, uint32_t data_len,
