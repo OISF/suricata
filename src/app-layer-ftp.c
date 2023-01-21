@@ -1162,7 +1162,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             SCReturnStruct(APP_LAYER_OK);
         }
         if (input_len != 0) {
-            ret = FileAppendData(ftpdata_state->files, input, input_len);
+            ret = FileAppendData(ftpdata_state->files, &sbcfg, input, input_len);
             if (ret == -2) {
                 ret = 0;
                 SCLogDebug("FileAppendData() - file no longer being extracted");
@@ -1177,7 +1177,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
     BUG_ON((direction & ftpdata_state->direction) == 0); // should be unreachble
     if (eof) {
-        ret = FileCloseFile(ftpdata_state->files, NULL, 0, flags);
+        ret = FileCloseFile(ftpdata_state->files, &sbcfg, NULL, 0, flags);
         ftpdata_state->state = FTPDATA_STATE_FINISHED;
         SCLogDebug("closed because of eof");
     }
@@ -1235,7 +1235,7 @@ static void FTPDataStateFree(void *s)
         FTPFree(fstate->file_name, fstate->file_len + 1);
     }
 
-    FileContainerFree(fstate->files);
+    FileContainerFree(fstate->files, &sbcfg);
 
     FTPFree(s, sizeof(FtpDataState));
 #ifdef DEBUG

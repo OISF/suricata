@@ -260,8 +260,10 @@ impl Transaction for NFSTransaction {
 impl Drop for NFSTransaction {
     fn drop(&mut self) {
         if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
-            tdf.files.files_ts.free();
-            tdf.files.files_tc.free();
+            if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
+                tdf.files.files_ts.free(sfcm);
+                tdf.files.files_tc.free(sfcm);
+            }
         }
         self.free();
     }
@@ -309,19 +311,27 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 fn filetracker_trunc(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16)
 {
-    ft.trunc(files, flags);
+    if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
+        ft.trunc(sfcm, files, flags);
+    }
 }
 
 pub fn filetracker_close(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16)
 {
-    ft.close(files, flags);
+    if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
+        ft.close(sfcm, files, flags);
+    }
 }
 
 fn filetracker_update(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, data: &[u8], gap_size: u32) -> u32
 {
-    ft.update(files, flags, data, gap_size)
+    if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
+        ft.update(sfcm, files, flags, data, gap_size)
+    } else {
+        0
+    }
 }
 
 

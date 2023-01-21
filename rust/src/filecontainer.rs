@@ -62,10 +62,10 @@ impl Default for FileContainer {
 }
 
 impl FileContainer {
-    pub fn free(&mut self) {
+    pub fn free(&mut self, cfg: &'static SuricataFileContext) {
         SCLogDebug!("freeing self");
         if let Some(c) = unsafe {SC} {
-            (c.FileContainerRecycle)(self);
+            (c.FileContainerRecycle)(self, cfg.files_sbcfg);
         }
     }
 
@@ -83,7 +83,7 @@ impl FileContainer {
         }
     }
 
-    pub fn file_append(&mut self, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
+    pub fn file_append(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
         if data.is_empty() {
             return 0
@@ -94,13 +94,13 @@ impl FileContainer {
                 let res = match is_gap {
                     false => {
                         SCLogDebug!("appending file data");
-                        let r = (c.FileAppendData)(self, *track_id,
+                        let r = (c.FileAppendData)(self, cfg.files_sbcfg, *track_id,
                                 data.as_ptr(), data.len() as u32);
                         r
                     },
                     true => {
                         SCLogDebug!("appending GAP");
-                        let r = (c.FileAppendGAP)(self, *track_id,
+                        let r = (c.FileAppendGAP)(self, cfg.files_sbcfg, *track_id,
                                 data.as_ptr(), data.len() as u32);
                         r
                     },
@@ -110,13 +110,13 @@ impl FileContainer {
         }
     }
 
-    pub fn file_close(&mut self, track_id: &u32, flags: u16) -> i32 {
+    pub fn file_close(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, flags: u16) -> i32 {
         SCLogDebug!("FILECONTAINER: CLOSEing");
 
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                let res = (c.FileCloseFile)(self, *track_id, ptr::null(), 0u32, flags);
+                let res = (c.FileCloseFile)(self, cfg.files_sbcfg, *track_id, ptr::null(), 0u32, flags);
                 res
             }
         }

@@ -905,10 +905,7 @@ static void AppLayerParserFileTxHousekeeping(
 {
     AppLayerGetFileState files = AppLayerParserGetTxFiles(f, FlowGetAppState(f), tx, pkt_dir);
     if (files.fc) {
-        if (trunc) {
-            FileTruncateAllOpenFiles(files.fc);
-        }
-        FilePrune(files.fc);
+        FilesPrune(files.fc, files.cfg, trunc);
     }
 }
 
