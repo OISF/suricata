@@ -535,7 +535,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 SCLogDebug("Closing file...%u bytes", len);
 
                 if (files->tail->state == FILE_STATE_OPENED) {
-                    ret = FileCloseFile(files, (uint8_t *) NULL, 0, flags);
+                    ret = FileCloseFile(files, &smtp_config.sbcfg, (uint8_t *)NULL, 0, flags);
                     if (ret != 0) {
                         SCLogDebug("FileCloseFile() failed: %d", ret);
                         ret = MIME_DEC_ERR_DATA;
@@ -556,7 +556,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             SCLogDebug("Closing file...%u bytes", len);
 
             if (files->tail && files->tail->state == FILE_STATE_OPENED) {
-                ret = FileCloseFile(files, (uint8_t *) chunk, len, flags);
+                ret = FileCloseFile(files, &smtp_config.sbcfg, (uint8_t *)chunk, len, flags);
                 if (ret != 0) {
                     SCLogDebug("FileCloseFile() failed: %d", ret);
                     ret = MIME_DEC_ERR_DATA;
@@ -574,7 +574,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             /* Append data chunk to file */
             SCLogDebug("Appending file...%u bytes", len);
             /* 0 is ok, -2 is not stored, -1 is error */
-            ret = FileAppendData(files, (uint8_t *) chunk, len);
+            ret = FileAppendData(files, &smtp_config.sbcfg, (uint8_t *)chunk, len);
             if (ret == -2) {
                 ret = 0;
                 SCLogDebug("FileAppendData() - file no longer being extracted");
@@ -802,7 +802,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
         SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
         if (smtp_config.raw_extraction) {
             /* we use this as the signal that message data is complete. */
-            FileCloseFile(&tx->files_ts, NULL, 0, 0);
+            FileCloseFile(&tx->files_ts, &smtp_config.sbcfg, NULL, 0, 0);
         } else if (smtp_config.decode_mime && tx->mime_state != NULL) {
             /* Complete parsing task */
             int ret = MimeDecParseComplete(tx->mime_state);
@@ -819,7 +819,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
         // ProcessDataChunk
-        FileAppendData(&tx->files_ts, line->buf, line->len + line->delim_len);
+        FileAppendData(&tx->files_ts, &smtp_config.sbcfg, line->buf, line->len + line->delim_len);
     }
 
     /* If DATA, then parse out a MIME message */
@@ -1151,7 +1151,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                 if (state->tx_cnt > 1 && !state->curr_tx->done) {
                     // we did not close the previous tx, set error
                     SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
-                    FileCloseFile(&tx->files_ts, NULL, 0, FILE_TRUNCATED);
+                    FileCloseFile(&tx->files_ts, &smtp_config.sbcfg, NULL, 0, FILE_TRUNCATED);
                     tx = SMTPTransactionCreate();
                     if (tx == NULL)
                         return -1;
@@ -1515,7 +1515,7 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
         TAILQ_REMOVE(&tx->rcpt_to_list, str, next);
         SMTPStringFree(str);
     }
-    FileContainerRecycle(&tx->files_ts);
+    FileContainerRecycle(&tx->files_ts, &smtp_config.sbcfg);
 
     SCFree(tx);
 }

@@ -70,6 +70,8 @@ typedef struct HttpRangeContainerFile {
     uint64_t totalsize;
     /** size of the file after last sync */
     uint64_t lastsize;
+    /** streaming buffer config for files below */
+    const StreamingBufferConfig *sbcfg;
     /** file container, with only one file */
     FileContainer *files;
     /** red and black tree list of ranges which came out of order */
@@ -96,8 +98,10 @@ typedef struct HttpRangeContainerBlock {
     FileContainer *files;
 } HttpRangeContainerBlock;
 
-int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
-File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
+int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
+        const uint8_t *data, uint32_t len);
+File *HttpRangeClose(
+        const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c, uint16_t flags);
 
 // HttpRangeContainerBlock but trouble with headers inclusion order
 HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,

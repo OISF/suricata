@@ -46,19 +46,19 @@ typedef struct SuricataContext_ {
     void (*AppLayerParserTriggerRawStreamReassembly)(Flow *, int direction);
 
     void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
-    bool (*HTPFileCloseHandleRange)(
-            FileContainer *, const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
+    bool (*HTPFileCloseHandleRange)(const StreamingBufferConfig *sbcfg, FileContainer *,
+            const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
 
     int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
-    int (*FileCloseFileById)(FileContainer *, uint32_t track_id,
+    int (*FileCloseFileById)(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len, uint16_t flags);
-    int (*FileAppendDataById)(FileContainer *, uint32_t track_id,
+    int (*FileAppendDataById)(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len);
-    int (*FileAppendGAPById)(FileContainer *, uint32_t track_id,
+    int (*FileAppendGAPById)(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len);
-    void (*FileContainerRecycle)(FileContainer *ffc);
+    void (*FileContainerRecycle)(FileContainer *ffc, const StreamingBufferConfig *);
 
     int (*AppLayerRegisterParser)(const struct AppLayerParser *p, AppProto alproto);
 

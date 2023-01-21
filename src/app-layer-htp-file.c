@@ -201,6 +201,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
 /**
  *  \brief Store a chunk of data in the flow
  *
+ *  \param s HtpState
  *  \param tx HtpTxUserData
  *  \param data data chunk (if any)
  *  \param data_len length of the data portion
@@ -210,18 +211,22 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t direction)
+int HTPFileStoreChunk(
+        HtpState *s, HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t direction)
 {
     SCEnter();
 
     int retval = 0;
     int result = 0;
     FileContainer *files = NULL;
+    const StreamingBufferConfig *sbcfg = NULL;
 
     if (direction & STREAM_TOCLIENT) {
         files = &tx->files_tc;
+        sbcfg = &s->cfg->response.sbcfg;
     } else {
         files = &tx->files_ts;
+        sbcfg = &s->cfg->request.sbcfg;
     }
     SCLogDebug("files %p data %p data_len %" PRIu32, files, data, data_len);
 
@@ -232,12 +237,12 @@ int HTPFileStoreChunk(HtpTxUserData *tx, const uint8_t *data, uint32_t data_len,
     }
 
     if (tx->file_range != NULL) {
-        if (HttpRangeAppendData(tx->file_range, data, data_len) < 0) {
+        if (HttpRangeAppendData(sbcfg, tx->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
 
-    result = FileAppendData(files, data, data_len);
+    result = FileAppendData(files, sbcfg, data, data_len);
     if (result == -1) {
         SCLogDebug("appending data failed");
         retval = -1;
@@ -254,11 +259,11 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
-        const uint8_t *data, uint32_t data_len)
+bool HTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
+        const uint16_t flags, HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
 {
     bool added = false;
-    if (HttpRangeAppendData(c, data, data_len) < 0) {
+    if (HttpRangeAppendData(sbcfg, c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
     if (c->container) {
@@ -268,7 +273,7 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
         if (c->container->error) {
             SCLogDebug("range in ERROR state");
         }
-        File *ranged = HttpRangeClose(c, flags);
+        File *ranged = HttpRangeClose(sbcfg, c, flags);
         if (ranged && files) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
@@ -296,8 +301,8 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(
-        HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t direction)
+int HTPFileClose(HtpState *s, HtpTxUserData *tx, const uint8_t *data, uint32_t data_len,
+        uint8_t flags, uint8_t direction)
 {
     SCEnter();
 
@@ -306,12 +311,16 @@ int HTPFileClose(
     int retval = 0;
     int result = 0;
     FileContainer *files = NULL;
+    const StreamingBufferConfig *sbcfg = NULL;
 
     if (direction & STREAM_TOCLIENT) {
         files = &tx->files_tc;
+        sbcfg = &s->cfg->response.sbcfg;
     } else {
         files = &tx->files_ts;
+        sbcfg = &s->cfg->request.sbcfg;
     }
+
     SCLogDebug("files %p data %p data_len %" PRIu32, files, data, data_len);
 
     if (files == NULL) {
@@ -319,7 +328,7 @@ int HTPFileClose(
         goto end;
     }
 
-    result = FileCloseFile(files, data, data_len, flags);
+    result = FileCloseFile(files, sbcfg, data, data_len, flags);
     if (result == -1) {
         retval = -1;
     } else if (result == -2) {
@@ -328,7 +337,7 @@ int HTPFileClose(
     SCLogDebug("result %u", result);
 
     if (tx->file_range != NULL) {
-        bool added = HTPFileCloseHandleRange(files, flags, tx->file_range, data, data_len);
+        bool added = HTPFileCloseHandleRange(sbcfg, files, flags, tx->file_range, data, data_len);
         if (added) {
             tx->tx_data.files_opened++;
         }

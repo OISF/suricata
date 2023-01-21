@@ -30,7 +30,7 @@
 
 int HtpBodyAppendChunk(const HTPCfgDir *, HtpBody *, const uint8_t *, uint32_t);
 void HtpBodyPrint(HtpBody *);
-void HtpBodyFree(HtpBody *);
+void HtpBodyFree(const HTPCfgDir *, HtpBody *);
 void HtpBodyPrune(HtpState *, HtpBody *, int);
 
 #endif /* __APP_LAYER_HTP_BODY_H__ */
