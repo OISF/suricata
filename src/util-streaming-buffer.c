@@ -898,8 +898,8 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
 /**
  *  \brief add data w/o tracking a segment
  */
-int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
-                                 const uint8_t *data, uint32_t data_len)
+int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+        const uint8_t *data, uint32_t data_len)
 {
     if (sb->region.buf == NULL) {
         if (InitBuffer(sb) == -1)
