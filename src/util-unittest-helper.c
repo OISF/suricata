@@ -542,7 +542,7 @@ int UTHAddStreamToFlow(Flow *f, int direction,
 
     StreamingBufferSegment seg;
     TcpStream *stream = direction == 0 ? &ssn->client : &ssn->server;
-    int r = StreamingBufferAppend(&stream->sb, &seg, data, data_len);
+    int r = StreamingBufferAppend(&stream->sb, &stream_config.sbcnf, &seg, data, data_len);
     FAIL_IF_NOT(r == 0);
     stream->last_ack += data_len;
     return 1;
