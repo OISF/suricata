@@ -177,8 +177,6 @@ pub type SCFileAppendGAPById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,
         data: *const u8, data_len: u32) -> i32;
-pub type SCFilePrune = extern "C" fn (
-        file_container: &FileContainer);
 pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer);
 
@@ -206,7 +204,6 @@ pub struct SuricataContext {
     pub FileAppendData: SCFileAppendDataById,
     pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
-    pub FilePrune: SCFilePrune,
 
     pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
