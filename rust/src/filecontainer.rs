@@ -128,14 +128,4 @@ impl FileContainer {
         }
 
     }
-
-    pub fn files_prune(&mut self) {
-        SCLogDebug!("FILECONTAINER: pruning");
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FilePrune)(self);
-            }
-        }
-    }
 }
