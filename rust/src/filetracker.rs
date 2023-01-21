@@ -85,6 +85,10 @@ impl FileTransferTracker {
         !self.file_open
     }
 
+    pub fn is_initialized(&self) -> bool {
+        return self.file_open || self.file_is_truncated;
+    }
+
     fn open(&mut self, config: &'static SuricataFileContext, name: &[u8]) -> i32
     {
         let r = self.file.file_open(config, self.track_id, name, self.file_flags);
