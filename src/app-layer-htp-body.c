@@ -70,7 +70,7 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
         SCReturnInt(-1);
     }
 
-    if (StreamingBufferAppend(body->sb, &bd->sbseg, data, len) != 0) {
+    if (StreamingBufferAppend(body->sb, &hcfg->sbcfg, &bd->sbseg, data, len) != 0) {
         HTPFree(bd, sizeof(HtpBodyChunk));
         SCReturnInt(-1);
     }
