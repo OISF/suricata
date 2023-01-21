@@ -1299,9 +1299,8 @@ static StreamingBufferRegion *BufferInsertAtRegion(StreamingBuffer *sb, const ui
  *  \return -1 on memory allocation errors
  *  \return negative value on other errors
  */
-int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
-                            const uint8_t *data, uint32_t data_len,
-                            uint64_t offset)
+int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+        StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len, uint64_t offset)
 {
     BUG_ON(seg == NULL);
     DEBUG_VALIDATE_BUG_ON(offset < sb->region.stream_offset);
@@ -1708,7 +1707,7 @@ static int StreamingBufferTest03(void)
     StreamingBufferSegment seg1;
     FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 8);
     FAIL_IF(seg1.stream_offset != 0);
@@ -1723,7 +1722,7 @@ static int StreamingBufferTest03(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
@@ -1764,7 +1763,7 @@ static int StreamingBufferTest04(void)
     FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
     FAIL_IF(!RB_EMPTY(&sb->sbb_tree));
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 8);
     FAIL_IF(seg1.stream_offset != 0);
@@ -1788,7 +1787,7 @@ static int StreamingBufferTest04(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
@@ -1811,7 +1810,7 @@ static int StreamingBufferTest04(void)
 
     /* far ahead of curve: */
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"XYZ", 3, 124) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"XYZ", 3, 124) != 0);
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(sb->region.buf_size != 128);
@@ -1854,28 +1853,28 @@ static int StreamingBufferTest06(void)
     StreamingBufferSegment seg1;
     FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"A", 1) != 0);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"C", 1, 2) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"C", 1, 2) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 2);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 3);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 4);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -1887,7 +1886,7 @@ static int StreamingBufferTest06(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -1910,30 +1909,30 @@ static int StreamingBufferTest07(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg1, (const uint8_t *)"B", 1, 1) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg1, (const uint8_t *)"B", 1, 1) != 0);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 2);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 3);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 4);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -1945,7 +1944,7 @@ static int StreamingBufferTest07(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -1968,30 +1967,30 @@ static int StreamingBufferTest08(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg1, (const uint8_t *)"B", 1, 1) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg1, (const uint8_t *)"B", 1, 1) != 0);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 2);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 3);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 4);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -2026,30 +2025,30 @@ static int StreamingBufferTest09(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg1, (const uint8_t *)"B", 1, 1) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg1, (const uint8_t *)"B", 1, 1) != 0);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 2);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"H", 1, 7) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 3);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"F", 1, 5) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 4);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -2061,7 +2060,7 @@ static int StreamingBufferTest09(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -2084,32 +2083,32 @@ static int StreamingBufferTest10(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg1, (const uint8_t *)"A", 1, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg1, (const uint8_t *)"A", 1, 0) != 0);
     Dump(sb);
     StreamingBufferSegment seg2;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
     StreamingBufferSegment seg3;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"H", 1, 7) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg3, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 3);
 
     StreamingBufferSegment seg4;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"B", 1, 1) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg4, (const uint8_t *)"B", 1, 1) != 0);
     Dump(sb);
     StreamingBufferSegment seg5;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"C", 1, 2) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg5, (const uint8_t *)"C", 1, 2) != 0);
     Dump(sb);
     StreamingBufferSegment seg6;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"G", 1, 6) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg6, (const uint8_t *)"G", 1, 6) != 0);
     Dump(sb);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 6);
 
     StreamingBufferSegment seg7;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg7, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg7, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
@@ -2120,7 +2119,7 @@ static int StreamingBufferTest10(void)
     FAIL_IF_NOT(sb->sbb_size == 10);
 
     StreamingBufferSegment seg8;
-    FAIL_IF(StreamingBufferInsertAt(sb, &seg8, (const uint8_t *)"abcdefghij", 10, 0) != 0);
+    FAIL_IF(StreamingBufferInsertAt(sb, &cfg, &seg8, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
