@@ -829,7 +829,8 @@ void StreamingBufferSlideToOffset(
 
 #define DATA_FITS(sb, len) ((sb)->region.buf_offset + (len) <= (sb)->region.buf_size)
 
-StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint8_t *data, uint32_t data_len)
+StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
+        const StreamingBufferConfig *cfg, const uint8_t *data, uint32_t data_len)
 {
     if (sb->region.buf == NULL) {
         if (InitBuffer(sb) == -1)
