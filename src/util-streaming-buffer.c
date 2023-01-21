@@ -177,7 +177,7 @@ void StreamingBufferClear(StreamingBuffer *sb)
     }
 }
 
-void StreamingBufferFree(StreamingBuffer *sb)
+void StreamingBufferFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 {
     if (sb != NULL) {
         StreamingBufferClear(sb);
@@ -1696,7 +1696,7 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT_NULL(sb->head);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -1751,7 +1751,7 @@ static int StreamingBufferTest03(void)
     FAIL_IF_NOT(sb->sbb_size == 12);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -1841,7 +1841,7 @@ static int StreamingBufferTest04(void)
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg3,(const uint8_t *)"QWERTY", 6));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg4,(const uint8_t *)"XYZ", 3));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -1899,7 +1899,7 @@ static int StreamingBufferTest06(void)
     FAIL_IF_NOT(sb->sbb_size == 10);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -1957,7 +1957,7 @@ static int StreamingBufferTest07(void)
     FAIL_IF_NOT(sb->sbb_size == 10);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -2015,7 +2015,7 @@ static int StreamingBufferTest08(void)
     FAIL_IF_NOT(sb->sbb_size == 20);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -2073,7 +2073,7 @@ static int StreamingBufferTest09(void)
     FAIL_IF_NOT(sb->sbb_size == 10);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
@@ -2132,7 +2132,7 @@ static int StreamingBufferTest10(void)
     FAIL_IF_NULL(sb->head);
     FAIL_IF_NOT(sb->sbb_size == 10);
 
-    StreamingBufferFree(sb);
+    StreamingBufferFree(sb, &cfg);
     PASS;
 }
 
