@@ -557,7 +557,7 @@ int UTHAddSessionToFlow(Flow *f,
     TcpSession *ssn = SCCalloc(1, sizeof(*ssn));
     FAIL_IF_NULL(ssn);
 
-    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER;
     ssn->client.sb = x;
     ssn->server.sb = x;
 

@@ -63,7 +63,7 @@ void StreamTcpUTSetupSession(TcpSession *ssn)
 {
     memset(ssn, 0x00, sizeof(TcpSession));
 
-    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER;
     ssn->client.sb = x;
     ssn->server.sb = x;
 }
@@ -84,7 +84,7 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
     STREAMTCP_SET_RA_BASE_SEQ(s, isn);
     s->base_seq = isn+1;
 
-    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER;
     s->sb = x;
 }
 
