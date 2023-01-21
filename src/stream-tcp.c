@@ -200,7 +200,7 @@ void StreamTcpStreamCleanup(TcpStream *stream)
     if (stream != NULL) {
         StreamTcpSackFreeList(stream);
         StreamTcpReturnStreamSegments(stream);
-        StreamingBufferClear(&stream->sb);
+        StreamingBufferClear(&stream->sb, &stream_config.sbcnf);
     }
 }
 
