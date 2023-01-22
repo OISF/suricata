@@ -33,8 +33,7 @@
 #include "util-streaming-buffer.h"
 #include "util-print.h"
 
-static StreamingBufferConfig default_cfg = { 3072, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT,
-    HTPCalloc, HTPRealloc, HTPFree };
+extern StreamingBufferConfig htp_sbcfg;
 
 /**
  * \brief Append a chunk of body to the HtpBody struct
@@ -58,8 +57,7 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
     }
 
     if (body->sb == NULL) {
-        const StreamingBufferConfig *cfg = hcfg ? &hcfg->sbcfg : &default_cfg;
-        body->sb = StreamingBufferInit(cfg);
+        body->sb = StreamingBufferInit(&htp_sbcfg);
         if (body->sb == NULL)
             SCReturnInt(-1);
     }
@@ -70,7 +68,7 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
         SCReturnInt(-1);
     }
 
-    if (StreamingBufferAppend(body->sb, &hcfg->sbcfg, &bd->sbseg, data, len) != 0) {
+    if (StreamingBufferAppend(body->sb, &htp_sbcfg, &bd->sbseg, data, len) != 0) {
         HTPFree(bd, sizeof(HtpBodyChunk));
         SCReturnInt(-1);
     }
@@ -138,7 +136,7 @@ void HtpBodyFree(const HTPCfgDir *hcfg, HtpBody *body)
     }
     body->first = body->last = NULL;
 
-    StreamingBufferFree(body->sb, &hcfg->sbcfg);
+    StreamingBufferFree(body->sb, &htp_sbcfg);
 }
 
 /**
@@ -187,7 +185,7 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
 
     if (left_edge) {
         SCLogDebug("sliding body to offset %"PRIu64, left_edge);
-        StreamingBufferSlideToOffset(body->sb, &cfg->sbcfg, left_edge);
+        StreamingBufferSlideToOffset(body->sb, &htp_sbcfg, left_edge);
     }
 
     SCLogDebug("pruning chunks of body %p", body);
