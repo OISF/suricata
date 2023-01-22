@@ -1143,16 +1143,6 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
     return 1;
 }
 
-AppProto FlowGetAppProtocol(const Flow *f)
-{
-    return f->alproto;
-}
-
-void *FlowGetAppState(const Flow *f)
-{
-    return f->alstate;
-}
-
 /**
  *  \brief get 'disruption' flags: GAP/DEPTH/PASS
  *  \param f locked flow
