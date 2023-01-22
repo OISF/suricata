@@ -605,6 +605,16 @@ uint16_t FlowGetDestinationPort(Flow *flow);
 
 /** ----- Inline functions ----- */
 
+static inline AppProto FlowGetAppProtocol(const Flow *f)
+{
+    return f->alproto;
+}
+
+static inline void *FlowGetAppState(const Flow *f)
+{
+    return f->alstate;
+}
+
 /** \brief Set the No Packet Inspection Flag without locking the flow.
  *
  * \param f Flow to set the flag in
