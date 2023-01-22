@@ -194,8 +194,8 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
         SCLogDebug("tx: calling files: ffc %p head %p file_close %d file_trunc %d", ffc, ffc->head,
                 file_close, file_trunc);
         if (filedata_td && txd->files_opened > txd->files_stored)
-            OutputFiledataLogFfc(tv, filedata_td, p, ffc, tx, tx_id, txd, packet_dir, file_close,
-                    file_trunc, packet_dir);
+            OutputFiledataLogFfc(tv, filedata_td, p, app_files, tx, tx_id, txd, packet_dir,
+                    file_close, file_trunc, packet_dir);
         if (file_td && txd->files_opened > txd->files_logged)
             OutputFileLogFfc(
                     tv, file_td, p, ffc, tx, tx_id, txd, file_close, file_trunc, packet_dir);
@@ -208,8 +208,8 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
         SCLogDebug("tx: calling for opposing direction files: file_close:%s file_trunc:%s",
                 file_close ? "true" : "false", file_trunc ? "true" : "false");
         if (filedata_td && txd->files_opened > txd->files_stored)
-            OutputFiledataLogFfc(tv, filedata_td, p, ffc_opposing, tx, tx_id, txd, opposing_dir,
-                    file_close, file_trunc, opposing_dir);
+            OutputFiledataLogFfc(tv, filedata_td, p, app_files_opposing, tx, tx_id, txd,
+                    opposing_dir, file_close, file_trunc, opposing_dir);
         if (file_td && txd->files_opened > txd->files_logged)
             OutputFileLogFfc(tv, file_td, p, ffc_opposing, tx, tx_id, txd, file_close, file_trunc,
                     opposing_dir);
