@@ -127,13 +127,13 @@ static void CloseFile(const Packet *p, Flow *f, File *file, void *txv)
 }
 
 void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Packet *p,
-        FileContainer *ffc, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
+        AppLayerGetFileState files, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
         const uint8_t call_flags, const bool file_close, const bool file_trunc, const uint8_t dir)
 {
-    SCLogDebug("ffc %p", ffc);
+    SCLogDebug("ffc %p", files.fc);
 
     OutputLoggerThreadStore *store = td->store;
-    for (File *ff = ffc->head; ff != NULL; ff = ff->next) {
+    for (File *ff = files.fc->head; ff != NULL; ff = ff->next) {
         FileApplyTxFlags(txd, dir, ff);
         FilePrintFlags(ff);
 
@@ -162,7 +162,7 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
          * close the logger(s) */
         if (FileDataSize(ff) == ff->content_stored && (file_trunc || file_close)) {
             if (ff->state < FILE_STATE_CLOSED) {
-                ff->state = FILE_STATE_TRUNCATED;
+                FileCloseFilePtr(ff, files.cfg, NULL, 0, FILE_TRUNCATED);
             }
             file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
             CallLoggers(tv, store, p, ff, txv, tx_id, NULL, 0, file_flags, dir);
@@ -173,7 +173,7 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
         /* if file needs to be closed or truncated, inform
          * loggers */
         if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
-            ff->state = FILE_STATE_TRUNCATED;
+            FileCloseFilePtr(ff, files.cfg, NULL, 0, FILE_TRUNCATED);
         }
 
         /* tell the logger we're closing up */
