@@ -42,7 +42,7 @@ TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadDa
 TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, OutputFiledataLoggerThreadData *thread_data);
 
 void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Packet *p,
-        FileContainer *ffc, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
+        AppLayerGetFileState files, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
         const uint8_t call_flags, const bool file_close, const bool file_trunc, const uint8_t dir);
 
 /** filedata logger function pointer type */
