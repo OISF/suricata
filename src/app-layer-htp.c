@@ -93,6 +93,8 @@ static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
 
+StreamingBufferConfig htp_sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
+
 /** Limit to the number of libhtp messages that can be handled */
 #define HTP_MAX_MESSAGES 512
 
@@ -369,12 +371,11 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
             DetectEngineStateFree(htud->tx_data.de_state);
         }
         if (htud->file_range) {
-            HTPFileCloseHandleRange(
-                    &state->cfg->response.sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
+            HTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
             HttpRangeFreeBlock(htud->file_range);
         }
-        FileContainerRecycle(&htud->files_ts, &state->cfg->request.sbcfg);
-        FileContainerRecycle(&htud->files_tc, &state->cfg->response.sbcfg);
+        FileContainerRecycle(&htud->files_ts, &htp_sbcfg);
+        FileContainerRecycle(&htud->files_tc, &htp_sbcfg);
         HTPFree(htud, sizeof(HtpTxUserData));
     }
 }
@@ -2552,18 +2553,6 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     }
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
-
-    cfg_prec->request.sbcfg.buf_size =
-            cfg_prec->request.inspect_window ? cfg_prec->request.inspect_window : 256;
-    cfg_prec->request.sbcfg.Calloc = HTPCalloc;
-    cfg_prec->request.sbcfg.Realloc = HTPRealloc;
-    cfg_prec->request.sbcfg.Free = HTPFree;
-
-    cfg_prec->response.sbcfg.buf_size =
-            cfg_prec->response.inspect_window ? cfg_prec->response.inspect_window : 256;
-    cfg_prec->response.sbcfg.Calloc = HTPCalloc;
-    cfg_prec->response.sbcfg.Realloc = HTPRealloc;
-    cfg_prec->response.sbcfg.Free = HTPFree;
     return;
 }
 
@@ -2943,6 +2932,10 @@ void HTPConfigure(void)
 
     cfglist.next = NULL;
 
+    htp_sbcfg.Calloc = HTPCalloc;
+    htp_sbcfg.Realloc = HTPRealloc;
+    htp_sbcfg.Free = HTPFree;
+
     cfgtree = SCRadixCreateRadixTree(NULL, NULL);
     if (NULL == cfgtree)
         exit(EXIT_FAILURE);
@@ -3026,17 +3019,14 @@ void AppLayerHtpPrintStats(void)
  */
 static AppLayerGetFileState HTPGetTxFiles(void *state, void *txv, uint8_t direction)
 {
-    AppLayerGetFileState files = { .fc = NULL, .cfg = NULL };
-    HtpState *s = state;
+    AppLayerGetFileState files = { .fc = NULL, .cfg = &htp_sbcfg };
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud) {
         if (direction & STREAM_TOCLIENT) {
             files.fc = &tx_ud->files_tc;
-            files.cfg = &s->cfg->response.sbcfg;
         } else {
             files.fc = &tx_ud->files_ts;
-            files.cfg = &s->cfg->request.sbcfg;
         }
     }
     return files;

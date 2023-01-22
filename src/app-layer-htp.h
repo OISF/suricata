@@ -149,7 +149,6 @@ typedef struct HTPCfgDir_ {
     uint32_t body_limit;
     uint32_t inspect_min_size;
     uint32_t inspect_window;
-    StreamingBufferConfig sbcfg;
 } HTPCfgDir;
 
 /** Need a linked list in order to keep track of these */
