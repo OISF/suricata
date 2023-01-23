@@ -30,6 +30,42 @@
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"
 
+struct FrameConfig {
+    SC_ATOMIC_DECLARE(uint64_t, types);
+};
+static struct FrameConfig frame_config[ALPROTO_MAX];
+
+void FrameConfigInit(void)
+{
+    for (AppProto p = 0; p < ALPROTO_MAX; p++) {
+        SC_ATOMIC_INIT(frame_config[p].types);
+    }
+}
+
+void FrameConfigEnableAll(void)
+{
+    const uint64_t bits = UINT64_MAX;
+    for (AppProto p = 0; p < ALPROTO_MAX; p++) {
+        struct FrameConfig *fc = &frame_config[p];
+        SC_ATOMIC_OR(fc->types, bits);
+    }
+}
+
+void FrameConfigEnable(const AppProto p, const uint8_t type)
+{
+    const uint64_t bits = BIT_U64(type);
+    struct FrameConfig *fc = &frame_config[p];
+    SC_ATOMIC_OR(fc->types, bits);
+}
+
+static inline bool FrameConfigTypeIsEnabled(const AppProto p, const uint8_t type)
+{
+    struct FrameConfig *fc = &frame_config[p];
+    const uint64_t bits = BIT_U64(type);
+    const bool enabled = (SC_ATOMIC_GET(fc->types) & bits) != 0;
+    return enabled;
+}
+
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {
 #ifdef DEBUG
@@ -383,7 +419,10 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
     SCLogDebug("frame_start:%p stream_slice->input:%p stream_slice->offset:%" PRIu64, frame_start,
             stream_slice->input, stream_slice->offset);
 
-    /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
+        /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
@@ -430,6 +469,9 @@ static Frame *AppLayerFrameUdp(Flow *f, const StreamSlice *stream_slice,
 {
     BUG_ON(f->proto != IPPROTO_UDP);
 
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
     FramesContainer *frames_container = AppLayerFramesSetupContainer(f);
     if (frames_container == NULL)
         return NULL;
@@ -453,7 +495,10 @@ static Frame *AppLayerFrameUdp(Flow *f, const StreamSlice *stream_slice,
 Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice,
         const uint32_t frame_start_rel, const int64_t len, int dir, uint8_t frame_type)
 {
-    /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
+        /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
@@ -510,7 +555,10 @@ void AppLayerFrameDump(Flow *f)
 Frame *AppLayerFrameNewByAbsoluteOffset(Flow *f, const StreamSlice *stream_slice,
         const uint64_t frame_start, const int64_t len, int dir, uint8_t frame_type)
 {
-    /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
+        /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
