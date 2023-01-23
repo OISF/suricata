@@ -77,10 +77,11 @@ impl BitTorrentDHTState {
         self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
     }
 
-    fn new_tx(&mut self) -> BitTorrentDHTTransaction {
+    fn new_tx(&mut self, _direction: crate::core::Direction) -> BitTorrentDHTTransaction {
         let mut tx = BitTorrentDHTTransaction::default();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
+        tx.tx_data.set_inspect_direction(_direction);
         return tx;
     }
 
@@ -95,11 +96,11 @@ impl BitTorrentDHTState {
         }
     }
 
-    pub fn parse(&mut self, input: &[u8]) -> bool {
+    pub fn parse(&mut self, input: &[u8], _direction: crate::core::Direction) -> bool {
         if !Self::is_dht(input) {
             return true;
         }
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx(_direction);
         let mut status = true;
 
         if let Err(_e) = parse_bittorrent_dht_packet(input, &mut tx) {
@@ -161,13 +162,34 @@ pub unsafe extern "C" fn rs_bittorrent_dht_state_tx_free(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_parse(
+pub unsafe extern "C" fn rs_bittorrent_dht_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
+    return rs_bittorrent_dht_parse(
+        _flow, state, _pstate, stream_slice,
+        _data, crate::core::Direction::ToServer);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_bittorrent_dht_parse_tc(
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
+    return rs_bittorrent_dht_parse(
+        _flow, state, _pstate, stream_slice,
+        _data, crate::core::Direction::ToClient);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_bittorrent_dht_parse(
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    direction: crate::core::Direction,
+) -> AppLayerResult {
     let state = cast_pointer!(state, BitTorrentDHTState);
     let buf = stream_slice.as_slice();
-    state.parse(buf).into()
+    state.parse(buf, direction).into()
 }
 
 #[no_mangle]
@@ -241,8 +263,8 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         state_new: rs_bittorrent_dht_state_new,
         state_free: rs_bittorrent_dht_state_free,
         tx_free: rs_bittorrent_dht_state_tx_free,
-        parse_ts: rs_bittorrent_dht_parse,
-        parse_tc: rs_bittorrent_dht_parse,
+        parse_ts: rs_bittorrent_dht_parse_ts,
+        parse_tc: rs_bittorrent_dht_parse_tc,
         get_tx_count: rs_bittorrent_dht_state_get_tx_count,
         get_tx: rs_bittorrent_dht_state_get_tx,
         tx_comp_st_ts: 1,
