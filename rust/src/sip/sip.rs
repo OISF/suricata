@@ -86,7 +86,7 @@ impl SIPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> SIPTransaction {
+    fn new_tx(&mut self, _direction: crate::core::Direction) -> SIPTransaction {
         self.tx_id += 1;
         SIPTransaction::new(self.tx_id)
     }
@@ -127,7 +127,7 @@ impl SIPState {
         match sip_parse_request(input) {
             Ok((_, request)) => {
                 sip_frames_ts(flow, &stream_slice, &request);
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(crate::core::Direction::ToServer);
                 tx.request = Some(request);
                 if let Ok((_, req_line)) = sip_take_line(input) {
                     tx.request_line = req_line;
@@ -155,7 +155,7 @@ impl SIPState {
         match sip_parse_response(input) {
             Ok((_, response)) => {
                 sip_frames_tc(flow, &stream_slice, &response);
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(crate::core::Direction::ToClient);
                 tx.response = Some(response);
                 if let Ok((_, resp_line)) = sip_take_line(input) {
                     tx.response_line = resp_line;
