@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,19 +25,23 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     let mut fields = Vec::new();
-    let mut vals = Vec::new();
-    let mut cstrings = Vec::new();
-    let mut names = Vec::new();
+    let mut event_ids = Vec::new();
+    let mut event_cstrings = Vec::new();
+    let mut event_names = Vec::new();
 
     match input.data {
         syn::Data::Enum(ref data) => {
             for (i, v) in (&data.variants).into_iter().enumerate() {
                 fields.push(v.ident.clone());
-                let name = transform_name(&v.ident.to_string());
-                let cname = format!("{}\0", name);
-                names.push(name);
-                cstrings.push(cname);
-                vals.push(i as i32);
+                let event_name = if let Some(xname) = parse_name(&v.attrs) {
+                    xname.value()
+                } else {
+                    transform_name(&v.ident.to_string())
+                };
+                let cname = format!("{}\0", event_name);
+                event_names.push(event_name);
+                event_cstrings.push(cname);
+                event_ids.push(i as i32);
             }
         }
         _ => panic!("AppLayerEvent can only be derived for enums"),
@@ -58,26 +62,26 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
         impl #crate_id::applayer::AppLayerEvent for #name {
             fn from_id(id: i32) -> Option<#name> {
                 match id {
-                    #( #vals => Some(#name::#fields) ,)*
+                    #( #event_ids => Some(#name::#fields) ,)*
                     _ => None,
                 }
             }
 
             fn as_i32(&self) -> i32 {
                 match *self {
-                    #( #name::#fields => #vals ,)*
+                    #( #name::#fields => #event_ids ,)*
                 }
             }
 
             fn to_cstring(&self) -> &str {
                 match *self {
-                    #( #name::#fields => #cstrings ,)*
+                    #( #name::#fields => #event_cstrings ,)*
                 }
             }
 
             fn from_string(s: &str) -> Option<#name> {
                 match s {
-                    #( #names => Some(#name::#fields) ,)*
+                    #( #event_names => Some(#name::#fields) ,)*
                     _ => None
                 }
             }
@@ -118,6 +122,29 @@ pub fn transform_name(in_name: &str) -> String {
         }
     }
     out
+}
+
+/// Parse the event name from the "name" attribute.
+///
+/// For example:
+/// ```ignore
+/// #[derive(AppLayerEvent)]
+/// pub enum FtpEvent {
+///    #[name("request_command_too_long")]
+///    FtpEventRequestCommandTooLong,
+///    #[name("response_command_too_long")]
+///    FtpEventResponseCommandTooLong,
+/// }
+/// ```
+fn parse_name(attrs: &[syn::Attribute]) -> Option<syn::LitStr> {
+    for attr in attrs {
+        if attr.path.is_ident("name") {
+            if let Ok(val) = attr.parse_args::<syn::LitStr>() {
+                return Some(val);
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
