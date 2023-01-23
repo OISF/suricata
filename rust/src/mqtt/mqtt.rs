@@ -180,8 +180,10 @@ impl MQTTState {
         tx.tx_id = self.tx_id;
         if toclient {
             tx.toclient = true;
+            tx.tx_data.set_inspect_direction(Direction::ToClient);
         } else {
             tx.toserver = true;
+            tx.tx_data.set_inspect_direction(Direction::ToServer);
         }
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             let mut index = self.tx_index_completed;
