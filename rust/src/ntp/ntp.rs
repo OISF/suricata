@@ -19,7 +19,7 @@
 
 extern crate ntp_parser;
 use self::ntp_parser::*;
-use crate::core;
+use crate::core::{self, STREAM_TOSERVER, STREAM_TOCLIENT};
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
 use crate::applayer::{self, *};
 use std;
@@ -91,12 +91,12 @@ impl NTPState {
     /// Parse an NTP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
+    fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
         match parse_ntp(i) {
             Ok((_,ref msg)) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
                 if msg.mode == NtpMode::SymmetricActive || msg.mode == NtpMode::Client {
-                    let mut tx = self.new_tx();
+                    let mut tx = self.new_tx(direction);
                     // use the reference id as identifier
                     tx.xid = msg.ref_id;
                     self.transactions.push(tx);
@@ -122,9 +122,15 @@ impl NTPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> NTPTransaction {
+    fn new_tx(&mut self, direction: u8) -> NTPTransaction {
         self.tx_id += 1;
-        NTPTransaction::new(self.tx_id)
+        let mut tx = NTPTransaction::new(self.tx_id);
+        if direction == 0 {
+            tx.tx_data.set_inspect_direction(STREAM_TOSERVER);
+        } else {
+            tx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
+        }
+        tx
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NTPTransaction> {
