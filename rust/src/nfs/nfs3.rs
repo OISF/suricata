@@ -120,10 +120,9 @@ impl NFSState {
                 let file_handle = rd.handle.value.to_vec();
                 if let Some(tx) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
                     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         tdf.chunk_count += 1;
                         tdf.file_additional_procs.push(NFSPROC3_COMMIT);
-                        filetracker_close(&mut tdf.file_tracker, files, flags);
+                        filetracker_close(&mut tdf.file_tracker);
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;

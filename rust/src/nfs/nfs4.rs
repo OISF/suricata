@@ -68,8 +68,7 @@ impl NFSState {
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    let (files, flags) = tdf.files.get(Direction::ToServer);
-                    filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                    filetracker_newchunk(&mut tdf.file_tracker,
                             &file_name, w.data, w.offset,
                             w.write_len, fill_bytes as u8, is_last, &r.hdr.xid);
                     tdf.chunk_count += 1;
@@ -86,8 +85,7 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                let (files, flags) = tdf.files.get(Direction::ToServer);
-                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                filetracker_newchunk(&mut tdf.file_tracker,
                         &file_name, w.data, w.offset,
                         w.write_len, fill_bytes as u8, is_last, &r.hdr.xid);
                 tx.procedure = NFSPROC4_WRITE;
@@ -117,8 +115,7 @@ impl NFSState {
         let file_handle = fh.to_vec();
         if let Some(tx) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                let (files, flags) = tdf.files.get(Direction::ToServer);
-                filetracker_close(&mut tdf.file_tracker, files, flags);
+                filetracker_close(&mut tdf.file_tracker);
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;

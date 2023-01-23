@@ -155,8 +155,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &[u8], direction: Direction)
         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
             if !tx.request_done {
                 SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
-                let (files, flags) = tdf.files.get(direction);
-                filetracker_close(&mut tdf.file_tracker, files, flags);
+                filetracker_close(&mut tdf.file_tracker);
                 tx.request_done = true;
                 tx.response_done = true;
                 SCLogDebug!("tx {} is done", tx.id);
@@ -965,8 +964,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         if rd.offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        let (files, flags) = tdf.files.get(Direction::ToServer);
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                        filetracker_newchunk(&mut tdf.file_tracker,
                                 &file_name, rd.data, rd.offset,
                                 rd.len, false, &file_id);
                         SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
@@ -993,12 +991,10 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         if rd.offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        let (files, flags) = tdf.files.get(Direction::ToServer);
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                        filetracker_newchunk(&mut tdf.file_tracker,
                                 &file_name, rd.data, rd.offset,
                                 rd.len, false, &file_id);
                         tdf.share_name = share_name;
-                        SCLogDebug!("files {:?}", files);
                         SCLogDebug!("tdf {:?}", tdf);
                     }
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
@@ -1063,8 +1059,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                                 if offset < tdf.file_tracker.tracked {
                                     set_event_fileoverlap = true;
                                 }
-                                let (files, flags) = tdf.files.get(Direction::ToClient);
-                                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                filetracker_newchunk(&mut tdf.file_tracker,
                                         &file_name, rd.data, offset,
                                         rd.len, false, &file_id);
                             }
@@ -1080,8 +1075,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                             if offset < tdf.file_tracker.tracked {
                                 set_event_fileoverlap = true;
                             }
-                            let (files, flags) = tdf.files.get(Direction::ToClient);
-                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                            filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, rd.data, offset,
                                     rd.len, false, &file_id);
                             tdf.share_name = share_name;
