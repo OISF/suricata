@@ -153,6 +153,7 @@ impl IKEV2State {
                 }
                 let mut tx = self.new_tx();
                 // use init_spi as transaction identifier
+		tx.tx_data.set_inspect_direction(direction);
                 tx.xid = hdr.init_spi;
                 tx.hdr = (*hdr).clone();
                 self.transactions.push(tx);
