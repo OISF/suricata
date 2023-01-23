@@ -499,6 +499,11 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
     tx->dnp3 = dnp3;
     tx->tx_num = dnp3->transaction_max;
     tx->is_request = request;
+    if (tx->is_request) {
+        tx->tx_data.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+    } else {
+        tx->tx_data.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+    }
     TAILQ_INIT(&tx->objects);
     TAILQ_INSERT_TAIL(&dnp3->tx_list, tx, next);
 
@@ -1423,31 +1428,8 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
         SCReturnInt(1);
     }
 
-    /* This is a unidirectional protocol.
-     *
-     * If progress is being checked in the TOSERVER (request)
-     * direction, always return complete if the message is not a
-     * request, as there will never be replies on transactions created
-     * in the TOSERVER direction.
-     *
-     * Like wise, if progress is being checked in the TOCLIENT
-     * direction, requests will never be seen. So always return
-     * complete if the transaction is not a reply.
-     *
-     * Otherwise, if TOSERVER and transaction is a request, return
-     * complete if the transaction is complete. And if TOCLIENT and
-     * transaction is a response, return complete if the transaction
-     * is complete.
-     */
-    if (direction & STREAM_TOSERVER) {
-        if (!dnp3tx->is_request || dnp3tx->complete) {
-            retval = 1;
-        }
-    } else if (direction & STREAM_TOCLIENT) {
-        if (dnp3tx->is_request || dnp3tx->complete) {
-            retval = 1;
-        }
-    }
+    if (dnp3tx->complete)
+        retval = 1;
 
     SCReturnInt(retval);
 }
@@ -1614,12 +1596,9 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
-#if 0
-        /* While this parser is now fully unidirectional. setting this
-         * flag breaks detection at this time. */
+
         AppLayerParserRegisterOptionFlags(
                 IPPROTO_TCP, ALPROTO_DNP3, APP_LAYER_PARSER_OPT_UNIDIR_TXS);
-#endif
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
