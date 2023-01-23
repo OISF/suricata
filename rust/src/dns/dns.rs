@@ -412,6 +412,7 @@ impl DNSState {
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
+                tx.tx_data.set_inspect_direction(Direction::ToServer);
                 self.transactions.push_back(tx);
 
                 if z_flag {
@@ -490,6 +491,7 @@ impl DNSState {
                     }
                 }
                 tx.response = Some(response);
+                tx.tx_data.set_inspect_direction(Direction::ToClient);
                 self.transactions.push_back(tx);
 
                 if z_flag {
