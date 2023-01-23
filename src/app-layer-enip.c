@@ -344,6 +344,11 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
         if (tx == NULL)
             SCReturnStruct(APP_LAYER_OK);
 
+        if (flags & STREAM_TOCLIENT)
+            tx->tx_data.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        else
+            tx->tx_data.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+
         SCLogDebug("ENIPParse input len %d", input_len);
         DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
@@ -366,6 +371,18 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
     }
 
     SCReturnStruct(APP_LAYER_OK);
+}
+
+static AppLayerResult ENIPParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
+        const uint8_t *input, uint32_t input_len, void *local_data, const uint8_t flags)
+{
+    return ENIPParse(f, state, pstate, input, input_len, local_data, STREAM_TOSERVER);
+}
+
+static AppLayerResult ENIPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+        const uint8_t *input, uint32_t input_len, void *local_data, const uint8_t flags)
+{
+    return ENIPParse(f, state, pstate, input, input_len, local_data, STREAM_TOCLIENT);
 }
 
 #define ENIP_LEN_REGISTER_SESSION 4 // protocol u16, options u16
@@ -514,10 +531,8 @@ void RegisterENIPUDPParsers(void)
 
     if (AppLayerParserConfParserEnabled("udp", proto_name))
     {
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP,
-                STREAM_TOSERVER, ENIPParse);
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP,
-                STREAM_TOCLIENT, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOSERVER, ENIPParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOCLIENT, ENIPParseResponse);
 
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
@@ -595,10 +610,8 @@ void RegisterENIPTCPParsers(void)
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name))
     {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
-                STREAM_TOSERVER, ENIPParse);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
-                STREAM_TOCLIENT, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP, STREAM_TOSERVER, ENIPParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP, STREAM_TOCLIENT, ENIPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
 
