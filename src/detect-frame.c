@@ -141,6 +141,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     if (DetectBufferSetActiveList(s, buffer_id) < 0)
         return -1;
 
+    FrameConfigEnable(keyword_alproto, frame_type);
     return 0;
 }
 

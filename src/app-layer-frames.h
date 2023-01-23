@@ -26,7 +26,8 @@
 
 #include "rust.h"
 
-#define FRAME_STREAM_TYPE 255
+/** max 63 to fit the 64 bit per protocol space */
+#define FRAME_STREAM_TYPE 63
 /** always the first frame to be created. TODO but what about protocol upgrades? */
 #define FRAME_STREAM_ID 1
 
@@ -101,5 +102,9 @@ void AppLayerFramesSlide(Flow *f, const uint32_t slide, const uint8_t direction)
 
 FramesContainer *AppLayerFramesGetContainer(Flow *f);
 FramesContainer *AppLayerFramesSetupContainer(Flow *f);
+
+void FrameConfigInit(void);
+void FrameConfigEnableAll(void);
+void FrameConfigEnable(const AppProto p, const uint8_t type);
 
 #endif
