@@ -113,7 +113,7 @@ pub struct IKETransaction {
     pub errors: u32,
 
     logged: LoggerFlags,
-    tx_data: applayer::AppLayerTxData,
+    pub tx_data: applayer::AppLayerTxData,
 }
 
 impl Transaction for IKETransaction {
