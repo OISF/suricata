@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto, STREAM_TOCLIENT};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
@@ -84,6 +84,14 @@ impl AppLayerTxData {
     }
     pub fn incr_files_opened(&mut self) {
         self.files_opened += 1;
+    }
+
+    pub fn set_inspect_direction(&mut self, direction: u8) {
+        if direction == STREAM_TOCLIENT {
+            self.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        } else {
+            self.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        }
     }
 }
 
@@ -321,6 +329,7 @@ pub const APP_LAYER_PARSER_BYPASS_READY : u8 = BIT_U8!(4);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
+pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
 
 pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
                                                   alproto: AppProto,
