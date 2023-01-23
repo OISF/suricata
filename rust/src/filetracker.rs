@@ -56,6 +56,9 @@ pub struct FileTransferTracker {
     track_id: u32,
     chunk_left: u32,
 
+    pub file: FileContainer,
+    pub file_flags: u16,
+
     pub tx_id: u64,
 
     fill_bytes: u8,
@@ -82,35 +85,32 @@ impl FileTransferTracker {
         !self.file_open
     }
 
-    fn open(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16, name: &[u8]) -> i32
+    fn open(&mut self, config: &'static SuricataFileContext, name: &[u8]) -> i32
     {
-        let r = files.file_open(config, self.track_id, name, flags);
+        let r = self.file.file_open(config, self.track_id, name, self.file_flags);
         if r == 0 {
             self.file_open = true;
         }
         r
     }
 
-    pub fn close(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16)
+    pub fn close(&mut self, config: &'static SuricataFileContext)
     {
         if !self.file_is_truncated {
             SCLogDebug!("closing file with id {}", self.track_id);
-            files.file_close(config, &self.track_id, flags);
+            self.file.file_close(config, &self.track_id, self.file_flags);
         }
         self.file_open = false;
         self.tracked = 0;
     }
 
-    pub fn trunc (&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16)
+    pub fn trunc (&mut self, config: &'static SuricataFileContext)
     {
         if self.file_is_truncated || !self.file_open {
             return;
         }
-        let myflags = flags | 1; // TODO util-file.c::FILE_TRUNCATED
-        files.file_close(config, &self.track_id, myflags);
+        let myflags = self.file_flags | 1; // TODO util-file.c::FILE_TRUNCATED
+        self.file.file_close(config, &self.track_id, myflags);
         SCLogDebug!("truncated file");
         self.file_is_truncated = true;
         self.chunks.clear();
@@ -125,13 +125,12 @@ impl FileTransferTracker {
     }
 
     pub fn new_chunk(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16,
             name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32,
             fill_bytes: u8, is_last: bool, xid: &u32) -> u32
     {
         if self.chunk_left != 0 || self.fill_bytes != 0 {
             SCLogDebug!("current chunk incomplete: truncating");
-            self.trunc(config, files, flags);
+            self.trunc(config);
         }
 
         SCLogDebug!("NEW CHUNK: chunk_size {} fill_bytes {}", chunk_size, fill_bytes);
@@ -143,7 +142,7 @@ impl FileTransferTracker {
             SCLogDebug!("NEW CHUNK IS OOO: expected {}, got {}", self.tracked, chunk_offset);
             if is_last {
                 SCLogDebug!("last chunk is out of order, this means we missed data before");
-                self.trunc(config, files, flags);
+                self.trunc(config);
             }
             self.chunk_is_ooo = true;
             self.cur_ooo_chunk_offset = chunk_offset;
@@ -159,11 +158,11 @@ impl FileTransferTracker {
         if !self.file_open {
             SCLogDebug!("NEW CHUNK: FILE OPEN");
             self.track_id = *xid;
-            self.open(config, files, flags, name);
+            self.open(config, name);
         }
 
         if self.file_open {
-            let res = self.update(config, files, flags, data, 0);
+            let res = self.update(config, data, 0);
             SCLogDebug!("NEW CHUNK: update res {:?}", res);
             return res;
         }
@@ -174,8 +173,7 @@ impl FileTransferTracker {
     /// update the file tracker
     /// If gap_size > 0 'data' should not be used.
     /// return how much we consumed of data
-    pub fn update(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32) -> u32
+    pub fn update(&mut self, config: &'static SuricataFileContext, data: &[u8], gap_size: u32) -> u32
     {
         if self.file_is_truncated {
             let consumed = std::cmp::min(data.len() as u32, self.chunk_left);
@@ -192,7 +190,7 @@ impl FileTransferTracker {
             //SCLogDebug!("UPDATE: nothing to do");
             if self.chunk_is_last {
                 SCLogDebug!("last empty chunk, closing");
-                self.close(config, files, flags);
+                self.close(config);
                 self.chunk_is_last = false;
             }
             return 0
@@ -217,7 +215,7 @@ impl FileTransferTracker {
                 let d = &data[0..self.chunk_left as usize];
 
                 if !self.chunk_is_ooo {
-                    let res = files.file_append(config, &self.track_id, d, is_gap);
+                    let res = self.file.file_append(config, &self.track_id, d, is_gap);
                     match res {
                         0   => { },
                         -2  => {
@@ -270,7 +268,7 @@ impl FileTransferTracker {
                                 Some(c) => {
                                     self.in_flight -= c.chunk.len() as u64;
 
-                                    let res = files.file_append(config, &self.track_id, &c.chunk, c.contains_gap);
+                                    let res = self.file.file_append(config, &self.track_id, &c.chunk, c.contains_gap);
                                     match res {
                                         0   => { },
                                         -2  => {
@@ -302,7 +300,7 @@ impl FileTransferTracker {
                 }
                 if self.chunk_is_last {
                     SCLogDebug!("last chunk, closing");
-                    self.close(config, files, flags);
+                    self.close(config);
                     self.chunk_is_last = false;
                 } else {
                     SCLogDebug!("NOT last chunk, keep going");
@@ -310,7 +308,7 @@ impl FileTransferTracker {
 
             } else {
                 if !self.chunk_is_ooo {
-                    let res = files.file_append(config, &self.track_id, data, is_gap);
+                    let res = self.file.file_append(config, &self.track_id, data, is_gap);
                     match res {
                         0   => { },
                         -2  => {

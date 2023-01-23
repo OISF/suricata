@@ -530,8 +530,7 @@ impl Drop for SMBTransaction {
     fn drop(&mut self) {
         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
             if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
-                tdf.files.files_ts.free(sfcm);
-                tdf.files.files_tc.free(sfcm);
+                tdf.file_tracker.file.free(sfcm);
             }
         }
         self.free();
@@ -1103,8 +1102,7 @@ impl SMBState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = f.files.get(f.direction);
-                        filetracker_trunc(&mut f.file_tracker, files, flags);
+                        filetracker_trunc(&mut f.file_tracker);
                     } else {
                         post_gap_txs = true;
                     }

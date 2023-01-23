@@ -131,7 +131,7 @@ pub fn http2_range_open(
         // whole file in one range
         return;
     }
-    let (_, flags) = tx.files.get(dir);
+    let flags = if dir == Direction::ToServer { tx.ft_ts.file_flags } else { tx.ft_tc.file_flags };
     if let Ok((key, index)) = http2_range_key_get(tx) {
         let name = &key[index..];
         tx.file_range = unsafe {
@@ -162,7 +162,11 @@ pub fn http2_range_close(
 ) {
     let added = if let Some(c) = unsafe { SC } {
         if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-            let (files, flags) = tx.files.get(dir);
+            let (files, flags) = if dir == Direction::ToServer {
+                (&mut tx.ft_ts.file, tx.ft_ts.file_flags)
+            } else {
+                (&mut tx.ft_tc.file, tx.ft_tc.file_flags)
+            };
             let added = (c.HTPFileCloseHandleRange)(
                     sfcm.files_sbcfg,
                     files,

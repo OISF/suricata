@@ -123,6 +123,10 @@ pub enum NFSTransactionTypeData {
 
 #[derive(Default, Debug)]
 pub struct NFSTransactionFile {
+    /// file transactions are unidirectional in the sense that they track
+    /// a single file on one direction
+    pub direction: Direction, // Direction::ToClient or Direction::ToServer
+
     /// additional procedures part of a single file transfer. Currently
     /// only COMMIT on WRITEs.
     pub file_additional_procs: Vec<u32>,
@@ -139,9 +143,6 @@ pub struct NFSTransactionFile {
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
     pub file_tracker: FileTransferTracker,
-
-    /// storage for the actual file
-    pub files: Files,
 }
 
 impl NFSTransactionFile {
@@ -152,8 +153,8 @@ impl NFSTransactionFile {
         }
     }
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
-        self.files.flags_ts = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) | FILE_USE_DETECT };
-        self.files.flags_tc = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) | FILE_USE_DETECT };
+        let dir_flag = if self.direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT };
+        self.file_tracker.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, dir_flag) | FILE_USE_DETECT };
     }
 }
 
@@ -161,9 +162,11 @@ impl NFSTransactionFile {
 pub unsafe extern "C" fn rs_nfs_gettxfiles(_state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, NFSTransaction);
     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-        let (files, _flags) = tdf.files.get(direction.into());
-        if let Some(sfcm) = { SURICATA_NFS_FILE_CONFIG } {
-            return AppLayerGetFileState { fc: files, cfg: sfcm.files_sbcfg }
+        let tx_dir : u8 = tdf.direction.into();
+        if direction & tx_dir != 0 {
+            if let Some(sfcm) = { SURICATA_NFS_FILE_CONFIG } {
+                return AppLayerGetFileState { fc: &mut tdf.file_tracker.file, cfg: sfcm.files_sbcfg }
+            }
         }
     }
     AppLayerGetFileState::err()
@@ -199,9 +202,6 @@ pub struct NFSTransaction {
     /// is a special file tx that we look up by file_handle instead of XID
     pub is_file_tx: bool,
     pub is_file_closed: bool,
-    /// file transactions are unidirectional in the sense that they track
-    /// a single file on one direction
-    pub file_tx_direction: Direction, // Direction::ToClient or Direction::ToServer
     pub file_handle: Vec<u8>,
 
     /// Procedure type specific data
@@ -238,7 +238,6 @@ impl NFSTransaction {
             nfs_version:0,
             is_file_tx: false,
             is_file_closed: false,
-            file_tx_direction: Direction::ToServer,
             file_handle:Vec::new(),
             type_data: None,
             tx_data: AppLayerTxData::new(),
@@ -261,8 +260,7 @@ impl Drop for NFSTransaction {
     fn drop(&mut self) {
         if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = self.type_data {
             if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
-                tdf.files.files_ts.free(sfcm);
-                tdf.files.files_tc.free(sfcm);
+                tdf.file_tracker.file.free(sfcm);
             }
         }
         self.free();
@@ -298,37 +296,33 @@ impl NFSRequestXidMap {
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &[u8], data: &[u8],
+pub fn filetracker_newchunk(ft: &mut FileTransferTracker, name: &[u8], data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
     if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
-        ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
+        ft.new_chunk(sfcm, name, data, chunk_offset,
                 chunk_size, fill_bytes, is_last, xid);
     }
 }
 
-fn filetracker_trunc(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16)
+fn filetracker_trunc(ft: &mut FileTransferTracker)
 {
     if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
-        ft.trunc(sfcm, files, flags);
+        ft.trunc(sfcm);
     }
 }
 
-pub fn filetracker_close(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16)
+pub fn filetracker_close(ft: &mut FileTransferTracker)
 {
     if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
-        ft.close(sfcm, files, flags);
+        ft.close(sfcm);
     }
 }
 
-fn filetracker_update(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, data: &[u8], gap_size: u32) -> u32
+fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) -> u32
 {
     if let Some(sfcm) = unsafe { SURICATA_NFS_FILE_CONFIG } {
-        ft.update(sfcm, files, flags, data, gap_size)
+        ft.update(sfcm, data, gap_size)
     } else {
         0
     }
@@ -621,8 +615,7 @@ impl NFSState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = f.files.get(tx.file_tx_direction);
-                        filetracker_trunc(&mut f.file_tracker, files, flags);
+                        filetracker_trunc(&mut f.file_tracker);
                     } else {
                         post_gap_txs = true;
                     }
@@ -733,10 +726,10 @@ impl NFSState {
         tx.file_name = file_name.to_vec();
         tx.file_handle = file_handle.to_vec();
         tx.is_file_tx = true;
-        tx.file_tx_direction = direction;
 
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+            d.direction = direction;
             d.file_tracker.tx_id = tx.id - 1;
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             d.update_file_flags(tx.tx_data.file_flags);
@@ -757,7 +750,7 @@ impl NFSState {
         for tx in &mut self.transactions {
             if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
                 if tx.is_file_tx && !tx.is_file_closed &&
-                    direction == tx.file_tx_direction &&
+                    direction == d.direction &&
                         tx.file_handle == fh
                 {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
@@ -797,8 +790,7 @@ impl NFSState {
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    let (files, flags) = tdf.files.get(Direction::ToServer);
-                    filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                    filetracker_newchunk(&mut tdf.file_tracker,
                             &file_name, w.file_data, w.offset,
                             w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
                     tdf.chunk_count += 1;
@@ -818,8 +810,7 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                let (files, flags) = tdf.files.get(Direction::ToServer);
-                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                filetracker_newchunk(&mut tdf.file_tracker,
                         &file_name, w.file_data, w.offset,
                         w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
                 tx.procedure = NFSPROC3_WRITE;
@@ -972,12 +963,11 @@ impl NFSState {
         let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    let (files, flags) = tdf.files.get(direction);
                     if ssn_gap {
                         let queued_data = tdf.file_tracker.get_queued_size();
                         if queued_data > 2000000 { // TODO should probably be configurable
                             SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
-                            filetracker_trunc(&mut tdf.file_tracker, files, flags);
+                            filetracker_trunc(&mut tdf.file_tracker);
                         }
                     }
 
@@ -987,7 +977,7 @@ impl NFSState {
                     }
 
                     tdf.chunk_count += 1;
-                    let cs = filetracker_update(&mut tdf.file_tracker, files, flags, data, gap_size);
+                    let cs = filetracker_update(&mut tdf.file_tracker, data, gap_size);
                     /* see if we need to close the tx */
                     if tdf.file_tracker.is_done() {
                         if direction == Direction::ToClient {
@@ -1076,8 +1066,7 @@ impl NFSState {
             Some(tx) => {
                 SCLogDebug!("updated TX {:?}", tx);
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    let (files, flags) = tdf.files.get(Direction::ToClient);
-                    filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                    filetracker_newchunk(&mut tdf.file_tracker,
                             &file_name, reply.data, chunk_offset,
                             reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
                     tdf.chunk_count += 1;
@@ -1105,8 +1094,7 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToClient);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                let (files, flags) = tdf.files.get(Direction::ToClient);
-                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                filetracker_newchunk(&mut tdf.file_tracker,
                         &file_name, reply.data, chunk_offset,
                         reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
                 tx.procedure = if nfs_version < 4 { NFSPROC3_READ } else { NFSPROC4_READ };

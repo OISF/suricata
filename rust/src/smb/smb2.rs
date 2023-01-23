@@ -171,8 +171,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             state.set_event(SMBEvent::ReadQueueCntExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else {
-                            let (files, flags) = tdf.files.get(Direction::ToClient);
-                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                            filetracker_newchunk(&mut tdf.file_tracker,
                                     &tdf.file_name, rd.data, offset,
                                     rd.len, false, &file_id);
                         }
@@ -245,8 +244,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             state.set_event(SMBEvent::ReadQueueCntExceeded);
                             state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         } else {
-                            let (files, flags) = tdf.files.get(Direction::ToClient);
-                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                            filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, rd.data, offset,
                                     rd.len, false, &file_id);
                         }
@@ -311,8 +309,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
                             state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
                         } else {
-                            let (files, flags) = tdf.files.get(Direction::ToServer);
-                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                            filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, wr.data, wr.wr_offset,
                                     wr.wr_len, false, &file_id);
                         }
@@ -380,8 +377,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             state.set_event(SMBEvent::WriteQueueCntExceeded);
                             state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
                         } else {
-                            let (files, flags) = tdf.files.get(Direction::ToServer);
-                            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                            filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, wr.data, wr.wr_offset,
                                     wr.wr_len, false, &file_id);
                         }
@@ -594,8 +590,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                                    let (files, flags) = tdf.files.get(Direction::ToServer);
-                                    filetracker_close(&mut tdf.file_tracker, files, flags);
+                                    filetracker_close(&mut tdf.file_tracker);
                                 }
                             }
                             tx.request_done = true;
@@ -609,8 +604,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                                    let (files, flags) = tdf.files.get(Direction::ToClient);
-                                    filetracker_close(&mut tdf.file_tracker, files, flags);
+                                    filetracker_close(&mut tdf.file_tracker);
                                 }
                             }
                             tx.request_done = true;
@@ -708,8 +702,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(tx) => {
                         if !tx.request_done {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                                let (files, flags) = tdf.files.get(Direction::ToClient);
-                                filetracker_close(&mut tdf.file_tracker, files, flags);
+                                filetracker_close(&mut tdf.file_tracker);
                             }
                         }
                         tx.set_status(r.nt_status, false);

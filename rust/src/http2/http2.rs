@@ -137,13 +137,11 @@ pub struct HTTP2Transaction {
 
     pub tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
-    ft_ts: FileTransferTracker,
+    pub ft_ts: FileTransferTracker,
 
     //temporary escaped header for detection
     //must be attached to transaction for memory management (be freed at the right time)
     pub escaped: Vec<Vec<u8>>,
-
-    pub files: Files,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -173,7 +171,6 @@ impl HTTP2Transaction {
             ft_tc: FileTransferTracker::new(),
             ft_ts: FileTransferTracker::new(),
             escaped: Vec::with_capacity(16),
-            files: Files::default(),
         }
     }
 
@@ -210,8 +207,8 @@ impl HTTP2Transaction {
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
-        self.files.flags_ts = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) | FILE_USE_DETECT };
-        self.files.flags_tc = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) | FILE_USE_DETECT };
+        self.ft_ts.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) | FILE_USE_DETECT };
+        self.ft_tc.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) | FILE_USE_DETECT };
     }
 
     fn decompress<'a>(
@@ -250,11 +247,8 @@ impl HTTP2Transaction {
                     range::http2_range_append(sfcm, self.file_range, decompressed)
                 }
             }
-            let (files, flags) = self.files.get(Direction::ToClient);
             self.ft_tc.new_chunk(
                 sfcm,
-                files,
-                flags,
                 b"",
                 decompressed,
                 self.ft_tc.tracked, //offset = append
@@ -268,11 +262,8 @@ impl HTTP2Transaction {
             if !self.ft_ts.file_open {
                 self.tx_data.incr_files_opened();
             }
-            let (files, flags) = self.files.get(Direction::ToServer);
             self.ft_ts.new_chunk(
                 sfcm,
-                files,
-                flags,
                 b"",
                 decompressed,
                 self.ft_ts.tracked, //offset = append
@@ -365,8 +356,8 @@ impl HTTP2Transaction {
 impl Drop for HTTP2Transaction {
     fn drop(&mut self) {
         if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-            self.files.files_ts.free(sfcm);
-            self.files.files_tc.free(sfcm);
+            self.ft_ts.file.free(sfcm);
+            self.ft_tc.file.free(sfcm);
         }
         self.free();
     }
@@ -466,7 +457,7 @@ impl HTTP2State {
                     if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                         (c.HTPFileCloseHandleRange)(
                             sfcm.files_sbcfg,
-                            &mut tx.files.files_tc,
+                            &mut tx.ft_tc.file,
                             0,
                             tx.file_range,
                             std::ptr::null_mut(),
@@ -507,7 +498,7 @@ impl HTTP2State {
                         if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             (c.HTPFileCloseHandleRange)(
                                 sfcm.files_sbcfg,
-                                &mut tx.files.files_tc,
+                                &mut tx.ft_tc.file,
                                 0,
                                 tx.file_range,
                                 std::ptr::null_mut(),
@@ -1216,9 +1207,12 @@ pub unsafe extern "C" fn rs_http2_getfiles(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    let (files, _flags) = tx.files.get(direction.into());
     if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
-        return AppLayerGetFileState { fc: files, cfg: sfcm.files_sbcfg }
+        if direction & STREAM_TOSERVER != 0 {
+            return AppLayerGetFileState { fc: &mut tx.ft_ts.file, cfg: sfcm.files_sbcfg }
+        } else {
+            return AppLayerGetFileState { fc: &mut tx.ft_tc.file, cfg: sfcm.files_sbcfg }
+        }
     }
     AppLayerGetFileState::err()
 }
