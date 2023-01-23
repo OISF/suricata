@@ -54,12 +54,6 @@ pub struct FileContainer {
     tail: * mut c_void,
 }
 
-impl Drop for FileContainer {
-    fn drop(&mut self) {
-        self.free();
-    }
-}
-
 impl Default for FileContainer {
     fn default() -> Self { Self {
         head: ptr::null_mut(),
