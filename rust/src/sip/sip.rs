@@ -20,7 +20,7 @@
 extern crate nom;
 
 use crate::applayer::{self, *};
-use crate::core;
+use crate::core::{self, STREAM_TOSERVER, STREAM_TOCLIENT};
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::sip::parser::*;
 use std;
@@ -70,9 +70,15 @@ impl SIPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> SIPTransaction {
+    fn new_tx(&mut self, direction: u8) -> SIPTransaction {
         self.tx_id += 1;
-        SIPTransaction::new(self.tx_id)
+        let mut tx = SIPTransaction::new(self.tx_id);
+	if direction == STREAM_TOSERVER {
+	    tx.tx_data.set_inspect_direction(STREAM_TOSERVER);
+	} else {
+	    tx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
+	}
+	return tx;
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SIPTransaction> {
@@ -100,7 +106,7 @@ impl SIPState {
     fn parse_request(&mut self, input: &[u8]) -> bool {
         match sip_parse_request(input) {
             Ok((_, request)) => {
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(STREAM_TOSERVER);
                 tx.request = Some(request);
                 if let Ok((_, req_line)) = sip_take_line(input) {
                     tx.request_line = req_line;
@@ -122,7 +128,7 @@ impl SIPState {
     fn parse_response(&mut self, input: &[u8]) -> bool {
         match sip_parse_response(input) {
             Ok((_, response)) => {
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(STREAM_TOCLIENT);
                 tx.response = Some(response);
                 if let Ok((_, resp_line)) = sip_take_line(input) {
                     tx.response_line = resp_line;
