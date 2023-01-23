@@ -117,6 +117,7 @@ pub fn handle_ikev2(
     tx.ike_version = 2;
     // use init_spi as transaction identifier
     // tx.xid = hdr.init_spi; todo is this used somewhere?
+    tx.tx_data.set_inspect_direction(direction);
     tx.hdr.ikev2_header = hdr.clone();
     tx.hdr.spi_initiator = format!("{:016x}", isakmp_header.init_spi);
     tx.hdr.spi_responder = format!("{:016x}", isakmp_header.resp_spi);
