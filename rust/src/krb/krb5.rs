@@ -228,7 +228,7 @@ impl KRB5State {
 
 impl KRB5Transaction {
     pub fn new(id: u64) -> KRB5Transaction {
-        KRB5Transaction{
+        let mut krbtx = KRB5Transaction{
             msg_type: MessageType(0),
             cname: None,
             realm: None,
@@ -239,7 +239,9 @@ impl KRB5Transaction {
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
-        }
+        };
+        krbtx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
+        return krbtx;
     }
 }
 
