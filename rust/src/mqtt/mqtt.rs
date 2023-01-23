@@ -21,6 +21,8 @@ use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
+use crate::core::STREAM_TOCLIENT;
+use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use num_traits::FromPrimitive;
 use crate::conf::conf_get;
@@ -183,8 +185,10 @@ impl MQTTState {
         tx.tx_id = self.tx_id;
         if toclient {
             tx.toclient = true;
+            tx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
         } else {
             tx.toserver = true;
+            tx.tx_data.set_inspect_direction(STREAM_TOSERVER);
         }
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             let mut index = self.tx_index_completed;
