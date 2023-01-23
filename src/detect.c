@@ -1242,6 +1242,22 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         DetectTransaction no_tx = { NULL, 0, NULL, NULL, 0, 0, 0, 0, 0, };
         return no_tx;
     }
+    if (detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG) {
+        SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Flags %016" PRIx64,
+                tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+        DetectTransaction no_tx = {
+            NULL,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+        };
+        return no_tx;
+    }
 
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     const int dir_int = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
