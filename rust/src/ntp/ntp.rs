@@ -20,7 +20,7 @@
 extern crate ntp_parser;
 use self::ntp_parser::*;
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
+use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,Direction};
 use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
@@ -95,7 +95,7 @@ impl NTPState {
                     NtpPacket::V4(pkt) => (pkt.mode, pkt.ref_id),
                 };
                 if mode == NtpMode::SymmetricActive || mode == NtpMode::Client {
-                    let mut tx = self.new_tx();
+                    let mut tx = self.new_tx(_direction);
                     // use the reference id as identifier
                     tx.xid = ref_id;
                     self.transactions.push(tx);
@@ -121,9 +121,15 @@ impl NTPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> NTPTransaction {
+    fn new_tx(&mut self, _direction: u8) -> NTPTransaction {
         self.tx_id += 1;
-        NTPTransaction::new(self.tx_id)
+        let mut tx = NTPTransaction::new(self.tx_id);
+        if _direction == 0 {
+            tx.tx_data.set_inspect_direction(Direction::ToServer);
+        } else {
+            tx.tx_data.set_inspect_direction(Direction::ToClient);
+        }
+        tx
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NTPTransaction> {
