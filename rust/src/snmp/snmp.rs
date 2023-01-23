@@ -139,7 +139,7 @@ impl<'a> SNMPState<'a> {
     }
 
     fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: Direction) -> i32 {
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx(_direction);
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version+1);
@@ -152,7 +152,7 @@ impl<'a> SNMPState<'a> {
     }
 
     fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> i32 {
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx(_direction);
         if self.version != msg.version {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
             self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
@@ -204,9 +204,11 @@ impl<'a> SNMPState<'a> {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> SNMPTransaction<'a> {
+    fn new_tx(&mut self, _direction: Direction) -> SNMPTransaction<'a> {
         self.tx_id += 1;
-        SNMPTransaction::new(self.version, self.tx_id)
+        let mut tx = SNMPTransaction::new(self.version, self.tx_id);
+        tx.tx_data.set_inspect_direction(_direction);
+        tx
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction> {
