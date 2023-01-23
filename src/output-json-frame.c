@@ -489,6 +489,8 @@ static OutputInitResult JsonFrameLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonFrameLogDeInitCtxSub;
 
+    FrameConfigEnableAll();
+
     result.ctx = output_ctx;
     result.ok = true;
     return result;
