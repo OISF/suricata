@@ -24,6 +24,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 
 use crate::applayer::*;
+use crate::core::STREAM_TOCLIENT;
+use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
 
@@ -512,6 +514,7 @@ impl DNSState {
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
+                tx.tx_data.set_inspect_direction(STREAM_TOSERVER);
                 self.transactions.push(tx);
 
                 if z_flag {
@@ -556,6 +559,7 @@ impl DNSState {
                     }
                 }
                 tx.response = Some(response);
+                tx.tx_data.set_inspect_direction(STREAM_TOCLIENT);
                 self.transactions.push(tx);
 
                 if z_flag {
