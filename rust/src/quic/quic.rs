@@ -22,7 +22,7 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
 use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
@@ -58,7 +58,7 @@ impl QuicTransaction {
         extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
-        QuicTransaction {
+        let mut ntx = QuicTransaction {
             tx_id: 0,
             header,
             cyu,
@@ -68,7 +68,13 @@ impl QuicTransaction {
             ja3,
             client,
             tx_data: AppLayerTxData::new(),
+        };
+        if client {
+            ntx.tx_data.set_inspect_direction(Direction::ToServer);
+        } else {
+            ntx.tx_data.set_inspect_direction(Direction::ToClient);
         }
+        return ntx;
     }
 
     fn new_empty(client: bool, header: QuicHeader) -> Self {
@@ -135,6 +141,11 @@ impl QuicState {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
+        if client {
+            tx.tx_data.set_inspect_direction(Direction::ToServer);
+        } else {
+            tx.tx_data.set_inspect_direction(Direction::ToClient);
+        }
         self.transactions.push_back(tx);
     }
 
