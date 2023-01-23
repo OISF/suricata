@@ -66,7 +66,6 @@
 #define APP_LAYER_TX_RESERVED12_FLAG BIT_U64(59)
 #define APP_LAYER_TX_RESERVED13_FLAG BIT_U64(60)
 #define APP_LAYER_TX_RESERVED14_FLAG BIT_U64(61)
-#define APP_LAYER_TX_RESERVED15_FLAG BIT_U64(62)
 
 #define APP_LAYER_TX_RESERVED_FLAGS                                                                \
     (APP_LAYER_TX_RESERVED1_FLAG | APP_LAYER_TX_RESERVED2_FLAG | APP_LAYER_TX_RESERVED3_FLAG |     \
@@ -75,8 +74,10 @@
             APP_LAYER_TX_RESERVED8_FLAG | APP_LAYER_TX_RESERVED9_FLAG |                            \
             APP_LAYER_TX_RESERVED10_FLAG | APP_LAYER_TX_RESERVED11_FLAG |                          \
             APP_LAYER_TX_RESERVED12_FLAG | APP_LAYER_TX_RESERVED13_FLAG |                          \
-            APP_LAYER_TX_RESERVED14_FLAG | APP_LAYER_TX_RESERVED15_FLAG)
+            APP_LAYER_TX_RESERVED14_FLAG)
 
+/** should inspection be skipped in that direction */
+#define APP_LAYER_TX_SKIP_INSPECT_FLAG BIT_U64(62)
 /** is tx fully inspected? */
 #define APP_LAYER_TX_INSPECTED_FLAG             BIT_U64(63)
 /** other 63 bits are for tracking which prefilter engine is already

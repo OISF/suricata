@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto};
+use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto,Direction};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
@@ -178,6 +178,14 @@ impl AppLayerTxData {
         if (self.file_flags & state_flags) != state_flags {
             SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
             self.file_flags |= state_flags;
+        }
+    }
+
+    pub fn set_inspect_direction(&mut self, direction: Direction) {
+        if direction == Direction::ToClient {
+            self.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        } else {
+            self.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
         }
     }
 }
@@ -473,6 +481,8 @@ pub const APP_LAYER_PARSER_TRUNC_TC : u16 = BIT_U16!(8);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
+
+pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
 
 pub type AppLayerGetTxIteratorFn = unsafe extern "C" fn (ipproto: u8,
                                                   alproto: AppProto,
