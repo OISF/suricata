@@ -180,8 +180,10 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
     ret = nflog_get_timestamp(nfa, &p->ts);
     if (ret != 0) {
-        memset(&p->ts, 0, sizeof(struct timeval));
-        gettimeofday(&p->ts, NULL);
+        struct timeval tv;
+        memset(&tv, 0, sizeof(struct timeval));
+        gettimeofday(&tv, NULL);
+        p->ts = SCTIME_FROM_TIMEVAL(&tv);
     }
 
     p->datalink = DLT_RAW;
