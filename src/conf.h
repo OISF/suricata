@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -97,5 +97,5 @@ int ConfNodeIsSequence(const ConfNode *node);
 ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
 int ConfSetRootAndDefaultNodes(
         const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default);
-
+ConfNode *ConfNodeGetNodeOrCreate(ConfNode *parent, const char *name, int final);
 #endif /* ! __CONF_H__ */

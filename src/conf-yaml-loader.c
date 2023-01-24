@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -302,35 +302,40 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                                 Mangle(parent->val);
                         }
                     }
-                    ConfNode *existing = ConfNodeLookupChild(parent, value);
-                    if (existing != NULL) {
-                        if (!existing->final) {
-                            SCLogInfo("Configuration node '%s' redefined.",
-                                existing->name);
-                            ConfNodePrune(existing);
-                        }
-                        node = existing;
-                    }
-                    else {
-                        node = ConfNodeNew();
-                        node->name = SCStrdup(value);
-                        if (node->name && strchr(node->name, '_')) {
-                            if (!(parent->name &&
-                                   ((strcmp(parent->name, "address-groups") == 0) ||
-                                    (strcmp(parent->name, "port-groups") == 0)))) {
-                                Mangle(node->name);
-                                if (mangle_errors < MANGLE_ERRORS_MAX) {
-                                    SCLogWarning("%s is deprecated. Please use %s on line %" PRIuMAX
-                                                 ".",
-                                            value, node->name, (uintmax_t)parser->mark.line + 1);
-                                    mangle_errors++;
-                                    if (mangle_errors >= MANGLE_ERRORS_MAX)
-                                        SCLogWarning("not showing more "
-                                                     "parameter name warnings.");
+
+                    if (strchr(value, '.') != NULL) {
+                        node = ConfNodeGetNodeOrCreate(parent, value, 0);
+                    } else {
+                        ConfNode *existing = ConfNodeLookupChild(parent, value);
+                        if (existing != NULL) {
+                            if (!existing->final) {
+                                SCLogInfo("Configuration node '%s' redefined.", existing->name);
+                                ConfNodePrune(existing);
+                            }
+                            node = existing;
+                        } else {
+                            node = ConfNodeNew();
+                            node->name = SCStrdup(value);
+                            if (node->name && strchr(node->name, '_')) {
+                                if (!(parent->name &&
+                                            ((strcmp(parent->name, "address-groups") == 0) ||
+                                                    (strcmp(parent->name, "port-groups") == 0)))) {
+                                    Mangle(node->name);
+                                    if (mangle_errors < MANGLE_ERRORS_MAX) {
+                                        SCLogWarning(
+                                                "%s is deprecated. Please use %s on line %" PRIuMAX
+                                                ".",
+                                                value, node->name,
+                                                (uintmax_t)parser->mark.line + 1);
+                                        mangle_errors++;
+                                        if (mangle_errors >= MANGLE_ERRORS_MAX)
+                                            SCLogWarning("not showing more "
+                                                         "parameter name warnings.");
+                                    }
                                 }
                             }
+                            TAILQ_INSERT_TAIL(&parent->head, node, next);
                         }
-                        TAILQ_INSERT_TAIL(&parent->head, node, next);
                     }
                     state = CONF_VAL;
                 }
