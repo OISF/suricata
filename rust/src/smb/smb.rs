@@ -74,12 +74,12 @@ pub enum SMBFrameType {
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
-pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 0;
-pub static mut SMB_CFG_MAX_READ_QUEUE_SIZE: u32 = 0;
-pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 0;
-pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 0;
-pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 0;
-pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 0;
+pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 16777216;
+pub static mut SMB_CFG_MAX_READ_QUEUE_SIZE: u32 = 67108864;
+pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
+pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 16777216;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
+pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -2428,6 +2428,10 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid value for smb.max-tx");
             }
         }
+        SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
+                SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
+        SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
+                SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
