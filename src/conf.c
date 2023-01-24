@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,15 +56,15 @@ static ConfNode *root_backup = NULL;
  * This function exits on memory failure as creating configuration
  * nodes is usually part of application initialization.
  *
+ * \param parent The node to use as the parent
  * \param name The name of the configuration node to get.
  * \param final Flag to set created nodes as final or not.
  *
  * \retval The existing configuration node if it exists, or a newly
  *   created node for the provided name.  On error, NULL will be returned.
  */
-static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
+ConfNode *ConfNodeGetNodeOrCreate(ConfNode *parent, const char *name, int final)
 {
-    ConfNode *parent = root;
     ConfNode *node = NULL;
     char node_name[NODE_NAME_MAX];
     char *key;
@@ -103,6 +103,15 @@ static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
 
 end:
     return node;
+}
+
+/**
+ * \brief Wrapper function for ConfNodeGetNodeOrCreate that operates
+ *     on the current root node.
+ */
+static ConfNode *ConfGetNodeOrCreate(const char *name, int final)
+{
+    return ConfNodeGetNodeOrCreate(root, name, final);
 }
 
 /**
