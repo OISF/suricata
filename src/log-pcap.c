@@ -1104,8 +1104,9 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 #endif /* INIT_RING_BUFFER */
     }
 
-    /* Don't early initialize output files if in a PCAP file mode. */
-    if (IsRunModeOffline(RunmodeGetCurrent())) {
+    /* Don't early initialize output files if in a PCAP file (offline)
+     * mode. */
+    if (!IsRunModeOffline(RunmodeGetCurrent())) {
         if (pl->mode == LOGMODE_MULTI) {
             PcapLogOpenFileCtx(td->pcap_log);
         } else {
