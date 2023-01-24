@@ -3,6 +3,20 @@ SSL/TLS Keywords
 
 Suricata comes with several rule keywords to match on various properties of TLS/SSL handshake. Matches are string inclusion matches.
 
+tls.subject
+-----------
+
+Legacy keyword to match TLS/SSL certificate Subject field.
+
+example:
+
+
+::
+
+  tls.subject:"CN=*.googleusercontent.com"
+
+Case sensitive, can't use 'nocase'.
+
 tls.cert_subject
 ----------------
 
@@ -17,9 +31,23 @@ Examples::
 
 ``tls.cert_subject`` can be used as ``fast_pattern``.
 
-``tls.cert_subject`` replaces the previous keyword name: ``tls_cert_subject``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
+**Note:** ``tls.cert_subject`` replaces the previous keyword names: ``tls_cert_subject`` and ``tls.subject``. 
+You may continue to use the previous names, but it's recommended that rules be converted to use
 the new name.
+
+tls.issuerdn
+------------
+
+Legacy keyword to match TLS/SSL certificate IssuerDN field
+
+example:
+
+
+::
+
+  tls.issuerdn:!"CN=Google-Internet-Authority"
+
+Case sensitive, can't use 'nocase'.
 
 tls.cert_issuer
 ---------------
@@ -35,8 +63,8 @@ Examples::
 
 ``tls.cert_issuer`` can be used as ``fast_pattern``.
 
-``tls.cert_issuer`` replaces the previous keyword name: ``tls_cert_issuer``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
+**Note:** ``tls.cert_issuer`` replaces the previous keyword name: ``tls_cert_issuer`` and ``tls.issuerdn``. 
+You may continue to use the previous names, but it's recommended that rules be converted to use
 the new name.
 
 tls.cert_serial
@@ -185,38 +213,6 @@ Example::
 
   alert tls any any -> any any (msg:"match SSLv2 and SSLv3"; \
     ssl_version:sslv2,sslv3; sid:200031;)
-
-tls.subject
------------
-
-Match TLS/SSL certificate Subject field.
-
-example:
-
-
-::
-
-  tls.subject:"CN=*.googleusercontent.com"
-
-Case sensitive, can't use 'nocase'.
-
-Legacy keyword. ``tls.cert_subject`` is the replacement.
-
-tls.issuerdn
-------------
-
-match TLS/SSL certificate IssuerDN field
-
-example:
-
-
-::
-
-  tls.issuerdn:!"CN=Google-Internet-Authority"
-
-Case sensitive, can't use 'nocase'.
-
-Legacy keyword. ``tls.cert_issuer`` is the replacement.
 
 tls.fingerprint
 ---------------
