@@ -316,6 +316,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                         } else {
                             node = ConfNodeNew();
                             node->name = SCStrdup(value);
+                            node->parent = parent;
                             if (node->name && strchr(node->name, '_')) {
                                 if (!(parent->name &&
                                             ((strcmp(parent->name, "address-groups") == 0) ||
@@ -858,19 +859,22 @@ ConfYamlFileIncludeTest(void)
 static int
 ConfYamlOverrideTest(void)
 {
-    char config[] =
-        "%YAML 1.1\n"
-        "---\n"
-        "some-log-dir: /var/log\n"
-        "some-log-dir: /tmp\n"
-        "\n"
-        "parent:\n"
-        "  child0:\n"
-        "    key: value\n"
-        "parent:\n"
-        "  child1:\n"
-        "    key: value\n"
-        ;
+    char config[] = "%YAML 1.1\n"
+                    "---\n"
+                    "some-log-dir: /var/log\n"
+                    "some-log-dir: /tmp\n"
+                    "\n"
+                    "parent:\n"
+                    "  child0:\n"
+                    "    key: value\n"
+                    "parent:\n"
+                    "  child1:\n"
+                    "    key: value\n"
+                    "vars:\n"
+                    "  address-groups:\n"
+                    "    HOME_NET: \"[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]\"\n"
+                    "    EXTERNAL_NET: any\n"
+                    "vars.address-groups.HOME_NET: \"10.10.10.10/32\"\n";
     const char *value;
 
     ConfCreateContextBackup();
@@ -884,6 +888,24 @@ ConfYamlOverrideTest(void)
     FAIL_IF_NOT_NULL(ConfGetNode("parent.child0"));
     FAIL_IF_NOT(ConfGet("parent.child1.key", &value));
     FAIL_IF(strcmp(value, "value") != 0);
+
+    /* First check that vars.address-groups.EXTERNAL_NET has the
+     * expected parent of vars.address-groups and save this
+     * pointer. We want to make sure that the overrided value has the
+     * same parent later on. */
+    ConfNode *vars_address_groups = ConfGetNode("vars.address-groups");
+    FAIL_IF_NULL(vars_address_groups);
+    ConfNode *vars_address_groups_external_net = ConfGetNode("vars.address-groups.EXTERNAL_NET");
+    FAIL_IF_NULL(vars_address_groups_external_net);
+    FAIL_IF_NOT(vars_address_groups_external_net->parent == vars_address_groups);
+
+    /* Now check that HOME_NET has the overrided value. */
+    ConfNode *vars_address_groups_home_net = ConfGetNode("vars.address-groups.HOME_NET");
+    FAIL_IF_NULL(vars_address_groups_home_net);
+    FAIL_IF(strcmp(vars_address_groups_home_net->val, "10.10.10.10/32") != 0);
+
+    /* And check that it has the correct parent. */
+    FAIL_IF_NOT(vars_address_groups_home_net->parent == vars_address_groups);
 
     ConfDeInit();
     ConfRestoreContextBackup();
