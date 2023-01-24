@@ -6381,7 +6381,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     }
 
     /* use parent time stamp */
-    memcpy(&np->ts, &parent->ts, sizeof(struct timeval));
+    np->ts = parent->ts;
 
     SCLogDebug("np %p", np);
     PacketEnqueueNoLock(pq, np);

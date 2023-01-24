@@ -247,7 +247,6 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                               (uint16_t *)p->tcph, 20, 0);
     }
 
-    memset(&p->ts, 0, sizeof(struct timeval));
     p->ts = TimeGet();
 
     if (direction == 0) {
