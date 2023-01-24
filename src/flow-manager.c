@@ -193,9 +193,9 @@ again:
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, int32_t *next_ts, const bool emerg)
+static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const bool emerg)
 {
-    int32_t flow_times_out_at = f->timeout_at;
+    uint32_t flow_times_out_at = f->timeout_at;
     if (emerg) {
         extern FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
         flow_times_out_at -= FlowGetFlowTimeoutDirect(flow_timeouts_delta, f->flow_state, f->protomap);
@@ -204,7 +204,7 @@ static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, int32_t *next_ts, const 
         *next_ts = flow_times_out_at;
 
     /* do the timeout check */
-    if (flow_times_out_at >= (time_t)SCTIME_SECS(ts)) {
+    if ((uint64_t)flow_times_out_at >= SCTIME_SECS(ts)) {
         return 0;
     }
 
@@ -319,7 +319,7 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
  *  \param counters ptr to FlowTimeoutCounters structure
  */
 static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCTime_t ts,
-        int emergency, FlowTimeoutCounters *counters, int32_t *next_ts)
+        int emergency, FlowTimeoutCounters *counters, uint32_t *next_ts)
 {
     uint32_t checked = 0;
     Flow *prev_f = NULL;
@@ -420,14 +420,14 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
 #define TYPE uint32_t
 #endif
 
-    time_t ts_secs = SCTIME_SECS(ts);
+    const uint32_t ts_secs = SCTIME_SECS(ts);
     for (uint32_t idx = hash_min; idx < hash_max; idx+=BITS) {
         TYPE check_bits = 0;
         const uint32_t check = MIN(BITS, (hash_max - idx));
         for (uint32_t i = 0; i < check; i++) {
             FlowBucket *fb = &flow_hash[idx+i];
             check_bits |= (TYPE)(SC_ATOMIC_LOAD_EXPLICIT(fb->next_ts,
-                                         SC_ATOMIC_MEMORY_ORDER_RELAXED) <= (int32_t)ts_secs)
+                                         SC_ATOMIC_MEMORY_ORDER_RELAXED) <= ts_secs)
                           << (TYPE)i;
         }
         if (check_bits == 0)
@@ -436,7 +436,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
         for (uint32_t i = 0; i < check; i++) {
             FlowBucket *fb = &flow_hash[idx+i];
             if ((check_bits & ((TYPE)1 << (TYPE)i)) != 0 &&
-                    SC_ATOMIC_GET(fb->next_ts) <= (int32_t)ts_secs) {
+                    SC_ATOMIC_GET(fb->next_ts) <= ts_secs) {
                 FBLOCK_LOCK(fb);
                 Flow *evicted = NULL;
                 if (fb->evicted != NULL || fb->head != NULL) {
@@ -447,17 +447,17 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
                         fb->evicted = NULL;
                     }
                     if (fb->head != NULL) {
-                        int32_t next_ts = 0;
+                        uint32_t next_ts = 0;
                         FlowManagerHashRowTimeout(td, fb->head, ts, emergency, counters, &next_ts);
 
                         if (SC_ATOMIC_GET(fb->next_ts) != next_ts)
                             SC_ATOMIC_SET(fb->next_ts, next_ts);
                     }
                     if (fb->evicted == NULL && fb->head == NULL) {
-                        SC_ATOMIC_SET(fb->next_ts, INT_MAX);
+                        SC_ATOMIC_SET(fb->next_ts, UINT_MAX);
                     }
                 } else {
-                    SC_ATOMIC_SET(fb->next_ts, INT_MAX);
+                    SC_ATOMIC_SET(fb->next_ts, UINT_MAX);
                     rows_empty++;
                 }
                 FBLOCK_UNLOCK(fb);

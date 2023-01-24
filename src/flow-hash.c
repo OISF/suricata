@@ -1120,7 +1120,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
 
         FlowBucket *fb = &flow_hash[idx];
 
-        if (SC_ATOMIC_GET(fb->next_ts) == INT_MAX)
+        if (SC_ATOMIC_GET(fb->next_ts) == UINT_MAX)
             continue;
 
         if (GetUsedTryLockBucket(fb) != 0) {
