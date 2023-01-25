@@ -79,7 +79,7 @@ named!(pub parse_nfs2_reply_read<NfsReplyRead>,
             status: be_u32
         >>  attr_blob: take!(68)
         >>  data_len: be_u32
-        >>  data_contents: rest
+        >>  data_contents: take!(data_len)
         >> (
             NfsReplyRead {
                 status,
