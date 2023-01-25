@@ -176,7 +176,9 @@ void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
     int conf_status;
-    ConfGetBool("security.landlock.enabled", &conf_status);
+    if (ConfGetBool("security.landlock.enabled", &conf_status) == 0) {
+        conf_status = 0;
+    }
     if (!conf_status) {
         SCLogConfig("Landlock is not enabled in configuration");
         return;
@@ -195,20 +197,21 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;
-        ConfGet("pcap-file.file", &pcap_file);
-        char *file_name = SCStrdup(pcap_file);
-        if (file_name != NULL) {
-            struct stat statbuf;
-            if (stat(file_name, &statbuf) != -1) {
-                if (S_ISDIR(statbuf.st_mode)) {
-                    LandlockSandboxingReadPath(ruleset, file_name);
+        if (ConfGet("pcap-file.file", &pcap_file) == 1) {
+            char *file_name = SCStrdup(pcap_file);
+            if (file_name != NULL) {
+                struct stat statbuf;
+                if (stat(file_name, &statbuf) != -1) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        LandlockSandboxingReadPath(ruleset, file_name);
+                    } else {
+                        LandlockSandboxingReadPath(ruleset, dirname(file_name));
+                    }
                 } else {
-                    LandlockSandboxingReadPath(ruleset, dirname(file_name));
+                    SCLogError("Can't open pcap file");
                 }
-            } else {
-                SCLogError("Can't open pcap file");
+                SCFree(file_name);
             }
-            SCFree(file_name);
         }
     }
     if (suri->sig_file) {
@@ -243,8 +246,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (suri->sig_file_exclusive == FALSE) {
         const char *rule_path;
-        ConfGet("default-rule-path", &rule_path);
-        if (rule_path) {
+        if (ConfGet("default-rule-path", &rule_path) == 1 && rule_path) {
             LandlockSandboxingReadPath(ruleset, rule_path);
         }
     }
