@@ -456,7 +456,8 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 } else {
                     dyn_headers.table.push(headcopy);
                 }
-                while dyn_headers.current_size > dyn_headers.max_size && !dyn_headers.table.is_empty()
+                while dyn_headers.current_size > dyn_headers.max_size
+                    && !dyn_headers.table.is_empty()
                 {
                     dyn_headers.current_size -=
                         32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();

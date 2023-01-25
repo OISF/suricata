@@ -265,7 +265,7 @@ fn http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
-            if let HTTP2FrameTypeData::SETTINGS(set ) = &tx.frames_ts[i].data {
+            if let HTTP2FrameTypeData::SETTINGS(set) = &tx.frames_ts[i].data {
                 if http2_detect_settings_match(set, ctx) != 0 {
                     return 1;
                 }
@@ -296,7 +296,9 @@ fn http2_detect_sizeupdate_match(
     blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &DetectUintData<u64>,
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
-        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate && detect_match_uint(ctx, block.sizeupdate) {
+        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+            && detect_match_uint(ctx, block.sizeupdate)
+        {
             return 1;
         }
     }
