@@ -72,6 +72,17 @@ jobs:
           echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
           echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
           echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
+      - name: Annotate output
+        run: |
+          echo "::notice:: LIBHTP_REPO=${libhtp_repo}"
+          echo "::notice:: LIBHTP_BRANCH=${libhtp_branch}"
+          echo "::notice:: LIBHTP_PR=${libhtp_pr}"
+          echo "::notice:: SU_REPO=${su_repo}"
+          echo "::notice:: SU_BRANCH=${su_branch}"
+          echo "::notice:: SU_PR=${su_pr}"
+          echo "::notice:: SV_REPO=${sv_repo}"
+          echo "::notice:: SV_BRANCH=${sv_branch}"
+          echo "::notice:: SV_PR=${sv_pr}"
       - name: Fetching libhtp
         run: |
           git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
