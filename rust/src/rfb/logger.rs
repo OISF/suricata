@@ -102,7 +102,6 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.set_uint("red_shift", tc_server_init.pixel_format.red_shift as u64)?;
         js.set_uint("green_shift", tc_server_init.pixel_format.green_shift as u64)?;
         js.set_uint("blue_shift", tc_server_init.pixel_format.blue_shift as u64)?;
-        js.set_uint("depth", tc_server_init.pixel_format.depth as u64)?;
         js.close()?;
 
         js.close()?;
