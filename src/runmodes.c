@@ -384,14 +384,9 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
     } else {
         /* Add compability with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
-            char *local_custom_mode = NULL;
             SCLogWarning("'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");
-            local_custom_mode = SCStrdup("workers");
-            if (unlikely(local_custom_mode == NULL)) {
-                FatalError("Unable to dup custom mode");
-            }
-            custom_mode = local_custom_mode;
+            custom_mode = "workers";
         }
     }
 
