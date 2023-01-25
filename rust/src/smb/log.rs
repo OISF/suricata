@@ -337,9 +337,18 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                         jsb.set_uint("stub_data_size", x.stub_data_ts.len() as u64)?;
                         jsb.close()?;
                         if let Some(ref ifaces) = state.dcerpc_ifaces {
-                            for i in ifaces {
-                                if i.context_id == x.context_id {
-                                    jsb.open_object("interface")?;
+                            // First filter the interfaces to those
+                            // with the context_id we want to log to
+                            // avoid creating an empty "interfaces"
+                            // array.
+                            let mut ifaces = ifaces
+                                .iter()
+                                .filter(|i| i.context_id == x.context_id)
+                                .peekable();
+                            if ifaces.peek().is_some() {
+                                jsb.open_array("interfaces")?;
+                                for i in ifaces {
+                                    jsb.start_object()?;
                                     let ifstr = uuid::Uuid::from_slice(&i.uuid);
                                     let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
