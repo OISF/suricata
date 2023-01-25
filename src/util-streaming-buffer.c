@@ -1178,8 +1178,6 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
 
         if (r == src_end)
             break;
-
-        prev = r;
         r = next;
     }
 
