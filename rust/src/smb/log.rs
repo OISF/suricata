@@ -258,8 +258,6 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             }
         },
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
-            jsb.set_uint("tree_id", x.tree_id as u64)?;
-
             let share_name = String::from_utf8_lossy(&x.share_name);
             if x.is_pipe {
                 jsb.set_string("named_pipe", &share_name)?;
