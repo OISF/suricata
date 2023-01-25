@@ -1063,10 +1063,7 @@ static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBuffer *
         if (!RegionsIntersect(sb, cfg, r, offset, data_re))
             return candidate;
 
-        if (candidate == NULL) {
-            candidate = r;
-            SCLogDebug("candidate %p", candidate);
-        } else if (r->buf_size > candidate->buf_size) {
+        if (r->buf_size > candidate->buf_size) {
             SCLogDebug("candidate %p as size %u > %u", candidate, r->buf_size, candidate->buf_size);
             candidate = r;
         }
