@@ -320,6 +320,7 @@ impl NFSState {
                 Nfs4ResponseContent::ReadDir(_s, Some(ref rd)) => {
                     SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
                     
+                    #[allow(clippy::manual_flatten)]
                     for d in &rd.listing {
                         if let Some(_d) = d {
                             SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(_d.name));
