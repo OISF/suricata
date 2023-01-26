@@ -212,6 +212,7 @@ void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
 
 uint64_t StreamTcpGetAcked(const TcpStream *stream);
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof);
+uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof);
 
 void StreamTcpThreadCacheEnable(void);
 void StreamTcpThreadCacheCleanup(void);
