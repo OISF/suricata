@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+#![allow(clippy::uninlined_format_args)]
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
