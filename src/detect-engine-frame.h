@@ -31,9 +31,6 @@ int DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, co
 
 int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
-InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Packet *p, const Frames *frames,
-        const Frame *frame, const int list_id, const uint32_t idx, const bool first);
 int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
         const DetectEngineFrameInspectionEngine *engine, const Signature *s, Packet *p,
         const Frames *frames, const Frame *frame, const uint32_t idx);
