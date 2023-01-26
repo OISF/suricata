@@ -1446,6 +1446,17 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             if (chunks_buffer_len > expected_boundary_end_len) {
                 const uint8_t *filedata = chunks_buffer;
                 uint32_t filedata_len = chunks_buffer_len - expected_boundary_len;
+                for (uint32_t i = 0; i < expected_boundary_len; i++) {
+                    // take as much as we can until the beginning of a new line
+                    if (chunks_buffer[filedata_len + i] == '\r') {
+                        if (i + 1 == expected_boundary_len ||
+                                chunks_buffer[filedata_len + i + 1] == '\n') {
+                            break;
+                        }
+                    }
+                    filedata_len++;
+                }
+
 #ifdef PRINT
                 printf("FILEDATA (part) START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
