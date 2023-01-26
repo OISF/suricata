@@ -182,7 +182,7 @@ fn smb1_command_is_andx(c: u8) -> bool {
     }
 }
 
-fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) {
+fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
@@ -580,7 +580,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
     }
 }
 
-pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+pub fn smb1_request_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
     SCLogDebug!("record: command {}: record {:?}", r.command, r);
 
     let mut andx_offset = SMB1_HEADER_SIZE;
@@ -606,7 +606,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     0
 }
 
-fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) {
+fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
     SCLogDebug!("record: command {} status {} -> {:?}", r.command, r.nt_status, r);
 
     let key_ssn_id = r.ssn_id;
@@ -822,7 +822,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
     }
 }
 
-pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+pub fn smb1_response_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
@@ -846,7 +846,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
     0
 }
 
-pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
+pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -885,7 +885,7 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
     smb1_request_record_generic(state, r, events);
 }
 
-pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
+pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -932,7 +932,7 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
-pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize, command: u8)
+pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, command: u8)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1019,7 +1019,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
     smb1_request_record_generic(state, r, events);
 }
 
-pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize)
+pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1111,7 +1111,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
 /// create a tx for a command / response pair if we're
 /// configured to do so, or if this is a tx especially
 /// for setting an event.
-fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
+fn smb1_request_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {
     if smb1_create_new_tx(r.command) || !events.is_empty() {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
@@ -1122,7 +1122,7 @@ fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, even
 /// update or create a tx for a command / reponse pair based
 /// on the response. We only create a tx for the response side
 /// if we didn't already update a tx, and we have to set events
-fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
+fn smb1_response_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {
     let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
     if let Some(tx) = state.get_generic_tx(1, r.command as u16, &tx_key) {
         tx.request_done = true;

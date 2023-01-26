@@ -124,8 +124,8 @@ impl NFSState {
         }
     }
 
-    fn new_tx_v4<'b>(
-        &mut self, r: &RpcPacket<'b>, xidmap: &NFSRequestXidMap, procedure: u32,
+    fn new_tx_v4(
+        &mut self, r: &RpcPacket, xidmap: &NFSRequestXidMap, procedure: u32,
         _aux_opcodes: &[u32],
     ) {
         let mut tx = self.new_tx();
@@ -238,7 +238,7 @@ impl NFSState {
     }
 
     /// complete request record
-    pub fn process_request_record_v4<'b>(&mut self, r: &RpcPacket<'b>) {
+    pub fn process_request_record_v4(&mut self, r: &RpcPacket) {
         SCLogDebug!(
             "NFSv4 REQUEST {} procedure {} ({}) blob size {}",
             r.hdr.xid,
@@ -381,8 +381,8 @@ impl NFSState {
         }
     }
 
-    pub fn process_reply_record_v4<'b>(
-        &mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap,
+    pub fn process_reply_record_v4(
+        &mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap,
     ) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;

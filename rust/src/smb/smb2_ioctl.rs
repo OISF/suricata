@@ -57,7 +57,7 @@ impl SMBState {
 }
 
 // IOCTL responses ASYNC don't set the tree id
-pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record)
 {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
@@ -86,7 +86,7 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 }
 
 // IOCTL responses ASYNC don't set the tree id
-pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record)
 {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_response_ioctl(r.data) {
