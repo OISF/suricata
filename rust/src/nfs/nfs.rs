@@ -672,7 +672,7 @@ impl NFSState {
         }
     }
 
-    pub fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_request_record_lookup(&mut self, r: &RpcPacket, xidmap: &mut NFSRequestXidMap) {
         match parse_nfs3_request_lookup(r.prog_data) {
             Ok((_, lookup)) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
@@ -698,7 +698,7 @@ impl NFSState {
     }
 
     /// complete request record
-    fn process_request_record<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcPacket<'b>) {
+    fn process_request_record(&mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcPacket) {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
@@ -845,7 +845,7 @@ impl NFSState {
         return self.process_write_record(r, w);
     }
 
-    fn process_reply_record<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket<'b>) -> u32 {
+    fn process_reply_record(&mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket) -> u32 {
         let mut xidmap;
         match self.requestmap.remove(&r.hdr.xid) {
             Some(p) => { xidmap = p; },

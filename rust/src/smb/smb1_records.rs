@@ -331,7 +331,7 @@ pub fn parse_smb_trans_request_record_data(i: &[u8],
     Ok((i, req))
 }
 
-pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
+pub fn parse_smb_trans_request_record<'a>(i: &'a[u8], r: &SmbRecord)
     -> IResult<&'a[u8], SmbRecordTransRequest<'a>, SmbError>
 {
     let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
