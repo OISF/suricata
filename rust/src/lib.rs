@@ -20,6 +20,7 @@
 // Allow these patterns as its a style we like.
 #![allow(clippy::needless_return)]
 #![allow(clippy::let_and_return)]
+#![allow(clippy::uninlined_format_args)]
 
 // We find this makes sense at time.
 #![allow(clippy::module_inception)]
