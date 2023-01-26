@@ -1210,37 +1210,31 @@ NTLMSSP fields
 * "domain" (string): the Windows domain.
 * "user" (string): the user.
 * "host" (string): the host.
+* "version" (string): the version of client.
 
 Example::
 
-    "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU"
-    }
-
+  "ntlmssp": {
+      "domain": "CONTOSO",
+      "user": "Administrator",
+      "host": "SERVER01",
+      "version": "6.0 build 6001 rev 15"
+  }
 More complete example::
 
   "smb": {
     "id": 3,
-    "dialect": "NT LM 0.12",
-    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
+    "dialect": "2.02",
+    "command": "SMB2_COMMAND_SESSION_SETUP",
     "status": "STATUS_SUCCESS",
     "status_code": "0x0",
-    "session_id": 2048,
+    "session_id": 4398046511109,
     "tree_id": 0,
     "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU"
-    },
-    "request": {
-      "native_os": "Unix",
-      "native_lm": "Samba 3.9.0-SVN-build-11572"
-    },
-    "response": {
-      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
-      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
+      "domain": "CONTOSO",
+      "user": "Administrator",
+      "host": "SERVER01",
+      "version": "6.0 build 6001 rev 15"
     }
   }
 
