@@ -411,6 +411,16 @@ uint64_t StreamTcpGetAcked(const TcpStream *stream)
     return GetAbsLastAck(stream);
 }
 
+// may contain gaps
+uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof)
+{
+    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->segs_right_edge - stream->base_seq;
+    if (!eof && StreamTcpInlineMode() == FALSE) {
+        right_edge = MIN(GetAbsLastAck(stream), right_edge);
+    }
+    return right_edge;
+}
+
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof)
 {
     uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
