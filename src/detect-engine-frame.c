@@ -40,6 +40,10 @@
 #include "util-validate.h"
 #include "util-print.h"
 
+static InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const Frames *frames,
+        const Frame *frame, const int list_id, const uint32_t idx, const bool first);
+
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
         const Frames *frames, const Frame *frame, const AppProto alproto, const uint32_t idx)
 {
@@ -300,7 +304,7 @@ static int FrameStreamDataFunc(
     return 1; // for now only the first chunk
 }
 
-InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
+static InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const Frames *frames,
         const Frame *frame, const int list_id, const uint32_t idx, const bool first)
 {
