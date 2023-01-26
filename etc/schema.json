@@ -5368,10 +5368,10 @@
                             "type": "string"
                         },
                         "notafter": {
-                            "type": "string"
+                            "$ref": "#/$defs/tls_date"
                         },
                         "notbefore": {
-                            "type": "string"
+                            "$ref": "#/$defs/tls_date"
                         },
                         "serial": {
                             "type": "string"
@@ -5392,10 +5392,10 @@
                     "type": "string"
                 },
                 "notafter": {
-                    "type": "string"
+                    "$ref": "#/$defs/tls_date"
                 },
                 "notbefore": {
-                    "type": "string"
+                    "$ref": "#/$defs/tls_date"
                 },
                 "serial": {
                     "type": "string"
@@ -5513,6 +5513,11 @@
                 }
             },
             "additionalProperties": false
+        },
+        "tls_date": {
+            "$comment": "Definition for TLS date formats",
+            "type": "string",
+            "pattern": "^[1-2]\\d{3}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$"
         }
     }
 }
