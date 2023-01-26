@@ -3627,6 +3627,13 @@
                         },
                         "user": {
                             "type": "string"
+                        },
+                        "version": {
+                            "type": "string",
+                            "optional": true
+                        },
+                        "warning": {
+                            "type": "boolean"
                         }
                     },
                     "additionalProperties": false
