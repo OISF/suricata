@@ -1577,7 +1577,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
         /* run prefilter engines and merge results into a candidates array */
         if (sgh->frame_engines) {
             //            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
-            DetectRunPrefilterFrame(det_ctx, sgh, p, frames, frame, alproto, idx);
+            DetectRunPrefilterFrame(det_ctx, sgh, p, frames, frame, alproto);
             //            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
             SCLogDebug("%p/%" PRIi64 " rules added from prefilter: %u candidates", frame, frame->id,
                     det_ctx->pmq.rule_id_array_cnt);
@@ -1641,7 +1641,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
             RULE_PROFILING_START(p);
             int r = DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags);
             if (r == 1) {
-                r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame, idx);
+                r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame);
                 if (r == 1) {
                     /* match */
                     DetectRunPostMatch(tv, det_ctx, p, s);
