@@ -28,7 +28,7 @@ pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(0);
 
 fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.set_uint("tx_id", tx.tx_id)?;
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         js.set_object("request", &log_request(request, flags)?)?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");

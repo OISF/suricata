@@ -611,7 +611,7 @@ fn dns_log_query(
     tx: &mut DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
 ) -> Result<bool, JsonError> {
     let index = i as usize;
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if index < request.queries.len() {
             let query = &request.queries[index];
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -651,7 +651,7 @@ pub extern "C" fn rs_dns_log_json_query(
 pub extern "C" fn rs_dns_log_json_answer(
     tx: &mut DNSTransaction, flags: u64, js: &mut JsonBuilder,
 ) -> bool {
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
                 return dns_log_json_answer(js, response, flags).is_ok();
@@ -663,7 +663,7 @@ pub extern "C" fn rs_dns_log_json_answer(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction, flags: u64) -> bool {
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
                 return true;
