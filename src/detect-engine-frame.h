@@ -25,12 +25,12 @@
 #include "app-layer-frames.h"
 
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
-        const Frames *frames, const Frame *frame, const AppProto alproto, const uint32_t idx);
+        const Frames *frames, const Frame *frame, const AppProto alproto);
 int DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, const Signature *s,
-        Flow *f, Packet *p, const Frames *frames, const Frame *frame, const uint32_t idx);
+        Flow *f, Packet *p, const Frames *frames, const Frame *frame);
 
 int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
 int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
         const DetectEngineFrameInspectionEngine *engine, const Signature *s, Packet *p,
-        const Frames *frames, const Frame *frame, const uint32_t idx);
+        const Frames *frames, const Frame *frame);
