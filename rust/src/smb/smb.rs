@@ -1267,7 +1267,7 @@ impl SMBState {
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_ts_partial<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &'b[u8]) -> usize
+    pub fn parse_tcp_data_ts_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
@@ -1595,7 +1595,7 @@ impl SMBState {
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_tc_partial<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &'b[u8]) -> usize
+    pub fn parse_tcp_data_tc_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {

@@ -537,8 +537,8 @@ impl fmt::Display for IsakmpPayloadType {
     }
 }
 
-pub fn parse_payload<'a>(
-    payload_type: u8, data: &'a [u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
+pub fn parse_payload(
+    payload_type: u8, data: &[u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
     key_exchange: &mut Vec<u8>, nonce: &mut Vec<u8>, transforms: &mut Vec<Vec<SaAttribute>>,
     vendor_ids: &mut Vec<String>, payload_types: &mut HashSet<u8>,
 ) -> Result<(), ()> {
@@ -611,8 +611,8 @@ pub fn parse_payload<'a>(
     }
 }
 
-fn parse_proposal_payload<'a>(
-    data: &'a [u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
+fn parse_proposal_payload(
+    data: &[u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
     key_exchange: &mut Vec<u8>, nonce: &mut Vec<u8>, transforms: &mut Vec<Vec<SaAttribute>>,
     vendor_ids: &mut Vec<String>, payload_types: &mut HashSet<u8>,
 ) -> Result<(), ()> {
@@ -658,8 +658,8 @@ fn parse_proposal_payload<'a>(
     }
 }
 
-fn parse_security_association_payload<'a>(
-    data: &'a [u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
+fn parse_security_association_payload(
+    data: &[u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
     key_exchange: &mut Vec<u8>, nonce: &mut Vec<u8>, transforms: &mut Vec<Vec<SaAttribute>>,
     vendor_ids: &mut Vec<String>, payload_types: &mut HashSet<u8>,
 ) -> Result<(), ()> {

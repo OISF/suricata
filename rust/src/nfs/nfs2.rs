@@ -27,7 +27,7 @@ use nom7::number::streaming::be_u32;
 
 impl NFSState {
     /// complete request record
-    pub fn process_request_record_v2<'b>(&mut self, r: &RpcPacket<'b>) {
+    pub fn process_request_record_v2(&mut self, r: &RpcPacket) {
         SCLogDebug!("NFSv2: REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
@@ -92,7 +92,7 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) {
+    pub fn process_reply_record_v2(&mut self, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap) {
         let mut nfs_status = 0;
         let resp_handle = Vec::new();
 

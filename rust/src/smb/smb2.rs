@@ -101,7 +101,7 @@ fn smb2_create_new_tx(cmd: u16) -> bool {
     }
 }
 
-fn smb2_read_response_record_generic<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+fn smb2_read_response_record_generic(state: &mut SMBState, r: &Smb2Record)
 {
     if smb2_create_new_tx(r.command) {
         let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
@@ -113,7 +113,7 @@ fn smb2_read_response_record_generic<'b>(state: &mut SMBState, r: &Smb2Record<'b
     }
 }
 
-pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_READ_QUEUE_CNT };
@@ -264,7 +264,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
@@ -396,7 +396,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
 {
     SCLogDebug!("SMBv2 request record, command {} tree {} session {}",
             &smb2_command_string(r.command), r.tree_id, r.session_id);
@@ -638,7 +638,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
+pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
 {
     SCLogDebug!("SMBv2 response record, command {} status {} tree {} session {} message {}",
             &smb2_command_string(r.command), r.nt_status,
