@@ -255,10 +255,10 @@ impl DNSTransaction {
 
     /// Get the DNS transactions ID (not the internal tracking ID).
     pub fn tx_id(&self) -> u16 {
-        if let &Some(ref request) = &self.request {
+        if let Some(request) = &self.request {
             return request.header.tx_id;
         }
-        if let &Some(ref response) = &self.response {
+        if let Some(response) = &self.response {
             return response.header.tx_id;
         }
 
@@ -269,7 +269,7 @@ impl DNSTransaction {
     /// Get the reply code of the transaction. Note that this will
     /// also return 0 if there is no reply.
     pub fn rcode(&self) -> u16 {
-        if let &Some(ref response) = &self.response {
+        if let Some(response) = &self.response {
             return response.header.flags & 0x000f;
         }
         return 0;
@@ -865,7 +865,7 @@ export_state_data_get!(rs_dns_get_state_data, DNSState);
 pub unsafe extern "C" fn rs_dns_tx_get_query_name(
     tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if !query.name.is_empty() {
@@ -898,7 +898,7 @@ pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction) -> u16 {
 pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
     tx: &mut DNSTransaction, i: u16, rrtype: *mut u16,
 ) -> u8 {
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if !query.name.is_empty() {

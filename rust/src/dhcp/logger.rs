@@ -42,7 +42,7 @@ impl DHCPLogger {
             let code = option.code;
             #[allow(clippy::single_match)]
             match &option.option {
-                &DHCPOptionWrapper::Generic(ref option) => {
+                DHCPOptionWrapper::Generic(option) => {
                     #[allow(clippy::single_match)]
                     match code {
                         DHCP_OPT_TYPE => {

@@ -321,7 +321,7 @@ impl NFSState {
                     SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
                     
                     for d in &rd.listing {
-                        if let &Some(ref _d) = d {
+                        if let Some(_d) = d {
                             SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(_d.name));
                         }
                     }

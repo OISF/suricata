@@ -32,12 +32,12 @@ pub extern "C" fn rs_dns_lua_get_tx_id(clua: &mut CLuaState, tx: &mut DNSTransac
 pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
 
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if let Some(query) = request.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
-    } else if let &Some(ref response) = &tx.response {
+    } else if let Some(response) = &tx.response {
         if let Some(query) = response.queries.first() {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
@@ -74,7 +74,7 @@ pub extern "C" fn rs_dns_lua_get_query_table(
 
     // We first look in the request for queries. However, if there is
     // no request, check the response for queries.
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         for query in &request.queries {
             lua.pushinteger(i);
             i += 1;
@@ -91,7 +91,7 @@ pub extern "C" fn rs_dns_lua_get_query_table(
 
             lua.settable(-3);
         }
-    } else if let &Some(ref response) = &tx.response {
+    } else if let Some(response) = &tx.response {
         for query in &response.queries {
             lua.pushinteger(i);
             i += 1;
@@ -127,7 +127,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(
     // table even in the absence of any authorities.
     lua.newtable();
 
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for answer in &response.answers {
             lua.pushinteger(i);
             i += 1;
@@ -206,7 +206,7 @@ pub extern "C" fn rs_dns_lua_get_authority_table(
     // table even in the absence of any authorities.
     lua.newtable();
 
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for answer in &response.authorities {
             lua.pushinteger(i);
             i += 1;
