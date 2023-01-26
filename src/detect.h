@@ -463,7 +463,7 @@ struct DetectEngineFrameInspectionEngine;
  */
 typedef int (*InspectionBufferFrameInspectFunc)(struct DetectEngineThreadCtx_ *,
         const struct DetectEngineFrameInspectionEngine *engine, const struct Signature_ *s,
-        Packet *p, const struct Frames *frames, const struct Frame *frame, const uint32_t idx);
+        Packet *p, const struct Frames *frames, const struct Frame *frame);
 
 typedef struct DetectEngineFrameInspectionEngine {
     AppProto alproto;
@@ -1298,7 +1298,7 @@ typedef struct MpmStore_ {
 } MpmStore;
 
 typedef void (*PrefilterFrameFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        const struct Frames *frames, const struct Frame *frame, const uint32_t idx);
+        const struct Frames *frames, const struct Frame *frame);
 
 typedef struct AppLayerTxData AppLayerTxData;
 typedef void (*PrefilterTxFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
