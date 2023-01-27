@@ -908,7 +908,6 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
         }
         FlowHandlePacket(NULL, &fls, p);
         if (p->flow != NULL) {
-            p->flow->use_cnt = 0;
             FLOWLOCK_UNLOCK(p->flow);
         }
 
