@@ -1624,6 +1624,14 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
         for (uint32_t i = 0; i < array_idx; i++) {
             const Signature *s = det_ctx->tx_candidates[i].s;
 
+            /* deduplicate: rules_array is sorted, but not deduplicated.
+             * As they are back to back in that case we can check for it
+             * here. We select the stored state one as that comes first
+             * in the array. */
+            while ((i + 1) < array_idx &&
+                    det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i + 1].s) {
+                i++;
+            }
             SCLogDebug("%p/%" PRIi64 " inspecting: sid %u (%u)", frame, frame->id, s->id, s->num);
 
             /* start new inspection */
