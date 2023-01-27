@@ -390,6 +390,9 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
 
         OutputLoggerLog(tv, x, fw->output_thread);
 
+        /* no need to keep a flow ref beyond this point */
+        FlowDeReference(&x->flow);
+
         if (timeout) {
             PacketPoolReturnPacket(x);
         } else {
