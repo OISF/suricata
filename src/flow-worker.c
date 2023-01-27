@@ -189,10 +189,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
             }
         }
 
-        /* this should not be possible */
-        BUG_ON(f->use_cnt > 0);
-
-        /* no one is referring to this flow, use_cnt 0, removed from hash
+        /* no one is referring to this flow, removed from hash
          * so we can unlock it and pass it to the flow recycler */
 
         if (fw->output_thread_flow != NULL)

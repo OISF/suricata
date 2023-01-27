@@ -48,7 +48,6 @@
         (f)->vlan_idx = 0;                                                                         \
         (f)->next = NULL;                                                                          \
         (f)->flow_state = 0;                                                                       \
-        (f)->use_cnt = 0;                                                                          \
         (f)->tenant_id = 0;                                                                        \
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \
@@ -94,7 +93,6 @@
         (f)->timeout_at = 0;                                                                       \
         (f)->timeout_policy = 0;                                                                   \
         (f)->flow_state = 0;                                                                       \
-        (f)->use_cnt = 0;                                                                          \
         (f)->tenant_id = 0;                                                                        \
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \

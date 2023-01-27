@@ -348,12 +348,9 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
 
         /* never prune a flow that is used by a packet we
          * are currently processing in one of the threads */
-        if (f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters)) {
+        if (!FlowBypassedTimeout(f, ts, counters)) {
             FLOWLOCK_UNLOCK(f);
             prev_f = f;
-            if (f->use_cnt > 0) {
-                counters->flows_timeout_inuse++;
-            }
             f = f->next;
             continue;
         }
@@ -383,8 +380,6 @@ static void FlowManagerHashRowClearEvictedList(
         Flow *next_flow = f->next;
         f->next = NULL;
         f->fb = NULL;
-
-        DEBUG_VALIDATE_BUG_ON(f->use_cnt > 0);
 
         FlowQueuePrivateAppendFlow(&td->aside_queue, f);
         /* flow is still locked in the queue */
@@ -545,7 +540,7 @@ static uint32_t FlowManagerHashRowCleanup(Flow *f, FlowQueuePrivate *recycle_q, 
         }
         f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
 
-        /* no one is referring to this flow, use_cnt 0, removed from hash
+        /* no one is referring to this flow, removed from hash
          * so we can unlock it and move it to the recycle queue. */
         FLOWLOCK_UNLOCK(f);
         FlowQueuePrivateAppendFlow(recycle_q, f);

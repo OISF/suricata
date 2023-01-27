@@ -379,12 +379,6 @@ typedef struct Flow_
     uint8_t proto;
     uint8_t recursion_level;
     uint16_t vlan_id[2];
-    /** how many references exist to this flow *right now*
-     *
-     *  On receiving a packet the counter is incremented while the flow
-     *  bucked is locked, which is also the case on timeout pruning.
-     */
-    FlowRefCount use_cnt;
 
     uint8_t vlan_idx;
 
@@ -644,33 +638,7 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f)
     SCReturn;
 }
 
-/**
- *  \brief increase the use count of a flow
- *
- *  \param f flow to decrease use count for
- */
-static inline void FlowIncrUsecnt(Flow *f)
-{
-    if (f == NULL)
-        return;
-
-    f->use_cnt++;
-}
-
-/**
- *  \brief decrease the use count of a flow
- *
- *  \param f flow to decrease use count for
- */
-static inline void FlowDecrUsecnt(Flow *f)
-{
-    if (f == NULL)
-        return;
-
-    f->use_cnt--;
-}
-
-/** \brief Reference the flow, bumping the flows use_cnt
+/** \brief Reference the flow
  *  \note This should only be called once for a destination
  *        pointer */
 static inline void FlowReference(Flow **d, Flow *f)
@@ -682,7 +650,6 @@ static inline void FlowReference(Flow **d, Flow *f)
         if (*d == f)
             return;
 #endif
-        FlowIncrUsecnt(f);
         *d = f;
     }
 }
@@ -690,7 +657,6 @@ static inline void FlowReference(Flow **d, Flow *f)
 static inline void FlowDeReference(Flow **d)
 {
     if (likely(*d != NULL)) {
-        FlowDecrUsecnt(*d);
         *d = NULL;
     }
 }
