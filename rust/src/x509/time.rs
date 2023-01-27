@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use std::ffi::CString;
 use std::os::raw::c_char;
 use time::macros::format_description;
 
@@ -41,23 +40,11 @@ pub fn format_timestamp(timestamp: i64) -> Result<String, time::error::Error> {
 pub unsafe extern "C" fn sc_x509_format_timestamp(
     timestamp: i64, buf: *mut c_char, size: usize,
 ) -> bool {
-    let ctimestamp = match format_timestamp(timestamp) {
-        Ok(ts) => match CString::new(ts) {
-            Ok(ts) => ts,
-            Err(_) => return false,
-        },
+    let timestamp = match format_timestamp(timestamp) {
+        Ok(ts) => ts,
         Err(_) => return false,
     };
-    let bytes = ctimestamp.as_bytes_with_nul();
-
-    if size < bytes.len() {
-        false
-    } else {
-        // Convert buf into a slice we can copy into.
-        let buf = std::slice::from_raw_parts_mut(buf as *mut u8, size);
-        buf[0..bytes.len()].copy_from_slice(bytes);
-        true
-    }
+    crate::ffi::strings::copy_to_c_char(timestamp, buf, size)
 }
 
 #[cfg(test)]
