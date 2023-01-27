@@ -290,12 +290,12 @@ static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
     MemBufferWriteString(buffer, "VERSION='%s'", ssl_version);
 }
 
-static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
+static void LogTlsLogDate(MemBuffer *buffer, const char *title, int64_t *date)
 {
     char timebuf[64] = {0};
-    const SCTime_t ts = SCTIME_FROM_SECS(*date);
-    CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
-    MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
+    if (sc_x509_format_timestamp(*date, timebuf, sizeof(timebuf))) {
+        MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
+    }
 }
 
 static void LogTlsLogString(MemBuffer *buffer, const char *title,
