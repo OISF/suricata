@@ -18,7 +18,19 @@
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_check_utf8(val: *const c_char) -> bool {
     CStr::from_ptr(val).to_str().is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_tls_create_utc_iso_time_string(
+    nsecs: i64, buffer: *mut u8, buffer_len: usize,
+) {
+    let mut slice = std::slice::from_raw_parts_mut(buffer, buffer_len);
+    let t = OffsetDateTime::from_unix_timestamp(nsecs).unwrap();
+    t.format_into(&mut slice, &Rfc3339).unwrap();
 }

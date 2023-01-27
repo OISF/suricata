@@ -169,8 +169,8 @@ static void JsonTlsLogNotBefore(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_before != 0) {
         char timebuf[64];
-        SCTime_t ts = SCTIME_FROM_SECS(ssl_state->server_connp.cert0_not_before);
-        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
+        rs_tls_create_utc_iso_time_string((int64_t)ssl_state->server_connp.cert0_not_before,
+                (uint8_t *)timebuf, sizeof(timebuf));
         jb_set_string(js, "notbefore", timebuf);
     }
 }
@@ -179,8 +179,8 @@ static void JsonTlsLogNotAfter(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_after != 0) {
         char timebuf[64];
-        SCTime_t ts = SCTIME_FROM_SECS(ssl_state->server_connp.cert0_not_after);
-        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
+        rs_tls_create_utc_iso_time_string((int64_t)ssl_state->server_connp.cert0_not_after,
+                (uint8_t *)timebuf, sizeof(timebuf));
         jb_set_string(js, "notafter", timebuf);
     }
 }
@@ -301,14 +301,14 @@ static void JsonTlsLogClientCert(
     }
     if (connp->cert0_not_before != 0) {
         char timebuf[64];
-        SCTime_t ts = SCTIME_FROM_SECS(connp->cert0_not_before);
-        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
+        rs_tls_create_utc_iso_time_string(
+                (int64_t)connp->cert0_not_before, (uint8_t *)timebuf, sizeof(timebuf));
         jb_set_string(js, "notbefore", timebuf);
     }
     if (connp->cert0_not_after != 0) {
         char timebuf[64];
-        SCTime_t ts = SCTIME_FROM_SECS(connp->cert0_not_after);
-        CreateUtcIsoTimeString(ts, timebuf, sizeof(timebuf));
+        rs_tls_create_utc_iso_time_string(
+                (int64_t)connp->cert0_not_after, (uint8_t *)timebuf, sizeof(timebuf));
         jb_set_string(js, "notafter", timebuf);
     }
 
