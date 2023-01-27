@@ -1772,7 +1772,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
                 if (suri->additional_configs == NULL) {
-                    suri->additional_configs = SCCalloc(2, sizeof(char **));
+                    suri->additional_configs = SCCalloc(2, sizeof(char *));
                     if (suri->additional_configs == NULL) {
                         FatalError(
                                 "Failed to allocate memory for additional configuration files: %s",
@@ -1783,7 +1783,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     for (int i = 0;; i++) {
                         if (suri->additional_configs[i] == NULL) {
                             const char **additional_configs =
-                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char **));
+                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char *));
                             if (additional_configs == NULL) {
                                 FatalError("Failed to allocate memory for additional configuration "
                                            "files: %s",
