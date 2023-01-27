@@ -127,8 +127,6 @@ int StreamTcpCheckMemcap(uint64_t);
 uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 
-Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
-
 int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
                         StreamSegmentCallback CallbackFunc,
                         void *data);
