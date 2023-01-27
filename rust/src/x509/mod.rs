@@ -22,6 +22,8 @@ use nom7::Err;
 use std;
 use std::os::raw::c_char;
 use x509_parser::prelude::*;
+mod time;
+mod log;
 
 #[repr(u32)]
 pub enum X509DecodeError {
