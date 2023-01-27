@@ -699,7 +699,6 @@ void FlowShutdown(void)
         for (uint32_t u = 0; u < flow_config.hash_size; u++) {
             f = flow_hash[u].head;
             while (f) {
-                DEBUG_VALIDATE_BUG_ON(f->use_cnt != 0);
                 Flow *n = f->next;
                 uint8_t proto_map = FlowGetProtoMapping(f->proto);
                 FlowClearMemory(f, proto_map);
@@ -708,7 +707,6 @@ void FlowShutdown(void)
             }
             f = flow_hash[u].evicted;
             while (f) {
-                DEBUG_VALIDATE_BUG_ON(f->use_cnt != 0);
                 Flow *n = f->next;
                 uint8_t proto_map = FlowGetProtoMapping(f->proto);
                 FlowClearMemory(f, proto_map);

@@ -238,7 +238,7 @@ void StreamTcpSessionCleanup(TcpSession *ssn)
  *
  *  This function is called when the flow is destroyed, so it should free
  *  *everything* related to the tcp session. So including the app layer
- *  data. We are guaranteed to only get here when the flow's use_cnt is 0.
+ *  data.
  *
  *  \param ssn Void ptr to the ssn.
  */
@@ -268,11 +268,6 @@ void StreamTcpSessionClear(void *ssnptr)
 
 /**
  *  \brief Function to return the stream segments back to the pool.
- *
- *  We don't clear out the app layer storage here as that is under protection
- *  of the "use_cnt" reference counter in the flow. This function is called
- *  when the use_cnt is always at least 1 (this pkt has incremented the flow
- *  use_cnt itself), so we don't bother.
  *
  *  \param p Packet used to identify the stream.
  */

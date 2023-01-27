@@ -840,23 +840,18 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
                                FlowIsTimedOut(f, (uint32_t)SCTIME_SECS(p->ts), emerg));
         if (timedout) {
             FLOWLOCK_WRLOCK(f);
-            if (likely(f->use_cnt == 0)) {
-                next_f = f->next;
-                MoveToWorkQueue(tv, fls, fb, f, prev_f);
-                FLOWLOCK_UNLOCK(f);
-                goto flow_removed;
-            }
+            next_f = f->next;
+            MoveToWorkQueue(tv, fls, fb, f, prev_f);
             FLOWLOCK_UNLOCK(f);
+            goto flow_removed;
         } else if (FlowCompare(f, p) != 0) {
             FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
             if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
                 Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
-                if (likely(f->use_cnt == 0)) {
-                    if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
-                        prev_f = new_f;
-                    MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
-                }
+                if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
+                    prev_f = new_f;
+                MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
                 FLOWLOCK_UNLOCK(f); /* unlock old replaced flow */
 
                 if (new_f == NULL) {
@@ -1150,8 +1145,8 @@ static inline bool StillAlive(const Flow *f, const SCTime_t ts)
  *
  *  Called in conditions where the spare queue is empty and memcap is reached.
  *
- *  Walks the hash until a flow can be freed. Timeouts are disregarded, use_cnt
- *  is adhered to. "flow_prune_idx" atomic int makes sure we don't start at the
+ *  Walks the hash until a flow can be freed. Timeouts are disregarded.
+ *  "flow_prune_idx" atomic int makes sure we don't start at the
  *  top each time since that would clear the top of the hash leading to longer
  *  and longer search times under high pressure (observed).
  *
@@ -1192,15 +1187,6 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
         if (GetUsedTryLockFlow(f) != 0) {
             STATSADDUI64(counter_flow_get_used_eval_busy, 1);
             FBLOCK_UNLOCK(fb);
-            continue;
-        }
-
-        /** never prune a flow that is used by a packet or stream msg
-         *  we are currently processing in one of the threads */
-        if (f->use_cnt > 0) {
-            STATSADDUI64(counter_flow_get_used_eval_busy, 1);
-            FBLOCK_UNLOCK(fb);
-            FLOWLOCK_UNLOCK(f);
             continue;
         }
 
