@@ -304,6 +304,10 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
 
                     if (strchr(value, '.') != NULL) {
                         node = ConfNodeGetNodeOrCreate(parent, value, 0);
+                        if (node == NULL) {
+                            /* Error message already logged. */
+                            goto fail;
+                        }
                     } else {
                         ConfNode *existing = ConfNodeLookupChild(parent, value);
                         if (existing != NULL) {
