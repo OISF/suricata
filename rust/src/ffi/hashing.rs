@@ -156,18 +156,10 @@ pub unsafe extern "C" fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut
 pub unsafe extern "C" fn SCMd5HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
 ) {
-    let out = &mut *(out as *mut u8);
-    let output = std::slice::from_raw_parts_mut(out, len as usize);
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
-    // let output = std::slice::from_raw_parts_mut(out, len as usize);
     let hash = Md5::new().chain(data).finalize();
     let hex = format!("{:x}", &hash);
-
-    // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
-
-    // Terminate the string.
-    output[output.len() - 1] = 0;
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize);
 }
 
 // Functions that are generic over Digest. For the most part the C bindings are
