@@ -406,6 +406,9 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
                 x->flow, x->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER : STREAM_TOCLIENT);
         FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_TCPPRUNE);
 
+        /* no need to keep a flow ref beyond this point */
+        FlowDeReference(&x->flow);
+
         if (timeout) {
             PacketPoolReturnPacket(x);
         } else {
