@@ -6153,57 +6153,6 @@ void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
         (ntcph)->th_ack = (tcph)->th_seq; \
     } while (0)
 
-/**
- * \brief   Function to fetch a packet from the packet allocation queue for
- *          creation of the pseudo packet from the reassembled stream.
- *
- * @param parent    Pointer to the parent of the pseudo packet
- * @param pkt       pointer to the raw packet of the parent
- * @param len       length of the packet
- * @return          upon success returns the pointer to the new pseudo packet
- *                  otherwise NULL
- */
-Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
-{
-    SCEnter();
-
-    if (len == 0) {
-        SCReturnPtr(NULL, "Packet");
-    }
-
-    Packet *p = PacketGetFromQueueOrAlloc();
-    if (p == NULL) {
-        SCReturnPtr(NULL, "Packet");
-    }
-
-    /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
-        p->root = parent->root;
-    else
-        p->root = parent;
-
-    /* copy packet and set length, proto */
-    p->proto = parent->proto;
-    p->datalink = parent->datalink;
-
-    PacketCopyData(p, pkt, len);
-    p->recursion_level = parent->recursion_level + 1;
-    p->ts = parent->ts;
-
-    FlowReference(&p->flow, parent->flow);
-    /* set tunnel flags */
-
-    /* tell new packet it's part of a tunnel */
-    SET_TUNNEL_PKT(p);
-    /* tell parent packet it's part of a tunnel */
-    SET_TUNNEL_PKT(parent);
-
-    /* increment tunnel packet refcnt in the root packet */
-    TUNNEL_INCR_PKT_TPR(p);
-
-    return p;
-}
-
 /** \brief Create a pseudo packet injected into the engine to signal the
  *         opposing direction of this stream trigger detection/logging.
  *
