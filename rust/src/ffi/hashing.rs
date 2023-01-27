@@ -49,29 +49,6 @@ pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, l
     finalize(hasher.0, out, len);
 }
 
-/// C function to finalize the Sha256 hasher to a hex string.
-///
-/// Notes:
-/// - There is probably room for optimization here, by iterating the result and writing
-///   the output directly to the output buffer.
-///
-/// But even given the notes, this appears to be faster than the equivalent that we
-/// did in C using NSS.
-#[no_mangle]
-pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut c_char, len: u32) {
-    let out = &mut *(out as *mut u8);
-    let hasher: Box<SCSha256> = Box::from_raw(hasher);
-    let result = hasher.0.finalize();
-    let hex = format!("{:x}", &result);
-    let output = std::slice::from_raw_parts_mut(out, len as usize);
-
-    // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
-
-    // Terminate the string.
-    output[output.len() - 1] = 0;
-}
-
 /// Free an unfinalized Sha256 context.
 #[no_mangle]
 pub unsafe extern "C" fn SCSha256Free(hasher: &mut SCSha256) {
@@ -157,24 +134,6 @@ pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: 
 pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u32) {
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     finalize(hasher.0, out, len);
-}
-
-/// Finalize MD5 context to a hex string.
-///
-/// Consumes the hash context and cannot be re-used.
-#[no_mangle]
-pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char, len: u32) {
-    let out = &mut *(out as *mut u8);
-    let hasher: Box<SCMd5> = Box::from_raw(hasher);
-    let result = hasher.0.finalize();
-    let hex = format!("{:x}", &result);
-    let output = std::slice::from_raw_parts_mut(out, len as usize);
-
-    // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
-
-    // Terminate the string.
-    output[output.len() - 1] = 0;
 }
 
 /// Free an unfinalized Sha1 context.
