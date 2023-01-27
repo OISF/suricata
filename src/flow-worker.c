@@ -409,6 +409,8 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
         if (timeout) {
             PacketPoolReturnPacket(x);
         } else {
+            FlowDeReference(&x->flow);
+
             /* put these packets in the decode queue so that they are processed
              * by the other thread modules before packet 'p'. */
             PacketEnqueueNoLock(&tv->decode_pq, x);
