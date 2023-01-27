@@ -57,8 +57,8 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
     }
 
     if (unlikely(len != UDP_GET_LEN(p))) {
+        // packet can still be valid, keeping for consistency with decoder.udp.hlen_invalid event
         ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_INVALID);
-        return -1;
     }
 
     SET_UDP_SRC_PORT(p,&p->sp);

@@ -110,6 +110,14 @@ static int DetectEngineEventMatch (DetectEngineThreadCtx *det_ctx,
     SCReturnInt(0);
 }
 
+static bool OutdatedEvent(const char *raw)
+{
+    if (strcmp(raw, "decoder.udp.hlen_invalid") == 0) {
+        return true;
+    }
+    return false;
+}
+
 /**
  * \brief This function is used to parse decoder events options passed via decode-event: keyword
  *
@@ -163,6 +171,12 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     if (de->event == STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
+
+    if (OutdatedEvent(rawstr)) {
+        SCLogWarning(
+                SC_WARN_DEPRECATED, "decode-event keyword no longer supports event \"%s\"", rawstr);
+    }
+
     return de;
 
 error:
