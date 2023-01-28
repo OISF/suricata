@@ -72,7 +72,7 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
+    if (!buffer->initialized) {
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
         uint8_t dir = flow_flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
@@ -92,7 +92,7 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
+    if (!buffer->initialized) {
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
         uint8_t endianness;
