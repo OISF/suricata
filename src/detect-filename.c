@@ -351,16 +351,15 @@ static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, cons
 }
 
 static InspectionBuffer *FilenameGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, uint8_t flow_flags, File *cur_file,
-        int list_id, int local_file_id, bool first)
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
+        int list_id, int local_file_id)
 {
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
     if (buffer == NULL)
         return NULL;
-    if (!first && buffer->inspect != NULL)
+    if (buffer->initialized)
         return buffer;
 
     const uint8_t *data = cur_file->name;
@@ -389,8 +388,8 @@ static uint8_t DetectEngineInspectFilename(DetectEngineCtx *de_ctx, DetectEngine
     uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     int local_file_id = 0;
     for (File *file = ffc->head; file != NULL; file = file->next) {
-        InspectionBuffer *buffer = FilenameGetDataCallback(det_ctx,
-            transforms, f, flags, file, engine->sm_list, local_file_id, false);
+        InspectionBuffer *buffer = FilenameGetDataCallback(
+                det_ctx, transforms, f, flags, file, engine->sm_list, local_file_id);
         if (buffer == NULL)
             continue;
 
@@ -444,8 +443,8 @@ static void PrefilterTxFilename(DetectEngineThreadCtx *det_ctx, const void *pect
     if (ffc != NULL) {
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
-            InspectionBuffer *buffer = FilenameGetDataCallback(det_ctx,
-                    ctx->transforms, f, flags, file, list_id, local_file_id, true);
+            InspectionBuffer *buffer = FilenameGetDataCallback(
+                    det_ctx, ctx->transforms, f, flags, file, list_id, local_file_id);
             if (buffer == NULL)
                 continue;
 
