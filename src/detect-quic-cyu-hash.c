@@ -62,7 +62,7 @@ static int DetectQuicCyuHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 static InspectionBuffer *QuicHashGetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, struct QuicHashGetDataArgs *cbdata,
-        int list_id, bool first)
+        int list_id)
 {
     SCEnter();
 
@@ -70,7 +70,7 @@ static InspectionBuffer *QuicHashGetData(DetectEngineThreadCtx *det_ctx,
             InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
-    if (!first && buffer->inspect != NULL)
+    if (buffer->initialized)
         return buffer;
 
     const uint8_t *data;
@@ -101,7 +101,7 @@ static uint8_t DetectEngineInspectQuicHash(DetectEngineCtx *de_ctx, DetectEngine
             txv,
         };
         InspectionBuffer *buffer =
-                QuicHashGetData(det_ctx, transforms, f, &cbdata, engine->sm_list, false);
+                QuicHashGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
             break;
 
@@ -148,8 +148,7 @@ static void PrefilterTxQuicHash(DetectEngineThreadCtx *det_ctx, const void *pect
         // loop until we get a NULL
 
         struct QuicHashGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer =
-                QuicHashGetData(det_ctx, ctx->transforms, f, &cbdata, list_id, true);
+        InspectionBuffer *buffer = QuicHashGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
         if (buffer == NULL)
             break;
 
