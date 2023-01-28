@@ -485,14 +485,14 @@ static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHea
 
 static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, const int list_id, int local_file_id,
-        InspectionBuffer *base_buffer, const bool first)
+        InspectionBuffer *base_buffer)
 {
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
     if (buffer == NULL) {
         SCLogDebug("list_id: %d: no buffer", list_id);
         return NULL;
     }
-    if (!first && buffer->inspect != NULL) {
+    if (buffer->initialized) {
         SCLogDebug("list_id: %d: returning %p", list_id, buffer);
         return buffer;
     }
@@ -505,11 +505,10 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
 
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
-        const int list_id, const int base_id, int local_file_id, bool first)
+        const int list_id, const int base_id, int local_file_id)
 {
     SCEnter();
-    SCLogDebug(
-            "starting: list_id %d base_id %d first %s", list_id, base_id, first ? "true" : "false");
+    SCLogDebug("starting: list_id %d base_id %d", list_id, base_id);
 
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, base_id, local_file_id);
     SCLogDebug("base: buffer %p", buffer);
@@ -518,9 +517,9 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     if (base_id != list_id && buffer->inspect != NULL) {
         SCLogDebug("handle xform %s", (list_id != base_id) ? "true" : "false");
         return FiledataWithXformsGetDataCallback(
-                det_ctx, transforms, list_id, local_file_id, buffer, first);
+                det_ctx, transforms, list_id, local_file_id, buffer);
     }
-    if (!first && buffer->inspect != NULL) {
+    if (buffer->initialized) {
         SCLogDebug("base_id: %d, not first: use %p", base_id, buffer);
         return buffer;
     }
@@ -532,8 +531,8 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     // TODO this is unused, is that right?
     //const uint32_t content_inspect_window = de_ctx->filedata_config[f->alproto].content_inspect_window;
 
-    SCLogDebug("[list %d] first: %d, content_limit %u, content_inspect_min_size %u", list_id,
-            first ? 1 : 0, content_limit, content_inspect_min_size);
+    SCLogDebug("[list %d] content_limit %u, content_inspect_min_size %u", list_id, content_limit,
+            content_inspect_min_size);
 
     SCLogDebug("[list %d] file %p size %" PRIu64 ", state %d", list_id, cur_file, file_size,
             cur_file->state);
@@ -578,7 +577,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     if (list_id != base_id) {
         SCLogDebug("regular %d has been set up: now handle xforms id %d", base_id, list_id);
         InspectionBuffer *tbuffer = FiledataWithXformsGetDataCallback(
-                det_ctx, transforms, list_id, local_file_id, buffer, first);
+                det_ctx, transforms, list_id, local_file_id, buffer);
         SCReturnPtr(tbuffer, "InspectionBuffer");
     } else {
         SCLogDebug("regular buffer %p size %u", buffer, buffer->inspect_len);
@@ -608,7 +607,7 @@ static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngine
     File *file = ffc->head;
     for (; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
-                engine->sm_list, engine->sm_list_base, local_file_id, false);
+                engine->sm_list, engine->sm_list_base, local_file_id);
         if (buffer == NULL)
             continue;
 
@@ -667,7 +666,7 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pect
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
             InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
-                    file, list_id, ctx->base_list_id, local_file_id, true);
+                    file, list_id, ctx->base_list_id, local_file_id);
             if (buffer == NULL)
                 continue;
 
