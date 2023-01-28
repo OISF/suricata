@@ -71,6 +71,7 @@ jobs:
       - run: |
           diff=$(git diff)
           if [ "${diff}" ]; then
+              echo "${diff}"
               echo "::error ::Clippy --fix made changes, please fix"
               exit 1
           fi
