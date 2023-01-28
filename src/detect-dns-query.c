@@ -73,8 +73,8 @@ struct DnsQueryGetDataArgs {
 };
 
 static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, struct DnsQueryGetDataArgs *cbdata, int list_id, bool first)
+        const DetectEngineTransforms *transforms, Flow *f, struct DnsQueryGetDataArgs *cbdata,
+        int list_id)
 {
     SCEnter();
 
@@ -82,7 +82,7 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
             InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
-    if (!first && buffer->inspect != NULL)
+    if (buffer->initialized)
         return buffer;
 
     const uint8_t *data;
@@ -108,8 +108,8 @@ static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngine
 
     while(1) {
         struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
-        InspectionBuffer *buffer = DnsQueryGetData(det_ctx,
-            transforms, f, &cbdata, engine->sm_list, false);
+        InspectionBuffer *buffer =
+                DnsQueryGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
             break;
 
@@ -159,8 +159,7 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx, const void *pect
         // loop until we get a NULL
 
         struct DnsQueryGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms,
-                f, &cbdata, list_id, true);
+        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
         if (buffer == NULL)
             break;
 
