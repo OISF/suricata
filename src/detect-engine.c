@@ -1341,6 +1341,7 @@ void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
         const uint32_t idx = det_ctx->inspect.to_clear_queue[i];
         InspectionBuffer *buffer = &det_ctx->inspect.buffers[idx];
         buffer->inspect = NULL;
+        buffer->initialized = false;
     }
     det_ctx->inspect.to_clear_idx = 0;
 
@@ -1352,6 +1353,7 @@ void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
         for (uint32_t x = 0; x <= mbuffer->max; x++) {
             InspectionBuffer *buffer = &mbuffer->inspection_buffers[x];
             buffer->inspect = NULL;
+            buffer->initialized = false;
         }
         mbuffer->init = 0;
         mbuffer->max = 0;
@@ -1435,6 +1437,7 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
+    buffer->initialized = true;
 
     InspectionBufferApplyTransforms(buffer, transforms);
 }
@@ -1456,6 +1459,7 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
+    buffer->initialized = true;
 }
 
 void InspectionBufferFree(InspectionBuffer *buffer)
@@ -1496,6 +1500,7 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
         memcpy(buffer->buf, buf, copy_size);
         buffer->inspect = buffer->buf;
         buffer->inspect_len = copy_size;
+        buffer->initialized = true;
     }
 }
 
