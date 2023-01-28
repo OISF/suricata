@@ -338,6 +338,7 @@ typedef struct InspectionBuffer {
     const uint8_t *inspect; /**< active pointer, points either to ::buf or ::orig */
     uint64_t inspect_offset;
     uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */
+    bool initialized; /**< is initialized. ::inspect might be NULL if transform lead to 0 size */
     uint8_t flags;          /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
 #ifdef DEBUG_VALIDATION
     bool multi;
