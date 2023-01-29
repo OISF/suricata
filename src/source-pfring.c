@@ -347,7 +347,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
     Packet *p = NULL;
     struct pfring_pkthdr hdr;
     TmSlot *s = (TmSlot *)slot;
-    time_t last_dump = 0;
+    SCTime_t last_dump = SCTIME_INITIALIZER;
     u_int buffer_size;
     u_char *pkt_buffer;
 
