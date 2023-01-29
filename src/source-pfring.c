@@ -347,7 +347,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
     Packet *p = NULL;
     struct pfring_pkthdr hdr;
     TmSlot *s = (TmSlot *)slot;
-    time_t last_dump = 0;
+    SCTime_t last_dump = SCTIME_INITIALIZER;
     u_int buffer_size;
     u_char *pkt_buffer;
 
@@ -422,9 +422,9 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             }
 
             /* Trigger one dump of stats every second */
-            if (SCTIME_SECS(p->ts) != last_dump) {
+            if (SCTIME_CMP_NEQ(p->ts, last_dump)) {
                 PfringDumpCounters(ptv);
-                last_dump = SCTIME_SECS(p->ts);
+                last_dump = p->ts;
             }
         } else if (unlikely(r == 0)) {
             if (suricata_ctl_flags & SURICATA_STOP) {
