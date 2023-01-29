@@ -406,16 +406,14 @@ typedef struct Flow_
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
 
+    /** timeout policy value in seconds to add to the lastts.tv_sec
+     *  when a packet has been received. */
+    uint32_t timeout_policy;
+
     /* time stamp of last update (last packet). Set/updated under the
      * flow and flow hash row locks, safe to read under either the
      * flow lock or flow hash row lock. */
     SCTime_t lastts;
-
-    /* end of flow "header" */
-
-    /** timeout policy value in seconds to add to the lastts.tv_sec
-     *  when a packet has been received. */
-    uint32_t timeout_policy;
 
     FlowStateType flow_state;
 
