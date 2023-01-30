@@ -734,7 +734,7 @@ app-layer:
         dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
     # MQTT, disabled by default.
     mqtt:
-      # enabled: no
+      enabled: yes
       # max-msg-length: 1mb
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
@@ -775,7 +775,7 @@ app-layer:
       enabled: yes
       # memcap: 64mb
     rdp:
-      #enabled: yes
+      enabled: yes
     ssh:
       enabled: yes
       #hassh: yes
@@ -986,7 +986,7 @@ app-layer:
       enabled: yes
 
     sip:
-      #enabled: no
+      enabled: yes
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
