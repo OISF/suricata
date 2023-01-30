@@ -5010,9 +5010,6 @@
                                 "flows_timeout": {
                                     "type": "integer"
                                 },
-                                "flows_timeout_inuse": {
-                                    "type": "integer"
-                                },
                                 "full_hash_pass": {
                                     "type": "integer"
                                 },
@@ -5125,9 +5122,6 @@
                             "type": "integer"
                         },
                         "flows_timeout": {
-                            "type": "integer"
-                        },
-                        "flows_timeout_inuse": {
                             "type": "integer"
                         },
                         "new_pruned": {
