@@ -124,7 +124,6 @@ typedef struct FlowTimeoutCounters_ {
     uint32_t flows_checked;
     uint32_t flows_notimeout;
     uint32_t flows_timeout;
-    uint32_t flows_timeout_inuse;
     uint32_t flows_removed;
     uint32_t flows_aside;
     uint32_t flows_aside_needs_work;
@@ -605,7 +604,6 @@ typedef struct FlowCounters_ {
     uint16_t flow_mgr_flows_checked;
     uint16_t flow_mgr_flows_notimeout;
     uint16_t flow_mgr_flows_timeout;
-    uint16_t flow_mgr_flows_timeout_inuse;
     uint16_t flow_mgr_flows_aside;
     uint16_t flow_mgr_flows_aside_needs_work;
 
@@ -642,7 +640,6 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->flow_mgr_flows_checked = StatsRegisterCounter("flow.mgr.flows_checked", t);
     fc->flow_mgr_flows_notimeout = StatsRegisterCounter("flow.mgr.flows_notimeout", t);
     fc->flow_mgr_flows_timeout = StatsRegisterCounter("flow.mgr.flows_timeout", t);
-    fc->flow_mgr_flows_timeout_inuse = StatsRegisterCounter("flow.mgr.flows_timeout_inuse", t);
     fc->flow_mgr_flows_aside = StatsRegisterCounter("flow.mgr.flows_evicted", t);
     fc->flow_mgr_flows_aside_needs_work = StatsRegisterCounter("flow.mgr.flows_evicted_needs_work", t);
 
@@ -661,8 +658,6 @@ static void FlowCountersUpdate(
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters->flows_notimeout);
 
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters->flows_timeout);
-    StatsAddUI64(
-            th_v, ftd->cnt.flow_mgr_flows_timeout_inuse, (uint64_t)counters->flows_timeout_inuse);
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters->flows_aside);
     StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work,
             (uint64_t)counters->flows_aside_needs_work);
@@ -827,7 +822,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             }
 
             /* try to time out flows */
-            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            // clang-format off
+            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
+            // clang-format on
 
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
