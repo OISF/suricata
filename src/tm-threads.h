@@ -165,6 +165,9 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
             SCMutexUnlock(&pq->mutex_q);
             if (extra_p == NULL)
                 break;
+#ifdef DEBUG_VALIDATION
+            BUG_ON(extra_p->flow != NULL);
+#endif
             TmEcode r = TmThreadsSlotVarRun(tv, extra_p, tv->tm_flowworker);
             if (r == TM_ECODE_FAILED) {
                 TmThreadsSlotProcessPktFail(tv, tv->tm_flowworker, extra_p);
