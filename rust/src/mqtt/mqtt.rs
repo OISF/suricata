@@ -481,12 +481,24 @@ impl MQTTState {
                             current.len()
                         );
                         if trunc.skipped_length >= current.len() {
-                            self.mqtt_hdr_and_data_frames_trunc(flow, &stream_slice, trunc, current, &msg);
+                            self.mqtt_hdr_and_data_frames_trunc(
+                                flow,
+                                &stream_slice,
+                                trunc,
+                                current,
+                                &msg,
+                            );
                             self.skip_request = trunc.skipped_length - current.len();
                             self.handle_msg(msg, true);
                             return AppLayerResult::ok();
                         } else {
-                            self.mqtt_hdr_and_data_frames_trunc(flow, &stream_slice, trunc, current, &msg);
+                            self.mqtt_hdr_and_data_frames_trunc(
+                                flow,
+                                &stream_slice,
+                                trunc,
+                                current,
+                                &msg,
+                            );
                             consumed += trunc.skipped_length;
                             current = &current[trunc.skipped_length..];
                             self.handle_msg(msg, true);
@@ -569,13 +581,25 @@ impl MQTTState {
                             current.len()
                         );
                         if trunc.skipped_length >= current.len() {
-                            self.mqtt_hdr_and_data_frames_trunc(flow, &stream_slice, trunc, current, &msg);
+                            self.mqtt_hdr_and_data_frames_trunc(
+                                flow,
+                                &stream_slice,
+                                trunc,
+                                current,
+                                &msg,
+                            );
                             self.skip_response = trunc.skipped_length - current.len();
                             self.handle_msg(msg, true);
                             SCLogDebug!("skip_response now {}", self.skip_response);
                             return AppLayerResult::ok();
                         } else {
-                            self.mqtt_hdr_and_data_frames_trunc(flow, &stream_slice, trunc, current, &msg);
+                            self.mqtt_hdr_and_data_frames_trunc(
+                                flow,
+                                &stream_slice,
+                                trunc,
+                                current,
+                                &msg,
+                            );
                             consumed += trunc.skipped_length;
                             current = &current[trunc.skipped_length..];
                             self.handle_msg(msg, true);
@@ -626,7 +650,9 @@ impl MQTTState {
         self.transactions.push_back(tx);
     }
 
-    fn mqtt_hdr_and_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &MQTTMessage) {
+    fn mqtt_hdr_and_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &MQTTMessage,
+    ) {
         let hdr = stream_slice.as_slice();
         //MQTT payload has a fixed header of 2 bytes
         let _mqtt_hdr = Frame::new(flow, stream_slice, hdr, 2, MQTTFrameType::Header as u8);
