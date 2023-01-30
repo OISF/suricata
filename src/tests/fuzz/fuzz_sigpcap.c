@@ -1,7 +1,7 @@
 /**
  * @file
  * @author Philippe Antoine <contact@catenacyber.fr>
- * fuzz target for AppLayerProtoDetectGetProto
+ * fuzz target for signature file and pcap file
  */
 
 #include "suricata-common.h"
@@ -141,6 +141,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //loop over packets
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
+    if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600 || header->ts.tv_usec < 0) {
+        goto bail;
+    }
     p->ts.tv_sec = header->ts.tv_sec;
     p->ts.tv_usec = header->ts.tv_usec % 1000000;
     p->datalink = pcap_datalink(pkts);
@@ -165,12 +168,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         r = pcap_next_ex(pkts, &header, &pkt);
         PACKET_RECYCLE(p);
+        if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600 || header->ts.tv_usec < 0) {
+            goto bail;
+        }
         p->ts.tv_sec = header->ts.tv_sec;
         p->ts.tv_usec = header->ts.tv_usec % 1000000;
         p->datalink = pcap_datalink(pkts);
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
     }
+bail:
     //close structure
     pcap_close(pkts);
     PacketFree(p);
