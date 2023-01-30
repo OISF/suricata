@@ -173,8 +173,13 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     }
 
     if (OutdatedEvent(rawstr)) {
-        SCLogWarning(
-                SC_WARN_DEPRECATED, "decode-event keyword no longer supports event \"%s\"", rawstr);
+        if (SigMatchStrictEnabled(DETECT_DECODE_EVENT)) {
+            SCLogError(SC_WARN_DEPRECATED, "decode-event keyword no longer supports event \"%s\"",
+                    rawstr);
+            goto error;
+        } else {
+            SCLogNotice("decode-event keyword no longer supports event \"%s\"", rawstr);
+        }
     }
 
     return de;
