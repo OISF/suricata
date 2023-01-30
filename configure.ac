@@ -2447,6 +2447,9 @@ return 0;
         fi
     fi
 
+# get MAJOR_MINOR version for embedding in configuration file.
+    MAJOR_MINOR=`expr "${PACKAGE_VERSION}" : "\([[0-9]]\+\.[[0-9]]\+\).*"`
+
 if test "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes"; then
   AC_DEFINE([CAPTURE_OFFLOAD_MANAGER], [1],[Building flow bypass manager code])
 fi
@@ -2546,6 +2549,7 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
+AC_SUBST(MAJOR_MINOR)
 AC_SUBST(RUST_FEATURES)
 AC_SUBST(RUST_SURICATA_LIBDIR)
 AC_SUBST(RUST_SURICATA_LIBNAME)
