@@ -467,7 +467,7 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.midstream_policy = ExceptionPolicyParse("stream.midstream-policy", true);
     if (stream_config.midstream && stream_config.midstream_policy != EXCEPTION_POLICY_NOT_SET) {
         SCLogWarning("stream.midstream_policy setting conflicting with stream.midstream enabled. "
-                     "Ignoring stream.midstream_policy.");
+                     "Ignoring stream.midstream_policy. Bug #5825.");
         stream_config.midstream_policy = EXCEPTION_POLICY_NOT_SET;
     }
 
