@@ -43,6 +43,7 @@
 #include "util-profiling.h"
 #include "util-signal.h"
 #include "queue.h"
+#include "util-validate.h"
 
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
@@ -117,6 +118,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
         PACKET_PROFILING_TMM_START(p, s->tm_id);
         TmEcode r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data));
         PACKET_PROFILING_TMM_END(p, s->tm_id);
+        DEBUG_VALIDATE_BUG_ON(p->flow != NULL);
 
         /* handle error */
         if (unlikely(r == TM_ECODE_FAILED)) {
@@ -130,6 +132,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
             Packet *extra_p = PacketDequeueNoLock(&tv->decode_pq);
             if (unlikely(extra_p == NULL))
                 continue;
+            DEBUG_VALIDATE_BUG_ON(extra_p->flow != NULL);
 
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
@@ -175,6 +178,7 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
                 Packet *p = PacketDequeue(tv->stream_pq);
                 SCMutexUnlock(&tv->stream_pq->mutex_q);
                 if (likely(p)) {
+                    DEBUG_VALIDATE_BUG_ON(p->flow != NULL);
                     r = TmThreadsSlotProcessPkt(tv, fw_slot, p);
                     if (r == TM_ECODE_FAILED) {
                         break;
