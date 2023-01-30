@@ -28,6 +28,8 @@
 #include "action-globals.h"
 
 enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
+/** true if exception policy was defined in config */
+static bool g_eps_have_exception_policy = false;
 
 static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
 {
@@ -154,7 +156,19 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
                 policy = EXCEPTION_POLICY_NOT_SET;
             }
         }
-        SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
+
+        if (strcmp(option, "exception-policy") == 0) {
+            g_eps_have_exception_policy = true;
+
+            if (strcmp(value_str, "auto") == 0) {
+                SCLogConfig("%s: %s (because of 'auto' setting in %s-mode)", option,
+                        ExceptionPolicyEnumToString(policy), EngineModeIsIPS() ? "IPS" : "IDS");
+            } else {
+                SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
+            }
+        } else {
+            SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
+        }
 
     } else if (strcmp(option, "exception-policy") == 0) {
         /* not enabled, we won't change the master exception policy,
@@ -164,19 +178,21 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         } else {
             policy = EXCEPTION_POLICY_DROP_FLOW;
         }
+        SCLogConfig("%s: %s (%s-mode)", option, ExceptionPolicyEnumToString(policy),
+                EngineModeIsIPS() ? "IPS" : "IDS");
+
     } else {
         /* Exception Policy was not defined individually */
-        enum ExceptionPolicy master_policy = GetMasterExceptionPolicy(option);
-        if (master_policy == EXCEPTION_POLICY_NOT_SET) {
-            SCLogConfig("%s: ignore", option);
+        policy = GetMasterExceptionPolicy(option);
+        if (g_eps_have_exception_policy) {
+            SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
+                    ExceptionPolicyEnumToString(policy));
         } else {
-            /* If the master switch was set and the Exception Policy option was not
-            individually set, use the defined master Exception Policy */
-            const char *value = ExceptionPolicyEnumToString(master_policy);
-            SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option, value);
-            policy = master_policy;
+            SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
+                    ExceptionPolicyEnumToString(policy), EngineModeIsIPS() ? "IPS" : "IDS");
         }
     }
+
     return policy;
 }
 
