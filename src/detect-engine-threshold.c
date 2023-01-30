@@ -302,7 +302,6 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
         case TH_ACTION_DROP:
             pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
             pa->action = ACTION_DROP;
-            SCLogNotice("DROP DROP DROP DROP DROP DROP");
             break;
         case TH_ACTION_REJECT:
             pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
