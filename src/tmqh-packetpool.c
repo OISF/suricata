@@ -470,8 +470,10 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
     if (pq == NULL)
         return;
 
-    while ( (p = PacketDequeue(pq)) != NULL)
+    while ((p = PacketDequeue(pq)) != NULL) {
+        DEBUG_VALIDATE_BUG_ON(p->flow != NULL);
         TmqhOutputPacketpool(NULL, p);
+    }
 
     return;
 }
