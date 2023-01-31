@@ -487,7 +487,7 @@ static TmEcode AFXDPSocketCreation(AFXDPThreadVars *ptv)
     }
 
     /* Has the eBPF program successfully bound? */
-    if (bpf_get_link_xdp_id(ptv->ifindex, &ptv->prog_id, ptv->xsk.cfg.xdp_flags)) {
+    if (bpf_xdp_query_id(ptv->ifindex, ptv->xsk.cfg.xdp_flags, &ptv->prog_id)) {
         SCLogError("Failed to attach eBPF program to interface: %s", ptv->livedev->dev);
         SCReturnInt(TM_ECODE_FAILED);
     }
