@@ -1,3 +1,28 @@
+6.0.10 -- 2023-01-31
+
+Security #5804: Suricata crashes while processing FTP (6.0.x backport)
+Bug #5815: detect: config keyword prevents tx cleanup (6.0.x backport)
+Bug #5812: nfs: debug validation triggered on nfs2 read
+Bug #5810: smb/ntlmssp: parser incorrectly assumes fixed field order (6.0.x backport)
+Bug #5806: exceptions: midstream flows are dropped if midstream=true && stream.midstream-policy=drop-flow (6.0.x backport)
+Bug #5796: TLS Handshake Fragments not Reassembled (6.0.x backport)
+Bug #5795: detect/udp: different detection from rules when UDP/TCP header is broken (6.0.x backport)
+Bug #5793: decode: Padded packet to minimal Ethernet length marked with invalid length event (6.0.x backport)
+Bug #5791: smb: unbounded file chunk queuing after gap (6.0.x backport)
+Bug #5763: libbpf: Use of legacy code in eBPF/XDP programs (6.0.x backport)
+Bug #5762: detect/pcre: JIT not disabled when OS doesn't allow RWX pages
+Bug #5760: nfs: ASSERT: attempt to subtract with overflow (compound) (6.0.x backport)
+Bug #5749: iprep/ipv6: warning issued on valid reputation input (6.0.x backport)
+Bug #5744: netmap: 6.0.9 v14 backport causes known packet stalls from v14 implementation in "legacy" mode too
+Bug #5738: smb: failed assertion (!((f->alproto == ALPROTO_SMB && txd->files_logged != 0))), function CloseFile, file output-file.c (6.0.x backport)
+Bug #5735: smtp: quoted-printable encoding skips empty lines in files (6.0.x backport)
+Bug #5723: eve: missing common fields like community id for some event types like RFB
+Bug #5601: detect: invalid hex character in content leads to bad debug message (6.0.x backport)
+Bug #5565: Excessive qsort/msort time when large number of rules using tls.fingerprint (6.0.x backport)
+Bug #5299: YAML warning from default config on 6.0.5
+Optimization #5797: tls: support incomplete API to replace internal buffering
+Optimization #5790: smb: set defaults for file chunk limits (6.0.x backport)
+
 6.0.9 -- 2022-11-28
 
 Security #5710: smb: crash inside of streaming buffer Grow() (6.0.x backport)
