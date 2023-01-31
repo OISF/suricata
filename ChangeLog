@@ -1,3 +1,115 @@
+7.0.0-rc1 -- 2023-01-31
+
+Feature #5761: Unknown ethertype packets are not counted
+Feature #5516: tls: client cert detection
+Feature #5384: Thread Synchronisation: wait for all threads to be in an operating state before continuing initialisation
+Feature #5383: Support for IP addresses in dataset
+Feature #5219: ips: add 'master switch' to enable dropping on traffic (handling) exceptions
+Feature #5184: Add more dataset user interaction
+Feature #4981: frames: add general <app_proto>.stream frames
+Feature #4979: frames: implement dynamic logic to disable frames of a type
+Feature #4751: dns/eve: add 'HTTPS' type logging
+Feature #4269: Additional dataset operations
+Feature #3306: Support AF_XDP capture method
+Feature #3086: app_proto for Torrent traffic
+Feature #2497: error messages usability improvement
+Security #5712: tcp: crafted packets lead to resource starvation
+Security #5703: smb: crash inside of streaming buffer Grow()
+Security #5701: Suricata crashes while processing FTP
+Security #5700: SCRealloc of large chunk crashes Suricata
+Security #5686: decoder/tunnel: tunnel depth not limited properly
+Security #5623: smtp/base64: crash / memory corruption
+Bug #5817: tls: certificates with dates prior to 1970 are not logged correctly
+Bug #5814: smb: duplicate interface fields logged
+Bug #5813: rfb/eve: depth in pixel format logged twice
+Bug #5811: smb: tx logs sometimes have duplicate `tree_id` output
+Bug #5781: smb: unbounded file chunk queuing after gap
+Bug #5779: dcerpc: max-tx config parameter
+Bug #5769: Incomplete values for .stats."app_layer".flow.proto
+Bug #5765: exceptions: midstream flows are dropped if midstream=true && stream.midstream-policy=drop-flow
+Bug #5753: smb: convert transaction list to vecdeque
+Bug #5747: iprep/ipv6: warning issued on valid reputation input
+Bug #5725: smtp: quoted-printable encoding skips empty lines in files
+Bug #5707: quic: ja3 Stack-use-after-return READ 1
+Bug #5706: app-layer-htp: Condition depending on enabled IPS mode never true
+Bug #5693: decode: Padded packet to minimal Ethernet length marked with invalid length event
+Bug #5691: HTTP/2 decompression bug
+Bug #5663: tls: buffer overhead off by one in TLSDecodeHSHelloExtensionSupportedVersions
+Bug #5661: security.limit-noproc: break ASAN/LSAN when non-root user
+Bug #5658: SMTP: segfault on boundary data
+Bug #5654: readthedocs: not showing pdf download option for recent versions
+Bug #5644: Integer overflow at dcerpc.rs:846
+Bug #5637: quic: convert to vecdeque
+Bug #5624: quic: rule with ja3.hash keyword fails to load
+Bug #5617: dpdk: avoid per thread warnings
+Bug #5580: dpdk: IDS vs IPS confusion
+Bug #5579: pgsql: support out of order parameter in startup message
+Bug #5574: base64: skip over all invalid characters for RFC 2045 mode
+Bug #5572: pcre2: allow different include/lib paths
+Bug #5567: smb: failed assertion (!((f->alproto == ALPROTO_SMB && txd->files_logged != 0))), function CloseFile, file output-file.c
+Bug #5564: tls: buffer overread 
+Bug #5558: detect: invalid hex character in content leads to bad debug message
+Bug #5557: dcerpc: rust integer underflow
+Bug #5553: dpdk: Packets with invalid checksums are not counted in DPDK capture mode
+Bug #5530: frames: buffer overflow in signatures parsing
+Bug #5529: frame: memory leak in signature parsing
+Bug #5528: tcp: assertion failed in function DoInsertSegment
+Bug #5456: detect: config keyword prevents tx cleanup
+Bug #5444: dns: allow dns messages with invalid opcodes
+Bug #5379: detect/udp: different detection from rules when UDP/TCP header is broken
+Bug #5374: pcap-log: breaking change in file names
+Bug #5258: smb/ntlmssp: parser incorrectly assumes fixed field order
+Bug #5235: ftp: add event when command request or response is too long
+Bug #5205: FTP-data unrecognized depending on multi-threading
+Bug #5198: eve/stats: ASAN error when eve output file can't be opened.
+Bug #5161: smb: file not tracked on smb2 async
+Bug #4580: smb: large streams can cause large memory moves (memmove)
+Bug #4554: Configuration test mode succeeds when classification.config file contains invalid content
+Bug #3253: tls: handling of 'Not Before' date before unix epoch
+Bug #2982: invalid dsize distance rule being loaded by suricata
+Optimization #5782: smb: set defaults for file chunk limits
+Optimization #5373: Prevent process creation by Suricata process
+Optimization #4977: frames: gap handling in inspection
+Optimization #4908: ftp: use AppLayerResult instead of buffering wherever possible
+Optimization #4614: Fix warning about "field reassign with default"
+Optimization #4612: Fix warning about "nonminimal bool"
+Optimization #4611: Fix warning about "extra unused lifetimes"
+Optimization #4610: Fix warning about "explicit counter loop"
+Optimization #4608: Fix warning about "redundant pattern matching"
+Optimization #4606: Fix warning about "match ref pats"
+Optimization #4603: Fix warning about "type complexity"
+Optimization #4602: Fix warning about "new without default"
+Optimization #4601: Fix warning about "while let loop"
+Optimization #4600: Fix warning about "needless lifetimes"
+Optimization #4598: Fix warning about "needless_range_loop"
+Optimization #4596: Fix warning about "single match"
+Optimization #4594: Fix warning about "this loop never actually loops"
+Optimization #4592: Fix warning  about "for loop over fallibles"
+Optimization #4591: Fix Rust clippy lints
+Optimization #3160: clean up error codes
+Task #5638: SWF decompression: Do not depend on libhtp
+Task #5632: Disable swf decompression by default
+Task #5587: ips/tap: in layer 2 ips/tap setups, warn that mixed usage of ips and tap will be removed in 8.0
+Task #5586: rust/applayertemplate: remove pub and no_mangle from extern functions that don't need it
+Task #5504: exceptions: error out when invalid configuration value is passed
+Task #5496: detect/parse: add tests for parsing signatures with reject and drop action
+Task #4939: app-layer: template and setup script
+Task #4054: Convert unittests to new FAIL/PASS API: detect-replace.c
+Task #4050: Convert unittests to new FAIL/PASS API: detect-l3proto.c
+Task #4049: Convert unittests to new FAIL/PASS API: detect-itype.c
+Task #4043: Convert unittests to new FAIL/PASS API: detect-icmp-seq.c
+Task #4042: Convert unittests to new FAIL/PASS API: detect-icmp-id.c
+Task #4039: Convert unittests to new FAIL/PASS API: detect-filesize.c
+Task #4030: Convert unittests to new FAIL/PASS API: detect-engine-tag.c
+Task #4029: Convert unittests to new FAIL/PASS API: detect-engine-sigorder.c
+Task #4020: Convert unittests to new FAIL/PASS API - detect-distance.c
+Documentation #5616: Ubuntu PPA: Package software-properties-common
+Documentation #5585: devguide: bring section about installation from redmine wiki into DevGuide
+Documentation #5515: userguide: add a dedicated chapter/section for the Exception Policies
+Documentation #5129: devguide: clarify style guide for getframe functions
+Documentation #4929: devguide: bring Contributing process page into it
+Documentation #4697: devguide: document app-layer frame support
+
 7.0.0-beta1 -- 2022-10-26
 
 Feature #5509: App-layer event for protocol change failure
