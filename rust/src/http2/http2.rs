@@ -280,24 +280,14 @@ impl HTTP2Transaction {
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
     ) {
-        //handle child_stream_id changes
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
                 if dir == Direction::ToClient {
-                    //we could set an event if self.child_stream_id != 0
-                    if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
-                        self.child_stream_id = hs.stream_id;
-                    }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
                 self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
-                if dir == Direction::ToClient
-                    && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
-                {
-                    self.child_stream_id = 0;
-                }
                 self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
@@ -566,6 +556,27 @@ impl HTTP2State {
         tx.update_file_flags(tx.tx_data.file_flags);
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
+    }
+
+    pub fn process_child_stream_id(
+        &mut self, sid: u32, child_stream_id: u32, ftype: u8, headers_over: bool, dir: Direction,
+    ) {
+        if dir != Direction::ToClient {
+            return;
+        }
+
+        // handle child_stream_id changes
+        if ftype == parser::HTTP2FrameType::PushPromise as u8 {
+            let index = self.find_tx_index(sid);
+            if index > 0 && !headers_over {
+                self.transactions[index - 1].child_stream_id = child_stream_id;
+            }
+        } else if ftype == parser::HTTP2FrameType::Continuation as u8 {
+            let index = self.find_tx_index(sid);
+            if index > 0 && headers_over {
+                self.transactions[index - 1].child_stream_id = 0;
+            }
+        }
     }
 
     pub fn find_or_create_tx(
@@ -945,6 +956,11 @@ impl HTTP2State {
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
                     tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
+                    let headers_over =  head.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0;
+                    let child_stream_id = match &txdata {
+                        HTTP2FrameTypeData::PUSHPROMISE(hs) => hs.stream_id,
+                        _ => 0,
+                    };
                     let ftype = head.ftype;
                     let sid = head.stream_id;
                     let padded = head.flags & parser::HTTP2_FLAG_HEADER_PADDED != 0;
@@ -959,6 +975,7 @@ impl HTTP2State {
                             data: txdata,
                         });
                     }
+                    self.process_child_stream_id(sid, child_stream_id, ftype, headers_over, dir);
                     if ftype == parser::HTTP2FrameType::Data as u8 {
                         match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             Some(sfcm) => {
