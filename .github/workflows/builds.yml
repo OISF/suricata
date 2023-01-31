@@ -1105,10 +1105,10 @@ jobs:
       - run: sudo -u suricata -s ./.github/workflows/scripts/fedora-non-root.sh verify
         working-directory: /home/suricata/suricata
 
-  fedora-35-no-jansson:
-    name: Fedora 35 (no jansson)
+  almalinux-9-no-jansson:
+    name: AlmaLinux 9 (no jansson)
     runs-on: ubuntu-latest
-    container: fedora:35
+    container: almalinux:9
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1127,11 +1127,12 @@ jobs:
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enable crb
           dnf -y install \
                 autoconf \
                 automake \
                 cargo \
-                ccache \
                 clang \
                 diffutils \
                 file-devel \
