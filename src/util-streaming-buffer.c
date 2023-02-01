@@ -1045,15 +1045,20 @@ static inline bool RegionsIntersect(const StreamingBuffer *sb, const StreamingBu
  */
 static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBuffer *sb,
         const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len)
+        const uint32_t len, StreamingBufferRegion **prev)
 {
     const uint64_t data_re = offset + len;
     SCLogDebug("looking for first region matching %" PRIu64 "/%" PRIu64, offset, data_re);
 
+    StreamingBufferRegion *p = NULL;
     for (; r != NULL; r = r->next) {
-        if (RegionsIntersect(sb, cfg, r, offset, data_re) == true)
+        if (RegionsIntersect(sb, cfg, r, offset, data_re) == true) {
+            *prev = p;
             return r;
+        }
+        p = r;
     }
+    *prev = NULL;
     return NULL;
 }
 
@@ -1105,20 +1110,21 @@ static StreamingBufferRegion *FindRightEdge(const StreamingBuffer *sb,
 static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *sb,
         const StreamingBufferConfig *cfg, StreamingBufferRegion *dst,
         StreamingBufferRegion *src_start, StreamingBufferRegion *src_end,
-        const uint64_t data_offset, const uint32_t data_len)
+        const uint64_t data_offset, const uint32_t data_len, StreamingBufferRegion *prev,
+        uint32_t dst_buf_size)
 {
+#ifdef DEBUG
     const uint64_t data_re = data_offset + data_len;
     SCLogDebug("sb %p dst %p src_start %p src_end %p data_offset %" PRIu64
                "/data_len %u/data_re %" PRIu64,
             sb, dst, src_start, src_end, data_offset, data_len, data_re);
+#endif
 
-    // 1. determine size for dst.
+    // 1. determine size and offset for dst.
     const uint64_t dst_offset = MIN(src_start->stream_offset, data_offset);
     DEBUG_VALIDATE_BUG_ON(dst_offset < sb->region.stream_offset);
-    const uint64_t dst_re = MAX((src_end->stream_offset + src_end->buf_size), data_re);
-    const uint32_t dst_size = dst_re - dst_offset;
-    SCLogDebug("dst_offset %" PRIu64 ", dst_re %" PRIu64 ", dst_size %u", dst_offset, dst_re,
-            dst_size);
+    const uint32_t dst_size = dst_buf_size;
+    SCLogDebug("dst_size %u", dst_size);
 
     // 2. resize dst
     const uint32_t old_size = dst->buf_size;
@@ -1130,7 +1136,9 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
 #endif
     if (GrowRegionToSize(sb, cfg, dst, dst_size) != 0)
         return NULL;
-    SCLogDebug("resized to %u", dst_size);
+    SCLogDebug("resized to %u -> %u", dst_size, dst->buf_size);
+    /* validate that the size is exactly what we asked for */
+    DEBUG_VALIDATE_BUG_ON(dst_size != dst->buf_size);
     if (dst_copy_offset != 0)
         memmove(dst->buf + dst_copy_offset, dst->buf, old_size);
     dst->stream_offset = dst_offset;
@@ -1141,7 +1149,6 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
     }
 
     bool start_is_main = false;
-    StreamingBufferRegion *prev = NULL;
     if (src_start == &sb->region) {
         DEBUG_VALIDATE_BUG_ON(src_start->stream_offset != dst_offset);
 
@@ -1174,6 +1181,8 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
         }
         const uint32_t target_offset = r->stream_offset - dst_offset;
         SCLogDebug("r %p: target_offset %u", r, target_offset);
+        BUG_ON(target_offset > dst->buf_size);
+        BUG_ON(target_offset + r->buf_size > dst->buf_size);
         memcpy(dst->buf + target_offset, r->buf, r->buf_size);
 
         StreamingBufferRegion *next = r->next;
@@ -1181,6 +1190,8 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
         FREE(cfg, r, sizeof(*r));
         sb->regions--;
         BUG_ON(sb->regions == 0);
+
+        DEBUG_VALIDATE_BUG_ON(prev == NULL && src_start != &sb->region);
         if (prev != NULL) {
             SCLogDebug("setting prev %p next to %p (was %p)", prev, next, prev->next);
             prev->next = next;
@@ -1222,21 +1233,45 @@ static StreamingBufferRegion *BufferInsertAtRegionDo(StreamingBuffer *sb,
         const StreamingBufferConfig *cfg, const uint64_t offset, const uint32_t len)
 {
     SCLogDebug("offset %" PRIu64 ", len %u", offset, len);
-    StreamingBufferRegion *start = FindFirstRegionForOffset(sb, cfg, &sb->region, offset, len);
+    StreamingBufferRegion *start_prev = NULL;
+    StreamingBufferRegion *start =
+            FindFirstRegionForOffset(sb, cfg, &sb->region, offset, len, &start_prev);
     if (start) {
+        const uint64_t insert_re = offset + len;
+        const uint64_t insert_start_offset = MIN(start->stream_offset, offset);
+        uint64_t insert_adjusted_re = insert_re;
+
         SCLogDebug("start region %p/%" PRIu64 "/%u", start, start->stream_offset, start->buf_size);
         StreamingBufferRegion *big = FindLargestRegionForOffset(sb, cfg, start, offset, len);
         DEBUG_VALIDATE_BUG_ON(big == NULL);
         if (big == NULL)
             return NULL;
+
         SCLogDebug("big region %p/%" PRIu64 "/%u", big, big->stream_offset, big->buf_size);
         StreamingBufferRegion *end = FindRightEdge(sb, cfg, big, offset, len);
         DEBUG_VALIDATE_BUG_ON(end == NULL);
         if (end == NULL)
             return NULL;
+        insert_adjusted_re = MAX(insert_adjusted_re, (end->stream_offset + end->buf_size));
+
+        uint32_t new_buf_size =
+                ToNextMultipleOf(insert_adjusted_re - insert_start_offset, cfg->buf_size);
+        SCLogDebug("new_buf_size %u", new_buf_size);
+
+        /* see if our new buf size + cfg->buf_size margin leads to an overlap with the next region.
+         * If so, include that in the consolidation. */
+        if (end->next != NULL && new_buf_size + insert_start_offset > end->next->stream_offset) {
+            SCLogDebug("adjusted end from %p to %p", end, end->next);
+            end = end->next;
+            insert_adjusted_re = MAX(insert_adjusted_re, (end->stream_offset + end->buf_size));
+            new_buf_size =
+                    ToNextMultipleOf(insert_adjusted_re - insert_start_offset, cfg->buf_size);
+            SCLogDebug("new_buf_size %u", new_buf_size);
+        }
+
         SCLogDebug("end region %p/%" PRIu64 "/%u", end, end->stream_offset, end->buf_size);
-        StreamingBufferRegion *ret =
-                BufferInsertAtRegionConsolidate(sb, cfg, big, start, end, offset, len);
+        StreamingBufferRegion *ret = BufferInsertAtRegionConsolidate(
+                sb, cfg, big, start, end, offset, len, start_prev, new_buf_size);
         return ret;
     } else {
         /* if there was no region we can use we add a new region and insert it */
