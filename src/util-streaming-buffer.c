@@ -564,6 +564,16 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 #endif
 }
 
+static inline uint32_t ToNextMultipleOf(const uint32_t in, const uint32_t m)
+{
+    uint32_t r = in;
+    const uint32_t x = in % m;
+    if (x != 0) {
+        r = (in - x) + m;
+    }
+    return r;
+}
+
 static thread_local bool g2s_warn_once = false;
 
 static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
@@ -581,9 +591,8 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
     }
 
     /* try to grow in multiples of cfg->buf_size */
-    uint32_t x = cfg->buf_size ? size % cfg->buf_size : 0;
-    uint32_t base = size - x;
-    uint32_t grow = base + cfg->buf_size;
+    const uint32_t grow = ToNextMultipleOf(size, cfg->buf_size);
+    SCLogDebug("grow %u", grow);
 
     void *ptr = REALLOC(cfg, region->buf, region->buf_size, grow);
     if (ptr == NULL) {
