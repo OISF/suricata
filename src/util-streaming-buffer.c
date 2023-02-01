@@ -1079,7 +1079,8 @@ static StreamingBufferRegion *FindRightEdge(const StreamingBuffer *sb,
     StreamingBufferRegion *candidate = r;
     for (; r != NULL; r = r->next) {
         if (!RegionsIntersect(sb, cfg, r, offset, data_re)) {
-            SCLogDebug("r %p is out of scope: %" PRIu64 "/%u", r, offset, len);
+            SCLogDebug(
+                    "r %p is out of scope: %" PRIu64 "/%u/%" PRIu64, r, offset, len, offset + len);
             return candidate;
         }
         candidate = r;
