@@ -3826,6 +3826,9 @@
                                 "pgsql": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "pop3": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "quic": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -3943,6 +3946,9 @@
                                 "pgsql": {
                                     "type": "integer"
                                 },
+                                "pop3": {
+                                    "type": "integer"
+                                },
                                 "quic": {
                                     "type": "integer"
                                 },
@@ -4052,6 +4058,9 @@
                                     "type": "integer"
                                 },
                                 "pgsql": {
+                                    "type": "integer"
+                                },
+                                "pop3": {
                                     "type": "integer"
                                 },
                                 "quic": {

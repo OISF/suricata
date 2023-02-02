@@ -1789,6 +1789,18 @@ void AppLayerParserRegisterProtocolParsers(void)
                   "imap");
     }
 
+    /** POP3 */
+    AppLayerProtoDetectRegisterProtocol(ALPROTO_POP3, "pop3");
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "pop3")) {
+        if (AppLayerProtoDetectPMRegisterPatternCS(
+                    IPPROTO_TCP, ALPROTO_POP3, "+OK ", 4, 0, STREAM_TOCLIENT) < 0) {
+            SCLogInfo("pop3 proto registration failure");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
+    }
+
     ValidateParsers();
     return;
 }
