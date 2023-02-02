@@ -987,6 +987,8 @@ app-layer:
         content-inspect-window: 4096
     imap:
       enabled: detection-only
+    pop3:
+      enabled: detection-only
     smb:
       enabled: yes
       detection-ports:
