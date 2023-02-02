@@ -1147,6 +1147,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
     { ALPROTO_HTTP2, rs_http2_log_json },
     { ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log },
+    { ALPROTO_POP3, NULL }, // protocol detection only
     { ALPROTO_HTTP, NULL }, // signature protocol, not for app-layer logging
     { ALPROTO_FAILED, NULL },
 #ifdef UNITTESTS
