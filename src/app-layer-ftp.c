@@ -952,7 +952,7 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
 static AppProto FTPUserProbingParser(
         Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
-    if (f->dp == 110 && f->alproto_tc == ALPROTO_UNKNOWN && f->tosrcbytecnt > 3) {
+    if (f->alproto_tc == ALPROTO_POP3) {
         // POP traffic begins by same "USER" pattern as FTP
         // So exclude port 110 for now, until Suricata has a POP parser
         // recognizing the "+OK" pattern from server.

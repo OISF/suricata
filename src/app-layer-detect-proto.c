@@ -881,6 +881,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_SSH\n");
                     else if (pp_pe->alproto == ALPROTO_IMAP)
                         printf("            alproto: ALPROTO_IMAP\n");
+                    else if (pp_pe->alproto == ALPROTO_POP3)
+                        printf("            alproto: ALPROTO_POP3\n");
                     else if (pp_pe->alproto == ALPROTO_JABBER)
                         printf("            alproto: ALPROTO_JABBER\n");
                     else if (pp_pe->alproto == ALPROTO_SMB)
@@ -964,6 +966,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_SSH\n");
                 else if (pp_pe->alproto == ALPROTO_IMAP)
                     printf("            alproto: ALPROTO_IMAP\n");
+                else if (pp_pe->alproto == ALPROTO_POP3)
+                    printf("            alproto: ALPROTO_POP3\n");
                 else if (pp_pe->alproto == ALPROTO_JABBER)
                     printf("            alproto: ALPROTO_JABBER\n");
                 else if (pp_pe->alproto == ALPROTO_SMB)
