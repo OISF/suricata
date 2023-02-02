@@ -1763,12 +1763,22 @@ void AppLayerParserRegisterProtocolParsers(void)
         if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_IMAP,
                                   "1|20|capability", 12, 0, STREAM_TOSERVER) < 0)
         {
-            SCLogInfo("imap proto registration failure");
-            exit(EXIT_FAILURE);
+            FatalError("imap proto registration failure");
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   "imap");
+    }
+
+    /** POP3 */
+    AppLayerProtoDetectRegisterProtocol(ALPROTO_POP3, "pop3");
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "pop3")) {
+        if (AppLayerProtoDetectPMRegisterPatternCS(
+                    IPPROTO_TCP, ALPROTO_POP3, "+OK ", 4, 0, STREAM_TOCLIENT) < 0) {
+            FatalError("pop3 proto registration failure");
+        }
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
     }
 
     ValidateParsers();
