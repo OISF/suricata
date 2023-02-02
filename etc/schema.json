@@ -3980,6 +3980,9 @@
                                     "description": "Errors encountered parsing PostgreSQL protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "pop3": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "quic": {
                                     "description": "Errors encountered parsing QUIC protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4141,6 +4144,9 @@
                                     "description": "Number of flows for PostgreSQL protocol",
                                     "type": "integer"
                                 },
+                                "pop3": {
+                                    "type": "integer"
+                                },
                                 "quic": {
                                     "description": "Number of flows for QUIC protocol",
                                     "type": "integer"
@@ -4268,6 +4274,9 @@
                                     "type": "integer"
                                 },
                                 "pgsql": {
+                                    "type": "integer"
+                                },
+                                "pop3": {
                                     "type": "integer"
                                 },
                                 "quic": {
