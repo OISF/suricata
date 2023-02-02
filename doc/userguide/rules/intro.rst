@@ -96,6 +96,7 @@ you can pick from. These are:
 * ssh
 * smtp
 * imap
+* pop3
 * modbus (disabled by default)
 * dnp3 (disabled by default)
 * enip (disabled by default)
