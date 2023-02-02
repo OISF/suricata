@@ -620,6 +620,10 @@ again_midstream:
             mask = pp_port_dp->alproto_mask;
         else if (pp_port_sp)
             mask = pp_port_sp->alproto_mask;
+        else {
+            // only pe0
+            mask = pe0->alproto_mask;
+        }
 
         if (alproto_masks[0] == mask) {
             FLOW_SET_PP_DONE(f, dir);
