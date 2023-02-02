@@ -19,6 +19,7 @@ Automatic Protocol Detection
    -  dns
    -  http
    -  imap (detection only by default; no parsing)
+   -  pop3 (detection only by default; no parsing)
    -  ftp
    -  modbus (disabled by default; minimalist probe parser; can lead to false positives)
    -  smb
