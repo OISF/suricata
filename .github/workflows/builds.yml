@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Dumping github context for debugging
-        run: echo $JSON
+        run: echo $JSON | jq
         env:
           JSON: ${{ toJSON(github) }}
       - run: sudo apt update && sudo apt -y install jq curl
