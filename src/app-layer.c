@@ -779,6 +779,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                 if (r < 0) {
+                    if (f->alproto_tc == ALPROTO_UNKNOWN || f->alproto_ts == ALPROTO_UNKNOWN) {
+                        AppLayerIncFlowCounter(tv, f);
+                    }
                     ExceptionPolicyApply(
                             p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
                     SCReturnInt(-1);
