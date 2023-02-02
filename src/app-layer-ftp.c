@@ -949,6 +949,18 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
     return FTP_STATE_FINISHED;
 }
 
+static AppProto FTPUserProbingParser(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    if (f->dp == 110 && f->alproto_tc == ALPROTO_UNKNOWN && f->tosrcbytecnt > 3) {
+        // POP traffic begins by same "USER" pattern as FTP
+        // So exclude port 110 for now, until Suricata has a POP parser
+        // recognizing the "+OK" pattern from server.
+        return ALPROTO_FAILED;
+    }
+    return ALPROTO_FTP;
+}
+
 static AppProto FTPServerProbingParser(
         Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
@@ -988,8 +1000,8 @@ static int FTPRegisterPatternsForProtocolDetection(void)
                 IPPROTO_TCP, ALPROTO_FTP, "FEAT", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(
-                IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER) < 0) {
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0,
+                STREAM_TOSERVER, FTPUserProbingParser, 5, 5) < 0) {
         return -1;
     }
     if (AppLayerProtoDetectPMRegisterPatternCI(
