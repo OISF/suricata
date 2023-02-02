@@ -5241,8 +5241,10 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
 {
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
-            return 0;
+            /* most likely a flow that was picked up after the 3whs, or a flow that
+             * does not have a session due to memcap issues. */
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            return 1;
         }
         if (SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
