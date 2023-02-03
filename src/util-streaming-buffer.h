@@ -160,8 +160,6 @@ void StreamingBufferFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg);
 void StreamingBufferSlideToOffset(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint64_t offset);
 
-StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, const uint8_t *data, uint32_t data_len) WARN_UNUSED;
 int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len) WARN_UNUSED;
 int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfig *cfg,

@@ -840,41 +840,6 @@ void StreamingBufferSlideToOffset(
 
 #define DATA_FITS(sb, len) ((sb)->region.buf_offset + (len) <= (sb)->region.buf_size)
 
-StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, const uint8_t *data, uint32_t data_len)
-{
-    if (sb->region.buf == NULL) {
-        if (InitBuffer(sb, cfg) == -1)
-            return NULL;
-    }
-
-    if (!DATA_FITS(sb, data_len)) {
-        if (sb->region.buf_size == 0) {
-            if (GrowToSize(sb, cfg, data_len) != 0)
-                return NULL;
-        } else {
-            if (GrowToSize(sb, cfg, sb->region.buf_offset + data_len) != 0)
-                return NULL;
-        }
-    }
-    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
-
-    StreamingBufferSegment *seg = CALLOC(cfg, 1, sizeof(StreamingBufferSegment));
-    if (seg != NULL) {
-        memcpy(sb->region.buf + sb->region.buf_offset, data, data_len);
-        seg->stream_offset = sb->region.stream_offset + sb->region.buf_offset;
-        seg->segment_len = data_len;
-        uint32_t rel_offset = sb->region.buf_offset;
-        sb->region.buf_offset += data_len;
-
-        if (!RB_EMPTY(&sb->sbb_tree)) {
-            SBBUpdate(sb, cfg, &sb->region, rel_offset, data_len);
-        }
-        return seg;
-    }
-    return NULL;
-}
-
 int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len)
 {
