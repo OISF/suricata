@@ -205,7 +205,7 @@ static void SBBPrintList(StreamingBuffer *sb)
  *
  * [block][gap][block]
  **/
-static void SBBInit(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferRegion *region, uint32_t rel_offset, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
@@ -214,7 +214,7 @@ static void SBBInit(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
     /* need to set up 2: existing data block and new data block */
     StreamingBufferBlock *sbb = CALLOC(cfg, 1, sizeof(*sbb));
     if (sbb == NULL) {
-        return;
+        return -1;
     }
     sbb->offset = sb->region.stream_offset;
     sbb->len = sb->region.buf_offset;
@@ -222,7 +222,7 @@ static void SBBInit(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
     StreamingBufferBlock *sbb2 = CALLOC(cfg, 1, sizeof(*sbb2));
     if (sbb2 == NULL) {
         FREE(cfg, sbb, sizeof(*sbb));
-        return;
+        return -1;
     }
     sbb2->offset = region->stream_offset + rel_offset;
     sbb2->len = data_len;
@@ -238,20 +238,21 @@ static void SBBInit(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
     SBBPrintList(sb);
 #endif
     BUG_ON(sbb2->offset < sbb->len);
+    return 0;
 }
 
 /* setup with leading gap
  *
  * [gap][block]
  **/
-static void SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferRegion *region, uint64_t offset, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
 
     StreamingBufferBlock *sbb = CALLOC(cfg, 1, sizeof(*sbb));
     if (sbb == NULL)
-        return;
+        return -1;
     sbb->offset = offset;
     sbb->len = data_len;
 
@@ -263,6 +264,7 @@ static void SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBufferConfig *
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
+    return 0;
 }
 
 static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
@@ -868,9 +870,10 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
     sb->region.buf_offset += data_len;
 
     if (!RB_EMPTY(&sb->sbb_tree)) {
-        SBBUpdate(sb, cfg, &sb->region, rel_offset, data_len);
+        return SBBUpdate(sb, cfg, &sb->region, rel_offset, data_len);
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 /**
@@ -900,9 +903,10 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfi
     sb->region.buf_offset += data_len;
 
     if (!RB_EMPTY(&sb->sbb_tree)) {
-        SBBUpdate(sb, cfg, &sb->region, rel_offset, data_len);
+        return SBBUpdate(sb, cfg, &sb->region, rel_offset, data_len);
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 #define DATA_FITS_AT_OFFSET(region, len, offset) ((offset) + (len) <= (region)->buf_size)
@@ -1383,22 +1387,26 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
                 } else if (sb->region.buf_offset) {
                     SCLogDebug("beyond expected offset: SBBInit");
                     /* existing data, but there is a gap between us */
-                    SBBInit(sb, cfg, region, rel_offset, data_len);
+                    if (SBBInit(sb, cfg, region, rel_offset, data_len) < 0)
+                        return -1;
                 } else {
                     /* gap before data in empty list */
                     SCLogDebug("empty sbb list: invoking SBBInitLeadingGap");
-                    SBBInitLeadingGap(sb, cfg, region, offset, data_len);
+                    if (SBBInitLeadingGap(sb, cfg, region, offset, data_len) < 0)
+                        return -1;
                 }
             }
         } else {
             if (sb->region.buf_offset) {
                 /* existing data, but there is a gap between us */
                 SCLogDebug("empty sbb list, no data in main: use SBBInit");
-                SBBInit(sb, cfg, region, rel_offset, data_len);
+                if (SBBInit(sb, cfg, region, rel_offset, data_len) < 0)
+                    return -1;
             } else {
                 /* gap before data in empty list */
                 SCLogDebug("empty sbb list: invoking SBBInitLeadingGap");
-                SBBInitLeadingGap(sb, cfg, region, offset, data_len);
+                if (SBBInitLeadingGap(sb, cfg, region, offset, data_len) < 0)
+                    return -1;
             }
             if (rel_offset == region->buf_offset) {
                 SCLogDebug("pre region->buf_offset %u", region->buf_offset);
@@ -1409,7 +1417,8 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
     } else {
         SCLogDebug("updating sbb tree");
         /* already have blocks, so append new block based on new data */
-        SBBUpdate(sb, cfg, region, rel_offset, data_len);
+        if (SBBUpdate(sb, cfg, region, rel_offset, data_len) < 0)
+            return -1;
     }
     BUG_ON(!region_is_main && sb->head == NULL);
 
