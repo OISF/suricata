@@ -1210,13 +1210,15 @@ NTLMSSP fields
 * "domain" (string): the Windows domain.
 * "user" (string): the user.
 * "host" (string): the host.
+* "version" (string): the client version.
 
 Example::
 
     "ntlmssp": {
       "domain": "VNET3",
       "user": "administrator",
-      "host": "BLU"
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
     }
 
 More complete example::
@@ -1232,7 +1234,8 @@ More complete example::
     "ntlmssp": {
       "domain": "VNET3",
       "user": "administrator",
-      "host": "BLU"
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
     },
     "request": {
       "native_os": "Unix",
