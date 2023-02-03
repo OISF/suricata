@@ -39,6 +39,7 @@ hkdf = "~0.12.3"
 aes = "~0.6.0"
 aes-gcm = "~0.8.0"
 
+htp = { git = "https://github.com/cccs-rtmorti/libhtp-rs.git", branch = "main", version = "2.0.0" }
 sawp-modbus = "~0.11.0"
 sawp = "~0.11.0"
 der-parser = "~6.0"
