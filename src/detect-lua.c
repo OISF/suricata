@@ -1198,7 +1198,6 @@ static int LuaMatchTest01(void)
         "end\n"
         "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -1208,10 +1207,7 @@ static int LuaMatchTest01(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1223,8 +1219,8 @@ static int LuaMatchTest01(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1244,85 +1240,51 @@ static int LuaMatchTest01(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogDebug("inspecting p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
+
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 static int LuaMatchTest01a(void)
@@ -1355,7 +1317,6 @@ static int LuaMatchTest01a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1363,10 +1324,7 @@ static int LuaMatchTest01a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1378,8 +1336,8 @@ static int LuaMatchTest01a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1399,85 +1357,51 @@ static int LuaMatchTest01a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
+
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogDebug("inspecting p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test payload buffer */
@@ -1511,7 +1435,6 @@ static int LuaMatchTest02(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1519,10 +1442,7 @@ static int LuaMatchTest02(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1532,8 +1452,8 @@ static int LuaMatchTest02(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
-    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1553,16 +1473,11 @@ static int LuaMatchTest02(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1570,47 +1485,27 @@ static int LuaMatchTest02(void)
     /* do detect for p1 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test payload buffer */
@@ -1644,7 +1539,6 @@ static int LuaMatchTest02a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1652,10 +1546,7 @@ static int LuaMatchTest02a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1665,8 +1556,8 @@ static int LuaMatchTest02a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
-    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1686,64 +1577,38 @@ static int LuaMatchTest02a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* do detect for p1 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test packet buffer */
@@ -1777,7 +1642,6 @@ static int LuaMatchTest03(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1785,10 +1649,7 @@ static int LuaMatchTest03(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1798,8 +1659,8 @@ static int LuaMatchTest03(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
-    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1819,64 +1680,38 @@ static int LuaMatchTest03(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* do detect for p1 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test packet buffer */
@@ -1910,7 +1745,6 @@ static int LuaMatchTest03a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1918,10 +1752,7 @@ static int LuaMatchTest03a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -1931,8 +1762,8 @@ static int LuaMatchTest03a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
-    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1952,64 +1783,37 @@ static int LuaMatchTest03a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* do detect for p1 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_str.value_len != 1) {
-        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_str.value_len != 1);
 
-    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
-        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+    FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-        printf("buffer mismatch: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2040,7 +1844,6 @@ static int LuaMatchTest04(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -2048,10 +1851,7 @@ static int LuaMatchTest04(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2063,8 +1863,8 @@ static int LuaMatchTest04(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2085,78 +1885,48 @@ static int LuaMatchTest04(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 2) {
-        printf("%u != %u: ", fv->data.fv_int.value, 2);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 2);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2187,7 +1957,6 @@ static int LuaMatchTest04a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2197,10 +1966,7 @@ static int LuaMatchTest04a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2212,8 +1978,8 @@ static int LuaMatchTest04a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2234,78 +2000,48 @@ static int LuaMatchTest04a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 2) {
-        printf("%u != %u: ", fv->data.fv_int.value, 2);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 2);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2329,7 +2065,6 @@ static int LuaMatchTest05(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2339,10 +2074,7 @@ static int LuaMatchTest05(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2354,8 +2086,8 @@ static int LuaMatchTest05(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2376,78 +2108,48 @@ static int LuaMatchTest05(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 2) {
-        printf("%u != %u: ", fv->data.fv_int.value, 2);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 2);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2471,7 +2173,6 @@ static int LuaMatchTest05a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2481,10 +2182,7 @@ static int LuaMatchTest05a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2496,8 +2194,8 @@ static int LuaMatchTest05a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2518,78 +2216,48 @@ static int LuaMatchTest05a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 2) {
-        printf("%u != %u: ", fv->data.fv_int.value, 2);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 2);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2618,7 +2286,6 @@ static int LuaMatchTest06(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2628,10 +2295,7 @@ static int LuaMatchTest06(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2643,8 +2307,8 @@ static int LuaMatchTest06(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2665,78 +2329,48 @@ static int LuaMatchTest06(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 0) {
-        printf("%u != %u: ", fv->data.fv_int.value, 0);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 0);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /** \test http buffer, flowints */
@@ -2765,7 +2399,6 @@ static int LuaMatchTest06a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2775,10 +2408,7 @@ static int LuaMatchTest06a(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     Flow f;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
@@ -2790,8 +2420,8 @@ static int LuaMatchTest06a(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2812,78 +2442,48 @@ static int LuaMatchTest06a(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, sig);
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     HtpState *http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched on p1 but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     /* do detect for p2 */
     SCLogInfo("p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match on p2 but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fv);
 
-    if (fv->data.fv_int.value != 0) {
-        printf("%u != %u: ", fv->data.fv_int.value, 0);
-        goto end;
-    }
+    FAIL_IF(fv->data.fv_int.value != 0);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 void DetectLuaRegisterTests(void)
