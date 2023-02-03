@@ -18,7 +18,7 @@ The ``bytes`` option specifies how many bytes Suricata should decode and make av
 The decoding will stop at the end of the buffer.
 
 The ``offset`` option specifies how many bytes Suricata should skip before decoding.
-Bytes are skipped relative to the start of the payload buffer if the ``relative`` is not set.
+Bytes are skipped relative to the start of the payload buffer if the ``relative`` is set.
 
 The ``relative`` option makes the decoding start relative to the previous content match. Default behavior is to start at the beginning of the buffer.
 This option makes ``offset`` skip bytes relative to the previous match.
