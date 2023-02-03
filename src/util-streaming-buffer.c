@@ -171,8 +171,7 @@ static void SBBPrintList(StreamingBuffer *sb)
  *
  * [block][gap][block]
  **/
-static void SBBInit(StreamingBuffer *sb,
-                    uint32_t rel_offset, uint32_t data_len)
+static int WARN_UNUSED SBBInit(StreamingBuffer *sb, uint32_t rel_offset, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
     DEBUG_VALIDATE_BUG_ON(sb->buf_offset > sb->stream_offset + rel_offset);
@@ -180,7 +179,7 @@ static void SBBInit(StreamingBuffer *sb,
     /* need to set up 2: existing data block and new data block */
     StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
     if (sbb == NULL) {
-        return;
+        return -1;
     }
     sbb->offset = sb->stream_offset;
     sbb->len = sb->buf_offset;
@@ -188,7 +187,7 @@ static void SBBInit(StreamingBuffer *sb,
     StreamingBufferBlock *sbb2 = CALLOC(sb->cfg, 1, sizeof(*sbb2));
     if (sbb2 == NULL) {
         FREE(sb->cfg, sbb, sizeof(*sbb));
-        return;
+        return -1;
     }
     sbb2->offset = sb->stream_offset + rel_offset;
     sbb2->len = data_len;
@@ -204,20 +203,20 @@ static void SBBInit(StreamingBuffer *sb,
     SBBPrintList(sb);
 #endif
     BUG_ON(sbb2->offset < sbb->len);
+    return 0;
 }
 
 /* setup with leading gap
  *
  * [gap][block]
  **/
-static void SBBInitLeadingGap(StreamingBuffer *sb,
-                              uint64_t offset, uint32_t data_len)
+static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, uint64_t offset, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
 
     StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
     if (sbb == NULL)
-        return;
+        return -1;
     sbb->offset = offset;
     sbb->len = data_len;
 
@@ -230,6 +229,7 @@ static void SBBInitLeadingGap(StreamingBuffer *sb,
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
+    return 0;
 }
 
 static inline void ConsolidateFwd(StreamingBuffer *sb,
@@ -389,10 +389,9 @@ static int Insert(StreamingBuffer *sb, struct SBB *tree,
     return 0;
 }
 
-static void SBBUpdate(StreamingBuffer *sb,
-                      uint32_t rel_offset, uint32_t data_len)
+static int SBBUpdate(StreamingBuffer *sb, uint32_t rel_offset, uint32_t data_len)
 {
-    Insert(sb, &sb->sbb_tree, rel_offset, data_len);
+    return Insert(sb, &sb->sbb_tree, rel_offset, data_len);
 }
 
 static void SBBFree(StreamingBuffer *sb)
@@ -648,9 +647,10 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
     sb->buf_offset += data_len;
 
     if (!RB_EMPTY(&sb->sbb_tree)) {
-        SBBUpdate(sb, rel_offset, data_len);
+        return SBBUpdate(sb, rel_offset, data_len);
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 /**
@@ -687,9 +687,10 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
     sb->buf_offset += data_len;
 
     if (!RB_EMPTY(&sb->sbb_tree)) {
-        SBBUpdate(sb, rel_offset, data_len);
+        return SBBUpdate(sb, rel_offset, data_len);
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 #define DATA_FITS_AT_OFFSET(sb, len, offset) \
@@ -754,16 +755,19 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                 // nothing to do
             } else if (sb->buf_offset) {
                 /* existing data, but there is a gap between us */
-                SBBInit(sb, rel_offset, data_len);
+                if (SBBInit(sb, rel_offset, data_len) < 0)
+                    return -1;
             } else {
                 /* gap before data in empty list */
                 SCLogDebug("empty sbb list: invoking SBBInitLeadingGap");
-                SBBInitLeadingGap(sb, offset, data_len);
+                if (SBBInitLeadingGap(sb, offset, data_len) < 0)
+                    return -1;
             }
         }
     } else {
         /* already have blocks, so append new block based on new data */
-        SBBUpdate(sb, rel_offset, data_len);
+        if (SBBUpdate(sb, rel_offset, data_len) < 0)
+            return -1;
     }
 
     if (rel_offset + data_len > sb->buf_offset)
