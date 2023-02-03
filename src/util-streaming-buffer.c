@@ -749,13 +749,16 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
         BUG_ON(to_shift->stream_offset > slide_offset);
         const uint32_t s = slide_offset - to_shift->stream_offset;
         if (s > 0) {
-            const uint32_t new_size = to_shift->buf_size - s;
-            SCLogDebug("s %u new_size %u", s, new_size);
-            memmove(to_shift->buf, to_shift->buf + s, new_size);
-            void *ptr = REALLOC(cfg, to_shift->buf, to_shift->buf_size, new_size);
-            BUG_ON(ptr == NULL); // TODO
-            to_shift->buf = ptr;
-            to_shift->buf_size = new_size;
+            const uint32_t new_data_size = to_shift->buf_size - s;
+            const uint32_t new_mem_size = ToNextMultipleOf(new_data_size, cfg->buf_size);
+            SCLogDebug("s %u new_data_size %u", s, new_data_size);
+            memmove(to_shift->buf, to_shift->buf + s, new_data_size);
+            /* shrink memory region. If this fails we keep the old */
+            void *ptr = REALLOC(cfg, to_shift->buf, to_shift->buf_size, new_mem_size);
+            if (ptr != NULL) {
+                to_shift->buf = ptr;
+                to_shift->buf_size = new_mem_size;
+            }
             if (s < to_shift->buf_offset)
                 to_shift->buf_offset -= s;
             else
