@@ -1841,7 +1841,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q -v
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
