@@ -734,7 +734,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                 OutputInitResult result =
                     sub_module->InitSubFunc(sub_output_config, parent_ctx);
                 if (!result.ok || result.ctx == NULL) {
-                    continue;
+                    FatalError("unable to initialize sub-module %s", subname);
                 }
 
                 AddOutputToFreeList(sub_module, result.ctx);
