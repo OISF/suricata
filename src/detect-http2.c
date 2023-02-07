@@ -818,10 +818,14 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx, cons
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_http2_tx_get_header(cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1)
+    if (rs_http2_tx_get_header(cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
-    if (b == NULL || b_len == 0)
+    }
+    if (b == NULL || b_len == 0) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
+    }
 
     InspectionBufferSetupMulti(buffer, transforms, b, b_len);
 

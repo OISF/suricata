@@ -80,6 +80,7 @@ static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_
     const uint8_t *data;
     uint32_t data_len;
     if (rs_mqtt_tx_get_unsubscribe_topic(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 

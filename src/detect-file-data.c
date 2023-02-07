@@ -540,11 +540,13 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     /* no new data */
     if (cur_file->content_inspected == file_size) {
         SCLogDebug("no new data");
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 
     if (file_size == 0) {
         SCLogDebug("no data to inspect for this transaction");
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 
@@ -554,6 +556,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
                    "entire content.");
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 

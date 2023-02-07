@@ -366,6 +366,7 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
             if (fo_inspect_offset >= (uint64_t)frame->len) {
                 SCLogDebug("data entirely past frame (%" PRIu64 " > %" PRIi64 ")",
                         fo_inspect_offset, frame->len);
+                InspectionBufferSetupMultiEmpty(buffer);
                 return false;
             }
 

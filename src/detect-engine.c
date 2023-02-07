@@ -1427,6 +1427,19 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
     }
 }
 
+/** \brief setup the buffer empty */
+void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
+{
+#ifdef DEBUG_VALIDATION
+    DEBUG_VALIDATE_BUG_ON(buffer->initialized);
+    DEBUG_VALIDATE_BUG_ON(!buffer->multi);
+#endif
+    buffer->inspect = NULL;
+    buffer->inspect_len = 0;
+    buffer->len = 0;
+    buffer->initialized = true;
+}
+
 /** \brief setup the buffer with our initial data */
 void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
         const uint8_t *data, const uint32_t data_len)
