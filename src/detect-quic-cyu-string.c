@@ -74,6 +74,7 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data;
     uint32_t data_len;
     if (rs_quic_tx_get_cyu_string(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 

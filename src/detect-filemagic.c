@@ -457,6 +457,7 @@ static InspectionBuffer *FilemagicGetDataCallback(DetectEngineThreadCtx *det_ctx
         DetectFilemagicThreadData *tfilemagic =
             (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, g_magic_thread_ctx_id);
         if (tfilemagic == NULL) {
+            InspectionBufferSetupMultiEmpty(buffer);
             return NULL;
         }
 

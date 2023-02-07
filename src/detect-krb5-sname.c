@@ -71,10 +71,14 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_krb5_tx_get_sname(cbdata->txv, cbdata->local_id, &b, &b_len) != 1)
+    if (rs_krb5_tx_get_sname(cbdata->txv, cbdata->local_id, &b, &b_len) != 1) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
-    if (b == NULL || b_len == 0)
+    }
+    if (b == NULL || b_len == 0) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
+    }
 
     InspectionBufferSetupMulti(buffer, transforms, b, b_len);
 

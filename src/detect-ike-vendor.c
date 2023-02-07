@@ -70,6 +70,7 @@ static InspectionBuffer *IkeVendorGetData(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data;
     uint32_t data_len;
     if (rs_ike_tx_get_vendor(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 

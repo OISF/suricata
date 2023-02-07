@@ -156,6 +156,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     }
 
     if (TAILQ_EMPTY(&connp->certs)) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 
@@ -165,6 +166,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         cbdata->cert = TAILQ_NEXT(cbdata->cert, next);
     }
     if (cbdata->cert == NULL) {
+        InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 

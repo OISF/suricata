@@ -37,6 +37,7 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
+void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer);
 void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
         const uint8_t *data, const uint32_t data_len);
 InspectionBuffer *InspectionBufferMultipleForListGet(
