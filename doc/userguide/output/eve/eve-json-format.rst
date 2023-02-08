@@ -2461,3 +2461,75 @@ Example of QUIC logging with a CYU hash:
         }
     ]
   }
+
+Event type: DHCP
+-----------------
+
+The default logging level only logs DHCP reply types which contains the
+MAC address and assigned IP of requesting clients.
+
+Fields
+~~~~~~
+
+* "type": DHCP message type
+* "id": DHCP transaction id
+* "client_mac": client MAC address
+* "assigned_ip": IP address given by DHCP server
+* "client_ip": client IP address
+* "dhcp_type": DHCP message type
+* "client_id": DHCP client identifier
+* "hostname": DHCP client host name
+* "params": DHCP parameter request list
+* "requested_ip": DHCP client requesting specific IP address
+* "relay_ip": BOOTP relay agent IP address
+* "next_server_ip": BOOTP next IP address to use for booting process
+* "subnet_mask": subnet mask to use with client IP address
+* "routers": IP address(es) to be used as default gateways on DHCP client
+* "lease_time": Duration of IP address assignment to client
+* "renewal_time": Time in seconds since client began IP address request or renewal process
+* "rebinding_time": Time in seconds before the client begins to renew its IP address lease
+* "dns_servers": IP address(es) of servers the client will use for DNS queries
+
+Examples
+~~~~~~~~
+
+Example of DHCP log entry (default logging level):
+
+::
+
+
+
+  "dhcp": {
+    "type":"reply",
+    "id":755466399,
+    "client_mac":"54:ee:75:51:e0:66",
+    "assigned_ip":"100.78.202.125",
+    "dhcp_type":"ack",
+    "renewal_time":21600,
+    "client_id":"54:ee:75:51:e0:66"
+  }
+
+
+Example of DHCP log entry (extended logging enabled):
+
+::
+
+
+  "dhcp": {
+    "type":"reply",
+    "id":2787908432,
+    "client_mac":"54:ee:75:51:e0:66",
+    "assigned_ip":"192.168.1.120",
+    "client_ip":"0.0.0.0",
+    "relay_ip":"192.168.1.1",
+    "next_server_ip":"0.0.0.0",
+    "dhcp_type":"offer",
+    "subnet_mask":"255.255.255.0",
+    "routers":["192.168.1.100"],
+    "hostname":"test",
+    "lease_time":86400,
+    "renewal_time":21600,
+    "rebinding_time":43200,
+    "client_id":"54:ee:75:51:e0:66",
+    "dns_servers":["192.168.1.50","192.168.1.49"]
+  }
