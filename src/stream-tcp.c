@@ -204,21 +204,9 @@ void StreamTcpStreamCleanup(TcpStream *stream)
     }
 }
 
-/**
- *  \brief Session cleanup function. Does not free the ssn.
- *  \param ssn tcp session
- */
-void StreamTcpSessionCleanup(TcpSession *ssn)
+static void StreamTcp3wsFreeQueue(TcpSession *ssn)
 {
-    SCEnter();
     TcpStateQueue *q, *q_next;
-
-    if (ssn == NULL)
-        return;
-
-    StreamTcpStreamCleanup(&ssn->client);
-    StreamTcpStreamCleanup(&ssn->server);
-
     q = ssn->queue;
     while (q != NULL) {
         q_next = q->next;
@@ -228,6 +216,22 @@ void StreamTcpSessionCleanup(TcpSession *ssn)
     }
     ssn->queue = NULL;
     ssn->queue_len = 0;
+}
+
+/**
+ *  \brief Session cleanup function. Does not free the ssn.
+ *  \param ssn tcp session
+ */
+void StreamTcpSessionCleanup(TcpSession *ssn)
+{
+    SCEnter();
+
+    if (ssn == NULL)
+        return;
+
+    StreamTcpStreamCleanup(&ssn->client);
+    StreamTcpStreamCleanup(&ssn->server);
+    StreamTcp3wsFreeQueue(ssn);
 
     SCReturn;
 }
