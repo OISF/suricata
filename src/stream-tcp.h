@@ -200,7 +200,6 @@ void StreamTcpSessionCleanup(TcpSession *ssn);
 void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
-int StreamTcpInlineDropInvalid(void);
 int StreamTcpInlineMode(void);
 
 int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
