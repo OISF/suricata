@@ -608,6 +608,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_3WHS_SYN_TOCLIENT_ON_SYN_RECV,
     },
     {
+            "stream.3whs_syn_flood",
+            STREAM_3WHS_SYN_FLOOD,
+    },
+    {
             "stream.3whs_wrong_seq_wrong_ack",
             STREAM_3WHS_WRONG_SEQ_WRONG_ACK,
     },

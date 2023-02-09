@@ -34,7 +34,7 @@
 #define STREAMTCP_QUEUE_FLAG_WS     0x02
 #define STREAMTCP_QUEUE_FLAG_SACK   0x04
 
-/** currently only SYN/ACK */
+/** Tracking SYNs and SYN/ACKs */
 typedef struct TcpStateQueue_ {
     uint8_t flags;
     uint8_t wscale;
