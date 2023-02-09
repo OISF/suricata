@@ -1282,12 +1282,11 @@ static int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
         return -1;
     }
 
-    TcpStateQueue *q = SCMalloc(sizeof(*q));
+    TcpStateQueue *q = SCCalloc(1, sizeof(*q));
     if (unlikely(q == NULL)) {
         SCLogDebug("ssn %p: =~ SYN/ACK queue failed: alloc failed", ssn);
         return -1;
     }
-    memset(q, 0x00, sizeof(*q));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpStateQueue));
 
     StreamTcp3whsSynAckToStateQueue(p, q);
@@ -1431,7 +1430,7 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
     }
 
     TcpStream *receiver_stream = &ssn->client;
-    uint32_t ts_echo = TCP_GET_TSECR(p);
+    const uint32_t ts_echo = TCP_GET_TSECR(p);
     if ((receiver_stream->flags & STREAMTCP_STREAM_FLAG_TIMESTAMP) != 0) {
         if (receiver_stream->last_ts != 0 && ts_echo != 0 &&
             ts_echo != receiver_stream->last_ts)
