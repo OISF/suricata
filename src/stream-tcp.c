@@ -1468,8 +1468,10 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                "toclient":"toserver");
 
     /* check for bad responses */
-    if (StateSynSentValidateTimestamp(ssn, p) == false)
+    if (StateSynSentValidateTimestamp(ssn, p) == false) {
+        StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
         return -1;
+    }
 
     /* RST */
     if (p->tcph->th_flags & TH_RST) {
