@@ -1704,6 +1704,82 @@ jobs:
       - run: make -j2
       - run: make check
 
+  debian-11:
+    name: Debian 11 (xdp)
+    runs-on: ubuntu-latest
+    container: debian:11
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - run: |
+          echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
+          apt update
+          apt -y install \
+                automake \
+                autoconf \
+                build-essential \
+                ccache \
+                curl \
+                git \
+                gosu \
+                jq \
+                libpcre2-dev \
+                libpcap-dev   \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libjansson-dev \
+                libgeoip-dev \
+                liblua5.1-dev \
+                libhiredis-dev \
+                libevent-dev \
+                libtool \
+                m4 \
+                make \
+                python3-yaml \
+                pkg-config \
+                sudo \
+                zlib1g \
+                zlib1g-dev \
+                clang \
+                libbpf-dev \
+                libelf-dev \
+                libxdp-dev
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
+      - run: make -j2
+      - run: make check
+      - run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
+
   debian-10:
     name: Debian 10
     runs-on: ubuntu-latest
