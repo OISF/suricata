@@ -379,9 +379,6 @@ static TmEcode WriteLinuxTunables(AFXDPThreadVars *ptv)
 
 static TmEcode ConfigureBusyPolling(AFXDPThreadVars *ptv)
 {
-    const int fd = xsk_socket__fd(ptv->xsk.xsk);
-    int sock_opt = 1;
-
     if (!ptv->xsk.enable_busy_poll) {
         SCReturnInt(TM_ECODE_OK);
     }
@@ -394,6 +391,10 @@ static TmEcode ConfigureBusyPolling(AFXDPThreadVars *ptv)
                      " upgrade kernel version to use 'enable-busy-poll' option.");
         SCReturnInt(TM_ECODE_FAILED);
     }
+
+#if defined SO_PREFER_BUSY_POLL && defined SO_BUSY_POLL && defined SO_BUSY_POLL_BUDGET
+    const int fd = xsk_socket__fd(ptv->xsk.xsk);
+    int sock_opt = 1;
 
     if (WriteLinuxTunables(ptv) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -414,6 +415,11 @@ static TmEcode ConfigureBusyPolling(AFXDPThreadVars *ptv)
     }
 
     SCReturnInt(TM_ECODE_OK);
+#else
+    SCLogWarning(
+            "Kernel does not support busy poll, upgrade kernel or disable \"enable-busy-poll\".");
+    SCReturnInt(TM_ECODE_FAILED);
+#endif
 }
 
 static void AFXDPSwitchState(AFXDPThreadVars *ptv, int state)
