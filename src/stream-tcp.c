@@ -1461,8 +1461,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn,
         PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     SCLogDebug("ssn %p: pkt received: %s", ssn, PKT_IS_TOCLIENT(p) ?
                "toclient":"toserver");
@@ -1800,8 +1799,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn,
         PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -2672,8 +2670,7 @@ static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
 static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3001,8 +2998,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
 static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3443,8 +3439,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3746,8 +3741,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3912,9 +3906,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 {
     SCEnter();
 
-    if (ssn == NULL) {
-        SCReturnInt(-1);
-    }
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (PKT_IS_TOCLIENT(p)) {
         SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
@@ -4213,8 +4205,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -4338,8 +4329,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -4499,8 +4489,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         SCLogDebug("RST on closed state");
@@ -4854,6 +4843,8 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
         const uint8_t state)
 {
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
+
     SCLogDebug("ssn: %p", ssn);
     switch (state) {
         case TCP_SYN_SENT:
