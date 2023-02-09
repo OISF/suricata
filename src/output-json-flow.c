@@ -211,6 +211,91 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     jb_set_string(js, "start", timebuf1);
 }
 
+static void EveAddFlowTcpStreamFlags(const TcpStream *stream, const char *name, JsonBuilder *jb)
+{
+    jb_open_array(jb, name);
+    if (stream->flags & STREAMTCP_STREAM_FLAG_HAS_GAP)
+        jb_append_string(jb, "has_gap");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+        jb_append_string(jb, "noreassembly");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE)
+        jb_append_string(jb, "keepalive");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
+        jb_append_string(jb, "depth_reached");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
+        jb_append_string(jb, "trigger_raw");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_TIMESTAMP)
+        jb_append_string(jb, "timestamp");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP)
+        jb_append_string(jb, "zero_timestamp");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
+        jb_append_string(jb, "appproto_detection_completed");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED)
+        jb_append_string(jb, "appproto_detection_skipped");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)
+        jb_append_string(jb, "new_raw_disabled");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW)
+        jb_append_string(jb, "disable_raw");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV)
+        jb_append_string(jb, "rst_recv");
+    jb_close(jb);
+}
+
+static void EveAddFlowTcpFlags(const TcpSession *ssn, JsonBuilder *jb)
+{
+    jb_open_object(jb, "flags");
+
+    jb_open_array(jb, "session");
+    if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+        jb_append_string(jb, "midstream");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED) {
+        jb_append_string(jb, "midstream_established");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK) {
+        jb_append_string(jb, "midstream_synack");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+        jb_append_string(jb, "timestamp");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) {
+        jb_append_string(jb, "server_wscale");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) {
+        jb_append_string(jb, "closed_by_rst");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_4WHS) {
+        jb_append_string(jb, "4whs");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT) {
+        jb_append_string(jb, "detect_evasion_attempt");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
+        jb_append_string(jb, "client_sackok");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
+        jb_append_string(jb, "sackok");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_3WHS_CONFIRMED) {
+        jb_append_string(jb, "3whs_confirmed");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
+        jb_append_string(jb, "app_layer_disabled");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_BYPASS) {
+        jb_append_string(jb, "bypass");
+    }
+    if (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN) {
+        jb_append_string(jb, "tcp_fast_open");
+    }
+    jb_close(jb);
+
+    EveAddFlowTcpStreamFlags(&ssn->client, "client", jb);
+    EveAddFlowTcpStreamFlags(&ssn->server, "server", jb);
+
+    jb_close(jb);
+}
+
 /* Eve format logging */
 static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 {
@@ -314,6 +399,8 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 
             jb_set_uint(jb, "ts_max_regions", ssn->client.sb.max_regions);
             jb_set_uint(jb, "tc_max_regions", ssn->server.sb.max_regions);
+
+            EveAddFlowTcpFlags(ssn, jb);
         }
 
         /* Close tcp. */
