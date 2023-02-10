@@ -5307,6 +5307,33 @@
                 },
                 "urg": {
                     "type": "boolean"
+                },
+                "flags": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "session": {
+                            "type": "array",
+                            "minItems": 0,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "client": {
+                            "type": "array",
+                            "minItems": 0,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "server": {
+                            "type": "array",
+                            "minItems": 0,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
             },
             "additionalProperties": false
