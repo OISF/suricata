@@ -204,21 +204,9 @@ void StreamTcpStreamCleanup(TcpStream *stream)
     }
 }
 
-/**
- *  \brief Session cleanup function. Does not free the ssn.
- *  \param ssn tcp session
- */
-void StreamTcpSessionCleanup(TcpSession *ssn)
+static void StreamTcp3wsFreeQueue(TcpSession *ssn)
 {
-    SCEnter();
     TcpStateQueue *q, *q_next;
-
-    if (ssn == NULL)
-        return;
-
-    StreamTcpStreamCleanup(&ssn->client);
-    StreamTcpStreamCleanup(&ssn->server);
-
     q = ssn->queue;
     while (q != NULL) {
         q_next = q->next;
@@ -228,6 +216,22 @@ void StreamTcpSessionCleanup(TcpSession *ssn)
     }
     ssn->queue = NULL;
     ssn->queue_len = 0;
+}
+
+/**
+ *  \brief Session cleanup function. Does not free the ssn.
+ *  \param ssn tcp session
+ */
+void StreamTcpSessionCleanup(TcpSession *ssn)
+{
+    SCEnter();
+
+    if (ssn == NULL)
+        return;
+
+    StreamTcpStreamCleanup(&ssn->client);
+    StreamTcpStreamCleanup(&ssn->server);
+    StreamTcp3wsFreeQueue(ssn);
 
     SCReturn;
 }
@@ -321,13 +325,12 @@ static void StreamTcpSessionPoolCleanup(void *s)
     }
 }
 
-/**
+/** \internal
  *  \brief See if stream engine is dropping invalid packet in inline mode
- *
- *  \retval 0 no
- *  \retval 1 yes
+ *  \retval false no
+ *  \retval true yes
  */
-int StreamTcpInlineDropInvalid(void)
+static inline bool StreamTcpInlineDropInvalid(void)
 {
     return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
             && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
@@ -1279,12 +1282,11 @@ static int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
         return -1;
     }
 
-    TcpStateQueue *q = SCMalloc(sizeof(*q));
+    TcpStateQueue *q = SCCalloc(1, sizeof(*q));
     if (unlikely(q == NULL)) {
         SCLogDebug("ssn %p: =~ SYN/ACK queue failed: alloc failed", ssn);
         return -1;
     }
-    memset(q, 0x00, sizeof(*q));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpStateQueue));
 
     StreamTcp3whsSynAckToStateQueue(p, q);
@@ -1428,7 +1430,7 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
     }
 
     TcpStream *receiver_stream = &ssn->client;
-    uint32_t ts_echo = TCP_GET_TSECR(p);
+    const uint32_t ts_echo = TCP_GET_TSECR(p);
     if ((receiver_stream->flags & STREAMTCP_STREAM_FLAG_TIMESTAMP) != 0) {
         if (receiver_stream->last_ts != 0 && ts_echo != 0 &&
             ts_echo != receiver_stream->last_ts)
@@ -1461,15 +1463,16 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn,
         PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     SCLogDebug("ssn %p: pkt received: %s", ssn, PKT_IS_TOCLIENT(p) ?
                "toclient":"toserver");
 
     /* check for bad responses */
-    if (StateSynSentValidateTimestamp(ssn, p) == false)
+    if (StateSynSentValidateTimestamp(ssn, p) == false) {
+        StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
         return -1;
+    }
 
     /* RST */
     if (p->tcph->th_flags & TH_RST) {
@@ -1800,8 +1803,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn,
         PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -2672,8 +2674,7 @@ static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
 static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3001,8 +3002,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
 static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3443,8 +3443,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3746,8 +3745,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -3912,9 +3910,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 {
     SCEnter();
 
-    if (ssn == NULL) {
-        SCReturnInt(-1);
-    }
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (PKT_IS_TOCLIENT(p)) {
         SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
@@ -4213,8 +4209,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -4338,8 +4333,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
@@ -4499,8 +4493,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
 static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
 {
-    if (ssn == NULL)
-        return -1;
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
     if (p->tcph->th_flags & TH_RST) {
         SCLogDebug("RST on closed state");
@@ -4854,6 +4847,8 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
         const uint8_t state)
 {
+    DEBUG_VALIDATE_BUG_ON(ssn == NULL);
+
     SCLogDebug("ssn: %p", ssn);
     switch (state) {
         case TCP_SYN_SENT:

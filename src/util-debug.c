@@ -666,7 +666,9 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file, const unsigne
     }
 
     /* get ts here so we log the same ts to each output */
-    SCTime_t ts = TimeGet();
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+    SCTime_t ts = SCTIME_FROM_TIMEVAL(&tval);
 
     op_iface_ctx = sc_log_config->op_ifaces;
     while (op_iface_ctx != NULL) {
