@@ -155,41 +155,41 @@ enum TcpState
  */
 
 /** Flag for mid stream session */
-#define STREAMTCP_FLAG_MIDSTREAM                    0x0001
+#define STREAMTCP_FLAG_MIDSTREAM BIT_U32(0)
 /** Flag for mid stream established session */
-#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED        0x0002
+#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED BIT_U32(1)
 /** Flag for mid session when syn/ack is received */
-#define STREAMTCP_FLAG_MIDSTREAM_SYNACK             0x0004
+#define STREAMTCP_FLAG_MIDSTREAM_SYNACK BIT_U32(2)
 /** Flag for TCP Timestamp option */
-#define STREAMTCP_FLAG_TIMESTAMP                    0x0008
+#define STREAMTCP_FLAG_TIMESTAMP BIT_U32(3)
 /** Server supports wscale (even though it can be 0) */
-#define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
+#define STREAMTCP_FLAG_SERVER_WSCALE BIT_U32(4)
 /** Closed by RST */
-#define STREAMTCP_FLAG_CLOSED_BY_RST                0x0020
+#define STREAMTCP_FLAG_CLOSED_BY_RST BIT_U32(5)
 /** Flag to indicate that the session is handling asynchronous stream.*/
-#define STREAMTCP_FLAG_ASYNC                        0x0040
+#define STREAMTCP_FLAG_ASYNC BIT_U32(6)
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
  * (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
-#define STREAMTCP_FLAG_4WHS                         0x0080
+#define STREAMTCP_FLAG_4WHS BIT_U32(7)
 /** Flag to indicate that this session is possible trying to evade the detection
  *  (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
-#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0100
+#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT BIT_U32(8)
 /** Flag to indicate the client (SYN pkt) permits SACK */
-#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0200
+#define STREAMTCP_FLAG_CLIENT_SACKOK BIT_U32(9)
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
-#define STREAMTCP_FLAG_SACKOK                       0x0400
+#define STREAMTCP_FLAG_SACKOK BIT_U32(10)
 // vacancy
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
  *  event. */
-#define STREAMTCP_FLAG_3WHS_CONFIRMED               0x1000
+#define STREAMTCP_FLAG_3WHS_CONFIRMED BIT_U32(12)
 /** App Layer tracking/reassembly is disabled */
-#define STREAMTCP_FLAG_APP_LAYER_DISABLED           0x2000
+#define STREAMTCP_FLAG_APP_LAYER_DISABLED BIT_U32(13)
 /** Stream can be bypass */
-#define STREAMTCP_FLAG_BYPASS                       0x4000
+#define STREAMTCP_FLAG_BYPASS BIT_U32(14)
 /** SSN uses TCP Fast Open */
-#define STREAMTCP_FLAG_TCP_FAST_OPEN                0x8000
+#define STREAMTCP_FLAG_TCP_FAST_OPEN BIT_U32(15)
 
 /*
  * Per STREAM flags
@@ -266,8 +266,8 @@ typedef struct TcpSession_ {
     /** track all the tcp flags we've seen */
     uint8_t tcp_packet_flags;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
-    uint16_t flags;
-    uint32_t reassembly_depth;      /**< reassembly depth for the stream */
+    uint32_t flags;
+    uint32_t reassembly_depth; /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
