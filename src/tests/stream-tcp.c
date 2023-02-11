@@ -664,7 +664,7 @@ static int StreamTcpTest10(void)
     p->flow = &f;
 
     StreamTcpUTInit(&stt.ra_ctx);
-    stream_config.async_oneside = TRUE;
+    stream_config.async_oneside = true;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -742,7 +742,7 @@ static int StreamTcpTest11(void)
     p->flow = &f;
 
     StreamTcpUTInit(&stt.ra_ctx);
-    stream_config.async_oneside = TRUE;
+    stream_config.async_oneside = true;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -856,7 +856,7 @@ static int StreamTcpTest12(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.async_oneside != TRUE) {
+    if (!stream_config.async_oneside) {
         ret = 1;
         goto end;
     }
@@ -950,7 +950,7 @@ static int StreamTcpTest13(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.async_oneside != TRUE) {
+    if (!stream_config.async_oneside) {
         ret = 1;
         goto end;
     }
