@@ -48,17 +48,16 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
-typedef struct ThreadSlotHashEntry_ {
+typedef struct ThreadLogFileHashEntry {
     uint64_t thread_id;
-    int slot; /* table slot */
-} ThreadSlotHashEntry;
+    int slot_number; /* slot identifier -- for plugins */
+    bool isopen;
+    struct LogFileCtx_ *ctx;
+} ThreadLogFileHashEntry;
 
 struct LogFileCtx_;
 typedef struct LogThreadedFileCtx_ {
     SCMutex mutex;
-    int slot_count;                /* Allocated slot count */
-    struct LogFileCtx_ **lf_slots; /* Slots */
-    int last_slot;                 /* Last slot allocated */
     HashTable *ht;
     char *append;
 } LogThreadedFileCtx;
@@ -98,7 +97,7 @@ typedef struct LogFileCtx_ {
     /** When threaded, track of the parent and thread id */
     bool threaded;
     struct LogFileCtx_ *parent;
-    int slot;
+    ThreadLogFileHashEntry *entry;
 
     /** the type of file */
     enum LogFileType type;
@@ -178,7 +177,6 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
-bool SCLogOpenThreadedFile(
-        const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
+bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
