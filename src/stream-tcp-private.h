@@ -189,7 +189,8 @@ enum TcpState {
 #define STREAMTCP_FLAG_CLIENT_SACKOK BIT_U32(9)
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
 #define STREAMTCP_FLAG_SACKOK BIT_U32(10)
-// vacancy
+/** Session is in "lossy" state, be liberal */
+#define STREAMTCP_FLAG_LOSSY_BE_LIBERAL BIT_U32(11)
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
@@ -277,7 +278,6 @@ typedef struct TcpSession_ {
     int8_t data_first_seen_dir;
     /** track all the tcp flags we've seen */
     uint8_t tcp_packet_flags;
-    bool lossy_be_liberal;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint32_t flags;
     uint32_t reassembly_depth; /**< reassembly depth for the stream */

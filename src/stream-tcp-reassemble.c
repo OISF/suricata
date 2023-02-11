@@ -781,7 +781,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (seg == NULL) {
         SCLogDebug("segment_pool is empty");
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
-        ssn->lossy_be_liberal = true;
+        ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
         SCReturnInt(-1);
     }
 
@@ -805,7 +805,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
             tv, ra_ctx, stream, seg, p, TCP_GET_SEQ(p), p->payload, p->payload_len);
     if (r < 0) {
         if (r == -ENOMEM) {
-            ssn->lossy_be_liberal = true;
+            ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
         }
         SCLogDebug("StreamTcpReassembleInsertSegment failed");
         SCReturnInt(-1);
@@ -1253,7 +1253,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
             (*stream)->flags |= STREAMTCP_STREAM_FLAG_HAS_GAP;
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
-            ssn->lossy_be_liberal = true;
+            ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
 
             /* AppLayerHandleTCPData has likely updated progress. */
             const bool no_progress_update = (app_progress == STREAM_APP_PROGRESS(*stream));

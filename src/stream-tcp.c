@@ -5516,7 +5516,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
     uint8_t os_policy;
 
-    if (ssn->lossy_be_liberal) {
+    if (ssn->flags & STREAMTCP_FLAG_LOSSY_BE_LIBERAL) {
         SCReturnInt(1);
     }
 
