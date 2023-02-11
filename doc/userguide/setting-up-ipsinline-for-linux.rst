@@ -79,8 +79,8 @@ In this case, Suricata checks just TCP traffic.
 
 ::
 
-  sudo iptables -I INPUT -p tcp --sport 80  -j NFQUEUE
-  sudo iptables -I OUTPUT -p tcp --dport 80 -j NFQUEUE
+  sudo iptables -I INPUT -p tcp --dport 80  -j NFQUEUE
+  sudo iptables -I OUTPUT -p tcp --sport 80 -j NFQUEUE
 
 In this example, Suricata checks all input and output on port 80.
 
