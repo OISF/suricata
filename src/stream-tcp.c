@@ -6015,17 +6015,19 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
     if (!(p->tcph->th_flags & TH_ACK))
         SCReturnInt(0);
 
-    uint32_t ack = TCP_GET_ACK(p);
+    const uint32_t ack = TCP_GET_ACK(p);
 
     /* fast track */
     if (SEQ_GT(ack, stream->last_ack) && SEQ_LEQ(ack, stream->next_win))
     {
-        SCLogDebug("ACK in bounds");
+        SCLogDebug("ssn %p: ACK %u in bounds > %u <= %u", ssn, ack, stream->last_ack,
+                stream->next_win);
         SCReturnInt(0);
     }
     /* fast track */
     else if (SEQ_EQ(ack, stream->last_ack)) {
-        SCLogDebug("pkt ACK %"PRIu32" == stream last ACK %"PRIu32, TCP_GET_ACK(p), stream->last_ack);
+        SCLogDebug("ssn %p: pkt ACK %" PRIu32 " == stream last ACK %" PRIu32, ssn, TCP_GET_ACK(p),
+                stream->last_ack);
         SCReturnInt(0);
     }
 
