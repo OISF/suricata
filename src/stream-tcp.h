@@ -58,12 +58,12 @@ typedef struct TcpStreamCnf_ {
     uint32_t prealloc_segments; /**< segments to prealloc per stream thread */
     bool midstream;
     bool async_oneside;
+    bool streaming_log_api;
+
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
 
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
-
-    bool streaming_log_api;
 
     enum ExceptionPolicy ssn_memcap_policy;
     enum ExceptionPolicy reassembly_memcap_policy;
