@@ -165,7 +165,7 @@ static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, F
     if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = f->protoctx;
         StatsIncr(tv, fec->flow_tcp_state[ssn->state]);
-        if (ssn->lossy_be_liberal) {
+        if (ssn->flags & STREAMTCP_FLAG_LOSSY_BE_LIBERAL) {
             StatsIncr(tv, fec->flow_tcp_liberal);
         }
     }
