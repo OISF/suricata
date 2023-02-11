@@ -419,7 +419,9 @@ void StreamTcpInitConfig(bool quiet)
         SCLogConfig("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
     }
 
-    (void)ConfGetBool("stream.async-oneside", &stream_config.async_oneside);
+    int async_oneside;
+    (void)ConfGetBool("stream.async-oneside", &async_oneside);
+    stream_config.async_oneside = async_oneside != 0;
 
     if (!quiet) {
         SCLogConfig("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
@@ -1033,7 +1035,7 @@ static int StreamTcpPacketStateNone(
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
 
-        if (!stream_config.midstream && stream_config.async_oneside == FALSE) {
+        if (!stream_config.midstream && !stream_config.async_oneside) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
             return 0;
         }
@@ -1804,7 +1806,7 @@ static int StreamTcpPacketStateSynSent(
         /* Handle the asynchronous stream, when we receive a  SYN packet
            and now instead of receiving a SYN/ACK we receive a ACK from the
            same host, which sent the SYN, this suggests the ASYNC streams.*/
-        if (stream_config.async_oneside == FALSE)
+        if (!stream_config.async_oneside)
             return 0;
 
         /* we are in AYNC (one side) mode now. */
@@ -2145,9 +2147,7 @@ static int StreamTcpPacketStateSynRecv(
 
             /* If asynchronous stream handling is allowed then set the session,
                if packet's seq number is equal the expected seq no.*/
-        } else if (stream_config.async_oneside == TRUE &&
-                (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq)))
-        {
+        } else if (stream_config.async_oneside && (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))) {
             /*set the ASYNC flag used to indicate the session as async stream
               and helps in relaxing the windows checks.*/
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
@@ -2185,7 +2185,7 @@ static int StreamTcpPacketStateSynRecv(
                ACK number, it causes the other end to send RST. But some target
                system (Linux & solaris) does not RST the connection, so it is
                likely to avoid the detection */
-        } else if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)){
+        } else if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
             ssn->flags |= STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT;
             SCLogDebug("ssn %p: wrong ack nr on packet, possible evasion!!",
                     ssn);
@@ -2339,9 +2339,8 @@ static int HandleEstablishedPacketToServer(
              * async and other stream is not updating it anymore :( */
             StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_SEQ(p));
 
-        } else if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p)) &&
-                (stream_config.async_oneside == TRUE) &&
-                (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
+        } else if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p)) && stream_config.async_oneside &&
+                   (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
             SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ."
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
                     "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
@@ -2357,8 +2356,7 @@ static int HandleEstablishedPacketToServer(
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
 
         } else if (SEQ_EQ(ssn->client.last_ack, (ssn->client.isn + 1)) &&
-                (stream_config.async_oneside == TRUE) &&
-                (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
+                   stream_config.async_oneside && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
             SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
                     "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
@@ -2377,8 +2375,7 @@ static int HandleEstablishedPacketToServer(
          * In this case we do accept the data before last_ack if it is (partly)
          * beyond next seq */
         } else if (SEQ_GT(ssn->client.last_ack, ssn->client.next_seq) &&
-                   SEQ_GT((TCP_GET_SEQ(p)+p->payload_len),ssn->client.next_seq))
-        {
+                   SEQ_GT((TCP_GET_SEQ(p) + p->payload_len), ssn->client.next_seq)) {
             SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
                     " before last_ack %"PRIu32", after next_seq %"PRIu32":"
                     " acked data that we haven't seen before",
@@ -5230,7 +5227,7 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
         return 1;
     }
 
-    if (stream_config.midstream || stream_config.async_oneside == TRUE) {
+    if (stream_config.midstream || stream_config.async_oneside) {
         if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
             SCLogDebug("packet %"PRIu64" is a midstream stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
             return 1;
@@ -5345,7 +5342,7 @@ static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSe
         return TcpSessionReuseDoneEnoughSyn(p, f, ssn);
     }
 
-    if (stream_config.midstream || stream_config.async_oneside == TRUE) {
+    if (stream_config.midstream || stream_config.async_oneside) {
         if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
             return TcpSessionReuseDoneEnoughSynAck(p, f, ssn);
         }
