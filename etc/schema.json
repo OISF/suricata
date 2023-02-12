@@ -989,6 +989,14 @@
                     "description": "DNS opcode as an integer",
                     "type": "integer"
                 },
+                "ad": {
+                    "description": "DNSSEC Authentic Data bit",
+                    "type": "boolean"
+                },
+                "cd": {
+                    "description": "DNSSEC Check Disabled bit",
+                    "type": "boolean"
+                },
                 "answers": {
                     "type": "array",
                     "minItems": 1,
@@ -1110,6 +1118,14 @@
                             "opcode": {
                                 "description": "DNS opcode as an integer",
                                 "type": "integer"
+                            },
+                            "ad": {
+                                "description": "DNSSEC Authentic Data bit",
+                                "type": "boolean"
+                            },
+                            "cd": {
+                                "description": "DNSSEC Check Disabled bit",
+                                "type": "boolean"
                             }
                         },
                         "additionalProperties": false
@@ -1151,6 +1167,14 @@
                         "opcode": {
                             "description": "DNS opcode as an integer",
                             "type": "integer"
+                        },
+                        "ad": {
+                            "description": "DNSSEC Authentic Data bit",
+                            "type": "boolean"
+                        },
+                        "cd": {
+                            "description": "DNSSEC Check Disabled bit",
+                            "type": "boolean"
                         }
                     },
                     "additionalProperties": false
