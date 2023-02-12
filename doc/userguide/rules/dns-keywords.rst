@@ -67,3 +67,51 @@ DNS query on the wire (snippet)::
 ``dns.query`` buffer::
 
     mail.google.com
+
+dns.ad
+----------
+
+This keyword matches on the **authentic data (AD) bit** found in the DNS header flags.
+Values can be ``yes``, ``true``, ``no`` or ``false``.
+
+Syntax
+~~~~~~
+
+::
+
+   dns.ad:[yes | true | no | false];
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **ad** set::
+
+  dns.ad:true;
+
+Match on DNS requests and responses with **ad** unset::
+
+  dns.ad:false;
+
+dns.cd
+----------
+
+This keyword matches on the **checking disabled (CD) bit** found in DNS request header flags.
+Values can be ``yes``, ``true``, ``no`` or ``false``.
+
+Syntax
+~~~~~~
+
+::
+
+   dns.cd:[yes | true | no | false];
+
+Examples
+~~~~~~~~
+
+Match on DNS requests with **cd** set::
+
+  dns.cd:true;
+
+Match on DNS requests with **cd** unset::
+
+  dns.cd:false;
