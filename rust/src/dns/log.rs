@@ -505,6 +505,9 @@ fn dns_log_json_answer(
     if header.flags & 0x0040 != 0 {
         js.set_bool("z", true)?;
     }
+    if header.flags & 0x0020 != 0 {
+        js.set_bool("ad", true)?;
+    }
 
     let opcode = ((header.flags >> 11) & 0xf) as u8;
     js.set_uint("opcode", opcode as u64)?;
@@ -622,6 +625,12 @@ fn dns_log_query(
                 jb.set_uint("tx_id", tx.id - 1)?;
                 if request.header.flags & 0x0040 != 0 {
                     jb.set_bool("z", true)?;
+                }
+                if request.header.flags & 0x0020 != 0 {
+                    jb.set_bool("ad", true)?;
+                }
+                if request.header.flags & 0x0010 != 0 {
+                    jb.set_bool("cd", true)?;
                 }
                 let opcode = ((request.header.flags >> 11) & 0xf) as u8;
                 jb.set_uint("opcode", opcode as u64)?;
