@@ -415,7 +415,7 @@ impl DNSState {
                 self.transactions.push_back(tx);
 
                 if z_flag {
-                    SCLogDebug!("Z-flag set on DNS response");
+                    SCLogDebug!("Z-flag set on DNS request");
                     self.set_event(DNSEvent::ZFlagSet);
                 }
 
