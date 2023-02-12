@@ -4605,15 +4605,10 @@ static void StreamTcpPacketCheckPostRst(TcpSession *ssn, Packet *p)
  */
 static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
 {
-    TcpStream *stream = NULL, *ostream = NULL;
-    uint32_t seq;
-    uint32_t ack;
-
     if (p->flags & PKT_PSEUDO_STREAM_END)
         return 0;
 
-    /*
-       rfc 1122:
+    /* rfc 1122:
        An implementation SHOULD send a keep-alive segment with no
        data; however, it MAY be configurable to send a keep-alive
        segment containing one garbage octet, for compatibility with
@@ -4626,6 +4621,7 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
         return 0;
     }
 
+    TcpStream *stream = NULL, *ostream = NULL;
     if (PKT_IS_TOSERVER(p)) {
         stream = &ssn->client;
         ostream = &ssn->server;
@@ -4634,9 +4630,8 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
         ostream = &ssn->client;
     }
 
-    seq = TCP_GET_SEQ(p);
-    ack = TCP_GET_ACK(p);
-
+    const uint32_t seq = TCP_GET_SEQ(p);
+    const uint32_t ack = TCP_GET_ACK(p);
     if (ack == ostream->last_ack && seq == (stream->next_seq - 1)) {
         SCLogDebug("packet is TCP keep-alive: %"PRIu64, p->pcap_cnt);
         stream->flags |= STREAMTCP_STREAM_FLAG_KEEPALIVE;
