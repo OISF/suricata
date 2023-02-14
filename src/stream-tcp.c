@@ -3167,8 +3167,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
         StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
         SCLogDebug("ssn %p: state changed to TCP_CLOSE_WAIT", ssn);
 
-        if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))
-            ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        /* if we accept the FIN, next_seq needs to reflect the FIN */
+        ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
 
         SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "", ssn,
                     ssn->client.next_seq);
@@ -3215,11 +3215,10 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
         StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
         SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT1", ssn);
 
-        if (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
-            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
+        /* if we accept the FIN, next_seq needs to reflect the FIN */
+        ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
+        SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 " updated", ssn, ssn->server.next_seq);
 
-        SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
-                    ssn->server.next_seq);
         ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
