@@ -68,8 +68,8 @@ pub struct NTLMSSPAuthRecord<'a> {
     pub warning: bool,
 }
 
-fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u32)> {
-    bits(tuple((take_bits(6u8), take_bits(1u8), take_bits(25u32))))(i)
+fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], (u32, u8, u8)> {
+    bits(tuple((take_bits(25u8), take_bits(1u8), take_bits(6u32))))(i)
 }
 
 const NTLMSSP_IDTYPE_LEN: usize = 12;
@@ -153,4 +153,31 @@ pub fn parse_ntlmssp(i: &[u8]) -> IResult<&[u8], NTLMSSPRecord> {
     let (i, data) = rest(i)?;
     let record = NTLMSSPRecord { msg_type, data };
     Ok((i, record))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nom7::Err;
+    #[test]
+    fn test_parse_auth_nego_flags() {
+        // ntlmssp.negotiateflags
+        let blob = [0x15, 0x82, 0x88, 0xe2];
+        let result = parse_ntlm_auth_nego_flags(&blob);
+        match result {
+            Ok((remainder, (_, version_flag, _))) => {
+                assert_eq!(version_flag, 1);
+                assert_eq!(remainder.len(), 0);
+            }
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err.code);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            _ => {
+                panic!("Unexpected behavior!");
+            }
+        }
+    }
 }

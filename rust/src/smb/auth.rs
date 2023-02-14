@@ -72,6 +72,7 @@ fn parse_secblob_spnego_start(blob: &[u8]) -> IResult<&[u8], &[u8], SecBlobError
     Ok((rem, d))
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SpnegoRequest {
     pub krb: Option<Kerberos5Ticket>,
     pub ntlmssp: Option<NtlmsspData>,
@@ -227,5 +228,33 @@ pub fn parse_secblob(blob: &[u8]) -> Option<SpnegoRequest>
                 None => { None },
             }
         },
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_parse_secblob() {
+        // smb2.security_blob
+        let blob = hex::decode("a18202313082022da0030a0101a28202100482020c4e544c4d5353500003000000180018009c00000048014801b40000001e001e005800000008000800760000001e001e007e00000010001000fc010000158288e20a005a290000000fc6107a73184fb65fe684f6a1641464be4400450053004b0054004f0050002d0032004100450046004d003700470075007300650072004400450053004b0054004f0050002d0032004100450046004d003700470000000000000000000000000000000000000000000000000028a0c9f4e792c408913d2878feaa9a22010100000000000078a7ed218527d2010cf876f08a0b3bfa0000000002001e004400450053004b0054004f0050002d00560031004600410030005500510001001e004400450053004b0054004f0050002d00560031004600410030005500510004001e004400450053004b0054004f0050002d00560031004600410030005500510003001e004400450053004b0054004f0050002d0056003100460041003000550051000700080078a7ed218527d20106000400020000000800300030000000000000000100000000200000ad865b6d08a95d0e76a94e2ca013ab3f69c4fd945cca01b277700fd2b305ca010a001000000000000000000000000000000000000900280063006900660073002f003100390032002e003100360038002e003100390039002e003100330033000000000000000000000000005858824ec4a47b3b42ad3132ab84a5c3a31204100100000092302d756840453f00000000").unwrap();
+        let result = parse_secblob(&blob);
+        assert_eq!(
+            result,
+            Some(SpnegoRequest {
+                krb: None,
+                ntlmssp: Some(NtlmsspData {
+                    host: b"DESKTOP-2AEFM7G".to_vec(),
+                    user: b"user".to_vec(),
+                    domain: b"DESKTOP-2AEFM7G".to_vec(),
+                    version: Some(NTLMSSPVersion {
+                        ver_major: 10,
+                        ver_minor: 0,
+                        ver_build: 10586,
+                        ver_ntlm_rev: 15,
+                    },),
+                    warning: false,
+                }),
+            })
+        );
     }
 }
