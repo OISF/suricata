@@ -2873,7 +2873,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT1", ssn);
 
         if (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
-            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
 
         SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
                     ssn->server.next_seq);
@@ -2971,9 +2971,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
 
-            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
-                    SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))
-            {
+            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq - 1) ||
+                       SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))) {
                 SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                         " != %" PRIu32 " from stream", ssn,
                         TCP_GET_SEQ(p), ssn->client.next_seq);
@@ -3000,11 +2999,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             /* Update the next_seq, in case if we have missed the client
                packet and server has already received and acked it */
-            if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+            if (SEQ_LT(ssn->server.next_seq - 1, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
             if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
+                StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
             }
 
             StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
@@ -3024,12 +3023,12 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
-            } else if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p)) &&
+            } else if (SEQ_EQ(ssn->server.next_seq - 1, TCP_GET_SEQ(p)) &&
                        SEQ_EQ(ssn->client.last_ack, TCP_GET_ACK(p))) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
 
-            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) ||
+            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq - 1) ||
                        SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
                 SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                         " != %" PRIu32 " from stream", ssn,
@@ -3044,24 +3043,26 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
+            if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                StreamTcpHandleTimestamp(ssn, p);
+            }
+
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
-            }
 
-            if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                StreamTcpHandleTimestamp(ssn, p);
-            }
+                /* Update the next_seq, in case if we have missed the client
+                   packet and server has already received and acked it */
+                if (SEQ_LT(ssn->client.next_seq - 1, TCP_GET_ACK(p)))
+                    ssn->client.next_seq = TCP_GET_ACK(p);
 
-            /* Update the next_seq, in case if we have missed the client
-               packet and server has already received and acked it */
-            if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
-                ssn->client.next_seq = TCP_GET_ACK(p);
+                if (SEQ_EQ(ssn->server.next_seq - 1, TCP_GET_SEQ(p))) {
+                    StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
+                }
 
-            if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
+                StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
             }
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
@@ -3088,9 +3089,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
 
-            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
-                    SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))
-            {
+            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq - 1) ||
+                       SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))) {
                 SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                         " != %" PRIu32 " from stream", ssn,
                         TCP_GET_SEQ(p), ssn->client.next_seq);
@@ -3117,11 +3117,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             /* Update the next_seq, in case if we have missed the client
                packet and server has already received and acked it */
-            if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+            if (SEQ_LT(ssn->server.next_seq - 1, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
+            if (SEQ_EQ(ssn->client.next_seq - 1, TCP_GET_SEQ(p))) {
+                StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
             }
 
             if (p->tcph->th_flags & TH_ACK)
@@ -3144,9 +3144,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
 
-            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) ||
-                    SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window)))
-            {
+            } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq - 1) ||
+                       SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
                 SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                         " != %" PRIu32 " from stream", ssn,
                         TCP_GET_SEQ(p), ssn->server.next_seq);
@@ -3173,11 +3172,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             /* Update the next_seq, in case if we have missed the client
                packet and server has already received and acked it */
-            if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+            if (SEQ_LT(ssn->client.next_seq - 1, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
+            if (SEQ_EQ(ssn->server.next_seq - 1, TCP_GET_SEQ(p))) {
+                StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
             }
 
             if (p->tcph->th_flags & TH_ACK)
@@ -3221,11 +3220,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             if (SEQ_LT(TCP_GET_ACK(p), ssn->server.next_seq)) {
                 SCLogDebug("ssn %p: ACK's older segment as %u < %u", ssn, TCP_GET_ACK(p),
                         ssn->server.next_seq);
-                retransmission = 1;
-            }
-
-            if (!retransmission) {
-                if (SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq + 1)) {
+            } else if (!retransmission) {
+                if (SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq)) {
                     if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
                             (ssn->flags & (STREAMTCP_FLAG_MIDSTREAM | STREAMTCP_FLAG_ASYNC))) {
                         SCLogDebug("ssn %p: seq %" PRIu32 " in window, ssn->client.next_win "
@@ -3256,11 +3252,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             /* Update the next_seq, in case if we have missed the client
                packet and server has already received and acked it */
-            if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+            if (SEQ_LT(ssn->server.next_seq - 1, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
             if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
+                StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
             }
 
             StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
@@ -3303,7 +3299,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
                             "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
 
-                    if (TCP_GET_SEQ(p) == ssn->server.next_seq) {
+                    if (TCP_GET_SEQ(p) == ssn->server.next_seq - 1) {
                         StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
                         SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
                     }
@@ -3324,11 +3320,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             /* Update the next_seq, in case if we have missed the client
                packet and server has already received and acked it */
-            if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+            if (SEQ_LT(ssn->client.next_seq - 1, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
+            if (SEQ_EQ(ssn->server.next_seq - 1, TCP_GET_SEQ(p))) {
+                StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
             }
 
             StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
@@ -4371,7 +4367,8 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
-            } else if (TCP_GET_SEQ(p) != ssn->server.next_seq && TCP_GET_SEQ(p) != ssn->server.next_seq+1) {
+            } else if (TCP_GET_SEQ(p) != ssn->server.next_seq - 1 &&
+                       TCP_GET_SEQ(p) != ssn->server.next_seq) {
                 if (p->payload_len > 0 && TCP_GET_SEQ(p) == ssn->server.last_ack) {
                     SCLogDebug("ssn %p: -> retransmission", ssn);
                     SCReturnInt(0);
