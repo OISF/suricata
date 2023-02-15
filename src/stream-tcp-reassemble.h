@@ -84,7 +84,8 @@ typedef struct TcpReassemblyThreadCtx_ {
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
 void StreamTcpReassembleInitMemuse(void);
-int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueueNoLock *);
+int StreamTcpReassembleHandleSegment(
+        ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(bool);
 void StreamTcpReassembleFree(bool);
 void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size);

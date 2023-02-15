@@ -1969,8 +1969,7 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
 }
 
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                                     TcpSession *ssn, TcpStream *stream,
-                                     Packet *p, PacketQueueNoLock *pq)
+        TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
 
@@ -2403,8 +2402,6 @@ static int StreamTcpReassembleTest33(void)
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
 
-    PacketQueueNoLock pq;
-    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
@@ -2426,25 +2423,25 @@ static int StreamTcpReassembleTest33(void)
     p->tcph->th_ack = htonl(31);
     p->payload_len = 10;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(20);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 10;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(40);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 10;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(5);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 30;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
@@ -2465,8 +2462,6 @@ static int StreamTcpReassembleTest34(void)
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
-    PacketQueueNoLock pq;
-    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
@@ -2489,25 +2484,25 @@ static int StreamTcpReassembleTest34(void)
     p->tcph->th_ack = htonl(31);
     p->payload_len = 304;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(857961534);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 1460;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(857963582);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 1460;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     p->tcph->th_seq = htonl(857960946);
     p->tcph->th_ack = htonl(31);
     p->payload_len = 1460;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
@@ -3014,8 +3009,6 @@ static int StreamTcpReassembleTest40 (void)
     Flow *f = NULL;
     TCPHdr tcph;
     TcpSession ssn;
-    PacketQueueNoLock pq;
-    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
@@ -3060,7 +3053,7 @@ static int StreamTcpReassembleTest40 (void)
     ssn.state = TCP_ESTABLISHED;
     TcpStream *s = &ssn.client;
     SCLogDebug("1 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -3070,7 +3063,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.server;
     ssn.server.last_ack = 11;
     SCLogDebug("2 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf3;
@@ -3080,7 +3073,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.client;
     ssn.client.last_ack = 55;
     SCLogDebug("3 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -3090,7 +3083,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.server;
     ssn.server.last_ack = 12;
     SCLogDebug("4 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     /* check is have the segment in the list and flagged or not */
     TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
@@ -3105,7 +3098,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.client;
     ssn.client.last_ack = 100;
     SCLogDebug("5 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -3115,7 +3108,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.server;
     ssn.server.last_ack = 13;
     SCLogDebug("6 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf5;
@@ -3125,7 +3118,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.client;
     ssn.client.last_ack = 145;
     SCLogDebug("7 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -3135,7 +3128,7 @@ static int StreamTcpReassembleTest40 (void)
     s = &ssn.server;
     ssn.server.last_ack = 16;
     SCLogDebug("8 -- start");
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
     FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
@@ -3263,8 +3256,6 @@ static int StreamTcpReassembleTest47 (void)
     TCPHdr tcph;
     TcpSession ssn;
     ThreadVars tv;
-    PacketQueueNoLock pq;
-    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&tv, 0, sizeof (ThreadVars));
     StreamTcpInitConfig(true);
@@ -3301,7 +3292,7 @@ static int StreamTcpReassembleTest47 (void)
         p->payload_len = 1;
         s = &ssn.client;
 
-        FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+        FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
 
         p->flowflags = FLOW_PKT_TOCLIENT;
         p->payload = NULL;
@@ -3312,7 +3303,7 @@ static int StreamTcpReassembleTest47 (void)
         p->tcph = &tcph;
         s = &ssn.server;
 
-        FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+        FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
     }
 
     FAIL_IF(f->alproto != ALPROTO_HTTP1);
