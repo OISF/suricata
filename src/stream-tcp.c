@@ -89,7 +89,7 @@
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
 
-static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *, PacketQueueNoLock *);
+static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(bool);
 int StreamTcpGetFlowState(void *);
@@ -99,9 +99,8 @@ static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
 static int StreamTcpValidateRst(TcpSession * , Packet *);
 static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
-static int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
-        uint8_t state);
+static int StreamTcpStateDispatch(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn, const uint8_t state);
 
 extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
@@ -925,9 +924,8 @@ static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
  *  \retval 0 ok
  *  \retval -1 error
  */
-static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn,
-        PacketQueueNoLock *pq)
+static int StreamTcpPacketStateNone(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     if (p->tcph->th_flags & TH_RST) {
         StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
@@ -1025,7 +1023,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             ssn->client.last_ts = 0;
         }
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
         ssn->flags |= STREAMTCP_FLAG_SACKOK;
         SCLogDebug("ssn %p: assuming SACK permitted for both sides", ssn);
@@ -1195,7 +1193,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
                 SCLogDebug("ssn: %p (TFO) [len: %d] isn %u base_seq %u next_seq %u payload len %u",
                         ssn, p->tcpvars.tfo.len, ssn->client.isn, ssn->client.base_seq, ssn->client.next_seq, p->payload_len);
-                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             }
         }
 
@@ -1292,7 +1290,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             ssn->client.last_ts = 0;
         }
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
         ssn->flags |= STREAMTCP_FLAG_SACKOK;
         SCLogDebug("ssn %p: assuming SACK permitted for both sides", ssn);
@@ -1550,9 +1548,8 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn,
-        PacketQueueNoLock *pq)
+static int StreamTcpPacketStateSynSent(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -1867,8 +1864,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             ssn->flags |= STREAMTCP_FLAG_SACKOK;
         }
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                &ssn->client, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
     } else {
         SCLogDebug("ssn %p: default case", ssn);
@@ -1890,9 +1886,8 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
  *  \retval -1 error
  */
 
-static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn,
-        PacketQueueNoLock *pq)
+static int StreamTcpPacketStateSynRecv(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -1944,7 +1939,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 return -1;
         }
 
-        if ((StreamTcpHandleFin(tv, stt, ssn, p, pq)) == -1)
+        if ((StreamTcpHandleFin(tv, stt, ssn, p)) == -1)
             return -1;
 
     /* SYN/ACK */
@@ -2053,8 +2048,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 ", "
                     "ssn->client.last_ack %"PRIu32"", ssn,
@@ -2147,8 +2141,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             /* If asynchronous stream handling is allowed then set the session,
                if packet's seq number is equal the expected seq no.*/
@@ -2187,8 +2180,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             /* Upon receiving the packet with correct seq number and wrong
                ACK number, it causes the other end to send RST. But some target
                system (Linux & solaris) does not RST the connection, so it is
@@ -2226,7 +2218,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             /* if we get a packet with a proper ack, but a seq that is beyond
              * next_seq but in-window, we probably missed some packets */
@@ -2261,10 +2253,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
-        /* toclient packet: after having missed the 3whs's final ACK */
+            /* toclient packet: after having missed the 3whs's final ACK */
         } else if ((ack_indicates_missed_3whs_ack_packet ||
                            (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN)) &&
                    SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack) &&
@@ -2283,8 +2274,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
         } else {
             SCLogDebug("ssn %p: wrong seq nr on packet", ssn);
@@ -2316,8 +2306,8 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
-static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Packet *p,
-                        StreamTcpThread *stt, PacketQueueNoLock *pq)
+static int HandleEstablishedPacketToServer(
+        ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
 {
     SCLogDebug("ssn %p: =+ pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ","
                "ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
@@ -2472,7 +2462,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
 
         /* handle data (if any) */
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
     } else {
         SCLogDebug("ssn %p: toserver => SEQ out of window, packet SEQ "
@@ -2503,8 +2493,8 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
-static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Packet *p,
-                        StreamTcpThread *stt, PacketQueueNoLock *pq)
+static int HandleEstablishedPacketToClient(
+        ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
 {
     SCLogDebug("ssn %p: =+ pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ","
                " ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
@@ -2623,7 +2613,7 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
 
         StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
     } else {
         SCLogDebug("ssn %p: client => SEQ out of window, packet SEQ"
                    "%" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
@@ -2762,8 +2752,8 @@ static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateEstablished(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -2791,8 +2781,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -2821,8 +2810,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
@@ -2844,7 +2832,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                 ssn->client.last_ack, ssn->server.next_win,
                 ssn->server.window);
 
-        if ((StreamTcpHandleFin(tv, stt, ssn, p, pq)) == -1)
+        if ((StreamTcpHandleFin(tv, stt, ssn, p)) == -1)
             return -1;
 
     /* SYN/ACK */
@@ -2928,7 +2916,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 
         if (PKT_IS_TOSERVER(p)) {
             /* Process the received packet to server */
-            HandleEstablishedPacketToServer(tv, ssn, p, stt, pq);
+            HandleEstablishedPacketToServer(tv, ssn, p, stt);
 
             SCLogDebug("ssn %p: next SEQ %" PRIu32 ", last ACK %" PRIu32 ","
                     " next win %" PRIu32 ", win %" PRIu32 "", ssn,
@@ -2942,7 +2930,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             }
 
             /* Process the received packet to client */
-            HandleEstablishedPacketToClient(tv, ssn, p, stt, pq);
+            HandleEstablishedPacketToClient(tv, ssn, p, stt);
 
             SCLogDebug("ssn %p: next SEQ %" PRIu32 ", last ACK %" PRIu32 ","
                     " next win %" PRIu32 ", win %" PRIu32 "", ssn,
@@ -2968,8 +2956,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
  *  \retval -1 something wrong with the packet
  */
 
-static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
-                                TcpSession *ssn, Packet *p, PacketQueueNoLock *pq)
+static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *ssn, Packet *p)
 {
     if (PKT_IS_TOSERVER(p)) {
         SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ","
@@ -3020,7 +3007,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
             ssn->server.next_seq = TCP_GET_ACK(p);
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
         SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "",
                 ssn, ssn->client.next_seq, ssn->server.last_ack);
@@ -3068,7 +3055,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
             ssn->client.next_seq = TCP_GET_ACK(p);
 
-        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p, pq);
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
         SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "",
                 ssn, ssn->server.next_seq, ssn->client.last_ack);
@@ -3090,8 +3077,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
  *  \retval -1 something wrong with the packet
  */
 
-static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateFinWait1(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -3113,8 +3100,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -3127,8 +3113,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if ((p->tcph->th_flags & (TH_FIN|TH_ACK)) == (TH_FIN|TH_ACK)) {
@@ -3185,8 +3170,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
@@ -3242,8 +3226,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
@@ -3305,8 +3288,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
@@ -3361,8 +3343,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
@@ -3439,8 +3420,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             /* update next_win */
             StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
@@ -3507,8 +3487,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             /* update next_win */
             StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
@@ -3531,8 +3510,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateFinWait2(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -3554,8 +3533,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -3568,8 +3546,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if (p->tcph->th_flags & TH_FIN) {
@@ -3631,8 +3608,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
@@ -3686,8 +3662,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
@@ -3754,8 +3729,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             /* update next_win */
             StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
@@ -3809,8 +3783,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             /* update next_win */
             StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
@@ -3833,8 +3806,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateClosing(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -3856,8 +3829,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -3870,8 +3842,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if (p->tcph->th_flags & TH_SYN) {
@@ -3926,8 +3897,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -3973,8 +3943,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("StreamTcpPacketStateClosing (%p): =+ next SEQ "
                     "%" PRIu32 ", last ACK %" PRIu32 "", ssn,
                     ssn->server.next_seq, ssn->client.last_ack);
@@ -3996,8 +3965,8 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateCloseWait(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     SCEnter();
 
@@ -4031,8 +4000,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -4045,8 +4013,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if (p->tcph->th_flags & TH_FIN) {
@@ -4101,8 +4068,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -4154,8 +4120,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
@@ -4221,8 +4186,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             if (SEQ_EQ(TCP_GET_SEQ(p),ssn->client.next_seq))
                 StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -4274,8 +4238,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             if (SEQ_EQ(TCP_GET_SEQ(p),ssn->server.next_seq))
                 StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
@@ -4297,8 +4260,8 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateLastAck(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -4320,8 +4283,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -4334,8 +4296,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if (p->tcph->th_flags & TH_FIN) {
@@ -4398,8 +4359,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -4421,8 +4381,8 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateTimeWait(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -4444,8 +4404,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
         } else {
             if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
                 StreamTcpUpdateLastAck(ssn, &ssn->client,
@@ -4458,8 +4417,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 StreamTcpHandleTimestamp(ssn, p);
             }
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
         }
 
     } else if (p->tcph->th_flags & TH_FIN) {
@@ -4517,8 +4475,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
                 ssn->server.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->client, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
@@ -4567,8 +4524,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
                 ssn->client.next_seq = TCP_GET_ACK(p);
 
-            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                    &ssn->server, p, pq);
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
@@ -4581,8 +4537,8 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
     return 0;
 }
 
-static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq)
+static int StreamTcpPacketStateClosed(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -4608,7 +4564,7 @@ static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
      * see if we perhaps need to continue processing anyway. */
     if ((stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) == 0) {
         if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
-            if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->pstate) < 0)
+            if (StreamTcpStateDispatch(tv, p, stt, ssn, ssn->pstate) < 0)
                 return -1;
             /* if state is still "closed", it wasn't updated by our dispatch. */
             if (ssn->state == TCP_CLOSED)
@@ -4934,9 +4890,8 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
  *  \brief call packet handling function for 'state'
  *  \param state current TCP state
  */
-static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
-        StreamTcpThread *stt, TcpSession *ssn, PacketQueueNoLock *pq,
-        const uint8_t state)
+static inline int StreamTcpStateDispatch(
+        ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn, const uint8_t state)
 {
     DEBUG_VALIDATE_BUG_ON(ssn == NULL);
 
@@ -4944,55 +4899,55 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
     switch (state) {
         case TCP_SYN_SENT:
             SCLogDebug("packet received on TCP_SYN_SENT state");
-            if (StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateSynSent(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_SYN_RECV:
             SCLogDebug("packet received on TCP_SYN_RECV state");
-            if (StreamTcpPacketStateSynRecv(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateSynRecv(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_ESTABLISHED:
             SCLogDebug("packet received on TCP_ESTABLISHED state");
-            if (StreamTcpPacketStateEstablished(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateEstablished(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_FIN_WAIT1:
             SCLogDebug("packet received on TCP_FIN_WAIT1 state");
-            if (StreamTcpPacketStateFinWait1(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateFinWait1(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_FIN_WAIT2:
             SCLogDebug("packet received on TCP_FIN_WAIT2 state");
-            if (StreamTcpPacketStateFinWait2(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateFinWait2(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_CLOSING:
             SCLogDebug("packet received on TCP_CLOSING state");
-            if (StreamTcpPacketStateClosing(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateClosing(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_CLOSE_WAIT:
             SCLogDebug("packet received on TCP_CLOSE_WAIT state");
-            if (StreamTcpPacketStateCloseWait(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateCloseWait(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_LAST_ACK:
             SCLogDebug("packet received on TCP_LAST_ACK state");
-            if (StreamTcpPacketStateLastAck(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateLastAck(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
         case TCP_TIME_WAIT:
             SCLogDebug("packet received on TCP_TIME_WAIT state");
-            if (StreamTcpPacketStateTimeWait(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateTimeWait(tv, p, stt, ssn)) {
                 return -1;
             }
             break;
@@ -5000,7 +4955,7 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
             /* TCP session memory is not returned to pool until timeout. */
             SCLogDebug("packet received on closed state");
 
-            if (StreamTcpPacketStateClosed(tv, p, stt, ssn, pq)) {
+            if (StreamTcpPacketStateClosed(tv, p, stt, ssn)) {
                 return -1;
             }
 
@@ -5092,7 +5047,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     }
 
     if (ssn == NULL || ssn->state == TCP_NONE) {
-        if (StreamTcpPacketStateNone(tv, p, stt, ssn, &stt->pseudo_queue) == -1) {
+        if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1) {
             goto error;
         }
 
@@ -5105,12 +5060,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (p->flags & PKT_PSEUDO_STREAM_END) {
             if (PKT_IS_TOCLIENT(p)) {
                 ssn->client.last_ack = TCP_GET_ACK(p);
-                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                        &ssn->server, p, pq);
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             } else {
                 ssn->server.last_ack = TCP_GET_ACK(p);
-                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                        &ssn->client, p, pq);
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             }
             /* straight to 'skip' as we already handled reassembly */
             goto skip;
@@ -5148,7 +5101,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         /* handle the per 'state' logic */
-        if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->state) < 0)
+        if (StreamTcpStateDispatch(tv, p, stt, ssn, ssn->state) < 0)
             goto error;
 
     skip:
@@ -5172,12 +5125,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 /* process the opposing direction of the original packet */
                 if (PKT_IS_TOSERVER(np)) {
                     SCLogDebug("pseudo packet is to server");
-                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                            &ssn->client, np, NULL);
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, np);
                 } else {
                     SCLogDebug("pseudo packet is to client");
-                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                            &ssn->server, np, NULL);
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, np);
                 }
 
                 /* enqueue this packet so we inspect it in detect etc */
