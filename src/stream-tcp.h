@@ -75,11 +75,6 @@ typedef struct TcpStreamCnf_ {
 typedef struct StreamTcpThread_ {
     int ssn_pool_id;
 
-    /** queue for pseudo packet(s) that were created in the stream
-     *  process and need further handling. Currently only used when
-     *  receiving (valid) RST packets */
-    PacketQueueNoLock pseudo_queue;
-
     uint16_t counter_tcp_active_sessions;
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */

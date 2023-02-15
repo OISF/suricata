@@ -5112,31 +5112,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
     }
 
-    /* deal with a pseudo packet that is created upon receiving a RST
-     * segment. To be sure we process both sides of the connection, we
-     * inject a fake packet into the system, forcing reassembly of the
-     * opposing direction.
-     * There should be only one, but to be sure we do a while loop. */
     if (ssn != NULL) {
-        while (stt->pseudo_queue.len > 0) {
-            SCLogDebug("processing pseudo packet / stream end");
-            Packet *np = PacketDequeueNoLock(&stt->pseudo_queue);
-            if (np != NULL) {
-                /* process the opposing direction of the original packet */
-                if (PKT_IS_TOSERVER(np)) {
-                    SCLogDebug("pseudo packet is to server");
-                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, np);
-                } else {
-                    SCLogDebug("pseudo packet is to client");
-                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, np);
-                }
-
-                /* enqueue this packet so we inspect it in detect etc */
-                PacketEnqueueNoLock(pq, np);
-            }
-            SCLogDebug("processing pseudo packet / stream end done");
-        }
-
         /* recalc the csum on the packet if it was modified */
         if (p->flags & PKT_STREAM_MODIFIED) {
             ReCalculateChecksum(p);
@@ -5186,14 +5162,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     SCReturnInt(0);
 
 error:
-    /* make sure we don't leave packets in our pseudo queue */
-    while (stt->pseudo_queue.len > 0) {
-        Packet *np = PacketDequeueNoLock(&stt->pseudo_queue);
-        if (np != NULL) {
-            PacketEnqueueNoLock(pq, np);
-        }
-    }
-
     /* recalc the csum on the packet if it was modified */
     if (p->flags & PKT_STREAM_MODIFIED) {
         ReCalculateChecksum(p);
