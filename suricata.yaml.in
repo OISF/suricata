@@ -313,6 +313,16 @@ outputs:
         # flowints.
         #- metadata
 
+        # EXPERIMENTAL per packet output giving TCP state tracking details
+        # including internal state, flags, etc.
+        # This output is experimental, meant for debugging and subject to
+        # change in both config and output without any notice.
+        #- stream:
+        #   all: false                      # log all TCP packets
+        #   event-set: false                # log packets that have a decoder/stream event
+        #   state-update: false             # log packets triggering a TCP state update
+        #   spurious-retransmission: false  # log spurious retransmission packets
+
   # a line based log of HTTP requests (no alerts)
   - http-log:
       enabled: no
