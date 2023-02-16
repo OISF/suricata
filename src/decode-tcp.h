@@ -160,6 +160,7 @@ typedef struct TCPVars_
     bool ts_set;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
+    uint16_t stream_pkt_flags;
     TCPOpt sack;
     TCPOpt sackok;
     TCPOpt ws;
