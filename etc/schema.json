@@ -297,6 +297,11 @@
             },
             "additionalProperties": false
         },
+        "stream_tcp": {
+            "type": "object",
+            "optional": true,
+            "additionalProperties": true
+        },
         "anomaly": {
             "type": "object",
             "optional": true,
@@ -5309,7 +5314,7 @@
                     "type": "boolean"
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "template": {
             "type": "object",
