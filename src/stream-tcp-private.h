@@ -259,16 +259,18 @@ enum TcpState {
     } while(0); \
 }
 
-#define StreamTcpSetEvent(p, e) {                                           \
-    if ((p)->flags & PKT_STREAM_NO_EVENTS) {                                \
-        SCLogDebug("not setting event %d on pkt %p (%"PRIu64"), "     \
-                   "stream in known bad condition", (e), p, (p)->pcap_cnt); \
-    } else {                                                                \
-        SCLogDebug("setting event %d on pkt %p (%"PRIu64")",          \
-                    (e), p, (p)->pcap_cnt);                                 \
-        ENGINE_SET_EVENT((p), (e));                                         \
-    }                                                                       \
-}
+#define StreamTcpSetEvent(p, e)                                                                    \
+    {                                                                                              \
+        if ((p)->flags & PKT_STREAM_NO_EVENTS) {                                                   \
+            SCLogDebug("not setting event %d on pkt %p (%" PRIu64 "), "                            \
+                       "stream in known bad condition",                                            \
+                    (e), p, (p)->pcap_cnt);                                                        \
+        } else {                                                                                   \
+            SCLogDebug("setting event %d on pkt %p (%" PRIu64 ")", (e), p, (p)->pcap_cnt);         \
+            ENGINE_SET_EVENT((p), (e));                                                            \
+            p->tcpvars.stream_pkt_flags |= STREAM_PKT_FLAG_EVENTSET;                               \
+        }                                                                                          \
+    }
 
 typedef struct TcpSession_ {
     PoolThreadId pool_id;
@@ -296,5 +298,15 @@ typedef struct TcpSession_ {
         SCLogDebug("setting STREAMTCP_FLAG_APP_LAYER_DISABLED on ssn %p", ssn); \
         ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
     } while (0);
+
+#define STREAM_PKT_FLAG_RETRANSMISSION          BIT_U16(0)
+#define STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION BIT_U16(1)
+#define STREAM_PKT_FLAG_STATE_UPDATE            BIT_U16(2)
+#define STREAM_PKT_FLAG_KEEPALIVE               BIT_U16(3)
+#define STREAM_PKT_FLAG_KEEPALIVEACK            BIT_U16(4)
+#define STREAM_PKT_FLAG_WINDOWUPDATE            BIT_U16(5)
+#define STREAM_PKT_FLAG_EVENTSET                BIT_U16(6)
+
+#define STREAM_PKT_FLAG_SET(p, f) (p)->tcpvars.stream_pkt_flags |= (f)
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */
