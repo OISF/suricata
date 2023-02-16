@@ -313,6 +313,12 @@ outputs:
         # flowints.
         #- metadata
 
+        # EXPERIMENTAL per packet output giving TCP state tracking details
+        # including internal state, flags, etc.
+        # This output is experimental, meant for debugging and subject to
+        # change in both config and output without any notice.
+        #- stream
+
   # a line based log of HTTP requests (no alerts)
   - http-log:
       enabled: no

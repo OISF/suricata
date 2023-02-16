@@ -50,6 +50,7 @@
 #include "output-json-netflow.h"
 #include "log-cf-common.h"
 #include "output-json-drop.h"
+#include "output-eve-stream.h"
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
@@ -1047,6 +1048,7 @@ void OutputRegisterLoggers(void)
     /* syslog log */
     AlertSyslogRegister();
     JsonDropLogRegister();
+    EveStreamLogRegister();
     /* json log */
     OutputJsonRegister();
     /* email logs */
