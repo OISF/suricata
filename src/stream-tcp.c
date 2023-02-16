@@ -1548,7 +1548,7 @@ static void TcpStateQueueInitFromSsnSyn(const TcpSession *ssn, TcpStateQueue *q)
 
     /* SYN won't use wscale yet. So window should be limited to 16 bits. */
     DEBUG_VALIDATE_BUG_ON(ssn->server.window > UINT16_MAX);
-    q->win = ssn->server.window;
+    q->win = (uint16_t)ssn->server.window;
 
     q->pkt_ts = ssn->client.last_pkt_ts;
 
