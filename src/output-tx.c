@@ -119,7 +119,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         OutputTxLogger *t = list[alproto];
         while (t->next)
             t = t->next;
-        if (t->id * 2 > UINT32_MAX) {
+        if (t->id * 2ULL > UINT32_MAX) {
             FatalError("Too many loggers registered.");
         }
         op->id = t->id * 2;
