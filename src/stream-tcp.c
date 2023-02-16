@@ -763,6 +763,7 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
 
     ssn->pstate = ssn->state;
     ssn->state = state;
+    STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_STATE_UPDATE);
 
     /* update the flow state */
     switch(ssn->state) {
@@ -2897,9 +2898,9 @@ static bool StreamTcpPacketIsOutdatedAck(TcpSession *ssn, Packet *p)
  *  \brief check if packet is before ack'd windows
  *  If packet is before last ack, we will not accept it
  */
-static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
+static bool StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet *p)
 {
-    TcpStream *stream;
+    const TcpStream *stream;
     if (PKT_IS_TOCLIENT(p)) {
         stream = &ssn->server;
     } else {
@@ -2912,6 +2913,7 @@ static bool StreamTcpPacketIsSpuriousRetransmission(TcpSession *ssn, Packet *p)
         SCLogDebug("ssn %p: spurious retransmission; packet entirely before last_ack: SEQ %u(%u) "
                    "last_ack %u",
                 ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack);
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION);
         return true;
     }
     SCLogDebug("ssn %p: NOT spurious retransmission; packet NOT entirely before last_ack: SEQ "
@@ -3309,6 +3311,7 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq - 1) ||
                        SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))) {
@@ -3361,10 +3364,13 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
+
             } else if (SEQ_EQ(ssn->server.next_seq - 1, TCP_GET_SEQ(p)) &&
                        SEQ_EQ(ssn->client.last_ack, TCP_GET_ACK(p))) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq - 1) ||
                        SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
@@ -3425,6 +3431,7 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq - 1) ||
                        SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))) {
@@ -3479,6 +3486,7 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq - 1) ||
                        SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
@@ -3544,6 +3552,7 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
@@ -3618,6 +3627,7 @@ static int StreamTcpPacketStateFinWait1(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
@@ -3746,9 +3756,11 @@ static int StreamTcpPacketStateFinWait2(
                 SEQ_EQ(TCP_GET_ACK(p), ssn->server.last_ack)) {
                 SCLogDebug("ssn %p: retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             } else if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
                     SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))
@@ -3804,9 +3816,11 @@ static int StreamTcpPacketStateFinWait2(
                 SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack)) {
                 SCLogDebug("ssn %p: retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             } else if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) ||
                     SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window)))
@@ -3869,6 +3883,7 @@ static int StreamTcpPacketStateFinWait2(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
@@ -3924,6 +3939,7 @@ static int StreamTcpPacketStateFinWait2(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
@@ -4045,6 +4061,7 @@ static int StreamTcpPacketStateClosing(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
@@ -4090,6 +4107,7 @@ static int StreamTcpPacketStateClosing(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
@@ -4212,6 +4230,7 @@ static int StreamTcpPacketStateCloseWait(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (!retransmission) {
@@ -4262,6 +4281,7 @@ static int StreamTcpPacketStateCloseWait(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (!retransmission) {
@@ -4327,6 +4347,7 @@ static int StreamTcpPacketStateCloseWait(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (p->payload_len > 0 && (SEQ_LEQ((TCP_GET_SEQ(p) + p->payload_len), ssn->client.last_ack))) {
@@ -4379,6 +4400,7 @@ static int StreamTcpPacketStateCloseWait(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (p->payload_len > 0 && (SEQ_LEQ((TCP_GET_SEQ(p) + p->payload_len), ssn->server.last_ack))) {
@@ -4504,6 +4526,7 @@ static int StreamTcpPacketStateLastAck(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             }
 
             if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
@@ -4623,6 +4646,7 @@ static int StreamTcpPacketStateTimeWait(
             if (StreamTcpPacketIsRetransmission(&ssn->client, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
 
             } else if (TCP_GET_SEQ(p) != ssn->client.next_seq && TCP_GET_SEQ(p) != ssn->client.next_seq+1) {
                 SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
@@ -4668,6 +4692,7 @@ static int StreamTcpPacketStateTimeWait(
             if (StreamTcpPacketIsRetransmission(&ssn->server, p)) {
                 SCLogDebug("ssn %p: packet is retransmission", ssn);
                 retransmission = 1;
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_RETRANSMISSION);
             } else if (TCP_GET_SEQ(p) != ssn->server.next_seq - 1 &&
                        TCP_GET_SEQ(p) != ssn->server.next_seq) {
                 if (p->payload_len > 0 && TCP_GET_SEQ(p) == ssn->server.last_ack) {
@@ -4820,6 +4845,7 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
     if (ack == ostream->last_ack && seq == (stream->next_seq - 1)) {
         SCLogDebug("packet is TCP keep-alive: %"PRIu64, p->pcap_cnt);
         stream->flags |= STREAMTCP_STREAM_FLAG_KEEPALIVE;
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVE);
         return 1;
     }
     SCLogDebug("seq %u (%u), ack %u (%u)", seq,  (stream->next_seq - 1), ack, ostream->last_ack);
@@ -4867,6 +4893,7 @@ static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p)
     if ((ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) && ack == ostream->last_ack && seq == stream->next_seq) {
         SCLogDebug("packet is TCP keep-aliveACK: %"PRIu64, p->pcap_cnt);
         ostream->flags &= ~STREAMTCP_STREAM_FLAG_KEEPALIVE;
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVEACK);
         return 1;
     }
     SCLogDebug("seq %u (%u), ack %u (%u) FLAG_KEEPALIVE: %s", seq, stream->next_seq, ack, ostream->last_ack,
@@ -4936,6 +4963,7 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
 
     if (ack == ostream->last_ack && seq == stream->next_seq) {
         SCLogDebug("packet is TCP window update: %"PRIu64, p->pcap_cnt);
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_WINDOWUPDATE);
         return 1;
     }
     SCLogDebug("seq %u (%u), ack %u (%u)", seq, stream->next_seq, ack, ostream->last_ack);

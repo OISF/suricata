@@ -158,6 +158,7 @@ typedef struct TCPVars_
     bool md5_option_present;
     bool ao_option_present;
     bool ts_set;
+    uint8_t stream_pkt_flags;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
     TCPOpt sack;
