@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -173,7 +173,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         } else {
             FatalErrorOnInit(
                     "\"%s\" is not a valid exception policy value. Valid options are drop-flow, "
-                    "pass-flow, bypass, drop-packet, pass-packet or ignore.",
+                    "pass-flow, bypass, reject, drop-packet, pass-packet or ignore.",
                     value_str);
         }
 
