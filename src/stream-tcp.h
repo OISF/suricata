@@ -111,7 +111,7 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_midstream_eps_drop_packet;
     /** wrong thread */
     uint16_t counter_tcp_wrong_thread;
-    /** ack for unseed data */
+    /** ack for unseen data */
     uint16_t counter_tcp_ack_unseen_data;
 
     /** tcp reassembly thread data */
