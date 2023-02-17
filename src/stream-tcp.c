@@ -87,6 +87,7 @@
 #define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     (256 * 1024 * 1024) /* 256mb */
 #define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
+#define STREAMTCP_DEFAULT_MAX_SYN_QUEUED        10
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
 
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
@@ -501,6 +502,19 @@ void StreamTcpInitConfig(bool quiet)
         }
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
+    }
+
+    if ((ConfGetInt("stream.max-syn-queued", &value)) == 1) {
+        if (value >= 0 && value <= 255) {
+            stream_config.max_syn_queued = (uint8_t)value;
+        } else {
+            stream_config.max_syn_queued = (uint8_t)STREAMTCP_DEFAULT_MAX_SYN_QUEUED;
+        }
+    } else {
+        stream_config.max_syn_queued = (uint8_t)STREAMTCP_DEFAULT_MAX_SYN_QUEUED;
+    }
+    if (!quiet) {
+        SCLogConfig("stream \"max-syn-queued\": %" PRIu8, stream_config.max_syn_queued);
     }
 
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
@@ -1655,7 +1669,7 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
     if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search) != NULL)
         return 0;
 
-    if (ssn->queue_len == stream_config.max_synack_queued) { // TODO
+    if (ssn->queue_len == stream_config.max_syn_queued) {
         SCLogDebug("ssn %p: =~ SYN queue limit reached", ssn);
         StreamTcpSetEvent(p, STREAM_3WHS_SYN_FLOOD);
         return -1;

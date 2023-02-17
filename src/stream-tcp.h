@@ -59,6 +59,7 @@ typedef struct TcpStreamCnf_ {
     bool midstream;
     bool async_oneside;
     bool streaming_log_api;
+    uint8_t max_syn_queued;
 
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
 
