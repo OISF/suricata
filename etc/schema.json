@@ -5460,6 +5460,9 @@
                 },
                 "internal": {
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
