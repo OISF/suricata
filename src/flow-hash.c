@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -642,7 +642,8 @@ static void FlowExceptionPolicyStatsIncr(
  *  \param tv thread vars
  *  \param fls lookup support vars
  *
- *  \retval f *LOCKED* flow on succes, NULL on error.
+ *  \retval f *LOCKED* flow on success, NULL on error or if we should not create
+ *  a new flow.
  */
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
@@ -718,7 +719,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     } else {
         /* flow has been recycled before it went into the spare queue */
 
-        /* flow is initialized (recylced) but *unlocked* */
+        /* flow is initialized (recycled) but *unlocked* */
     }
 
     FLOWLOCK_WRLOCK(f);
