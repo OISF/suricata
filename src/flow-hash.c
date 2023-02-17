@@ -614,7 +614,8 @@ static inline void NoFlowHandleIPS(Packet *p)
  *  \param tv thread vars
  *  \param fls lookup support vars
  *
- *  \retval f *LOCKED* flow on succes, NULL on error.
+ *  \retval f *LOCKED* flow on success, NULL on error or if we should not create
+ *  a new flow.
  */
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
@@ -679,7 +680,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     } else {
         /* flow has been recycled before it went into the spare queue */
 
-        /* flow is initialized (recylced) but *unlocked* */
+        /* flow is initialized (recycled) but *unlocked* */
     }
 
     FLOWLOCK_WRLOCK(f);

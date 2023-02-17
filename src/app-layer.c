@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -476,7 +476,7 @@ static int TCPProtoDetect(ThreadVars *tv,
          *
          * \todo We need to figure out a more robust solution for this,
          *       as this can lead to easy evasion tactics, where the
-         *       attackeer can first send some dummy data in the wrong
+         *       attacker can first send some dummy data in the wrong
          *       direction first to mislead our proto detection process.
          *       While doing this we need to update the parsers as well,
          *       since the parsers must be robust to see such wrong
