@@ -229,7 +229,9 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
     /* PF_RING may fail to set timestamp */
     if (h->ts.tv_sec == 0) {
-        gettimeofday((struct timeval *)&h->ts, NULL);
+        struct timeval tmp_ts;
+        gettimeofday(&tmp_ts, NULL);
+        h->ts = tmp_ts;
     }
 
     p->ts.tv_sec = h->ts.tv_sec;
