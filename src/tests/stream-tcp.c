@@ -701,7 +701,8 @@ static int StreamTcpTest10(void)
     p->payload = payload;
     p->payload_len = 3;
 
-    FAIL_IF_NOT(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    /* spurious retransmission */
+    FAIL_IF_NOT(StreamTcpPacket(&tv, p, &stt, &pq) == 0);
 
     FAIL_IF(((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED);
 
