@@ -35,6 +35,7 @@ void IPOnlyDeinit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyPrepare(DetectEngineCtx *);
 void DetectEngineIPOnlyThreadInit(DetectEngineCtx *, DetectEngineIPOnlyThreadCtx *);
 void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *);
+SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *, SigIntId);
 void IPOnlyAddSignature(DetectEngineCtx *, DetectEngineIPOnlyCtx *, Signature *);
 void IPOnlyRegisterTests(void);
 
