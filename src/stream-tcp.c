@@ -2909,8 +2909,12 @@ static bool StreamTcpPacketIsOutdatedAck(TcpSession *ssn, Packet *p)
 /** \internal
  *  \brief check if packet is before ack'd windows
  *  If packet is before last ack, we will not accept it
+ *
+ *  \retval 0 not spurious retransmission
+ *  \retval 1 before last_ack, after base_seq
+ *  \retval 2 before last_ack and base_seq
  */
-static bool StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet *p)
+static int StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet *p)
 {
     const TcpStream *stream;
     if (PKT_IS_TOCLIENT(p)) {
@@ -2918,20 +2922,36 @@ static bool StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packe
     } else {
         stream = &ssn->client;
     }
+    if (p->payload_len == 0)
+        return 0;
+
     /* take base_seq into account to avoid edge cases where last_ack might be
      * too far ahead during heavy packet loss */
-    const uint32_t le = MIN(stream->last_ack, stream->base_seq);
-    if (p->payload_len > 0 && (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, le))) {
+    if (!(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        if ((SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, stream->base_seq))) {
+            SCLogDebug(
+                    "ssn %p: spurious retransmission; packet entirely before base_seq: SEQ %u(%u) "
+                    "last_ack %u base_seq %u",
+                    ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack,
+                    stream->base_seq);
+            STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION);
+            return 2;
+        }
+    }
+
+    if ((SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, stream->last_ack))) {
         SCLogDebug("ssn %p: spurious retransmission; packet entirely before last_ack: SEQ %u(%u) "
                    "last_ack %u",
                 ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack);
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION);
-        return true;
+        return 1;
     }
+
     SCLogDebug("ssn %p: NOT spurious retransmission; packet NOT entirely before last_ack: SEQ "
-               "%u(%u) last_ack %u, le %u",
-            ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack, le);
-    return false;
+               "%u(%u) last_ack %u, base_seq %u",
+            ssn, TCP_GET_SEQ(p), TCP_GET_SEQ(p) + p->payload_len, stream->last_ack,
+            stream->base_seq);
+    return 0;
 }
 
 /**
@@ -5317,9 +5337,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             }
         }
 
-        if (StreamTcpPacketIsSpuriousRetransmission(ssn, p)) {
+        int ret = StreamTcpPacketIsSpuriousRetransmission(ssn, p);
+        if (ret > 0) {
             StreamTcpSetEvent(p, STREAM_PKT_SPURIOUS_RETRANSMISSION);
-            goto error;
+            /* skip packet if fully before base_seq */
+            if (ret == 2)
+                goto skip;
         }
 
         /* handle the per 'state' logic */
