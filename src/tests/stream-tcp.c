@@ -781,12 +781,12 @@ static int StreamTcpTest11(void)
 
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    FAIL_IF(!(((TcpSession *)(p->flow->protoctx))->flags & STREAMTCP_FLAG_ASYNC));
+    TcpSession *ssn = p->flow->protoctx;
+    FAIL_IF((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0);
+    FAIL_IF(ssn->state != TCP_ESTABLISHED);
 
-    FAIL_IF(((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED);
-
-    FAIL_IF(((TcpSession *)(p->flow->protoctx))->server.last_ack != 2 &&
-            ((TcpSession *)(p->flow->protoctx))->client.next_seq != 1);
+    FAIL_IF(ssn->server.last_ack != 11);
+    FAIL_IF(ssn->client.next_seq != 14);
 
     StreamTcpSessionClear(p->flow->protoctx);
     SCFree(p);
