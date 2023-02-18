@@ -2573,13 +2573,11 @@ static int HandleEstablishedPacketToServer(
          * beyond next seq */
         } else if (SEQ_GT(ssn->client.last_ack, ssn->client.next_seq) &&
                    SEQ_GT((TCP_GET_SEQ(p) + p->payload_len), ssn->client.next_seq)) {
-            SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
-                    " before last_ack %"PRIu32", after next_seq %"PRIu32":"
-                    " acked data that we haven't seen before",
-                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->client.last_ack, ssn->client.next_seq);
-            if (SEQ_EQ(TCP_GET_SEQ(p),ssn->client.next_seq)) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
-            }
+            SCLogDebug("ssn %p: PKT SEQ %" PRIu32 " payload_len %" PRIu16
+                       " before last_ack %" PRIu32 ", after next_seq %" PRIu32 ":"
+                       " acked data that we haven't seen before",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->client.last_ack,
+                    ssn->client.next_seq);
         } else {
             SCLogDebug("ssn %p: server => SEQ before last_ack, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
@@ -2601,31 +2599,8 @@ static int HandleEstablishedPacketToServer(
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
 
-    /* expected packet */
-    } else if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
-
-    /* not completely as expected, but valid */
-    } else if (SEQ_LT(TCP_GET_SEQ(p),ssn->client.next_seq) &&
-               SEQ_GT((TCP_GET_SEQ(p)+p->payload_len), ssn->client.next_seq))
-    {
+    } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
-        SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
-                   " (started before next_seq, ended after)",
-                   ssn, ssn->client.next_seq);
-
-    /* if next_seq has fallen behind last_ack, we got some catching up to do */
-    } else if (SEQ_LT(ssn->client.next_seq, ssn->client.last_ack)) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
-        SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
-                   " (next_seq had fallen behind last_ack)",
-                   ssn, ssn->client.next_seq);
-
-    } else {
-        SCLogDebug("ssn %p: no update to ssn->client.next_seq %"PRIu32
-                   " SEQ %u SEQ+ %u last_ack %u",
-                   ssn, ssn->client.next_seq,
-                   TCP_GET_SEQ(p), TCP_GET_SEQ(p)+p->payload_len, ssn->client.last_ack);
     }
 
     /* in window check */
@@ -2737,13 +2712,11 @@ static int HandleEstablishedPacketToClient(
         } else if (SEQ_GT(ssn->server.last_ack, ssn->server.next_seq) &&
                    SEQ_GT((TCP_GET_SEQ(p)+p->payload_len),ssn->server.next_seq))
         {
-            SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
-                    " before last_ack %"PRIu32", after next_seq %"PRIu32":"
-                    " acked data that we haven't seen before",
-                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->server.last_ack, ssn->server.next_seq);
-            if (SEQ_EQ(TCP_GET_SEQ(p),ssn->server.next_seq)) {
-                StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
-            }
+            SCLogDebug("ssn %p: PKT SEQ %" PRIu32 " payload_len %" PRIu16
+                       " before last_ack %" PRIu32 ", after next_seq %" PRIu32 ":"
+                       " acked data that we haven't seen before",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->server.last_ack,
+                    ssn->server.next_seq);
         } else {
             SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
                     " before last_ack %"PRIu32". next_seq %"PRIu32,
@@ -2759,30 +2732,8 @@ static int HandleEstablishedPacketToClient(
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
 
-    /* expected packet */
-    } else if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->server, (ssn->server.next_seq + p->payload_len));
-
-    /* not completely as expected, but valid */
-    } else if (SEQ_LT(TCP_GET_SEQ(p),ssn->server.next_seq) &&
-               SEQ_GT((TCP_GET_SEQ(p)+p->payload_len), ssn->server.next_seq))
-    {
+    } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
-        SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32
-                   " (started before next_seq, ended after)",
-                   ssn, ssn->server.next_seq);
-
-    /* if next_seq has fallen behind last_ack, we got some catching up to do */
-    } else if (SEQ_LT(ssn->server.next_seq, ssn->server.last_ack)) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
-        SCLogDebug("ssn %p: ssn->server.next_seq %"PRIu32
-                   " (next_seq had fallen behind last_ack)",
-                   ssn, ssn->server.next_seq);
-    } else {
-        SCLogDebug("ssn %p: no update to ssn->server.next_seq %"PRIu32
-                   " SEQ %u SEQ+ %u last_ack %u",
-                   ssn, ssn->server.next_seq,
-                   TCP_GET_SEQ(p), TCP_GET_SEQ(p)+p->payload_len, ssn->server.last_ack);
     }
 
     if (zerowindowprobe) {
