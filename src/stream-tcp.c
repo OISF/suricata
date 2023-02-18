@@ -2873,7 +2873,10 @@ static bool StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packe
     }
     /* take base_seq into account to avoid edge cases where last_ack might be
      * too far ahead during heavy packet loss */
-    const uint32_t le = MIN(stream->last_ack, stream->base_seq);
+    uint32_t le = stream->last_ack;
+    if (!(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        le = SEQ_MIN(le, stream->base_seq);
+
     if (p->payload_len > 0 && (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, le))) {
         SCLogDebug("ssn %p: spurious retransmission; packet entirely before last_ack: SEQ %u(%u) "
                    "last_ack %u",
