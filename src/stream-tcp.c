@@ -2620,6 +2620,7 @@ static int HandleEstablishedPacketToServer(
         SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
                    " (next_seq had fallen behind last_ack)",
                    ssn, ssn->client.next_seq);
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_LASTACK_AHEAD);
 
     } else {
         SCLogDebug("ssn %p: no update to ssn->client.next_seq %"PRIu32
@@ -2778,6 +2779,7 @@ static int HandleEstablishedPacketToClient(
         SCLogDebug("ssn %p: ssn->server.next_seq %"PRIu32
                    " (next_seq had fallen behind last_ack)",
                    ssn, ssn->server.next_seq);
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_LASTACK_AHEAD);
     } else {
         SCLogDebug("ssn %p: no update to ssn->server.next_seq %"PRIu32
                    " SEQ %u SEQ+ %u last_ack %u",

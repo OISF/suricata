@@ -341,6 +341,8 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             jb_append_string(js, "event_set");
         if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE)
             jb_append_string(js, "state_update");
+        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_LASTACK_AHEAD)
+            jb_append_string(js, "lastack_ahead");
         jb_close(js);
     }
     jb_close(js);
