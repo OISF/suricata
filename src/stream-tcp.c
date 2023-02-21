@@ -5311,7 +5311,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         if (StreamTcpPacketIsSpuriousRetransmission(ssn, p)) {
             StreamTcpSetEvent(p, STREAM_PKT_SPURIOUS_RETRANSMISSION);
-            goto error;
+            goto skip;
         }
 
         /* handle the per 'state' logic */
