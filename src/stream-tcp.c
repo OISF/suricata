@@ -2800,6 +2800,44 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
 }
 
 /** \internal
+ *  \brief check if an ACK packet is a dup-ACK
+ */
+static bool StreamTcpPacketIsDupAck(const TcpSession *ssn, const Packet *p)
+{
+    if (ssn->state < TCP_ESTABLISHED)
+        return false;
+    if (p->payload_len != 0)
+        return false;
+    if ((p->tcph->th_flags & (TH_ACK | TH_SYN | TH_FIN | TH_RST)) != TH_ACK)
+        return false;
+
+    const TcpStream *snd, *rcv;
+    if (PKT_IS_TOCLIENT(p)) {
+        snd = &ssn->server;
+        rcv = &ssn->client;
+    } else {
+        snd = &ssn->client;
+        rcv = &ssn->server;
+    }
+
+    const uint32_t pkt_win = TCP_GET_WINDOW(p) << snd->wscale;
+    if (pkt_win == 0 || rcv->window == 0)
+        return false;
+    if (pkt_win != rcv->window)
+        return false;
+
+    if (TCP_GET_SEQ(p) != snd->next_seq)
+        return false;
+    if (TCP_GET_ACK(p) != rcv->last_ack)
+        return false;
+
+    SCLogDebug("ssn %p: packet:%" PRIu64 " seq:%u ack:%u win:%u snd %u:%u:%u rcv %u:%u:%u", ssn,
+            p->pcap_cnt, TCP_GET_SEQ(p), TCP_GET_ACK(p), pkt_win, snd->next_seq, snd->last_ack,
+            rcv->window, snd->next_seq, rcv->last_ack, rcv->window);
+    return true;
+}
+
+/** \internal
  *  \brief check if a ACK packet is outdated so processing can be fast tracked
  *
  *  Consider a packet outdated ack if:
@@ -5253,6 +5291,11 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
         StreamTcpClearKeepAliveFlag(ssn, p);
+
+        if (StreamTcpPacketIsDupAck(ssn, p) == true) {
+            STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DUP_ACK);
+            // TODO see if we can skip work on these
+        }
 
         /* if packet is not a valid window update, check if it is perhaps
          * a bad window update that we should ignore (and alert on) */
