@@ -259,12 +259,35 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
     TCPOptSackRecord rec[records], *sack_rec = rec;
     memcpy(&rec, data, sizeof(TCPOptSackRecord) * records);
 
+    uint32_t first_le = 0;
+    uint32_t first_re = 0;
+
     for (int record = 0; record < records; record++) {
         const uint32_t le = SCNtohl(sack_rec->le);
         const uint32_t re = SCNtohl(sack_rec->re);
 
-        SCLogDebug("%p last_ack %u, left edge %u, right edge %u", sack_rec,
-            stream->last_ack, le, re);
+        if (!first_le)
+            first_le = le;
+        if (!first_re)
+            first_re = re;
+
+        SCLogDebug("%p last_ack %u, left edge %u, right edge %u pkt ACK %u", sack_rec,
+                stream->last_ack, le, re, TCP_GET_ACK(p));
+
+        /* RFC 2883 D-SACK */
+        if (SEQ_LT(le, TCP_GET_ACK(p))) {
+            SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u before ACK %u", p->pcap_cnt, le, re,
+                    TCP_GET_ACK(p));
+            STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
+            goto next;
+        } else if (record == 1) { // 2nd record
+            if (SEQ_GEQ(first_le, le) && SEQ_LEQ(first_re, re)) {
+                SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u inside 2nd range %u-%u ACK %u",
+                        p->pcap_cnt, first_le, first_re, le, re, TCP_GET_ACK(p));
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
+            }
+            goto next;
+        }
 
         if (SEQ_LEQ(re, stream->last_ack)) {
             SCLogDebug("record before last_ack");
