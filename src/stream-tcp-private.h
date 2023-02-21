@@ -301,14 +301,15 @@ typedef struct TcpSession_ {
         ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
     } while (0);
 
-#define STREAM_PKT_FLAG_RETRANSMISSION          BIT_U8(0)
-#define STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION BIT_U8(1)
-#define STREAM_PKT_FLAG_STATE_UPDATE            BIT_U8(2)
-#define STREAM_PKT_FLAG_KEEPALIVE               BIT_U8(3)
-#define STREAM_PKT_FLAG_KEEPALIVEACK            BIT_U8(4)
-#define STREAM_PKT_FLAG_WINDOWUPDATE            BIT_U8(5)
-#define STREAM_PKT_FLAG_EVENTSET                BIT_U8(6)
-#define STREAM_PKT_FLAG_LASTACK_AHEAD           BIT_U8(7)
+#define STREAM_PKT_FLAG_RETRANSMISSION          BIT_U16(0)
+#define STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION BIT_U16(1)
+#define STREAM_PKT_FLAG_STATE_UPDATE            BIT_U16(2)
+#define STREAM_PKT_FLAG_KEEPALIVE               BIT_U16(3)
+#define STREAM_PKT_FLAG_KEEPALIVEACK            BIT_U16(4)
+#define STREAM_PKT_FLAG_WINDOWUPDATE            BIT_U16(5)
+#define STREAM_PKT_FLAG_EVENTSET                BIT_U16(6)
+#define STREAM_PKT_FLAG_LASTACK_AHEAD           BIT_U16(7)
+#define STREAM_PKT_FLAG_DUP_ACK                 BIT_U16(8)
 
 #define STREAM_PKT_FLAG_SET(p, f) (p)->tcpvars.stream_pkt_flags |= (f)
 
