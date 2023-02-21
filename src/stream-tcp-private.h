@@ -306,6 +306,7 @@ typedef struct TcpSession_ {
 #define STREAM_PKT_FLAG_KEEPALIVEACK            BIT_U16(4)
 #define STREAM_PKT_FLAG_WINDOWUPDATE            BIT_U16(5)
 #define STREAM_PKT_FLAG_EVENTSET                BIT_U16(6)
+#define STREAM_PKT_FLAG_DUP_ACK                 BIT_U16(7)
 
 #define STREAM_PKT_FLAG_SET(p, f) (p)->tcpvars.stream_pkt_flags |= (f)
 
