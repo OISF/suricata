@@ -343,6 +343,8 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             jb_append_string(js, "state_update");
         if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_DUP_ACK)
             jb_append_string(js, "dup_ack");
+        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_DSACK)
+            jb_append_string(js, "dsack");
         jb_close(js);
     }
     jb_close(js);
