@@ -68,6 +68,9 @@ typedef struct TcpStreamCnf_ {
     enum ExceptionPolicy reassembly_memcap_policy;
     enum ExceptionPolicy midstream_policy;
 
+    /* default to "LINUX" timestamp behavior if true*/
+    bool liberal_timestamps;
+
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
 

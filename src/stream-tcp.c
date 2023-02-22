@@ -653,6 +653,15 @@ void StreamTcpInitConfig(char quiet)
     if (!quiet)
         SCLogConfig("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
 
+    /* default to true. Not many ppl (correctly) set up host-os policies, so be permissive. */
+    stream_config.liberal_timestamps = true;
+    int liberal_timestamps = 0;
+    if (ConfGetBool("stream.liberal-timestamps", &liberal_timestamps) == 1) {
+        stream_config.liberal_timestamps = liberal_timestamps;
+    }
+    if (!quiet)
+        SCLogConfig("stream.liberal-timestamps: %s", liberal_timestamps ? "enabled" : "disabled");
+
     /* init the memcap/use tracking */
     StreamTcpInitMemuse();
     StatsRegisterGlobalCounter("tcp.memuse", StreamTcpMemuseCounter);
@@ -5639,7 +5648,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
 
             SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, last_ts);
 
-            if (receiver_stream->os_policy == OS_POLICY_LINUX) {
+            if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
                 /* Linux accepts TS which are off by one.*/
                 result = (int32_t) ((ts - last_ts) + 1);
             } else {
@@ -5783,7 +5792,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
 
             SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, sender_stream->last_ts);
 
-            if (receiver_stream->os_policy == OS_POLICY_LINUX) {
+            if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
                 /* Linux accepts TS which are off by one.*/
                 result = (int32_t) ((ts - sender_stream->last_ts) + 1);
             } else {
