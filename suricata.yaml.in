@@ -1495,6 +1495,8 @@ flow-timeouts:
 #   bypass: no                  # Bypass packets when stream.reassembly.depth is reached.
 #                               # Warning: first side to reach this triggers
 #                               # the bypass.
+#   liberal-timestamps: false   # Treat all timestamps as if the Linux policy applies. This
+#                               # means it's slightly more permissive. Enabled by default.
 #
 #   reassembly:
 #     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
