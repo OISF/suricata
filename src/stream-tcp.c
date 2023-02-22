@@ -2626,8 +2626,14 @@ static int HandleEstablishedPacketToServer(
                     ssn->server.window);
 
         /* Check if the ACK value is sane and inside the window limit */
-        if (p->tcph->th_flags & TH_ACK)
+        if (p->tcph->th_flags & TH_ACK) {
             StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+            if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
+                    SEQ_GT(ssn->server.last_ack, ssn->server.next_seq)) {
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
+            }
+        }
+
         SCLogDebug("ack %u last_ack %u next_seq %u", TCP_GET_ACK(p), ssn->server.last_ack, ssn->server.next_seq);
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -2756,8 +2762,13 @@ static int HandleEstablishedPacketToClient(
         SCLogDebug("ssn %p: ssn->client.window %"PRIu32"", ssn,
                     ssn->client.window);
 
-        if (p->tcph->th_flags & TH_ACK)
+        if (p->tcph->th_flags & TH_ACK) {
             StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+            if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
+                    SEQ_GT(ssn->client.last_ack, ssn->client.next_seq)) {
+                STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
+            }
+        }
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
