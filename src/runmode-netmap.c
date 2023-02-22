@@ -105,6 +105,11 @@ static void NetmapDerefConfig(void *conf)
 static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ConfNode *if_root, ConfNode *if_default)
 {
+#ifdef USE_NEW_NETMAP_API
+    char base_name[IFNAMSIZ];
+#else
+    char *base_name = ns->iface;
+#endif
     ns->threads = 0;
     ns->promisc = true;
     ns->checksum_mode = CHECKSUM_VALIDATION_AUTO;
@@ -124,17 +129,14 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
+    /* we need the base interface name for later */
 #ifdef USE_NEW_NETMAP_API
-    /* we will need the base interface name for later */
-    char base_name[IFNAMSIZ];
     strlcpy(base_name, ns->iface, sizeof(base_name));
+#endif
     if (strlen(base_name) > 0 &&
             (base_name[strlen(base_name) - 1] == '^' || base_name[strlen(base_name) - 1] == '*')) {
         base_name[strlen(base_name) - 1] = '\0';
     }
-#else
-    char *base_name = ns->iface;
-#endif
 
     /* prefixed with netmap or vale means it's not a real interface
      * and we don't check offloading. */
@@ -158,7 +160,9 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
                 iface);
         goto finalize;
 
-    /* If there is no setting for current interface use default one as main iface */
+        /* If there is no setting for current interface, use default
+         * one as main iface
+         */
     } else if (if_root == NULL) {
         if_root = if_default;
         if_default = NULL;
@@ -230,7 +234,6 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     }
 
 finalize:
-
     ns->ips = (ns->copy_mode != NETMAP_COPY_MODE_NONE);
 
 #if !USE_NEW_NETMAP_API
@@ -242,9 +245,8 @@ finalize:
         if (ns->threads_auto) {
             /* As NetmapGetRSSCount used to be broken on Linux,
              * fall back to GetIfaceRSSQueuesNum if needed. */
-            ns->threads = NetmapGetRSSCount(ns->iface);
+            ns->threads = NetmapGetRSSCount(base_name);
             if (ns->threads == 0) {
-                /* need to use base_name of interface here */
                 ns->threads = GetIfaceRSSQueuesNum(base_name);
             }
         }
@@ -310,10 +312,10 @@ static void *ParseNetmapConfig(const char *iface_name)
             if_root = ConfFindDeviceConfig(netmap_node, out_iface);
             ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
 #if !USE_NEW_NETMAP_API
-            /* if one side of the IPS peering uses a sw_ring, we will default
-             * to using a single ring/thread on the other side as well. Only
-             * if thread variable is set to 'auto'. So the user can override
-             * this. */
+            /* If one side of the IPS peering uses a sw_ring, we will default
+             * to using a single ring/thread on the other side as well, but
+             * only if the thread variable is set to 'auto'. So, the user can
+             * override this behavior if desired. */
             if (aconf->out.sw_ring && aconf->in.threads_auto) {
                 aconf->out.threads = aconf->in.threads = 1;
             } else if (aconf->in.sw_ring && aconf->out.threads_auto) {
@@ -342,19 +344,12 @@ static void *ParseNetmapConfig(const char *iface_name)
     }
 
 #endif
-    /* netmap needs all offloading to be disabled */
-    if (aconf->in.real) {
-        char base_name[sizeof(aconf->in.iface)];
-        strlcpy(base_name, aconf->in.iface, sizeof(base_name));
-        /* for a sw_ring enabled device name, strip the trailing char */
-        if (aconf->in.sw_ring) {
-            base_name[strlen(base_name) - 1] = '\0';
-        }
-
+    /* netmap needs all hardware offloading to be disabled */
+    if (aconf->in.real && !aconf->in.sw_ring) {
         if (LiveGetOffload() == 0) {
-            (void)GetIfaceOffloading(base_name, 1, 1);
+            (void)GetIfaceOffloading(aconf->in.iface, 1, 1);
         } else {
-            DisableIfaceOffloading(LiveGetDevice(base_name), 1, 1);
+            DisableIfaceOffloading(LiveGetDevice(aconf->in.iface), 1, 1);
         }
     }
 
