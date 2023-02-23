@@ -2631,6 +2631,7 @@ static int HandleEstablishedPacketToServer(
             if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
                     SEQ_GT(ssn->server.last_ack, ssn->server.next_seq)) {
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
+                StatsIncr(tv, stt->counter_tcp_ack_unseen_data);
             }
         }
 
@@ -2767,6 +2768,7 @@ static int HandleEstablishedPacketToClient(
             if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
                     SEQ_GT(ssn->client.last_ack, ssn->client.next_seq)) {
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
+                StatsIncr(tv, stt->counter_tcp_ack_unseen_data);
             }
         }
 
@@ -5690,6 +5692,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
+    stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);

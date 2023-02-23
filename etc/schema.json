@@ -5177,6 +5177,9 @@
                 "tcp": {
                     "type": "object",
                     "properties": {
+                        "ack_unseen_data": {
+                            "type": "integer"
+                        },
                         "active_sessions": {
                             "type": "integer"
                         },

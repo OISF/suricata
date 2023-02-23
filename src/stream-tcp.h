@@ -105,6 +105,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_midstream_pickups;
     /** wrong thread */
     uint16_t counter_tcp_wrong_thread;
+    /** ack for unseed data */
+    uint16_t counter_tcp_ack_unseen_data;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;
