@@ -74,8 +74,8 @@ void RunModeIdsNetmapRegister(void)
 {
 #if HAVE_NETMAP
 #if USE_NEW_NETMAP_API
-    SCLogInfo("Using netmap version %d"
-              " API interfaces]",
+    SCLogDebug("Using netmap version %d"
+               " API interfaces]",
             NETMAP_API);
 #endif
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single",
