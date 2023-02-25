@@ -627,6 +627,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_3WHS_SYNACK_FLOOD,
     },
     {
+            "stream.3whs_synack_tfo_data_ignored",
+            STREAM_3WHS_SYNACK_TFO_DATA_IGNORED,
+    },
+    {
             "stream.3whs_syn_resend_diff_seq_on_syn_recv",
             STREAM_3WHS_SYN_RESEND_DIFF_SEQ_ON_SYN_RECV,
     },

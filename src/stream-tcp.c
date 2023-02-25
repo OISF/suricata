@@ -1760,17 +1760,24 @@ static int StreamTcpPacketStateSynSent(
                 return -1;
             }
         } else {
-            if (!(SEQ_EQ(TCP_GET_ACK(p), ssn->client.next_seq))) {
+            if (SEQ_EQ(TCP_GET_ACK(p), ssn->client.next_seq)) {
+                SCLogDebug("ssn %p: (TFO) ACK matches next_seq, packet ACK %" PRIu32 " == "
+                           "%" PRIu32 " from stream",
+                        ssn, TCP_GET_ACK(p), ssn->client.next_seq);
+            } else if (SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1)) {
+                SCLogDebug("ssn %p: (TFO) ACK matches ISN+1, packet ACK %" PRIu32 " == "
+                           "%" PRIu32 " from stream",
+                        ssn, TCP_GET_ACK(p), ssn->client.isn + 1);
+                ssn->client.next_seq = ssn->client.isn;
+                SCLogDebug("ssn %p: (TFO) next_seq reset to isn (%u)", ssn, ssn->client.next_seq);
+                StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_TFO_DATA_IGNORED);
+            } else {
                 StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
                 SCLogDebug("ssn %p: (TFO) ACK mismatch, packet ACK %" PRIu32 " != "
                         "%" PRIu32 " from stream", ssn, TCP_GET_ACK(p),
                         ssn->client.next_seq);
                 return -1;
             }
-            SCLogDebug("ssn %p: (TFO) ACK match, packet ACK %" PRIu32 " == "
-                    "%" PRIu32 " from stream", ssn, TCP_GET_ACK(p),
-                    ssn->client.next_seq);
-
             ssn->flags |= STREAMTCP_FLAG_TCP_FAST_OPEN;
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
         }
