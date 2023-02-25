@@ -12,6 +12,9 @@ alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK to serv
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK with wrong ack"; stream-event:3whs_synack_with_wrong_ack; classtype:protocol-command-decode; sid:2210007; rev:2;)
 # Excessive SYN/ACKs within a session. Limit is set in stream engine, "stream.max-synack-queued".
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYN/ACKs"; stream-event:3whs_synack_flood; classtype:protocol-command-decode; sid:2210055; rev:2;)
+# Client sent an SYN packet with TCP fast open and data, but the server only ACK'd
+# the SYN, not the data, while still supporting TFO.
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN/ACK ignored TFO data"; stream-event:3whs_synack_tfo_data_ignored; classtype:protocol-command-decode; sid:2210064; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN resend different seq on SYN recv"; stream-event:3whs_syn_resend_diff_seq_on_syn_recv; classtype:protocol-command-decode; sid:2210008; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN to client on SYN recv"; stream-event:3whs_syn_toclient_on_syn_recv; classtype:protocol-command-decode; sid:2210009; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake wrong seq wrong ack"; stream-event:3whs_wrong_seq_wrong_ack; classtype:protocol-command-decode; sid:2210010; rev:2;)
@@ -94,5 +97,5 @@ alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; st
 # Packet with FIN+SYN set
 alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:fin_syn; classtype:protocol-command-decode; sid:2210060; rev:1;)
 
-# next sid 2210061
+# next sid 2210065
 
