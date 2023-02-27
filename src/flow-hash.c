@@ -720,6 +720,8 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
 
     f->thread_id[0] = thread_id[0];
     f->thread_id[1] = thread_id[1];
+
+    STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_TCP_PORT_REUSE);
     return f;
 }
 
