@@ -695,8 +695,6 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
 #ifdef UNITTESTS
     }
 #endif
-    /* tag flow as reused so future lookups won't find it */
-    old_f->flags |= FLOW_TCP_REUSED;
     /* time out immediately */
     old_f->timeout_at = 0;
     /* get some settings that we move over to the new flow */
