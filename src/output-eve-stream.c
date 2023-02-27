@@ -348,6 +348,8 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             jb_append_string(js, "dsack");
         if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_ACK_UNSEEN_DATA)
             jb_append_string(js, "ack_unseen_data");
+        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_PORT_REUSE)
+            jb_append_string(js, "tcp_port_reuse");
         jb_close(js);
     }
     jb_close(js);
