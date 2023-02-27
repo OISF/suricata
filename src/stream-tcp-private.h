@@ -202,6 +202,8 @@ enum TcpState {
 #define STREAMTCP_FLAG_BYPASS BIT_U32(14)
 /** SSN uses TCP Fast Open */
 #define STREAMTCP_FLAG_TCP_FAST_OPEN BIT_U32(15)
+/** SYN/ACK ignored the data while ACKing the SYN */
+#define STREAMTCP_FLAG_TFO_DATA_IGNORED BIT_U32(16)
 
 /*
  * Per STREAM flags

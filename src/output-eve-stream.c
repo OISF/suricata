@@ -250,6 +250,9 @@ void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, JsonBuilder *jb
     if (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN) {
         jb_append_string(jb, "tcp_fast_open");
     }
+    if (ssn->flags & STREAMTCP_FLAG_TFO_DATA_IGNORED) {
+        jb_append_string(jb, "tfo_data_ignored");
+    }
     jb_close(jb);
     jb_close(jb);
 }

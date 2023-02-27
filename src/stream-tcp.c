@@ -1768,9 +1768,10 @@ static int StreamTcpPacketStateSynSent(
                 SCLogDebug("ssn %p: (TFO) ACK matches ISN+1, packet ACK %" PRIu32 " == "
                            "%" PRIu32 " from stream",
                         ssn, TCP_GET_ACK(p), ssn->client.isn + 1);
-                ssn->client.next_seq = ssn->client.isn;
+                ssn->client.next_seq = ssn->client.isn; // reset to ISN
                 SCLogDebug("ssn %p: (TFO) next_seq reset to isn (%u)", ssn, ssn->client.next_seq);
                 StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_TFO_DATA_IGNORED);
+                ssn->flags |= STREAMTCP_FLAG_TFO_DATA_IGNORED;
             } else {
                 StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
                 SCLogDebug("ssn %p: (TFO) ACK mismatch, packet ACK %" PRIu32 " != "
@@ -5514,6 +5515,12 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
             /* most likely a flow that was picked up after the 3whs, or a flow that
              * does not have a session due to memcap issues. */
             SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            return 1;
+        }
+        if (ssn->flags & STREAMTCP_FLAG_TFO_DATA_IGNORED) {
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. STREAMTCP_FLAG_TFO_DATA_IGNORED set. Reuse.",
+                    p->pcap_cnt, ssn);
             return 1;
         }
         if (SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))) {
