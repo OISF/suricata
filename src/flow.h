@@ -50,8 +50,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TO_SRC_SEEN                BIT_U32(0)
 /** At least one packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                BIT_U32(1)
-/** Don't return this from the flow hash. It has been replaced. */
-#define FLOW_TCP_REUSED                 BIT_U32(2)
+
+// vacancy
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
 #define FLOW_TOSERVER_IPONLY_SET        BIT_U32(3)
