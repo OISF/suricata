@@ -96,6 +96,31 @@ hashsize <size>
 
 .. note:: 'load' and 'state' or 'save' and 'state' cannot be mixed.
 
+Example rules could look like:
+
+1. Detect unique User-Agents:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"LOCAL HTTP new UA"; http.user_agent; dataset:set,http-ua-seen, type string, state http-ua-seen.csv; sid:8000001; rev:1;)
+
+2. Detect unique TLDs:
+
+.. container:: example-rule
+
+    alert dns $HOME_NET any -> any any (msg:"LOCAL DNS unique TLD"; dns.query; pcrexform:"\\.([^\\.]+)$"; dataset:set,dns-tld-seen, type string, state dns-tld-seen.csv; sid:8000002; rev:1;)
+
+Following image is a pictorial representation of how the ``pcrexform`` works
+on domain names to find TLDs in the dataset ``dns-tld-seen``:
+
+.. image:: dataset-examples/detect-unique-tlds.png
+
+Notice how it is not possible to do certain operations alone with datasets
+(example 2 above), but, it is possible to use a combination of other rule
+keywords. Keep in mind the cost of additional keywords though e.g. in the
+second example rule above, negative performance impact can be expected due
+to ``pcrexform``.
+
 datarep
 ~~~~~~~
 
