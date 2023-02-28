@@ -675,11 +675,6 @@ typedef struct DetectVarList_ {
     struct DetectVarList_ *next;
 } DetectVarList;
 
-typedef struct DetectEngineIPOnlyThreadCtx_ {
-    uint8_t *sig_match_array; /* bit array of sig nums */
-    uint32_t sig_match_size;  /* size in bytes of the array */
-} DetectEngineIPOnlyThreadCtx;
-
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* Lookup trees */
@@ -1118,9 +1113,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */
     SpmThreadCtx *spm_thread_ctx;
-
-    /** ip only rules ctx */
-    DetectEngineIPOnlyThreadCtx io_ctx;
 
     /* byte_* values */
     uint64_t *byte_values;
