@@ -562,7 +562,7 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
             SCLogDebug("testing against \"ip-only\" signatures");
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_IPONLY);
-            IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+            IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
 
             /* save in the flow that we scanned this direction... */
@@ -573,8 +573,7 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
 
         /* Even without flow we should match the packet src/dst */
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_IPONLY);
-        IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx,
-                          &det_ctx->io_ctx, p);
+        IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, p);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
     }
 }
