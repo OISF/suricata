@@ -3046,9 +3046,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         BUG_ON(det_ctx->non_pf_id_array == NULL);
     }
 
-    /* IP-ONLY */
-    DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
-
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
@@ -3276,8 +3273,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     SCProfilingPrefilterThreadCleanup(det_ctx);
     SCProfilingSghThreadCleanup(det_ctx);
 #endif
-
-    DetectEngineIPOnlyThreadDeinit(&det_ctx->io_ctx);
 
     /** \todo get rid of this static */
     if (det_ctx->de_ctx != NULL) {

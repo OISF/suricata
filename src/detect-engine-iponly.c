@@ -896,25 +896,6 @@ SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *io_ctx, SigIntId signum)
 }
 
 /**
- * \brief Setup the IP Only thread detection engine context
- *
- * \param de_ctx Pointer to the current detection engine
- * \param io_ctx Pointer to the current ip only thread detection engine
- */
-void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx,
-                                  DetectEngineIPOnlyThreadCtx *io_tctx)
-{
-    /* initialize the signature bitarray */
-    io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
-    io_tctx->sig_match_array = SCMalloc(io_tctx->sig_match_size);
-    if (io_tctx->sig_match_array == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    memset(io_tctx->sig_match_array, 0, io_tctx->sig_match_size);
-}
-
-/**
  * \brief Print stats of the IP Only engine
  *
  * \param de_ctx Pointer to the current detection engine
@@ -958,17 +939,6 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     io_ctx->sig_mapping = NULL;
 }
 
-/**
- * \brief Deinitialize the IP Only thread detection engine context
- *
- * \param de_ctx Pointer to the current detection engine
- * \param io_ctx Pointer to the current ip only detection engine
- */
-void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx)
-{
-    SCFree(io_tctx->sig_match_array);
-}
-
 static inline
 int IPOnlyMatchCompatSMs(ThreadVars *tv,
                          DetectEngineThreadCtx *det_ctx,
@@ -1002,11 +972,8 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
  * \param io_ctx Pointer to the current ip only thread detection engine
  * \param p Pointer to the Packet to match against
  */
-void IPOnlyMatchPacket(ThreadVars *tv,
-                       const DetectEngineCtx *de_ctx,
-                       DetectEngineThreadCtx *det_ctx,
-                       const DetectEngineIPOnlyCtx *io_ctx,
-                       DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
+void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineIPOnlyCtx *io_ctx, Packet *p)
 {
     SigNumArray *src = NULL;
     SigNumArray *dst = NULL;
