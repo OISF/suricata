@@ -30,6 +30,7 @@
 #include "util-memcmp.h"
 #include "util-print.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -53,6 +54,8 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
         SCReturnInt(0);
     }
 
+    DEBUG_VALIDATE_BUG_ON(SEQ_LEQ(seg->seq + TCP_SEG_LEN(seg), stream->base_seq));
+
     const uint8_t *seg_data;
     uint32_t seg_datalen;
     StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
@@ -72,19 +75,23 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
         SCLogDebug("p %u (%u), seg2 %u (%u)", pkt_seq,
                 p->payload_len, seg->seq, seg_datalen);
 
+        uint32_t seg_seq = seg->seq;
+        if (SEQ_LT(seg_seq, stream->base_seq)) {
+            seg_seq = stream->base_seq;
+        }
         uint32_t pkt_end = pkt_seq + p->payload_len;
-        uint32_t seg_end = seg->seq + seg_datalen;
+        uint32_t seg_end = seg_seq + seg_datalen;
         SCLogDebug("pkt_end %u, seg_end %u", pkt_end, seg_end);
 
         /* get the minimal seg*_end */
         uint32_t end = (SEQ_GT(pkt_end, seg_end)) ? seg_end : pkt_end;
         /* and the max seq */
-        uint32_t seq = (SEQ_LT(pkt_seq, seg->seq)) ? seg->seq : pkt_seq;
-
+        uint32_t seq = (SEQ_LT(pkt_seq, seg_seq)) ? seg->seq : pkt_seq;
+        seq = (SEQ_GT(seq, stream->base_seq)) ? seq : stream->base_seq;
         SCLogDebug("seq %u, end %u", seq, end);
 
-        uint16_t pkt_off = seq - pkt_seq;
-        uint16_t seg_off = seq - seg->seq;
+        uint32_t pkt_off = seq - pkt_seq;
+        uint32_t seg_off = seq - seg_seq;
         SCLogDebug("pkt_off %u, seg_off %u", pkt_off, seg_off);
 
         uint32_t range = end - seq;
