@@ -254,6 +254,8 @@ enum TcpState {
 #define SEQ_LEQ(a,b) ((int32_t)((a) - (b)) <= 0)
 #define SEQ_GT(a,b)  ((int32_t)((a) - (b)) >  0)
 #define SEQ_GEQ(a,b) ((int32_t)((a) - (b)) >= 0)
+#define SEQ_MIN(a, b) (SEQ_LT((a), (b)) ? (a) : (b))
+#define SEQ_MAX(a, b) (SEQ_GT((a), (b)) ? (a) : (b))
 
 #define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
     do { \

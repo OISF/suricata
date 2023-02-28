@@ -85,10 +85,10 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
         SCLogDebug("pkt_end %u, seg_end %u", pkt_end, seg_end);
 
         /* get the minimal seg*_end */
-        uint32_t end = (SEQ_GT(pkt_end, seg_end)) ? seg_end : pkt_end;
+        uint32_t end = SEQ_MIN(seg_end, pkt_end);
         /* and the max seq */
-        uint32_t seq = (SEQ_LT(pkt_seq, seg_seq)) ? seg->seq : pkt_seq;
-        seq = (SEQ_GT(seq, stream->base_seq)) ? seq : stream->base_seq;
+        uint32_t seq = SEQ_MAX(pkt_seq, seg_seq);
+        seq = SEQ_MAX(seq, stream->base_seq);
         SCLogDebug("seq %u, end %u", seq, end);
 
         uint32_t pkt_off = seq - pkt_seq;
