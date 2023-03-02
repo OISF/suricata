@@ -76,6 +76,7 @@ struct SCSigSignatureWrapper_;
  * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
 enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
+    /* list for payload and stream match */
     DETECT_SM_LIST_PMATCH,
 
     /* base64_data keyword uses some hardcoded logic so consider
