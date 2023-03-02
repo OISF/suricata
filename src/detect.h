@@ -75,7 +75,9 @@ struct SCSigSignatureWrapper_;
  * These codes are access points to particular lists in the array
  * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
 enum DetectSigmatchListEnum {
+    /* list for non-payload per packet matches, e.g. ttl, flow keyword */
     DETECT_SM_LIST_MATCH = 0,
+    /* list for payload and stream match */
     DETECT_SM_LIST_PMATCH,
 
     /* base64_data keyword uses some hardcoded logic so consider
