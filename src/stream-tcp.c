@@ -2615,6 +2615,7 @@ static int HandleEstablishedPacketToServer(
     if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->client.next_seq && ssn->client.window == 0) {
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE);
 
     } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
@@ -2755,6 +2756,7 @@ static int HandleEstablishedPacketToClient(
     if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->server.next_seq && ssn->server.window == 0) {
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
+        STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE);
 
     } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
