@@ -5493,13 +5493,13 @@ static inline int StreamTcpValidateChecksum(Packet *p)
  *  \retval bool true/false */
 static int TcpSessionPacketIsStreamStarter(const Packet *p)
 {
-    if (p->tcph->th_flags == TH_SYN) {
+    if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == TH_SYN) {
         SCLogDebug("packet %"PRIu64" is a stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
         return 1;
     }
 
     if (stream_config.midstream || stream_config.async_oneside) {
-        if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
+        if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
             SCLogDebug("packet %"PRIu64" is a midstream stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
             return 1;
         }
@@ -5615,12 +5615,12 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
  *  \retval bool true if ssn can be reused, false if not */
 static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
-    if (p->tcph->th_flags == TH_SYN) {
+    if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == TH_SYN) {
         return TcpSessionReuseDoneEnoughSyn(p, f, ssn);
     }
 
     if (stream_config.midstream || stream_config.async_oneside) {
-        if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
+        if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
             return TcpSessionReuseDoneEnoughSynAck(p, f, ssn);
         }
     }
