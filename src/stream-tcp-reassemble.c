@@ -676,7 +676,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     seg->seq = TCP_GET_SEQ(p);
 
     /* HACK: for TFO SYN packets the seq for data starts at + 1 */
-    if (TCP_HAS_TFO(p) && p->payload_len && p->tcph->th_flags == TH_SYN)
+    if (TCP_HAS_TFO(p) && p->payload_len && (p->tcph->th_flags & TH_SYN))
         seg->seq += 1;
 
     /* proto detection skipped, but now we do get data. Set event. */
