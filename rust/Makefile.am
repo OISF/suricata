@@ -1,10 +1,13 @@
+SUBDIRS =	suricatasc
+
 EXTRA_DIST =	src derive \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
 		vendor \
 		Cargo.toml Cargo.lock \
-		derive/Cargo.toml
+		derive/Cargo.toml \
+		suricatasc
 
 if !DEBUG
 RELEASE = --release
@@ -46,6 +49,8 @@ CARGO_ENV =	@rustup_home@ \
 		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen"
 endif
 
+CARGO_ENV +=	LOCALSTATEDIR=$(e_localstatedir)
+
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cd $(abs_top_srcdir)/rust && \
@@ -62,12 +67,17 @@ all-local: Cargo.toml
 	fi
 	$(MAKE) gen/rust-bindings.h
 
+install-exec-local:
+	install -d -m 0755 "$(DESTDIR)$(bindir)"
+	install -m 0755 $(RUST_SURICATA_LIBDIR)/suricatasc "$(DESTDIR)$(bindir)/suricatasc"
+
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
 	$(INSTALL_DATA) $(RUST_SURICATA_LIB) "$(DESTDIR)$(libdir)"
 
 uninstall-local:
 	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
+	rm -f "$(DESTDIR)$(bindir)/suricatasc"
 
 clean-local:
 	rm -rf target gen
