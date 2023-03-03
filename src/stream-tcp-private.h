@@ -204,6 +204,9 @@ enum TcpState {
 #define STREAMTCP_FLAG_TCP_FAST_OPEN BIT_U32(15)
 /** SYN/ACK ignored the data while ACKing the SYN */
 #define STREAMTCP_FLAG_TFO_DATA_IGNORED BIT_U32(16)
+/* zero window probe */
+#define STREAMTCP_FLAG_ZWP_TS BIT_U32(17)
+#define STREAMTCP_FLAG_ZWP_TC BIT_U32(18)
 
 /*
  * Per STREAM flags
