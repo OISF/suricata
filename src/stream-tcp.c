@@ -5292,6 +5292,10 @@ static inline int StreamTcpValidateChecksum(Packet *p)
  *  \retval bool true/false */
 static int TcpSessionPacketIsStreamStarter(const Packet *p)
 {
+    if (p->tcph->th_flags & (TH_RST | TH_FIN)) {
+        return 0;
+    }
+
     if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == TH_SYN) {
         SCLogDebug("packet %"PRIu64" is a stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
         return 1;
