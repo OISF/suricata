@@ -7,7 +7,17 @@ edition = "2021"
 rust-version = "1.67.1"
 
 [workspace]
-members = [".", "./derive", "sys"]
+members = [
+    ".",
+    "derive",
+    "suricatasc",
+    "sys",
+]
+
+default-members = [
+    ".",
+    "suricatasc",
+]
 
 [lib]
 crate-type = ["staticlib", "rlib"]
@@ -25,7 +35,7 @@ ja4 = []
 
 [dependencies]
 nom7 = { version="7.0", package="nom" }
-bitflags = "~1.2.1"
+bitflags = "~1.3.2"
 byteorder = "~1.4.2"
 uuid = "~0.8.2"
 crc = "~1.8.1"
