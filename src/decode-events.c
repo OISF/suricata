@@ -700,6 +700,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_EST_INVALID_ACK,
     },
     {
+            "stream.est_ack_zwp_data",
+            STREAM_EST_ACK_ZWP_DATA,
+    },
+    {
             "stream.fin_invalid_ack",
             STREAM_FIN_INVALID_ACK,
     },

@@ -2441,10 +2441,17 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                "ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(ssn, &(ssn->server), p) == -1) {
-        SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
-        StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
-        return -1;
+    const bool has_ack = (p->tcph->th_flags & TH_ACK) != 0;
+    if (has_ack) {
+        if ((ssn->flags & STREAMTCP_FLAG_ZWP_TC) && TCP_GET_ACK(p) == ssn->server.next_seq + 1) {
+            SCLogDebug("ssn %p: accepting ACK as it ACKs the one byte from the ZWP", ssn);
+            StreamTcpSetEvent(p, STREAM_EST_ACK_ZWP_DATA);
+
+        } else if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
+            SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
+            StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
+            return -1;
+        }
     }
 
     /* check for Keep Alive */
@@ -2532,6 +2539,8 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
     if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->client.next_seq && ssn->client.window == 0) {
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
+        ssn->flags |= STREAMTCP_FLAG_ZWP_TS;
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
 
     } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
@@ -2603,10 +2612,17 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
                " ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
-        SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
-        StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
-        return -1;
+    const bool has_ack = (p->tcph->th_flags & TH_ACK) != 0;
+    if (has_ack) {
+        if ((ssn->flags & STREAMTCP_FLAG_ZWP_TS) && TCP_GET_ACK(p) == ssn->client.next_seq + 1) {
+            SCLogDebug("ssn %p: accepting ACK as it ACKs the one byte from the ZWP", ssn);
+            StreamTcpSetEvent(p, STREAM_EST_ACK_ZWP_DATA);
+
+        } else if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
+            SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
+            StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
+            return -1;
+        }
     }
 
     /* To get the server window value from the servers packet, when connection
@@ -2665,6 +2681,10 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
     if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->server.next_seq && ssn->server.window == 0) {
         SCLogDebug("ssn %p: zero window probe", ssn);
         zerowindowprobe = 1;
+        ssn->flags |= STREAMTCP_FLAG_ZWP_TC;
+
+        /* accept the segment */
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p, pq);
 
     } else if (SEQ_GEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_seq)) {
         StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));

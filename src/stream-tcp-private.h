@@ -191,6 +191,10 @@ enum TcpState
 /** SSN uses TCP Fast Open */
 #define STREAMTCP_FLAG_TCP_FAST_OPEN BIT_U32(15)
 
+/* zero window probe */
+#define STREAMTCP_FLAG_ZWP_TS BIT_U32(17)
+#define STREAMTCP_FLAG_ZWP_TC BIT_U32(18)
+
 /*
  * Per STREAM flags
  */
