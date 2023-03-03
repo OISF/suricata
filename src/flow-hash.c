@@ -432,7 +432,8 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
      * that is not a TCP SYN packet. */
     if (emerg) {
         if (PKT_IS_TCP(p)) {
-            if (p->tcph->th_flags == TH_SYN || stream_config.midstream == FALSE) {
+            if (((p->tcph->th_flags & (TH_SYN | TH_ACK | TH_RST | TH_FIN)) == TH_SYN) ||
+                    !stream_config.midstream) {
                 ;
             } else {
                 return 0;
