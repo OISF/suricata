@@ -1,0 +1,16 @@
+[package]
+name = "suricata-client"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "MIT"
+description = "Suricata socket control client library"
+
+[lib]
+path = "@e_rustdir@/client/src/lib.rs"
+
+[dependencies]
+thiserror = { version = "1.0.38" }
+
+# Serde pinned for Rust 1.63.0
+serde = { version = "=1.0.152", default_features = false, features = ["derive"] }
+serde_json = { version = "=1.0.93", default_features = false, features = ["preserve_order"] }

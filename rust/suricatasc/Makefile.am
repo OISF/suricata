@@ -1,0 +1,1 @@
+all-local: Cargo.toml

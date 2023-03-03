@@ -1,0 +1,22 @@
+[package]
+name = "suricatasc"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+description = "Suricata socket control program"
+readme = "README.md"
+
+[[bin]]
+name = "suricatasc"
+path = "@e_rustdir@/suricatasc/src/main.rs"
+
+[dependencies]
+getopts = "0.2.21"
+rustyline = { version = "12.0.0" }
+rustyline-derive = { version = "0.9.0" }
+thiserror = { version = "1.0.40" }
+suricata-client = { path = "../client" }
+
+# Serde pinned for Rust 1.63.0
+serde = { version = "=1.0.152", default_features = false, features = ["derive"] }
+serde_json = { version = "=1.0.93", default_features = false, features = ["preserve_order"] }

@@ -11,9 +11,7 @@ LIBS =	\
 		suricata/sc/suricatasc.py \
 		suricatasc/__init__.py
 
-BINS =	\
-		suricatasc \
-		suricatactl
+BINS =		suricatactl
 
 EXTRA_DIST = $(LIBS) bin suricata/config/defaults.py
 
@@ -38,7 +36,6 @@ install-exec-local:
 
 uninstall-local:
 	rm -f $(DESTDIR)$(bindir)/suricatactl
-	rm -f $(DESTDIR)$(bindir)/suricatasc
 	rm -rf $(DESTDIR)$(prefix)/lib/suricata/python
 
 clean-local:

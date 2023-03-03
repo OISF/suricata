@@ -1,8 +1,13 @@
+SUBDIRS =	client \
+		suricatasc
+
 EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
-		vendor
+		vendor \
+		client \
+		suricatasc
 
 if !DEBUG
 RELEASE = --release
@@ -30,13 +35,13 @@ endif
 
 all-local: Cargo.toml
 if HAVE_CYGPATH
-	@rustup_home@ \
+	@rustup_home@ LOCALSTATEDIR=$(e_localstatedir) \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else
-	@rustup_home@ \
+	@rustup_home@ LOCALSTATEDIR=$(e_localstatedir) \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
@@ -52,12 +57,17 @@ endif
 	fi
 	$(MAKE) gen/rust-bindings.h
 
+install-exec-local:
+	install -d -m 0755 "$(DESTDIR)$(bindir)"
+	install -m 0755 $(RUST_SURICATA_LIBDIR)/suricatasc "$(DESTDIR)$(bindir)/suricatasc"
+
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
 	$(INSTALL_DATA) $(RUST_SURICATA_LIB) "$(DESTDIR)$(libdir)"
 
 uninstall-local:
 	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
+	rm -f "$(DESTDIR)$(bindir)/suricatasc"
 
 clean-local:
 	rm -rf target
