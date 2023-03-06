@@ -821,6 +821,14 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_start_object(ctx.js);
         jb_set_string(ctx.js, "name", name);
         jb_set_bool(ctx.js, "is_mpm", pkt->mpm);
+        if (pkt->v1.transforms != NULL) {
+            jb_open_array(ctx.js, "transforms");
+            for (int t = 0; t < pkt->v1.transforms->cnt; t++) {
+                const char *name = sigmatch_table[pkt->v1.transforms->transforms[t].transform].name;
+                jb_append_string(ctx.js, name);
+            }
+            jb_close(ctx.js);
+        }
         DumpMatches(&ctx, ctx.js, pkt->smd);
         jb_close(ctx.js);
         if (pkt->mpm) {
@@ -835,6 +843,15 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_start_object(ctx.js);
         jb_set_string(ctx.js, "name", name);
         jb_set_bool(ctx.js, "is_mpm", frame->mpm);
+        if (frame->v1.transforms != NULL) {
+            jb_open_array(ctx.js, "transforms");
+            for (int t = 0; t < frame->v1.transforms->cnt; t++) {
+                const char *name =
+                        sigmatch_table[frame->v1.transforms->transforms[t].transform].name;
+                jb_append_string(ctx.js, name);
+            }
+            jb_close(ctx.js);
+        }
         DumpMatches(&ctx, ctx.js, frame->smd);
         jb_close(ctx.js);
     }
@@ -875,6 +892,16 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             jb_set_bool(ctx.js, "is_mpm", app->mpm);
             jb_set_string(ctx.js, "app_proto", AppProtoToString(app->alproto));
             jb_set_uint(ctx.js, "progress", app->progress);
+
+            if (app->v2.transforms != NULL) {
+                jb_open_array(ctx.js, "transforms");
+                for (int t = 0; t < app->v2.transforms->cnt; t++) {
+                    const char *name =
+                            sigmatch_table[app->v2.transforms->transforms[t].transform].name;
+                    jb_append_string(ctx.js, name);
+                }
+                jb_close(ctx.js);
+            }
             DumpMatches(&ctx, ctx.js, app->smd);
             jb_close(ctx.js);
             if (app->mpm) {
