@@ -2851,6 +2851,42 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
     SCReturnUInt(ack);
 }
 
+static bool StreamTcpPacketIsZeroWindowProbeAck(const TcpSession *ssn, const Packet *p)
+{
+    if (ssn->state < TCP_ESTABLISHED)
+        return false;
+    if (p->payload_len != 0)
+        return false;
+    if ((p->tcph->th_flags & (TH_ACK | TH_SYN | TH_FIN | TH_RST)) != TH_ACK)
+        return false;
+
+    const TcpStream *snd, *rcv;
+    if (PKT_IS_TOCLIENT(p)) {
+        snd = &ssn->server;
+        rcv = &ssn->client;
+        if (!(ssn->flags & STREAMTCP_FLAG_ZWP_TS))
+            return false;
+    } else {
+        snd = &ssn->client;
+        rcv = &ssn->server;
+        if (!(ssn->flags & STREAMTCP_FLAG_ZWP_TC))
+            return false;
+    }
+
+    const uint32_t pkt_win = TCP_GET_WINDOW(p) << snd->wscale;
+    if (pkt_win != 0)
+        return false;
+    if (pkt_win != rcv->window)
+        return false;
+
+    if (TCP_GET_SEQ(p) != snd->next_seq)
+        return false;
+    if (TCP_GET_ACK(p) != rcv->last_ack)
+        return false;
+    SCLogDebug("ssn %p: packet %" PRIu64 " is a Zero Window Probe ACK", ssn, p->pcap_cnt);
+    return true;
+}
+
 /** \internal
  *  \brief check if an ACK packet is a dup-ACK
  */
@@ -5363,6 +5399,17 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
         StreamTcpClearKeepAliveFlag(ssn, p);
+
+        const bool is_zwp_ack = StreamTcpPacketIsZeroWindowProbeAck(ssn, p);
+        if (PKT_IS_TOCLIENT(p)) {
+            ssn->flags &= ~STREAMTCP_FLAG_ZWP_TS;
+        } else {
+            ssn->flags &= ~STREAMTCP_FLAG_ZWP_TC;
+        }
+        if (is_zwp_ack) {
+            STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK);
+            goto skip;
+        }
 
         if (StreamTcpPacketIsDupAck(ssn, p) == true) {
             STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DUP_ACK);
