@@ -357,6 +357,8 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             jb_append_string(js, "tcp_port_reuse");
         if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE)
             jb_append_string(js, "zero_window_probe");
+        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK)
+            jb_append_string(js, "zero_window_probe_ack");
         jb_close(js);
     }
     jb_close(js);
