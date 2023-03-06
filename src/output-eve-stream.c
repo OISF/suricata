@@ -170,6 +170,8 @@ static OutputInitResult EveStreamLogInitCtxSub(ConfNode *conf, OutputCtx *parent
 
     result.ctx = output_ctx;
     result.ok = true;
+
+    SCLogWarning("eve.stream facility is EXPERIMENTAL and can change w/o notice");
     return result;
 }
 
