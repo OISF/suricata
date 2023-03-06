@@ -4842,26 +4842,24 @@
                         "engines": {
                             "type": "array",
                             "minItems": 1,
-                            "items": [
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "last_reload": {
-                                            "type": "string"
-                                        },
-                                        "rules_loaded": {
-                                            "type": "integer"
-                                        },
-                                        "rules_failed": {
-                                            "type": "integer"
-                                        }
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
                                     },
-                                    "additionalProperties": false
-                                }
-                            ]
+                                    "last_reload": {
+                                        "type": "string"
+                                    },
+                                    "rules_loaded": {
+                                        "type": "integer"
+                                    },
+                                    "rules_failed": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
                         }
                     },
                     "additionalProperties": false
