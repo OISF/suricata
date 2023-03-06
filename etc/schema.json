@@ -1,9 +1,13 @@
 {
     "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "event_type",
+        "timestamp"
+    ],
     "properties": {
         "app_proto": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "app_proto_expected": {
             "type": "string"
@@ -24,20 +28,16 @@
             "type": "string"
         },
         "dest_ip": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "dest_port": {
-            "type": "integer",
-            "optional": true
+            "type": "integer"
         },
         "event_type": {
-            "type": "string",
-            "optional": false
+            "type": "string"
         },
         "flow_id": {
-            "type": "integer",
-            "optional": true
+            "type": "integer"
         },
         "icmp_code": {
             "type": "integer"
@@ -61,19 +61,16 @@
             "type": "string"
         },
         "pcap_cnt": {
-            "type": "integer",
-            "optional": true
+            "type": "integer"
         },
         "pcap_filename": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "pkt_src": {
             "type": "string"
         },
         "proto": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "response_icmp_code": {
             "type": "integer"
@@ -85,35 +82,30 @@
             "type": "integer"
         },
         "src_ip": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "src_port": {
-            "type": "integer",
-            "optional": true
+            "type": "integer"
         },
         "stream": {
             "type": "integer"
         },
         "timestamp": {
             "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+[+\\-]\\d+$",
-            "optional": false
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+[+\\-]\\d+$"
         },
         "direction": {
-            "type": "string",
-            "optional": true
+            "type": "string"
         },
         "tx_id": {
-            "type": "integer",
-            "optional": true
+            "type": "integer"
         },
         "files": {
             "type": "array",
             "minItems": 1,
             "items": {
                 "type": "object",
-                "optional": true,
+                "additionalProperties": false,
                 "properties": {
                     "end": {
                         "type": "integer"
@@ -158,8 +150,7 @@
                             "type": "integer"
                         }
                     }
-                },
-                "additionalProperties": false
+                }
             }
         },
         "vlan": {
@@ -171,7 +162,6 @@
         },
         "alert": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "action": {
                     "type": "string"
@@ -299,12 +289,10 @@
         },
         "stream_tcp": {
             "type": "object",
-            "optional": true,
             "additionalProperties": true
         },
         "anomaly": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "app_proto": {
                     "type": "string"
@@ -323,7 +311,6 @@
         },
         "bittorrent_dht": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "transaction_id": {
                     "type": "string"
@@ -337,60 +324,56 @@
                 "request": {
                     "type": "object",
                     "additionalProperties": false,
-                    "optional": true,
                     "properties": {
                         "id": {
                             "type": "string"
                         },
                         "target": {
-                            "type": "string",
-                            "optional": true
+                            "type": "string"
                         },
                         "implied_port": {
                             "type": "integer"
                         },
                         "info_hash": {
-                            "type": "string",
-                            "optional": true
+                            "type": "string"
                         },
                         "port": {
                             "type": "integer"
                         },
                         "token": {
-                            "type": "string",
-                            "optional": true
+                            "type": "string"
                         }
                     }
                 },
                 "response": {
                     "type": "object",
                     "additionalProperties": false,
-                    "optional": true,
+                    "required": ["id"],
                     "properties": {
                         "id": {
-                            "type": "string",
-                            "optional": false
+                            "type": "string"
                         },
                         "nodes": {
                             "type": "array",
-                            "optional": true,
                             "items": {
                                 "type": "object",
                                 "items": {
                                     "type": "object",
                                     "additionalProperties": false,
+                                    "required": [
+					"id",
+					"ip",
+					"port"
+				    ],
                                     "properties": {
                                         "id": {
-                                            "type": "string",
-                                            "optional": false
+                                            "type": "string"
                                         },
                                         "ip": {
-                                            "type": "string",
-                                            "optional": false
+                                            "type": "string"
                                         },
                                         "port": {
-                                            "type": "number",
-                                            "optional": false
+                                            "type": "number"
                                         }
                                     }
                                 }
@@ -398,33 +381,32 @@
                         },
                         "nodes6": {
                             "type": "array",
-                            "optional": true,
                             "items": {
                                 "type": "object",
                                 "additionalProperties": false,
+                                "required": [
+				    "id",
+				    "ip",
+				    "port"
+				],
                                 "properties": {
                                     "id": {
-                                        "type": "string",
-                                        "optional": false
+                                        "type": "string"
                                     },
                                     "ip": {
-                                        "type": "string",
-                                        "optional": false
+                                        "type": "string"
                                     },
                                     "port": {
-                                        "type": "number",
-                                        "optional": false
+                                        "type": "number"
                                     }
                                 }
                             }
                         },
                         "token": {
-                            "type": "string",
-                            "optional": true
+                            "type": "string"
                         },
                         "values": {
                             "type": "array",
-                            "optional": true,
                             "items": {
                                 "type": "object"
                             }
@@ -433,7 +415,6 @@
                 },
                 "error": {
                     "type": "object",
-                    "optional": true,
                     "additionalProperties": false,
                     "properties": {
                         "num": {
@@ -449,7 +430,6 @@
         },
         "dcerpc": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "activityuuid": {
                     "type": "string"
@@ -490,7 +470,6 @@
                 },
                 "req": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "frag_cnt": {
                             "type": "integer"
@@ -506,7 +485,6 @@
                 },
                 "res": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "frag_cnt": {
                             "type": "integer"
@@ -522,7 +500,6 @@
         },
         "dhcp": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "assigned_ip": {
                     "type": "string"
@@ -592,7 +569,6 @@
         },
         "dnp3": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "dst": {
                     "type": "integer"
@@ -952,7 +928,6 @@
         },
         "dns": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "aa": {
                     "type": "boolean"
@@ -999,7 +974,6 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "optional": true,
                         "properties": {
                             "rdata": {
                                 "type": "string"
@@ -1015,7 +989,6 @@
                             },
                             "srv": {
                                 "type": "object",
-                                "optional": true,
                                 "properties": {
                                     "name": {
                                         "type": "string"
@@ -1041,7 +1014,6 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "optional": true,
                         "properties": {
                             "rdata": {
                                 "type": "string"
@@ -1057,7 +1029,6 @@
                             },
                             "soa": {
                                 "type": "object",
-                                "optional": true,
                                 "properties": {
                                     "expire": {
                                         "type": "integer"
@@ -1092,7 +1063,6 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "optional": true,
                         "properties": {
                             "id": {
                                 "type": "integer"
@@ -1162,7 +1132,6 @@
                 },
                 "grouped": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "A": {
                             "type": "array",
@@ -1211,7 +1180,6 @@
                             "minItems": 1,
                             "items": {
                                 "type": "object",
-                                "optional": true,
                                 "properties": {
                                     "name": {
                                         "type": "string"
@@ -1247,7 +1215,6 @@
         },
         "drop": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "ack": {
                     "type": "boolean"
@@ -1320,7 +1287,6 @@
         },
         "email": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "body_md5": {
                     "type": "string"
@@ -1378,7 +1344,6 @@
         },
         "engine": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "error": {
                     "type": "string"
@@ -1400,7 +1365,6 @@
         },
         "ether": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "dest_mac": {
                     "type": "string"
@@ -1427,7 +1391,6 @@
         },
         "fileinfo": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "end": {
                     "type": "integer"
@@ -1480,7 +1443,6 @@
         },
         "flow": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "action": {
                     "type": "string"
@@ -1496,7 +1458,6 @@
                 },
                 "bypassed": {
                     "type": "object",
-                    "optional": false,
                     "properties": {
                         "pkts_toserver": {
                             "type": "integer"
@@ -1587,7 +1548,6 @@
         },
         "ftp": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "command": {
                     "type": "string"
@@ -1629,7 +1589,6 @@
         },
         "ftp_data": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "command": {
                     "type": "string"
@@ -1642,7 +1601,6 @@
         },
         "http": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "hostname": {
                     "type": "string"
@@ -1821,7 +1779,6 @@
         },
         "http2": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "http_method": {
                     "type": "string"
@@ -5264,7 +5221,6 @@
         },
         "tcp": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "ack": {
                     "type": "boolean"
@@ -5319,7 +5275,6 @@
         },
         "template": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "request": {
                     "type": "string"
@@ -5332,7 +5287,6 @@
         },
         "tftp": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "file": {
                     "type": "string"
@@ -5348,11 +5302,9 @@
         },
         "tls": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "client": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "fingerprint": {
                             "type": "string"
@@ -5407,7 +5359,6 @@
                 },
                 "ja3": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "hash": {
                             "type": "string"
@@ -5420,7 +5371,6 @@
                 },
                 "ja3s": {
                     "type": "object",
-                    "optional": true,
                     "properties": {
                         "hash": {
                             "type": "string"
@@ -5436,7 +5386,6 @@
         },
         "traffic": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "id": {
                     "type": "array",
@@ -5457,7 +5406,6 @@
         },
         "tunnel": {
             "type": "object",
-            "optional": true,
             "properties": {
                 "depth": {
                     "type": "integer"
@@ -5487,7 +5435,6 @@
             "additionalProperties": false
         }
     },
-    "additionalProperties": false,
     "$defs": {
         "stats_applayer_error": {
             "type": "object",
