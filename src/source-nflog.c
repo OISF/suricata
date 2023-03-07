@@ -178,13 +178,13 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
     } else if (ret == -1)
         SET_PKT_LEN(p, 0);
 
-    ret = nflog_get_timestamp(nfa, &p->ts);
+    struct timeval tv;
+    ret = nflog_get_timestamp(nfa, &tv);
     if (ret != 0) {
-        struct timeval tv;
-        memset(&tv, 0, sizeof(struct timeval));
+        memset(&tv, 0, sizeof(tv));
         gettimeofday(&tv, NULL);
-        p->ts = SCTIME_FROM_TIMEVAL(&tv);
     }
+    p->ts = SCTIME_FROM_TIMEVAL(&tv);
 
     p->datalink = DLT_RAW;
 
