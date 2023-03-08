@@ -2017,8 +2017,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
             if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
-                SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP
-                            detection TCP detection on port {:?}.",
+                SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
@@ -2094,8 +2093,7 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP,
                 parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                 rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
-            SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP
-                        detection UDP detection on port {:?}.",
+            SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP detection UDP detection on port {:?}.",
                         default_port);
             AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
