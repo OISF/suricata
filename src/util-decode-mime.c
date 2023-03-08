@@ -1176,10 +1176,10 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \return Number of bytes consumed from `buf`
  */
-static uint8_t ProcessBase64Remainder(
+static uint32_t ProcessBase64Remainder(
         const uint8_t *buf, const uint32_t len, MimeDecParseState *state, int force)
 {
-    uint8_t buf_consumed = 0; /* consumed bytes from 'buf' */
+    uint32_t buf_consumed = 0; /* consumed bytes from 'buf' */
     uint8_t cnt = 0;
     uint8_t block[B64_BLOCK];
 
