@@ -122,6 +122,10 @@ pub struct AppLayerTxData {
     /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
     pub file_tx: u8,
 
+    /// The direction of the transaction. 0 for transactions that are
+    /// made up of request and replies.
+    direction: u8,
+
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
@@ -157,6 +161,7 @@ impl AppLayerTxData {
             files_stored: 0,
             file_flags: 0,
             file_tx: 0,
+	    direction: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),

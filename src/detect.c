@@ -1248,6 +1248,17 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
         const uint8_t flow_flags)
 {
+    static DetectTransaction no_tx = {
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0,
+        0,
+    };
     uint64_t detect_flags;
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
     if (likely(txd != NULL)) {
@@ -1256,11 +1267,15 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         detect_flags = 0;
     }
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
-        SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
-                tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
-                detect_flags);
-        DetectTransaction no_tx = { NULL, 0, NULL, NULL, 0, 0, 0, 0, 0, };
+        SCLogDebug("%" PRIu64 " tx already fully inspected for %s. Flags %016" PRIx64, tx_id,
+                flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
         return no_tx;
+    }
+
+    if (txd && txd->direction) {
+        if (txd->direction != (flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT))) {
+            return no_tx;
+        }
     }
 
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);

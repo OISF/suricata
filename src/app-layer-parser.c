@@ -1504,6 +1504,25 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
     if (cur_tx_cnt > p_tx_cnt && tv) {
         AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
+        const bool is_unidir = AppLayerParserGetOptionFlags(f->protomap, f->alproto) &
+                               APP_LAYER_PARSER_OPT_UNIDIR_TXS;
+        if (is_unidir) {
+            /* Mark the direction on all unidirectional transactions. */
+            AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
+            AppLayerGetTxIterState state;
+            memset(&state, 0, sizeof(state));
+            uint64_t min_id = p_tx_cnt;
+            while (1) {
+                AppLayerGetTxIterTuple ires =
+                        IterFunc(f->proto, f->alproto, f->alstate, min_id, cur_tx_cnt, &state);
+                if (ires.tx_ptr == NULL) {
+                    break;
+                }
+                AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, alproto, ires.tx_ptr);
+                txd->direction = flags & (STREAM_TOSERVER | STREAM_TOCLIENT);
+                min_id += 1;
+            }
+        }
     }
 
     /* stream truncated, inform app layer */
