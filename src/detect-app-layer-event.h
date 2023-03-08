@@ -24,7 +24,6 @@
 #ifndef __DETECT_APP_LAYER_EVENT_H__
 #define __DETECT_APP_LAYER_EVENT_H__
 
-int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s);
 void DetectAppLayerEventRegister(void);
 
 #endif /* __DETECT_APP_LAYER_EVENT_H__ */
