@@ -488,7 +488,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
     } else {
         if (nbytes > 8) {
             SCLogError("Cannot test more than 8 bytes "
-                       "without \"string\": %s\n",
+                       "without \"string\": %s",
                     optstr);
             goto error;
         }

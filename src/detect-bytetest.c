@@ -597,7 +597,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(value, s, &index)) {
             SCLogError("Unknown byte_extract var "
-                       "seen in byte_test - %s\n",
+                       "seen in byte_test - %s",
                     value);
             goto error;
         }
@@ -611,7 +611,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError("Unknown byte_extract var "
-                       "seen in byte_test - %s\n",
+                       "seen in byte_test - %s",
                     offset);
             goto error;
         }
