@@ -69,7 +69,7 @@ pub struct NTLMSSPAuthRecord<'a> {
 }
 
 fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], (u32, u8, u8)> {
-    bits(tuple((take_bits(25u8), take_bits(1u8), take_bits(6u32))))(i)
+    bits(tuple((take_bits(30u32), take_bits(1u8), take_bits(1u8))))(i)
 }
 
 const NTLMSSP_IDTYPE_LEN: usize = 12;
