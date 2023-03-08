@@ -339,9 +339,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (rvalue != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(rvalue, s, &index)) {
-            SCLogError("unknown byte_ keyword var "
-                       "seen in byte_math - %s\n",
-                    rvalue);
+            SCLogError("unknown byte_ keyword var seen in byte_math - %s", rvalue);
             goto error;
         }
         data->rvalue = index;
