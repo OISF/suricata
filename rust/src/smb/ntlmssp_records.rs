@@ -60,8 +60,15 @@ pub struct NTLMSSPAuthRecord<'a> {
     pub version: Option<NTLMSSPVersion>,
 }
 
-fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
-    bits!(i, tuple!(take_bits!(6u8),take_bits!(1u8),take_bits!(25u32)))
+#[derive(Debug, PartialEq, Eq)]
+pub struct NTLMSSPNegotiateFlags {
+    pub version: bool,
+    // others fields not done because not interesting yet
+}
+
+fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], NTLMSSPNegotiateFlags> {
+    let (i, raw) = le_u32(i)?;
+    return Ok((i, NTLMSSPNegotiateFlags{version: (raw & 0x2000000) != 0}));
 }
 
 const NTLMSSP_IDTYPE_LEN: usize = 12;
@@ -107,7 +114,7 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let (i, _ssnkey_blob_offset) = le_u32(i)?;
 
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
-    let (_, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
+    let (_, version) = cond(nego_flags.version, parse_ntlm_auth_version)(i)?;
 
     // Caller does not care about remaining input...
     let (_, domain_blob) = extract_ntlm_substring(orig_i, domain_blob_offset, domain_blob_len)?;
@@ -141,3 +148,48 @@ named!(pub parse_ntlmssp<NTLMSSPRecord>,
                 data:data,
             })
 ));
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nom::Err;
+    #[test]
+    fn test_parse_auth_nego_flags() {
+        // ntlmssp.negotiateflags 1
+        let blob = [0x15, 0x82, 0x88, 0xe2];
+        let result = parse_ntlm_auth_nego_flags(&blob);
+        match result {
+            Ok((remainder, flags)) => {
+                assert_eq!(flags.version, true);
+                assert_eq!(remainder.len(), 0);
+            }
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            _ => {
+                panic!("Unexpected behavior!");
+            }
+        }
+        // ntlmssp.negotiateflags 0
+        let blob = [0x15, 0x82, 0x88, 0xe0];
+        let result = parse_ntlm_auth_nego_flags(&blob);
+        match result {
+            Ok((remainder, flags)) => {
+                assert_eq!(flags.version, false);
+                assert_eq!(remainder.len(), 0);
+            }
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            _ => {
+                panic!("Unexpected behavior!");
+            }
+        }
+    }
+}
