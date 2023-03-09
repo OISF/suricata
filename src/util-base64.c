@@ -118,10 +118,10 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             /* Invalid character found, so decoding fails */
             if (src[i] != '=') {
                 valid = false;
-                if (mode != BASE64_MODE_RELAX) {
+                ecode = BASE64_ECODE_ERR;
+                if (mode == BASE64_MODE_STRICT) {
                     *decoded_bytes = 0;
                 }
-                ecode = BASE64_ECODE_ERR;
                 break;
             }
             padding++;
