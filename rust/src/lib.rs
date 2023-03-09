@@ -33,6 +33,10 @@
 // is unavoidable at this time.
 #![allow(clippy::too_many_arguments)]
 
+// This would be nice, but having this lint enables causes
+// clippy --fix to make changes that don't meet our MSRV.
+#![allow(clippy::derivable_impls)]
+
 // TODO: All unsafe functions should have a safety doc, even if its
 // just due to FFI.
 #![allow(clippy::missing_safety_doc)]
