@@ -4606,6 +4606,8 @@ int DetectEngineMTApply(void)
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
+    // needed for VarNameStoreFree
+    DetectEngineBumpVersion();
 
     SCLogDebug("old_de_ctx should have been freed");
     return 0;
