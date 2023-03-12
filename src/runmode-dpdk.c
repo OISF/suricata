@@ -271,7 +271,15 @@ static void InitEal(void)
     ArgumentsAdd(&args, AllocAndSetArgument("suricata"));
 
     TAILQ_FOREACH (param, &eal_params->head, next) {
-        ArgumentsAddOptionAndArgument(&args, param->name, param->val);
+        if(ConfNodeIsSequence(param)) {
+            ConfNode *entry;
+            const char *key = param->name;
+            TAILQ_FOREACH (entry, &param->head, next) {
+                ArgumentsAddOptionAndArgument(&args, key, entry->val);
+            }
+        } else {
+            ArgumentsAddOptionAndArgument(&args, param->name, param->val);
+        }
     }
 
     // creating a shallow copy for cleanup because rte_eal_init changes array contents

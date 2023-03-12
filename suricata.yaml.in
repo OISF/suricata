@@ -736,6 +736,7 @@ af-xdp:
 dpdk:
   eal-params:
     proc-type: primary
+    #pci-whitelist: ["01:00.0", "01:00.1"]
 
   # DPDK capture support
   # RX queues (and TX queues in IPS mode) are assigned to cores in 1:1 ratio
