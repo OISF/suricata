@@ -43,6 +43,7 @@ Major changes
 Security changes
 ~~~~~~~~~~~~~~~~
 - suricata.yaml now prevents process creation by Suricata by default with `security.limit-noproc`.
+  The suricata.yaml configuration file needs to be updated to enable this feature.
   For more info, see :ref:`suricata-yaml-config-hardening`.
 
 Removals
