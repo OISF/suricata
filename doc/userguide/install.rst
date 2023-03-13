@@ -150,27 +150,80 @@ For Debian 10 (buster), for instance, run the following as ``root``::
     apt-get update
     apt-get install suricata -t buster-backports
 
+CentOS, AlmaLinux, RockyLinux, Fedora, etc
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RPMs are provided for the latest release of *Enterprise Linux*. This
+includes CentOS Linux and rebuilds such as AlmaLinux and RockyLinux.
+Additionally, RPMs are provided for the latest supported versions of Fedora.
+
+RPMs specifically for CentOS Stream are not provided, however the RPMs for their
+related version may work fine.
+
+Installing From Package Repositories
+""""""""""""""""""""""""""""""""""""
+
+CentOS, RHEL, AlmaLinux, RockyLinux, etc Version 8+
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+.. code-block:: none
+
+   dnf install epel-release dnf-plugins-core
+   dnf copr enable @oisf/suricata-7.0
+   dnf install suricata
+
+CentOS 7
+''''''''
+
+.. code-block:: none
+
+   yum install epel-release yum-plugin-copr
+   yum copr enable @oisf/suricata-7.0
+   yum install suricata
+
 Fedora
-^^^^^^
+''''''
 
-The following is an example of installing Suricata 6.0 on Fedora. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
-
-::
+.. code-block:: none
 
     dnf install dnf-plugins-core
-    dnf copr enable @oisf/suricata-6.0
+    dnf copr enable @oisf/suricata-7.0
     dnf install suricata
 
-RHEL/CentOS 8 and 7
-^^^^^^^^^^^^^^^^^^^
+Additional Notes for RPM Installations
+""""""""""""""""""""""""""""""""""""""
 
-The following is an example of installing Suricata 6.0 on CentOS. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
+- Suricata is pre-configured to run as the ``suricata`` user.
+- Command line parameters such as providing the interface names can be
+  configured in ``/etc/sysconfig/suricata``.
+- Users can run ``suricata-update`` without being root provided they
+  are added to the ``suricata`` group.
+- Directories:
 
-::
+  - ``/etc/suricata``: Configuration directory
+  - ``/var/log/suricata``: Log directory
+  - ``/var/lib/suricata``: State directory rules, datasets.
 
-    yum install epel-release yum-plugin-copr
-    yum copr enable @oisf/suricata-6.0
-    yum install suricata
+Starting Suricata On-Boot
+'''''''''''''''''''''''''
+
+The Suricata RPMs are configured to run from Systemd.
+
+To start Suricata::
+
+  systemctl start suricata
+
+To stop Suricata::
+
+  systemctl stop suricata
+
+To have Suricata start on-boot::
+
+  systemctl enable suricata
+
+To reload rules::
+
+   systemctl reload suricata
 
 .. _install-advanced:
 
