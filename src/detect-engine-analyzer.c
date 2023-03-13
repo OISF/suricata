@@ -34,6 +34,7 @@
 #include "detect-engine-mpm.h"
 #include "conf.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
 #include "feature.h"
@@ -641,6 +642,14 @@ static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
     jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
 }
 
+static void DumpPcre(JsonBuilder *js, const DetectPcreData *cd)
+{
+    jb_set_bool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
+    jb_set_bool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
+    jb_set_bool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
+    jb_set_bool(js, "negated", cd->flags & DETECT_PCRE_NEGATE);
+}
+
 static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *smd)
 {
     if (smd == NULL)
@@ -672,6 +681,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                             (char *)"pattern looks like it inspects HTTP, use http.user_agent "
                                     "or http.header for improved performance");
                 }
+                jb_close(js);
+                break;
+            }
+            case DETECT_PCRE: {
+                const DetectPcreData *cd = (const DetectPcreData *)smd->ctx;
+
+                jb_open_object(js, "pcre");
+                DumpPcre(js, cd);
                 jb_close(js);
                 break;
             }
