@@ -492,6 +492,11 @@ int ConfGetBool(const char *name, int *val)
     return 1;
 }
 
+/**
+ * Get a boolean value from the provided ConfNode.
+ *
+ * \retval 1 If the value exists, 0 if not.
+ */
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
     const char *strval = NULL;
