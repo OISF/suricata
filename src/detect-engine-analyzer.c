@@ -640,6 +640,7 @@ static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
         jb_set_uint(js, "within", cd->within);
     }
     jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+    jb_set_bool(js, "relative_next", cd->flags & DETECT_CONTENT_RELATIVE_NEXT);
 }
 
 static void DumpPcre(JsonBuilder *js, const DetectPcreData *cd)
