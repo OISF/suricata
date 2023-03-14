@@ -168,7 +168,11 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
             val *= rvalue;
             break;
         case LeftShift:
-            val <<= rvalue;
+            if (rvalue < 64) {
+                val <<= rvalue;
+            } else {
+                val = 0;
+            }
             break;
         case RightShift:
             val >>= rvalue;
