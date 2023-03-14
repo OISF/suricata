@@ -1338,7 +1338,10 @@
                 },
                 "has_exe_url": {
                     "type": "boolean"
-                }
+                },
+		"message_id": {
+		    "type": "string"
+		}
             },
             "additionalProperties": false
         },
