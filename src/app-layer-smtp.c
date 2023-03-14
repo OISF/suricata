@@ -242,8 +242,23 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { false, { false, false, false, NULL, false, false, 0 }, 0, 0, 0, false,
-    STREAMING_BUFFER_CONFIG_INITIALIZER };
+SMTPConfig smtp_config = {
+    .decode_mime = true,
+    {
+            .decode_base64 = true,
+            .decode_quoted_printable = true,
+            .extract_urls = true,
+            .extract_urls_schemes = NULL,
+            .log_url_scheme = false,
+            .body_md5 = false,
+            .header_value_depth = 0,
+    },
+    .content_limit = FILEDATA_CONTENT_LIMIT,
+    .content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE,
+    .content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW,
+    .raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE,
+    STREAMING_BUFFER_CONFIG_INITIALIZER,
+};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -362,10 +377,6 @@ static void SMTPConfigure(void) {
 
     /* Pass mime config data to MimeDec API */
     MimeDecSetConfig(&smtp_config.mime_config);
-
-    smtp_config.content_limit = FILEDATA_CONTENT_LIMIT;
-    smtp_config.content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
-    smtp_config.content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
 
     ConfNode *t = ConfGetNode("app-layer.protocols.smtp.inspected-tracker");
     ConfNode *p = NULL;
