@@ -393,6 +393,7 @@ mod test {
     use crate::mqtt::mqtt::MQTTTransaction;
     use crate::mqtt::mqtt_message::*;
     use crate::mqtt::parser::FixedHeader;
+    use crate::core::Direction;
     use std;
 
     #[test]
@@ -410,7 +411,7 @@ mod test {
                 topics: vec!["foo".to_string(), "baar".to_string()],
                 properties: None,
             }),
-        });
+        }, Direction::ToServer);
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::UNSUBSCRIBE,
@@ -471,7 +472,7 @@ mod test {
                 ],
                 properties: None,
             }),
-        });
+        }, Direction::ToServer);
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::SUBSCRIBE,

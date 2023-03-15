@@ -204,11 +204,9 @@ impl<'a> SNMPState<'a> {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self, _direction: Direction) -> SNMPTransaction<'a> {
+    fn new_tx(&mut self, direction: Direction) -> SNMPTransaction<'a> {
         self.tx_id += 1;
-        let mut tx = SNMPTransaction::new(self.version, self.tx_id);
-        tx.tx_data.set_inspect_direction(_direction);
-        tx
+        SNMPTransaction::new(direction, self.version, self.tx_id)
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction> {
@@ -237,7 +235,7 @@ impl<'a> SNMPState<'a> {
 }
 
 impl<'a> SNMPTransaction<'a> {
-    pub fn new(version: u32, id: u64) -> SNMPTransaction<'a> {
+    pub fn new(direction: Direction, version: u32, id: u64) -> SNMPTransaction<'a> {
         SNMPTransaction {
             version,
             info: None,
@@ -245,7 +243,7 @@ impl<'a> SNMPTransaction<'a> {
             usm: None,
             encrypted: false,
             id,
-            tx_data: applayer::AppLayerTxData::new(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         }
     }
 }
