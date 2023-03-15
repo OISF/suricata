@@ -49,6 +49,18 @@ pub enum Direction {
     ToClient = 0x08,
 }
 
+impl Direction {
+    /// Return true if the direction is to server.
+    pub fn is_to_server(&self) -> bool {
+	matches!(self, Self::ToServer)
+    }
+
+    /// Return true if the direction is to client.
+    pub fn is_to_client(&self) -> bool {
+	matches!(self, Self::ToClient)
+    }
+}
+
 impl Default for Direction {
     fn default() -> Self { Direction::ToServer }
 }
@@ -313,5 +325,19 @@ impl Flow {
     /// Return flow ports
     pub fn get_ports(&self) -> (u16, u16) {
         unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_direction() {
+	assert!(Direction::ToServer.is_to_server());
+	assert!(!Direction::ToServer.is_to_client());
+
+	assert!(Direction::ToClient.is_to_client());
+	assert!(!Direction::ToClient.is_to_server());
     }
 }

@@ -148,6 +148,8 @@ impl Drop for AppLayerTxData {
 }
 
 impl AppLayerTxData {
+    /// Create new AppLayerTxData for a transaction that covers both
+    /// directions.
     pub fn new() -> Self {
         Self {
             config: AppLayerTxConfig::new(),
@@ -163,9 +165,33 @@ impl AppLayerTxData {
             events: std::ptr::null_mut(),
         }
     }
+
+    /// Create new AppLayerTxData for a transaction in a single
+    /// direction.
+    pub fn for_direction(direction: Direction) -> Self {
+        let (detect_flags_ts, detect_flags_tc) = match direction {
+            Direction::ToServer => (0, APP_LAYER_TX_SKIP_INSPECT_FLAG),
+            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_FLAG, 0),
+        };
+        Self {
+            config: AppLayerTxConfig::new(),
+            logged: LoggerFlags::new(),
+            files_opened: 0,
+            files_logged: 0,
+            files_stored: 0,
+            file_flags: 0,
+            file_tx: 0,
+            detect_flags_ts,
+            detect_flags_tc,
+            de_state: std::ptr::null_mut(),
+            events: std::ptr::null_mut(),
+        }
+    }
+
     pub fn init_files_opened(&mut self) {
         self.files_opened = 1;
     }
+
     pub fn incr_files_opened(&mut self) {
         self.files_opened += 1;
     }
@@ -178,14 +204,6 @@ impl AppLayerTxData {
         if (self.file_flags & state_flags) != state_flags {
             SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
             self.file_flags |= state_flags;
-        }
-    }
-
-    pub fn set_inspect_direction(&mut self, direction: Direction) {
-        if direction == Direction::ToClient {
-            self.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
-        } else {
-            self.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
         }
     }
 }

@@ -125,7 +125,7 @@ impl KRB5State {
     /// Parse a Kerberos request message
     ///
     /// Returns 0 in case of success, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: Direction) -> i32 {
+    fn parse(&mut self, i: &[u8], direction: Direction) -> i32 {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
@@ -137,7 +137,7 @@ impl KRB5State {
                     11 => {
                         let res = krb5_parser::parse_as_rep(i);
                         if let Ok((_,kdc_rep)) = res {
-                            let mut tx = self.new_tx();
+                            let mut tx = self.new_tx(direction);
                             tx.msg_type = MessageType::KRB_AS_REP;
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
@@ -157,7 +157,7 @@ impl KRB5State {
                     13 => {
                         let res = krb5_parser::parse_tgs_rep(i);
                         if let Ok((_,kdc_rep)) = res {
-                            let mut tx = self.new_tx();
+                            let mut tx = self.new_tx(direction);
                             tx.msg_type = MessageType::KRB_TGS_REP;
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
@@ -180,7 +180,7 @@ impl KRB5State {
                     30 => {
                         let res = krb5_parser::parse_krb_error(i);
                         if let Ok((_,error)) = res {
-                            let mut tx = self.new_tx();
+                            let mut tx = self.new_tx(direction);
                             tx.msg_type = MessageType(self.req_id as u32);
                             tx.cname = error.cname;
                             tx.realm = error.crealm;
@@ -213,9 +213,9 @@ impl KRB5State {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> KRB5Transaction {
+    fn new_tx(&mut self, direction: Direction) -> KRB5Transaction {
         self.tx_id += 1;
-        KRB5Transaction::new(self.tx_id)
+        KRB5Transaction::new(direction, self.tx_id)
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&KRB5Transaction> {
@@ -239,8 +239,8 @@ impl KRB5State {
 }
 
 impl KRB5Transaction {
-    pub fn new(id: u64) -> KRB5Transaction {
-        let mut krbtx = KRB5Transaction{
+    pub fn new(direction: Direction, id: u64) -> KRB5Transaction {
+        let krbtx = KRB5Transaction{
             msg_type: MessageType(0),
             cname: None,
             realm: None,
@@ -249,9 +249,8 @@ impl KRB5Transaction {
             ticket_etype: None,
             error_code: None,
             id,
-            tx_data: applayer::AppLayerTxData::new(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         };
-        krbtx.tx_data.set_inspect_direction(Direction::ToClient);
         return krbtx;
     }
 }

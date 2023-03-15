@@ -446,6 +446,7 @@ pub fn parse_bittorrent_dht_packet(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::Direction;
     use test_case::test_case;
 
     #[test_case(
@@ -576,7 +577,7 @@ mod tests {
         expected_error: Option<BitTorrentDHTError>, expected_transaction_id: Vec<u8>,
         expected_client_version: Option<Vec<u8>>,
     ) {
-        let mut tx = BitTorrentDHTTransaction::new();
+        let mut tx = BitTorrentDHTTransaction::new(Direction::ToServer);
         parse_bittorrent_dht_packet(encoded, &mut tx).unwrap();
         assert_eq!(request_type, tx.request_type);
         assert_eq!(expected_request, tx.request);
@@ -637,7 +638,7 @@ mod tests {
         "test parse bittorrent dht packet err 10"
     )]
     fn test_parse_bittorrent_dht_packet_err(encoded: &[u8], expected_error: &str) {
-        let mut tx = BitTorrentDHTTransaction::new();
+        let mut tx = BitTorrentDHTTransaction::new(Direction::ToServer);
         let err = parse_bittorrent_dht_packet(encoded, &mut tx).unwrap_err();
         assert_eq!(expected_error, err.to_string());
     }
