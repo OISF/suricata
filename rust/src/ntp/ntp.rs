@@ -86,7 +86,7 @@ impl NTPState {
     /// Parse an NTP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
+    fn parse(&mut self, i: &[u8], direction: Direction) -> i32 {
         match parse_ntp(i) {
             Ok((_,ref msg)) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
@@ -95,7 +95,7 @@ impl NTPState {
                     NtpPacket::V4(pkt) => (pkt.mode, pkt.ref_id),
                 };
                 if mode == NtpMode::SymmetricActive || mode == NtpMode::Client {
-                    let mut tx = self.new_tx(_direction);
+                    let mut tx = self.new_tx(direction);
                     // use the reference id as identifier
                     tx.xid = ref_id;
                     self.transactions.push(tx);
@@ -121,15 +121,9 @@ impl NTPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self, _direction: u8) -> NTPTransaction {
+    fn new_tx(&mut self, direction: Direction) -> NTPTransaction {
         self.tx_id += 1;
-        let mut tx = NTPTransaction::new(self.tx_id);
-        if _direction == 0 {
-            tx.tx_data.set_inspect_direction(Direction::ToServer);
-        } else {
-            tx.tx_data.set_inspect_direction(Direction::ToClient);
-        }
-        tx
+        NTPTransaction::new(direction, self.tx_id)
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NTPTransaction> {
@@ -154,11 +148,11 @@ impl NTPState {
 }
 
 impl NTPTransaction {
-    pub fn new(id: u64) -> NTPTransaction {
+    pub fn new(direction: Direction, id: u64) -> NTPTransaction {
         NTPTransaction {
             xid: 0,
             id,
-            tx_data: applayer::AppLayerTxData::new(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         }
     }
 }
@@ -187,7 +181,7 @@ pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        ) -> AppLayerResult {
     let state = cast_pointer!(state,NTPState);
-    if state.parse(stream_slice.as_slice(), 0) < 0 {
+    if state.parse(stream_slice.as_slice(), Direction::ToServer) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -201,7 +195,7 @@ pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        ) -> AppLayerResult {
     let state = cast_pointer!(state,NTPState);
-    if state.parse(stream_slice.as_slice(), 1) < 0 {
+    if state.parse(stream_slice.as_slice(), Direction::ToClient) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -324,7 +318,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
 
 #[cfg(test)]
 mod tests {
-    use super::NTPState;
+    use super::*;
 
     #[test]
     fn test_ntp_parse_request_valid() {
@@ -339,6 +333,6 @@ mod tests {
         ];
 
         let mut state = NTPState::new();
-        assert_eq!(0, state.parse(REQ, 0));
+        assert_eq!(0, state.parse(REQ, Direction::ToServer));
     }
 }

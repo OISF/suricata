@@ -70,22 +70,22 @@ pub struct MQTTTransaction {
 }
 
 impl MQTTTransaction {
-    pub fn new(msg: MQTTMessage) -> MQTTTransaction {
-        let mut m = MQTTTransaction::new_empty();
+    pub fn new(msg: MQTTMessage, direction: Direction) -> MQTTTransaction {
+        let mut m = MQTTTransaction::new_empty(direction);
         m.msg.push(msg);
         return m;
     }
 
-    pub fn new_empty() -> MQTTTransaction {
+    pub fn new_empty(direction: Direction) -> MQTTTransaction {
         return MQTTTransaction {
             tx_id: 0,
             pkt_id: None,
             complete: false,
             logged: LoggerFlags::new(),
             msg: Vec::new(),
-            toclient: false,
-            toserver: false,
-            tx_data: applayer::AppLayerTxData::new(),
+            toclient: direction.is_to_client(),
+            toserver: direction.is_to_server(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         };
     }
 }
@@ -175,16 +175,14 @@ impl MQTTState {
     }
 
     fn new_tx(&mut self, msg: MQTTMessage, toclient: bool) -> MQTTTransaction {
-        let mut tx = MQTTTransaction::new(msg);
+	let direction = if toclient {
+	    Direction::ToClient
+	} else {
+	    Direction::ToServer
+	};
+        let mut tx = MQTTTransaction::new(msg, direction);
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        if toclient {
-            tx.toclient = true;
-            tx.tx_data.set_inspect_direction(Direction::ToClient);
-        } else {
-            tx.toserver = true;
-            tx.tx_data.set_inspect_direction(Direction::ToServer);
-        }
         if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
@@ -579,7 +577,7 @@ impl MQTTState {
     }
 
     fn set_event_notx(&mut self, event: MQTTEvent, toclient: bool) {
-        let mut tx = MQTTTransaction::new_empty();
+        let mut tx = MQTTTransaction::new_empty(if toclient { Direction::ToClient } else { Direction::ToServer });
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         if toclient {

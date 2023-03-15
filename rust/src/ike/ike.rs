@@ -123,8 +123,12 @@ impl Transaction for IKETransaction {
 }
 
 impl IKETransaction {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(direction: Direction) -> Self {
+	Self {
+	    direction,
+	    tx_data: applayer::AppLayerTxData::for_direction(direction),
+	    ..Default::default()
+	}
     }
 
     /// Set an event.
@@ -170,8 +174,8 @@ impl IKEState {
         self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id + 1)
     }
 
-    pub fn new_tx(&mut self) -> IKETransaction {
-        let mut tx = IKETransaction::new();
+    pub fn new_tx(&mut self, direction: Direction) -> IKETransaction {
+        let mut tx = IKETransaction::new(direction);
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         return tx;
