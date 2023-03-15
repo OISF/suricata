@@ -27,6 +27,7 @@
 #include "detect-parse.h"
 
 #define DETECT_PCRE_RELATIVE            0x00001
+/* no-op other than in parsing */
 #define DETECT_PCRE_RAWBYTES            0x00002
 #define DETECT_PCRE_CASELESS            0x00004
 
