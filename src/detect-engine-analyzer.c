@@ -35,6 +35,8 @@
 #include "conf.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+#include "detect-bytejump.h"
+#include "detect-bytetest.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
 #include "feature.h"
@@ -690,6 +692,90 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
 
                 jb_open_object(js, "pcre");
                 DumpPcre(js, cd);
+                jb_close(js);
+                if (cd->flags & DETECT_PCRE_RAWBYTES) {
+                    AnalyzerNote(ctx,
+                            (char *)"'/B' (rawbytes) option is a no-op and is silently ignored");
+                }
+                break;
+            }
+            case DETECT_BYTEJUMP: {
+                const DetectBytejumpData *cd = (const DetectBytejumpData *)smd->ctx;
+
+                jb_open_object(js, "byte_jump");
+                jb_set_uint(js, "nbytes", cd->nbytes);
+                jb_set_uint(js, "offset", cd->offset);
+                jb_set_uint(js, "multiplier", cd->multiplier);
+                jb_set_uint(js, "post_offset", cd->post_offset);
+                switch (cd->base) {
+                    case DETECT_BYTEJUMP_BASE_UNSET:
+                        jb_set_string(js, "base", "unset");
+                        break;
+                    case DETECT_BYTEJUMP_BASE_OCT:
+                        jb_set_string(js, "base", "oct");
+                        break;
+                    case DETECT_BYTEJUMP_BASE_DEC:
+                        jb_set_string(js, "base", "dec");
+                        break;
+                    case DETECT_BYTEJUMP_BASE_HEX:
+                        jb_set_string(js, "base", "hex");
+                        break;
+                }
+                jb_open_array(js, "flags");
+                if (cd->flags & DETECT_BYTEJUMP_BEGIN)
+                    jb_append_string(js, "from_beginning");
+                if (cd->flags & DETECT_BYTEJUMP_LITTLE)
+                    jb_append_string(js, "little_endian");
+                if (cd->flags & DETECT_BYTEJUMP_BIG)
+                    jb_append_string(js, "big_endian");
+                if (cd->flags & DETECT_BYTEJUMP_STRING)
+                    jb_append_string(js, "string");
+                if (cd->flags & DETECT_BYTEJUMP_RELATIVE)
+                    jb_append_string(js, "relative");
+                if (cd->flags & DETECT_BYTEJUMP_ALIGN)
+                    jb_append_string(js, "align");
+                if (cd->flags & DETECT_BYTEJUMP_DCE)
+                    jb_append_string(js, "dce");
+                if (cd->flags & DETECT_BYTEJUMP_OFFSET_BE)
+                    jb_append_string(js, "offset_be");
+                if (cd->flags & DETECT_BYTEJUMP_END)
+                    jb_append_string(js, "from_end");
+                jb_close(js);
+                jb_close(js);
+                break;
+            }
+            case DETECT_BYTETEST: {
+                const DetectBytetestData *cd = (const DetectBytetestData *)smd->ctx;
+
+                jb_open_object(js, "byte_test");
+                jb_set_uint(js, "nbytes", cd->nbytes);
+                jb_set_uint(js, "offset", cd->offset);
+                switch (cd->base) {
+                    case DETECT_BYTETEST_BASE_UNSET:
+                        jb_set_string(js, "base", "unset");
+                        break;
+                    case DETECT_BYTETEST_BASE_OCT:
+                        jb_set_string(js, "base", "oct");
+                        break;
+                    case DETECT_BYTETEST_BASE_DEC:
+                        jb_set_string(js, "base", "dec");
+                        break;
+                    case DETECT_BYTETEST_BASE_HEX:
+                        jb_set_string(js, "base", "hex");
+                        break;
+                }
+                jb_open_array(js, "flags");
+                if (cd->flags & DETECT_BYTETEST_LITTLE)
+                    jb_append_string(js, "little_endian");
+                if (cd->flags & DETECT_BYTETEST_BIG)
+                    jb_append_string(js, "big_endian");
+                if (cd->flags & DETECT_BYTETEST_STRING)
+                    jb_append_string(js, "string");
+                if (cd->flags & DETECT_BYTETEST_RELATIVE)
+                    jb_append_string(js, "relative");
+                if (cd->flags & DETECT_BYTETEST_DCE)
+                    jb_append_string(js, "dce");
+                jb_close(js);
                 jb_close(js);
                 break;
             }
