@@ -57,8 +57,9 @@ impl QuicTransaction {
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
         extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) -> Self {
+	let direction = if client { Direction::ToServer } else { Direction::ToClient };
         let cyu = Cyu::generate(&header, &data.frames);
-        let mut ntx = QuicTransaction {
+        QuicTransaction {
             tx_id: 0,
             header,
             cyu,
@@ -67,17 +68,12 @@ impl QuicTransaction {
             extv,
             ja3,
             client,
-            tx_data: AppLayerTxData::new(),
-        };
-        if client {
-            ntx.tx_data.set_inspect_direction(Direction::ToServer);
-        } else {
-            ntx.tx_data.set_inspect_direction(Direction::ToClient);
+            tx_data: AppLayerTxData::for_direction(direction),
         }
-        return ntx;
     }
 
     fn new_empty(client: bool, header: QuicHeader) -> Self {
+	let direction = if client { Direction::ToServer } else { Direction::ToClient };
         QuicTransaction {
             tx_id: 0,
             header,
@@ -87,7 +83,7 @@ impl QuicTransaction {
             extv: Vec::new(),
             ja3: None,
             client,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(direction),
         }
     }
 }
@@ -141,11 +137,6 @@ impl QuicState {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
-        if client {
-            tx.tx_data.set_inspect_direction(Direction::ToServer);
-        } else {
-            tx.tx_data.set_inspect_direction(Direction::ToClient);
-        }
         self.transactions.push_back(tx);
     }
 

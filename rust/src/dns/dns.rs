@@ -249,8 +249,11 @@ impl Transaction for DNSTransaction {
 }
 
 impl DNSTransaction {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(direction: Direction) -> Self {
+	Self {
+	    tx_data: AppLayerTxData::for_direction(direction),
+            ..Default::default()
+	}
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
@@ -336,8 +339,8 @@ impl DNSState {
         Default::default()
     }
 
-    pub fn new_tx(&mut self) -> DNSTransaction {
-        let mut tx = DNSTransaction::new();
+    pub fn new_tx(&mut self, direction: Direction) -> DNSTransaction {
+        let mut tx = DNSTransaction::new(direction);
         self.tx_id += 1;
         tx.id = self.tx_id;
         return tx;
@@ -410,9 +413,8 @@ impl DNSState {
                 let z_flag = request.header.flags & 0x0040 != 0;
                 let opcode = ((request.header.flags >> 11) & 0xf) as u8;
 
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(Direction::ToServer);
                 tx.request = Some(request);
-                tx.tx_data.set_inspect_direction(Direction::ToServer);
                 self.transactions.push_back(tx);
 
                 if z_flag {
@@ -484,14 +486,13 @@ impl DNSState {
                 let z_flag = response.header.flags & 0x0040 != 0;
                 let opcode = ((response.header.flags >> 11) & 0xf) as u8;
 
-                let mut tx = self.new_tx();
+                let mut tx = self.new_tx(Direction::ToClient);
                 if let Some(ref mut config) = &mut self.config {
                     if let Some(config) = config.remove(&response.header.tx_id) {
                         tx.tx_data.config = config;
                     }
                 }
                 tx.response = Some(response);
-                tx.tx_data.set_inspect_direction(Direction::ToClient);
                 self.transactions.push_back(tx);
 
                 if z_flag {

@@ -74,11 +74,9 @@ pub struct Ikev1Container {
 pub fn handle_ikev1(
     state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
-    let mut tx = state.new_tx();
+    let mut tx = state.new_tx(direction);
 
     tx.ike_version = 1;
-    tx.direction = direction;
-    tx.tx_data.set_inspect_direction(direction);
     tx.hdr.spi_initiator = format!("{:016x}", isakmp_header.init_spi);
     tx.hdr.spi_responder = format!("{:016x}", isakmp_header.resp_spi);
     tx.hdr.maj_ver = isakmp_header.maj_ver;

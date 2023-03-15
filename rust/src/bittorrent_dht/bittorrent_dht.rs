@@ -19,7 +19,7 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
 use std::ffi::CString;
 use std::os::raw::c_char;
 
@@ -46,8 +46,11 @@ pub struct BitTorrentDHTTransaction {
 }
 
 impl BitTorrentDHTTransaction {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(direction: Direction) -> Self {
+	Self {
+	    tx_data: AppLayerTxData::for_direction(direction),
+	    ..Default::default()
+	}
     }
 
     /// Set an event on the transaction
@@ -77,11 +80,10 @@ impl BitTorrentDHTState {
         self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
     }
 
-    fn new_tx(&mut self, _direction: crate::core::Direction) -> BitTorrentDHTTransaction {
-        let mut tx = BitTorrentDHTTransaction::default();
+    fn new_tx(&mut self, direction: Direction) -> BitTorrentDHTTransaction {
+        let mut tx = BitTorrentDHTTransaction::new(direction);
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        tx.tx_data.set_inspect_direction(_direction);
         return tx;
     }
 
