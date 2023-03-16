@@ -456,7 +456,8 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 } else {
                     dyn_headers.table.push(headcopy);
                 }
-                while dyn_headers.current_size > dyn_headers.max_size && !dyn_headers.table.is_empty()
+                while dyn_headers.current_size > dyn_headers.max_size
+                    && !dyn_headers.table.is_empty()
                 {
                     dyn_headers.current_size -=
                         32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
@@ -539,13 +540,16 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     if (maxsize2 as usize) < dyn_headers.max_size {
         //dyn_headers.max_size is updated later with all headers
         //may evict entries
-        while dyn_headers.current_size > (maxsize2 as usize) && !dyn_headers.table.is_empty() {
+        let mut toremove = 0;
+        while dyn_headers.current_size > (maxsize2 as usize) && toremove < dyn_headers.table.len() {
             // we check dyn_headers.table as we may be in best effort
             // because the previous maxsize was too big for us to retain all the headers
-            dyn_headers.current_size -=
-                32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
-            dyn_headers.table.remove(0);
+            dyn_headers.current_size -= 32
+                + dyn_headers.table[toremove].name.len()
+                + dyn_headers.table[toremove].value.len();
+            toremove += 1;
         }
+        dyn_headers.table.drain(0..toremove);
     }
     return Ok((
         i3,
