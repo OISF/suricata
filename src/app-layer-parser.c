@@ -736,7 +736,7 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
 }
 
-static inline uint64_t GetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir)
+inline uint64_t AppLayerParserGetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir)
 {
     uint64_t detect_flags =
         (dir & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
@@ -793,7 +793,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (txd && tag_txs_as_inspected) {
-            uint64_t detect_flags = GetTxDetectFlags(txd, flags);
+            uint64_t detect_flags = AppLayerParserGetTxDetectFlags(txd, flags);
             if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
                 detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
                 SetTxDetectFlags(txd, flags, detect_flags);
@@ -833,7 +833,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             /* txd can be NULL for HTTP sessions where the user data alloc failed */
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
             if (likely(txd)) {
-                uint64_t detect_flags = GetTxDetectFlags(txd, flags);
+                uint64_t detect_flags = AppLayerParserGetTxDetectFlags(txd, flags);
                 if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
                     detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
                     SetTxDetectFlags(txd, flags, detect_flags);
@@ -953,8 +953,6 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     uint64_t new_min = min;
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
-    const bool is_unidir =
-            AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
     // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
 
     while (1) {
@@ -993,44 +991,29 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        bool inspected = false;
         if (txd && has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
-                uint64_t detect_flags_ts = GetTxDetectFlags(txd, STREAM_TOSERVER);
-                if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
-                    SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
-                            tx, i, detect_flags_ts);
+                uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(txd, STREAM_TOSERVER);
+                if (!(detect_flags_ts &
+                            (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {
+                    SCLogDebug("%p/%" PRIu64 " skipping: TS inspect not done: ts:%" PRIx64, tx, i,
+                            detect_flags_ts);
                     tx_skipped = true;
-                } else {
-                    inspected = true;
                 }
             }
             if (!IS_DISRUPTED(tc_disrupt_flags) && f->sgh_toclient != NULL) {
-                uint64_t detect_flags_tc = GetTxDetectFlags(txd, STREAM_TOCLIENT);
-                if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
-                    SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
-                            tx, i, detect_flags_tc);
+                uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(txd, STREAM_TOCLIENT);
+                if (!(detect_flags_tc &
+                            (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {
+                    SCLogDebug("%p/%" PRIu64 " skipping: TC inspect not done: ts:%" PRIx64, tx, i,
+                            detect_flags_tc);
                     tx_skipped = true;
-                } else {
-                    inspected = true;
                 }
             }
         }
 
-        // If not a unidirectional transaction both sides are required to have
-        // been inspected.
-        if (!is_unidir && tx_skipped) {
-            SCLogDebug("%p/%" PRIu64 " !is_unidir && tx_skipped", tx, i);
-            skipped = true;
-            goto next;
-        }
-
-        // If this is a unidirectional transaction require only one side to be
-        // inspected, which the inspected flag tells us. This is also guarded
-        // with skip to limit this check to transactions that actually had the
-        // tx inspected flag checked.
-        if (is_unidir && tx_skipped && !inspected) {
-            SCLogDebug("%p/%" PRIu64 " is_unidir && tx_skipped && !inspected", tx, i);
+        if (tx_skipped) {
+            SCLogDebug("%p/%" PRIu64 " tx_skipped", tx, i);
             skipped = true;
             goto next;
         }

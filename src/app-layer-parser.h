@@ -44,8 +44,7 @@
 #define APP_LAYER_PARSER_SFRAME_TC             BIT_U16(10)
 
 /* Flags for AppLayerParserProtoCtx. */
-#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
-#define APP_LAYER_PARSER_OPT_UNIDIR_TXS         BIT_U32(1)
+#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS BIT_U32(0)
 
 #define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
@@ -263,6 +262,7 @@ uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);
+uint64_t AppLayerParserGetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir);
 AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto, void *state);
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig);
