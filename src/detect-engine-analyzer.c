@@ -1027,7 +1027,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_open_object(ctx.js, "lists");
     for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
         if (s->sm_arrays[i] != NULL) {
-            jb_open_object(ctx.js, DetectSigmatchListEnumToString(i));
+            jb_open_object(ctx.js, DetectListToHumanString(i));
             DumpMatches(&ctx, ctx.js, s->sm_arrays[i]);
             jb_close(ctx.js);
         }
