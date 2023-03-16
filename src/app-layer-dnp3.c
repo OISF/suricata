@@ -1596,9 +1596,6 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
-
-        AppLayerParserRegisterOptionFlags(
-                IPPROTO_TCP, ALPROTO_DNP3, APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
