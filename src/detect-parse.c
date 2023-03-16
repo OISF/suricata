@@ -120,8 +120,9 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
+        CASE_CODE_STRING(DETECT_SM_LIST_BASE64_DATA, "base64_data");
         CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
+        CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
         CASE_CODE_STRING(DETECT_SM_LIST_SUPPRESS, "suppress");
         CASE_CODE_STRING(DETECT_SM_LIST_THRESHOLD, "threshold");
         CASE_CODE_STRING(DETECT_SM_LIST_MAX, "max (internal)");
@@ -136,6 +137,7 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
+        CASE_CODE(DETECT_SM_LIST_BASE64_DATA);
         CASE_CODE(DETECT_SM_LIST_TMATCH);
         CASE_CODE(DETECT_SM_LIST_POSTMATCH);
         CASE_CODE(DETECT_SM_LIST_SUPPRESS);
