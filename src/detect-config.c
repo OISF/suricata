@@ -97,18 +97,20 @@ static void ConfigApplyTx(Flow *f,
         if (txd) {
             SCLogDebug("tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
             txd->config.log_flags |= BIT_U8(config->type);
+
+            uint64_t unidir = ((AppLayerParserGetTxDetectFlags(txd, STREAM_TOSERVER) |
+                                       AppLayerParserGetTxDetectFlags(txd, STREAM_TOCLIENT)) &
+                                      APP_LAYER_TX_SKIP_INSPECT_FLAG) != 0;
+            if (unidir) {
+                SCLogDebug("handle unidir tx");
+                AppLayerTxConfig req;
+                memset(&req, 0, sizeof(req));
+                req.log_flags = BIT_U8(config->type);
+                AppLayerParserApplyTxConfig(
+                        f->proto, f->alproto, f->alstate, tx, CONFIG_ACTION_SET, req);
+            }
         } else {
             SCLogDebug("no tx data");
-        }
-
-        if (AppLayerParserGetOptionFlags(f->protomap, f->alproto) &
-                APP_LAYER_PARSER_OPT_UNIDIR_TXS) {
-            SCLogDebug("handle unidir tx");
-            AppLayerTxConfig req;
-            memset(&req, 0, sizeof(req));
-            req.log_flags = BIT_U8(config->type);
-            AppLayerParserApplyTxConfig(f->proto, f->alproto, f->alstate, tx,
-                    CONFIG_ACTION_SET, req);
         }
     } else {
         SCLogDebug("no tx");
