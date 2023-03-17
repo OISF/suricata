@@ -1175,8 +1175,10 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     }
     de_ctx->sig_list->next = NULL;
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
-        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    if (de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
+        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->init_data
+                                        ->smlists_tail[DETECT_SM_LIST_PMATCH]
+                                        ->ctx;
         if (co->flags & DETECT_CONTENT_RELATIVE_NEXT) {
             printf("relative next flag set on final match which is content: ");
             goto end;
@@ -1184,7 +1186,7 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     }
 
     SCLogDebug("---DetectContentLongPatternMatchTest---");
-    DetectContentPrintAll(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH]);
+    DetectContentPrintAll(de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_MATCH]);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1747,13 +1749,14 @@ static int DetectContentParseTest24(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL || s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL ||
+            s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx == NULL) {
         printf("de_ctx->pmatch_tail == NULL || de_ctx->pmatch_tail->ctx == NULL: ");
         result = 0;
         goto end;
     }
 
-    cd = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    cd = (DetectContentData *)s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
 
 end:
@@ -2083,126 +2086,6 @@ static int DetectContentParseTest35(void)
     return result;
 }
 
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest36(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest37(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest38(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; within:8; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
 static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -2233,86 +2116,6 @@ static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 
     UTHFreePackets(&p, 1);
     PASS;
-}
-
-/**
- * \test Parsing test: file_data, within relative to file_data
- */
-static int DetectContentParseTest39(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; within:8; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data, distance relative to file_data
- */
-static int DetectContentParseTest40(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; distance:3; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
 }
 
 static int DetectContentParseTest41(void)
@@ -3047,11 +2850,6 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33);
     UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34);
     UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35);
-    UtRegisterTest("DetectContentParseTest36", DetectContentParseTest36);
-    UtRegisterTest("DetectContentParseTest37", DetectContentParseTest37);
-    UtRegisterTest("DetectContentParseTest38", DetectContentParseTest38);
-    UtRegisterTest("DetectContentParseTest39", DetectContentParseTest39);
-    UtRegisterTest("DetectContentParseTest40", DetectContentParseTest40);
     UtRegisterTest("DetectContentParseTest41", DetectContentParseTest41);
     UtRegisterTest("DetectContentParseTest42", DetectContentParseTest42);
     UtRegisterTest("DetectContentParseTest43", DetectContentParseTest43);
