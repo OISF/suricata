@@ -1425,12 +1425,12 @@ static int DetectByteExtractTest34(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1502,12 +1502,12 @@ static int DetectByteExtractTest35(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1590,12 +1590,12 @@ static int DetectByteExtractTest36(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1678,12 +1678,12 @@ static int DetectByteExtractTest37(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1779,12 +1779,12 @@ static int DetectByteExtractTest38(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1879,12 +1879,12 @@ static int DetectByteExtractTest39(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1980,12 +1980,12 @@ static int DetectByteExtractTest40(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2080,12 +2080,12 @@ static int DetectByteExtractTest41(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2184,12 +2184,12 @@ static int DetectByteExtractTest42(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2332,12 +2332,12 @@ static int DetectByteExtractTest43(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2433,12 +2433,12 @@ static int DetectByteExtractTest44(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2553,12 +2553,12 @@ static int DetectByteExtractTest45(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2655,12 +2655,12 @@ static int DetectByteExtractTest46(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2775,12 +2775,12 @@ static int DetectByteExtractTest47(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2878,12 +2878,12 @@ static int DetectByteExtractTest48(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3003,12 +3003,12 @@ static int DetectByteExtractTest49(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3107,12 +3107,12 @@ static int DetectByteExtractTest50(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3235,12 +3235,12 @@ static int DetectByteExtractTest51(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3335,12 +3335,12 @@ static int DetectByteExtractTest52(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3454,12 +3454,12 @@ static int DetectByteExtractTest53(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3553,12 +3553,12 @@ static int DetectByteExtractTest54(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3671,11 +3671,11 @@ static int DetectByteExtractTest55(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         goto end;
     }
@@ -3787,7 +3787,7 @@ static int DetectByteExtractTest56(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -3814,7 +3814,7 @@ static int DetectByteExtractTest56(void)
     if (sm->next != NULL)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3937,12 +3937,12 @@ static int DetectByteExtractTest57(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4100,12 +4100,12 @@ static int DetectByteExtractTest58(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4233,12 +4233,12 @@ static int DetectByteExtractTest59(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4365,12 +4365,12 @@ static int DetectByteExtractTest60(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4508,12 +4508,12 @@ static int DetectByteExtractTest61(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
