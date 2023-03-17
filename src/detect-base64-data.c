@@ -98,7 +98,7 @@ static int DetectBase64DataSetupTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
         printf("DETECT_SM_LIST_PMATCH should not be NULL: ");
         goto end;
@@ -108,7 +108,7 @@ static int DetectBase64DataSetupTest01(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_BASE64_DATA] == NULL) {
+    if (de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] == NULL) {
         printf("DETECT_SM_LIST_BASE64_DATA should not be NULL: ");
        goto end;
     }
