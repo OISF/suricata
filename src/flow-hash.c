@@ -623,6 +623,9 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef DEBUG
     if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
         NoFlowHandleIPS(p);
+        StatsIncr(tv, fls->dtv->counter_flow_memcap);
+        // TODO increase exception policy stats ONLY if not set to ignore!!
+        StatsIncr(tv, fls->dtv->counter_flow_memcap_exc_policy);
         return NULL;
     }
 #endif
@@ -648,6 +651,15 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
             f = FlowGetUsedFlow(tv, fls->dtv, p->ts);
             if (f == NULL) {
                 NoFlowHandleIPS(p);
+#ifdef UNITTESTS
+                if (tv != NULL && fls->dtv != NULL) {
+#endif
+                    StatsIncr(tv, fls->dtv->counter_flow_memcap);
+                    // TODO increase exception policy stats ONLY if not set to ignore!!
+                    StatsIncr(tv, fls->dtv->counter_flow_memcap_exc_policy);
+#ifdef UNITTESTS
+                }
+#endif
                 return NULL;
             }
 #ifdef UNITTESTS
@@ -673,6 +685,8 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
             }
 #endif
             NoFlowHandleIPS(p);
+            // TODO increase exception policy stats ONLY if not set to ignore!!
+            StatsIncr(tv, fls->dtv->counter_flow_memcap_exc_policy);
             return NULL;
         }
 

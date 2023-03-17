@@ -717,6 +717,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_max_hit;
 
     uint16_t counter_flow_memcap;
+    uint16_t counter_flow_memcap_exc_policy;
 
     uint16_t counter_tcp_active_sessions;
     uint16_t counter_flow_total;
