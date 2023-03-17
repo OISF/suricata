@@ -1179,7 +1179,7 @@ static int DetectHttpHeaderIsdataatParseTest(void)
             "isdataat:!4,relative; sid:1;)");
     FAIL_IF_NULL(s);
 
-    SigMatch *sm = s->init_data->smlists_tail[g_http_header_buffer_id];
+    SigMatch *sm = DetectBufferGetLastSigMatch(s, g_http_header_buffer_id);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
 
