@@ -1779,24 +1779,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-#if 0 // TODO figure out why this is even necessary
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
-        s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
-        sig_flags |= SIG_FLAG_TOSERVER;
-        s->flags |= SIG_FLAG_TOSERVER;
-        s->flags &= ~SIG_FLAG_TOCLIENT;
-    }
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP1) ||
-        s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
-        sig_flags |= SIG_FLAG_TOCLIENT;
-        s->flags |= SIG_FLAG_TOCLIENT;
-        s->flags &= ~SIG_FLAG_TOSERVER;
-    }
-#endif
     if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
         SCLogError("You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
