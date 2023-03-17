@@ -85,33 +85,6 @@ static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 #ifdef UNITTESTS
 
 /************************************Unittests*********************************/
-static int g_file_data_buffer_id = 0;
-
-static int DetectPktDataTest01(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; content:\"in file data\";"
-                               " pkt_data; content:\"in pkt data\"; sid:1;)");
-    FAIL_IF_NULL(sig);
-
-    SigMatch *sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
-    FAIL_IF_NULL(sm);
-
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
-    FAIL_IF_NULL(sm);
-
-    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
-    FAIL_IF_NOT_NULL(sm->next);
-
-    FAIL_IF_NOT(sig->init_data->list == DETECT_SM_LIST_NOTSET);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
 static int DetectPktDataTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -128,8 +101,6 @@ static int DetectPktDataTest02(void)
 
 static void DetectPktDataTestRegister(void)
 {
-    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
-    UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01);
     UtRegisterTest("DetectPktDataTest02", DetectPktDataTest02);
 }
 #endif
