@@ -347,6 +347,9 @@ static int B64TestVectorsRFC4648(void)
     const char *src9 = "Zm$9vYm.Fy";
     const char *fin_str9 = "f";
 
+    const char *src10 = "Y21Wd2IzSjBaVzFoYVd4bWNtRjFaRUJoZEc4dVoyOTJMbUYxOmpqcHh4b3Rhb2w%3D";
+    const char *fin_str10 = "cmVwb3J0ZW1haWxmcmF1ZEBhdG8uZ292LmF1:jjpxxotaol";
+
     TEST_RFC4648(src1, fin_str1, ASCII_BLOCK * 2, strlen(fin_str1), strlen(src1), BASE64_ECODE_OK);
     TEST_RFC4648(src2, fin_str2, ASCII_BLOCK * 2, strlen(fin_str2), strlen(src2), BASE64_ECODE_OK);
     TEST_RFC4648(src3, fin_str3, ASCII_BLOCK * 2, strlen(fin_str3), strlen(src3), BASE64_ECODE_OK);
@@ -356,6 +359,8 @@ static int B64TestVectorsRFC4648(void)
     TEST_RFC4648(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
     TEST_RFC4648(src8, fin_str8, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_ERR);
     TEST_RFC4648(src9, fin_str9, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_ERR);
+    TEST_RFC4648(src10, fin_str10, strlen(fin_str10) + 1, strlen(fin_str10), strlen(src10) - 3,
+            BASE64_ECODE_ERR);
     PASS;
 }
 
