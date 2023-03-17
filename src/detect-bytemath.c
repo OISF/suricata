@@ -948,9 +948,9 @@ static int DetectByteMathContext01(void)
 
     FAIL_IF(de_ctx->sig_list == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL);
+    FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF(sm->type != DETECT_CONTENT);
     cd = (DetectContentData *)sm->ctx;
     FAIL_IF(cd->flags & DETECT_CONTENT_WITHIN);
