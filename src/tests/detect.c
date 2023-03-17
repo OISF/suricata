@@ -3499,7 +3499,7 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
         goto end;
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->type != DETECT_CONTENT) {
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]->type != DETECT_CONTENT) {
         printf("type not content: ");
         goto end;
     }
