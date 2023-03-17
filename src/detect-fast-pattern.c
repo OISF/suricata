@@ -367,6 +367,15 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
+static SigMatch *GetMatches(Signature *s, const int list)
+{
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, list);
+    if (sm == NULL && list < DETECT_SM_LIST_MAX) {
+        sm = s->init_data->smlists[list];
+    }
+    return sm;
+}
+
 static int DetectFastPatternStickySingle(const char *sticky, const int list)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -378,7 +387,7 @@ static int DetectFastPatternStickySingle(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -399,7 +408,7 @@ static int DetectFastPatternModifierSingle(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -420,7 +429,7 @@ static int DetectFastPatternStickySingleNoFP(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -441,7 +450,7 @@ static int DetectFastPatternModifierSingleNoFP(const char *sticky, const int lis
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -649,7 +658,7 @@ static int DetectFastPatternStickySingleFPOnly(const char *sticky, const int lis
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -671,7 +680,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -685,7 +694,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ", sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -708,7 +717,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -739,7 +748,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -770,7 +779,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -801,7 +810,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -830,7 +839,7 @@ static int DetectFastPatternModifierFPOnly(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ", sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
@@ -862,7 +871,7 @@ static int DetectFastPatternStickyFPChop(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -879,7 +888,7 @@ static int DetectFastPatternStickyFPChop(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     cd = (DetectContentData *)sm->ctx;
@@ -905,7 +914,7 @@ static int DetectFastPatternModifierFPChop(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[list];
+    SigMatch *sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -922,7 +931,7 @@ static int DetectFastPatternModifierFPChop(const char *sticky, const int list)
             sticky ? sticky : "", sticky ? "; " : " ");
     s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    sm = de_ctx->sig_list->sm_lists[list];
+    sm = GetMatches(s, list);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     cd = (DetectContentData *)sm->ctx;
@@ -1123,7 +1132,7 @@ static int DetectFastPatternPrefilter(void)
                          "(content:\"one\"; prefilter; sid:1;)";
     Signature *s = DetectEngineAppendSig(de_ctx, string);
     FAIL_IF_NULL(s);
-    SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
