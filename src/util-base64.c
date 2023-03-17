@@ -107,9 +107,9 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         /* Get decimal representation */
         val = GetBase64Value(src[i]);
         if (val < 0) {
-            if ((mode == BASE64_MODE_RFC2045) && (src[i] == ' ')) {
+            if (mode == BASE64_MODE_RFC2045 && src[i] != '=') {
                 if (bbidx == 0) {
-                    /* Special case where last block of data has a leading space */
+                    /* Special case where last block of data has a leading space or invalid char */
                     leading_sp++;
                 }
                 sp++;
@@ -156,7 +156,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         }
     }
 
-    if (!valid && mode == BASE64_MODE_RFC4648) {
+    if (bbidx > 0 && bbidx < 4 && ((!valid && mode == BASE64_MODE_RFC4648))) {
         padding = B64_BLOCK - bbidx;
         *decoded_bytes += ASCII_BLOCK - padding;
         DecodeBase64Block(dptr, b64);
@@ -304,9 +304,12 @@ static int B64TestVectorsRFC2045(void)
     const char *fin_str8 = "foobar";
 
     const char *src9 = "Zm$9vYm.Fy";
-    const char *fin_str9 = "";
+    const char *fin_str9 = "foobar";
 
-    TEST_RFC2045(src1, fin_str1, strlen(fin_str1), strlen(fin_str1), strlen(src1), BASE64_ECODE_OK);
+    const char *src10 = "Y21Wd2IzSjBaVzFoYVd4bWNtRjFaRUJoZEc4dVoyOTJMbUYxOmpqcHh4b3Rhb2w%5d";
+    const char *fin_str10 = "cmVwb3J0ZW1haWxmcmF1ZEBhdG8uZ292LmF1:jjpxxotaol9t";
+
+    TEST_RFC2045(src1, fin_str1, ASCII_BLOCK * 2, strlen(fin_str1), strlen(src1), BASE64_ECODE_OK);
     TEST_RFC2045(src2, fin_str2, ASCII_BLOCK * 2, strlen(fin_str2), strlen(src2), BASE64_ECODE_OK);
     TEST_RFC2045(src3, fin_str3, ASCII_BLOCK * 2, strlen(fin_str3), strlen(src3), BASE64_ECODE_OK);
     TEST_RFC2045(src4, fin_str4, ASCII_BLOCK * 2, strlen(fin_str4), strlen(src4), BASE64_ECODE_OK);
@@ -314,8 +317,9 @@ static int B64TestVectorsRFC2045(void)
     TEST_RFC2045(src6, fin_str6, ASCII_BLOCK * 2, strlen(fin_str6), strlen(src6), BASE64_ECODE_OK);
     TEST_RFC2045(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
     TEST_RFC2045(src8, fin_str8, ASCII_BLOCK * 2, strlen(fin_str8), strlen(src8), BASE64_ECODE_OK);
-    TEST_RFC2045(src9, fin_str9, ASCII_BLOCK * 2, 0, 0,
-            BASE64_ECODE_ERR); // TODO this should be accepted just like the previous string
+    TEST_RFC2045(src9, fin_str9, ASCII_BLOCK * 2, strlen(fin_str9), strlen(src9), BASE64_ECODE_OK);
+    TEST_RFC2045(src10, fin_str10, strlen(fin_str10) + 3, strlen(fin_str10), strlen(src10),
+            BASE64_ECODE_OK);
     PASS;
 }
 
