@@ -826,112 +826,65 @@ libhtp:\n\
  */
 static int DetectHttpClientBodyTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    SigMatch *sm = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_client_body\"; "
-                               "content:\"one\"; http_client_body; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 1;
-    } else {
-        goto end;
-    }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
-    if (sm != NULL) {
-        result &= (sm->type == DETECT_CONTENT);
-        result &= (sm->next == NULL);
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"Testing http_client_body\"; "
+                                                 "content:\"one\"; http_client_body; sid:1;)");
+    FAIL_IF_NULL(s);
 
- end:
+    SigMatch *sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_MATCH];
+    FAIL_IF_NOT_NULL(sm);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
  * \test Test that a signature containing an valid http_client_body entry is
  *       parsed.
+ * \todo error in sig 'http_client_body:;'
  */
 static int DetectHttpClientBodyTest02(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_client_body\"; "
-                               "content:\"one\"; http_client_body:; sid:1;)");
-    if (de_ctx->sig_list != NULL)
-        result = 1;
 
- end:
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"Testing http_client_body\"; "
+                                                 "content:\"one\"; http_client_body:; sid:1;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
- * \test Test that an invalid signature containing no content but a http_client_body
- *       is invalidated.
+ * \test Test invalid signatures
  */
 static int DetectHttpClientBodyTest03(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_client_body\"; "
-                               "http_client_body; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
 
- end:
+    const char *sigs[] = {
+        "alert tcp any any -> any any (http_client_body; sid:1;)",
+        "alert tcp any any -> any any "
+        "(msg:\"Testing http_client_body\"; "
+        "content:\"one\"; rawbytes; http_client_body; sid:2;)",
+        NULL,
+    };
+
+    for (uint32_t i = 0; sigs[i] != NULL; i++) {
+        Signature *s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        FAIL_IF_NOT_NULL(s);
+    }
     DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test that an invalid signature containing a rawbytes along with a
- *       http_client_body is invalidated.
- */
-static int DetectHttpClientBodyTest04(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_client_body\"; "
-                               "content:\"one\"; rawbytes; http_client_body; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
-
- end:
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -940,24 +893,21 @@ static int DetectHttpClientBodyTest04(void)
  */
 static int DetectHttpClientBodyTest05(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_client_body\"; "
-                               "content:\"one\"; http_client_body; nocase; sid:1;)");
-    if (de_ctx->sig_list != NULL)
-        result = 1;
 
- end:
+    const char *sigs[] = {
+        "alert tcp any any -> any any (content:\"one\"; http_client_body; nocase; sid:1;)",
+        NULL,
+    };
+
+    for (uint32_t i = 0; sigs[i] != NULL; i++) {
+        Signature *s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        FAIL_IF_NULL(s);
+    }
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -1010,12 +960,11 @@ static int DetectHttpClientBodyTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:\"message\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1115,12 +1064,11 @@ static int DetectHttpClientBodyTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:\"message\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1234,12 +1182,11 @@ static int DetectHttpClientBodyTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:\"message\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1356,12 +1303,11 @@ static int DetectHttpClientBodyTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"body1This\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:\"body1This\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1478,12 +1424,11 @@ static int DetectHttpClientBodyTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"body1This\"; http_client_body; nocase;"
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:\"body1This\"; http_client_body; nocase;"
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1591,12 +1536,11 @@ static int DetectHttpClientBodyTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"message1\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:!\"message1\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1687,12 +1631,11 @@ static int DetectHttpClientBodyTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"message\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http client body test\"; "
+                                                 "content:!\"message\"; http_client_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1783,12 +1726,12 @@ static int DetectHttpClientBodyTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_client_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http client body test\"; "
+            "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_client_body; "
+            "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2537,14 +2480,12 @@ static int DetectHttpClientBodyTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; offset:10; http_client_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_client_body; within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert icmp any any -> any any "
+            "(content:\"one\"; offset:10; http_client_body; pcre:/two/; "
+            "content:\"three\"; distance:10; http_client_body; within:10; "
+            "content:\"four\"; distance:10; sid:1;)");
+    FAIL_IF_NULL(s);
 
     result = 1;
 
@@ -2703,12 +2644,10 @@ static int DetectHttpClientBodyTest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; http_client_body; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
+                                          "(content:\"one\"; within:5; http_client_body; sid:1;)");
+    FAIL_IF_NULL(s);
 
     result = 1;
 
@@ -2726,12 +2665,10 @@ static int DetectHttpClientBodyTest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_client_body; within:5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list != NULL\n");
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
+                                          "(content:\"one\"; http_client_body; within:5; sid:1;)");
+    FAIL_IF_NULL(s);
 
     result = 1;
 
@@ -2749,12 +2686,9 @@ static int DetectHttpClientBodyTest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
+                                                 "(content:\"one\"; within:5; sid:1;)");
+    FAIL_IF_NULL(s);
 
     result = 1;
 
@@ -2945,7 +2879,6 @@ void DetectHttpClientBodyRegisterTests(void)
     UtRegisterTest("DetectHttpClientBodyTest01", DetectHttpClientBodyTest01);
     UtRegisterTest("DetectHttpClientBodyTest02", DetectHttpClientBodyTest02);
     UtRegisterTest("DetectHttpClientBodyTest03", DetectHttpClientBodyTest03);
-    UtRegisterTest("DetectHttpClientBodyTest04", DetectHttpClientBodyTest04);
     UtRegisterTest("DetectHttpClientBodyTest05", DetectHttpClientBodyTest05);
     UtRegisterTest("DetectHttpClientBodyTest06", DetectHttpClientBodyTest06);
     UtRegisterTest("DetectHttpClientBodyTest07", DetectHttpClientBodyTest07);
