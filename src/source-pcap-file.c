@@ -157,6 +157,11 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     if(unlikely(data == NULL)) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "pcap file reader thread failed to initialize");
 
+        // AWN: For sake of the loop waiting for threads to start, say this thread started, even 
+        // though it will soon exit (otherwise we'll block forever in the TmThreadEnsureRunning() 
+        // call in SuricataMain() )
+        TmThreadsSetFlag(tv, THV_RUNNING);
+
         PcapFileExit(TM_ECODE_FAILED, NULL);
 
         SCReturnInt(TM_ECODE_DONE);
