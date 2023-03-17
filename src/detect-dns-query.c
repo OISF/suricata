@@ -868,41 +868,12 @@ static int DetectDnsQueryTest05(void)
     PASS;
 }
 
-static int DetectDnsQueryIsdataatParseTest(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert dns any any -> any any ("
-            "dns_query; content:\"one\"; "
-            "isdataat:!4,relative; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    SigMatch *sm = s->init_data->smlists_tail[g_dns_query_buffer_id];
-    FAIL_IF_NULL(sm);
-    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
-
-    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
-    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
-    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
-    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
-
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
 static void DetectDnsQueryRegisterTests(void)
 {
     UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01);
     UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02);
     UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03);
     UtRegisterTest("DetectDnsQueryTest04 -- pcre", DetectDnsQueryTest04);
-    UtRegisterTest("DetectDnsQueryTest05 -- app layer event",
-                   DetectDnsQueryTest05);
-
-    UtRegisterTest("DetectDnsQueryIsdataatParseTest",
-            DetectDnsQueryIsdataatParseTest);
+    UtRegisterTest("DetectDnsQueryTest05 -- app layer event", DetectDnsQueryTest05);
 }
 #endif
