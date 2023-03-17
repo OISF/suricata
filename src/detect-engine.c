@@ -1290,6 +1290,33 @@ bool DetectEngineBufferRunValidateCallback(
     return true;
 }
 
+SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id)
+{
+    const uint32_t nlists = s->init_data->smlists_array_size;
+    if (buf_id < nlists) {
+        return s->init_data->smlists[buf_id];
+    }
+    return NULL;
+}
+
+SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id)
+{
+    const uint32_t nlists = s->init_data->smlists_array_size;
+    if (buf_id < nlists) {
+        return s->init_data->smlists_tail[buf_id];
+    }
+    return NULL;
+}
+
+bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id)
+{
+    const uint32_t nlists = s->init_data->smlists_array_size;
+    if (buf_id < nlists) {
+        return s->init_data->smlists_tail[buf_id] != NULL;
+    }
+    return false;
+}
+
 int DetectBufferSetActiveList(Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
