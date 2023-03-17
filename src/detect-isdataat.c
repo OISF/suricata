@@ -400,28 +400,26 @@ static int DetectIsdataatTestParse03 (void)
 static int DetectIsdataatTestParse04(void)
 {
     Signature *s = SigAlloc();
-    int result = 1;
+    FAIL_IF_NULL(s);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(NULL, s);
-        return 0;
-    }
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
-    result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30") == 0);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NOT_NULL(sm);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
     SigFree(NULL, s);
 
     s = SigAlloc();
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(NULL, s);
-        return 0;
-    }
-    /* failure since we have no preceding content/pcre/bytejump */
-    result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NULL(s);
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    /* relative w/o preceeding match defaults to "pmatch" */
+    FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30,relative") == 0);
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NOT_NULL(sm);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
 
     SigFree(NULL, s);
-    FAIL_IF(result == 0);
     PASS;
 }
 
