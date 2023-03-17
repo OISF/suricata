@@ -62,8 +62,8 @@ typedef enum {
      * BASE64("fooba") = "Zm9vYmE="
      * BASE64("foobar") = "Zm9vYmFy"
      * BASE64("foobar") = "Zm 9v Ym Fy"   <-- Notice how the spaces are ignored
-     * BASE64("f") = "Zm$9vYm.Fy"    # TODO according to RFC, All line breaks or *other characters*
-     * not found in base64 alphabet must be ignored by decoding software
+     * BASE64("foobar") = "Zm$9vYm.Fy"    # According to RFC 2045, All line breaks or *other
+     * characters* not found in base64 alphabet must be ignored by decoding software
      * */
     BASE64_MODE_RFC2045, /* SPs are allowed during transfer but must be skipped by Decoder */
     BASE64_MODE_STRICT,
