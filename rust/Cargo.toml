@@ -1,15 +1,11 @@
-# This file is checked in to allow GitHub's Dependabot to scan Suricata's Rust
-# dependencies. It must be manually kept in sync with Cargo.toml.in which is
-# used by autoconf to generate the real Cargo.toml file during the build.
-
 [package]
 name = "suricata"
-version = "6.0.5"
+version = "6.0.10"
 edition = "2018"
 
 [lib]
 crate-type = ["staticlib", "rlib"]
-path = "src/lib.rs"
+path = "/workspaces/awn/cell/rtkbox/suricata6-xdp/suricata/rust/src/lib.rs"
 
 [profile.release]
 debug = true
