@@ -203,13 +203,6 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         sm_list = s->init_data->list;
-#if 0
-        if (data->relative) {
-            pm = SigMatchGetLastSMFromLists(s, 4,
-                DETECT_CONTENT, s->sm_lists_tail[sm_list],
-                DETECT_PCRE, s->sm_lists_tail[sm_list]);
-        }
-#endif
     }
     else {
         pm = DetectGetLastSMFromLists(s,
