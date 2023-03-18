@@ -167,7 +167,8 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->app_v2.tx_min_progress = t->app_v2.tx_min_progress;
             am->priority = t->priority;
             am->sgh_mpm_context = t->sgh_mpm_context;
-            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list);
+            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(
+                    de_ctx, am->name, am->sm_list, am->app_v2.alproto);
             am->next = t->next;
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
@@ -246,7 +247,8 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
             SCLogDebug("using shared mpm ctx' for %s", n->name);
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
+            n->sgh_mpm_context =
+                    MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list, n->app_v2.alproto);
         }
 
         list = list->next;
@@ -415,7 +417,8 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
     if (shared == 0) {
         am->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
     } else {
-        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list);
+        am->sgh_mpm_context =
+                MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list, alproto);
     }
 
     if (de_ctx->frame_mpms_list == NULL) {
@@ -471,7 +474,8 @@ void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
             SCLogDebug("using shared mpm ctx' for %s", n->name);
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(
+                    de_ctx, n->name, n->sm_list, n->frame_v1.alproto);
         }
 
         list = list->next;
@@ -639,7 +643,8 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
             n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
             SCLogDebug("using shared mpm ctx' for %s", n->name);
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
+            n->sgh_mpm_context =
+                    MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list, ALPROTO_UNKNOWN);
         }
 
         list = list->next;
@@ -693,7 +698,7 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
         ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         SCLogDebug("using unique mpm ctx' for %s", name);
     } else {
-        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name, DETECT_SM_LIST_PMATCH);
+        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name, DETECT_SM_LIST_PMATCH, ALPROTO_UNKNOWN);
         SCLogDebug("using shared mpm ctx' for %s", name);
     }
     return ctx;
