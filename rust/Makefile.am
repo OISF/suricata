@@ -97,3 +97,9 @@ dist/rust-bindings.h:
 else
 dist/rust-bindings.h:
 endif
+
+Cargo.toml: Cargo.toml.in
+
+update-lock: Cargo.toml
+	cargo update
+	mv Cargo.lock Cargo.lock.in
