@@ -569,10 +569,6 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
     struct timeval tv;
     int opt;
     NFQQueueVars *q = NFQGetQueue(t->nfq_index);
-    if (q == NULL) {
-        SCLogError("no queue for given index");
-        return TM_ECODE_FAILED;
-    }
     SCLogDebug("opening library handle");
     q->h = nfq_open();
     if (q->h == NULL) {
@@ -915,13 +911,10 @@ int NFQParseAndRegisterQueues(const char *queues)
  *  \param number idx of the queue in our array
  *
  *  \retval ptr pointer to the NFQThreadVars at index
- *  \retval NULL on error
  */
 void *NFQGetQueue(int number)
 {
-    if (unlikely(number < 0 || number >= receive_queue_num || g_nfq_q == NULL))
-        return NULL;
-
+    BUG_ON(number < 0 || number >= receive_queue_num || g_nfq_q == NULL);
     return (void *)&g_nfq_q[number];
 }
 
