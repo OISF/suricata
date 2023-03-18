@@ -1263,7 +1263,7 @@ typedef struct MpmStore_ {
     enum MpmBuiltinBuffers buffer;
     int sm_list;
     int32_t sgh_mpm_context;
-
+    AppProto alproto;
     MpmCtx *mpm_ctx;
 
 } MpmStore;
