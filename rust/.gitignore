@@ -1,4 +1,5 @@
 !Cargo.toml.in
+!Cargo.lock.in
 Cargo.toml
 /.cargo/config
 /Cargo.lock
