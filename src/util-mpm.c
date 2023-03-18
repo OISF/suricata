@@ -53,11 +53,12 @@ int mpm_default_matcher;
  *
  * \param name A new profile to be registered to store this MpmCtx.
  * \param sm_list sm_list for this name (might be variable with xforms)
+ * \param alproto app proto or ALPROTO_UNKNOWN if not for app-layer
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
 int32_t MpmFactoryRegisterMpmCtxProfile(
-        DetectEngineCtx *de_ctx, const char *name, const int sm_list)
+        DetectEngineCtx *de_ctx, const char *name, const int sm_list, const AppProto alproto)
 {
     void *ptmp;
     /* the very first entry */
@@ -104,8 +105,8 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
         int i;
         MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
         for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (items[i].sm_list == sm_list && items[i].name != NULL &&
-                    strcmp(items[i].name, name) == 0) {
+            if (items[i].sm_list == sm_list && items[i].alproto == alproto &&
+                    items[i].name != NULL && strcmp(items[i].name, name) == 0) {
                 /* looks like we have this mpm_ctx freed */
                 if (items[i].mpm_ctx_ts == NULL) {
                     items[i].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
