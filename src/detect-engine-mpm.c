@@ -1212,7 +1212,7 @@ static uint32_t MpmStoreHashFunc(HashListTable *ht, void *data, uint16_t datalen
 {
     const MpmStore *ms = (MpmStore *)data;
     uint32_t hash = 0;
-    uint32_t b = 0;
+    uint32_t b = ms->alproto;
 
     for (b = 0; b < ms->sid_array_size; b++)
         hash += ms->sid_array[b];
@@ -1236,6 +1236,9 @@ static char MpmStoreCompareFunc(void *data1, uint16_t len1, void *data2,
 {
     const MpmStore *ms1 = (MpmStore *)data1;
     const MpmStore *ms2 = (MpmStore *)data2;
+
+    if (ms1->alproto != ms2->alproto)
+        return 0;
 
     if (ms1->sid_array_size != ms2->sid_array_size)
         return 0;
@@ -1388,11 +1391,10 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
                         pktstats[am->sm_list]++;
                         break;
                     case DETECT_BUFFER_MPM_TYPE_APP:
-                        SCLogDebug("%s %s: %u patterns. Min %u, Max %u. Ctx %p",
-                                am->name,
-                                am->direction == SIG_FLAG_TOSERVER ? "toserver":"toclient",
-                                ms->mpm_ctx->pattern_cnt,
-                                ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
+                        SCLogDebug("%s %s %s: %u patterns. Min %u, Max %u. Ctx %p",
+                                AppProtoToString(ms->alproto), am->name,
+                                am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
+                                ms->mpm_ctx->pattern_cnt, ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
                                 ms->mpm_ctx);
                         appstats[am->sm_list]++;
                         break;
@@ -1518,7 +1520,7 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             if (list != ms->sm_list)
                 continue;
 
-            SCLogDebug("adding %u", s->id);
+            SCLogDebug("%p: direction %d adding %u", ms, ms->direction, s->id);
 
             const DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
 
@@ -1662,7 +1664,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     if (cnt == 0)
         return NULL;
 
-    MpmStore lookup = { sids_array, max_sid, direction, buf, sm_list, 0, NULL};
+    MpmStore lookup = { sids_array, max_sid, direction, buf, sm_list, 0, 0, NULL };
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
@@ -1703,17 +1705,17 @@ struct SidsArray {
 static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         const DetectBufferMpmRegistery *am, const struct SidsArray *sa)
 {
+    if (sa->sids_array_size == 0 || sa->sids_array == NULL)
+        return NULL;
+
     SCLogDebug("handling %s direction %s for list %d", am->name,
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             am->sm_list);
 
-    if (sa->active == false || sa->sids_array_size == 0 || sa->sids_array == NULL)
-        return NULL;
-
     MpmStore lookup = { sa->sids_array, sa->sids_array_size, am->direction, MPMB_MAX, am->sm_list,
-        0, NULL };
-    SCLogDebug("am->direction %d am->sm_list %d",
-            am->direction, am->sm_list);
+        0, am->app_v2.alproto, NULL };
+    SCLogDebug("am->direction %d am->sm_list %d sgh_mpm_context %d", am->direction, am->sm_list,
+            am->sgh_mpm_context);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
@@ -1736,6 +1738,7 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx, SigGroup
         copy->direction = am->direction;
         copy->sm_list = am->sm_list;
         copy->sgh_mpm_context = am->sgh_mpm_context;
+        copy->alproto = am->app_v2.alproto;
 
         MpmStoreSetup(de_ctx, copy);
         MpmStoreAdd(de_ctx, copy);
@@ -1753,11 +1756,11 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx, SigGroupHead 
     SCLogDebug("handling %s for list %d", am->name,
             am->sm_list);
 
-    if (sa->active == false || sa->sids_array_size == 0 || sa->sids_array == NULL)
+    if (sa->sids_array_size == 0 || sa->sids_array == NULL)
         return NULL;
 
     MpmStore lookup = { sa->sids_array, sa->sids_array_size, SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-        MPMB_MAX, am->sm_list, 0, NULL };
+        MPMB_MAX, am->sm_list, 0, 0, NULL };
     SCLogDebug("am->sm_list %d", am->sm_list);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
@@ -1796,11 +1799,11 @@ static MpmStore *MpmStorePrepareBufferFrame(DetectEngineCtx *de_ctx, SigGroupHea
 {
     SCLogDebug("handling %s for list %d", am->name, am->sm_list);
 
-    if (sa->active == false || sa->sids_array_size == 0 || sa->sids_array == NULL)
+    if (sa->sids_array_size == 0 || sa->sids_array == NULL)
         return NULL;
 
     MpmStore lookup = { sa->sids_array, sa->sids_array_size, am->direction, MPMB_MAX, am->sm_list,
-        0, NULL };
+        0, am->frame_v1.alproto, NULL };
     SCLogDebug("am->sm_list %d", am->sm_list);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
@@ -1823,6 +1826,7 @@ static MpmStore *MpmStorePrepareBufferFrame(DetectEngineCtx *de_ctx, SigGroupHea
         copy->direction = am->direction;
         copy->sm_list = am->sm_list;
         copy->sgh_mpm_context = am->sgh_mpm_context;
+        copy->alproto = am->frame_v1.alproto;
 
         MpmStoreSetup(de_ctx, copy);
         MpmStoreAdd(de_ctx, copy);
@@ -1853,39 +1857,114 @@ static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     SCLogDebug("rule group %p does NOT have SIG_GROUP_HEAD_HAVERAWSTREAM set", sgh);
 }
 
+typedef struct DetectBufferInstance {
+    // key
+    int list;
+    AppProto alproto;
+
+    struct SidsArray ts;
+    struct SidsArray tc;
+} DetectBufferInstance;
+
+static uint32_t DetectBufferInstanceHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectBufferInstance *ms = (const DetectBufferInstance *)data;
+    uint32_t hash = ms->list + ms->alproto;
+    return hash % ht->array_size;
+}
+
+static char DetectBufferInstanceCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    const DetectBufferInstance *ms1 = (DetectBufferInstance *)data1;
+    const DetectBufferInstance *ms2 = (DetectBufferInstance *)data2;
+    return (ms1->list == ms2->list && ms1->alproto == ms2->alproto);
+}
+
+static void DetectBufferInstanceFreeFunc(void *ptr)
+{
+    DetectBufferInstance *ms = ptr;
+    if (ms->ts.sids_array != NULL)
+        SCFree(ms->ts.sids_array);
+    if (ms->tc.sids_array != NULL)
+        SCFree(ms->tc.sids_array);
+    SCFree(ms);
+}
+
+static HashListTable *DetectBufferInstanceInit(void)
+{
+    return HashListTableInit(4096, DetectBufferInstanceHashFunc, DetectBufferInstanceCompareFunc,
+            DetectBufferInstanceFreeFunc);
+}
+
 static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
+    HashListTable *bufs = DetectBufferInstanceInit();
+    BUG_ON(bufs == NULL);
+
     const int max_buffer_id = de_ctx->buffer_type_id + 1;
-    struct SidsArray sids[max_buffer_id][2];
-    memset(sids, 0, sizeof(sids));
     const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
+
+    AppProto engines[max_buffer_id][ALPROTO_MAX];
+    memset(engines, 0, sizeof(engines));
+    int engines_idx[max_buffer_id];
+    memset(engines_idx, 0, sizeof(engines_idx));
+    int types[max_buffer_id];
+    memset(types, 0, sizeof(types));
 
     /* flag the list+directions we have engines for as active */
     for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
-        struct SidsArray *sa = &sids[a->sm_list][0];
-        sa->active = true;
-        sa->type = a->type;
+        types[a->sm_list] = a->type;
+
+        DetectBufferInstance lookup = { .list = a->sm_list, .alproto = ALPROTO_UNKNOWN };
+        DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+        if (instance == NULL) {
+            instance = SCCalloc(1, sizeof(*instance));
+            BUG_ON(instance == NULL);
+            instance->list = a->sm_list;
+            instance->alproto = ALPROTO_UNKNOWN;
+            HashListTableAdd(bufs, instance, 0);
+        }
+        instance->ts.active = true;
+        instance->tc.active = true;
     }
     for (DetectBufferMpmRegistery *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
-        sids[a->sm_list][0].type = a->type;
-        if ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh)) {
-            struct SidsArray *sa = &sids[a->sm_list][0];
-            sa->active = true;
-        }
-        if ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh)) {
-            struct SidsArray *sa = &sids[a->sm_list][1];
-            sa->active = true;
+        const bool add_ts = ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh));
+        const bool add_tc = ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh));
+        if (add_ts || add_tc) {
+            types[a->sm_list] = a->type;
+            engines[a->sm_list][engines_idx[a->sm_list]++] = a->frame_v1.alproto;
+
+            DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->frame_v1.alproto };
+            DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+            if (instance == NULL) {
+                instance = SCCalloc(1, sizeof(*instance));
+                BUG_ON(instance == NULL);
+                instance->list = a->sm_list;
+                instance->alproto = a->frame_v1.alproto;
+                HashListTableAdd(bufs, instance, 0);
+            }
+            instance->ts.active |= add_ts;
+            instance->tc.active |= add_tc;
         }
     }
     for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
-        sids[a->sm_list][0].type = a->type;
-        if ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh)) {
-            struct SidsArray *sa = &sids[a->sm_list][0];
-            sa->active = true;
-        }
-        if ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh)) {
-            struct SidsArray *sa = &sids[a->sm_list][1];
-            sa->active = true;
+        const bool add_ts = ((a->direction == SIG_FLAG_TOSERVER) && SGH_DIRECTION_TS(sh));
+        const bool add_tc = ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh));
+        if (add_ts || add_tc) {
+            types[a->sm_list] = a->type;
+            engines[a->sm_list][engines_idx[a->sm_list]++] = a->app_v2.alproto;
+
+            DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->app_v2.alproto };
+            DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+            if (instance == NULL) {
+                instance = SCCalloc(1, sizeof(*instance));
+                BUG_ON(instance == NULL);
+                instance->list = a->sm_list;
+                instance->alproto = a->app_v2.alproto;
+                HashListTableAdd(bufs, instance, 0);
+            }
+            instance->ts.active |= add_ts;
+            instance->tc.active |= add_tc;
         }
     }
 
@@ -1901,36 +1980,53 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (list == DETECT_SM_LIST_PMATCH)
             continue;
 
-        switch (sids[list][0].type) {
-            /* app/frame engines are direction aware */
+        switch (types[list]) {
+            /* app engines are direction aware */
             case DETECT_BUFFER_MPM_TYPE_FRAME:
-            case DETECT_BUFFER_MPM_TYPE_APP:
-                if (s->flags & SIG_FLAG_TOSERVER) {
-                    struct SidsArray *sa = &sids[list][0];
-                    if (sa->active) {
-                        if (sa->sids_array == NULL) {
-                            sa->sids_array = SCCalloc(1, max_sid);
-                            sa->sids_array_size = max_sid;
-                            BUG_ON(sa->sids_array == NULL); // TODO
+            case DETECT_BUFFER_MPM_TYPE_APP: {
+                for (int e = 0; e < engines_idx[list]; e++) {
+                    const AppProto alproto = engines[list][e];
+                    if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
+                        continue;
+
+                    DetectBufferInstance lookup = { .list = list, .alproto = alproto };
+                    DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+                    if (instance == NULL)
+                        continue;
+                    if (s->flags & SIG_FLAG_TOSERVER) {
+                        struct SidsArray *sa = &instance->ts;
+                        if (sa->active) {
+                            if (sa->sids_array == NULL) {
+                                sa->sids_array = SCCalloc(1, max_sid);
+                                sa->sids_array_size = max_sid;
+                                BUG_ON(sa->sids_array == NULL); // TODO
+                            }
+                            sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                            SCLogDebug("instance %p: stored %u/%u ts", instance, s->id, s->num);
                         }
-                        sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
                     }
-                }
-                if (s->flags & SIG_FLAG_TOCLIENT) {
-                    struct SidsArray *sa = &sids[list][1];
-                    if (sa->active) {
-                        if (sa->sids_array == NULL) {
-                            sa->sids_array = SCCalloc(1, max_sid);
-                            sa->sids_array_size = max_sid;
-                            BUG_ON(sa->sids_array == NULL); // TODO
+                    if (s->flags & SIG_FLAG_TOCLIENT) {
+                        struct SidsArray *sa = &instance->tc;
+                        if (sa->active) {
+                            if (sa->sids_array == NULL) {
+                                sa->sids_array = SCCalloc(1, max_sid);
+                                sa->sids_array_size = max_sid;
+                                BUG_ON(sa->sids_array == NULL); // TODO
+                            }
+                            sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                            SCLogDebug("instance %p: stored %u/%u tc", instance, s->id, s->num);
                         }
-                        sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
                     }
                 }
                 break;
-            /* pkt engines are directionless, so only use index 0 */
+            }
+            /* pkt engines are directionless, so only use ts */
             case DETECT_BUFFER_MPM_TYPE_PKT: {
-                struct SidsArray *sa = &sids[list][0];
+                DetectBufferInstance lookup = { .list = list, .alproto = ALPROTO_UNKNOWN };
+                DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+                if (instance == NULL)
+                    continue;
+                struct SidsArray *sa = &instance->ts;
                 if (sa->active) {
                     if (sa->sids_array == NULL) {
                         sa->sids_array = SCCalloc(1, max_sid);
@@ -1957,7 +2053,14 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     BUG_ON(sh->init->frame_mpms == NULL);
 
     for (DetectBufferMpmRegistery *a = de_ctx->pkt_mpms_list; a != NULL; a = a->next) {
-        struct SidsArray *sa = &sids[a->sm_list][0];
+        DetectBufferInstance lookup = { .list = a->sm_list, .alproto = ALPROTO_UNKNOWN };
+        DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+        if (instance == NULL) {
+            continue;
+        }
+        struct SidsArray *sa = &instance->ts;
+        if (!sa->active)
+            continue;
 
         MpmStore *mpm_store = MpmStorePrepareBufferPkt(de_ctx, sh, a, sa);
         if (mpm_store != NULL) {
@@ -1980,8 +2083,15 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     for (DetectBufferMpmRegistery *a = de_ctx->frame_mpms_list; a != NULL; a = a->next) {
         if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
                 (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh))) {
-            const int dir = a->direction == SIG_FLAG_TOCLIENT;
-            struct SidsArray *sa = &sids[a->sm_list][dir];
+            DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->frame_v1.alproto };
+            DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+            if (instance == NULL) {
+                continue;
+            }
+            struct SidsArray *sa =
+                    (a->direction == SIG_FLAG_TOSERVER) ? &instance->ts : &instance->tc;
+            if (!sa->active)
+                continue;
 
             SCLogDebug("a %s direction %d PrefilterRegisterWithListId %p", a->name, a->direction,
                     a->PrefilterRegisterWithListId);
@@ -2007,8 +2117,16 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     for (DetectBufferMpmRegistery *a = de_ctx->app_mpms_list; a != NULL; a = a->next) {
         if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
                 (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh))) {
-            const int dir = a->direction == SIG_FLAG_TOCLIENT;
-            struct SidsArray *sa = &sids[a->sm_list][dir];
+
+            DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->app_v2.alproto };
+            DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
+            if (instance == NULL) {
+                continue;
+            }
+            struct SidsArray *sa =
+                    (a->direction == SIG_FLAG_TOSERVER) ? &instance->ts : &instance->tc;
+            if (!sa->active)
+                continue;
 
             MpmStore *mpm_store = MpmStorePrepareBufferAppLayer(de_ctx, sh, a, sa);
             if (mpm_store != NULL) {
@@ -2028,17 +2146,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
     }
-
-    /* free temp sig arrays */
-    for (int i = 0; i < max_buffer_id; i++) {
-        struct SidsArray *sa;
-        sa = &sids[i][0];
-        if (sa->sids_array != NULL)
-            SCFree(sa->sids_array);
-        sa = &sids[i][1];
-        if (sa->sids_array != NULL)
-            SCFree(sa->sids_array);
-    }
+    HashListTableFree(bufs);
 }
 
 /** \brief Prepare the pattern matcher ctx in a sig group head.
