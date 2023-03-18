@@ -53,11 +53,12 @@ uint8_t mpm_default_matcher;
  *
  * \param name A new profile to be registered to store this MpmCtx.
  * \param sm_list sm_list for this name (might be variable with xforms)
+ * \param alproto app proto or ALPROTO_UNKNOWN if not for app-layer
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
 int32_t MpmFactoryRegisterMpmCtxProfile(
-        DetectEngineCtx *de_ctx, const char *name, const int sm_list)
+        DetectEngineCtx *de_ctx, const char *name, const int sm_list, const AppProto alproto)
 {
     /* the very first entry */
     if (de_ctx->mpm_ctx_factory_container == NULL) {
@@ -71,7 +72,8 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     MpmCtxFactoryItem *item = de_ctx->mpm_ctx_factory_container->items;
     MpmCtxFactoryItem *pitem = NULL;
     while (item) {
-        if (item->sm_list == sm_list && item->name != NULL && strcmp(item->name, name) == 0) {
+        if (item->sm_list == sm_list && item->alproto == alproto && item->name != NULL &&
+                strcmp(item->name, name) == 0) {
             return item->id;
         }
         pitem = item;
@@ -85,6 +87,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     nitem->name = name;
     nitem->sm_list = sm_list;
     nitem->id = de_ctx->mpm_ctx_factory_container->max_id++;
+    nitem->alproto = alproto;
 
     /* toserver */
     nitem->mpm_ctx_ts = SCCalloc(1, sizeof(MpmCtx));

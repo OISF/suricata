@@ -24,6 +24,7 @@
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
 
+#include "app-layer-protos.h"
 #include "util-prefilter.h"
 
 #define MPM_INIT_HASH_SIZE 65536
@@ -118,6 +119,7 @@ typedef struct MpmCtxFactoryItem {
     MpmCtx *mpm_ctx_tc;
     int32_t id;
     int32_t sm_list;
+    AppProto alproto; /**< ALPROTO_UNKNOWN is not an app item */
     struct MpmCtxFactoryItem *next;
 } MpmCtxFactoryItem;
 
@@ -174,7 +176,8 @@ extern uint8_t mpm_default_matcher;
 
 struct DetectEngineCtx_;
 
-int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *, const int);
+int32_t MpmFactoryRegisterMpmCtxProfile(
+        struct DetectEngineCtx_ *, const char *, const int, const AppProto);
 void MpmFactoryReClaimMpmCtx(const struct DetectEngineCtx_ *, MpmCtx *);
 MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, int);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
