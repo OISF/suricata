@@ -684,6 +684,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                             (char *)"pattern looks like it inspects HTTP, use http.user_agent "
                                     "or http.header for improved performance");
                 }
+                if (cd->flags & DETECT_CONTENT_WITHIN2DEPTH) {
+                    AnalyzerNote(ctx, (char *)"'within' option for pattern w/o previous content "
+                                              "was converted to 'depth'");
+                }
+                if (cd->flags & DETECT_CONTENT_DISTANCE2OFFSET) {
+                    AnalyzerNote(ctx, (char *)"'distance' option for pattern w/o previous content "
+                                              "was converted to 'offset'");
+                }
                 jb_close(js);
                 break;
             }
