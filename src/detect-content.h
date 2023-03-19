@@ -59,6 +59,8 @@
 #define DETECT_CONTENT_STARTS_WITH      BIT_U32(19)
 /** MPM pattern selected by the engine or forced by fast_pattern keyword */
 #define DETECT_CONTENT_MPM              BIT_U32(20)
+#define DETECT_CONTENT_WITHIN2DEPTH     BIT_U32(21)
+#define DETECT_CONTENT_DISTANCE2OFFSET  BIT_U32(22)
 
 /** a relative match to this content is next, used in matching phase */
 #define DETECT_CONTENT_RELATIVE_NEXT    (DETECT_CONTENT_WITHIN_NEXT|DETECT_CONTENT_DISTANCE_NEXT)

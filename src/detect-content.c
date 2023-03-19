@@ -528,6 +528,27 @@ static void PropagateLimits(Signature *s, SigMatch *sm_head)
                     has_active_depth_chain = false;
                     continue;
                 }
+                if (sm->prev == NULL) {
+                    if (cd->distance >= 0 && cd->distance <= (int32_t)USHRT_MAX &&
+                            cd->within >= 0 && cd->within <= (int32_t)USHRT_MAX) {
+                        if (cd->flags & DETECT_CONTENT_DISTANCE) {
+                            if (cd->distance > 0)
+                                cd->flags |= DETECT_CONTENT_OFFSET;
+                            cd->flags &= ~DETECT_CONTENT_DISTANCE;
+                            cd->offset = (uint16_t)cd->distance;
+                            cd->distance = 0;
+                            cd->flags |= DETECT_CONTENT_DISTANCE2OFFSET;
+                        }
+                        if (cd->flags & DETECT_CONTENT_WITHIN) {
+                            cd->flags |= DETECT_CONTENT_DEPTH;
+                            cd->flags &= ~DETECT_CONTENT_WITHIN;
+                            cd->depth = (uint16_t)cd->within + cd->offset;
+                            cd->within = 0;
+                            cd->flags |= DETECT_CONTENT_WITHIN2DEPTH;
+                        }
+                    }
+                }
+
                 if (cd->flags & DETECT_CONTENT_NEGATED) {
                     offset = depth = 0;
                     offset_plus_pat = 0;
