@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1077,7 +1077,7 @@ static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
 TmEcode NFQSetVerdict(Packet *p)
 {
     int iter = 0;
-    /* we could also have a direct pointer but we need to have a ref counf in this case */
+    /* we could also have a direct pointer but we need to have a ref count in this case */
     NFQQueueVars *t = g_nfq_q + p->nfq_v.nfq_index;
 
     p->nfq_v.verdicted = 1;
