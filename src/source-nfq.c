@@ -532,6 +532,9 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (nfq_config.bypass_mask) {
         p->BypassPacketsFlow = NFQBypassCallback;
     }
+
+    p->ReleasePacket = NFQReleasePacket;
+
     ret = NFQSetupPkt(p, qh, (void *)nfa);
     if (ret == -1) {
 #ifdef COUNTERS
@@ -547,8 +550,6 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         TmqhOutputPacketpool(tv, p);
         return 0;
     }
-
-    p->ReleasePacket = NFQReleasePacket;
 
 #ifdef COUNTERS
     NFQQueueVars *q = NFQGetQueue(ntv->nfq_index);
