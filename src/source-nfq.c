@@ -145,6 +145,7 @@ static TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
 static TmEcode NFQSetVerdict(Packet *p);
+static void NFQReleasePacket(Packet *p);
 
 typedef enum NFQMode_ {
     NFQ_ACCEPT_MODE,
@@ -407,6 +408,10 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     char *pktdata;
     struct nfqnl_msg_packet_hdr *ph;
 
+    // Early release function -- will be updated once repeat
+    // mode handling has been done
+    p->ReleasePacket = PacketFreeOrRelease;
+
     ph = nfq_get_msg_packet_hdr(tb);
     if (ph != NULL) {
         p->nfq_v.id = SCNtohl(ph->packet_id);
@@ -431,6 +436,9 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
             return -1 ;
         }
     }
+
+    // Switch to full featured release function
+    p->ReleasePacket = NFQReleasePacket;
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
     p->nfq_v.verdicted = 0;
@@ -532,6 +540,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (nfq_config.bypass_mask) {
         p->BypassPacketsFlow = NFQBypassCallback;
     }
+
     ret = NFQSetupPkt(p, qh, (void *)nfa);
     if (ret == -1) {
 #ifdef COUNTERS
@@ -547,8 +556,6 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         TmqhOutputPacketpool(tv, p);
         return 0;
     }
-
-    p->ReleasePacket = NFQReleasePacket;
 
 #ifdef COUNTERS
     NFQQueueVars *q = NFQGetQueue(ntv->nfq_index);
