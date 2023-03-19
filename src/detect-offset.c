@@ -54,15 +54,12 @@ void DetectOffsetRegister (void)
 int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)
 {
     const char *str = offsetstr;
-    SigMatch *pm = NULL;
-    int ret = -1;
 
     /* retrive the sm to apply the offset against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError("offset needs "
-                   "preceding content option.");
-        goto end;
+        SCLogError("offset needs preceding content option.");
+        return -1;
     }
 
     /* verify other conditions */
@@ -70,28 +67,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
 
     if (cd->flags & DETECT_CONTENT_STARTS_WITH) {
         SCLogError("can't use offset with startswith.");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
         SCLogError("can't use multiple offsets for the same content.");
-        goto end;
+        return -1;
     }
-    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
         SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
                    "content.");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError("can't have a relative "
                    "negated keyword set along with 'fast_pattern'.");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError("can't have a relative "
                    "keyword set along with 'fast_pattern:only;'.");
-        goto end;
+        return -1;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
@@ -99,7 +96,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
             SCLogError("unknown byte_ keyword var "
                        "seen in offset - %s.",
                     str);
-            goto end;
+            return -1;
         }
         cd->offset = index;
         cd->flags |= DETECT_CONTENT_OFFSET_VAR;
@@ -107,7 +104,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         if (StringParseUint16(&cd->offset, 0, 0, str) < 0)
         {
             SCLogError("invalid value for offset: %s.", str);
-            goto end;
+            return -1;
         }
         if (cd->depth != 0) {
             if (cd->depth < cd->content_len) {
@@ -120,9 +117,6 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         }
     }
     cd->flags |= DETECT_CONTENT_OFFSET;
-
-    ret = 0;
- end:
-    return ret;
+    return 0;
 }
 
