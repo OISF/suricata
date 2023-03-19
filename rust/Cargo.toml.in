@@ -61,6 +61,9 @@ bendy = { version = "~0.3.3", default-features = false }
 
 suricata-derive = { path = "./derive" }
 
+[patch.crates-io]
+syn = { git = "https://github.com/dtolnay/syn", tag = "1.0.109" }
+
 [dev-dependencies]
 test-case = "~1.1.0"
 hex = "~0.4.3"
