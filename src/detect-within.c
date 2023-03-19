@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,54 +71,51 @@ void DetectWithinRegister(void)
 static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *withinstr)
 {
     const char *str = withinstr;
-    SigMatch *pm = NULL;
-    int ret = -1;
 
     /* retrieve the sm to apply the within against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
-        SCLogError("within needs "
-                   "preceding content option");
-        goto end;
+        SCLogError("within needs preceding content option");
+        return -1;
     }
 
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd->flags & DETECT_CONTENT_WITHIN) {
         SCLogError("can't use multiple withins for the same content.");
-        goto end;
+        return -1;
     }
     if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
         SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
                    "content.");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError("can't have a relative "
                    "negated keyword set along with a fast_pattern");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError("can't have a relative "
                    "keyword set along with a fast_pattern:only;");
-        goto end;
+        return -1;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(str, s, &index)) {
             SCLogError("unknown byte_ keyword var "
-                       "seen in within - %s\n",
+                       "seen in within - %s",
                     str);
-            goto end;
+            return -1;
         }
         cd->within = index;
         cd->flags |= DETECT_CONTENT_WITHIN_VAR;
     } else {
         if (StringParseInt32(&cd->within, 0, 0, str) < 0) {
             SCLogError("invalid value for within: %s", str);
-            goto end;
+            return -1;
         }
 
         if (cd->within < (int32_t)cd->content_len) {
@@ -126,7 +123,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                        "less than the content length \"%" PRIu32 "\" which is invalid, since "
                        "this will never match.  Invalidating signature",
                     cd->within, cd->content_len);
-            goto end;
+            return -1;
         }
     }
     cd->flags |= DETECT_CONTENT_WITHIN;
@@ -137,8 +134,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
             DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
-        ret = 0;
-        goto end;
+        return 0;
     }
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *prev_cd = (DetectContentData *)prev_pm->ctx;
@@ -147,17 +143,14 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                        "has a fast_pattern:only; set. Can't "
                        "have relative keywords around a fast_pattern "
                        "only content");
-            goto end;
+            return -1;
         }
         prev_cd->flags |= DETECT_CONTENT_WITHIN_NEXT;
     } else if (prev_pm->type == DETECT_PCRE) {
         DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
-
-    ret = 0;
- end:
-    return ret;
+    return 0;
 }
 
 /***********************************Unittests**********************************/
