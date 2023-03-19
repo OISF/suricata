@@ -501,199 +501,203 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
  *  cannot set a depth, but we can set an offset of 'offset:1;'. This will
  *  make the mpm a bit more precise.
  */
-void DetectContentPropagateLimits(Signature *s)
+static void PropagateLimits(Signature *s, SigMatch *sm_head)
 {
 #define VALIDATE(e)                                                                                \
     if (!(e)) {                                                                                    \
         return;                                                                                    \
     }
-    BUG_ON(s == NULL || s->init_data == NULL);
+    uint16_t offset = 0;
+    uint16_t offset_plus_pat = 0;
+    uint16_t depth = 0;
+    bool has_active_depth_chain = false;
 
-    uint32_t list = 0;
-    for (list = 0; list < s->init_data->smlists_array_size; list++) {
-        uint16_t offset = 0;
-        uint16_t offset_plus_pat = 0;
-        uint16_t depth = 0;
-        bool has_active_depth_chain = false;
+    bool has_depth = false;
+    bool has_ends_with = false;
+    uint16_t ends_with_depth = 0;
 
-        bool has_depth = false;
-        bool has_ends_with = false;
-        uint16_t ends_with_depth = 0;
+    for (SigMatch *sm = sm_head; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_CONTENT: {
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if ((cd->flags & (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET |
+                                         DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) == 0) {
+                    offset = depth = 0;
+                    offset_plus_pat = cd->content_len;
+                    SCLogDebug("reset");
+                    has_active_depth_chain = false;
+                    continue;
+                }
+                if (cd->flags & DETECT_CONTENT_NEGATED) {
+                    offset = depth = 0;
+                    offset_plus_pat = 0;
+                    SCLogDebug("reset because of negation");
+                    has_active_depth_chain = false;
+                    continue;
+                }
 
-        SigMatch *sm = s->init_data->smlists[list];
-        for ( ; sm != NULL; sm = sm->next) {
+                if (cd->depth) {
+                    has_depth = true;
+                    has_active_depth_chain = true;
+                }
+
+                SCLogDebug("sm %p depth %u offset %u distance %d within %d", sm, cd->depth,
+                        cd->offset, cd->distance, cd->within);
+                SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth,
+                        offset_plus_pat);
+
+                if ((cd->flags & (DETECT_DEPTH | DETECT_CONTENT_WITHIN)) == 0) {
+                    if (depth)
+                        SCLogDebug("no within, reset depth");
+                    depth = 0;
+                    has_active_depth_chain = false;
+                }
+                if ((cd->flags & DETECT_CONTENT_DISTANCE) == 0) {
+                    if (offset_plus_pat)
+                        SCLogDebug("no distance, reset offset_plus_pat & offset");
+                    offset_plus_pat = offset = 0;
+                }
+
+                SCLogDebug("stored: offset %u depth %u offset_plus_pat %u "
+                           "has_active_depth_chain %s",
+                        offset, depth, offset_plus_pat, has_active_depth_chain ? "true" : "false");
+                if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                    VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
+                    offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                    SCLogDebug("updated content to have offset %u", cd->offset);
+                }
+                if (has_active_depth_chain) {
+                    if (offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
+                        if (depth && depth > offset_plus_pat) {
+                            int32_t dist = 0;
+                            if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance > 0) {
+                                dist = cd->distance;
+                                SCLogDebug(
+                                        "distance to add: %u. depth + dist %u", dist, depth + dist);
+                            }
+                            SCLogDebug("depth %u + cd->within %u", depth, cd->within);
+                            VALIDATE(depth + cd->within + dist >= 0 &&
+                                     depth + cd->within + dist <= UINT16_MAX);
+                            depth = cd->depth = (uint16_t)(depth + cd->within + dist);
+                        } else {
+                            SCLogDebug("offset %u + cd->within %u", offset, cd->within);
+                            VALIDATE(depth + cd->within >= 0 && depth + cd->within <= UINT16_MAX);
+                            depth = cd->depth = (uint16_t)(offset + cd->within);
+                        }
+                        SCLogDebug("updated content to have depth %u", cd->depth);
+                    } else {
+                        if (cd->depth == 0 && depth != 0) {
+                            if (cd->within > 0) {
+                                SCLogDebug("within %d distance %d", cd->within, cd->distance);
+                                if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                                    VALIDATE(offset_plus_pat + cd->distance >= 0 &&
+                                             offset_plus_pat + cd->distance <= UINT16_MAX);
+                                    cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                                    SCLogDebug("updated content to have offset %u", cd->offset);
+                                }
+
+                                VALIDATE(depth + cd->within >= 0 &&
+                                         depth + cd->within <= UINT16_MAX);
+                                depth = cd->depth = (uint16_t)(cd->within + depth);
+                                SCLogDebug("updated content to have depth %u", cd->depth);
+
+                                if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                                    has_ends_with = true;
+                                    if (ends_with_depth == 0)
+                                        ends_with_depth = depth;
+                                    ends_with_depth = MIN(ends_with_depth, depth);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (cd->offset == 0) { // && offset != 0) {
+                    if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                        cd->offset = offset_plus_pat;
+                        SCLogDebug("update content to have offset %u", cd->offset);
+                    }
+                }
+
+                if ((cd->flags & (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET |
+                                         DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) ==
+                                (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
+                        (cd->flags & (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET |
+                                             DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) ==
+                                (DETECT_CONTENT_DISTANCE)) {
+                    if (cd->distance >= 0) {
+                        // only distance
+                        VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
+                        offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                        offset_plus_pat = offset + cd->content_len;
+                        SCLogDebug("offset %u offset_plus_pat %u", offset, offset_plus_pat);
+                    }
+                }
+                if (cd->flags & DETECT_CONTENT_OFFSET) {
+                    offset = cd->offset;
+                    offset_plus_pat = offset + cd->content_len;
+                    SCLogDebug("stored offset %u offset_plus_pat %u", offset, offset_plus_pat);
+                }
+                if (cd->depth) {
+                    depth = cd->depth;
+                    SCLogDebug("stored depth now %u", depth);
+                    offset_plus_pat = offset + cd->content_len;
+                    if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                        has_ends_with = true;
+                        if (ends_with_depth == 0)
+                            ends_with_depth = depth;
+                        ends_with_depth = MIN(ends_with_depth, depth);
+                    }
+                }
+                if ((cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DEPTH)) == 0) {
+                    has_active_depth_chain = false;
+                    depth = 0;
+                }
+                break;
+            }
+            case DETECT_PCRE: {
+                // relative could leave offset_plus_pat set.
+                const DetectPcreData *pd = (const DetectPcreData *)sm->ctx;
+                if (pd->flags & DETECT_PCRE_RELATIVE) {
+                    depth = 0;
+                } else {
+                    SCLogDebug("non-anchored PCRE not supported, reset offset_plus_pat & offset");
+                    offset_plus_pat = offset = depth = 0;
+                }
+                has_active_depth_chain = false;
+                break;
+            }
+            default:
+                SCLogDebug("keyword not supported, reset offset_plus_pat & offset");
+                offset_plus_pat = offset = depth = 0;
+                has_active_depth_chain = false;
+                break;
+        }
+    }
+    /* apply anchored 'ends with' as depth to all patterns */
+    if (has_depth && has_ends_with) {
+        for (SigMatch *sm = sm_head; sm != NULL; sm = sm->next) {
             switch (sm->type) {
                 case DETECT_CONTENT: {
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if ((cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == 0) {
-                        offset = depth = 0;
-                        offset_plus_pat = cd->content_len;
-                        SCLogDebug("reset");
-                        has_active_depth_chain = false;
-                        continue;
-                    }
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        offset = depth = 0;
-                        offset_plus_pat = 0;
-                        SCLogDebug("reset because of negation");
-                        has_active_depth_chain = false;
-                        continue;
-                    }
-
-                    if (cd->depth) {
-                        has_depth = true;
-                        has_active_depth_chain = true;
-                    }
-
-                    SCLogDebug("sm %p depth %u offset %u distance %d within %d", sm, cd->depth, cd->offset, cd->distance, cd->within);
-                    SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth, offset_plus_pat);
-
-                    if ((cd->flags & (DETECT_DEPTH | DETECT_CONTENT_WITHIN)) == 0) {
-                        if (depth)
-                            SCLogDebug("no within, reset depth");
-                        depth = 0;
-                        has_active_depth_chain = false;
-                    }
-                    if ((cd->flags & DETECT_CONTENT_DISTANCE) == 0) {
-                        if (offset_plus_pat)
-                            SCLogDebug("no distance, reset offset_plus_pat & offset");
-                        offset_plus_pat = offset = 0;
-                    }
-
-                    SCLogDebug("stored: offset %u depth %u offset_plus_pat %u "
-                               "has_active_depth_chain %s",
-                            offset, depth, offset_plus_pat,
-                            has_active_depth_chain ? "true" : "false");
-                    if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                        VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
-                        offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
-                        SCLogDebug("updated content to have offset %u", cd->offset);
-                    }
-                    if (has_active_depth_chain) {
-                        if (offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN &&
-                                cd->within >= 0) {
-                            if (depth && depth > offset_plus_pat) {
-                                int32_t dist = 0;
-                                if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance > 0) {
-                                    dist = cd->distance;
-                                    SCLogDebug("distance to add: %u. depth + dist %u", dist,
-                                            depth + dist);
-                                }
-                                SCLogDebug("depth %u + cd->within %u", depth, cd->within);
-                                VALIDATE(depth + cd->within + dist >= 0 &&
-                                         depth + cd->within + dist <= UINT16_MAX);
-                                depth = cd->depth = (uint16_t)(depth + cd->within + dist);
-                            } else {
-                                SCLogDebug("offset %u + cd->within %u", offset, cd->within);
-                                VALIDATE(depth + cd->within >= 0 &&
-                                         depth + cd->within <= UINT16_MAX);
-                                depth = cd->depth = (uint16_t)(offset + cd->within);
-                            }
-                            SCLogDebug("updated content to have depth %u", cd->depth);
-                        } else {
-                            if (cd->depth == 0 && depth != 0) {
-                                if (cd->within > 0) {
-                                    SCLogDebug("within %d distance %d", cd->within, cd->distance);
-                                    if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                                        VALIDATE(offset_plus_pat + cd->distance >= 0 &&
-                                                 offset_plus_pat + cd->distance <= UINT16_MAX);
-                                        cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
-                                        SCLogDebug("updated content to have offset %u", cd->offset);
-                                    }
-
-                                    VALIDATE(depth + cd->within >= 0 &&
-                                             depth + cd->within <= UINT16_MAX);
-                                    depth = cd->depth = (uint16_t)(cd->within + depth);
-                                    SCLogDebug("updated content to have depth %u", cd->depth);
-
-                                    if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
-                                        has_ends_with = true;
-                                        if (ends_with_depth == 0)
-                                            ends_with_depth = depth;
-                                        ends_with_depth = MIN(ends_with_depth, depth);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (cd->offset == 0) {// && offset != 0) {
-                        if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                            cd->offset = offset_plus_pat;
-                            SCLogDebug("update content to have offset %u", cd->offset);
-                        }
-                    }
-
-                    if ((cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE|DETECT_CONTENT_WITHIN) ||
-                            (cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE)) {
-                        if (cd->distance >= 0) {
-                            // only distance
-                            VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
-                            offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
-                            offset_plus_pat = offset + cd->content_len;
-                            SCLogDebug("offset %u offset_plus_pat %u", offset, offset_plus_pat);
-                        }
-                    }
-                    if (cd->flags & DETECT_CONTENT_OFFSET) {
-                        offset = cd->offset;
-                        offset_plus_pat = offset + cd->content_len;
-                        SCLogDebug("stored offset %u offset_plus_pat %u", offset, offset_plus_pat);
-                    }
-                    if (cd->depth) {
-                        depth = cd->depth;
-                        SCLogDebug("stored depth now %u", depth);
-                        offset_plus_pat = offset + cd->content_len;
-                        if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
-                            has_ends_with = true;
-                            if (ends_with_depth == 0)
-                                ends_with_depth = depth;
-                            ends_with_depth = MIN(ends_with_depth, depth);
-                        }
-                    }
-                    if ((cd->flags & (DETECT_CONTENT_WITHIN|DETECT_CONTENT_DEPTH)) == 0) {
-                        has_active_depth_chain = false;
-                        depth = 0;
-                    }
+                    if (cd->depth == 0)
+                        cd->depth = ends_with_depth;
+                    cd->depth = MIN(ends_with_depth, cd->depth);
+                    if (cd->depth)
+                        cd->flags |= DETECT_CONTENT_DEPTH;
                     break;
-                }
-                case DETECT_PCRE: {
-                    // relative could leave offset_plus_pat set.
-                    const DetectPcreData *pd = (const DetectPcreData *)sm->ctx;
-                    if (pd->flags & DETECT_PCRE_RELATIVE) {
-                        depth = 0;
-                    } else {
-                        SCLogDebug("non-anchored PCRE not supported, reset offset_plus_pat & offset");
-                        offset_plus_pat = offset = depth = 0;
-                    }
-                    has_active_depth_chain = false;
-                    break;
-                }
-                default: {
-                    SCLogDebug("keyword not supported, reset offset_plus_pat & offset");
-                    offset_plus_pat = offset = depth = 0;
-                    has_active_depth_chain = false;
-                    break;
-                }
-            }
-        }
-        /* apply anchored 'ends with' as depth to all patterns */
-        if (has_depth && has_ends_with) {
-            sm = s->init_data->smlists[list];
-            for ( ; sm != NULL; sm = sm->next) {
-                switch (sm->type) {
-                    case DETECT_CONTENT: {
-                        DetectContentData *cd = (DetectContentData *)sm->ctx;
-                        if (cd->depth == 0)
-                            cd->depth = ends_with_depth;
-                        cd->depth = MIN(ends_with_depth, cd->depth);
-                        if (cd->depth)
-                            cd->flags |= DETECT_CONTENT_DEPTH;
-                        break;
-                    }
                 }
             }
         }
     }
 #undef VALIDATE
+}
+
+void DetectContentPropagateLimits(Signature *s)
+{
+    for (uint32_t list = 0; list < s->init_data->smlists_array_size; list++) {
+        SigMatch *sm = s->init_data->smlists[list];
+        PropagateLimits(s, sm);
+    }
 }
 
 static inline bool NeedsAsHex(uint8_t c)
