@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,11 +70,9 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         const char *distancestr)
 {
     const char *str = distancestr;
-    SigMatch *pm = NULL;
-    int ret = -1;
 
     /* retrieve the sm to apply the distance against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("distance needs "
                    "preceding content, uricontent option, http_client_body, "
@@ -82,46 +80,46 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                    "http_method option, http_cookie, http_raw_uri, "
                    "http_stat_msg, http_stat_code, http_user_agent or "
                    "file_data/dce_stub_data sticky buffer option");
-        goto end;
+        return -1;
     }
 
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd->flags & DETECT_CONTENT_DISTANCE) {
         SCLogError("can't use multiple distances for the same content.");
-        goto end;
+        return -1;
     }
     if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
         SCLogError("can't use a relative "
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
                    "content.");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError("can't have a relative "
                    "negated keyword set along with a fast_pattern");
-        goto end;
+        return -1;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError("can't have a relative "
                    "keyword set along with a fast_pattern:only;");
-        goto end;
+        return -1;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(str, s, &index)) {
             SCLogError("unknown byte_ keyword var "
-                       "seen in distance - %s\n",
+                       "seen in distance - %s",
                     str);
-            goto end;
+            return -1;
         }
         cd->distance = index;
         cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
         if (StringParseInt32(&cd->distance, 0, 0, str) < 0) {
             SCLogError("invalid value for distance: %s", str);
-            goto end;
+            return -1;
         }
     }
     cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -129,9 +127,9 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
             DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
-        ret = 0;
-        goto end;
+        return 0;
     }
+
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *prev_cd = (DetectContentData *)prev_pm->ctx;
         if (prev_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
@@ -139,7 +137,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                        "has a fast_pattern:only; set. Can't "
                        "have relative keywords around a fast_pattern "
                        "only content");
-            goto end;
+            return -1;
         }
         if ((cd->flags & DETECT_CONTENT_NEGATED) == 0) {
             prev_cd->flags |= DETECT_CONTENT_DISTANCE_NEXT;
@@ -151,9 +149,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
-    ret = 0;
- end:
-    return ret;
+    return 0;
 }
 
 #ifdef UNITTESTS
@@ -161,9 +157,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 static int DetectDistanceTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = DetectEngineAppendSig(de_ctx,
