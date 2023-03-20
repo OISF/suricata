@@ -1341,9 +1341,9 @@
                 "has_exe_url": {
                     "type": "boolean"
                 },
-		"message_id": {
-		    "type": "string"
-		}
+                "message_id": {
+                    "type": "string"
+                }
             },
             "additionalProperties": false
         },
@@ -1490,6 +1490,9 @@
                 },
                 "dest_port": {
                     "type": "integer"
+                },
+                "emergency": {
+                    "type": "boolean"
                 },
                 "end": {
                     "type": "string"
