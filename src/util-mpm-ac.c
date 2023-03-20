@@ -355,7 +355,7 @@ static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     uint32_t u = 0;
 
-    int map[256];
+    uint8_t map[256];
     memset(map, 0, sizeof(map));
 
     for (u = 0; u < mpm_ctx->pattern_cnt; u++)
@@ -472,8 +472,10 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue q;
-    memset(&q, 0, sizeof(StateQueue));
+    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
+    if (q == NULL) {
+        FatalError("Error allocating memory");
+    }
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACCtx->state_count) */
@@ -489,19 +491,19 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
     for (ascii_code = 0; ascii_code < 256; ascii_code++) {
         int32_t temp_state = ctx->goto_table[0][ascii_code];
         if (temp_state != 0) {
-            SCACEnqueue(&q, temp_state);
+            SCACEnqueue(q, temp_state);
             ctx->failure_table[temp_state] = 0;
         }
     }
 
-    while (!SCACStateQueueIsEmpty(&q)) {
+    while (!SCACStateQueueIsEmpty(q)) {
         /* pick up every state from the queue and add failure transitions */
-        r_state = SCACDequeue(&q);
+        r_state = SCACDequeue(q);
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             int32_t temp_state = ctx->goto_table[r_state][ascii_code];
             if (temp_state == SC_AC_FAIL)
                 continue;
-            SCACEnqueue(&q, temp_state);
+            SCACEnqueue(q, temp_state);
             state = ctx->failure_table[r_state];
 
             while(ctx->goto_table[state][ascii_code] == SC_AC_FAIL)
@@ -511,6 +513,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
                                  mpm_ctx);
         }
     }
+    SCFree(q);
 
     return;
 }
@@ -535,24 +538,26 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u16));
 
-        StateQueue q;
-        memset(&q, 0, sizeof(StateQueue));
+        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
+        if (q == NULL) {
+            FatalError("Error allocating memory");
+        }
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             DEBUG_VALIDATE_BUG_ON(ctx->goto_table[0][ascii_code] > UINT16_MAX);
             SC_AC_STATE_TYPE_U16 temp_state = (uint16_t)ctx->goto_table[0][ascii_code];
             ctx->state_table_u16[0][ascii_code] = temp_state;
             if (temp_state != 0)
-                SCACEnqueue(&q, temp_state);
+                SCACEnqueue(q, temp_state);
         }
 
-        while (!SCACStateQueueIsEmpty(&q)) {
-            r_state = SCACDequeue(&q);
+        while (!SCACStateQueueIsEmpty(q)) {
+            r_state = SCACDequeue(q);
 
             for (ascii_code = 0; ascii_code < 256; ascii_code++) {
                 int32_t temp_state = ctx->goto_table[r_state][ascii_code];
                 if (temp_state != SC_AC_FAIL) {
-                    SCACEnqueue(&q, temp_state);
+                    SCACEnqueue(q, temp_state);
                     DEBUG_VALIDATE_BUG_ON(temp_state > UINT16_MAX);
                     ctx->state_table_u16[r_state][ascii_code] = (uint16_t)temp_state;
                 } else {
@@ -561,6 +566,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
+        SCFree(q);
     }
 
     if (!(ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
@@ -574,23 +580,25 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u32));
 
-        StateQueue q;
-        memset(&q, 0, sizeof(StateQueue));
+        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
+        if (q == NULL) {
+            FatalError("Error allocating memory");
+        }
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             SC_AC_STATE_TYPE_U32 temp_state = ctx->goto_table[0][ascii_code];
             ctx->state_table_u32[0][ascii_code] = temp_state;
             if (temp_state != 0)
-                SCACEnqueue(&q, temp_state);
+                SCACEnqueue(q, temp_state);
         }
 
-        while (!SCACStateQueueIsEmpty(&q)) {
-            r_state = SCACDequeue(&q);
+        while (!SCACStateQueueIsEmpty(q)) {
+            r_state = SCACDequeue(q);
 
             for (ascii_code = 0; ascii_code < 256; ascii_code++) {
                 int32_t temp_state = ctx->goto_table[r_state][ascii_code];
                 if (temp_state != SC_AC_FAIL) {
-                    SCACEnqueue(&q, temp_state);
+                    SCACEnqueue(q, temp_state);
                     ctx->state_table_u32[r_state][ascii_code] = temp_state;
                 } else {
                     ctx->state_table_u32[r_state][ascii_code] =
@@ -598,6 +606,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
+        SCFree(q);
     }
 
     return;
