@@ -1074,14 +1074,13 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->mpm_sm != NULL)
         return;
 
-    SigMatch *sm = NULL;
     const int nlists = s->init_data->smlists_array_size;
-    int nn_sm_list[nlists];
-    int n_sm_list[nlists];
-    memset(nn_sm_list, 0, nlists * sizeof(int));
-    memset(n_sm_list, 0, nlists * sizeof(int));
-    int count_nn_sm_list = 0;
-    int count_n_sm_list = 0;
+    int pos_sm_list[nlists];
+    int neg_sm_list[nlists];
+    memset(pos_sm_list, 0, nlists * sizeof(int));
+    memset(neg_sm_list, 0, nlists * sizeof(int));
+    int pos_sm_list_cnt = 0;
+    int neg_sm_list_cnt = 0;
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
@@ -1096,7 +1095,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id))
             continue;
 
-        for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
+        for (SigMatch *sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1108,11 +1107,11 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             }
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
-                n_sm_list[list_id] = 1;
-                count_n_sm_list++;
+                neg_sm_list[list_id] = 1;
+                neg_sm_list_cnt++;
             } else {
-                nn_sm_list[list_id] = 1;
-                count_nn_sm_list++;
+                pos_sm_list[list_id] = 1;
+                pos_sm_list_cnt++;
             }
         }
     }
@@ -1120,10 +1119,10 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     /* prefer normal not-negated over negated */
     int *curr_sm_list = NULL;
     int skip_negated_content = 1;
-    if (count_nn_sm_list > 0) {
-        curr_sm_list = nn_sm_list;
-    } else if (count_n_sm_list > 0) {
-        curr_sm_list = n_sm_list;
+    if (pos_sm_list_cnt > 0) {
+        curr_sm_list = pos_sm_list;
+    } else if (neg_sm_list_cnt > 0) {
+        curr_sm_list = neg_sm_list;
         skip_negated_content = 0;
     } else {
         return;
@@ -1159,7 +1158,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
-        for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+        for (SigMatch *sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
