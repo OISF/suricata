@@ -1741,12 +1741,28 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
     int result = 0;
 
-    /* see if we need to open the file
-     * we check for tx->response_line in case of junk
-     * interpreted as body before response line
-     */
-    if (!(htud->tcflags & HTP_FILENAME_SET) &&
-        (tx->response_line != NULL || tx->is_protocol_0_9))
+#if 1
+{
+        uint8_t *filename = NULL;
+        size_t filename_len = 0;
+
+        /* try Content-Disposition header first */
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                "Content-Disposition");
+        if (h != NULL && bstr_len(h->value) > 0) {
+            /* parse content-disposition */
+            (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
+                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, &filename_len);
+        }
+        if (htud->tcflags & HTP_FILENAME_SET) {
+        }
+
+        /* print the filename if set*/
+        //SCLogNotice("[pre] filename: %s", filename ? (char *)filename : "(null)");
+}
+#endif
+    /* see if we need to open the file */
+    if (!(htud->tcflags & HTP_FILENAME_SET))
     {
         SCLogDebug("setting up file name");
 
@@ -1762,6 +1778,9 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                     (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, &filename_len);
         }
 
+        /* print the filename if set*/
+        SCLogNotice("filename: %.*s", (int)filename_len, filename ? (char *)filename : "(null)");
+
         /* fall back to name from the uri */
         if (filename == NULL) {
             /* get the name */
@@ -1770,15 +1789,17 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 filename_len = bstr_len(tx->parsed_uri->path);
             }
         }
+        /* print the filename if set*/
+        SCLogNotice("filename: %.*s", (int)filename_len, filename ? (char *)filename : "(null)");
 
         if (filename != NULL) {
-            // set range if present
-            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
                 HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
+            // set range if present
+            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
             if (h_content_range != NULL) {
                 result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
                         data_len, HtpGetActiveResponseTxID(hstate), h_content_range->value, htud);
@@ -1798,7 +1819,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             }
         }
     }
-    else if (tx->response_line != NULL || tx->is_protocol_0_9)
+    else
     {
         /* otherwise, just store the data */
 
