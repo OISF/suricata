@@ -1497,6 +1497,9 @@
                 "dest_port": {
                     "type": "integer"
                 },
+                "emergency": {
+                    "type": "boolean"
+                },
                 "end": {
                     "type": "string"
                 },
