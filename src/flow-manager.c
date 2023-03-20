@@ -822,7 +822,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         if (ts_ms >= next_run_ms) {
             if (ftd->instance == 0) {
                 const uint32_t sq_len = FlowSpareGetPoolSize();
-                const uint32_t spare_perc = sq_len * 100 / flow_config.prealloc;
+                const uint32_t spare_perc = sq_len * 100 / MAX(flow_config.prealloc, 1);
                 /* see if we still have enough spare flows */
                 if (spare_perc < 90 || spare_perc > 110) {
                     FlowSparePoolUpdate(sq_len);
