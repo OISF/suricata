@@ -1170,7 +1170,8 @@ static int DetectPcreParseTest10(void)
     FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id) == NULL);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(de_ctx, s);
 
@@ -1179,7 +1180,8 @@ static int DetectPcreParseTest10(void)
 
     /* failure since we have no preceding content/pcre/bytejump */
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id) == NULL);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
