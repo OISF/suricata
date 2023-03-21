@@ -46,7 +46,7 @@ typedef struct DPDKIfaceConfig_ {
 #ifdef HAVE_DPDK
     char iface[RTE_ETH_NAME_MAX_LEN];
     uint16_t port_id;
-    uint16_t socket_id;
+    int32_t socket_id;
     /* number of threads - zero means all available */
     int threads;
     /* IPS mode */
