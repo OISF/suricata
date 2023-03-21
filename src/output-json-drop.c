@@ -349,6 +349,10 @@ static int JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
         return FALSE;
     }
 
+    if (!(PacketCheckAction(p, ACTION_DROP))) {
+        return FALSE;
+    }
+
     if (g_droplog_flows_start && p->flow != NULL) {
         int ret = FALSE;
 
@@ -365,11 +369,9 @@ static int JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
             ret = TRUE;
 
         return ret;
-    } else if (PacketCheckAction(p, ACTION_DROP)) {
-        return TRUE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 void JsonDropLogRegister (void)
