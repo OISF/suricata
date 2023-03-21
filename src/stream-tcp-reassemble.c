@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1968,6 +1968,34 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCReturnInt(0);
 }
 
+static void StreamTcpReassembleExceptionPolicyStatsIncr(
+        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
+{
+    switch (policy) {
+        case EXCEPTION_POLICY_NOT_SET:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_ignore);
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_reject);
+            break;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_bypass);
+            break;
+        case EXCEPTION_POLICY_DROP_FLOW:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_drop_flow);
+            break;
+        case EXCEPTION_POLICY_DROP_PACKET:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_drop_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_pass_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            StatsIncr(tv, ra_ctx->counter_tcp_reas_eps_pass_flow);
+            break;
+    }
+}
+
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p)
 {
@@ -2033,6 +2061,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
                     p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpReassembleExceptionPolicyStatsIncr(
+                    tv, ra_ctx, stream_config.reassembly_memcap_policy);
             SCReturnInt(-1);
         }
 
