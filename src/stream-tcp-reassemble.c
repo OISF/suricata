@@ -2033,6 +2033,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
                     p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_exc_policy);
             SCReturnInt(-1);
         }
 

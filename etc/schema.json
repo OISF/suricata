@@ -5192,6 +5192,9 @@
                         "pseudo_failed": {
                             "type": "integer"
                         },
+                        "reassembly_exception_policy": {
+                            "type": "integer"
+                        },
                         "reassembly_gap": {
                             "type": "integer"
                         },

@@ -5787,6 +5787,8 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+    stt->ra_ctx->counter_tcp_reass_exc_policy =
+            StatsRegisterCounter("tcp.reassembly_exception_policy", tv);
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
     stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);

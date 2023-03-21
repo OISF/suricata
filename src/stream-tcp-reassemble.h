@@ -63,6 +63,8 @@ typedef struct TcpReassemblyThreadCtx_ {
 
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
+    /** times exception policy for stream reassembly memcap was applied **/
+    uint16_t counter_tcp_reass_exc_policy;
 
     uint16_t counter_tcp_segment_from_cache;
     uint16_t counter_tcp_segment_from_pool;
