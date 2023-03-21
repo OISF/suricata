@@ -954,6 +954,25 @@ static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 #endif
 }
 
+/**
+ * @param port_id - queried port
+ * @param socket_id - socket ID of the queried port
+ * @return positive number on success, negative on failure (errno)
+ */
+static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
+{
+    rte_errno = 0;
+    int retval;
+    retval = rte_eth_dev_socket_id(port_id);
+    *socket_id = retval;
+
+#if RTE_VER_YEAR > 22 || RTE_VER_YEAR == 22 && RTE_VER_MONTH == 11
+    retval = -rte_errno;
+#endif
+
+    return retval;
+}
+
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
@@ -1150,7 +1169,14 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
             SCReturnInt(retval);
         }
 
-        if (rte_eth_dev_socket_id(iconf->port_id) != rte_eth_dev_socket_id(iconf->out_port_id)) {
+        int32_t out_port_socket_id;
+        retval = DeviceSetSocketID(iconf->port_id, &out_port_socket_id);
+        if (retval < 0) {
+            SCLogError("%s: invalid socket id (err=%d)", iconf->out_iface, retval);
+            SCReturnInt(retval);
+        }
+
+        if (iconf->socket_id != out_port_socket_id) {
             SCLogWarning("%s: out iface %s is not on the same NUMA node", iconf->iface,
                     iconf->out_iface);
         }
@@ -1190,12 +1216,11 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
-    retval = rte_eth_dev_socket_id(iconf->port_id);
+    retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
     if (retval < 0) {
         SCLogError("%s: invalid socket id (err=%d)", iconf->iface, retval);
         SCReturnInt(retval);
     }
-    iconf->socket_id = retval;
 
     retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
     if (retval != 0) {
