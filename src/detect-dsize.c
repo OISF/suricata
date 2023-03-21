@@ -315,7 +315,8 @@ int SigParseMaxRequiredDsize(const Signature *s)
     }
 
     int total_length, offset;
-    SigParseRequiredContentSize(s, dsize, DETECT_SM_LIST_PMATCH, &total_length, &offset);
+    SigParseRequiredContentSize(
+            s, dsize, s->init_data->smlists[DETECT_SM_LIST_PMATCH], &total_length, &offset);
     SCLogDebug("dsize: %d  len: %d; offset: %d [%s]", dsize, total_length, offset, s->sig_str);
 
     if (total_length > dsize) {
