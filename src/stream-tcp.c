@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,6 +93,32 @@
 /* Settings order as in the enum */
 // clang-format off
 ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_reassembly_memcap_eps_stats = {
     .valid_settings_ids = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
     /* EXCEPTION_POLICY_AUTO */         false,
@@ -726,6 +752,14 @@ void StreamTcpFreeConfig(bool quiet)
     SCMutexDestroy(&ssn_pool_mutex);
 
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
+}
+
+static bool IsReassemblyMemcapExceptionPolicyStatsValid(enum ExceptionPolicy exception_policy)
+{
+    if (EngineModeIsIPS()) {
+        return stream_reassembly_memcap_eps_stats.valid_settings_ips[exception_policy];
+    }
+    return stream_reassembly_memcap_eps_stats.valid_settings_ids[exception_policy];
 }
 
 static bool IsStreamTcpSessionMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
@@ -5825,6 +5859,11 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+
+    ExceptionPolicySetStatsCounters(tv, &stt->ra_ctx->counter_tcp_reas_eps,
+            &stream_reassembly_memcap_eps_stats, stream_config.reassembly_memcap_policy,
+            "tcp.reassembly_exception_policy.", IsReassemblyMemcapExceptionPolicyStatsValid);
+
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
     stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);
