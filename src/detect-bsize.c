@@ -64,7 +64,7 @@ bool DetectBsizeValidateContentCallback(Signature *s, int list)
     uint64_t needed;
     if (bsize >= 0) {
         int len, offset;
-        SigParseRequiredContentSize(s, bsize, list, &len, &offset);
+        SigParseRequiredContentSize(s, bsize, s->init_data->smlists[list], &len, &offset);
         SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
         needed = len;
         if (len > bsize) {

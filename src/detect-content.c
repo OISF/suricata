@@ -412,13 +412,8 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  - Negated content values are checked but not accumulated for the required size.
  */
 void SigParseRequiredContentSize(
-        const Signature *s, const int max_size, int list, int *len, int *offset)
+        const Signature *s, const int max_size, const SigMatch *sm, int *len, int *offset)
 {
-    if (list > (int)s->init_data->smlists_array_size) {
-        return;
-    }
-
-    SigMatch *sm = s->init_data->smlists[list];
     int max_offset = 0, total_len = 0;
     bool first = true;
     for (; sm != NULL; sm = sm->next) {
