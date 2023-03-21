@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -5776,6 +5776,18 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_reject =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.reject", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_bypass =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.bypass", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_pass_flow =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.pass_flow", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_pass_packet =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.pass_packet", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_drop_flow =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.drop_flow", tv);
+    stt->ra_ctx->counter_tcp_reas_eps_drop_packet =
+            StatsRegisterCounter("tcp.reassembly_exception_policy.drop_packet", tv);
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
     stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);
