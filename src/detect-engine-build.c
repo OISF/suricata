@@ -185,6 +185,11 @@ int SignatureIsFilesizeInspecting(const Signature *s)
     return 0;
 }
 
+static bool SignatureInspectsBuffers(const Signature *s)
+{
+    return (s->init_data->buffer_index > 0);
+}
+
 /** \brief Test is a initialized signature is IP only
  *  \param de_ctx detection engine ctx
  *  \param s the signature
@@ -211,13 +216,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = s->init_data->smlists_array_size;
-    for (int i = 0; i < nlists; i++) {
-        if (s->init_data->smlists[i] == NULL)
-            continue;
-        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
-            continue;
-
+    if (SignatureInspectsBuffers(s)) {
         SCReturnInt(0);
     }
 
@@ -275,13 +274,7 @@ static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = s->init_data->smlists_array_size;
-    for (int i = 0; i < nlists; i++) {
-        if (s->init_data->smlists[i] == NULL)
-            continue;
-        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
-            continue;
-
+    if (SignatureInspectsBuffers(s)) {
         SCReturnInt(0);
     }
 
@@ -362,13 +355,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     }
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = s->init_data->smlists_array_size;
-    for (int i = 0; i < nlists; i++) {
-        if (s->init_data->smlists[i] == NULL)
-            continue;
-        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
-            continue;
-
+    if (SignatureInspectsBuffers(s)) {
         SCReturnInt(0);
     }
 
@@ -461,16 +448,11 @@ static bool SignatureNeedsDCERPCMask(const Signature *s)
         SCLogDebug("g_dce_stub_data_buffer_id %d", g_dce_stub_data_buffer_id);
     }
 
-    if (g_dce_generic_list_id >= 0 &&
-            s->init_data->smlists[g_dce_generic_list_id] != NULL)
-    {
+    if (DetectBufferIsPresent(s, g_dce_generic_list_id) ||
+            DetectBufferIsPresent(s, g_dce_stub_data_buffer_id)) {
         return true;
     }
-    if (g_dce_stub_data_buffer_id >= 0 &&
-            s->init_data->smlists[g_dce_stub_data_buffer_id] != NULL)
-    {
-        return true;
-    }
+
     return false;
 }
 
@@ -1441,8 +1423,10 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         {
             int prefilter_list = DETECT_TBLSIZE;
 
+            // TODO buffers?
+
             /* get the keyword supporting prefilter with the lowest type */
-            for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+            for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
                 for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
                         if (sigmatch_table[sm->type].SupportsPrefilter(s)) {
@@ -1454,7 +1438,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+                for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
                     for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                         if (sm->type == prefilter_list) {
                             s->init_data->prefilter_sm = sm;
@@ -1468,9 +1452,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         }
 
         /* run buffer type callbacks if any */
-        for (int x = 0; x < (int)s->init_data->smlists_array_size; x++) {
+        for (int x = 0; x < DETECT_SM_LIST_MAX; x++) {
             if (s->init_data->smlists[x])
                 DetectEngineBufferRunSetupCallback(de_ctx, x, s);
+        }
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            DetectEngineBufferRunSetupCallback(de_ctx, s->init_data->buffers[x].id, s);
         }
 
         de_ctx->sig_cnt++;
@@ -1913,7 +1900,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         uint32_t i;
-        for (i = 0; i < s->init_data->smlists_array_size; i++) {
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -1921,8 +1908,6 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 sm = nsm;
             }
         }
-        SCFree(s->init_data->smlists);
-        SCFree(s->init_data->smlists_tail);
         for (i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
                 int transform = s->init_data->transforms.transforms[i].transform;
@@ -1931,6 +1916,15 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 s->init_data->transforms.transforms[i].options = NULL;
             }
         }
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            SigMatch *sm = s->init_data->buffers[x].head;
+            while (sm != NULL) {
+                SigMatch *nsm = sm->next;
+                SigMatchFree(de_ctx, sm);
+                sm = nsm;
+            }
+        }
+        SCFree(s->init_data->buffers);
         SCFree(s->init_data);
         s->init_data = NULL;
     }

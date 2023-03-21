@@ -919,42 +919,47 @@ static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
 
 static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror)
 {
-    const SigMatch *sm = s->init_data->smlists[g_http2_header_buffer_id];
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_CONTENT)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_http2_header_buffer_id)
             continue;
-        const DetectContentData *cd = (DetectContentData *)sm->ctx;
-        bool escaped = false;
-        bool namevaluesep = false;
-        for (size_t i = 0; i < cd->content_len; ++i) {
-            if (escaped) {
-                if (cd->content[i] == ' ') {
-                    if (namevaluesep) {
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
+            bool escaped = false;
+            bool namevaluesep = false;
+            for (size_t i = 0; i < cd->content_len; ++i) {
+                if (escaped) {
+                    if (cd->content[i] == ' ') {
+                        if (namevaluesep) {
+                            *sigerror = "Invalid http2.header string : "
+                                        "': ' is a special sequence for separation between name "
+                                        "and value "
+                                        " and thus can only be present once";
+                            SCLogWarning("rule %u: %s", s->id, *sigerror);
+                            return false;
+                        }
+                        namevaluesep = true;
+                    } else if (cd->content[i] != ':') {
                         *sigerror = "Invalid http2.header string : "
-                        "': ' is a special sequence for separation between name and value "
-                        " and thus can only be present once";
+                                    "':' is an escaping character for itself, "
+                                    "or space for the separation between name and value";
                         SCLogWarning("rule %u: %s", s->id, *sigerror);
                         return false;
                     }
-                    namevaluesep = true;
-                } else if (cd->content[i] != ':') {
-                    *sigerror = "Invalid http2.header string : "
-                                "':' is an escaping character for itself, "
-                                "or space for the separation between name and value";
-                    SCLogWarning("rule %u: %s", s->id, *sigerror);
-                    return false;
+                    escaped = false;
+                } else if (cd->content[i] == ':') {
+                    escaped = true;
                 }
-                escaped = false;
-            } else if(cd->content[i] == ':') {
-                escaped = true;
             }
-        }
-        if (escaped) {
-            *sigerror = "Invalid http2.header string : "
-            "':' is an escaping character for itself, "
-            "or space for the separation between name and value";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
+            if (escaped) {
+                *sigerror = "Invalid http2.header string : "
+                            "':' is an escaping character for itself, "
+                            "or space for the separation between name and value";
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
+                return false;
+            }
         }
     }
     return true;

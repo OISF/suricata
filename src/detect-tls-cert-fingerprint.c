@@ -163,76 +163,79 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static bool DetectTlsFingerprintValidateCallback(const Signature *s,
                                                   const char **sigerror)
 {
-    const SigMatch *sm = s->init_data->smlists[g_tls_cert_fingerprint_buffer_id];
-    for ( ; sm != NULL; sm = sm->next)
-    {
-        if (sm->type != DETECT_CONTENT)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_fingerprint_buffer_id)
             continue;
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
 
-        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        if (cd->content_len != 59) {
-            *sigerror = "Invalid length of the specified fingerprint. "
-                        "This rule will therefore never match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
-        }
+            if (cd->content_len != 59) {
+                *sigerror = "Invalid length of the specified fingerprint. "
+                            "This rule will therefore never match.";
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
+                return false;
+            }
 
-        bool have_delimiters = false;
-        uint32_t u;
-        for (u = 0; u < cd->content_len; u++)
-        {
-            if (cd->content[u] == ':') {
-                have_delimiters = true;
-                break;
+            bool have_delimiters = false;
+            uint32_t u;
+            for (u = 0; u < cd->content_len; u++) {
+                if (cd->content[u] == ':') {
+                    have_delimiters = true;
+                    break;
+                }
+            }
+
+            if (!have_delimiters) {
+                *sigerror = "No colon delimiters ':' detected in content after "
+                            "tls.cert_fingerprint. This rule will therefore "
+                            "never match.";
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
+                return false;
+            }
+
+            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                *sigerror = "tls.cert_fingerprint should not be used together "
+                            "with nocase, since the rule is automatically "
+                            "lowercased anyway which makes nocase redundant.";
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
             }
         }
-
-        if (!have_delimiters) {
-            *sigerror = "No colon delimiters ':' detected in content after "
-                        "tls.cert_fingerprint. This rule will therefore "
-                        "never match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
-        }
-
-        if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "tls.cert_fingerprint should not be used together "
-                        "with nocase, since the rule is automatically "
-                        "lowercased anyway which makes nocase redundant.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-        }
     }
-
     return true;
 }
 
 static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
                                               Signature *s)
 {
-    SigMatch *sm = s->init_data->smlists[g_tls_cert_fingerprint_buffer_id];
-    for ( ; sm != NULL; sm = sm->next)
-    {
-        if (sm->type != DETECT_CONTENT)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_fingerprint_buffer_id)
             continue;
+        SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
 
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        bool changed = false;
-        uint32_t u;
-        for (u = 0; u < cd->content_len; u++)
-        {
-            if (isupper(cd->content[u])) {
-                cd->content[u] = u8_tolower(cd->content[u]);
-                changed = true;
+            bool changed = false;
+            uint32_t u;
+            for (u = 0; u < cd->content_len; u++) {
+                if (isupper(cd->content[u])) {
+                    cd->content[u] = u8_tolower(cd->content[u]);
+                    changed = true;
+                }
             }
-        }
 
-        /* recreate the context if changes were made */
-        if (changed) {
-            SpmDestroyCtx(cd->spm_ctx);
-            cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
-                                     de_ctx->spm_global_thread_ctx);
+            /* recreate the context if changes were made */
+            if (changed) {
+                SpmDestroyCtx(cd->spm_ctx);
+                cd->spm_ctx =
+                        SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+            }
         }
     }
 }

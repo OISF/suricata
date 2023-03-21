@@ -71,6 +71,7 @@
 #include "app-layer-detect-proto.h"
 
 #include "action-globals.h"
+#include "util-validate.h"
 
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
@@ -211,27 +212,52 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
             }
         }
 
-        pm = DetectGetLastSMByListId(s, sm_list,
-            DETECT_CONTENT, DETECT_PCRE, -1);
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+        if (s->init_data->curbuf != NULL && (int)s->init_data->curbuf->id == sm_list) {
+            pm = DetectGetLastSMByListPtr(
+                    s, s->init_data->curbuf->tail, DETECT_CONTENT, DETECT_PCRE, -1);
+            if (pm != NULL) {
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+                }
             }
         }
     }
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
 
+    if (s->init_data->curbuf == NULL || (int)s->init_data->curbuf->id != sm_list) {
+        if (s->init_data->curbuf != NULL && s->init_data->curbuf->head == NULL) {
+            SCLogError("no matches for previous buffer");
+            return -1;
+        }
+        if (SignatureInitDataBufferCheckExpand(s) < 0) {
+            SCLogError("failed to expand rule buffer array");
+            return -1;
+        }
+
+        /* initialize a new buffer */
+        s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+        s->init_data->curbuf->id = sm_list;
+        s->init_data->curbuf->head = NULL;
+        s->init_data->curbuf->tail = NULL;
+        SCLogDebug("idx %u list %d set up curbuf %p s->init_data->buffer_index %u",
+                s->init_data->buffer_index - 1, sm_list, s->init_data->curbuf,
+                s->init_data->buffer_index);
+    }
+
     /* transfer the sm from the pmatch list to sm_list */
-    SigMatchTransferSigMatchAcrossLists(sm,
-                                        &s->init_data->smlists[DETECT_SM_LIST_PMATCH],
-                                        &s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                        &s->init_data->smlists[sm_list],
-                                        &s->init_data->smlists_tail[sm_list]);
+    SigMatchTransferSigMatchAcrossLists(sm, &s->init_data->smlists[DETECT_SM_LIST_PMATCH],
+            &s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH], &s->init_data->curbuf->head,
+            &s->init_data->curbuf->tail);
+
+    if (sm->type == DETECT_CONTENT) {
+        s->init_data->max_content_list_id =
+                MAX(s->init_data->max_content_list_id, (uint32_t)sm_list);
+    }
 
     ret = 0;
  end:
@@ -353,42 +379,74 @@ void SigTableApplyStrictCommandlineOption(const char *str)
  * \param new  The sig match to append.
  * \param list The list to append to.
  */
-void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
+void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
 {
-    if (list > 0 && (uint32_t)list >= s->init_data->smlists_array_size)
-    {
-        uint32_t old_size = s->init_data->smlists_array_size;
-        uint32_t new_size = (uint32_t)list + 1;
-        void *ptr = SCRealloc(s->init_data->smlists, (new_size * sizeof(SigMatch *)));
-        if (ptr == NULL)
-            abort();
-        s->init_data->smlists = ptr;
-        ptr = SCRealloc(s->init_data->smlists_tail, (new_size * sizeof(SigMatch *)));
-        if (ptr == NULL)
-            abort();
-        s->init_data->smlists_tail = ptr;
-        for (uint32_t i = old_size; i < new_size; i++) {
-            s->init_data->smlists[i] = NULL;
-            s->init_data->smlists_tail[i] = NULL;
+    if (new->type == DETECT_CONTENT) {
+        s->init_data->max_content_list_id = MAX(s->init_data->max_content_list_id, (uint32_t)list);
+    }
+
+    SCLogDebug("s:%p new:%p list:%d: %s, s->init_data->list_set %s s->init_data->list %d", s, new,
+            list, sigmatch_table[new->type].name, BOOL2STR(s->init_data->list_set),
+            s->init_data->list);
+
+    if (list < DETECT_SM_LIST_MAX) {
+        if (s->init_data->smlists[list] == NULL) {
+            s->init_data->smlists[list] = new;
+            s->init_data->smlists_tail[list] = new;
+            new->next = NULL;
+            new->prev = NULL;
+        } else {
+            SigMatch *cur = s->init_data->smlists_tail[list];
+            cur->next = new;
+            new->prev = cur;
+            new->next = NULL;
+            s->init_data->smlists_tail[list] = new;
         }
-        s->init_data->smlists_array_size = new_size;
-    }
+        new->idx = s->init_data->sm_cnt;
+        s->init_data->sm_cnt++;
 
-    if (s->init_data->smlists[list] == NULL) {
-        s->init_data->smlists[list] = new;
-        s->init_data->smlists_tail[list] = new;
-        new->next = NULL;
-        new->prev = NULL;
     } else {
-        SigMatch *cur = s->init_data->smlists_tail[list];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->init_data->smlists_tail[list] = new;
-    }
+        /* app-layer-events (and possibly others?) can get here w/o a "list"
+         * already set up. */
 
-    new->idx = s->init_data->sm_cnt;
-    s->init_data->sm_cnt++;
+        /* unset any existing list if it isn't the same as the new */
+        if (s->init_data->list != DETECT_SM_LIST_NOTSET && list != s->init_data->list) {
+            SCLogDebug("reset: list %d != s->init_data->list %d", list, s->init_data->list);
+            s->init_data->list = DETECT_SM_LIST_NOTSET;
+        }
+        if ((s->init_data->curbuf != NULL && (int)s->init_data->curbuf->id != list) ||
+                s->init_data->curbuf == NULL) {
+            if (SignatureInitDataBufferCheckExpand(s) < 0) {
+                SCLogError("failed to expand rule buffer array");
+                // return -1; TODO error handle
+            }
+
+            /* initialize new buffer */
+            s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+            s->init_data->curbuf->id = list;
+            /* buffer set up by sigmatch is tracked in case we add a stickybuffer for the
+             * same list. */
+            s->init_data->curbuf->sm_init = true;
+            SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
+        }
+        BUG_ON(s->init_data->curbuf == NULL);
+
+        new->prev = s->init_data->curbuf->tail;
+        if (s->init_data->curbuf->tail)
+            s->init_data->curbuf->tail->next = new;
+        if (s->init_data->curbuf->head == NULL)
+            s->init_data->curbuf->head = new;
+        s->init_data->curbuf->tail = new;
+        new->idx = s->init_data->sm_cnt;
+        s->init_data->sm_cnt++;
+        SCLogDebug("appended %s to list %d, rule pos %u (s->init_data->list %d)",
+                sigmatch_table[new->type].name, list, new->idx, s->init_data->list);
+
+        for (SigMatch *sm = s->init_data->curbuf->head; sm != NULL; sm = sm->next) {
+            SCLogDebug("buf:%p: id:%u: '%s' pos %u", s->init_data->curbuf, s->init_data->curbuf->id,
+                    sigmatch_table[sm->type].name, sm->idx);
+        }
+    }
 }
 
 void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
@@ -439,21 +497,18 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
     SigMatch *sm_new;
     uint32_t sm_type;
 
-    /* if we have a sticky buffer, use that */
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
-            s->init_data->list < (int)s->init_data->smlists_array_size) {
-        if (!(DetectEngineBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
-            return NULL;
+    for (uint32_t i = 0; i < s->init_data->buffer_index; i++) {
+        const int id = s->init_data->buffers[i].id;
+        if (DetectEngineBufferTypeSupportsMpmGetById(de_ctx, id)) {
+            sm_new = DetectGetLastSMByListPtr(s, s->init_data->buffers[i].tail, DETECT_CONTENT, -1);
+            if (sm_new == NULL)
+                continue;
+            if (sm_last == NULL || sm_new->idx > sm_last->idx)
+                sm_last = sm_new;
         }
-
-        sm_last = DetectGetLastSMByListPtr(s,
-                s->init_data->smlists_tail[s->init_data->list],
-                DETECT_CONTENT, -1);
-        return sm_last;
     }
-
     /* otherwise brute force it */
-    for (sm_type = 0; sm_type < s->init_data->smlists_array_size; sm_type++) {
+    for (sm_type = 0; sm_type < DETECT_SM_LIST_MAX; sm_type++) {
         if (!DetectEngineBufferTypeSupportsMpmGetById(de_ctx, sm_type))
             continue;
         SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
@@ -478,8 +533,30 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...)
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
 
-    /* otherwise brute force it */
-    for (int buf_type = 0; buf_type < (int)s->init_data->smlists_array_size; buf_type++) {
+    SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
+                s->init_data->list != (int)s->init_data->buffers[x].id) {
+            SCLogDebug("skip x %u s->init_data->list %d (int)s->init_data->buffers[x].id %d", x,
+                    s->init_data->list, (int)s->init_data->buffers[x].id);
+
+            continue;
+        }
+        int sm_type;
+        va_list ap;
+        va_start(ap, s);
+
+        for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int)) {
+            sm_new = SigMatchGetLastSMByType(s->init_data->buffers[x].tail, sm_type);
+            if (sm_new == NULL)
+                continue;
+            if (sm_last == NULL || sm_new->idx > sm_last->idx)
+                sm_last = sm_new;
+        }
+        va_end(ap);
+    }
+
+    for (int buf_type = 0; buf_type < DETECT_SM_LIST_MAX; buf_type++) {
         if (s->init_data->smlists[buf_type] == NULL)
             continue;
         if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
@@ -551,27 +628,43 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
     SigMatch *sm_new;
     int sm_type;
 
-    if ((uint32_t)list_id >= s->init_data->smlists_array_size) {
-        return NULL;
+    if ((uint32_t)list_id >= DETECT_SM_LIST_MAX) {
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            sm_new = s->init_data->buffers[x].tail;
+            if (sm_new == NULL)
+                continue;
+
+            va_list ap;
+            va_start(ap, list_id);
+
+            for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int)) {
+                sm_new = SigMatchGetLastSMByType(s->init_data->buffers[x].tail, sm_type);
+                if (sm_new == NULL)
+                    continue;
+                if (sm_last == NULL || sm_new->idx > sm_last->idx)
+                    sm_last = sm_new;
+            }
+
+            va_end(ap);
+        }
+    } else {
+        SigMatch *sm_list = s->init_data->smlists_tail[list_id];
+        if (sm_list == NULL)
+            return NULL;
+
+        va_list ap;
+        va_start(ap, list_id);
+
+        for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int)) {
+            sm_new = SigMatchGetLastSMByType(sm_list, sm_type);
+            if (sm_new == NULL)
+                continue;
+            if (sm_last == NULL || sm_new->idx > sm_last->idx)
+                sm_last = sm_new;
+        }
+
+        va_end(ap);
     }
-    SigMatch *sm_list = s->init_data->smlists_tail[list_id];
-    if (sm_list == NULL)
-        return NULL;
-
-    va_list ap;
-    va_start(ap, list_id);
-
-    for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int))
-    {
-        sm_new = SigMatchGetLastSMByType(sm_list, sm_type);
-        if (sm_new == NULL)
-            continue;
-        if (sm_last == NULL || sm_new->idx > sm_last->idx)
-            sm_last = sm_new;
-    }
-
-    va_end(ap);
-
     return sm_last;
 }
 
@@ -582,12 +675,18 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
  */
 SigMatch *DetectGetLastSM(const Signature *s)
 {
-    const int nlists = s->init_data->smlists_array_size;
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
-    int i;
 
-    for (i = 0; i < nlists; i ++) {
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        sm_new = s->init_data->buffers[x].tail;
+        if (sm_new == NULL)
+            continue;
+        if (sm_last == NULL || sm_new->idx > sm_last->idx)
+            sm_last = sm_new;
+    }
+
+    for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
         sm_new = s->init_data->smlists_tail[i];
         if (sm_new == NULL)
             continue;
@@ -635,8 +734,16 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
     if (key_sm == NULL)
         return -1;
 
-    const int nlists = s->init_data->smlists_array_size;
-    for (int list = 0; list < nlists; list++) {
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        while (sm != NULL) {
+            if (sm == key_sm)
+                return s->init_data->buffers[x].id;
+            sm = sm->next;
+        }
+    }
+
+    for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
         const SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm == key_sm)
@@ -1271,6 +1378,28 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
     SCReturnInt(ret);
 }
 
+/** \brief check if buffers array still has space left, expand if not
+ */
+int SignatureInitDataBufferCheckExpand(Signature *s)
+{
+    if (s->init_data->buffers_size >= 64)
+        return -1;
+
+    if (s->init_data->buffer_index + 1 == s->init_data->buffers_size) {
+        void *ptr = SCRealloc(s->init_data->buffers,
+                (s->init_data->buffers_size + 8) * sizeof(SignatureInitDataBuffer));
+        if (ptr == NULL)
+            return -1;
+        s->init_data->buffers = ptr;
+        for (uint32_t x = s->init_data->buffers_size; x < s->init_data->buffers_size + 8; x++) {
+            SignatureInitDataBuffer *b = &s->init_data->buffers[x];
+            memset(b, 0, sizeof(*b));
+        }
+        s->init_data->buffers_size += 8;
+    }
+    return 0;
+}
+
 Signature *SigAlloc (void)
 {
     Signature *sig = SCMalloc(sizeof(Signature));
@@ -1285,22 +1414,12 @@ Signature *SigAlloc (void)
     }
     sig->init_data->mpm_sm_list = -1;
 
-    sig->init_data->smlists_array_size = DetectBufferTypeMaxId();
-    SCLogDebug("smlists size %u", sig->init_data->smlists_array_size);
-    sig->init_data->smlists = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
-    if (sig->init_data->smlists == NULL) {
-        SCFree(sig->init_data);
+    sig->init_data->buffers = SCCalloc(8, sizeof(SignatureInitDataBuffer));
+    if (sig->init_data->buffers == NULL) {
         SCFree(sig);
         return NULL;
     }
-
-    sig->init_data->smlists_tail = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
-    if (sig->init_data->smlists_tail == NULL) {
-        SCFree(sig->init_data->smlists);
-        SCFree(sig->init_data);
-        SCFree(sig);
-        return NULL;
-    }
+    sig->init_data->buffers_size = 8;
 
     /* assign it to -1, so that we can later check if the value has been
      * overwritten after the Signature has been parsed, and if it hasn't been
@@ -1420,8 +1539,7 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
     if (s->init_data) {
-        const int nlists = s->init_data->smlists_array_size;
-        for (i = 0; i < nlists; i++) {
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -1429,11 +1547,20 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
                 sm = nsm;
             }
         }
+
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            SigMatch *sm = s->init_data->buffers[x].head;
+            while (sm != NULL) {
+                SigMatch *nsm = sm->next;
+                SigMatchFree(de_ctx, sm);
+                sm = nsm;
+            }
+        }
+        SCFree(s->init_data->buffers);
+        s->init_data->buffers = NULL;
     }
     SigMatchFreeArrays(de_ctx, s, (s->init_data == NULL));
     if (s->init_data) {
-        SCFree(s->init_data->smlists);
-        SCFree(s->init_data->smlists_tail);
         SCFree(s->init_data);
         s->init_data = NULL;
     }
@@ -1685,64 +1812,96 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
  */
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
-    uint32_t sig_flags = 0;
-    const int nlists = s->init_data->smlists_array_size;
-
     SCEnter();
 
-    /* check for sticky buffers that were set w/o matches
-     * e.g. alert ... (file_data; sid:1;) */
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list >= (int)s->init_data->smlists_array_size ||
-                s->init_data->smlists[s->init_data->list] == NULL) {
-            SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
-                    DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
-            SCReturnInt(0);
-        }
+    uint32_t sig_flags = 0;
+    int nlists = 0;
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        nlists = MAX(nlists, (int)s->init_data->buffers[x].id);
     }
+    nlists += (nlists > 0);
+    SCLogDebug("nlists %d", nlists);
+
+    if (s->init_data->curbuf && s->init_data->curbuf->head == NULL) {
+        SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
+                DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->curbuf->id));
+        SCReturnInt(0);
+    }
+
+    bool has_frame = false;
+    bool has_app = false;
+    bool has_pkt = false;
+    bool has_pmatch = false;
 
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
         if (!DetectContentPMATCHValidateCallback(s))
             SCReturnInt(0);
+
+        has_pmatch = true;
     }
 
     struct BufferVsDir {
         int ts;
         int tc;
-    } bufdir[nlists];
-    memset(&bufdir, 0, nlists * sizeof(struct BufferVsDir));
+    } bufdir[nlists + 1];
+    memset(&bufdir, 0, (nlists + 1) * sizeof(struct BufferVsDir));
 
-    int x;
-    for (x = 0; x < nlists; x++) {
-        if (s->init_data->smlists[x]) {
-            const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
-            for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x &&
-                        (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
-                    SCLogDebug("engine %s dir %d alproto %d",
-                            DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
-                            app->alproto);
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        SignatureInitDataBuffer *b = &s->init_data->buffers[x];
+        const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, b->id);
+        if (bt == NULL) {
+            DEBUG_VALIDATE_BUG_ON(1); // should be impossible
+            continue;
+        }
+        SCLogDebug("x %u b->id %u name %s", x, b->id, bt->name);
+        for (SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+            SCLogDebug("sm %u %s", sm->type, sigmatch_table[sm->type].name);
+        }
 
-                    bufdir[x].ts += (app->dir == 0);
-                    bufdir[x].tc += (app->dir == 1);
-                }
+        if (b->head == NULL) {
+            SCLogError("no matches in sticky buffer %s", bt->name);
+            SCReturnInt(0);
+        }
+
+        has_frame |= bt->frame;
+        has_app |= (bt->frame == false && bt->packet == false);
+        has_pkt |= bt->packet;
+
+        if ((s->flags & SIG_FLAG_REQUIRE_PACKET) && bt->packet == false) {
+            SCLogError("Signature combines packet "
+                       "specific matches (like dsize, flags, ttl) with stream / "
+                       "state matching by matching on app layer proto (like using "
+                       "http_* keywords).");
+            SCReturnInt(0);
+        }
+
+        const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+        for (; app != NULL; app = app->next) {
+            if (app->sm_list == b->id &&
+                    (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                SCLogDebug("engine %s dir %d alproto %d",
+                        DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
+                        app->alproto);
+                SCLogDebug("b->id %d nlists %d", b->id, nlists);
+                bufdir[b->id].ts += (app->dir == 0);
+                bufdir[b->id].tc += (app->dir == 1);
             }
+        }
 
-            if (!DetectEngineBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror)) {
-                SCReturnInt(0);
-            }
+        if (!DetectEngineBufferRunValidateCallback(de_ctx, b->id, s, &de_ctx->sigerror)) {
+            SCReturnInt(0);
+        }
 
-            if (!DetectBsizeValidateContentCallback(s, x)) {
-                SCReturnInt(0);
-            }
+        if (!DetectBsizeValidateContentCallback(s, b)) {
+            SCReturnInt(0);
         }
     }
 
     int ts_excl = 0;
     int tc_excl = 0;
     int dir_amb = 0;
-    for (x = 0; x < nlists; x++) {
+    for (int x = 0; x < nlists; x++) {
         if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
             continue;
         ts_excl += (bufdir[x].ts > 0 && bufdir[x].tc == 0);
@@ -1785,24 +1944,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    bool has_pmatch = false;
-    bool has_frame = false;
-    bool has_app = false;
-    bool has_pkt = false;
-
-    for (int i = 0; i < nlists; i++) {
-        if (s->init_data->smlists[i] == NULL)
-            continue;
-        has_pmatch |= (i == DETECT_SM_LIST_PMATCH);
-
-        const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, i);
-        if (b == NULL)
-            continue;
-
-        has_frame |= b->frame;
-        has_app |= (b->frame == false && b->packet == false);
-        has_pkt |= b->packet;
-    }
     if (has_pmatch && has_frame) {
         SCLogError("can't mix pure content and frame inspection");
         SCReturnInt(0);
@@ -1814,23 +1955,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (has_pkt && has_frame) {
         SCLogError("can't mix pkt buffer and frame inspection");
         SCReturnInt(0);
-    }
-
-    if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        for (int i = 0; i < nlists; i++) {
-            if (s->init_data->smlists[i] == NULL)
-                continue;
-            if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
-                continue;
-
-            if (!(DetectEngineBufferTypeSupportsPacketGetById(de_ctx, i))) {
-                SCLogError("Signature combines packet "
-                           "specific matches (like dsize, flags, ttl) with stream / "
-                           "state matching by matching on app layer proto (like using "
-                           "http_* keywords).");
-                SCReturnInt(0);
-            }
-        }
     }
 
     /* TCP: corner cases:
@@ -1861,43 +1985,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
-
-    if (s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
-        int list;
-        uint16_t idx = s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]->idx;
-        for (list = 0; list < nlists; list++) {
-            if (list == DETECT_SM_LIST_POSTMATCH ||
-                list == DETECT_SM_LIST_TMATCH ||
-                list == DETECT_SM_LIST_SUPPRESS ||
-                list == DETECT_SM_LIST_THRESHOLD)
-            {
-                continue;
-            }
-
-            if (list != DETECT_SM_LIST_BASE64_DATA &&
-                s->init_data->smlists[list] != NULL) {
-                if (s->init_data->smlists[list]->idx > idx) {
-                    SCLogError("Rule buffer "
-                               "cannot be reset after base64_data.");
-                    SCReturnInt(0);
-                }
-            }
-        }
-    }
-
 #ifdef HAVE_LUA
     DetectLuaPostSetup(s);
-#endif
-
-#ifdef DEBUG
-    for (int i = 0; i < nlists; i++) {
-        if (s->init_data->smlists[i] != NULL) {
-            for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
-                BUG_ON(sm == sm->prev);
-                BUG_ON(sm == sm->next);
-            }
-        }
-    }
 #endif
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_JA3 && s->alproto != ALPROTO_UNKNOWN &&
@@ -2021,9 +2110,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     /* run buffer type callbacks if any */
-    for (uint32_t x = 0; x < sig->init_data->smlists_array_size; x++) {
+    for (uint32_t x = 0; x < DETECT_SM_LIST_MAX; x++) {
         if (sig->init_data->smlists[x])
             DetectEngineBufferRunSetupCallback(de_ctx, x, sig);
+    }
+    for (uint32_t x = 0; x < sig->init_data->buffer_index; x++) {
+        DetectEngineBufferRunSetupCallback(de_ctx, sig->init_data->buffers[x].id, sig);
     }
 
     /* validate signature, SigValidate will report the error reason */

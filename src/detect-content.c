@@ -710,9 +710,9 @@ static void PropagateLimits(Signature *s, SigMatch *sm_head)
 
 void DetectContentPropagateLimits(Signature *s)
 {
-    for (uint32_t list = 0; list < s->init_data->smlists_array_size; list++) {
-        SigMatch *sm = s->init_data->smlists[list];
-        PropagateLimits(s, sm);
+    PropagateLimits(s, s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        PropagateLimits(s, s->init_data->buffers[x].head);
     }
 }
 
