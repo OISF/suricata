@@ -1321,7 +1321,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_ipv6_only += 1;
     }
 
-    for (list_id = 0; list_id < (int)s->init_data->smlists_array_size; list_id++) {
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         SigMatch *sm = NULL;
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             int16_t item_slot = analyzer_item_map[list_id];
@@ -1385,10 +1385,9 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     rule_flags = 1;
                 }
             }
-        } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+        } /* for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) */
 
     } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
-
 
     if (file_store && !RequiresFeature("output::file-store")) {
         rule_warning += 1;

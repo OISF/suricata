@@ -45,11 +45,11 @@ static int SigParseGetMaxBsize(DetectU64Data *bsz);
 static void DetectBsizeRegisterTests (void);
 #endif
 
-bool DetectBsizeValidateContentCallback(Signature *s, int list)
+bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
 {
     int bsize = -1;
     DetectU64Data *bsz;
-    for (const SigMatch *sm = s->init_data->smlists[list]; sm != NULL; sm = sm->next) {
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_BSIZE) {
             bsz = (DetectU64Data *)sm->ctx;
             bsize = SigParseGetMaxBsize(bsz);
@@ -64,7 +64,7 @@ bool DetectBsizeValidateContentCallback(Signature *s, int list)
     uint64_t needed;
     if (bsize >= 0) {
         int len, offset;
-        SigParseRequiredContentSize(s, bsize, s->init_data->smlists[list], &len, &offset);
+        SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
         SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
         needed = len;
         if (len > bsize) {

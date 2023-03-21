@@ -162,67 +162,71 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static bool DetectTlsSerialValidateCallback(const Signature *s,
                                              const char **sigerror)
 {
-    const SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
-    for ( ; sm != NULL; sm = sm->next)
-    {
-        if (sm->type != DETECT_CONTENT)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_serial_buffer_id)
             continue;
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
 
-        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "tls.cert_serial should not be used together "
-                        "with nocase, since the rule is automatically "
-                        "uppercased anyway which makes nocase redundant.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-        }
+            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                *sigerror = "tls.cert_serial should not be used together "
+                            "with nocase, since the rule is automatically "
+                            "uppercased anyway which makes nocase redundant.";
+                SCLogWarning("rule %u: %s", s->id, *sigerror);
+            }
 
-        /* no need to worry about this if the content is short enough */
-        if (cd->content_len <= 2)
-            return true;
-
-        uint32_t u;
-        for (u = 0; u < cd->content_len; u++)
-            if (cd->content[u] == ':')
+            /* no need to worry about this if the content is short enough */
+            if (cd->content_len <= 2)
                 return true;
 
-        *sigerror = "No colon delimiters ':' detected in content after "
-                    "tls.cert_serial. This rule will therefore never "
-                    "match.";
-        SCLogWarning("rule %u: %s", s->id, *sigerror);
+            uint32_t u;
+            for (u = 0; u < cd->content_len; u++)
+                if (cd->content[u] == ':')
+                    return true;
 
-        return false;
+            *sigerror = "No colon delimiters ':' detected in content after "
+                        "tls.cert_serial. This rule will therefore never "
+                        "match.";
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
+
+            return false;
+        }
     }
-
     return true;
 }
 
 static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
                                          Signature *s)
 {
-    SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
-    for ( ; sm != NULL; sm = sm->next)
-    {
-        if (sm->type != DETECT_CONTENT)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_serial_buffer_id)
             continue;
+        SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
 
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        bool changed = false;
-        uint32_t u;
-        for (u = 0; u < cd->content_len; u++)
-        {
-            if (islower(cd->content[u])) {
-                cd->content[u] = u8_toupper(cd->content[u]);
-                changed = true;
+            bool changed = false;
+            uint32_t u;
+            for (u = 0; u < cd->content_len; u++) {
+                if (islower(cd->content[u])) {
+                    cd->content[u] = u8_toupper(cd->content[u]);
+                    changed = true;
+                }
             }
-        }
 
-        /* recreate the context if changes were made */
-        if (changed) {
-            SpmDestroyCtx(cd->spm_ctx);
-            cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
-                                     de_ctx->spm_global_thread_ctx);
+            /* recreate the context if changes were made */
+            if (changed) {
+                SpmDestroyCtx(cd->spm_ctx);
+                cd->spm_ctx =
+                        SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+            }
         }
     }
 }

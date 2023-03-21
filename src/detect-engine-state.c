@@ -622,7 +622,7 @@ static int DeStateSigTest02(void)
     FAIL_IF_NULL(tx_de_state);
     FAIL_IF(tx_de_state->dir_state[0].cnt != 1);
     /* http_header(mpm): 5, uri: 3, method: 6, cookie: 7 */
-    uint32_t expected_flags = (BIT_U32(5) | BIT_U32(3) | BIT_U32(6) |BIT_U32(7));
+    uint32_t expected_flags = (BIT_U32(5) | BIT_U32(3) | BIT_U32(6) | BIT_U32(4));
     FAIL_IF(tx_de_state->dir_state[0].head->store[0].flags != expected_flags);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);

@@ -430,15 +430,9 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
     /* fill flowbit array, updating counters per sig */
     for (uint32_t i = 0; i < de_ctx->sig_array_len; i++) {
         const Signature *s = de_ctx->sig_array[i];
-        bool has_state = false;
 
         /* see if the signature uses stateful matching */
-        for (uint32_t x = DETECT_SM_LIST_DYNAMIC_START; x < s->init_data->smlists_array_size; x++) {
-            if (s->init_data->smlists[x] == NULL)
-                continue;
-            has_state = true;
-            break;
-        }
+        bool has_state = (s->init_data->buffer_index != 0);
 
         for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
             switch (sm->type) {

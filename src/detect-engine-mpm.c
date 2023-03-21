@@ -1033,10 +1033,10 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm, const int mpm_sm_list)
     return;
 }
 
-static SigMatch *GetMpmForList(const Signature *s, const int list, SigMatch *mpm_sm,
-    uint16_t max_len, bool skip_negated_content)
+static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm_sm,
+        uint16_t max_len, bool skip_negated_content)
 {
-    for (SigMatch *sm = s->init_data->smlists[list]; sm != NULL; sm = sm->next) {
+    for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT)
             continue;
 
@@ -1045,9 +1045,10 @@ static SigMatch *GetMpmForList(const Signature *s, const int list, SigMatch *mpm
          * non-negated content present in the sig */
         if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
             continue;
-        if (cd->content_len != max_len)
+        if (cd->content_len != max_len) {
+            SCLogDebug("content_len %u != max_len %u", cd->content_len, max_len);
             continue;
-
+        }
         if (mpm_sm == NULL) {
             mpm_sm = sm;
         } else {
@@ -1074,7 +1075,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->mpm_sm != NULL)
         return;
 
-    const int nlists = s->init_data->smlists_array_size;
+    const int nlists = s->init_data->max_content_list_id + 1;
     int pos_sm_list[nlists];
     int neg_sm_list[nlists];
     memset(pos_sm_list, 0, nlists * sizeof(int));
@@ -1084,18 +1085,42 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (int list_id = DETECT_SM_LIST_PMATCH; list_id < nlists; list_id++) {
-        if (s->init_data->smlists[list_id] == NULL)
-            continue;
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (FastPatternSupportEnabledForSigMatchList(de_ctx, DETECT_SM_LIST_PMATCH)) {
+            for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL;
+                    sm = sm->next) {
+                if (sm->type != DETECT_CONTENT)
+                    continue;
 
-        if (list_id == DETECT_SM_LIST_POSTMATCH || list_id == DETECT_SM_LIST_TMATCH ||
-                list_id == DETECT_SM_LIST_SUPPRESS || list_id == DETECT_SM_LIST_THRESHOLD)
-            continue;
+                const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                /* fast_pattern set in rule, so using this pattern */
+                if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SetMpm(s, sm, DETECT_SM_LIST_PMATCH);
+                    return;
+                }
 
-        if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id))
-            continue;
+                if (cd->flags & DETECT_CONTENT_NEGATED) {
+                    neg_sm_list[DETECT_SM_LIST_PMATCH] = 1;
+                    neg_sm_list_cnt++;
+                } else {
+                    pos_sm_list[DETECT_SM_LIST_PMATCH] = 1;
+                    pos_sm_list_cnt++;
+                }
+            }
+        }
+    }
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        const int list_id = s->init_data->buffers[x].id;
 
-        for (SigMatch *sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
+        SCLogDebug("%u: list_id %d: %s", s->id, list_id,
+                DetectEngineBufferTypeGetNameById(de_ctx, list_id));
+
+        if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id)) {
+            SCLogDebug("skip");
+            continue;
+        }
+
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1112,9 +1137,13 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             } else {
                 pos_sm_list[list_id] = 1;
                 pos_sm_list_cnt++;
+                SCLogDebug("pos added for %d", list_id);
             }
         }
+        SCLogDebug("ok");
     }
+
+    SCLogDebug("neg_sm_list_cnt %d pos_sm_list_cnt %d", neg_sm_list_cnt, pos_sm_list_cnt);
 
     /* prefer normal not-negated over negated */
     int *curr_sm_list = NULL;
@@ -1146,43 +1175,86 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (curr_sm_list[tmp->list_id] == 0)
                 continue;
             final_sm_list[count_final_sm_list++] = tmp->list_id;
+            SCLogDebug("tmp->list_id %d", tmp->list_id);
         }
         if (count_final_sm_list != 0)
             break;
     }
 
     BUG_ON(count_final_sm_list == 0);
+    SCLogDebug("count_final_sm_list %d skip_negated_content %d", count_final_sm_list,
+            skip_negated_content);
 
     uint16_t max_len = 0;
     for (int i = 0; i < count_final_sm_list; i++) {
-        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
-            continue;
+        SCLogDebug("i %d final_sm_list[i] %d", i, final_sm_list[i]);
 
-        for (SigMatch *sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
+        if (final_sm_list[i] == DETECT_SM_LIST_PMATCH) {
+            for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL;
+                    sm = sm->next) {
+                if (sm->type != DETECT_CONTENT)
+                    continue;
 
-            const DetectContentData *cd = (DetectContentData *)sm->ctx;
-            /* skip_negated_content is only set if there's absolutely no
-             * non-negated content present in the sig */
-            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
-                continue;
-            if (max_len < cd->content_len)
-                max_len = cd->content_len;
+                const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                /* skip_negated_content is only set if there's absolutely no
+                 * non-negated content present in the sig */
+                if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+                    continue;
+                max_len = MAX(max_len, cd->content_len);
+            }
+        } else {
+            for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                const int list_id = s->init_data->buffers[x].id;
+                if (final_sm_list[i] == list_id) {
+                    SCLogDebug("%u: list_id %d: %s", s->id, list_id,
+                            DetectEngineBufferTypeGetNameById(de_ctx, list_id));
+
+                    for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+                        if (sm->type != DETECT_CONTENT)
+                            continue;
+
+                        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                        /* skip_negated_content is only set if there's absolutely no
+                         * non-negated content present in the sig */
+                        if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+                            continue;
+                        max_len = MAX(max_len, cd->content_len);
+                    }
+                }
+            }
         }
     }
 
     SigMatch *mpm_sm = NULL;
     int mpm_sm_list = -1;
     for (int i = 0; i < count_final_sm_list; i++) {
-        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
-            continue;
-
-        /* GetMpmForList may keep `mpm_sm` the same, so track if it changed */
-        SigMatch *prev_mpm_sm = mpm_sm;
-        mpm_sm = GetMpmForList(s, final_sm_list[i], mpm_sm, max_len, skip_negated_content);
-        if (mpm_sm != prev_mpm_sm) {
-            mpm_sm_list = final_sm_list[i];
+        SCLogDebug("i %d", i);
+        if (final_sm_list[i] == DETECT_SM_LIST_PMATCH) {
+            /* GetMpmForList may keep `mpm_sm` the same, so track if it changed */
+            SigMatch *prev_mpm_sm = mpm_sm;
+            mpm_sm = GetMpmForList(s, s->init_data->smlists[DETECT_SM_LIST_PMATCH], mpm_sm, max_len,
+                    skip_negated_content);
+            if (mpm_sm != prev_mpm_sm) {
+                mpm_sm_list = final_sm_list[i];
+            }
+        } else {
+            SCLogDebug(
+                    "%u: %s", s->id, DetectEngineBufferTypeGetNameById(de_ctx, final_sm_list[i]));
+            for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                const int list_id = s->init_data->buffers[x].id;
+                if (final_sm_list[i] == list_id) {
+                    SCLogDebug("%u: list_id %d: %s", s->id, list_id,
+                            DetectEngineBufferTypeGetNameById(de_ctx, list_id));
+                    /* GetMpmForList may keep `mpm_sm` the same, so track if it changed */
+                    SigMatch *prev_mpm_sm = mpm_sm;
+                    mpm_sm = GetMpmForList(s, s->init_data->buffers[x].head, mpm_sm, max_len,
+                            skip_negated_content);
+                    SCLogDebug("mpm_sm %p from %p", mpm_sm, s->init_data->buffers[x].head);
+                    if (mpm_sm != prev_mpm_sm) {
+                        mpm_sm_list = list_id;
+                    }
+                }
+            }
         }
     }
 
@@ -2444,6 +2516,7 @@ void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *
 
     const DetectEngineAppInspectionEngine *app = s->app_inspect;
     for (; app != NULL; app = app->next) {
+        DEBUG_VALIDATE_BUG_ON(app->smd == NULL);
         SigMatchData *smd = app->smd;
         do {
             switch (smd->type) {

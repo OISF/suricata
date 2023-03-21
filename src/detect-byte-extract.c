@@ -665,8 +665,20 @@ static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 {
-    const int nlists = s->init_data->smlists_array_size;
-    for (int list = 0; list < nlists; list++) {
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        SigMatch *sm = s->init_data->buffers[x].head;
+        while (sm != NULL) {
+            if (sm->type == DETECT_BYTE_EXTRACT) {
+                const DetectByteExtractData *bed = (const DetectByteExtractData *)sm->ctx;
+                if (strcmp(bed->name, arg) == 0) {
+                    return sm;
+                }
+            }
+            sm = sm->next;
+        }
+    }
+
+    for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm->type == DETECT_BYTE_EXTRACT) {
