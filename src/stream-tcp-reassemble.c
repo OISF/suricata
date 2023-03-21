@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1993,6 +1993,15 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCReturnInt(0);
 }
 
+static void StreamTcpReassembleExceptionPolicyStatsIncr(
+        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
+{
+    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p)
 {
@@ -2059,6 +2068,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
                     p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_REASSEMBLY);
+            StreamTcpReassembleExceptionPolicyStatsIncr(
+                    tv, ra_ctx, stream_config.reassembly_memcap_policy);
             SCReturnInt(-1);
         }
 
