@@ -73,7 +73,7 @@ struct SCSigSignatureWrapper_;
 
 /* holds the values for different possible lists in struct Signature.
  * These codes are access points to particular lists in the array
- * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
+ * Signature->init_data->smlists[DETECT_SM_LIST_MAX]. */
 enum DetectSigmatchListEnum {
     /* list for non-payload per packet matches, e.g. ttl, flow keyword */
     DETECT_SM_LIST_MATCH = 0,
@@ -420,6 +420,7 @@ typedef struct DetectBufferType_ {
     bool packet; /**< compat to packet matches */
     bool frame;  /**< is about Frame inspection */
     bool supports_transforms;
+    bool multi_instance; /**< buffer supports multiple buffer instances per tx */
     void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
     bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
     DetectEngineTransforms transforms;
@@ -483,10 +484,15 @@ typedef struct DetectEngineFrameInspectionEngine {
     struct DetectEngineFrameInspectionEngine *next;
 } DetectEngineFrameInspectionEngine;
 
-#ifdef UNITTESTS
-#define sm_lists init_data->smlists
-#define sm_lists_tail init_data->smlists_tail
-#endif
+typedef struct SignatureInitDataBuffer_ {
+    // TODO add pointer to engine?
+    uint32_t id;
+    bool sm_init; /**< initialized by sigmatch, which is likely something like `urilen:10; http.uri;
+                     content:"abc";`. These need to be in the same list. Unset once `http.uri` is
+                     set up. */
+    SigMatch *head;
+    SigMatch *tail;
+} SignatureInitDataBuffer;
 
 typedef struct SignatureInitData_ {
     /** Number of sigmatches. Used for assigning SigMatch::idx */
@@ -531,11 +537,18 @@ typedef struct SignatureInitData_ {
 
     int prefilter_list;
 
-    uint32_t smlists_array_size;
     /* holds all sm lists */
-    struct SigMatch_ **smlists;
+    struct SigMatch_ *smlists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
-    struct SigMatch_ **smlists_tail;
+    struct SigMatch_ *smlists_tail[DETECT_SM_LIST_MAX];
+
+    SignatureInitDataBuffer *buffers;
+    uint32_t buffer_index;
+    uint32_t buffers_size;
+    SignatureInitDataBuffer *curbuf;
+
+    /* highest list/buffer id which holds a DETECT_CONTENT */
+    uint32_t max_content_list_id;
 } SignatureInitData;
 
 /** \brief Signature container */
