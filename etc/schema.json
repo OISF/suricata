@@ -5367,6 +5367,11 @@
                         "pseudo_failed": {
                             "type": "integer"
                         },
+                        "reassembly_exception_policy": {
+                            "description":
+                                    "How many times reassembly memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "reassembly_gap": {
                             "type": "integer"
                         },
