@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,6 +28,7 @@
 #include "suricata.h"
 #include "flow.h"
 #include "stream-tcp-private.h"
+#include "util-exception-policy.h"
 
 /** Supported OS list and default OS policy is BSD */
 enum
@@ -64,6 +65,8 @@ typedef struct TcpReassemblyThreadCtx_ {
 
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
+    /** times exception policy for stream reassembly memcap was applied **/
+    ExceptionPolicyCounters counter_tcp_reas_eps;
 
     uint16_t counter_tcp_segment_from_cache;
     uint16_t counter_tcp_segment_from_pool;
