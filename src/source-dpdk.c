@@ -121,6 +121,7 @@ typedef struct DPDKThreadVars_ {
     uint64_t dropped;
     uint16_t port_id;
     uint16_t queue_id;
+    int32_t port_socket_id;
     struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
 } DPDKThreadVars;
@@ -473,15 +474,16 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->threads = dpdk_config->threads;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
+    ptv->port_socket_id = dpdk_config->socket_id;
     // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
     ptv->pkt_mempool = dpdk_config->pkt_mempool;
     dpdk_config->pkt_mempool = NULL;
 
     thread_numa = GetNumaNode();
-    if (thread_numa >= 0 && thread_numa != rte_eth_dev_socket_id(ptv->port_id)) {
+    if (thread_numa >= 0 && thread_numa != ptv->port_socket_id) {
         SC_ATOMIC_ADD(dpdk_config->inconsitent_numa_cnt, 1);
         SCLogPerf("%s: NIC is on NUMA %d, thread on NUMA %d", dpdk_config->iface,
-                rte_eth_dev_socket_id(ptv->port_id), thread_numa);
+                ptv->port_socket_id, thread_numa);
     }
 
     uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
@@ -510,7 +512,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         uint16_t inconsist_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
         if (inconsist_numa_cnt > 0) {
             SCLogWarning("%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
-                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_cnt);
+                    dpdk_config->iface, ptv->port_socket_id, inconsist_numa_cnt);
         }
     }
 
