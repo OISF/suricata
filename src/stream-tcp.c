@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -5836,6 +5836,22 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+
+    /* set-up tcp stream reassembly memcap exception policy counters */
+    const char *eps_reas_str = "tcp.reassembly_memcap_exception_policy.";
+    is_eps_valid = false;
+    for (uint8_t i = 0; i < EXCEPTION_POLICY_MAX; i++) {
+        is_eps_valid = IsReassemblyMemcapExceptionPolicyStatsValid(i);
+        if (is_eps_valid) {
+            /* "tcp.reassembly_memcap_exception_policy." + longest exception policy string size = 51
+             */
+            char eps_stats[51];
+            snprintf(eps_stats, sizeof(eps_stats), "%s%s", eps_reas_str,
+                    ExceptionPolicyEnumToString(i));
+            stt->ra_ctx->counter_tcp_reas_eps.eps_id[i] = StatsRegisterCounter(eps_stats, tv);
+        }
+    }
+
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
     stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);

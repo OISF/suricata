@@ -5257,6 +5257,32 @@
                         "pseudo_failed": {
                             "type": "integer"
                         },
+                        "reassembly_exception_policy": {
+                            "type": "object",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/drop_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/drop_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/bypass"
+                                },
+                                {
+                                    "$ref": "#/$defs/ignore"
+                                },
+                                {
+                                    "$ref": "#/$defs/reject"
+                                }
+                            ]
+                        },
                         "reassembly_gap": {
                             "type": "integer"
                         },

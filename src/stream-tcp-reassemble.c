@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,6 +85,40 @@ static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
 
 static int g_tcp_session_dump_enabled = 0;
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_reassembly_memcap_eps_stats = {
+    /* valid_settings_ids */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    /* valid_settings_ips */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
+bool IsReassemblyMemcapExceptionPolicyStatsValid(int exception_policy)
+{
+    if (EngineModeIsIPS()) {
+        return stream_reassembly_memcap_eps_stats.valid_settings_ips[exception_policy];
+    }
+    return stream_reassembly_memcap_eps_stats.valid_settings_ids[exception_policy];
+}
 
 inline bool IsTcpSessionDumpingEnabled(void)
 {
@@ -1950,6 +1984,15 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCReturnInt(0);
 }
 
+static void StreamTcpReassembleExceptionPolicyStatsIncr(
+        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
+{
+    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p)
 {
@@ -2016,6 +2059,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
                     p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_REASSEMBLY);
+            StreamTcpReassembleExceptionPolicyStatsIncr(
+                    tv, ra_ctx, stream_config.reassembly_memcap_policy);
             SCReturnInt(-1);
         }
 
