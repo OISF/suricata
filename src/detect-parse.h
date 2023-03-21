@@ -49,6 +49,7 @@ typedef struct DetectParseRegex {
 } DetectParseRegex;
 
 /* prototypes */
+int SignatureInitDataBufferCheckExpand(Signature *s);
 Signature *SigAlloc(void);
 void SigFree(DetectEngineCtx *de_ctx, Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);

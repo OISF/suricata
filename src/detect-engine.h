@@ -51,6 +51,7 @@ void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
 void DetectBufferTypeSupportsFrames(const char *name);
 void DetectBufferTypeSupportsTransformations(const char *name);
+void DetectBufferTypeSupportsMultiInstance(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
@@ -69,6 +70,8 @@ const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, con
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
+bool DetectEngineBufferTypeSupportsMultiInstanceGetById(
+        const DetectEngineCtx *de_ctx, const int id);
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 int DetectEngineBufferTypeGetByIdTransforms(
@@ -192,7 +195,6 @@ int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s,
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
-bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id);
 
 DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);

@@ -147,86 +147,93 @@ static void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 void DetectUrilenApplyToContent(Signature *s, int list)
 {
-    uint16_t high = UINT16_MAX;
-    bool found = false;
-
-    SigMatch *sm = s->init_data->smlists[list];
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_AL_URILEN)
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)list)
             continue;
 
-        DetectUrilenData *dd = (DetectUrilenData *)sm->ctx;
+        uint16_t high = UINT16_MAX;
+        bool found = false;
 
-        switch (dd->du16.mode) {
-            case DETECT_UINT_LT:
-                if (dd->du16.arg1 < UINT16_MAX) {
-                    high = dd->du16.arg1 + 1;
-                }
-                break;
-            case DETECT_UINT_LTE:
-                // fallthrough
-            case DETECT_UINT_EQ:
-                high = dd->du16.arg1;
-                break;
-            case DETECT_UINT_RA:
-                if (dd->du16.arg2 < UINT16_MAX) {
-                    high = dd->du16.arg2 + 1;
-                }
-                break;
-            case DETECT_UINT_NE:
-                // fallthrough
-            case DETECT_UINT_GTE:
-                // fallthrough
-            case DETECT_UINT_GT:
-                high = UINT16_MAX;
-                break;
-        }
-        found = true;
-    }
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_AL_URILEN)
+                continue;
 
-    // skip 65535 to avoid mismatch on uri > 64k
-    if (!found || high == UINT16_MAX)
-        return;
+            DetectUrilenData *dd = (DetectUrilenData *)sm->ctx;
 
-    SCLogDebug("high %u", high);
-
-    sm = s->init_data->smlists[list];
-    for ( ; sm != NULL;  sm = sm->next) {
-        if (sm->type != DETECT_CONTENT) {
-            continue;
-        }
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
-        if (cd == NULL) {
-            continue;
+            switch (dd->du16.mode) {
+                case DETECT_UINT_LT:
+                    if (dd->du16.arg1 < UINT16_MAX) {
+                        high = dd->du16.arg1 + 1;
+                    }
+                    break;
+                case DETECT_UINT_LTE:
+                    // fallthrough
+                case DETECT_UINT_EQ:
+                    high = dd->du16.arg1;
+                    break;
+                case DETECT_UINT_RA:
+                    if (dd->du16.arg2 < UINT16_MAX) {
+                        high = dd->du16.arg2 + 1;
+                    }
+                    break;
+                case DETECT_UINT_NE:
+                    // fallthrough
+                case DETECT_UINT_GTE:
+                    // fallthrough
+                case DETECT_UINT_GT:
+                    high = UINT16_MAX;
+                    break;
+            }
+            found = true;
         }
 
-        if (cd->depth == 0 || cd->depth > high) {
-            cd->depth = high;
-            cd->flags |= DETECT_CONTENT_DEPTH;
-            SCLogDebug("updated %u, content %u to have depth %u "
-                    "because of urilen.", s->id, cd->id, cd->depth);
+        // skip 65535 to avoid mismatch on uri > 64k
+        if (!found || high == UINT16_MAX)
+            return;
+
+        SCLogDebug("high %u", high);
+
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT) {
+                continue;
+            }
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL) {
+                continue;
+            }
+
+            if (cd->depth == 0 || cd->depth > high) {
+                cd->depth = high;
+                cd->flags |= DETECT_CONTENT_DEPTH;
+                SCLogDebug("updated %u, content %u to have depth %u "
+                           "because of urilen.",
+                        s->id, cd->id, cd->depth);
+            }
         }
     }
 }
 
 bool DetectUrilenValidateContent(const Signature *s, int list, const char **sigerror)
 {
-    const SigMatch *sm = s->init_data->smlists[list];
-    for ( ; sm != NULL;  sm = sm->next) {
-        if (sm->type != DETECT_CONTENT) {
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)list)
             continue;
-        }
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
-        if (cd == NULL) {
-            continue;
-        }
+        for (const SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT) {
+                continue;
+            }
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL) {
+                continue;
+            }
 
-        if (cd->depth && cd->depth < cd->content_len) {
-            *sigerror = "depth or urilen smaller than content len";
-            SCLogError("depth or urilen %u smaller "
-                       "than content len %u",
-                    cd->depth, cd->content_len);
-            return false;
+            if (cd->depth && cd->depth < cd->content_len) {
+                *sigerror = "depth or urilen smaller than content len";
+                SCLogError("depth or urilen %u smaller "
+                           "than content len %u",
+                        cd->depth, cd->content_len);
+                return false;
+            }
         }
     }
     return true;

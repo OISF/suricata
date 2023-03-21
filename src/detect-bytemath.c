@@ -410,8 +410,21 @@ static void DetectByteMathFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
 {
-    const int nlists = s->init_data->smlists_array_size;
-    for (int list = 0; list < nlists; list++) {
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        SigMatch *sm = s->init_data->buffers[x].head;
+        while (sm != NULL) {
+            if (sm->type == DETECT_BYTEMATH) {
+                const DetectByteMathData *bmd = (const DetectByteMathData *)sm->ctx;
+                if (strcmp(bmd->result, arg) == 0) {
+                    SCLogDebug("Retrieved SM for \"%s\"", arg);
+                    return sm;
+                }
+            }
+            sm = sm->next;
+        }
+    }
+
+    for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm->type == DETECT_BYTEMATH) {

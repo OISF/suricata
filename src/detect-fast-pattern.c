@@ -53,7 +53,7 @@ static void DetectFastPatternRegisterTests(void);
 static SCFPSupportSMList *g_fp_support_smlist_list = NULL;
 
 /**
- * \brief Checks if a particular list(Signature->sm_lists[]) is in the list
+ * \brief Checks if a particular buffer is in the list
  *        of lists that need to be searched for a keyword that has fp support.
  *
  * \param list_id The list id.
@@ -259,8 +259,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         else { /*allow only one content to have fast_pattern modifier*/
-            uint32_t list_id = 0;
-            for (list_id = 0; list_id < s->init_data->smlists_array_size; list_id++) {
+            for (uint32_t list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
                 SigMatch *sm = NULL;
                 for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type == DETECT_CONTENT) {
@@ -271,7 +270,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                             goto error;
                         }
                     }
-                } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+                }
             }
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;

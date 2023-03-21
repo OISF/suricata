@@ -233,6 +233,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     if (sm_list == -1) {
         FatalError("failed to register inspect engine %s", name);
     }
+    SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
@@ -574,222 +575,237 @@ static void AppendStreamInspectEngine(
     SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 }
 
+static void AppendFrameInspectEngine(DetectEngineCtx *de_ctx,
+        const DetectEngineFrameInspectionEngine *u, Signature *s, SigMatchData *smd,
+        const int mpm_list)
+{
+    bool prepend = false;
+
+    if (u->alproto == ALPROTO_UNKNOWN) {
+        /* special case, inspect engine applies to all protocols */
+    } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, u->alproto))
+        return;
+
+    if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+        if (u->dir == 1)
+            return;
+    } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+        if (u->dir == 0)
+            return;
+    }
+
+    DetectEngineFrameInspectionEngine *new_engine =
+            SCCalloc(1, sizeof(DetectEngineFrameInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    if (mpm_list == u->sm_list) {
+        SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
+        prepend = true;
+        new_engine->mpm = true;
+    }
+
+    new_engine->type = u->type;
+    new_engine->sm_list = u->sm_list;
+    new_engine->sm_list_base = u->sm_list_base;
+    new_engine->smd = smd;
+    new_engine->v1 = u->v1;
+    SCLogDebug("sm_list %d new_engine->v1 %p/%p", new_engine->sm_list, new_engine->v1.Callback,
+            new_engine->v1.transforms);
+
+    if (s->frame_inspect == NULL) {
+        s->frame_inspect = new_engine;
+    } else if (prepend) {
+        new_engine->next = s->frame_inspect;
+        s->frame_inspect = new_engine;
+    } else {
+        DetectEngineFrameInspectionEngine *a = s->frame_inspect;
+        while (a->next != NULL) {
+            a = a->next;
+        }
+        new_engine->next = a->next;
+        a->next = new_engine;
+    }
+}
+
+static void AppendPacketInspectEngine(DetectEngineCtx *de_ctx,
+        const DetectEnginePktInspectionEngine *e, Signature *s, SigMatchData *smd,
+        const int mpm_list)
+{
+    bool prepend = false;
+
+    DetectEnginePktInspectionEngine *new_engine =
+            SCCalloc(1, sizeof(DetectEnginePktInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    if (mpm_list == e->sm_list) {
+        SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, e->sm_list));
+        prepend = true;
+        new_engine->mpm = true;
+    }
+
+    new_engine->sm_list = e->sm_list;
+    new_engine->sm_list_base = e->sm_list_base;
+    new_engine->smd = smd;
+    new_engine->v1 = e->v1;
+    SCLogDebug("sm_list %d new_engine->v1 %p/%p/%p", new_engine->sm_list, new_engine->v1.Callback,
+            new_engine->v1.GetData, new_engine->v1.transforms);
+
+    if (s->pkt_inspect == NULL) {
+        s->pkt_inspect = new_engine;
+    } else if (prepend) {
+        new_engine->next = s->pkt_inspect;
+        s->pkt_inspect = new_engine;
+    } else {
+        DetectEnginePktInspectionEngine *a = s->pkt_inspect;
+        while (a->next != NULL) {
+            a = a->next;
+        }
+        new_engine->next = a->next;
+        a->next = new_engine;
+    }
+}
+
+static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
+        const DetectEngineAppInspectionEngine *t, Signature *s, SigMatchData *smd,
+        const int mpm_list, const int files_id, uint8_t *last_id, bool *head_is_mpm)
+{
+    if (t->alproto == ALPROTO_UNKNOWN) {
+        /* special case, inspect engine applies to all protocols */
+    } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, t->alproto))
+        return;
+
+    if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+        if (t->dir == 1)
+            return;
+    } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+        if (t->dir == 0)
+            return;
+    }
+    SCLogDebug("app engine: t %p t->id %u => alproto:%s files:%s", t, t->id,
+            AppProtoToString(t->alproto), BOOL2STR(t->sm_list == files_id));
+
+    DetectEngineAppInspectionEngine *new_engine =
+            SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    bool prepend = false;
+    if (mpm_list == t->sm_list) {
+        SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+        prepend = true;
+        *head_is_mpm = true;
+        new_engine->mpm = true;
+    }
+
+    new_engine->alproto = t->alproto;
+    new_engine->dir = t->dir;
+    new_engine->sm_list = t->sm_list;
+    new_engine->sm_list_base = t->sm_list_base;
+    new_engine->smd = smd;
+    new_engine->progress = t->progress;
+    new_engine->v2 = t->v2;
+    SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
+            new_engine->v2.GetData, new_engine->v2.transforms);
+
+    if (s->app_inspect == NULL) {
+        s->app_inspect = new_engine;
+        if (new_engine->sm_list == files_id) {
+            new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+        } else {
+            new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
+                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+        }
+
+        /* prepend engine if forced or if our engine has a lower progress. */
+    } else if (prepend || (!(*head_is_mpm) && s->app_inspect->progress > new_engine->progress)) {
+        new_engine->next = s->app_inspect;
+        s->app_inspect = new_engine;
+        if (new_engine->sm_list == files_id) {
+            new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+        } else {
+            new_engine->id = ++(*last_id);
+            SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
+                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+        }
+
+    } else {
+        DetectEngineAppInspectionEngine *a = s->app_inspect;
+        while (a->next != NULL) {
+            if (a->next && a->next->progress > new_engine->progress) {
+                break;
+            }
+            a = a->next;
+        }
+
+        new_engine->next = a->next;
+        a->next = new_engine;
+        if (new_engine->sm_list == files_id) {
+            new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+        } else {
+            new_engine->id = ++(*last_id);
+            SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
+                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+        }
+    }
+
+    SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
+
+    s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
+}
+
 /**
  *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
  *        is assigned.
  */
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s)
 {
-    const int nlists = s->init_data->smlists_array_size;
-    SigMatchData *ptrs[nlists];
-    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
-
     const int mpm_list = s->init_data->mpm_sm ? s->init_data->mpm_sm_list : -1;
-
     const int files_id = DetectBufferTypeGetByName("files");
-
-    /* convert lists to SigMatchData arrays */
-    int i = 0;
-    for (i = DETECT_SM_LIST_DYNAMIC_START; i < nlists; i++) {
-        if (s->init_data->smlists[i] == NULL)
-            continue;
-
-        ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
-        SCLogDebug("ptrs[%d] is set", i);
-    }
-
-    /* set up inspect engines */
-    const DetectEngineFrameInspectionEngine *u = de_ctx->frame_inspect_engines;
-    while (u != NULL) {
-        SCLogDebug("u %p sm_list %u nlists %u ptrs[] %p", u, u->sm_list, nlists,
-                u->sm_list < nlists ? ptrs[u->sm_list] : NULL);
-        if (u->sm_list < nlists && ptrs[u->sm_list] != NULL) {
-            bool prepend = false;
-
-            if (u->alproto == ALPROTO_UNKNOWN) {
-                /* special case, inspect engine applies to all protocols */
-            } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, u->alproto))
-                goto next_engine;
-
-            if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
-                if (u->dir == 1)
-                    goto next_engine;
-            } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
-                if (u->dir == 0)
-                    goto next_engine;
-            }
-            DetectEngineFrameInspectionEngine *new_engine =
-                    SCCalloc(1, sizeof(DetectEngineFrameInspectionEngine));
-            if (unlikely(new_engine == NULL)) {
-                exit(EXIT_FAILURE);
-            }
-            if (mpm_list == u->sm_list) {
-                SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
-                prepend = true;
-                new_engine->mpm = true;
-            }
-
-            new_engine->type = u->type;
-            new_engine->sm_list = u->sm_list;
-            new_engine->sm_list_base = u->sm_list_base;
-            new_engine->smd = ptrs[new_engine->sm_list];
-            new_engine->v1 = u->v1;
-            SCLogDebug("sm_list %d new_engine->v1 %p/%p", new_engine->sm_list,
-                    new_engine->v1.Callback, new_engine->v1.transforms);
-
-            if (s->frame_inspect == NULL) {
-                s->frame_inspect = new_engine;
-            } else if (prepend) {
-                new_engine->next = s->frame_inspect;
-                s->frame_inspect = new_engine;
-            } else {
-                DetectEngineFrameInspectionEngine *a = s->frame_inspect;
-                while (a->next != NULL) {
-                    a = a->next;
-                }
-                new_engine->next = a->next;
-                a->next = new_engine;
-            }
-        }
-    next_engine:
-        u = u->next;
-    }
-
-    /* set up pkt inspect engines */
-    const DetectEnginePktInspectionEngine *e = de_ctx->pkt_inspect_engines;
-    while (e != NULL) {
-        SCLogDebug("e %p sm_list %u nlists %u ptrs[] %p", e, e->sm_list, nlists, e->sm_list < nlists ? ptrs[e->sm_list] : NULL);
-        if (e->sm_list < nlists && ptrs[e->sm_list] != NULL) {
-            bool prepend = false;
-
-            DetectEnginePktInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEnginePktInspectionEngine));
-            if (unlikely(new_engine == NULL)) {
-                exit(EXIT_FAILURE);
-            }
-            if (mpm_list == e->sm_list) {
-                SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, e->sm_list));
-                prepend = true;
-                new_engine->mpm = true;
-            }
-
-            new_engine->sm_list = e->sm_list;
-            new_engine->sm_list_base = e->sm_list_base;
-            new_engine->smd = ptrs[new_engine->sm_list];
-            new_engine->v1 = e->v1;
-            SCLogDebug("sm_list %d new_engine->v1 %p/%p/%p",
-                    new_engine->sm_list, new_engine->v1.Callback,
-                    new_engine->v1.GetData, new_engine->v1.transforms);
-
-            if (s->pkt_inspect == NULL) {
-                s->pkt_inspect = new_engine;
-            } else if (prepend) {
-                new_engine->next = s->pkt_inspect;
-                s->pkt_inspect = new_engine;
-            } else {
-                DetectEnginePktInspectionEngine *a = s->pkt_inspect;
-                while (a->next != NULL) {
-                    a = a->next;
-                }
-                new_engine->next = a->next;
-                a->next = new_engine;
-            }
-        }
-        e = e->next;
-    }
-
     bool head_is_mpm = false;
     uint8_t last_id = DE_STATE_FLAG_BASE;
-    const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines;
-    while (t != NULL) {
-        bool prepend = false;
 
-        if (t->sm_list >= nlists)
-            goto next;
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        SigMatchData *smd = SigMatchList2DataArray(s->init_data->buffers[x].head);
+        SCLogDebug("smd %p, id %u", smd, s->init_data->buffers[x].id);
 
-        if (ptrs[t->sm_list] == NULL)
-            goto next;
+        const DetectBufferType *b =
+                DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[x].id);
+        if (b == NULL)
+            FatalError("unknown buffer");
 
-        SCLogDebug("ptrs[%d] is set", t->sm_list);
-
-        if (t->alproto == ALPROTO_UNKNOWN) {
-            /* special case, inspect engine applies to all protocols */
-        } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, t->alproto))
-            goto next;
-
-        if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
-            if (t->dir == 1)
-                goto next;
-        } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
-            if (t->dir == 0)
-                goto next;
-        }
-        DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
-        if (unlikely(new_engine == NULL)) {
-            exit(EXIT_FAILURE);
-        }
-        if (mpm_list == t->sm_list) {
-            SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
-            prepend = true;
-            head_is_mpm = true;
-            new_engine->mpm = true;
-        }
-
-        new_engine->alproto = t->alproto;
-        new_engine->dir = t->dir;
-        new_engine->sm_list = t->sm_list;
-        new_engine->sm_list_base = t->sm_list_base;
-        new_engine->smd = ptrs[new_engine->sm_list];
-        new_engine->progress = t->progress;
-        new_engine->v2 = t->v2;
-        SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p",
-                new_engine->sm_list, new_engine->v2.Callback,
-                new_engine->v2.GetData, new_engine->v2.transforms);
-
-        if (s->app_inspect == NULL) {
-            s->app_inspect = new_engine;
-            if (new_engine->sm_list == files_id) {
-                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
-                new_engine->id = DE_STATE_ID_FILE_INSPECT;
-            } else {
-                new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
-            }
-
-        /* prepend engine if forced or if our engine has a lower progress. */
-        } else if (prepend || (!head_is_mpm && s->app_inspect->progress > new_engine->progress)) {
-            new_engine->next = s->app_inspect;
-            s->app_inspect = new_engine;
-            if (new_engine->sm_list == files_id) {
-                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
-                new_engine->id = DE_STATE_ID_FILE_INSPECT;
-            } else {
-                new_engine->id = ++last_id;
-            }
-
-        } else {
-            DetectEngineAppInspectionEngine *a = s->app_inspect;
-            while (a->next != NULL) {
-                if (a->next && a->next->progress > new_engine->progress) {
-                    break;
+        if (b->frame) {
+            for (const DetectEngineFrameInspectionEngine *u = de_ctx->frame_inspect_engines;
+                    u != NULL; u = u->next) {
+                if (u->sm_list == s->init_data->buffers[x].id) {
+                    AppendFrameInspectEngine(de_ctx, u, s, smd, mpm_list);
                 }
-
-                a = a->next;
             }
-
-            new_engine->next = a->next;
-            a->next = new_engine;
-            if (new_engine->sm_list == files_id) {
-                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
-                new_engine->id = DE_STATE_ID_FILE_INSPECT;
-            } else {
-                new_engine->id = ++last_id;
+        } else if (b->packet) {
+            /* set up pkt inspect engines */
+            for (const DetectEnginePktInspectionEngine *e = de_ctx->pkt_inspect_engines; e != NULL;
+                    e = e->next) {
+                SCLogDebug("e %p sm_list %u", e, e->sm_list);
+                if (e->sm_list == s->init_data->buffers[x].id) {
+                    AppendPacketInspectEngine(de_ctx, e, s, smd, mpm_list);
+                }
+            }
+        } else {
+            SCLogDebug("app %s id %u parent %u rule %u xforms %u", b->name, b->id, b->parent_id,
+                    s->init_data->buffers[x].id, b->transforms.cnt);
+            for (const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines; t != NULL;
+                    t = t->next) {
+                if (t->sm_list == s->init_data->buffers[x].id) {
+                    AppendAppInspectEngine(
+                            de_ctx, t, s, smd, mpm_list, files_id, &last_id, &head_is_mpm);
+                }
             }
         }
-
-        SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
-
-        s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
-next:
-        t = t->next;
     }
 
     if ((s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) &&
@@ -836,64 +852,91 @@ next:
  */
 void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signature *s)
 {
-    int nlists = 0;
+    int engines = 0;
 
     DetectEngineAppInspectionEngine *ie = s->app_inspect;
     while (ie) {
-        nlists = MAX(ie->sm_list + 1, nlists);
         ie = ie->next;
+        engines++;
     }
     DetectEnginePktInspectionEngine *e = s->pkt_inspect;
     while (e) {
-        nlists = MAX(e->sm_list + 1, nlists);
         e = e->next;
+        engines++;
     }
     DetectEngineFrameInspectionEngine *u = s->frame_inspect;
     while (u) {
-        nlists = MAX(u->sm_list + 1, nlists);
         u = u->next;
+        engines++;
     }
-    if (nlists == 0) {
+    if (engines == 0) {
         BUG_ON(s->pkt_inspect);
         BUG_ON(s->frame_inspect);
         return;
     }
 
-    SigMatchData *ptrs[nlists];
-    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
+    SigMatchData *bufs[engines];
+    memset(&bufs, 0, (engines * sizeof(SigMatchData *)));
+    int arrays = 0;
 
     /* free engines and put smd in the array */
     ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
-        BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->smd);
-        ptrs[ie->sm_list] = ie->smd;
+
+        bool skip = false;
+        for (int i = 0; i < arrays; i++) {
+            if (bufs[i] == ie->smd) {
+                skip = true;
+                break;
+            }
+        }
+        if (!skip) {
+            bufs[arrays++] = ie->smd;
+        }
         SCFree(ie);
         ie = next;
     }
     e = s->pkt_inspect;
     while (e) {
         DetectEnginePktInspectionEngine *next = e->next;
-        ptrs[e->sm_list] = e->smd;
+
+        bool skip = false;
+        for (int i = 0; i < arrays; i++) {
+            if (bufs[i] == e->smd) {
+                skip = true;
+                break;
+            }
+        }
+        if (!skip) {
+            bufs[arrays++] = e->smd;
+        }
         SCFree(e);
         e = next;
     }
     u = s->frame_inspect;
     while (u) {
         DetectEngineFrameInspectionEngine *next = u->next;
-        ptrs[u->sm_list] = u->smd;
+
+        bool skip = false;
+        for (int i = 0; i < arrays; i++) {
+            if (bufs[i] == u->smd) {
+                skip = true;
+                break;
+            }
+        }
+        if (!skip) {
+            bufs[arrays++] = u->smd;
+        }
         SCFree(u);
         u = next;
     }
 
-    /* free the smds */
-    for (int i = 0; i < nlists; i++)
-    {
-        if (ptrs[i] == NULL)
+    for (int i = 0; i < engines; i++) {
+        if (bufs[i] == NULL)
             continue;
-
-        SigMatchData *smd = ptrs[i];
-        while(1) {
+        SigMatchData *smd = bufs[i];
+        while (1) {
             if (sigmatch_table[smd->type].Free != NULL) {
                 sigmatch_table[smd->type].Free(de_ctx, smd->ctx);
             }
@@ -901,7 +944,7 @@ void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signa
                 break;
             smd++;
         }
-        SCFree(ptrs[i]);
+        SCFree(bufs[i]);
     }
 }
 
@@ -1034,6 +1077,16 @@ int DetectBufferTypeRegister(const char *name)
     } else {
         return exists->id;
     }
+}
+
+void DetectBufferTypeSupportsMultiInstance(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->multi_instance = true;
+    SCLogDebug("%p %s -- %d supports multi instance", exists, name, exists->id);
 }
 
 void DetectBufferTypeSupportsFrames(const char *name)
@@ -1234,6 +1287,15 @@ void DetectEngineBufferTypeSupportsTransformations(DetectEngineCtx *de_ctx, cons
     SCLogDebug("%p %s -- %d supports transformations", exists, name, exists->id);
 }
 
+bool DetectEngineBufferTypeSupportsMultiInstanceGetById(const DetectEngineCtx *de_ctx, const int id)
+{
+    const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
+    if (map == NULL)
+        return false;
+    SCLogDebug("map %p id %d multi_instance? %s", map, id, BOOL2STR(map->multi_instance));
+    return map->multi_instance;
+}
+
 bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id)
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
@@ -1292,27 +1354,31 @@ bool DetectEngineBufferRunValidateCallback(
 
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id)
 {
-    const uint32_t nlists = s->init_data->smlists_array_size;
-    if (buf_id < nlists) {
-        return s->init_data->smlists[buf_id];
+    for (uint32_t i = 0; i < s->init_data->buffer_index; i++) {
+        if (buf_id == s->init_data->buffers[i].id) {
+            return s->init_data->buffers[i].head;
+        }
     }
     return NULL;
 }
 
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id)
 {
-    const uint32_t nlists = s->init_data->smlists_array_size;
-    if (buf_id < nlists) {
-        return s->init_data->smlists_tail[buf_id];
+    SigMatch *last = NULL;
+    for (uint32_t i = 0; i < s->init_data->buffer_index; i++) {
+        if (buf_id == s->init_data->buffers[i].id) {
+            last = s->init_data->buffers[i].tail;
+        }
     }
-    return NULL;
+    return last;
 }
 
 bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id)
 {
-    const uint32_t nlists = s->init_data->smlists_array_size;
-    if (buf_id < nlists) {
-        return s->init_data->smlists_tail[buf_id] != NULL;
+    for (uint32_t i = 0; i < s->init_data->buffer_index; i++) {
+        if (buf_id == s->init_data->buffers[i].id) {
+            return true;
+        }
     }
     return false;
 }
@@ -1321,12 +1387,64 @@ int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int l
 {
     BUG_ON(s->init_data == NULL);
 
+    if (s->init_data->list == DETECT_SM_LIST_BASE64_DATA) {
+        SCLogError("Rule buffer cannot be reset after base64_data.");
+        return -1;
+    }
+
     if (s->init_data->list && s->init_data->transforms.cnt) {
         SCLogError("no matches following transform(s)");
         return -1;
     }
     s->init_data->list = list;
     s->init_data->list_set = true;
+
+    // check if last has matches -> if no, error
+    if (s->init_data->curbuf && s->init_data->curbuf->head == NULL) {
+        SCLogError("previous sticky buffer has no matches");
+        return -1;
+    }
+
+    for (uint32_t x = 0; x < s->init_data->buffers_size; x++) {
+        SignatureInitDataBuffer *b = &s->init_data->buffers[x];
+        for (SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+            SCLogDebug(
+                    "buf:%p: id:%u: '%s' pos %u", b, b->id, sigmatch_table[sm->type].name, sm->idx);
+        }
+        if ((uint32_t)list == b->id) {
+            SCLogDebug("found buffer %p for list %d", b, list);
+            if (s->init_data->buffers[x].sm_init) {
+                s->init_data->buffers[x].sm_init = false;
+                SCLogDebug("sm_init was true for %p list %d", b, list);
+                s->init_data->curbuf = b;
+                return 0;
+
+            } else if (DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, list)) {
+                // fall through
+            } else {
+                SCLogWarning("duplicate instance for %s in '%s'",
+                        DetectEngineBufferTypeGetNameById(de_ctx, list), s->sig_str);
+                s->init_data->curbuf = b;
+                return 0;
+            }
+        }
+    }
+
+    if (list < DETECT_SM_LIST_MAX)
+        return 0;
+
+    if (SignatureInitDataBufferCheckExpand(s) < 0) {
+        SCLogError("failed to expand rule buffer array");
+        return -1;
+    }
+
+    /* initialize new buffer */
+    s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+    s->init_data->curbuf->id = list;
+    s->init_data->curbuf->head = NULL;
+    s->init_data->curbuf->tail = NULL;
+    SCLogDebug("new: idx %u list %d set up curbuf %p", s->init_data->buffer_index - 1, list,
+            s->init_data->curbuf);
 
     return 0;
 }
@@ -1356,6 +1474,21 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->list_set = false;
         // reset transforms now that we've set up the list
         s->init_data->transforms.cnt = 0;
+
+        if (s->init_data->curbuf && s->init_data->curbuf->head != NULL) {
+            if (SignatureInitDataBufferCheckExpand(s) < 0) {
+                SCLogError("failed to expand rule buffer array");
+                return -1;
+            }
+            s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+        }
+        if (s->init_data->curbuf == NULL) {
+            SCLogError("failed to setup buffer");
+            DEBUG_VALIDATE_BUG_ON(1);
+            SCReturnInt(-1);
+        }
+        s->init_data->curbuf->id = new_list;
+        SCLogDebug("new list after applying transforms: %u", new_list);
     }
 
     SCReturnInt(0);
