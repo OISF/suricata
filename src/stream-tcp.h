@@ -96,6 +96,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_invalid_checksum;
     /** midstream pickups */
     uint16_t counter_tcp_midstream_pickups;
+    /** exception policy stats */
+    ExceptionPolicyCounters counter_tcp_midstream_eps;
     /** wrong thread */
     uint16_t counter_tcp_wrong_thread;
     /** ack for unseen data */
