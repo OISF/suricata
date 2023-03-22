@@ -85,6 +85,7 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_ssn_memcap;
     uint16_t counter_tcp_ssn_from_cache;
     uint16_t counter_tcp_ssn_from_pool;
+    uint16_t counter_tcp_ssn_memcap_exc_policy;
     /** pseudo packets processed */
     uint16_t counter_tcp_pseudo;
     /** pseudo packets failed to setup */

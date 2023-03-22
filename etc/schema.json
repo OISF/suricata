@@ -5225,6 +5225,9 @@
                         "ssn_memcap_drop": {
                             "type": "integer"
                         },
+                        "ssn_memcap_exception_policy": {
+                            "type": "integer"
+                        },
                         "stream_depth_reached": {
                             "type": "integer"
                         },
