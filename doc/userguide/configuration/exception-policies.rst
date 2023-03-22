@@ -29,14 +29,14 @@ have the need to.
 
 ::
 
-   # In IPS mode, the default is drop-packet/drop-flow. To fallback to old
-   # behavior (setting each of them individually, or ignoring all), set this
-   # to ignore.
+   # Define a common behavior for all exception policies.
+   # In IPS mode, the default is drop-flow. For cases when that's not possible, the
+   # engine will fall to drop-packet. To fallback to old behavior (setting each of
+   # them individually, or ignoring all), set this to ignore.
    # All values available for exception policies can be used, and there is one
-   # extra option: auto - which means drop-packet/drop-flow in IPS mode and
-   # ignore in IDS mode).
-   # Exception policy values are: drop-packet, drop-flow, reject, bypass,
-   # pass-packet, pass-flow, ignore (disable).
+   # extra option: auto - which means drop-flow or drop-packet (as explained above)
+   # in IPS mode, and ignore in IDS mode. Exception policy values are: drop-packet,
+   # drop-flow, reject, bypass, pass-packet, pass-flow, ignore (disable).
    exception-policy: auto
 
 This value will be overwritten by specific exception policies whose settings are
@@ -46,10 +46,11 @@ Auto
 ''''
 
 **In IPS mode**, the default behavior for all exception policies is to drop
-packets and/or flows. It is possible to disable this default, by setting the
-exception policies "master switch" yaml config option to ``ignore``.
+the flow, or the packet, when the flow action is not supported. It is possible
+to disable this default, by setting the exception policies' "master switch" yaml
+config option to ``ignore``.
 
-**In IDS mode**, setting auto mode actually means disabling the
+**In IDS mode**, setting ``auto`` mode actually means disabling the
 ``master-swtich``, or ignoring the exception policies.
 
 Specific settings
@@ -79,14 +80,15 @@ Exception policies are implemented for:
    * - flow.memcap
      - memcap-policy
      - Apply policy when the memcap limit for flows is reached and no flow could
-       be freed up.
+       be freed up. Apply policy to the packet.
    * - defrag.memcap
      - memcap-policy
      - Apply policy when the memcap limit for defrag is reached and no tracker
-       could be picked up.
+       could be picked up. Apply policy to the packet.
    * - app-layer
      - error-policy
-     - Apply policy if a parser reaches an error state.
+     - Apply policy if a parser reaches an error state. Apply policy to the
+       packet and flow.
 
 To change any of these, go to the specific section in the suricata.yaml file
 (for more configuration details, check the :doc:`suricata.yaml's<suricata-yaml>`
@@ -99,7 +101,8 @@ are:
   application layer protocol), drop the packet and all future packets in the
   flow.
 - ``drop-packet``: drop the packet.
-- ``reject``: same as ``drop-flow``, but reject the current packet as well.
+- ``reject``: same as ``drop-flow``, but reject the current packet as well (see
+  ``reject`` action in Rule's :ref:`actions`).
 - ``bypass``: bypass the flow. No further inspection is done. :ref:`Bypass
   <bypass>` may be offloaded.
 - ``pass-flow``: disable payload and packet detection; stream reassembly,
