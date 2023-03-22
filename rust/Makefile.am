@@ -77,7 +77,7 @@ check:
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
 vendor:
-	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ $(CARGO) vendor > /dev/null
+	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ $(CARGO) vendor
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
