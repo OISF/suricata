@@ -5174,6 +5174,9 @@
                         "midstream_pickups": {
                             "type": "integer"
                         },
+                        "midstream_exception_policy": {
+                            "type": "integer"
+                        },
                         "no_flow": {
                             "type": "integer"
                         },

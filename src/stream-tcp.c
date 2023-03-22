@@ -963,6 +963,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_FIN) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StatsIncr(tv, stt->counter_tcp_midstream_exc_policy);
 
         if (!stream_config.midstream || p->payload_len == 0) {
             StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
@@ -1060,6 +1061,7 @@ static int StreamTcpPacketStateNone(
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StatsIncr(tv, stt->counter_tcp_midstream_exc_policy);
 
         if (!stream_config.midstream && !stream_config.async_oneside) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -1233,6 +1235,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_ACK) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StatsIncr(tv, stt->counter_tcp_midstream_exc_policy);
 
         if (!stream_config.midstream) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -5782,6 +5785,8 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    stt->counter_tcp_midstream_exc_policy =
+            StatsRegisterCounter("tcp.midstream_exception_policy", tv);
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
 
