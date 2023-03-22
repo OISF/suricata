@@ -1369,6 +1369,10 @@
         # Are all required libs installed, yes=HAVE_AF_XDP
         AS_IF([test "x$enable_af_xdp" = "xyes"],
             AC_DEFINE([HAVE_AF_XDP],[1],[AF_XDP support is available]))
+
+        # bpf_get_link_xpd_id has been removed in the most recent
+        # versions of libbpf.
+        AC_CHECK_FUNCS([bpf_xdp_query_id])
     ])
 
   # DPDK support
