@@ -938,6 +938,34 @@ static inline void StreamTcpCloseSsnWithReset(Packet *p, TcpSession *ssn)
             "TCP_CLOSED", ssn, StreamTcpStateAsString(ssn->state));
 }
 
+static void StreamTcpMidstreamExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    switch (policy) {
+        case EXCEPTION_POLICY_NOT_SET:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_ignore);
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_reject);
+            break;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_bypass);
+            break;
+        case EXCEPTION_POLICY_DROP_FLOW:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_drop_flow);
+            break;
+        case EXCEPTION_POLICY_DROP_PACKET:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_drop_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_pass_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            StatsIncr(tv, stt->counter_tcp_midstream_eps_pass_flow);
+            break;
+    }
+}
+
 static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
 {
     if (p->payload_len == 0)
@@ -991,6 +1019,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_FIN) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream || p->payload_len == 0) {
             StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
@@ -1088,6 +1117,7 @@ static int StreamTcpPacketStateNone(
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream && !stream_config.async_oneside) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -1261,6 +1291,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_ACK) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -5822,6 +5853,20 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    stt->counter_tcp_midstream_eps_ignore =
+            StatsRegisterCounter("tcp.midstream_exception_policy.ignore", tv);
+    stt->counter_tcp_midstream_eps_reject =
+            StatsRegisterCounter("tcp.midstream_exception_policy.reject", tv);
+    stt->counter_tcp_midstream_eps_bypass =
+            StatsRegisterCounter("tcp.midstream_exception_policy.bypass", tv);
+    stt->counter_tcp_midstream_eps_pass_flow =
+            StatsRegisterCounter("tcp.midstream_exception_policy.pass_flow", tv);
+    stt->counter_tcp_midstream_eps_pass_packet =
+            StatsRegisterCounter("tcp.midstream_exception_policy.pass_packet", tv);
+    stt->counter_tcp_midstream_eps_drop_flow =
+            StatsRegisterCounter("tcp.midstream_exception_policy.drop_flow", tv);
+    stt->counter_tcp_midstream_eps_drop_packet =
+            StatsRegisterCounter("tcp.midstream_exception_policy.drop_packet", tv);
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
 
