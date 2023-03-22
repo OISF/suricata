@@ -1725,6 +1725,44 @@ static AppLayerStateData *SMTPGetStateData(void *vstate)
     return &state->state_data;
 }
 
+/** \brief SMTP tx iterator, specialized for its linked list
+ *
+ *  \retval txptr or NULL if no more txs in list
+ */
+static AppLayerGetTxIterTuple SMTPGetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id, AppLayerGetTxIterState *state)
+{
+    SMTPState *smtp_state = (SMTPState *)alstate;
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    if (smtp_state) {
+        SMTPTransaction *tx_ptr;
+        if (state->un.ptr == NULL) {
+            tx_ptr = TAILQ_FIRST(&smtp_state->tx_list);
+        } else {
+            tx_ptr = (SMTPTransaction *)state->un.ptr;
+        }
+        if (tx_ptr) {
+            while (tx_ptr->tx_id < min_tx_id) {
+                tx_ptr = TAILQ_NEXT(tx_ptr, next);
+                if (!tx_ptr) {
+                    return no_tuple;
+                }
+            }
+            if (tx_ptr->tx_id >= max_tx_id) {
+                return no_tuple;
+            }
+            state->un.ptr = TAILQ_NEXT(tx_ptr, next);
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx_ptr,
+                .tx_id = tx_ptr->tx_id,
+                .has_next = (state->un.ptr != NULL),
+            };
+            return tuple;
+        }
+    }
+    return no_tuple;
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1761,6 +1799,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxIterator);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetStateData);
         AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
