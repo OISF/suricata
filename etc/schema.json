@@ -5219,6 +5219,11 @@
                         "midstream_pickups": {
                             "type": "integer"
                         },
+                        "midstream_exception_policy": {
+                            "description":
+                                    "How many times midstream exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "no_flow": {
                             "type": "integer"
                         },
