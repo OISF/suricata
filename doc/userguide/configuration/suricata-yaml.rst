@@ -937,8 +937,8 @@ Suricata discards the fragments (timeout). This occurs by default after 60
 seconds.
 
 In IPS mode, it is possible to tell the engine what to do in case the memcap for
-the defrag engine is reached: "drop-flow", "pass-flow", "bypass", "drop-packet",
-"pass-packet", or "ignore" (default behavior).
+the defrag engine is reached: "drop-packet", "pass-packet", or "ignore" (default
+behavior).
 
 ::
 
@@ -1000,7 +1000,7 @@ thread ensures that wherever possible and within the memcap. There
 will be 10000 flows prepared.
 
 In IPS mode, a memcap-policy exception policy can be set, telling Suricata
-what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject',
+what to do in case memcap is hit: 'drop-packet', 'pass-packet', 'reject', or
 'ignore'.
 
 ::
@@ -1102,8 +1102,8 @@ be recognized by Suricata.
 The stream-engine has two memcaps that can be set. One for the
 stream-tracking-engine and one for the reassembly-engine. For both cases,
 in IPS mode, an exception policy (memcap-policy) can be set, telling Suricata
-what to do in case memcap is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject',
-'ignore'.
+what to do in case memcap is hit: 'drop-flow', 'drop-packet', 'pass-flow',
+'pass-packet', 'bypass', 'reject', or 'ignore'.
 
 The stream-tracking-engine keeps information of the flow in
 memory. Information about the state, TCP-sequence-numbers and the TCP
@@ -1134,7 +1134,8 @@ sessions. This setup always includes a lot of information. If you want
 Suricata to check the stream from that time on, you can do so by
 setting the option 'midstream' to 'true'. The default setting is
 'false'. In IPS mode, it is possible to define a 'midstream-policy',
-indicating whether Suricata should drop, pass or bypass a midstream flow.
+indicating whether Suricata should drop-flow, drop-packet, pass-flow,
+pass-packet, reject, or bypass a midstream flow. The default is ignore.
 Normally Suricata is able to see all packets of a connection. Some networks
 make it more complicated though. Some of the network-traffic follows a
 different route than the other part, in other words: the traffic goes
@@ -1194,7 +1195,8 @@ The reassembly-engine has to keep data segments in memory in order to
 be able to reconstruct a stream. To avoid resource starvation a memcap
 is used to limit the memory used. In IPS mode, an exception policy
 (memcap-policy) can be set, telling Suricata what to do in case memcap
-is hit: 'drop-flow', 'pass-flow', 'bypass', 'reject', 'ignore'.
+is hit: 'drop-flow', 'drop-packet', 'pass-flow', 'pass-packet',  'bypass',
+'reject', or 'ignore'.
 
 Reassembling a stream is an expensive operation. With the option depth
 you can control how far into a stream reassembly is done. By default
@@ -1210,7 +1212,7 @@ adding in a random factor.
 
     reassembly:
       memcap: 256mb             # Memory reserved for stream data reconstruction (in bytes)
-      memcap-policy: ignore     # What to do when a midstream session is seen
+      memcap-policy: ignore     # What to do when memcap for reassembly is hit
       depth: 1mb                # The depth of the reassembling.
       toserver_chunk_size: 2560 # inspect raw stream in chunks of at least this size
       toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
@@ -1255,7 +1257,7 @@ Application Layer Parsers
 The ``app-layer`` section holds application layer specific configurations.
 
 In IPS mode, a global exception policy accessed via the ``error-policy``
-setting can be defined to indicate what the engine should do in case if
+setting can be defined to indicate what the engine should do in case it
 encounters an app-layer error. Possible values are "drop-flow", "pass-flow",
 "bypass", "drop-packet", "pass-packet", "reject" or "ignore" (which maintains
 the default behavior).

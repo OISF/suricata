@@ -1160,8 +1160,8 @@ host-os-policy:
 
 # Defrag settings:
 
-# The memcap-policy value can be "drop-flow", "pass-flow", "bypass",
-# "drop-packet", "pass-packet", "reject" or "ignore" (which is the default).
+# The memcap-policy value can be "drop-packet", "pass-packet", "reject" or
+# "ignore" (which is the default).
 defrag:
   memcap: 32mb
   # memcap-policy: ignore
@@ -1204,8 +1204,8 @@ defrag:
 # last time seen flows.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
 # in bytes.
-# The memcap-policy can be "drop-flow", "pass-flow", "bypass", "drop-packet",
-# "pass-packet", "reject" or "ignore" (which is the default).
+# The memcap-policy can be "drop-packet", "pass-packet", "reject" or "ignore"
+# (which is the default).
 
 flow:
   memcap: 128mb

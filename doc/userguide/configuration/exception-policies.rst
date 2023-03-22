@@ -40,14 +40,15 @@ Exception policies are implemented for:
    * - flow.memcap
      - memcap-policy
      - Apply policy when the memcap limit for flows is reached and no flow could
-       be freed up.
+       be freed up. Apply policy to the packet.
    * - defrag.memcap
      - memcap-policy
      - Apply policy when the memcap limit for defrag is reached and no tracker
-       could be picked up.
+       could be picked up. Apply policy to the packet.
    * - app-layer
      - error-policy
-     - Apply policy if a parser reaches an error state.
+     - Apply policy if a parser reaches an error state. Apply policy to the
+       packet and flow.
 
 To change any of these, go to the specific section in the suricata.yaml file
 (for more configuration details, check the :doc:`suricata.yaml's<suricata-yaml>`
@@ -60,7 +61,8 @@ are:
   application layer protocol), drop the packet and all future packets in the
   flow.
 - ``drop-packet``: drop the packet.
-- ``reject``: same as ``drop-flow``, but reject the current packet as well.
+- ``reject``: same as ``drop-flow``, but reject the current packet as well (see
+  ``reject`` action in Rule's :ref:`actions`).
 - ``bypass``: bypass the flow. No further inspection is done. :ref:`Bypass
   <bypass>` may be offloaded.
 - ``pass-flow``: disable payload and packet detection; stream reassembly,
