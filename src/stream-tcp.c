@@ -116,6 +116,58 @@ ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
 };
 // clang-format on
 
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_midstream_enabled_eps_stats = {
+    /* valid_settings_ids */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  false,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       false,
+    },
+    /* valid_settings_ips */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  false,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       false,
+    },
+};
+// clang-format on
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_midstream_disabled_eps_stats = {
+    /* valid_settings_ids */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    /* valid_settings_ips */ {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(bool);
@@ -948,6 +1000,29 @@ static inline void StreamTcpCloseSsnWithReset(Packet *p, TcpSession *ssn)
             "TCP_CLOSED", ssn, StreamTcpStateAsString(ssn->state));
 }
 
+static bool IsMidstreamExceptionPolicyStatsValid(int policy)
+{
+    if (EngineModeIsIPS()) {
+        if (stream_config.midstream) {
+            return stream_midstream_enabled_eps_stats.valid_settings_ips[policy];
+        }
+        return stream_midstream_disabled_eps_stats.valid_settings_ips[policy];
+    }
+    if (stream_config.midstream) {
+        return stream_midstream_enabled_eps_stats.valid_settings_ids[policy];
+    }
+    return stream_midstream_disabled_eps_stats.valid_settings_ids[policy];
+}
+
+static void StreamTcpMidstreamExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    const uint16_t id = stt->counter_tcp_midstream_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
 {
     if (p->payload_len == 0)
@@ -1001,6 +1076,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_FIN) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream || p->payload_len == 0) {
             StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
@@ -1097,6 +1173,7 @@ static int StreamTcpPacketStateNone(
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream && !stream_config.async_oneside) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -1269,6 +1346,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_ACK) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -5827,6 +5905,21 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    /* set-up tcp stream midstream exception policy counters */
+    const char *eps_midstream_str = "tcp.midstream_exception_policy.";
+    is_eps_valid = false;
+    for (uint8_t i = 0; i > EXCEPTION_POLICY_MAX; i++) {
+        is_eps_valid = IsMidstreamExceptionPolicyStatsValid(i);
+        if (is_eps_valid) {
+            /* "tcp.midstream_exception_policy." + longest exception policy string size
+             * ("pass_packet") = 43 */
+            char eps_stats[43];
+            snprintf(eps_stats, sizeof(eps_stats), "%s%s", eps_midstream_str,
+                    ExceptionPolicyEnumToString(i));
+            stt->counter_tcp_midstream_eps.eps_id[i] = StatsRegisterCounter(eps_stats, tv);
+        }
+    }
+
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
 
