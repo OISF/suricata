@@ -1295,14 +1295,13 @@ legacy:
 # Exception Policies
 #
 # Define a common behavior for all exception policies.
-# In IPS mode, the default is drop-packet/drop-flow. To fallback to old
-# behavior (setting each of them individually, or ignoring all), set this
-# to ignore.
+# In IPS mode, the default is drop-flow. For cases when that's not possible, the
+# engine will fall to drop-packet. To fallback to old behavior (setting each of
+# them individually, or ignoring all), set this to ignore.
 # All values available for exception policies can be used, and there is one
-# extra option: auto - which means drop-packet/drop-flow in IPS mode and
-# ignore in IDS mode).
-# Exception policy values are: drop-packet, drop-flow, reject, bypass,
-# pass-packet, pass-flow, ignore (disable).
+# extra option: auto - which means drop-flow or drop-packet (as explained above)
+# in IPS mode, and ignore in IDS mode. Exception policy values are: drop-packet,
+# drop-flow, reject, bypass, pass-packet, pass-flow, ignore (disable).
 exception-policy: auto
 
 # IP Reputation
@@ -1352,8 +1351,8 @@ host-os-policy:
 
 # Defrag settings:
 
-# The memcap-policy value can be "drop-flow", "pass-flow", "bypass",
-# "drop-packet", "pass-packet", "reject" or "ignore" (which is the default).
+# The memcap-policy value can be "drop-packet", "pass-packet", "reject" or
+# "ignore" (which is the default).
 defrag:
   memcap: 32mb
   # memcap-policy: ignore
@@ -1396,8 +1395,8 @@ defrag:
 # last time seen flows.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
 # in bytes.
-# The memcap-policy can be "drop-flow", "pass-flow", "bypass", "drop-packet",
-# "pass-packet", "reject" or "ignore" (which is the default).
+# The memcap-policy can be "drop-packet", "pass-packet", "reject" or "ignore"
+# (which is the default).
 
 flow:
   memcap: 128mb
