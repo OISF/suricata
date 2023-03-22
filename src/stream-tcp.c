@@ -90,6 +90,32 @@
 #define STREAMTCP_DEFAULT_MAX_SYN_QUEUED        10
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
 
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(bool);
@@ -702,6 +728,23 @@ void StreamTcpFreeConfig(bool quiet)
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 }
 
+static bool IsStreamTcpSessionMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
+{
+    if (EngineModeIsIPS()) {
+        return stream_memcap_eps_stats.valid_settings_ips[policy];
+    }
+    return stream_memcap_eps_stats.valid_settings_ids[policy];
+}
+
+static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    const uint16_t id = stt->counter_tcp_ssn_memcap_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 /** \internal
  *  \brief The function is used to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
@@ -741,6 +784,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
                       g_eps_stream_ssn_memcap == t_pcapcnt))) {
             SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 #endif
@@ -748,6 +792,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 
@@ -5764,6 +5809,10 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
     stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
     stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
+    ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_ssn_memcap_eps, &stream_memcap_eps_stats,
+            stream_config.ssn_memcap_policy, "tcp.ssn_memcap_exception_policy.",
+            IsStreamTcpSessionMemcapExceptionPolicyStatsValid);
+
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);

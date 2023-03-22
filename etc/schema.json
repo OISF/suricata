@@ -5267,6 +5267,11 @@
                         "ssn_memcap_drop": {
                             "type": "integer"
                         },
+                        "ssn_memcap_exception_policy": {
+                            "description":
+                                    "How many times session memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "stream_depth_reached": {
                             "type": "integer"
                         },
