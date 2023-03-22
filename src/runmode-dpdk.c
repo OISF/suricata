@@ -1021,7 +1021,8 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
 
     if (iconf->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         SCLogConfig("%s: checksum validation disabled", iconf->iface);
-    } else if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_CHECKSUM) {
+    } else if ((dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_CHECKSUM) ==
+               RTE_ETH_RX_OFFLOAD_CHECKSUM) {
         if (iconf->checksum_mode == CHECKSUM_VALIDATION_ENABLE &&
                 iconf->flags & DPDK_RX_CHECKSUM_OFFLOAD) {
             SCLogConfig("%s: IP, TCP and UDP checksum validation offloaded", iconf->iface);
