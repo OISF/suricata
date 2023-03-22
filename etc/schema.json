@@ -5199,6 +5199,23 @@
                         "midstream_pickups": {
                             "type": "integer"
                         },
+                        "midstream_exception_policy": {
+                            "type": "object",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/drop_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/bypass"
+                                },
+                                {
+                                    "$ref": "#/$defs/reject"
+                                }
+                            ]
+                        },
                         "no_flow": {
                             "type": "integer"
                         },
