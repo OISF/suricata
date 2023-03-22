@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,7 @@
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
 #include "suricata.h"
+#include "util-exception-policy-types.h"
 
 #define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine
@@ -85,6 +86,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_ssn_memcap;
     uint16_t counter_tcp_ssn_from_cache;
     uint16_t counter_tcp_ssn_from_pool;
+    /** exception policy */
+    ExceptionPolicyCounters counter_tcp_ssn_memcap_eps;
     /** pseudo packets processed */
     uint16_t counter_tcp_pseudo;
     /** pseudo packets failed to setup */

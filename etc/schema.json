@@ -5287,6 +5287,32 @@
                         "ssn_memcap_drop": {
                             "type": "integer"
                         },
+                        "ssn_memcap_exception_policy": {
+                            "type": "object",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/drop_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/drop_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/bypass"
+                                },
+                                {
+                                    "$ref": "#/$defs/ignore"
+                                },
+                                {
+                                    "$ref": "#/$defs/reject"
+                                }
+                            ]
+                        },
                         "stream_depth_reached": {
                             "type": "integer"
                         },
