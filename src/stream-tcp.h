@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,6 +85,13 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_ssn_memcap;
     uint16_t counter_tcp_ssn_from_cache;
     uint16_t counter_tcp_ssn_from_pool;
+    /** exception policy */
+    uint16_t counter_tcp_ssn_memcap_eps_reject;
+    uint16_t counter_tcp_ssn_memcap_eps_bypass;
+    uint16_t counter_tcp_ssn_memcap_eps_pass_flow;
+    uint16_t counter_tcp_ssn_memcap_eps_pass_packet;
+    uint16_t counter_tcp_ssn_memcap_eps_drop_flow;
+    uint16_t counter_tcp_ssn_memcap_eps_drop_packet;
     /** pseudo packets processed */
     uint16_t counter_tcp_pseudo;
     /** pseudo packets failed to setup */

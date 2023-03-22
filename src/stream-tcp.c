@@ -702,6 +702,36 @@ void StreamTcpFreeConfig(bool quiet)
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 }
 
+static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    switch (policy) {
+        case EXCEPTION_POLICY_NOT_SET:
+            // We don't log stats if we're ignoring the exception policies
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_reject);
+            break;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_bypass);
+            break;
+        case EXCEPTION_POLICY_DROP_FLOW:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_drop_flow);
+            break;
+        case EXCEPTION_POLICY_DROP_PACKET:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_drop_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_pass_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap_eps_pass_flow);
+            break;
+        case EXCEPTION_POLICY_AUTO:
+            break;
+    }
+}
+
 /** \internal
  *  \brief The function is used to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
@@ -741,6 +771,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
                       g_eps_stream_ssn_memcap == t_pcapcnt))) {
             SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 #endif
@@ -748,6 +779,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 
@@ -5763,6 +5795,18 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
     stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
     stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
+    stt->counter_tcp_ssn_memcap_eps_reject =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.reject", tv);
+    stt->counter_tcp_ssn_memcap_eps_bypass =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.bypass", tv);
+    stt->counter_tcp_ssn_memcap_eps_pass_flow =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.pass_flow", tv);
+    stt->counter_tcp_ssn_memcap_eps_pass_packet =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.pass_packet", tv);
+    stt->counter_tcp_ssn_memcap_eps_drop_flow =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.drop_flow", tv);
+    stt->counter_tcp_ssn_memcap_eps_drop_packet =
+            StatsRegisterCounter("tcp.ssn_memcap_exception_policy.drop_packet", tv);
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
