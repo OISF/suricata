@@ -132,30 +132,13 @@ def patch_app_layer_protos_c(protoname):
     print("Patching %s." % (filename))
     output = io.StringIO()
 
-    # Read in all the lines as we'll be doing some multi-line
-    # duplications.
-    inlines = open(filename).readlines()
-    for i, line in enumerate(inlines):
-
-        if line.find("case ALPROTO_TEMPLATE:") > -1:
-            # Duplicate the section starting at this line and
-            # including the following 2 lines.
-            for j in range(i, i + 3):
-                temp = inlines[j]
-                temp = temp.replace("TEMPLATE", protoname.upper())
-                temp = temp.replace("template", protoname.lower())
-                output.write(temp)
-
-        if line.find("strcmp(proto_name, \"template\")") > -1:
-            # Duplicate the section starting at this line and
-            # including the following line.
-            for j in range(i, i + 2):
-                temp = inlines[j]
-                temp = temp.replace("TEMPLATE", protoname.upper())
-                temp = temp.replace("template", protoname.lower())
-                output.write(temp)
-
-        output.write(line)
+    with open(filename) as infile:
+        for line in infile:
+            if line.find("TEMPLATE") > -1:
+                new_line = line.replace("TEMPLATE", protoname.upper()).replace(
+                    "template", protoname.lower())
+                output.write(new_line)
+            output.write(line)
     open(filename, "w").write(output.getvalue())
 
 def patch_app_layer_parser_c(proto):
