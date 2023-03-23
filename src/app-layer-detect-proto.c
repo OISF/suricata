@@ -860,69 +860,7 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                 pp_pe = pp_port->dp;
                 for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
-                    if (pp_pe->alproto == ALPROTO_HTTP1)
-                        printf("            alproto: ALPROTO_HTTP1\n");
-                    else if (pp_pe->alproto == ALPROTO_FTP)
-                        printf("            alproto: ALPROTO_FTP\n");
-                    else if (pp_pe->alproto == ALPROTO_FTPDATA)
-                        printf("            alproto: ALPROTO_FTPDATA\n");
-                    else if (pp_pe->alproto == ALPROTO_SMTP)
-                        printf("            alproto: ALPROTO_SMTP\n");
-                    else if (pp_pe->alproto == ALPROTO_TLS)
-                        printf("            alproto: ALPROTO_TLS\n");
-                    else if (pp_pe->alproto == ALPROTO_SSH)
-                        printf("            alproto: ALPROTO_SSH\n");
-                    else if (pp_pe->alproto == ALPROTO_IMAP)
-                        printf("            alproto: ALPROTO_IMAP\n");
-                    else if (pp_pe->alproto == ALPROTO_JABBER)
-                        printf("            alproto: ALPROTO_JABBER\n");
-                    else if (pp_pe->alproto == ALPROTO_SMB)
-                        printf("            alproto: ALPROTO_SMB\n");
-                    else if (pp_pe->alproto == ALPROTO_DCERPC)
-                        printf("            alproto: ALPROTO_DCERPC\n");
-                    else if (pp_pe->alproto == ALPROTO_IRC)
-                        printf("            alproto: ALPROTO_IRC\n");
-                    else if (pp_pe->alproto == ALPROTO_DNS)
-                        printf("            alproto: ALPROTO_DNS\n");
-                    else if (pp_pe->alproto == ALPROTO_MODBUS)
-                        printf("            alproto: ALPROTO_MODBUS\n");
-                    else if (pp_pe->alproto == ALPROTO_ENIP)
-                        printf("            alproto: ALPROTO_ENIP\n");
-                    else if (pp_pe->alproto == ALPROTO_NFS)
-                        printf("            alproto: ALPROTO_NFS\n");
-                    else if (pp_pe->alproto == ALPROTO_NTP)
-                        printf("            alproto: ALPROTO_NTP\n");
-                    else if (pp_pe->alproto == ALPROTO_TFTP)
-                        printf("            alproto: ALPROTO_TFTP\n");
-                    else if (pp_pe->alproto == ALPROTO_IKE)
-                        printf("            alproto: ALPROTO_IKE\n");
-                    else if (pp_pe->alproto == ALPROTO_KRB5)
-                        printf("            alproto: ALPROTO_KRB5\n");
-                    else if (pp_pe->alproto == ALPROTO_DHCP)
-                        printf("            alproto: ALPROTO_DHCP\n");
-                    else if (pp_pe->alproto == ALPROTO_QUIC)
-                        printf("            alproto: ALPROTO_QUIC\n");
-                    else if (pp_pe->alproto == ALPROTO_SNMP)
-                        printf("            alproto: ALPROTO_SNMP\n");
-                    else if (pp_pe->alproto == ALPROTO_SIP)
-                        printf("            alproto: ALPROTO_SIP\n");
-                    else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                        printf("            alproto: ALPROTO_TEMPLATE\n");
-                    else if (pp_pe->alproto == ALPROTO_RFB)
-                        printf("            alproto: ALPROTO_RFB\n");
-                    else if (pp_pe->alproto == ALPROTO_MQTT)
-                        printf("            alproto: ALPROTO_MQTT\n");
-                    else if (pp_pe->alproto == ALPROTO_PGSQL)
-                        printf("            alproto: ALPROTO_PGSQL\n");
-                    else if (pp_pe->alproto == ALPROTO_TELNET)
-                        printf("            alproto: ALPROTO_TELNET\n");
-                    else if (pp_pe->alproto == ALPROTO_DNP3)
-                        printf("            alproto: ALPROTO_DNP3\n");
-                    else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
-                        printf("            alproto: ALPROTO_BITTORRENT_DHT\n");
-                    else
-                        printf("impossible\n");
-
+                    printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
                     printf("            port: %"PRIu16 "\n", pp_pe->port);
                     printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                     printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
@@ -943,69 +881,7 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
             pp_pe = pp_port->sp;
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
-                if (pp_pe->alproto == ALPROTO_HTTP1)
-                    printf("            alproto: ALPROTO_HTTP1\n");
-                else if (pp_pe->alproto == ALPROTO_FTP)
-                    printf("            alproto: ALPROTO_FTP\n");
-                else if (pp_pe->alproto == ALPROTO_FTPDATA)
-                    printf("            alproto: ALPROTO_FTPDATA\n");
-                else if (pp_pe->alproto == ALPROTO_SMTP)
-                    printf("            alproto: ALPROTO_SMTP\n");
-                else if (pp_pe->alproto == ALPROTO_TLS)
-                    printf("            alproto: ALPROTO_TLS\n");
-                else if (pp_pe->alproto == ALPROTO_SSH)
-                    printf("            alproto: ALPROTO_SSH\n");
-                else if (pp_pe->alproto == ALPROTO_IMAP)
-                    printf("            alproto: ALPROTO_IMAP\n");
-                else if (pp_pe->alproto == ALPROTO_JABBER)
-                    printf("            alproto: ALPROTO_JABBER\n");
-                else if (pp_pe->alproto == ALPROTO_SMB)
-                    printf("            alproto: ALPROTO_SMB\n");
-                else if (pp_pe->alproto == ALPROTO_DCERPC)
-                    printf("            alproto: ALPROTO_DCERPC\n");
-                else if (pp_pe->alproto == ALPROTO_IRC)
-                    printf("            alproto: ALPROTO_IRC\n");
-                else if (pp_pe->alproto == ALPROTO_DNS)
-                    printf("            alproto: ALPROTO_DNS\n");
-                else if (pp_pe->alproto == ALPROTO_MODBUS)
-                    printf("            alproto: ALPROTO_MODBUS\n");
-                else if (pp_pe->alproto == ALPROTO_ENIP)
-                    printf("            alproto: ALPROTO_ENIP\n");
-                else if (pp_pe->alproto == ALPROTO_NFS)
-                    printf("            alproto: ALPROTO_NFS\n");
-                else if (pp_pe->alproto == ALPROTO_NTP)
-                    printf("            alproto: ALPROTO_NTP\n");
-                else if (pp_pe->alproto == ALPROTO_TFTP)
-                    printf("            alproto: ALPROTO_TFTP\n");
-                else if (pp_pe->alproto == ALPROTO_IKE)
-                    printf("            alproto: ALPROTO_IKE\n");
-                else if (pp_pe->alproto == ALPROTO_KRB5)
-                    printf("            alproto: ALPROTO_KRB5\n");
-                else if (pp_pe->alproto == ALPROTO_QUIC)
-                    printf("            alproto: ALPROTO_QUIC\n");
-                else if (pp_pe->alproto == ALPROTO_DHCP)
-                    printf("            alproto: ALPROTO_DHCP\n");
-                else if (pp_pe->alproto == ALPROTO_SNMP)
-                    printf("            alproto: ALPROTO_SNMP\n");
-                else if (pp_pe->alproto == ALPROTO_SIP)
-                    printf("            alproto: ALPROTO_SIP\n");
-                else if (pp_pe->alproto == ALPROTO_TEMPLATE)
-                    printf("            alproto: ALPROTO_TEMPLATE\n");
-                else if (pp_pe->alproto == ALPROTO_RFB)
-                    printf("            alproto: ALPROTO_RFB\n");
-                else if (pp_pe->alproto == ALPROTO_MQTT)
-                    printf("            alproto: ALPROTO_MQTT\n");
-                else if (pp_pe->alproto == ALPROTO_PGSQL)
-                    printf("            alproto: ALPROTO_PGSQL\n");
-                else if (pp_pe->alproto == ALPROTO_TELNET)
-                    printf("            alproto: ALPROTO_TELNET\n");
-                else if (pp_pe->alproto == ALPROTO_DNP3)
-                    printf("            alproto: ALPROTO_DNP3\n");
-                else if (pp_pe->alproto == ALPROTO_BITTORRENT_DHT)
-                    printf("            alproto: ALPROTO_BITTORRENT_DHT\n");
-                else
-                    printf("impossible\n");
-
+                printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
                 printf("            port: %"PRIu16 "\n", pp_pe->port);
                 printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                 printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
