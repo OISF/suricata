@@ -210,16 +210,6 @@ def logger_patch_suricata_yaml_in(proto):
 
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_suricata_common_h(proto):
-    filename = "src/suricata-common.h"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("LOGGER_JSON_TEMPLATE,") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def logger_patch_output_c(proto):
     filename = "src/output.c"
@@ -239,9 +229,9 @@ def logger_copy_templates(proto):
     lower = proto.lower()
     
     pairs = (
-        ("src/output-json-template-rust.h",
+        ("src/output-json-template.h",
          "src/output-json-%s.h" % (lower)),
-        ("src/output-json-template-rust.c",
+        ("src/output-json-template.c",
          "src/output-json-%s.c" % (lower)),
         ("rust/src/applayertemplate/logger.rs",
          "rust/src/applayer%s/logger.rs" % (lower)),
@@ -260,16 +250,6 @@ def logger_patch_makefile_am(protoname):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_util_profiling_c(proto):
-    filename = "src/util-profiling.c"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("(LOGGER_JSON_TEMPLATE);") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def detect_copy_templates(proto, buffername):
     lower = proto.lower()
@@ -432,10 +412,8 @@ def main():
         logger_copy_templates(proto)
         patch_rust_applayer_mod_rs(proto)
         logger_patch_makefile_am(proto)
-        logger_patch_suricata_common_h(proto)
         logger_patch_output_c(proto)
         logger_patch_suricata_yaml_in(proto)
-        logger_patch_util_profiling_c(proto)
 
     if detect:
         if not proto_exists(proto):
