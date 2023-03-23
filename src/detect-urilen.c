@@ -336,6 +336,7 @@ void DetectUrilenApplyToContent(Signature *s, int list)
 
         if (cd->depth == 0 || cd->depth > high) {
             cd->depth = (uint16_t)high;
+            cd->flags |= DETECT_CONTENT_DEPTH;
             SCLogDebug("updated %u, content %u to have depth %u "
                     "because of urilen.", s->id, cd->id, cd->depth);
         }
