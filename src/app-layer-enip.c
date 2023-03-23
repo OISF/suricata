@@ -445,6 +445,40 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_ENIP;
 }
 
+static AppLayerGetTxIterTuple ENIPGetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id, AppLayerGetTxIterState *state)
+{
+    ENIPState *enip_state = (ENIPState *)alstate;
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    if (enip_state) {
+        ENIPTransaction *tx_ptr;
+        if (state->un.ptr == NULL) {
+            tx_ptr = TAILQ_FIRST(&enip_state->tx_list);
+        } else {
+            tx_ptr = (ENIPTransaction *)state->un.ptr;
+        }
+        if (tx_ptr) {
+            while (tx_ptr->tx_num < min_tx_id + 1) {
+                tx_ptr = TAILQ_NEXT(tx_ptr, next);
+                if (!tx_ptr) {
+                    return no_tuple;
+                }
+            }
+            if (tx_ptr->tx_num >= max_tx_id + 1) {
+                return no_tuple;
+            }
+            state->un.ptr = TAILQ_NEXT(tx_ptr, next);
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx_ptr,
+                .tx_id = tx_ptr->tx_num - 1,
+                .has_next = (state->un.ptr != NULL),
+            };
+            return tuple;
+        }
+    }
+    return no_tuple;
+}
+
 /**
  * \brief Function to register the ENIP protocol parsers and other functions
  */
@@ -500,6 +534,7 @@ void RegisterENIPUDPParsers(void)
                 ENIPStateAlloc, ENIPStateFree);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxIterator);
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetStateData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
@@ -574,6 +609,7 @@ void RegisterENIPTCPParsers(void)
                 ENIPStateAlloc, ENIPStateFree);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxIterator);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetStateData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
