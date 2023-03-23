@@ -26,6 +26,8 @@
 
 void DetectHttpHeaderRegister(void);
 void DetectHttpRawHeaderRegister(void);
+void DetectHttpRequestHeaderRegister(void);
+void DetectHttpResponseHeaderRegister(void);
 
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx);
 
