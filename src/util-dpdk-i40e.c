@@ -38,7 +38,7 @@
 
 #define I40E_RSS_HKEY_LEN 52
 
-#if RTE_VER_YEAR <= 19
+#if RTE_VERSION < RTE_VERSION_NUM(20, 0, 0, 0)
 static int i40eDeviceEnableSymHash(
         int port_id, const char *port_name, uint32_t ftype, enum rte_eth_hash_function function)
 {
@@ -349,7 +349,7 @@ static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_
     return 0;
 }
 
-#endif /* RTE_VER_YEAR < 19 */
+#endif /* RTE_VERSION < RTE_VERSION_NUM(20,0,0,0) */
 
 int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
 {
@@ -364,25 +364,25 @@ int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
         return retval;
     }
 
-#if RTE_VER_YEAR <= 19
-    i40eDeviceSetRSSWithFilter(port_id, port_name);
-#else
+#if RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0)
     i40eDeviceSetRSSWithFlows(port_id, port_name, nb_rx_queues);
+#else
+    i40eDeviceSetRSSWithFilter(port_id, port_name);
 #endif
     return 0;
 }
 
 void i40eDeviceSetRSSHashFunction(uint64_t *rss_hf)
 {
-    if (RTE_VER_YEAR <= 19)
-        *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_TCP |
-                  RTE_ETH_RSS_NONFRAG_IPV4_UDP | RTE_ETH_RSS_NONFRAG_IPV4_SCTP |
-                  RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
-                  RTE_ETH_RSS_NONFRAG_IPV6_TCP | RTE_ETH_RSS_NONFRAG_IPV6_UDP |
-                  RTE_ETH_RSS_NONFRAG_IPV6_SCTP | RTE_ETH_RSS_NONFRAG_IPV6_OTHER | RTE_ETH_RSS_SCTP;
-    else
-        *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
-                  RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
+#if RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0)
+    *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
+              RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
+#else
+    *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_TCP | RTE_ETH_RSS_NONFRAG_IPV4_UDP |
+              RTE_ETH_RSS_NONFRAG_IPV4_SCTP | RTE_ETH_RSS_NONFRAG_IPV4_OTHER |
+              RTE_ETH_RSS_FRAG_IPV6 | RTE_ETH_RSS_NONFRAG_IPV6_TCP | RTE_ETH_RSS_NONFRAG_IPV6_UDP |
+              RTE_ETH_RSS_NONFRAG_IPV6_SCTP | RTE_ETH_RSS_NONFRAG_IPV6_OTHER | RTE_ETH_RSS_SCTP;
+#endif
 }
 
 #endif /* HAVE_DPDK */
