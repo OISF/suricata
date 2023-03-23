@@ -1520,6 +1520,40 @@ int DNP3PrefixIsSize(uint8_t prefix_code)
     }
 }
 
+static AppLayerGetTxIterTuple DNP3GetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id, AppLayerGetTxIterState *state)
+{
+    DNP3State *dnp_state = (DNP3State *)alstate;
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    if (dnp_state) {
+        DNP3Transaction *tx_ptr;
+        if (state->un.ptr == NULL) {
+            tx_ptr = TAILQ_FIRST(&dnp_state->tx_list);
+        } else {
+            tx_ptr = (DNP3Transaction *)state->un.ptr;
+        }
+        if (tx_ptr) {
+            while (tx_ptr->tx_num < min_tx_id + 1) {
+                tx_ptr = TAILQ_NEXT(tx_ptr, next);
+                if (!tx_ptr) {
+                    return no_tuple;
+                }
+            }
+            if (tx_ptr->tx_num >= max_tx_id + 1) {
+                return no_tuple;
+            }
+            state->un.ptr = TAILQ_NEXT(tx_ptr, next);
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx_ptr,
+                .tx_id = tx_ptr->tx_num - 1,
+                .has_next = (state->un.ptr != NULL),
+            };
+            return tuple;
+        }
+    }
+    return no_tuple;
+}
+
 /**
  * \brief Register the DNP3 application protocol parser.
  */
@@ -1563,6 +1597,7 @@ void RegisterDNP3Parsers(void)
             DNP3StateAlloc, DNP3StateFree);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxIterator);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateTxFree);
