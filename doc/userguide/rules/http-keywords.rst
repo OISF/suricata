@@ -684,6 +684,43 @@ like ``distance``, ``offset``, ``within``, etc.
 The ``nocase`` keyword is not allowed anymore. Keep in mind that you need
 to specify a lowercase pattern.
 
+http.request_header
+-------------------
+
+Match on the name and value of a HTTP request header (HTTP1 or HTTP2).
+
+For HTTP2, name and value get concatenated by ": ", colon and space.
+To detect if a http2 header name contains ':',
+the keyword ``http2.header_name`` can be used.
+
+Examples::
+
+  http.request_header; content:"agent: nghttp2";
+  http.request_header; content:"custom-header: I love::colons";
+
+``http.request_header`` is a 'sticky buffer'.
+
+``http.request_header`` can be used as ``fast_pattern``.
+
+
+http.response_header
+--------------------
+
+Match on the name and value of a HTTP response header (HTTP1 or HTTP2).
+
+For HTTP2, name and value get concatenated by ": ", colon and space.
+To detect if a http2 header name contains ':',
+the keyword ``http2.header_name`` can be used.
+
+Examples::
+
+  http.response_header; content:"server: nghttp2";
+  http.response_header; content:"custom-header: I love::colons";
+
+``http.response_header`` is a 'sticky buffer'.
+
+``http.response_header`` can be used as ``fast_pattern``.
+
 Notes
 ~~~~~
 
