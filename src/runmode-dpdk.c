@@ -930,7 +930,7 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
         SCReturnInt(-ERANGE);
     }
 
-#if RTE_VER_YEAR < 21 || RTE_VER_YEAR == 21 && RTE_VER_MONTH < 11
+#if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
     // check if jumbo frames are set and are available
     if (iconf->mtu > RTE_ETHER_MAX_LEN &&
             !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
@@ -944,7 +944,7 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
 
 static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 {
-#if RTE_VER_YEAR > 21 || RTE_VER_YEAR == 21 && RTE_VER_MONTH == 11
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
     port_conf->rxmode.mtu = mtu;
 #else
     port_conf->rxmode.max_rx_pkt_len = mtu;
@@ -966,7 +966,7 @@ static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
     retval = rte_eth_dev_socket_id(port_id);
     *socket_id = retval;
 
-#if RTE_VER_YEAR > 22 || RTE_VER_YEAR == 22 && RTE_VER_MONTH == 11
+#if RTE_VERSION >= RTE_VERSION_NUM(22, 11, 0, 0)
     retval = -rte_errno;
 #endif
 
