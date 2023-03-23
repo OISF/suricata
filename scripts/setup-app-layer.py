@@ -158,18 +158,6 @@ def patch_app_layer_protos_c(protoname):
         output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def patch_app_layer_detect_proto_c(proto):
-    filename = "src/app-layer-detect-proto.c"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    inlines = open(filename).readlines()
-    for i, line in enumerate(inlines):
-        if line.find("== ALPROTO_TEMPLATE)") > -1:
-            output.write(inlines[i].replace("TEMPLATE", proto.upper()))
-            output.write(inlines[i+1].replace("TEMPLATE", proto.upper()))
-        output.write(line)
-    open(filename, "w").write(output.getvalue())
-
 def patch_app_layer_parser_c(proto):
     filename = "src/app-layer-parser.c"
     print("Patching %s." % (filename))
@@ -435,7 +423,6 @@ def main():
         patch_rust_lib_rs(proto)
         patch_app_layer_protos_h(proto)
         patch_app_layer_protos_c(proto)
-        patch_app_layer_detect_proto_c(proto)
         patch_app_layer_parser_c(proto)
         patch_suricata_yaml_in(proto)
 
