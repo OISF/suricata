@@ -1362,6 +1362,13 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     // This counter is increased by worker threads that individually pick queue IDs.
     SC_ATOMIC_RESET(iconf->queue_id);
     SC_ATOMIC_RESET(iconf->inconsitent_numa_cnt);
+
+    // initialize LiveDev DPDK values
+    LiveDevice *ldev_instance = LiveGetDevice(iface);
+    if (ldev_instance == NULL) {
+        FatalError("Device %s is not registered as a live device", iface);
+    }
+    ldev_instance->dpdk_vars.pkt_mp = iconf->pkt_mempool;
     return iconf;
 }
 
