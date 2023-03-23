@@ -646,10 +646,7 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
         rte_eth_dev_stop(ptv->out_port_id);
     }
 
-    if (ptv->queue_id == 0 && ptv->pkt_mempool != NULL) {
-        rte_mempool_free(ptv->pkt_mempool);
-        ptv->pkt_mempool = NULL;
-    }
+    ptv->pkt_mempool = NULL; // MP is released when device is closed
 
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);

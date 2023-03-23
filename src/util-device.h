@@ -18,6 +18,10 @@
 #ifndef __UTIL_DEVICE_H__
 #define __UTIL_DEVICE_H__
 
+#ifdef HAVE_DPDK
+#include <rte_mempool.h>
+#endif /* HAVE_DPDK */
+
 #include "queue.h"
 
 #define OFFLOAD_FLAG_SG     (1<<0)
@@ -35,6 +39,12 @@ int LiveGetOffload(void);
 
 #define MAX_DEVNAME 10
 
+#ifdef HAVE_DPDK
+typedef struct {
+    struct rte_mempool *pkt_mp;
+} DPDKDeviceResources;
+#endif /* HAVE_DPDK */
+
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
@@ -51,6 +61,10 @@ typedef struct LiveDevice_ {
 
     uint32_t tenant_id;     /**< tenant id in multi-tenancy */
     uint32_t offload_orig;  /**< original offload settings to restore @exit */
+#ifdef HAVE_DPDK
+    // DPDK resources that needs to be cleaned after workers are stopped and devices closed
+    DPDKDeviceResources dpdk_vars;
+#endif
 } LiveDevice;
 
 typedef struct LiveDeviceName_ {
