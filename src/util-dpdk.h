@@ -34,13 +34,13 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 #include <rte_flow.h>
+#include <rte_version.h>
 
-#if RTE_VER_YEAR < 22
+#if RTE_VERSION < RTE_VERSION_NUM(22, 0, 0, 0)
 #define RTE_ETH_MQ_RX_RSS ETH_MQ_RX_RSS
-
 #endif
 
-#if RTE_VER_YEAR < 21 || RTE_VER_YEAR == 21 && RTE_VER_MONTH < 11
+#if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
 #define RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE DEV_TX_OFFLOAD_MBUF_FAST_FREE
 
 #define RTE_ETH_RX_OFFLOAD_CHECKSUM DEV_RX_OFFLOAD_CHECKSUM
