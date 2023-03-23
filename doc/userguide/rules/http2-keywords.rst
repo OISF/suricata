@@ -110,37 +110,6 @@ Examples::
 ``http2.header_name`` can be used as ``fast_pattern``.
 
 
-http.request_header
--------------------
-
-Match on the name and value of a HTTP2 request header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
-Name and value get concatenated by ": ", colon and space.
-
-Examples::
-
-  http.request_header; content:"agent: nghttp2";
-  http.request_header; content:"custom-header: I love::colons";
-
-``http.request_header`` is a 'sticky buffer'.
-
-``http.request_header`` can be used as ``fast_pattern``.
-
-
-http.response_header
---------------------
-
-Match on the name and value of a HTTP2 response header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
-Name and value get concatenated by ": ", colon and space.
-
-Examples::
-
-  http.response_header; content:"server: nghttp2";
-  http.response_header; content:"custom-header: I love::colons";
-
-``http.response_header`` is a 'sticky buffer'.
-
-``http.response_header`` can be used as ``fast_pattern``.
-
 Additional information
 ----------------------
 
