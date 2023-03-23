@@ -210,16 +210,6 @@ def logger_patch_suricata_yaml_in(proto):
 
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_suricata_common_h(proto):
-    filename = "src/suricata-common.h"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("LOGGER_JSON_TEMPLATE,") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def logger_patch_output_c(proto):
     filename = "src/output.c"
@@ -227,9 +217,9 @@ def logger_patch_output_c(proto):
     output = io.StringIO()
     inlines = open(filename).readlines()
     for i, line in enumerate(inlines):
-        if line.find("output-json-template.h") > -1:
+        if line.find("output-json-template-rust.h") > -1:
             output.write(line.replace("template", proto.lower()))
-        if line.find("/* Template JSON logger.") > -1:
+        if line.find("/* Template Rust JSON logger.") > -1:
             output.write(inlines[i].replace("Template", proto))
             output.write(inlines[i+1].replace("Template", proto))
         output.write(line)
@@ -260,16 +250,6 @@ def logger_patch_makefile_am(protoname):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_util_profiling_c(proto):
-    filename = "src/util-profiling.c"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("(LOGGER_JSON_TEMPLATE);") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def detect_copy_templates(proto, buffername):
     lower = proto.lower()
@@ -432,10 +412,8 @@ def main():
         logger_copy_templates(proto)
         patch_rust_applayer_mod_rs(proto)
         logger_patch_makefile_am(proto)
-        logger_patch_suricata_common_h(proto)
         logger_patch_output_c(proto)
         logger_patch_suricata_yaml_in(proto)
-        logger_patch_util_profiling_c(proto)
 
     if detect:
         if not proto_exists(proto):
