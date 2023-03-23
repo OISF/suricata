@@ -78,7 +78,7 @@
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
-#include "output-json-template-rust.h"
+#include "output-json-template.h"
 #include "output-json-rdp.h"
 #include "output-json-http2.h"
 #include "output-lua.h"
@@ -1115,8 +1115,8 @@ void OutputRegisterLoggers(void)
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
-    /* Template Rust JSON logger. */
-    JsonTemplateRustLogRegister();
+    /* Template JSON logger. */
+    JsonTemplateLogRegister();
     /* RDP JSON logger. */
     JsonRdpLogRegister();
     /* DCERPC JSON logger. */
