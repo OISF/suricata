@@ -160,6 +160,7 @@ void DetectFilenameRegister(void)
     }
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
+    DetectBufferTypeSupportsMultiInstance("file.name");
 
     g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
 	SCLogDebug("registering filename rule option");

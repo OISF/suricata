@@ -209,4 +209,6 @@ void DetectKrb5SNameRegister(void)
             "Kerberos 5 ticket server name");
 
     g_krb5_sname_buffer_id = DetectBufferTypeGetByName("krb5_sname");
+
+    DetectBufferTypeSupportsMultiInstance("krb5_sname");
 }

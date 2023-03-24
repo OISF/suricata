@@ -224,6 +224,8 @@ void DetectMQTTSubscribeTopicRegister (void)
             "subscribe topic query");
 
     g_mqtt_subscribe_topic_buffer_id = DetectBufferTypeGetByName("mqtt.subscribe.topic");
+
+    DetectBufferTypeSupportsMultiInstance("mqtt.subscribe.topic");
 }
 
 /**

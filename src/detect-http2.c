@@ -201,7 +201,7 @@ void DetectHttp2Register(void)
     DetectAppLayerInspectEngineRegister2("http2_header_name",
                                          ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
                                          DetectEngineInspectHttp2HeaderName, NULL);
-
+    DetectBufferTypeSupportsMultiInstance("http2_header_name");
     DetectBufferTypeSetDescriptionByName("http2_header_name",
                                          "HTTP2 header name");
     g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
@@ -211,6 +211,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADER].url = "/rules/http2-keywords.html#header";
     sigmatch_table[DETECT_HTTP2_HEADER].Setup = DetectHTTP2headerSetup;
     sigmatch_table[DETECT_HTTP2_HEADER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectBufferTypeSupportsMultiInstance("http2_header");
 
     DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOCLIENT, 2,
                                PrefilterMpmHttp2HeaderRegister, NULL,

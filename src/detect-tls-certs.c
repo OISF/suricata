@@ -110,6 +110,8 @@ void DetectTlsCertsRegister(void)
 
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
+    DetectBufferTypeSupportsMultiInstance("tls.certs");
+
     g_tls_certs_buffer_id = DetectBufferTypeGetByName("tls.certs");
 }
 
