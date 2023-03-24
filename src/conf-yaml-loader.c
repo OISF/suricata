@@ -175,6 +175,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
     int seq_idx = 0;
     int retval = 0;
     int was_empty = -1;
+    int include_count = 0;
 
     if (rlevel++ > RECURSION_LIMIT) {
         SCLogError("Recursion limit reached while parsing "
@@ -296,6 +297,12 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
 
                     if (strcmp(value, "include") == 0) {
                         state = CONF_INCLUDE;
+                        if (++include_count > 1) {
+                            SCLogWarning("Multipline \"include\" fields at the same level are "
+                                         "deprecated and will not work in Suricata 8, please move "
+                                         "to an array of include files: line: %zu",
+                                    parser->mark.line);
+                        }
                         goto next;
                     }
 
