@@ -224,6 +224,8 @@ void DetectMQTTUnsubscribeTopicRegister (void)
             "unsubscribe topic query");
 
     g_mqtt_unsubscribe_topic_buffer_id = DetectBufferTypeGetByName("mqtt.unsubscribe.topic");
+
+    DetectBufferTypeSupportsMultiInstance("mqtt.unsubscribe.topic");
 }
 
 /**

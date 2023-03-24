@@ -222,6 +222,7 @@ void DetectDnsQueryRegister (void)
 
     DetectBufferTypeSetDescriptionByName("dns_query",
             "dns request query");
+    DetectBufferTypeSupportsMultiInstance("dns_query");
 
     g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
 
