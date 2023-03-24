@@ -245,6 +245,8 @@ void DetectQuicCyuHashRegister(void)
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectQuicHashValidateCallback);
+
+    DetectBufferTypeSupportsMultiInstance(BUFFER_NAME);
 }
 
 #ifdef UNITTESTS
