@@ -45,7 +45,7 @@ static int g_smb_named_pipe_buffer_id = 0;
 
 static int DetectSmbNamedPipeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_smb_named_pipe_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_smb_named_pipe_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMB) < 0)
@@ -108,7 +108,7 @@ static int g_smb_share_buffer_id = 0;
 
 static int DetectSmbShareSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_smb_share_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_smb_share_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMB) < 0)

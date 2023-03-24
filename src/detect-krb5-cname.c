@@ -46,7 +46,7 @@ struct Krb5PrincipalNameDataArgs {
 
 static int DetectKrb5CNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_krb5_cname_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_krb5_cname_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)

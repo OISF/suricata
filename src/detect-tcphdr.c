@@ -88,7 +88,7 @@ static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(s, g_tcphdr_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_tcphdr_buffer_id) < 0)
         return -1;
 
     return 0;

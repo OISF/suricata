@@ -184,7 +184,11 @@ void DetectEngineSetParseMetadata(void);
 void DetectEngineUnsetParseMetadata(void);
 int DetectEngineMustParseMetadata(void);
 
-int WARN_UNUSED DetectBufferSetActiveList(Signature *s, const int list);
+SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
+SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
+bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id);
+
+int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);

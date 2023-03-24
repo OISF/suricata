@@ -39,7 +39,7 @@ static int g_buffer_id = 0;
 
 static int DetectMQTTConnectUsernameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)

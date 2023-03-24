@@ -91,7 +91,7 @@ static int DetectICMPv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(s, g_icmpv6hdr_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_icmpv6hdr_buffer_id) < 0)
         return -1;
 
     return 0;
