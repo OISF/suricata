@@ -162,6 +162,7 @@ void DetectFilemagicRegister(void)
 
     DetectBufferTypeSetDescriptionByName("file.magic",
             "file magic");
+    DetectBufferTypeSupportsMultiInstance("file.magic");
 
     g_file_magic_buffer_id = DetectBufferTypeGetByName("file.magic");
 	SCLogDebug("registering filemagic rule option");

@@ -189,6 +189,8 @@ void DetectIkeVendorRegister(void)
             "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, DetectEngineInspectIkeVendor, NULL);
 
     g_ike_vendor_buffer_id = DetectBufferTypeGetByName("ike.vendor");
+
+    DetectBufferTypeSupportsMultiInstance("ike.vendor");
 }
 
 /**

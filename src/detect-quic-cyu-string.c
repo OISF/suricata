@@ -197,6 +197,8 @@ void DetectQuicCyuStringRegister(void)
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
+    DetectBufferTypeSupportsMultiInstance(BUFFER_NAME);
+
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }
 

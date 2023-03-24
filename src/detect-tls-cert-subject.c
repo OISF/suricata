@@ -92,6 +92,8 @@ void DetectTlsSubjectRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
+    DetectBufferTypeSupportsMultiInstance("tls.cert_subject");
+
     DetectBufferTypeSetDescriptionByName("tls.cert_subject",
             "TLS certificate subject");
 
