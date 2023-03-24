@@ -150,10 +150,24 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         }
 
         if (!support_flow) {
-            if (policy == EXCEPTION_POLICY_DROP_FLOW || policy == EXCEPTION_POLICY_PASS_FLOW ||
-                    policy == EXCEPTION_POLICY_BYPASS_FLOW) {
-                SCLogWarning("flow actions not supported for %s, defaulting to \"ignore\"", option);
-                policy = EXCEPTION_POLICY_NOT_SET;
+            switch (policy) {
+                case EXCEPTION_POLICY_DROP_FLOW:
+                    SCLogWarning("flow actions not supported for %s, defaulting to \"drop-packet\"",
+                            option);
+                    policy = EXCEPTION_POLICY_DROP_PACKET;
+                    break;
+                case EXCEPTION_POLICY_PASS_FLOW:
+                    SCLogWarning("flow actions not supported for %s, defaulting to \"pass-packet\"",
+                            option);
+                    policy = EXCEPTION_POLICY_PASS_PACKET;
+                    break;
+                case EXCEPTION_POLICY_BYPASS_FLOW:
+                    SCLogWarning(
+                            "flow actions not supported for %s, defaulting to \"ignore\"", option);
+                    policy = EXCEPTION_POLICY_NOT_SET;
+                    break;
+                default:
+                    /* do nothing, these are the ones that bring issues */
             }
         }
 
