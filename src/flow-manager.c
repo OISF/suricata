@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -851,11 +851,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
                            "flow_spare_q status: %" PRIu32 "%% flows at the queue",
                         spare_pool_len, flow_config.prealloc,
-                        spare_pool_len * 100 / flow_config.prealloc);
+                        spare_pool_len * 100 / MAX(flow_config.prealloc, 1));
 
                 /* only if we have pruned this "emergency_recovery" percentage
                  * of flows, we will unset the emergency bit */
-                if (spare_pool_len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
+                if ((spare_pool_len * 100 / MAX(flow_config.prealloc, 1)) >
+                        flow_config.emergency_recovery) {
                     emerg_over_cnt++;
                 } else {
                     emerg_over_cnt = 0;
@@ -873,7 +874,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                                 "ts.tv_usec:%" PRIuMAX ") flow_spare_q status(): %" PRIu32
                                 "%% flows at the queue",
                             (uintmax_t)SCTIME_SECS(ts), (uintmax_t)SCTIME_USECS(ts),
-                            spare_pool_len * 100 / flow_config.prealloc);
+                            spare_pool_len * 100 / MAX(flow_config.prealloc, 1));
 
                     StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
                 }
