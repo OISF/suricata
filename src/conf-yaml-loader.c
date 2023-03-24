@@ -377,6 +377,11 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
             SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
+            if (state == CONF_INCLUDE) {
+                SCLogError("Include fields cannot be a mapping: line %zu", parser->mark.line);
+                retval = -1;
+                goto fail;
+            }
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
