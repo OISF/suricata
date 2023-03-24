@@ -1322,6 +1322,7 @@ int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int l
     BUG_ON(s->init_data == NULL);
 
     if (s->init_data->list && s->init_data->transforms.cnt) {
+        SCLogError("no matches following transform(s)");
         return -1;
     }
     s->init_data->list = list;
