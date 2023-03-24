@@ -117,6 +117,34 @@ static enum ExceptionPolicy SetIPSOption(
     return p;
 }
 
+static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionPolicy p)
+{
+    switch (p) {
+        case EXCEPTION_POLICY_DROP_FLOW:
+            SCLogWarning(
+                    "flow actions not supported for %s, defaulting to \"drop-packet\"", option);
+            return EXCEPTION_POLICY_DROP_PACKET;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            SCLogWarning(
+                    "flow actions not supported for %s, defaulting to \"pass-packet\"", option);
+            return EXCEPTION_POLICY_PASS_PACKET;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            SCLogWarning("flow actions not supported for %s, defaulting to \"ignore\"", option);
+            return EXCEPTION_POLICY_NOT_SET;
+        /* add all cases, to make sure new cases not handle will raise
+         * errors */
+        case EXCEPTION_POLICY_DROP_PACKET:
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            break;
+        case EXCEPTION_POLICY_NOT_SET:
+            break;
+    }
+    return p;
+}
+
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
@@ -150,11 +178,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         }
 
         if (!support_flow) {
-            if (policy == EXCEPTION_POLICY_DROP_FLOW || policy == EXCEPTION_POLICY_PASS_FLOW ||
-                    policy == EXCEPTION_POLICY_BYPASS_FLOW) {
-                SCLogWarning("flow actions not supported for %s, defaulting to \"ignore\"", option);
-                policy = EXCEPTION_POLICY_NOT_SET;
-            }
+            policy = PickPacketAction(option, policy);
         }
 
         if (strcmp(option, "exception-policy") == 0) {
