@@ -204,7 +204,7 @@ void DetectIkeVendorRegister(void)
 
 static int DetectIkeVendorSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_ike_vendor_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_ike_vendor_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
         return -1;

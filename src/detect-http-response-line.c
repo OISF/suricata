@@ -112,7 +112,7 @@ void DetectHttpResponseLineRegister(void)
  */
 static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(s, g_http_response_line_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_http_response_line_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)

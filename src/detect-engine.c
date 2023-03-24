@@ -1317,7 +1317,7 @@ bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id)
     return false;
 }
 
-int DetectBufferSetActiveList(Signature *s, const int list)
+int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
 

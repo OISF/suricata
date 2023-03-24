@@ -428,7 +428,7 @@ static void DetectFilemagicFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_file_magic_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_file_magic_buffer_id) < 0)
         return -1;
 
     if (g_magic_thread_ctx_id == -1) {

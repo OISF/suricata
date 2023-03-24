@@ -81,7 +81,7 @@ void DetectSNMPCommunityRegister(void)
 static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_snmp_rust_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_snmp_rust_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)

@@ -223,7 +223,7 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
  */
 static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_http_host_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_http_host_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
@@ -323,7 +323,7 @@ int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
  */
 static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_http_raw_host_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_http_raw_host_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;

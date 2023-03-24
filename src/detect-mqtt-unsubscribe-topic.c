@@ -239,7 +239,7 @@ void DetectMQTTUnsubscribeTopicRegister (void)
 
 static int DetectMQTTUnsubscribeTopicSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_mqtt_unsubscribe_topic_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_mqtt_unsubscribe_topic_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)
         return -1;

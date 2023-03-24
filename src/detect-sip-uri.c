@@ -74,7 +74,7 @@ static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx,
 
 static int DetectSipUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SIP) < 0)
