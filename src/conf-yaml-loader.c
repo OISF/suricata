@@ -48,7 +48,7 @@ static int mangle_errors = 0;
 
 static char *conf_dirname = NULL;
 
-static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel);
+static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel, int state);
 
 /* Configuration processing states. */
 enum conf_state {
@@ -142,7 +142,7 @@ int ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 
     yaml_parser_set_input_file(&parser, file);
 
-    if (ConfYamlParse(&parser, parent, 0, 0) != 0) {
+    if (ConfYamlParse(&parser, parent, 0, 0, 0) != 0) {
         SCLogError("Failed to include configuration file %s", filename);
         goto done;
     }
@@ -166,14 +166,12 @@ done:
  *
  * \retval 0 on success, -1 on failure.
  */
-static int
-ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
+static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel, int state)
 {
     ConfNode *node = parent;
     yaml_event_t event;
     memset(&event, 0, sizeof(event));
     int done = 0;
-    int state = 0;
     int seq_idx = 0;
     int retval = 0;
     int was_empty = -1;
@@ -235,6 +233,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
             }
 
             if (inseq) {
+                if (state == CONF_INCLUDE) {
+                    if (value != NULL) {
+                        SCLogInfo("Including configuration file %s.", value);
+                        if (ConfYamlHandleInclude(parent, value) != 0) {
+                            goto fail;
+                        }
+                    }
+                    goto next;
+                }
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 ConfNode *seq_node = NULL;
@@ -360,7 +367,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
-            if (ConfYamlParse(parser, node, 1, rlevel) != 0)
+            if (ConfYamlParse(parser, node, 1, rlevel, state == CONF_INCLUDE ? CONF_INCLUDE : 0) !=
+                    0)
                 goto fail;
             node->is_seq = 1;
             state = CONF_KEY;
@@ -396,11 +404,11 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                 }
                 seq_node->is_seq = 1;
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
-                if (ConfYamlParse(parser, seq_node, 0, rlevel) != 0)
+                if (ConfYamlParse(parser, seq_node, 0, rlevel, 0) != 0)
                     goto fail;
             }
             else {
-                if (ConfYamlParse(parser, node, inseq, rlevel) != 0)
+                if (ConfYamlParse(parser, node, inseq, rlevel, 0) != 0)
                     goto fail;
             }
             state = CONF_KEY;
@@ -477,7 +485,7 @@ ConfYamlLoadFile(const char *filename)
     }
 
     yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0, 0);
     yaml_parser_delete(&parser);
     fclose(infile);
 
@@ -499,7 +507,7 @@ ConfYamlLoadString(const char *string, size_t len)
         exit(EXIT_FAILURE);
     }
     yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
-    ret = ConfYamlParse(&parser, root, 0, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0, 0);
     yaml_parser_delete(&parser);
 
     return ret;
@@ -565,7 +573,7 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
         }
     }
     yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0, 0);
     yaml_parser_delete(&parser);
     fclose(infile);
 
