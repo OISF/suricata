@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,6 +71,35 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
     SCLogDebug("end");
 }
 
+static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionPolicy p)
+{
+    switch (p) {
+        case EXCEPTION_POLICY_DROP_FLOW:
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "flow actions not supported for %s, defaulting to \"drop-packet\"", option);
+            return EXCEPTION_POLICY_DROP_PACKET;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "flow actions not supported for %s, defaulting to \"pass-packet\"", option);
+            return EXCEPTION_POLICY_PASS_PACKET;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "flow actions not supported for %s, defaulting to \"ignore\"", option);
+            return EXCEPTION_POLICY_IGNORE;
+        /* add all cases, to make sure new cases not handle will raise
+         * errors */
+        case EXCEPTION_POLICY_DROP_PACKET:
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            break;
+        case EXCEPTION_POLICY_IGNORE:
+            break;
+    }
+    return p;
+}
+
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_IGNORE;
@@ -105,12 +134,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         }
 
         if (!support_flow) {
-            if (policy == EXCEPTION_POLICY_DROP_FLOW || policy == EXCEPTION_POLICY_PASS_FLOW ||
-                    policy == EXCEPTION_POLICY_BYPASS_FLOW) {
-                SCLogWarning(SC_WARN_COMPATIBILITY,
-                        "flow actions not supported for %s, defaulting to \"ignore\"", option);
-                policy = EXCEPTION_POLICY_IGNORE;
-            }
+            policy = PickPacketAction(option, policy);
         }
 
     } else {
