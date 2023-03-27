@@ -1943,6 +1943,12 @@ processes packets via passed packet descriptors.
 
     `High-level overview of DPDK application`
 
+To use DPDK capture module, Suricata must be compiled with DPDK option enabled.
+Support for DPDK can be enabled in configure step of the build process such as:
+
+.. code-block:: bash
+
+    ./configure --enable-dpdk
 
 Suricata makes use of DPDK for packet acquisition in workers runmode.
 The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
