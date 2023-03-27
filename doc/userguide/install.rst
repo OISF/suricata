@@ -57,6 +57,9 @@ Common configure options
 
     Enables GeoIP support for detection.
 
+.. option:: --enable-dpdk
+
+    Enables `DPDK <https://www.dpdk.org/>` packet capture method.
 
 Dependencies
 ^^^^^^^^^^^^
