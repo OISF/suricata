@@ -33,10 +33,10 @@
 #define THREAD_NAME_LEN 16
 #endif
 
-#if defined(TLS_C11)
-#define thread_local _Thread_local
-#elif defined(TLS_GNU)
+#if defined(TLS_GNU)
 #define thread_local __thread
+#elif defined(TLS_C11)
+#define thread_local _Thread_local
 #else
 #error "No supported thread local type found"
 #endif

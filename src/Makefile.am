@@ -10,7 +10,6 @@ endif
 endif
 
 noinst_HEADERS = \
-	action-globals.h \
 	alert-debuglog.h \
 	alert-fastlog.h \
 	alert-syslog.h \
@@ -52,12 +51,9 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
-	autoconf.h \
 	build-info.h \
-	conf.h \
 	conf-struct-loader.h \
 	conf-yaml-loader.h \
-	counters.h \
 	datasets.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
@@ -445,9 +441,7 @@ noinst_HEADERS = \
 	output-streaming.h \
 	output-tx.h \
 	packet.h \
-	packet-queue.h \
 	pkt-var.h \
-	queue.h \
 	reputation.h \
 	respond-reject.h \
 	respond-reject-libnet11.h \
@@ -457,7 +451,6 @@ noinst_HEADERS = \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
-	runmode-lib.h \
 	runmode-napatech.h \
 	runmode-netmap.h \
 	runmode-nflog.h \
@@ -465,12 +458,9 @@ noinst_HEADERS = \
 	runmode-pcap-file.h \
 	runmode-pcap.h \
 	runmode-pfring.h \
-	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
 	runmode-windivert.h \
-	rust-context.h \
-	rust.h \
 	source-af-packet.h \
 	source-af-xdp.h \
 	source-dpdk.h \
@@ -499,27 +489,16 @@ noinst_HEADERS = \
 	stream-tcp-reassemble.h \
 	stream-tcp-sack.h \
 	stream-tcp-util.h \
-	suricata-common.h \
-	suricata.h \
-	suricata-plugin.h \
 	threads-debug.h \
-	threads.h \
 	threads-profile.h \
-	threadvars.h \
 	tm-modules.h \
 	tmqh-flow.h \
 	tmqh-packetpool.h \
 	tmqh-simple.h \
 	tm-queuehandlers.h \
-	tm-queues.h \
-	tm-threads-common.h \
 	tm-threads.h \
-	tree.h \
 	unix-manager.h \
 	util-action.h \
-	util-affinity.h \
-	util-atomic.h \
-	util-callbacks.h \
 	util-base64.h \
 	util-bloomfilter-counting.h \
 	util-bloomfilter.h \
@@ -530,26 +509,19 @@ noinst_HEADERS = \
 	util-cidr.h \
 	util-classification-config.h \
 	util-clock.h \
-	util-conf.h \
 	util-config.h \
 	util-coredump-config.h \
 	util-cpu.h \
 	util-daemon.h \
 	util-datalink.h \
 	util-debug-filters.h \
-	util-debug.h \
 	util-decode-mime.h \
 	util-detect.h \
-	util-device.h \
 	util-dpdk.h \
 	util-dpdk-i40e.h \
 	util-dpdk-ice.h \
 	util-dpdk-ixgbe.h \
 	util-ebpf.h \
-	util-enum.h \
-	util-error.h \
-	util-events.h \
-	util-exception-policy.h \
 	util-file-decompression.h \
 	util-file.h \
 	util-file-swf-decompression.h \
@@ -582,9 +554,7 @@ noinst_HEADERS = \
 	util-lua-tls.h \
 	util-macset.h \
 	util-magic.h \
-	util-memcmp.h \
 	util-memcpy.h \
-	util-mem.h \
 	util-memrchr.h \
 	util-misc.h \
 	util-mpm-ac-bs.h \
@@ -593,7 +563,6 @@ noinst_HEADERS = \
 	util-mpm.h \
 	util-mpm-hs.h \
 	util-napatech.h \
-	util-optimize.h \
 	util-pages.h \
 	util-path.h \
 	util-pidfile.h \
@@ -625,8 +594,6 @@ noinst_HEADERS = \
 	util-sysfs.h \
 	util-thash.h \
 	util-threshold-config.h \
-	util-time.h \
-	util-unittest.h \
 	util-unittest-helper.h \
 	util-validate.h \
 	util-var.h \
@@ -1248,13 +1215,42 @@ libsuricata_c_a_SOURCES = \
 	win32-service.c \
 	win32-syscall.c
 
-include_HEADERS = \
+h_sources = \
+	action-globals.h \
+	autoconf.h \
+	conf.h \
+	counters.h \
+	queue.h \
+	packet-queue.h \
+	runmode-lib.h \
 	runmodes.h \
-	suricata-plugin.h \
+	rust-context.h \
+	rust.h \
 	suricata.h \
 	suricata-common.h \
 	suricata-interface.h \
-	suricata-interface-stream.h
+	suricata-interface-stream.h \
+	suricata-plugin.h \
+	tm-queues.h \
+	tm-threads-common.h \
+	threads.h \
+	threadvars.h \
+	tree.h \
+	util-affinity.h \
+	util-atomic.h \
+	util-callbacks.h \
+	util-conf.h \
+	util-debug.h \
+	util-device.h \
+	util-enum.h \
+	util-error.h \
+	util-events.h \
+	util-exception-policy.h \
+	util-mem.h \
+	util-memcmp.h \
+	util-optimize.h \
+	util-time.h \
+	util-unittest.h
 
 EXTRA_DIST = \
 	tests/stream-tcp-inline.c \
@@ -1314,16 +1310,12 @@ install-headers:
 		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
 	done
 
-install-headers:
-	mkdir -p $(DESTDIR)${includedir}/suricata
-	for header in $(noinst_HEADERS); do \
-		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
-	done
-
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
-noinst_LIBRARIES = libsuricata_c.a
+lib_LIBRARIES = libsuricata_c.a
+library_includedir = $(includedir)/$(GENERIC_LIBRARY_NAME)
+library_include_HEADERS = $(h_sources)
 
 suricata_SOURCES = main.c
 

@@ -15,9 +15,9 @@ suricata_client_SOURCES = callbacks.c \
                           preload.c \
                           main.c
 
-include_HEADERS = callbacks.h \
-                  eve.h \
-                  preload.h
+noinst_HEADERS = callbacks.h \
+                 eve.h \
+                 preload.h
 
 # The library search path.
 suricata_client_LDFLAGS = $(all_libraries) ${SECLDFLAGS} -Wl,--whole-archive,$(top_builddir)/src/libsuricata_c.a,--no-whole-archive

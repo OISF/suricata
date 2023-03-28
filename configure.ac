@@ -9,6 +9,9 @@
     LT_INIT
     PKG_PROG_PKG_CONFIG
 
+    GENERIC_LIBRARY_NAME=suricata
+    AC_SUBST(GENERIC_LIBRARY_NAME)
+
     dnl Taken from https://llvm.org/svn/llvm-project/llvm/trunk/autoconf/configure.ac
     dnl check if we compile using clang or gcc. On some systems the gcc binary is
     dnl is actually clang, so do a compile test.
