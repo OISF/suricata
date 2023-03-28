@@ -208,7 +208,6 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
     BUG_ON(extbytes > len);
 
     ptr += extbytes;
-    det_ctx->buffer_offset = ptr - payload;
 
     switch (data->oper) {
         case DETECT_BYTEMATH_OPERATOR_NONE:
@@ -220,6 +219,10 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
             val -= rvalue;
             break;
         case DETECT_BYTEMATH_OPERATOR_DIVIDE:
+            if (rvalue == 0) {
+                SCLogDebug("avoiding division by zero");
+                return 0;
+            }
             val /= rvalue;
             break;
         case DETECT_BYTEMATH_OPERATOR_MULTIPLY:
@@ -236,6 +239,8 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
             val >>= rvalue;
             break;
     }
+
+    det_ctx->buffer_offset = ptr - payload;
 
     if (data->flags & DETECT_BYTEMATH_FLAG_BITMASK) {
         val &= data->bitmask_val;
@@ -1194,7 +1199,7 @@ static int DetectByteMathPacket02(void)
 
     /*
      * byte_extract: Extract 1 byte from offset 0 --> 0x38
-     * byte_math: Extract 1 byte from offset 1 (0x38)
+     * byte_math: Extract 1 byte from offset -1 (0x38)
      *            Add 0x38 + 0x38 = 112 (0x70)
      * byte_test: Compare 2 bytes at offset 13 bytes from last
      *            match and compare with 0x70
@@ -1329,7 +1334,7 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest14", DetectByteMathParseTest14);
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
     UtRegisterTest("DetectByteMathParseTest16", DetectByteMathParseTest16);
-    UtRegisterTest("DetectByteMathPacket01",    DetectByteMathPacket01);
+    UtRegisterTest("DetectByteMathPacket01", DetectByteMathPacket01);
     UtRegisterTest("DetectByteMathPacket02", DetectByteMathPacket02);
     UtRegisterTest("DetectByteMathContext01", DetectByteMathContext01);
 }
