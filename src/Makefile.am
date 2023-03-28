@@ -1279,6 +1279,12 @@ install-headers:
 		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
 	done
 
+install-headers:
+	mkdir -p $(DESTDIR)${includedir}/suricata
+	for header in $(noinst_HEADERS); do \
+		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
+	done
+
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
@@ -1287,9 +1293,9 @@ noinst_LIBRARIES = libsuricata_c.a
 suricata_SOURCES = main.c
 
 # the library search path.
-suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} -Wl,--whole-archive,libsuricata_c.a,--no-whole-archive
 suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
-suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
+suricata_DEPENDENCIES = libsuricata_c.a
 
 if BUILD_SHARED_LIBRARY
 libsuricata.so.$(VERSION): libsuricata_c.a

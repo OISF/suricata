@@ -2,6 +2,7 @@
 *.lo
 *.a
 *.in
+!libsuricata-config.in
 *.[ch]e
 *.log
 *.rule
