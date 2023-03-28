@@ -28,12 +28,13 @@ typedef struct OutputModulesIdx {
     int filestore;
     int content_snip;
     int callback;
+    int lua;
 } OutputModulesIdx;
 
 /* Default output modules indices.
  * These can change if we load a yaml file and we need to make sure we avoid ending up with
    overlapping indices. */
-static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9};
+static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9, 12};
 
 /** \brief Mangle a SuricataCfg field into the format of the Configuration tree.
   *        This means replacing '_' characters with '-' and '0' with '.'.
@@ -69,7 +70,6 @@ static const char *mangleCfgField(const char *field) {
     if(strncmp(out, "outputs", 7) == 0) {
         uint8_t idx = default_output_modules_idx.invalid;
 
-
         if (strncmp(out + 8, "stats", 5) == 0) {
             idx = default_output_modules_idx.stats;
         } else if (strncmp(out + 8, "file-store", 10) == 0) {
@@ -78,6 +78,8 @@ static const char *mangleCfgField(const char *field) {
             idx = default_output_modules_idx.callback;
         } else if (strncmp(out + 8, "content-snip", 12) == 0) {
             idx = default_output_modules_idx.content_snip;
+        } else if (strncmp(out + 8, "lua", 3) == 0) {
+            idx = default_output_modules_idx.lua;
         }
 
         if (idx == default_output_modules_idx.invalid) {
@@ -85,8 +87,15 @@ static const char *mangleCfgField(const char *field) {
             return out;
         }
 
-        /* We need 2 bytes more than node_name length (plus NULL). */
-        size_t node_len = strlen(out) + 3;
+        /* We need to add room for the index, the dot and NULL. */
+        int n_digits = 0;
+        int idx_copy = idx;
+         do {
+            idx_copy /= 10;
+            ++n_digits;
+        } while (idx_copy != 0);
+
+        size_t node_len = strlen(out) + n_digits + 2;
         char *node_name_ext = SCMalloc(node_len * sizeof(char));
 
         if (node_name_ext == NULL) {
@@ -114,36 +123,54 @@ static const char *mangleCfgField(const char *field) {
 static void CfgSetSequence(SuricataCfg *cfg, const char *name) {
     ConfNode *node;
     node = ConfGetNode(name);
-    if (node != NULL) {
-        ConfNode *value;
-        char values[NODE_VALUE_MAX];
+    if (node == NULL) {
+        return;
+    }
 
-        int i = 0;
-        TAILQ_FOREACH(value, &node->head, next) {
-            size_t value_len = strlen(value->val);
-            if (value_len + i + 1 >= NODE_VALUE_MAX) {
-                /* Maximum length reached, we cannot store anymore values. */
-                SCLogWarning("Reached maximum size for node %s, not storing "
-                             "value %s and following", name, value->val);
-                break;
-            }
-            /* Append the filename. */
-            i += snprintf(values + i, value_len + 2, "%s,", value->val);
-        }
-        /* Remove trailing ','. */
-        values[i -1] = '\0';
+    ConfNode *value;
+    char values[NODE_VALUE_MAX];
+    int i = 0;
 
-        if (strncmp(name, "rule-files", 10) == 0) {
-            if (cfg->rule_files) {
-                SCFree((void *)cfg->rule_files);
-            }
-            cfg->rule_files = SCStrdup(values);
-        } else if (strstr(name, "callback.nta.tls.custom") != NULL) {
-            if (cfg->outputs0callback0nta0tls0custom) {
-                SCFree((void *)cfg->outputs0callback0nta0tls0custom);
-            }
-            cfg->outputs0callback0nta0tls0custom = SCStrdup(values);
+    TAILQ_FOREACH(value, &node->head, next) {
+        size_t value_len = strlen(value->val);
+        if (value_len + i + 1 >= NODE_VALUE_MAX) {
+            /* Maximum length reached, we cannot store anymore values. */
+            SCLogWarning("Reached maximum size for node %s, not storing value %s and following",
+                         name, value->val);
+            break;
         }
+        /* Append the filename. */
+        i += snprintf(values + i, value_len + 2, "%s,", value->val);
+    }
+
+    if (i == 0) {
+        /* No values in the sequence. */
+        return;
+    }
+
+    /* Remove trailing ','. */
+    values[i - 1] = '\0';
+
+    if (strncmp(name, "rule-files", 10) == 0) {
+        if (cfg->rule_files) {
+            SCFree((void *)cfg->rule_files);
+        }
+        cfg->rule_files = SCStrdup(values);
+    } else if (strstr(name, "callback.nta.tls.custom") != NULL) {
+        if (cfg->outputs0callback0nta0tls0custom) {
+            SCFree((void *)cfg->outputs0callback0nta0tls0custom);
+        }
+        cfg->outputs0callback0nta0tls0custom = SCStrdup(values);
+    } else if (strstr(name, "lua.scripts") != NULL) {
+        if (cfg->outputs0lua0scripts) {
+            SCFree((void *)cfg->outputs0lua0scripts);
+        }
+        cfg->outputs0lua0scripts = SCStrdup(values);
+    } else if (strstr(name, "file-store.force-hash") != NULL) {
+        if (cfg->outputs0file_store0force_hash) {
+            SCFree((void *)cfg->outputs0file_store0force_hash);
+        }
+        cfg->outputs0file_store0force_hash = SCStrdup(values);
     }
 }
 
@@ -159,97 +186,12 @@ SuricataCfg CfgGetDefault(void) {
         .mpm_algo = SCStrdup("hs"),
         .spm_algo = SCStrdup("hs"),
         .runmode = SCStrdup("offline"), /* Default for PCAP/Stream replaying. */
-        .app_layer0protocols0rfb0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0rfb0detection_ports0dp = SCStrdup("5900, 5901, 5902, 5903, 5904, "
-                                                               "5905, 5906, 5907, 5908, 5909"),
-        .app_layer0protocols0mqtt0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0krb50enabled = SCStrdup("yes"),
-        .app_layer0protocols0ikev20enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0tls0enabled = SCStrdup("yes"),
-        .app_layer0protocols0tls0detection_ports0dp = SCStrdup("443"),
-        .app_layer0protocols0tls0ja3_fingerprints = SCStrdup("yes"),
-        .app_layer0protocols0tls0encryption_handling = SCStrdup("full"),
-        .app_layer0protocols0dcerpc0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0ftp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0rdp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0ssh0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0http20enabled = SCStrdup("yes"),
-        .app_layer0protocols0smtp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0smtp0raw_extraction = SCStrdup("yes"),
-        .app_layer0protocols0smtp0mime0decode_mime = SCStrdup("no"),
-        .app_layer0protocols0smtp0mime0decode_base64 = SCStrdup("yes"),
-        .app_layer0protocols0smtp0mime0decode_quoted_printable = SCStrdup("yes"),
-        .app_layer0protocols0smtp0mime0header_value_depth = SCStrdup("2000"),
-        .app_layer0protocols0smtp0mime0extract_urls = SCStrdup("yes"),
-        .app_layer0protocols0smtp0mime0body_md5 = SCStrdup("no"),
-        .app_layer0protocols0smtp0inspect_tracker0content_limit = SCStrdup("100000"),
-        .app_layer0protocols0smtp0inspect_tracker0content_inspect_min_size = SCStrdup("32768"),
-        .app_layer0protocols0smtp0inspect_tracker0content_inspect_window = SCStrdup("4096"),
-        .app_layer0protocols0imap0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0smb0enabled = SCStrdup("yes"),
-        .app_layer0protocols0smb0detection_ports0dp = SCStrdup("139, 445"),
-        .app_layer0protocols0nfs0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0tftp0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0modbus0enabled = SCStrdup("no"),
-        .app_layer0protocols0dns0tcp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0dns0tcp0detection_ports0dp = SCStrdup("53"),
-        .app_layer0protocols0dns0udp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0dns0udp0detection_ports0dp = SCStrdup("53"),
-        .app_layer0protocols0dnp30enabled = SCStrdup("no"),
-        .app_layer0protocols0icap0enabled = SCStrdup("no"),
-        .app_layer0protocols0enip0enabled = SCStrdup("no"),
-        .app_layer0protocols0ntp0enabled = SCStrdup("detection-only"),
-        .app_layer0protocols0dhcp0enabled = SCStrdup("yes"),
-        .app_layer0protocols0http0enabled = SCStrdup("yes"),
-        .app_layer0protocols0http0libhtp0default_config0personality = SCStrdup("IDS"),
-        .app_layer0protocols0http0libhtp0default_config0request_body_limit = SCStrdup("4096"),
-        .app_layer0protocols0http0libhtp0default_config0response_body_limit = SCStrdup("8388608"),
-        .app_layer0protocols0http0libhtp0default_config0request_body_minimal_inspect_size =
-                                                                                 SCStrdup("32768"),
-        .app_layer0protocols0http0libhtp0default_config0request_body_inspect_window =
-                                                                                 SCStrdup("4096"),
-        .app_layer0protocols0http0libhtp0default_config0response_body_minimal_inspect_size =
-                                                                                 SCStrdup("32768"),
-        .app_layer0protocols0http0libhtp0default_config0response_body_inspect_window =
-                                                                                 SCStrdup("4096"),
-        .app_layer0protocols0http0libhtp0default_config0prune_multiplier = SCStrdup("3"),
-        .app_layer0protocols0http0libhtp0default_config0http_body_inline = SCStrdup("auto"),
-        .app_layer0protocols0http0libhtp0default_config0double_decode_path = SCStrdup("yes"),
-        .app_layer0protocols0http0libhtp0default_config0path_utf8_convert_bestfit = SCStrdup("no"),
-        .app_layer0protocols0http0libhtp0default_config0allow_truncated_output = SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0allow_wrong_cl_extraction =
-                                                                                SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0decompression_layers_limit = SCStrdup("2"),
-        .app_layer0protocols0http0libhtp0default_config0enable_chunk_non_http11 = SCStrdup("true"),
-        .app_layer0protocols0http0libhtp0default_config0force_body_extraction = SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0force_start_http = SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0force_strict_chunked_parse =
-                                                                                 SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0loose_empty_line = SCStrdup("false"),
-        .app_layer0protocols0http0libhtp0default_config0max_res_ignored_lines = SCStrdup("0"),
-        .app_layer0protocols0http0libhtp0default_config0remove_nonprintable_chars_header =
-                                                                                 SCStrdup("false"),
-        .defrag0memcap = SCStrdup("33554432"),
-        .defrag0hash_size = SCStrdup("65536"),
-        .defrag0trackers = SCStrdup("65535"),
-        .defrag0max_frags = SCStrdup("65535"),
-        .defrag0prealloc = SCStrdup("yes"),
-        .defrag0timeout = SCStrdup("60"),
-        .detect0profile = SCStrdup("medium"),
-        .detect0inspection_recursion_limit = SCStrdup("3000"),
         .flow0managers = SCStrdup("1"),
         .flow0recyclers = SCStrdup("1"),
         .luajit0states = SCStrdup("512"),
         .outputs0callback0http0extended = SCStrdup("yes"),
-        .outputs0callback0http0xff0enabled = SCStrdup("false"),
         .outputs0content_snip0enabled = SCStrdup("false"),
-        .outputs0content_snip0dir = SCStrdup("pcaps"),
-        .outputs0file_store0version = SCStrdup("2"),
-        .outputs0file_store0enabled = SCStrdup("yes"),
-        .outputs0file_store0force_magic = SCStrdup("yes"),
-        .outputs0file_store0dir = SCStrdup("files"),
-        .outputs0file_store0stream_depth = SCStrdup("0"),
-        .stats0enabled = SCStrdup("yes")
+        .outputs0content_snip0dir = SCStrdup("pcaps")
     };
     return c;
 }
@@ -292,6 +234,8 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
                 default_output_modules_idx.callback = atoi(output->name);
             } else if (strncmp(child->name, "content-snip", 12) == 0) {
                 default_output_modules_idx.content_snip = atoi(output->name);
+            } else if (strncmp(child->name, "lua", 3) == 0) {
+                default_output_modules_idx.lua = atoi(output->name);
             }
         }
     }
@@ -325,12 +269,20 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
     CFG_FIELDS
 #undef CFG_ENTRY
 
-    /* Handle "rule-files" and "outputs.callback.nta.tls.custom" separately as they are a
-     * sequence objects in the yaml. */
+    /* Handle "rule-files", "outputs.callback.nta.tls.custom" and "outputs.lua.scripts" and
+     * "outputs.filestore.force-hash" separately as they are a sequence objects in the yaml. */
     CfgSetSequence(cfg, "rule-files");
+
     char name[64];
     snprintf(name, sizeof(name), "outputs.%d.callback.nta.tls.custom",
              default_output_modules_idx.callback);
+    CfgSetSequence(cfg, name);
+
+    snprintf(name, sizeof(name), "outputs.%d.lua.scripts", default_output_modules_idx.lua);
+    CfgSetSequence(cfg, name);
+
+    snprintf(name, sizeof(name), "outputs.%d.file-store.force-hash",
+             default_output_modules_idx.filestore);
     CfgSetSequence(cfg, name);
 
     /* Deinit reinit the configuration tree used later by the engine. */
@@ -356,8 +308,12 @@ int CfgLoadStruct(SuricataCfg *cfg) {
                return !ret;                                                                     \
            }                                                                                    \
                                                                                                 \
+           /* TODO: this is ugly, refactor at some point. */                                    \
            if (strncmp(node_name, "rule-files", 10) == 0 ||                                     \
-               strstr(node_name, "callback.nta.tls.custom") != NULL) {                          \
+               strstr(node_name, "callback.nta.tls.custom") != NULL ||                          \
+               (strstr(node_name, "lua.scripts") != NULL &&                                     \
+                strstr(node_name, "lua.scripts-dir") == NULL) ||                                \
+               strstr(node_name, "file-store.force-hash") != NULL) {                            \
                /* Handle these nodes differently because they are a sequence of comma           \
                 * separated values. */                                                          \
                ret = ConfSetFromSequence(node_name, cfg->name);                                 \
@@ -377,18 +333,28 @@ int CfgLoadStruct(SuricataCfg *cfg) {
 
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
-    char node_name[10] = {0};
-    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.stats);
-    ConfSetFinal(node_name, "stats");
-    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.filestore);
-    ConfSetFinal(node_name, "file-store");
-    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.callback);
-    ConfSetFinal(node_name, "callback");
-    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.content_snip);
-    ConfSetFinal(node_name, "content-snip");
-
-    if (cfg->logging0outputs030callback0enabled &&
-        ConfValIsTrue(cfg->logging0outputs030callback0enabled)) {
+    char node_name[16] = {0};
+    if (cfg->outputs0stats0enabled) {
+            snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.stats);
+        ConfSetFinal(node_name, "stats");
+    }
+    if (cfg->outputs0file_store0enabled) {
+        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.filestore);
+        ConfSetFinal(node_name, "file-store");
+    }
+    if (cfg->outputs0callback0enabled) {
+        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.callback);
+        ConfSetFinal(node_name, "callback");
+    }
+    if (cfg->outputs0content_snip0enabled) {
+        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.content_snip);
+        ConfSetFinal(node_name, "content-snip");
+    }
+    if (cfg->outputs0lua0enabled) {
+        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.lua);
+        ConfSetFinal(node_name, "lua");
+    }
+    if (cfg->logging0outputs030callback0enabled) {
         ConfSetFinal("logging.outputs.3", "callback");
     }
 

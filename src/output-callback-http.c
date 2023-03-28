@@ -11,6 +11,7 @@
 
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-file.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-parser.h"
 #include "output.h"
@@ -182,7 +183,24 @@ static void CallbackHttpLogBasic(htp_tx_t *tx, HttpInfo *http) {
         if (h_content_type != NULL) {
             http->content_type = h_content_type->value;
         }
-        /* TODO: content-range header? */
+        htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+        if (h_content_range != NULL) {
+            http->content_range_raw = h_content_range->value;
+            http->content_range_start = http->content_range_end = http->content_range_size = -1;
+
+            HTTPContentRange crparsed;
+            if (HTPParseContentRange(h_content_range->value, &crparsed) == 0) {
+                if (crparsed.start >= 0) {
+                    http->content_range_start = crparsed.start;
+                }
+                if (crparsed.end >= 0) {
+                    http->content_range_end = crparsed.end;
+                }
+                if (crparsed.size >= 0) {
+                    http->content_range_size = crparsed.size;
+                }
+            }
+        }
     }
 }
 

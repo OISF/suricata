@@ -8,7 +8,7 @@
 
 #include "suricata-common.h"
 #include "source-lib.h"
-#include "decode.h"
+#include "source-pcap-file-helper.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
@@ -91,7 +91,13 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
 
     /* call the decoder for non stream packets */
     if (!PKT_IS_STREAM_SEG(p)) {
-        DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+        DecoderFunc decoder;
+        if(ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
+            /* call the decoder */
+            decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+        } else {
+            SCReturnInt(TM_ECODE_FAILED);
+        }
     }
 
     PacketDecodeFinalize(tv, dtv, p);

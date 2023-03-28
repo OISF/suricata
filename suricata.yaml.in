@@ -434,6 +434,13 @@ outputs:
       threads: no       # per thread stats
       #null-values: yes  # print counters that have value 0. Default: no
 
+  # Callback output module for library mode.
+  - callback:
+      nta:
+        smb:
+        tls:
+          extended: yes
+
   # a line based alerts log similar to fast.log into syslog
   - syslog:
       enabled: no

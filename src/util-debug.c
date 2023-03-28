@@ -717,7 +717,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file, const unsigne
                 }
                 break;
             case SC_LOG_OP_IFACE_CALLBACK:
-                op_iface_ctx->callbackLog(log_level, error_code, message);
+                op_iface_ctx->callbackLog(log_level, message);
             default:
                 break;
         }
@@ -1014,8 +1014,7 @@ static inline SCLogOPIfaceCtx *SCLogInitCallbackOPIface(SCLogLevel log_level, SC
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if (iface_ctx == NULL) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in SCLogInitCallbackOPIface. Exiting...");
+        FatalError("Fatal error encountered in SCLogInitCallbackOPIface. Exiting...");
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_CALLBACK;
@@ -1025,7 +1024,7 @@ static inline SCLogOPIfaceCtx *SCLogInitCallbackOPIface(SCLogLevel log_level, SC
     /* Set the callback. */
     SCInstance *suri = GetInstance();
     if (suri->callbacks.log == NULL) {
-        FatalError(SC_ERR_FATAL, "SCLogInitCallbackOPIface: callback cannot be NULL. Exiting...");
+        FatalError("SCLogInitCallbackOPIface: callback cannot be NULL. Exiting...");
     }
     iface_ctx->callbackLog = suri->callbacks.log;
 

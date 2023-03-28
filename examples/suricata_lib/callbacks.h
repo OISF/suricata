@@ -24,6 +24,6 @@ int callbackSig(uint32_t signature_id, uint8_t current_action, uint32_t tenant_i
 /* Callback invoked for each stats event. */
 void callbackStats(void *data, size_t len, void *user_ctx);
 /* Callback invoked for each log message (testing only). */
-void callbackLog(int log_level, int error_code, const char *message);
+void callbackLog(int log_level, const char *message);
 
 #endif /* __CALLBACKS_H__ */

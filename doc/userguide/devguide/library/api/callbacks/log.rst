@@ -23,12 +23,10 @@ defined as:
 
     typedef void (CallbackFuncLog)(
         int log_level, /* value corresponding to a SCLogLevel enum */
-        int error_code, /* value corresponding to a SCError enum */
         const char *message
     );
 
 Where:
     * *log_level* is the suricata log level (e.g Info, Notice...).
-    * *error_code* is the error code (meaningful for error messages only).
     * *message* is the actual log message. The message does not contain format specifiers, as they
       are already expanded.

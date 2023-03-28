@@ -137,7 +137,7 @@ typedef struct SCLogOPIfaceCtx_ {
     const char *log_format;
 
     /* callback to invoke if the interface is SC_LOG_OP_IFACE_CALLBACK */
-    void (*callbackLog)(int log_level, int error_code, const char *message);
+    void (*callbackLog)(int log_level, const char *message);
 
     /* Mutex used for locking around rotate/write to a file. */
     SCMutex fp_mutex;

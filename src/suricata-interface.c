@@ -224,6 +224,13 @@ void suricata_config_load(SuricataCtx *ctx, const char *config_file) {
 }
 
 /**
+ * \brief Enable suricata IPS mode (testing only).
+ */
+void suricata_enable_ips_mode(void) {
+    EngineModeSetIPS();
+}
+
+/**
  * \brief Initialize a Suricata context.
  *
  * \param ctx            Pointer to SuricataCtx.
@@ -356,9 +363,6 @@ void suricata_shutdown(SuricataCtx *ctx) {
     while(ctx->n_workers_done != ctx->n_workers) {
         usleep(10 * 1000);
     }
-
-    /* Retrieve stats one last time. */
-    suricata_get_stats();
 
     EngineDone(); /* needed only in offlne mode ?. */
     SuricataShutdown();

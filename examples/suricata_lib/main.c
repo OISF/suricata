@@ -17,6 +17,9 @@
 #include "preload.h"
 #include "util-base64.h"
 
+/* Maximum number of --set options allowed */
+#define MAX_SET_N 16
+
 /* Processing mode (packet|stream). */
 enum InputTypes {
     TYPE_PACKET,
@@ -242,15 +245,19 @@ void *suricataWorker(void *td) {
 
 void printUsage() {
     printf("suricata_client [options] <pcap_file(s)>\n\n"
-           "%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n\n"
+           "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n"
+           "%-40s %s\n%-40s %s\n\n"
            "Example usage: ./suricata_client -c suricata.yaml input.pcap\n",
-           "-c", "Path to (optional) configuration file.",
+           "-c <path>", "Path to (optional) configuration file.",
            "-h", "Print this help and exit.",
-           "-l", "Path to log directory.",
+           "-l <dir>", "Path to log directory.",
            "-K, --preload-pcap", "Preloads packets into RAM before sending",
-           "-L, --loop=num", "Loop through the capture file(s) X times",
-           "-m, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
-           "-o, --output=output", "Path of the EVE output file (eve-json.log by default)");
+           "-I, --simulate-ips", "Force engine into IPS mode",
+           "-L <num>, --loop=num", "Loop through the capture file(s) X times",
+           "-m <mode>, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
+           "-o <output>, --output=output", "Path of the EVE output file (eve.json by default)",
+           "-s <name=value>, --set name=value", "Set a configuration value",
+           "-S <path>", "Absolute path to signature file loaded exclusively");
 }
 
 int main(int argc, char **argv) {
@@ -259,10 +266,14 @@ int main(int argc, char **argv) {
     int n_workers = 0;
     int loop_rounds = 1; /* Loop once by default. */
     int preload = 0; /* Do not preload by default. */
+    int ips_mode = 0;
     enum InputTypes input_type = TYPE_PACKET; /* Process packets by default. */
+    char *set_options[MAX_SET_N];
+    int set_count = 0;
     const char *config = NULL;
     const char *logdir = NULL;
-    const char *output = "eve-json.log";
+    const char *output = "eve.json";
+    const char *sig_file = NULL;
     const char **input_files = NULL;
     pthread_t *thread_ids;
     ThreadCtx *tc;
@@ -273,11 +284,13 @@ int main(int argc, char **argv) {
         {"mode", required_argument, 0, 'm'},
         {"output", required_argument, 0, 'o'},
         {"preload-pcap", no_argument, 0, 'K'},
+        {"set", required_argument, 0, 's'},
+        {"simulate-ips", no_argument, 0, 'I'},
         {0, 0, 0, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
-    char short_opts[] = "hKc:l:m:o:";
+    char short_opts[] = "c:hk:KI:l:L:m:o:s:S:";
 
     /* Parse command line */
     if (argc < 2) {
@@ -290,6 +303,12 @@ int main(int argc, char **argv) {
             case 'c':
                 config = optarg;
                 break;
+             case 'K':
+                preload = 1;
+                break;
+            case 'I':
+                ips_mode = 1;
+                break;
             case 'l':
                 logdir = optarg;
                 break;
@@ -300,9 +319,7 @@ int main(int argc, char **argv) {
                     loop_rounds = loop;
                 }
                 break;
-            case 'K':
-                preload = 1;
-                break;
+
             case 'm':
                 if (strncmp(optarg, "stream", 6) == 0) {
                     input_type = TYPE_STREAM;
@@ -315,6 +332,17 @@ int main(int argc, char **argv) {
                 break;
             case 'o':
                 output = optarg;
+                break;
+            case 's':
+                if (set_count == MAX_SET_N) {
+                    break;
+                }
+                set_options[set_count++] = optarg;
+                break;
+            case 'S':
+                sig_file = optarg;
+                break;
+            case 'k':
                 break;
             case 'h':
             default:
@@ -395,12 +423,38 @@ int main(int argc, char **argv) {
     /* Load config from file, if provided. */
     suricata_config_load(ctx, config);
 
+    /* Set the custom config options. */
+    for (int i = 0; i < set_count; i++) {
+        char *key = strtok(set_options[i], "=");
+        if (key == NULL) {
+            fprintf(stderr, "Invalid --set option: %s", set_options[i]);
+            return 1;
+        }
+        char *value = strtok(NULL, "=");
+        if (value == NULL) {
+            fprintf(stderr, "Invalid --set option: %s", set_options[i]);
+            return 1;
+        }
+
+        suricata_config_set(ctx, key, value);
+    }
+
     /* Override runmode (required for testing as the yaml we use sets "runmode: single"). */
     suricata_config_set(ctx, "runmode", "offline");
 
     /* Override logdir if provided. */
     if (logdir) {
         suricata_config_set(ctx, "default-log-dir", logdir);
+    }
+
+    /* Override rule-files if option 'S' is specified. */
+    if (sig_file) {
+        suricata_config_set(ctx, "rule-files", sig_file);
+    }
+
+    /* Enable IPS mode, if specified. */
+    if (ips_mode) {
+        suricata_enable_ips_mode();
     }
 
     /* Init suricata engine. */

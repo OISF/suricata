@@ -65,7 +65,6 @@ typedef void (CallbackFuncStats)(
 
 typedef void (CallbackFuncLog)(
     int log_level, /* value corresponding to a SCLogLevel enum */
-    int error_code, /* value corresponding to a SCError enum */
     const char *message
 );
 

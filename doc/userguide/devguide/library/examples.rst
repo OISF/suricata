@@ -15,13 +15,15 @@ The command help is shown below:
 
     suricata_client [options] <pcap_file(s)>
 
-    -c                             Path to (optional) configuration file.
-    -h                             Print this help and exit.
-    -l                             Path to log directory.
-    -K, --preload-pcap             Preloads packets into RAM before sending
-    -L, --loop=num                 Loop through the capture file(s) X times
-    -m, --mode=mode                Set the kind of input to feed to the engine (packet|stream)
-    -o, --output=output            Path of the EVE output file (eve-json.log by default)
+    -c <path>                                Path to (optional) configuration file.
+    -h                                       Print this help and exit.
+    -l <dir>                                 Path to log directory.
+    -K, --preload-pcap                       Preloads packets into RAM before sending
+    -L <num>, --loop=num                     Loop through the capture file(s) X times
+    -m <mode>, --mode=mode                   Set the kind of input to feed to the engine (packet|stream)
+    -o <output>, --output=output             Path of the EVE output file (eve.json by default)
+    -s <name=value>, --set name=value        Set a configuration value
+    -S <path>                                Absolute path to signature file loaded exclusively
 
     Example usage: ./suricata_client -c suricata.yaml input.pcap
 
@@ -29,7 +31,11 @@ The client accepts one or more input files, it initializes the library registeri
 and creates a separate worker thread for each input file.
 At the end of the processing, some performance stats are printed to stdout.
 
-The library can be configured using a YAML file and the *-c* option.
+The library can be configured using a YAML file and the *-c* option. Additional configuration
+options can be specified with the *--set* options (same as the suricata binary).
+
+Rule files to load can be either set in the configuraion yaml in the *rule-files* array or a
+single rule path can be specified with the *-S* option.
 
 The callbacks will dump the events in JSON format (basically the same as the suricata binary EVE
 logging) in a logging directory defined by the *-l* option and in an output file defined by the

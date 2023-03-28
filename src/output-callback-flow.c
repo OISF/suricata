@@ -13,6 +13,8 @@
 
 #include "output.h"
 #include "output-callback.h"
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
 #include "threadvars.h"
 #include "util-device.h"
 #include "util-proto-name.h"
@@ -39,13 +41,6 @@ void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
         flow->dev = f->livedev->dev;
     }
 
-    /* Vlan. */
-    if (f->vlan_idx > 0) {
-        flow->vlan_id[0] = f->vlan_id[0];
-        if (f->vlan_idx > 1) {
-            flow->vlan_id[0] = f->vlan_id[1];
-        }
-    }
 
     /* Counters. */
     /* TODO: support bypassed flows ? */
@@ -88,7 +83,47 @@ void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
 
     /* TODO: Add metadata (flowvars, pktvars)? */
 
-    /* TODO: do we want TCP flags and state? */
+    /* TCP */
+    if (f->proto == IPPROTO_TCP) {
+        TcpSession *ssn = f->protoctx;
+
+        snprintf(flow->tcp.tcp_flags, sizeof(flow->tcp.tcp_flags), "%02x",
+                 ssn ? ssn->tcp_packet_flags : 0);
+        snprintf(flow->tcp.tcp_flags_ts, sizeof(flow->tcp.tcp_flags_ts), "%02x",
+                 ssn ? ssn->client.tcp_flags : 0);
+        snprintf(flow->tcp.tcp_flags_tc, sizeof(flow->tcp.tcp_flags_tc), "%02x",
+                 ssn ? ssn->server.tcp_flags : 0);
+
+        if (ssn) {
+            /* TCP flags. */
+            if (ssn->tcp_packet_flags & TH_SYN) {
+                flow->tcp.syn = true;
+            }
+            if (ssn->tcp_packet_flags & TH_FIN) {
+                flow->tcp.fin = true;
+            }
+            if (ssn->tcp_packet_flags & TH_RST) {
+                flow->tcp.rst = true;
+            }
+            if (ssn->tcp_packet_flags & TH_PUSH) {
+                flow->tcp.psh = true;
+            }
+            if (ssn->tcp_packet_flags & TH_ACK) {
+                flow->tcp.ack = true;
+            }
+            if (ssn->tcp_packet_flags & TH_URG) {
+                flow->tcp.urg = true;
+            }
+            if (ssn->tcp_packet_flags & TH_ECN) {
+                flow->tcp.ecn = true;
+            }
+            if (ssn->tcp_packet_flags & TH_CWR) {
+                flow->tcp.cwr = true;
+            }
+
+            flow->tcp.state = StreamTcpStateAsString(ssn->state);
+        }
+    }
 }
 
 static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {

@@ -2288,6 +2288,11 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();
 
+    /* Poll the stats one more time if we are running in library mode. */
+    if (runmode == RUNMODE_LIB) {
+        StatsPoll();
+    }
+
     /* kill the stats threads */
     TmThreadKillThreadsFamily(TVT_MGMT);
     TmThreadClearThreadsFamily(TVT_MGMT);
@@ -2907,10 +2912,10 @@ int SuricataInit(const char *progname)
      * Otherwise, load yaml configuration file if provided. */
     if (suricata.cfg) {
         if (CfgLoadStruct(suricata.cfg) != TM_ECODE_OK) {
-            exit(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
     } else if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
@@ -2939,11 +2944,11 @@ int SuricataInit(const char *progname)
         SCLogInfo("Running suricata under test mode");
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
@@ -2961,20 +2966,23 @@ int SuricataInit(const char *progname)
 
     PostConfLoadedDetectSetup(&suricata);
     if (suricata.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-        return EXIT_FAILURE;
+        GlobalsDestroy(&suricata);
+        exit(EXIT_SUCCESS);
     } else if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
-        return EXIT_FAILURE;
+        GlobalsDestroy(&suricata);
+        exit(EXIT_SUCCESS);
     } else if (suricata.run_mode == RUNMODE_DUMP_FEATURES) {
         FeatureDump();
-        return EXIT_FAILURE;
+        GlobalsDestroy(&suricata);
+        exit(EXIT_SUCCESS);
     }
 
     SCSetStartTime(&suricata);
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
                     suricata.capture_plugin_name, suricata.capture_plugin_args);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void SuricataPostInit(void) {

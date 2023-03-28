@@ -51,8 +51,12 @@ void callbackNta(void *data, size_t len, uint64_t *tenant_uuid, void *user_ctx) 
 
 /* Callback invoked for each Suricata Flow event. */
 void callbackFlow(FlowEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
-    printf("Flow!, state %s\n", event->flow.state);
+    if (user_ctx == NULL) {
+        return;
+    }
 
+    FILE *eve_fp = (FILE *)user_ctx;
+    logFlow(eve_fp, event);
 }
 
 /* Callback invoked for each Suricata FlowSnip event. */
@@ -84,6 +88,6 @@ void callbackStats(void *data, size_t len, void *user_ctx) {
 }
 
 /* Callback invoked for each log message (testing only). */
-void callbackLog(int log_level, int error_code, const char *message) {
+void callbackLog(int log_level, const char *message) {
     printf("LOG: %s\n", message);
 }

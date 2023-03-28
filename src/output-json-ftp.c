@@ -57,6 +57,8 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
             return;
         }
     }
+
+    jb_open_object(jb, "ftp");
     jb_set_string(jb, "command", tx->command_descriptor->command_name);
     uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
     if (tx->request_length > min_length) {

@@ -147,6 +147,11 @@ int suricata_config_set(SuricataCtx *ctx, const char *key, const char *val);
 void suricata_config_load(SuricataCtx *ctx, const char *config_file);
 
 /**
+ * \brief Enable suricata IPS mode (testing only).
+ */
+void suricata_enable_ips_mode(void);
+
+/**
  * \brief Initialize a Suricata context.
  *
  * \param ctx            Pointer to SuricataCtx.

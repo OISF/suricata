@@ -21,13 +21,30 @@
 
 #define MODULE_NAME "OutputCallback"
 
+static void EventFlowAddAppProto(const Flow *f, Common *common) {
+    if (f->alproto) {
+        common->app_proto = AppProtoToString(f->alproto);
+    }
+    if (f->alproto_ts && f->alproto_ts != f->alproto) {
+        common->app_proto_ts = AppProtoToString(f->alproto_ts);
+    }
+    if (f->alproto_tc && f->alproto_tc != f->alproto) {
+        common->app_proto_tc = AppProtoToString(f->alproto_tc);
+    }
+    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
+        common->app_proto_orig = AppProtoToString(f->alproto_orig);
+    }
+    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
+        common->app_proto_expected = AppProtoToString(f->alproto_expect);
+    }
+}
+
 /* Add information common to all events. */
 void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common *common,
                         JsonAddrInfo *addr) {
-    const Flow *f = (const Flow *)p->flow;
 
     /* First initialize the address info (5-tuple). */
-    JsonAddrInfoInit(p, LOG_DIR_PACKET, addr);
+    JsonAddrInfoInit(p, dir, addr);
     common->src_ip = addr->src_ip;
     common->dst_ip = addr->dst_ip;
     common->sp = addr->sp;
@@ -35,10 +52,21 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     common->proto = addr->proto;
 
     /* Flow id. */
-    int64_t flow_id = FlowGetId(f);
-    common->flow_id = flow_id;
-    if (f->parent_id) {
-        common->parent_id = f->parent_id;
+    const Flow *f = (const Flow *)p->flow;
+    if (f != NULL) {
+        int64_t flow_id = FlowGetId(f);
+        common->flow_id = flow_id;
+        if (f->parent_id) {
+            common->parent_id = f->parent_id;
+        }
+    }
+
+    /* Vlan */
+    if (p->vlan_idx > 0) {
+        common->vlan_id[0] = p->vlan_id[0];
+        if (p->vlan_idx  > 1) {
+            common->vlan_id[1] = p->vlan_id[1];
+        }
     }
 
     /* Timestamp. */
@@ -67,10 +95,27 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     }
     common->direction = direction;
 
+    /* ICMP. */
+    common->icmp_type = common->icmp_code = -1;
+    common->icmp_response_code = common->icmp_response_type = -1;
+    switch (p->proto) {
+        case IPPROTO_ICMP:
+            if (p->icmpv4h) {
+                common->icmp_type = p->icmpv4h->type;
+                common->icmp_code = p->icmpv4h->code;
+            }
+            break;
+        case IPPROTO_ICMPV6:
+            if (p->icmpv6h) {
+                common->icmp_type = p->icmpv6h->type;
+                common->icmp_code = p->icmpv6h->code;
+            }
+            break;
+    }
+
     /* App layer protocol, if any. */
-    if (p->flow != NULL) {
-        const AppProto app_proto = FlowGetAppProtocol(p->flow);
-        common->app_proto = app_proto ? AppProtoToString(app_proto) : "";
+    if (f != NULL) {
+        EventFlowAddAppProto(f, common);
     }
 }
 
@@ -91,19 +136,43 @@ void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *add
         common->parent_id = f->parent_id;
     }
 
+    /* Vlan. */
+    if (f->vlan_idx > 0) {
+        common->vlan_id[0] = f->vlan_id[0];
+        if (f->vlan_idx > 1) {
+            common->vlan_id[1] = f->vlan_id[1];
+        }
+    }
+
     SCTime_t ts = TimeGet();
     CreateIsoTimeString(ts, common->timestamp, sizeof(common->timestamp));
 
-    /* TODO: do we care about ICMP codes? */
+    common->icmp_type = common->icmp_code = -1;
+    common->icmp_response_code = common->icmp_response_type = -1;
+    switch (f->proto) {
+        case IPPROTO_ICMP:
+        case IPPROTO_ICMPV6:
+            common->icmp_type = f->icmp_s.type;
+            common->icmp_code = f->icmp_s.code;
+            if (f->tosrcpktcnt) {
+                common->icmp_response_code = f->icmp_d.type;
+                common->icmp_response_type = f->icmp_d.code;
+            }
+            break;
+    }
 
     /* App layer protocol. */
     if (f->alproto) {
-        common->app_proto = AppProtoToString(f->alproto);
+        EventFlowAddAppProto(f, common);
     }
 }
 
 /* Add app layer information (alert and fileinfo). */
 void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_layer) {
+    if (p->flow == NULL) {
+        return;
+    }
+
     const AppProto proto = FlowGetAppProtocol(p->flow);
     JsonBuilder *jb;
 
@@ -158,6 +227,10 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_l
 
 /* Free any memory allocated for app layer information (alert and fileinfo). */
 void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, union app_layer *app_layer) {
+    if (p->flow == NULL) {
+        return;
+    }
+
     const AppProto proto = FlowGetAppProtocol(p->flow);
     switch (proto) {
         case ALPROTO_HTTP:

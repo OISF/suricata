@@ -17,12 +17,58 @@ static void logCommon(JsonBuilder *jb, Common *common) {
     jb_set_string(jb, "direction", common->direction);
 
     jb_set_uint(jb, "flow_id", common->flow_id);
+
+    if (common->vlan_id[0]) {
+        jb_open_array(jb, "vlan");
+        jb_append_uint(jb, common->vlan_id[0]);
+        if (common->vlan_id[1]) {
+            jb_append_uint(jb, common->vlan_id[1]);
+        }
+        jb_close(jb);
+    }
+
     if (common->parent_id) {
         jb_set_uint(jb, "parent_id", common->parent_id);
     }
 
     if (common->app_proto) {
         jb_set_string(jb, "app_proto", common->app_proto);
+    }
+
+    if (common->app_proto_ts) {
+        jb_set_string(jb, "app_proto_ts", common->app_proto_ts);
+    }
+
+    if (common->app_proto_tc) {
+        jb_set_string(jb, "app_proto_tc", common->app_proto_tc);
+    }
+
+    if (common->app_proto_orig) {
+        jb_set_string(jb, "app_proto_orig", common->app_proto_orig);
+    }
+
+    if (common->app_proto_expected) {
+        jb_set_string(jb, "app_proto_expected", common->app_proto_expected);
+    }
+
+    if (common->icmp_type != -1) {
+        jb_set_uint(jb, "icmp_type", common->icmp_type);
+    }
+
+    if (common->icmp_code != -1) {
+        jb_set_uint(jb, "icmp_code", common->icmp_code);
+    }
+
+    if (common->icmp_response_type != -1) {
+        jb_set_uint(jb, "response_icmp_type", common->icmp_response_type);
+    }
+
+    if (common->icmp_response_code != -1) {
+        jb_set_uint(jb, "response_icmp_code", common->icmp_response_code);
+    }
+
+    if (common->xff) {
+        jb_set_string(jb, "xff", common->xff);
     }
 }
 
@@ -59,12 +105,38 @@ static void logHttpInfoCommon(JsonBuilder *jb, HttpInfo *http_info) {
 
     if (http_info->xff) {
         jb_set_string_from_bytes(jb, "xff", bstr_ptr(http_info->xff),
-                                 bstr_len(http_info->uri));
+                                 bstr_len(http_info->xff));
     }
 
     if (http_info->content_type) {
-        jb_set_string_from_bytes(jb, "http_content_type", bstr_ptr(http_info->content_type),
-                                 bstr_len(http_info->content_type));
+        size_t len = bstr_len(http_info->content_type);
+        char content_type[len + 1];
+
+        memcpy(content_type, bstr_ptr(http_info->content_type), len);
+        content_type[len] = 0;
+
+        char *p = strchr(content_type, ';');
+        if (p != NULL) {
+            len = p - content_type;
+        }
+
+        jb_set_string_from_bytes(jb, "http_content_type", content_type, len);
+    }
+
+    if (http_info->content_range_raw) {
+        jb_open_object(jb, "content_range");
+        jb_set_string_from_bytes(jb, "raw", bstr_ptr(http_info->content_range_raw),
+                                 bstr_len(http_info->content_range_raw));
+        if (http_info->content_range_start >= 0) {
+            jb_set_uint(jb, "start", http_info->content_range_start);
+        }
+        if (http_info->content_range_end >= 0) {
+            jb_set_uint(jb, "end", http_info->content_range_end);
+        }
+        if (http_info->content_range_size >= 0) {
+            jb_set_uint(jb, "size", http_info->content_range_size);
+        }
+        jb_close(jb);
     }
 
     if (http_info->redirect) {
@@ -92,32 +164,68 @@ static void logHttpInfoCommon(JsonBuilder *jb, HttpInfo *http_info) {
 static void logFlowCommon(JsonBuilder *jb, FlowInfo *flow) {
     jb_open_object(jb, "flow");
 
-    if (flow->dev) {
-        jb_set_string(jb, "in_iface", flow->dev);
-    }
-
-    if (flow->vlan_id[0]) {
-        jb_open_array(jb, "vlan");
-        jb_append_uint(jb, flow->vlan_id[0]);
-        if (flow->vlan_id[1]) {
-            jb_append_uint(jb, flow->vlan_id[1]);
-        }
-        jb_close(jb);
-    }
-
     jb_set_uint(jb, "pkts_toserver", flow->pkts_toserver);
     jb_set_uint(jb, "pkts_toclient", flow->pkts_toclient);
     jb_set_uint(jb, "bytes_toserver", flow->bytes_toserver);
     jb_set_uint(jb, "bytes_toclient", flow->bytes_toclient);
     jb_set_string(jb, "start", flow->start);
+}
+
+/* Log extended flow info shared across events. */
+static void logFlowExtended(JsonBuilder *jb, FlowInfo *flow, const char *proto) {
+    if (flow->dev) {
+        jb_set_string(jb, "in_iface", flow->dev);
+    }
+
+    if (flow->emergency) {
+        jb_set_bool(jb, "emergency", flow->emergency);
+    }
+
     jb_set_string(jb, "end", flow->end);
     jb_set_uint(jb, "age", flow->age);
-    jb_set_bool(jb, "emergency", flow->emergency);
     jb_set_string(jb, "state", flow->state);
     jb_set_string(jb, "reason", flow->reason);
     jb_set_bool(jb, "alerted", flow->alerted);
-
     jb_close(jb);
+
+    /* TCP flags. */
+    if (strncmp(proto, "TCP", 3) == 0) {
+        jb_open_object(jb, "tcp");
+        jb_set_string(jb, "tcp_flags", flow->tcp.tcp_flags);
+        jb_set_string(jb, "tcp_flags_ts", flow->tcp.tcp_flags_ts);
+        jb_set_string(jb, "tcp_flags_tc", flow->tcp.tcp_flags_tc);
+
+        if (flow->tcp.syn) {
+            jb_set_bool(jb, "syn", flow->tcp.syn);
+        }
+        if (flow->tcp.fin) {
+            jb_set_bool(jb, "fin", flow->tcp.fin);
+        }
+        if (flow->tcp.rst) {
+            jb_set_bool(jb, "rst", flow->tcp.rst);
+        }
+        if (flow->tcp.psh) {
+            jb_set_bool(jb, "psh", flow->tcp.psh);
+        }
+        if (flow->tcp.ack) {
+            jb_set_bool(jb, "ack", flow->tcp.ack);
+        }
+        if (flow->tcp.urg) {
+            jb_set_bool(jb, "urg", flow->tcp.urg);
+        }
+        if (flow->tcp.ecn) {
+            jb_set_bool(jb, "ecn", flow->tcp.ecn);
+        }
+        if (flow->tcp.cwr) {
+            jb_set_bool(jb, "cwr", flow->tcp.cwr);
+        }
+
+        if (flow->tcp.state) {
+            jb_set_string(jb, "state", flow->tcp.state);
+        }
+
+        jb_close(jb);
+    }
 }
 
 /* Log common alert info shared across events. */
@@ -163,11 +271,23 @@ void logAlert(FILE *fp, AlertEvent *event) {
     logCommon(jb, &event->common);
     jb_set_string(jb, "event_type", "alert");
 
+    /* Set Transaction id for correlation with other events. */
+    if (event->alert.tx_id != -1) {
+        jb_set_uint(jb, "tx_id", event->alert.tx_id);
+    }
+
     /* Log alert specific info. */
     logAlertCommon(jb, &event->alert);
 
+    /* Log flow info only if we have seen some traffic. */
+    if (event->flow.bytes_toserver || event->flow.bytes_toclient) {
+        logFlowCommon(jb, &event->flow);
+        jb_close(jb);
+    }
+
     /* Handle app layer record if present. */
-    if (strcmp(event->common.app_proto, "http") == 0 && event->app_layer.http) {
+    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0 &&
+        event->app_layer.http) {
         jb_open_object(jb, "http");
         logHttpInfoCommon(jb, event->app_layer.http);
         jb_close(jb);
@@ -195,7 +315,10 @@ void logHttp(FILE *fp, HttpEvent *event) {
     logHttpInfoCommon(jb, &event->http);
 
     /* Log headers. */
-    jb_open_array(jb, "request_headers");
+    if (event->http.request_headers[0].name) {
+        jb_open_array(jb, "request_headers");
+    }
+
     for (int i = 0; i < MAX_NUM_HTTP_HEADERS && event->http.request_headers[i].name; i++) {
         jb_start_object(jb);
         /* Make sure we both log name and value even if empty. */
@@ -214,10 +337,16 @@ void logHttp(FILE *fp, HttpEvent *event) {
         }
         jb_close(jb);
     }
-    /* Close array. */
-    jb_close(jb);
 
-    jb_open_array(jb, "response_headers");
+    /* Close array. */
+    if (event->http.request_headers[0].name) {
+        jb_close(jb);
+    }
+
+    if (event->http.response_headers[0].name) {
+        jb_open_array(jb, "response_headers");
+    }
+
     for (int i = 0; i < MAX_NUM_HTTP_HEADERS && event->http.response_headers[i].name; i++) {
         jb_start_object(jb);
         /* Make sure we both log name and value even if empty. */
@@ -237,8 +366,11 @@ void logHttp(FILE *fp, HttpEvent *event) {
 
         jb_close(jb);
     }
+
     /* Close array. */
-    jb_close(jb);
+    if (event->http.response_headers[0].name) {
+        jb_close(jb);
+    }
 
     /* TODO: Add files. */
 
@@ -263,6 +395,12 @@ void logFileinfo(FILE *fp, FileinfoEvent *event) {
     jb_open_object(jb, "fileinfo");
     jb_set_string_from_bytes(jb, "filename", event->fileinfo.filename,
                              event->fileinfo.filename_len);
+
+    jb_open_array(jb, "sid");
+    for (uint32_t i = 0; event->fileinfo.sids != NULL && i < event->fileinfo.sid_cnt; i++) {
+        jb_append_uint(jb, event->fileinfo.sids[i]);
+    }
+    jb_close(jb);
 
     if (event->fileinfo.magic) {
         jb_set_string(jb, "magic", event->fileinfo.magic);
@@ -299,13 +437,32 @@ void logFileinfo(FILE *fp, FileinfoEvent *event) {
     jb_close(jb);
 
     /* Handle app layer record if present. */
-    if (strcmp(event->common.app_proto, "http") == 0 && event->app_layer.http) {
+    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0 &&
+        event->app_layer.http) {
         jb_open_object(jb, "http");
         logHttpInfoCommon(jb, event->app_layer.http);
         jb_close(jb);
     } else if (event->app_layer.nta) {
         jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
     }
+
+    /* Write JSON record. */
+    jb_close(jb);
+    logLine(fp, jb_ptr(jb), jb_len(jb));
+    jb_free(jb);
+}
+
+/* Log a Flow event. */
+void logFlow(FILE *fp, FlowEvent *event) {
+    JsonBuilder *jb = jb_new_object();
+
+    /* Log common info. */
+    logCommon(jb, &event->common);
+    jb_set_string(jb, "event_type", "flow");
+
+    /* Log flow specific info. */
+    logFlowCommon(jb, &event->flow);
+    logFlowExtended(jb, &event->flow, event->common.proto);
 
     /* Write JSON record. */
     jb_close(jb);
@@ -323,6 +480,7 @@ void logFlowSnip(FILE *fp, FlowSnipEvent *event) {
 
     /* Log flow specific info. */
     logFlowCommon(jb, &event->flow);
+    logFlowExtended(jb, &event->flow, event->common.proto);
 
     /* Log flow snip specific info. */
     jb_open_object(jb, "flow-snip");

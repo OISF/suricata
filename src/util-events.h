@@ -29,6 +29,13 @@ typedef struct {
     const char *proto;
     /* App layer protocol */
     const char *app_proto;
+    const char *app_proto_ts;
+    const char *app_proto_tc;
+    /* Original application level protocol. Used to indicate the previous protocol when changing
+     * to another protocol. */
+    const char *app_proto_orig;
+    /* Expected app protocol: used in protocol change/upgrade. */
+    const char *app_proto_expected;
     /* Packet direction */
     const char *direction;
     /* Timestamp */
@@ -37,6 +44,15 @@ typedef struct {
     int64_t flow_id;
     /* Parent id */
     int64_t parent_id;
+    /* Vland ids */
+    uint16_t vlan_id[2];
+    /* ICMP types and codes. */
+    uint8_t icmp_type;
+    uint8_t icmp_code;
+    uint8_t icmp_response_type;
+    uint8_t icmp_response_code;
+    /* XFF info */
+    const char *xff;
 } Common;
 
 /* Struct representing an HTTP header. */
@@ -65,6 +81,11 @@ typedef struct HttpInfo {
     bstr *xff;
     /* Content-Type header */
     bstr *content_type;
+    /* Content-Range header (raw and parsed) */
+    bstr *content_range_raw;
+    int64_t content_range_start;
+    int64_t content_range_end;
+    int64_t content_range_size;
     /* Redirect (location header) */
     bstr *redirect;
     /* Referer */
@@ -99,6 +120,8 @@ typedef struct Alert{
     const char *msg;
     const char *category;
     const char *metadata;
+    /* Transaction id, for correlation with other events */
+    uint64_t tx_id;
     /* Tenant id (suricata) */
     uint32_t tenant_id_suri;
 } Alert;
@@ -107,8 +130,6 @@ typedef struct Alert{
 typedef struct FlowInfo {
     /* Input interface */
     const char *dev;
-    /* Vland ids */
-    uint16_t vlan_id[2];
     /* Counters */
     uint32_t pkts_toserver;
     uint32_t pkts_toclient;
@@ -127,11 +148,33 @@ typedef struct FlowInfo {
     const char *reason;
     /* If flow has alerts */
     int alerted;
+
+    /* TCP flags. */
+    struct {
+        /* TCP packet flags (hex). */
+        char tcp_flags[3];
+        /* TCP to server flags (hex). */
+        char tcp_flags_ts[3];
+        /* TCP to client flags (hex). */
+        char tcp_flags_tc[3];
+        /* TCP flags as single values (true/false). */
+        uint8_t syn;
+        uint8_t fin;
+        uint8_t rst;
+        uint8_t psh;
+        uint8_t ack;
+        uint8_t urg;
+        uint8_t ecn;
+        uint8_t cwr;
+        /* TCP state .*/
+        const char *state;
+    } tcp;
 } FlowInfo;
 
 /* Struct representing an alert event. It will be passed along in the callback. */
 typedef struct AlertEvent {
     Common common;
+    FlowInfo flow;
     Alert alert;
 
     /* App layer event information, if any */
@@ -147,6 +190,9 @@ typedef struct FileinfoEvent {
         const uint8_t *filename;
         /* File name len. */
         uint16_t filename_len;
+        /* Signature id of a rule that triggered the filestore event. */
+        uint32_t *sids;
+        uint32_t sid_cnt;
         /* Magic, if any */
         const char *magic;
         /* If the file has gaps */

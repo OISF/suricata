@@ -14,6 +14,8 @@ void logAlert(FILE *fp, AlertEvent *event);
 void logHttp(FILE *fp, HttpEvent *event);
 /* Log a Fileinfo event. */
 void logFileinfo(FILE *fp, FileinfoEvent *event);
+/* Log a Flow event. */
+void logFlow(FILE *fp, FlowEvent *event);
 /* Log a FlowSnip event. */
 void logFlowSnip(FILE *fp, FlowSnipEvent *event);
 /* Log an NTA event. */
