@@ -86,13 +86,13 @@ static void setCallbackId(uint32_t id) {
 /**
  * \brief Create a Suricata context.
  *
- * \param n_workers    Number of worker threads that will be allocated.
+ * \param n_workers    Number of packet processing threads that the engine is expected to support.
  * \return SuricataCtx Pointer to the initialized Suricata context.
  */
 SuricataCtx *suricata_create_ctx(int n_workers) {
     /* Create the SuricataCtx */
     if (n_workers == 0) {
-        fprintf(stderr, "The number of suricata worker threads must be > 0");
+        fprintf(stderr, "The number of suricata workers must be > 0");
         exit(EXIT_FAILURE);
     }
 
@@ -218,12 +218,16 @@ void suricata_init(const char *config) {
 }
 
 /**
- * \brief Create a worker thread.
+ * \brief Initialize a Suricata worker.
+ *
+ * This function is meant to be invoked by a thread in charge of processing packets. The thread
+ * is not handled by the library, i.e it needs to be created destroyed by the user.
+ * This function has to be invoked before "suricata_handle_packet".
  *
  * \param ctx Pointer to the Suricata context.
- * \return    Pointer to the worker thread context.
+ * \return    Pointer to the worker context.
  */
-ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx) {
+ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx) {
     pthread_mutex_lock(&ctx->lock);
 
     if (ctx->n_workers_created == ctx->n_workers) {
@@ -245,7 +249,7 @@ ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx) {
  * \param ctx Pointer to the Suricata context.
  */
 void suricata_post_init(SuricataCtx *ctx) {
-    /* Wait till all the worker threads have been created. */
+    /* Wait till all the workers have been created. */
     while (ctx->n_workers_created < ctx->n_workers) {
         usleep(100);
     }
@@ -255,12 +259,12 @@ void suricata_post_init(SuricataCtx *ctx) {
 }
 
 /**
- * \brief Destroy a worker thread.
+ * \brief Cleanup a Suricata worker.
  *
  * \param ctx Pointer to the Suricata context.
- * \param tv  Pointer to the worker thread context.
+ * \param tv  Pointer to the worker context.
  */
-void suricata_destroy_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
+void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
     pthread_mutex_lock(&ctx->lock);
     ctx->n_workers_done++;
     pthread_mutex_unlock(&ctx->lock);
@@ -296,7 +300,7 @@ int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, st
  * \param ctx Pointer to the Suricata context.
  */
 void suricata_shutdown(SuricataCtx *ctx) {
-    /* Wait till all the worker threads are done */
+    /* Wait till all the workers are done */
     while(ctx->n_workers_done != ctx->n_workers) {
         usleep(10 * 1000);
     }

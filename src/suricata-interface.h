@@ -11,13 +11,13 @@
 
 /* Used at init and deinit only for now */
 typedef struct SuricataCtx {
-    /* Number of worker threads that will be created. */
+    /* Number of workers that will be created. */
     int n_workers;
 
-    /* Number of worker threads that are already created. */
+    /* Number of workers that are already created. */
     int n_workers_created;
 
-    /* Number of worker threads that are done processing. */
+    /* Number of workers that are done processing. */
     int n_workers_done;
 
     /* Mutex to access the fields. */
@@ -28,7 +28,7 @@ typedef struct SuricataCtx {
 /**
  * \brief Create a Suricata context.
  *
- * \param n_workers    Number of worker threads that will be allocated.
+ * \param n_workers    Number of packet processing threads that the engine is expected to support.
  * \return SuricataCtx Pointer to the initialized Suricata context.
  */
 SuricataCtx *suricata_create_ctx(int n_workers);
@@ -93,12 +93,16 @@ void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig 
 void suricata_init(const char *config);
 
 /**
- * \brief Create a worker thread.
+ * \brief Initialize a Suricata worker.
+ *
+ * This function is meant to be invoked by a thread in charge of processing packets. The thread
+ * is not handled by the library, i.e it needs to be created destroyed by the user.
+ * This function has to be invoked before "suricata_handle_packet".
  *
  * \param ctx Pointer to the Suricata context.
- * \return    Pointer to the worker thread context.
+ * \return    Pointer to the worker context.
  */
-ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx);
+ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx);
 
 /**
  * \brief Suricata post initialization tasks.
@@ -128,9 +132,9 @@ int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, st
  * \brief Destroy a worker thread.
  *
  * \param ctx Pointer to the Suricata context.
- * \param tv  Pointer to the worker thread context.
+ * \param tv  Pointer to the worker context.
  */
-void suricata_destroy_worker_thread(SuricataCtx *ctx, ThreadVars *tv);
+void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv);
 
 /**
  * \brief Shutdown the Suricata engine.
