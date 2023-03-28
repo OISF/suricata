@@ -216,7 +216,7 @@
     AC_CHECK_DECL([getrandom],
         AC_DEFINE([HAVE_GETRANDOM], [1], [Use getrandom]),
         [], [
-            #include <sys/random.h> 
+            #include <sys/random.h>
             ])
 
     OCFLAGS=$CFLAGS
@@ -453,7 +453,7 @@
     ])
     AM_CONDITIONAL([BUILD_UNITTESTS], [test "x$enable_unittests" = "xyes"])
 
-  # enable the building of ebpf files 
+  # enable the building of ebpf files
     AC_ARG_ENABLE(ebpf-build,
            AS_HELP_STRING([--enable-ebpf-build], [Enable compilation of ebpf files]),[enable_ebpf_build=$enableval],[enable_ebpf_build=no])
     AM_CONDITIONAL([BUILD_EBPF], [test "x$enable_ebpf_build" = "xyes"])
@@ -649,7 +649,7 @@
             LIBS="${TMPLIBS} -lsystemd"
         fi
     fi
-  
+
   # libhs
     enable_hyperscan="no"
 
@@ -1011,7 +1011,7 @@
     AC_ARG_ENABLE(windivert,
         AS_HELP_STRING([--enable-windivert],[Enable WinDivert support [default=no]]),[enable_windivert=$enableval],
         [enable_windivert="no"])
-    
+
   # WinDivert can only be enabled on Windows builds
     AC_CHECK_DECL([OS_WIN32],,[enable_windivert="no"])
 
@@ -2564,6 +2564,7 @@ AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [tes
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
 AC_CONFIG_FILES(rules/Makefile doc/Makefile doc/userguide/Makefile)
+AC_CONFIG_FILES(examples/Makefile examples/suricata_lib/Makefile)
 AC_CONFIG_FILES(contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile)
 AC_CONFIG_FILES(suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service)
 AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
