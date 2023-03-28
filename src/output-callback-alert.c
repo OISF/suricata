@@ -123,7 +123,7 @@ static int AlertCallback(ThreadVars *tv, const Packet *p) {
         }
 
         /* Invoke callback and cleanup */
-        tv->callbacks->alert.func(tv->callbacks->alert.user_ctx, &event);
+        tv->callbacks->alert.func(&event, p->flow->tenant_uuid, tv->callbacks->alert.user_ctx);
         AlertCleanupAppLayer(p, pa->tx_id, &event);
     }
 
@@ -148,7 +148,7 @@ static int AlertCallbackDecoderEvent(ThreadVars *tv, const Packet *p) {
         AlertCallbackHeader(p, pa, &event);
 
         /* Invoke callback */
-        tv->callbacks->alert.func(tv->callbacks->alert.user_ctx, &event);
+        tv->callbacks->alert.func(&event, p->flow->tenant_uuid, tv->callbacks->alert.user_ctx);
     }
 
     return TM_ECODE_OK;

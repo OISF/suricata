@@ -20,9 +20,6 @@ typedef struct SuricataCtx {
     /* Number of worker threads that are done processing. */
     int n_workers_done;
 
-    /* Callbacks to invoke for each event. */
-    Callbacks callbacks;
-
     /* Mutex to access the fields. */
     pthread_mutex_t lock;
 } SuricataCtx;
@@ -74,6 +71,21 @@ void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlo
 void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback);
 
 /**
+ * \brief Register a callback that is invoked before a candidate signature is inspected.
+ *
+ *        Such callback will be able to decide if a signature is relevant or modify its via the
+ *        return value:
+ *         * -1: discard
+ *         * 0: inspect signature without modify its action
+ *         * >0: inspect signature but modify its action first with the returned valued
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig callback);
+
+/**
  * \brief Initialize a Suricata context.
  *
  * \param config      Configuration string.
@@ -104,10 +116,13 @@ void suricata_post_init(SuricataCtx *ctx);
  * \param ts                    Timeval structure.
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of hte detection engine to use.
  * \return                      Error code.
  */
 int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
-                           uint32_t len, int ignore_pkt_checksum);
+                           uint32_t len, int ignore_pkt_checksum, uint64_t *tenant_uuid,
+                           uint32_t tenant_id);
 
 /**
  * \brief Destroy a worker thread.

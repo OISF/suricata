@@ -30,6 +30,7 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
+#include "util-memcmp.h"
 #include "util-random.h"
 #include "util-time.h"
 

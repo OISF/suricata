@@ -628,6 +628,8 @@ typedef struct Packet_
 
     /** tenant id for this packet, if any. If 0 then no tenant was assigned. */
     uint32_t tenant_id;
+    /* tenant uuid to associate a packet/flow to a given tenant */
+    uint64_t tenant_uuid[2];
 
     /* The Packet pool from which this packet was allocated. Used when returning
      * the packet to its owner's stack. If NULL, then allocated with malloc.

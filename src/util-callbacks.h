@@ -11,23 +11,37 @@
 
 /* Callback functions, one per event. */
 typedef void (CallbackFuncAlert)(
-    void *user_ctx,
-    AlertEvent *alert_event
+    AlertEvent *alert_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
 );
 
 typedef void (CallbackFuncFileinfo)(
-    void *user_ctx,
-    FileinfoEvent *fileinfo_event
+    FileinfoEvent *fileinfo_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
 );
 
 typedef void (CallbackFuncFlow)(
-    void *user_ctx,
-    FlowEvent *flow_event
+    FlowEvent *flow_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
 );
 
 typedef void (CallbackFuncHttp)(
-    void *user_ctx,
-    HttpEvent *http_event
+    HttpEvent *http_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
+);
+
+/* Detection callback, invoked before inspecting any signature candidate to remove the signature or
+ * modify its action. */
+typedef int (CallbackFuncSig)(
+    uint32_t signature_id,
+    uint8_t current_action,
+    uint32_t tenant_id,
+    uint64_t *tenant_uuid,
+    void *user_ctx
 );
 
 /* Callback struct. */
@@ -51,6 +65,11 @@ typedef struct {
         CallbackFuncHttp *func;
         void *user_ctx;
     } http;
+
+    struct {
+        CallbackFuncSig *func;
+        void *user_ctx;
+    } sig;
 } Callbacks;
 
 #endif /* __UTIL_CALLBACKS_H__ */

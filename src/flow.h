@@ -420,6 +420,8 @@ typedef struct Flow_
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
     uint32_t tenant_id;
+    /* tenant uuid to associate a packet/flow to a given tenant */
+    uint64_t tenant_uuid[2];
 
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;

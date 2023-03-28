@@ -127,7 +127,7 @@ static void CallbackHttpLog(htp_tx_t *tx, HttpInfo *http) {
 
 static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
                               void *alstate, void *txptr, uint64_t tx_id) {
-    if (!tv->callbacks || !tv->callbacks->http.func) {
+    if (!tv->callbacks->http.func) {
         return 0;
     }
 
@@ -144,7 +144,7 @@ static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p
     /* TODO: handle xff? */
 
     /* Invoke callback and cleanup event */
-    tv->callbacks->http.func(tv->callbacks->http.user_ctx, &event);
+    tv->callbacks->http.func(&event, f->tenant_uuid, tv->callbacks->http.user_ctx);
     CallbackHttpCleanupInfo(&event.http);
 
     return 0;

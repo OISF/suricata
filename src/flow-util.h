@@ -49,6 +49,8 @@
         (f)->next = NULL;                                                                          \
         (f)->flow_state = 0;                                                                       \
         (f)->tenant_id = 0;                                                                        \
+        (f)->tenant_uuid[0] = 0;                                                                   \
+        (f)->tenant_uuid[1] = 0;                                                                   \
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \
         (f)->probing_parser_toclient_alproto_masks = 0;                                            \
@@ -94,6 +96,8 @@
         (f)->timeout_policy = 0;                                                                   \
         (f)->flow_state = 0;                                                                       \
         (f)->tenant_id = 0;                                                                        \
+        (f)->tenant_uuid[0] = 0;                                                                   \
+        (f)->tenant_uuid[1] = 0;                                                                   \
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \
         (f)->probing_parser_toclient_alproto_masks = 0;                                            \

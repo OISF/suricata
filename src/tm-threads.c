@@ -1011,6 +1011,10 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
 
     strlcpy(tv->name, name, sizeof(tv->name));
 
+    /* Set callbacks. */
+    SCInstance *suri = GetInstance();
+    tv->callbacks = &suri->callbacks;
+
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);

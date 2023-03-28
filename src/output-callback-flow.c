@@ -161,7 +161,7 @@ static void CallbackFlowLog(const Flow *f, FlowEvent *event) {
 }
 
 static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {
-    if (!tv->callbacks || !tv->callbacks->flow.func) {
+    if (!tv->callbacks->flow.func) {
         return 0;
     }
 
@@ -171,7 +171,7 @@ static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {
     CallbackFlowLog(f, &event);
 
     /* Invoke callback. */
-    tv->callbacks->flow.func(tv->callbacks->flow.user_ctx, &event);
+    tv->callbacks->flow.func(&event, f->tenant_uuid, tv->callbacks->flow.user_ctx);
 
     return 0;
 }

@@ -250,6 +250,22 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
+static inline uint8_t IsValidAction(uint8_t action) {
+    switch (action) {
+        case ACTION_ALERT:
+        case ACTION_DROP:
+        case ACTION_REJECT:
+        case ACTION_REJECT_DST:
+        case ACTION_REJECT_BOTH:
+        case ACTION_REJECT_ANY:
+        case ACTION_PASS:
+        case ACTION_CONFIG:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                                             DetectEngineThreadCtx *det_ctx)
 {
@@ -787,6 +803,19 @@ static inline void DetectRulePacketRules(
             if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, scratch->alproto)) {
                 SCLogDebug("alproto mismatch");
                 goto next;
+            }
+        }
+
+        /* Invoke the signature callback. */
+        if (tv->callbacks && tv->callbacks->sig.func) {
+            int res = tv->callbacks->sig.func(s->id, s->action, de_ctx->tenant_id, p->tenant_uuid,
+                                              tv->callbacks->sig.user_ctx);
+
+            if (res == -1) {
+                /* Discard signature. */
+                continue;
+            } else if (res > 0 && IsValidAction(res)) {
+                ((Signature  *)s)->action = res;
             }
         }
 
@@ -1487,6 +1516,19 @@ static void DetectRunTx(ThreadVars *tv,
                     SCLogDebug("%p/%"PRIu64" inspecting: sid %u (%u), flags %08x ALREADY COMPLETE",
                             tx.tx_ptr, tx.tx_id, s->id, s->num, *inspect_flags);
                     continue;
+                }
+            }
+
+            /* Invoke the signature callback. */
+            if (tv->callbacks && tv->callbacks->sig.func) {
+                int res = tv->callbacks->sig.func(s->id, s->action, de_ctx->tenant_id,
+                                                  p->tenant_uuid, tv->callbacks->sig.user_ctx);
+
+                if (res == -1) {
+                    /* Discard signature. */
+                    continue;
+                } else if (res > 0 && IsValidAction(res)) {
+                    ((Signature  *)s)->action = res;
                 }
             }
 

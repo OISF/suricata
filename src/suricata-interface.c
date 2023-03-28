@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "flow-manager.h"
 #include "runmode-lib.h"
 #include "source-lib.h"
 
@@ -122,8 +123,10 @@ SuricataCtx *suricata_create_ctx(int n_workers) {
  * \param callback       Pointer to a callback function.
  */
 void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback) {
-    ctx->callbacks.alert.func = callback;
-    ctx->callbacks.alert.user_ctx = user_ctx;
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.alert.func = callback;
+    suri->callbacks.alert.user_ctx = user_ctx;
 
     /* Set the callback id into the suricata array to later register the output module. */
     setCallbackId(LOGGER_CALLBACK_ALERT);
@@ -138,8 +141,10 @@ void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAl
  */
 void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx,
                                    CallbackFuncFileinfo callback) {
-    ctx->callbacks.fileinfo.func = callback;
-    ctx->callbacks.fileinfo.user_ctx = user_ctx;
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.fileinfo.func = callback;
+    suri->callbacks.fileinfo.user_ctx = user_ctx;
 
     /* Set the callback id into the suricata array to later register the output module. */
     setCallbackId(LOGGER_CALLBACK_FILE);
@@ -152,8 +157,10 @@ void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx,
  * \param callback       Pointer to a callback function.
  */
 void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback) {
-    ctx->callbacks.flow.func = callback;
-    ctx->callbacks.flow.user_ctx = user_ctx;
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.flow.func = callback;
+    suri->callbacks.flow.user_ctx = user_ctx;
 
     /* Set the callback id into the suricata array to later register the output module. */
     setCallbackId(LOGGER_CALLBACK_FLOW);
@@ -167,11 +174,27 @@ void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlo
  * \param callback       Pointer to a callback function.
  */
 void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback) {
-    ctx->callbacks.http.func = callback;
-    ctx->callbacks.http.user_ctx = user_ctx;
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.http.func = callback;
+    suri->callbacks.http.user_ctx = user_ctx;
 
     /* Set the callback id into the suricata array to later register the output module. */
     setCallbackId(LOGGER_CALLBACK_TX);
+}
+
+/**
+ * \brief Register a callback that is invoked before a candidate signature is inspected.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig callback) {
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.sig.func = callback;
+    suri->callbacks.sig.user_ctx = user_ctx;
 }
 
 /**
@@ -209,7 +232,6 @@ ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx) {
     }
 
     ThreadVars *tv = RunModeCreateWorker();
-    tv->callbacks = &ctx->callbacks;
     ctx->n_workers_created++;
     pthread_mutex_unlock(&ctx->lock);
 
@@ -257,13 +279,16 @@ void suricata_destroy_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
  * \param ts                    Timeval structure.
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of hte detection engine to use.
  * \return                      Error code.
  */
-int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink,
-                           struct timeval ts, uint32_t len, int ignore_pkt_checksum) {
-    return TmModuleLibHandlePacket(tv, data, datalink, ts, len, ignore_pkt_checksum);
+int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
+                           uint32_t len, int ignore_pkt_checksum, uint64_t *tenant_uuid,
+                           uint32_t tenant_id) {
+    return TmModuleLibHandlePacket(tv, data, datalink, ts, len, ignore_pkt_checksum, tenant_uuid,
+                                   tenant_id);
 }
-
 
 /**
  * \brief Shutdown the library.

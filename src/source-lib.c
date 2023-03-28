@@ -109,10 +109,13 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
  * \param ts                    Timeval structure.
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of hte detection engine to use.
  * \return                      Struct containing generated alerts if any.
  */
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
-                            struct timeval ts, uint32_t len, int ignore_pkt_checksum) {
+                            struct timeval ts, uint32_t len, int ignore_pkt_checksum,
+                            uint64_t *tenant_uuid, uint32_t tenant_id) {
 
     Packet *p = PacketGetFromQueueOrAlloc();
 
@@ -124,6 +127,9 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
     p->ts = SCTIME_FROM_TIMEVAL(&ts);
 
     p->datalink = datalink;
+    p->tenant_uuid[0] = tenant_uuid[0];
+    p->tenant_uuid[1] = tenant_uuid[1];
+    p->tenant_id = tenant_id;
 
     if (PacketSetData(p, data, len) == -1) {
         TmqhOutputPacketpool(tv, p);

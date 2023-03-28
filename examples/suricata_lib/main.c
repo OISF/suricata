@@ -32,14 +32,19 @@ typedef struct {
 void packetHandler(u_char *tv, const struct pcap_pkthdr *pkthdr, const u_char *packet) {
     static int i = 0;
 
-    if (suricata_handle_packet((ThreadVars *)tv, packet, DLT_EN10MB, pkthdr->ts, pkthdr->len, 1)) {
+    uint64_t tenant_uuid[2] = {};
+    /* Use the worker thread address as tenant_uuid to have 1 per worker. */
+    tenant_uuid[0] = (uint64_t) tv;
+
+    if (suricata_handle_packet((ThreadVars *)tv, packet, DLT_EN10MB, pkthdr->ts, pkthdr->len, 1,
+                               tenant_uuid, 0)) {
         fprintf(stderr, "Error while processing packet %d from worker thread %p", i, tv);
     }
 
     i++;
 }
 
-void callbackAlert(void *user_ctx, AlertEvent *event) {
+void callbackAlert(AlertEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     printf("Alert!, sid %d\n", event->alert.sid);
 
     if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0) {
@@ -49,7 +54,7 @@ void callbackAlert(void *user_ctx, AlertEvent *event) {
     }
 }
 
-void callbackFile(void *user_ctx, FileinfoEvent *event) {
+void callbackFile(FileinfoEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     printf("File!, name %s\n", event->fileinfo.filename);
 
     if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0) {
@@ -59,12 +64,19 @@ void callbackFile(void *user_ctx, FileinfoEvent *event) {
     }
 }
 
-void callbackHttp(void *user_ctx, HttpEvent *event) {
+void callbackHttp(HttpEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     printf("Http!, hostname %s\n", event->http.hostname);
 }
 
-void callbackFlow(void *user_ctx, FlowEvent *event) {
+void callbackFlow(FlowEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     printf("Flow!, state %s\n", event->flow.state);
+}
+
+int callbackSig(uint32_t signature_id, uint8_t current_action, uint32_t tenant_id,
+                    uint64_t *tenant_uuid, void *user_ctx) {
+    printf("Signature hit!, sid %d action %d\n", signature_id, current_action);
+
+    return 0;
 }
 
 void *suricataWorker(void *td) {
@@ -178,6 +190,7 @@ int main(int argc, char **argv) {
     suricata_register_fileinfo_cb(ctx, NULL, callbackFile);
     suricata_register_http_cb(ctx, NULL, callbackHttp);
     suricata_register_flow_cb(ctx, NULL, callbackFlow);
+    suricata_register_sig_cb(ctx, NULL, callbackSig);
 
     /* Init suricata engine. */
     suricata_init(config);

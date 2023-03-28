@@ -90,8 +90,9 @@ typedef struct FlowHashKey4_ {
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
             uint16_t vlan_id[2];
+            uint32_t tenant_uuid[4];
         };
-        const uint32_t u32[5];
+        const uint32_t u32[9];
     };
 } FlowHashKey4;
 
@@ -103,8 +104,9 @@ typedef struct FlowHashKey6_ {
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
             uint16_t vlan_id[2];
+            uint32_t tenant_uuid[4];
         };
-        const uint32_t u32[11];
+        const uint32_t u32[15];
     };
 } FlowHashKey6;
 
@@ -199,7 +201,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
-            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+            fhk.tenant_uuid[0] = p->tenant_uuid[0];
+            fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+            fhk.tenant_uuid[2] = p->tenant_uuid[1];
+            fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
+
+            hash = hashword(fhk.u32, 9, flow_config.hash_rand);
 
         } else if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
             uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
@@ -219,7 +226,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
-            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+            fhk.tenant_uuid[0] = p->tenant_uuid[0];
+            fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+            fhk.tenant_uuid[2] = p->tenant_uuid[1];
+            fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
+
+            hash = hashword(fhk.u32, 9, flow_config.hash_rand);
 
         } else {
             FlowHashKey4 fhk;
@@ -233,7 +245,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
-            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+            fhk.tenant_uuid[0] = p->tenant_uuid[0];
+            fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+            fhk.tenant_uuid[2] = p->tenant_uuid[1];
+            fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
+
+            hash = hashword(fhk.u32, 9, flow_config.hash_rand);
         }
     } else if (p->ip6h != NULL) {
         FlowHashKey6 fhk;
@@ -264,8 +281,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
         fhk.recur = (uint16_t)p->recursion_level;
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+        fhk.tenant_uuid[0] = p->tenant_uuid[0];
+        fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+        fhk.tenant_uuid[2] = p->tenant_uuid[1];
+        fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
 
-        hash = hashword(fhk.u32, 11, flow_config.hash_rand);
+        hash = hashword(fhk.u32, 15, flow_config.hash_rand);
     }
 
     return hash;

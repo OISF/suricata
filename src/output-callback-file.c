@@ -131,7 +131,7 @@ static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx
     /* TODO: add tx id? */
 
     /* Invoke callback and cleanup */
-    tv->callbacks->fileinfo.func(tv->callbacks->fileinfo.user_ctx, &event);
+    tv->callbacks->fileinfo.func(&event, p->flow->tenant_uuid, tv->callbacks->fileinfo.user_ctx);
     if (event.app_layer.http) {
         CallbackHttpCleanupInfo(event.app_layer.http);
     }
@@ -141,7 +141,7 @@ static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p
                               void *tx, const uint64_t tx_id, uint8_t dir) {
     BUG_ON(ff->flags & FILE_LOGGED);
 
-    if (!tv->callbacks || !tv->callbacks->fileinfo.func) {
+    if (!tv->callbacks->fileinfo.func) {
         return 0;
     }
 

@@ -65,6 +65,7 @@
 #define __SURICATA_H__
 
 #include "suricata-common.h"
+#include "util-callbacks.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
@@ -167,6 +168,9 @@ typedef struct SCInstance_ {
     const char *capture_plugin_name;
     const char *capture_plugin_args;
 
+    /* Set of callbacks that can be invoked for each event. */
+    Callbacks callbacks;
+    /* Ids of the actual callbacks we want to register. */
     uint32_t callback_ids[MAX_CALLBACKS];
 } SCInstance;
 

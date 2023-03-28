@@ -22,9 +22,12 @@ void TmModuleDecodeLibRegister(void);
  * \param ts                    Timeval structure.
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of hte detection engine to use.
  * \return                      Struct containing generated alerts if any.
  */
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
-                            struct timeval ts, uint32_t len, int ignore_pkt_checksum);
+                            struct timeval ts, uint32_t len, int ignore_pkt_checksum,
+                            uint64_t *tenant_uuid, uint32_t tenant_id);
 
 #endif /* __SOURCE_LIB_H__ */
