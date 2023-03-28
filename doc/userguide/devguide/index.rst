@@ -7,3 +7,4 @@ Suricata Developer Guide
    codebase/index.rst
    internals/index.rst
    extending/index.rst
+   library/index.rst

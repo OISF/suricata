@@ -77,8 +77,8 @@ void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHtt
  *        Such callback will be able to decide if a signature is relevant or modify its action via
  *        the return value:
  *         * -1: discard
- *         * 0: inspect signature without modify its action
- *         * >0: inspect signature but modify its action first with the returned valued
+ *         * 0: inspect signature without modifying its action
+ *         * >0: inspect signature but modify its action first with the returned value
  *
  * \param ctx            Pointer to SuricataCtx.
  * \param user_ctx       Pointer to a user-defined context object.
@@ -97,7 +97,7 @@ void suricata_init(const char *config);
  * \brief Initialize a Suricata worker.
  *
  * This function is meant to be invoked by a thread in charge of processing packets. The thread
- * is not handled by the library, i.e it needs to be created destroyed by the user.
+ * is not managed by the library, i.e it needs to be created and destroyed by the user.
  * This function has to be invoked before "suricata_handle_packet".
  *
  * \param ctx Pointer to the Suricata context.
