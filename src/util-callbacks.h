@@ -63,6 +63,12 @@ typedef void (CallbackFuncStats)(
     void *user_ctx
 );
 
+typedef void (CallbackFuncLog)(
+    int log_level, /* value corresponding to a SCLogLevel enum */
+    int error_code, /* value corresponding to a SCError enum */
+    const char *message
+);
+
 /* Callback struct. */
 typedef struct {
     CallbackFuncAlert *alert;
@@ -72,6 +78,7 @@ typedef struct {
     CallbackFuncHttp *http;
     CallbackFuncNta *nta;
     CallbackFuncSig *sig;
+    CallbackFuncLog *log;
 } Callbacks;
 
 #endif /* __UTIL_CALLBACKS_H__ */

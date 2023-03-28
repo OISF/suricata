@@ -65,6 +65,7 @@ typedef enum {
     SC_LOG_OP_IFACE_CONSOLE,
     SC_LOG_OP_IFACE_FILE,
     SC_LOG_OP_IFACE_SYSLOG,
+    SC_LOG_OP_IFACE_CALLBACK,
     SC_LOG_OP_IFACE_MAX,
 } SCLogOPIface;
 
@@ -134,6 +135,9 @@ typedef struct SCLogOPIfaceCtx_ {
 
     /* override for the global_log_format(currently not used) */
     const char *log_format;
+
+    /* callback to invoke if the interface is SC_LOG_OP_IFACE_CALLBACK */
+    void (*callbackLog)(int log_level, int error_code, const char *message);
 
     /* Mutex used for locking around rotate/write to a file. */
     SCMutex fp_mutex;

@@ -716,6 +716,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file, const unsigne
                     SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level), buffer);
                 }
                 break;
+            case SC_LOG_OP_IFACE_CALLBACK:
+                op_iface_ctx->callbackLog(log_level, error_code, message);
             default:
                 break;
         }
@@ -996,6 +998,36 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
     iface_ctx->log_level = log_level;
 
     openlog(NULL, LOG_NDELAY, iface_ctx->facility);
+
+    return iface_ctx;
+}
+
+/**
+ * \brief Initializes the callback output interface
+ *
+ * \param log_level  Override of the global_log_level by this interface
+ * \param type       Log type (regular|JSON)
+ *
+ * \retval iface_ctx Pointer to the syslog output interface context created
+ */
+static inline SCLogOPIfaceCtx *SCLogInitCallbackOPIface(SCLogLevel log_level, SCLogOPType type) {
+    SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
+
+    if (iface_ctx == NULL) {
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogInitCallbackOPIface. Exiting...");
+    }
+
+    iface_ctx->iface = SC_LOG_OP_IFACE_CALLBACK;
+    iface_ctx->type = type;
+    iface_ctx->log_level = log_level;
+
+    /* Set the callback. */
+    SCInstance *suri = GetInstance();
+    if (suri->callbacks.log == NULL) {
+        FatalError(SC_ERR_FATAL, "SCLogInitCallbackOPIface: callback cannot be NULL. Exiting...");
+    }
+    iface_ctx->callbackLog = suri->callbacks.log;
 
     return iface_ctx;
 }
@@ -1565,6 +1597,9 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             SCLogDebug("Initializing syslog logging with format \"%s\"", format);
             have_logging = 1;
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
+        }
+        else if (strcmp(output->name, "callback") == 0) {
+            op_iface_ctx = SCLogInitCallbackOPIface(level, type);
         }
         else {
             SCLogWarning("invalid logging method: %s, ignoring", output->name);

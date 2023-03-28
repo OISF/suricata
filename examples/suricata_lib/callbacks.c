@@ -82,3 +82,8 @@ void callbackStats(void *data, size_t len, void *user_ctx) {
     FILE *eve_fp = (FILE *)user_ctx;
     logNta(eve_fp, data, len);
 }
+
+/* Callback invoked for each log message (testing only). */
+void callbackLog(int log_level, int error_code, const char *message) {
+    printf("LOG: %s\n", message);
+}

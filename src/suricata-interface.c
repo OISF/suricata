@@ -182,6 +182,21 @@ void suricata_get_stats(void) {
 
 
 /**
+ * \brief Register a callback that is invoked for every log message.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_log_cb(SuricataCtx *ctx, CallbackFuncLog callback) {
+    SCInstance *suri = GetInstance();
+    suri->callbacks.log = callback;
+
+    /* Enable callback in the config. Notice the logging id is hard-coded but it should be fine
+     * since suricata right now has only 3 output modules for logging (console, file, syslog) */
+    CfgSet(ctx->cfg, "logging.outputs.3.callback.enabled", "yes");
+}
+
+/**
  * \brief Set a configuration option.
  *
  * \param ctx            Pointer to SuricataCtx.

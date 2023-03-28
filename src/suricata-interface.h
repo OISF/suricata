@@ -120,6 +120,14 @@ void suricata_register_stats_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSt
 void suricata_get_stats(void);
 
 /**
+ * \brief Register a callback that is invoked for every log message.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_log_cb(SuricataCtx *ctx, CallbackFuncLog callback);
+
+/**
  * \brief Set a configuration option.
  *
  * \param ctx            Pointer to SuricataCtx.

@@ -22,3 +22,4 @@ The currently supported events are described in detail in the following sections
    nta
    signature
    stats
+   log

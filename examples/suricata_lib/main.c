@@ -390,6 +390,7 @@ int main(int argc, char **argv) {
     suricata_register_flowsnip_cb(ctx, callbackFlowSnip);
     suricata_register_sig_cb(ctx, callbackSig);
     suricata_register_stats_cb(ctx, (void *)eve_fp, callbackStats);
+    /* suricata_register_log_cb(ctx, callbackLog); Do not hook logs. */
 
     /* Load config from file, if provided. */
     suricata_config_load(ctx, config);

@@ -387,6 +387,11 @@ int CfgLoadStruct(SuricataCfg *cfg) {
     snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.content_snip);
     ConfSetFinal(node_name, "content-snip");
 
+    if (cfg->logging0outputs030callback0enabled &&
+        ConfValIsTrue(cfg->logging0outputs030callback0enabled)) {
+        ConfSetFinal("logging.outputs.3", "callback");
+    }
+
     return 0;
 }
 
