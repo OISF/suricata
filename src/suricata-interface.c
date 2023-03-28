@@ -284,7 +284,7 @@ void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
- * \param tenant_id             Tenant id of hte detection engine to use.
+ * \param tenant_id             Tenant id of the detection engine to use.
  * \return                      Error code.
  */
 int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
@@ -292,6 +292,21 @@ int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, st
                            uint32_t tenant_id) {
     return TmModuleLibHandlePacket(tv, data, datalink, ts, len, ignore_pkt_checksum, tenant_uuid,
                                    tenant_id);
+}
+
+/** \brief Feed a single stream segment to the library.
+ *
+ * \param tv                    Pointer to the per-thread structure.
+ * \param finfo                 Pointer to the flow information.
+ * \param data                  Pointer to the raw packet.
+ * \param len                   Packet length.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of the detection engine to use.
+ * \return                      Error code.
+ */
+int suricata_handle_stream(ThreadVars *tv, FlowInfo *finfo, const uint8_t *data, uint32_t len,
+                           uint64_t *tenant_uuid, uint32_t tenant_id) {
+    return TmModuleLibHandleStream(tv, finfo, data, len, tenant_uuid, tenant_id);
 }
 
 /**

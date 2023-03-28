@@ -48,6 +48,12 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           uint8_t flags);
 
 /**
+ * \brief Handles a reassembled tcp segment when the stream reassembly engine is bypassed.
+ */
+int AppLayerHandleTCPReassembledStream(ThreadVars *tv, AppLayerThreadCtx *app_tctx, Packet *p,
+                                       Flow *f);
+
+/**
  * \brief Handles an udp chunk.
  */
 int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx,

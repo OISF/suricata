@@ -7,6 +7,7 @@
 #define __SURICATA_INTERFACE_H__
 
 #include "suricata.h"
+#include "suricata-interface-stream.h"
 #include "threadvars.h"
 
 /* Used at init and deinit only for now */
@@ -73,8 +74,8 @@ void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHtt
 /**
  * \brief Register a callback that is invoked before a candidate signature is inspected.
  *
- *        Such callback will be able to decide if a signature is relevant or modify its via the
- *        return value:
+ *        Such callback will be able to decide if a signature is relevant or modify its action via
+ *        the return value:
  *         * -1: discard
  *         * 0: inspect signature without modify its action
  *         * >0: inspect signature but modify its action first with the returned valued
@@ -121,12 +122,25 @@ void suricata_post_init(SuricataCtx *ctx);
  * \param len                   Packet length.
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
- * \param tenant_id             Tenant id of hte detection engine to use.
+ * \param tenant_id             Tenant id of the detection engine to use.
  * \return                      Error code.
  */
 int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
                            uint32_t len, int ignore_pkt_checksum, uint64_t *tenant_uuid,
                            uint32_t tenant_id);
+
+/** \brief Feed a single stream segment to the library.
+ *
+ * \param tv                    Pointer to the per-thread structure.
+ * \param finfo                 Pointer to the flow information.
+ * \param data                  Pointer to the raw packet.
+ * \param len                   Packet length.
+ * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
+ * \param tenant_id             Tenant id of the detection engine to use.
+ * \return                      Error code.
+ */
+int suricata_handle_stream(ThreadVars *tv, FlowInfo *finfo, const uint8_t *data, uint32_t len,
+                           uint64_t *tenant_uuid, uint32_t tenant_id);
 
 /**
  * \brief Destroy a worker thread.

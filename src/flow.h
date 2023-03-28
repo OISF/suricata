@@ -555,6 +555,7 @@ typedef struct FlowLookupStruct_ // TODO name
  *  and calc the hash value to be used in the lookup and autofp flow
  *  balancing. */
 void FlowSetupPacket(Packet *p);
+void FlowSetupStreamPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
 void FlowPrintQueueInfo (void);

@@ -1242,7 +1242,8 @@ include_HEADERS = \
 	runmodes.h \
 	suricata-plugin.h \
 	suricata.h \
-	suricata-interface.h
+	suricata-interface.h \
+	suricata-interface-stream.h
 
 EXTRA_DIST = \
 	tests/stream-tcp-inline.c \

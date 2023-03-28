@@ -292,6 +292,86 @@ static inline uint32_t FlowGetHash(const Packet *p)
     return hash;
 }
 
+/* calculate the hash key for this packet containing a reassembled stream segment
+ *
+ * we're using:
+ *  hash_rand -- set at init time
+ *  source port
+ *  destination port
+ *  source address
+ *  destination address
+ *  recursion level -- for tunnels, make sure different tunnel layers can
+ *                     never get mixed up.
+ */
+static inline uint32_t FlowGetHashForStream(const Packet *p)
+{
+    uint32_t hash = 0;
+
+    if (p->src.family == AF_INET) {
+        FlowHashKey4 fhk;
+
+        int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
+        fhk.addrs[1-ai] = p->src.addr_data32[0];
+        fhk.addrs[ai] = p->dst.addr_data32[0];
+
+        const int pi = (p->sp > p->dp);
+        fhk.ports[1-pi] = p->sp;
+        fhk.ports[pi] = p->dp;
+
+        fhk.proto = (uint16_t)p->proto;
+        fhk.recur = (uint16_t)p->recursion_level;
+        /* g_vlan_mask sets the vlan_ids to 0 if vlan.use-for-tracking
+         * is disabled. */
+        fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+
+        fhk.tenant_uuid[0] = p->tenant_uuid[0];
+        fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+        fhk.tenant_uuid[2] = p->tenant_uuid[1];
+        fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
+
+        hash = hashword(fhk.u32, 9, flow_config.hash_rand);
+
+    } else if (p->src.family == AF_INET6) {
+        FlowHashKey6 fhk;
+        if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
+            fhk.src[0] = p->src.addr_data32[0];
+            fhk.src[1] = p->src.addr_data32[1];
+            fhk.src[2] = p->src.addr_data32[2];
+            fhk.src[3] = p->src.addr_data32[3];
+            fhk.dst[0] = p->dst.addr_data32[0];
+            fhk.dst[1] = p->dst.addr_data32[1];
+            fhk.dst[2] = p->dst.addr_data32[2];
+            fhk.dst[3] = p->dst.addr_data32[3];
+        } else {
+            fhk.src[0] = p->dst.addr_data32[0];
+            fhk.src[1] = p->dst.addr_data32[1];
+            fhk.src[2] = p->dst.addr_data32[2];
+            fhk.src[3] = p->dst.addr_data32[3];
+            fhk.dst[0] = p->src.addr_data32[0];
+            fhk.dst[1] = p->src.addr_data32[1];
+            fhk.dst[2] = p->src.addr_data32[2];
+            fhk.dst[3] = p->src.addr_data32[3];
+        }
+
+        const int pi = (p->sp > p->dp);
+        fhk.ports[1-pi] = p->sp;
+        fhk.ports[pi] = p->dp;
+        fhk.proto = (uint16_t)p->proto;
+        fhk.recur = (uint16_t)p->recursion_level;
+        fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+        fhk.tenant_uuid[0] = p->tenant_uuid[0];
+        fhk.tenant_uuid[1] = p->tenant_uuid[0] << 32;
+        fhk.tenant_uuid[2] = p->tenant_uuid[1];
+        fhk.tenant_uuid[3] = p->tenant_uuid[1] << 32;
+
+        hash = hashword(fhk.u32, 15, flow_config.hash_rand);
+    }
+
+    return hash;
+}
+
 /**
  * Basic hashing function for FlowKey
  *
@@ -501,6 +581,12 @@ void FlowSetupPacket(Packet *p)
 {
     p->flags |= PKT_WANTS_FLOW;
     p->flow_hash = FlowGetHash(p);
+}
+
+void FlowSetupStreamPacket(Packet *p)
+{
+    p->flags |= PKT_WANTS_FLOW;
+    p->flow_hash = FlowGetHashForStream(p);
 }
 
 static inline int FlowCompare(Flow *f, const Packet *p)

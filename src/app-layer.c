@@ -795,6 +795,70 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 }
 
 /**
+ * \brief Handles a reassembled tcp segment when the stream reassembly engine is bypassed.
+ */
+int AppLayerHandleTCPReassembledStream(ThreadVars *tv, AppLayerThreadCtx *app_tctx, Packet *p,
+                                       Flow *f) {
+    if (f->alproto == ALPROTO_FAILED) {
+        SCReturnInt(0);
+    }
+
+    int r = 0;
+    uint8_t flags = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        flags |= STREAM_TOSERVER;
+    } else {
+        flags |= STREAM_TOCLIENT;
+    }
+
+    AppLayerProfilingReset(app_tctx);
+
+    /* if the protocol is still unknown, run detection */
+    if (f->alproto == ALPROTO_UNKNOWN) {
+        SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
+                   p->payload_len);
+
+        bool reverse_flow = false;
+        f->alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
+                                                 f, p->payload, p->payload_len,
+                                                 IPPROTO_TCP, flags, &reverse_flow);
+
+        if (f->alproto != ALPROTO_UNKNOWN) {
+            AppLayerIncFlowCounter(tv, f);
+
+            if (reverse_flow) {
+                SCLogDebug("reversing flow after proto detect told us so");
+                PacketSwap(p);
+                FlowSwap(f);
+                SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
+            }
+
+            PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
+                                    flags, p->payload, p->payload_len);
+            PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        } else {
+            f->alproto = ALPROTO_FAILED;
+            AppLayerIncFlowCounter(tv, f);
+            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+        }
+        PACKET_PROFILING_APP_STORE(app_tctx, p);
+    } else {
+        SCLogDebug("data (len %" PRIu32 " ), alproto "
+                                        "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
+
+        /* run the parser */
+        PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+        r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
+                                flags, p->payload, p->payload_len);
+        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        PACKET_PROFILING_APP_STORE(app_tctx, p);
+    }
+
+    SCReturnInt(r);
+}
+
+/**
  *  \brief Handle a app layer UDP message
  *
  *  If the protocol is yet unknown, the proto detection code is run first.

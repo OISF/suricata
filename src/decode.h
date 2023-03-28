@@ -1057,9 +1057,14 @@ void DecodeUnregisterCounters(void);
 /** Packet updated the app-layer. */
 #define PKT_APPLAYER_UPDATE BIT_U32(31)
 
+/* Bypass stream reassembly engine (assume we are receiving reassembled streams) */
+#define PKT_SKIP_STREAM                 (1<<29)
+
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
     ((p)->flags & (PKT_PSEUDO_STREAM_END|PKT_PSEUDO_DETECTLOG_FLUSH))
+
+#define PKT_IS_STREAM_SEG(p)         ((p)->flags & PKT_SKIP_STREAM)
 
 #define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
 

@@ -288,7 +288,7 @@ void FlowSwap(Flow *f)
     FlowSwapFlags(f);
     FlowSwapFileFlags(f);
 
-    if (f->proto == IPPROTO_TCP) {
+    if (f->proto == IPPROTO_TCP && f->protoctx) {
         TcpStreamFlowSwap(f);
     }
 
