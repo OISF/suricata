@@ -71,7 +71,7 @@ int preload_pcap(const char *filename, PcapCache **head, int *datalink) {
 }
 
 /* Parse a stream file line. */
-void parse_stream_line(char *line, FlowInfo *finfo, uint32_t *length, char **b64_data) {
+void parse_stream_line(char *line, FlowStreamInfo *finfo, uint32_t *length, char **b64_data) {
     /* Each line has 9 tokens. */
     char *ts = strtok_r(line, ",", &line);
     char *version = strtok_r(line, ",", &line);
@@ -114,11 +114,11 @@ int preload_stream(const char *filename, StreamCache **head) {
     /* Set a maximum line length of 64KB. */
     char line[65535];
     while (fgets(line, sizeof(line), fp) != NULL) {
-        FlowInfo finfo;
+        FlowStreamInfo finfo;
         uint32_t length;
         char *b64_data;
 
-        /* Parse the line and fill the FlowInfo struct. */
+        /* Parse the line and fill the FlowStreamInfo struct. */
         parse_stream_line(line, &finfo, &length, &b64_data);
         uint32_t b64_len = strlen(b64_data);
 

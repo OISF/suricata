@@ -16,13 +16,18 @@ static void logCommon(JsonBuilder *jb, Common *common) {
     jb_set_string(jb, "proto", common->proto);
     jb_set_string(jb, "direction", common->direction);
 
+    jb_set_uint(jb, "flow_id", common->flow_id);
+    if (common->parent_id) {
+        jb_set_uint(jb, "parent_id", common->parent_id);
+    }
+
     if (common->app_proto) {
         jb_set_string(jb, "app_proto", common->app_proto);
     }
 }
 
-/* Log basic HTTP info shared acrross events (alert, HTTP...). */
-static void logHttpInfoBasic(JsonBuilder *jb, HttpInfo *http_info) {
+/* Log common HTTP info shared across events (alert, HTTP...). */
+static void logHttpInfoCommon(JsonBuilder *jb, HttpInfo *http_info) {
     if (http_info->hostname) {
         jb_set_string_from_bytes(jb, "hostname", bstr_ptr(http_info->hostname),
                                  bstr_len(http_info->hostname));
@@ -67,12 +72,71 @@ static void logHttpInfoBasic(JsonBuilder *jb, HttpInfo *http_info) {
                                  bstr_len(http_info->redirect));
     }
 
+    if (http_info->referer) {
+        jb_set_string_from_bytes(jb, "http_refer", bstr_ptr(http_info->referer),
+                                 bstr_len(http_info->referer));
+    }
+
     if (http_info->status) {
         jb_set_uint(jb, "status", http_info->status);
     }
 
-    jb_set_string(jb, "direction", http_info->direction);
+    if (http_info->direction) {
+        jb_set_string(jb, "direction", http_info->direction);
+    }
+
     jb_set_uint(jb, "length", http_info->response_len);
+}
+
+/* Log common flow info shared across events. */
+static void logFlowCommon(JsonBuilder *jb, FlowInfo *flow) {
+    jb_open_object(jb, "flow");
+
+    if (flow->dev) {
+        jb_set_string(jb, "in_iface", flow->dev);
+    }
+
+    if (flow->vlan_id[0]) {
+        jb_open_array(jb, "vlan");
+        jb_append_uint(jb, flow->vlan_id[0]);
+        if (flow->vlan_id[1]) {
+            jb_append_uint(jb, flow->vlan_id[1]);
+        }
+        jb_close(jb);
+    }
+
+    jb_set_uint(jb, "pkts_toserver", flow->pkts_toserver);
+    jb_set_uint(jb, "pkts_toclient", flow->pkts_toclient);
+    jb_set_uint(jb, "bytes_toserver", flow->bytes_toserver);
+    jb_set_uint(jb, "bytes_toclient", flow->bytes_toclient);
+    jb_set_string(jb, "start", flow->start);
+    jb_set_string(jb, "end", flow->end);
+    jb_set_uint(jb, "age", flow->age);
+    jb_set_bool(jb, "emergency", flow->emergency);
+    jb_set_string(jb, "state", flow->state);
+    jb_set_string(jb, "reason", flow->reason);
+    jb_set_bool(jb, "alerted", flow->alerted);
+
+    jb_close(jb);
+}
+
+/* Log common alert info shared across events. */
+static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
+    jb_open_object(jb, "alert");
+
+    jb_set_string(jb, "action", alert->action);
+    jb_set_uint(jb, "gid", alert->gid);
+    jb_set_uint(jb, "signature_id", alert->sid);
+    jb_set_uint(jb, "rev", alert->rev);
+    jb_set_string(jb, "signature", alert->msg);
+    jb_set_string(jb, "category", alert->category);
+    jb_set_uint(jb, "severity", alert->severity);
+
+    if (alert->metadata) {
+        jb_set_string(jb, "metadata", alert->metadata);
+    }
+
+    jb_close(jb);
 }
 
 /* Actual logging to file. */
@@ -100,25 +164,12 @@ void logAlert(FILE *fp, AlertEvent *event) {
     jb_set_string(jb, "event_type", "alert");
 
     /* Log alert specific info. */
-    jb_open_object(jb, "alert");
-
-    jb_set_string(jb, "action", event->alert.action);
-    jb_set_uint(jb, "gid", event->alert.gid);
-    jb_set_uint(jb, "signature_id", event->alert.sid);
-    jb_set_uint(jb, "rev", event->alert.rev);
-    jb_set_string(jb, "signature", event->alert.msg);
-    jb_set_string(jb, "category", event->alert.category);
-    jb_set_uint(jb, "severity", event->alert.severity);
-
-    if (event->alert.metadata) {
-        jb_set_string(jb, "metadata", event->alert.metadata);
-    }
-    jb_close(jb);
+    logAlertCommon(jb, &event->alert);
 
     /* Handle app layer record if present. */
     if (strcmp(event->common.app_proto, "http") == 0 && event->app_layer.http) {
         jb_open_object(jb, "http");
-        logHttpInfoBasic(jb, event->app_layer.http);
+        logHttpInfoCommon(jb, event->app_layer.http);
         jb_close(jb);
     } else if (event->app_layer.nta) {
         jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
@@ -141,7 +192,7 @@ void logHttp(FILE *fp, HttpEvent *event) {
 
     /* Log event specific info. */
     jb_open_object(jb, "http");
-    logHttpInfoBasic(jb, &event->http);
+    logHttpInfoCommon(jb, &event->http);
 
     /* Log headers. */
     jb_open_array(jb, "request_headers");
@@ -250,11 +301,55 @@ void logFileinfo(FILE *fp, FileinfoEvent *event) {
     /* Handle app layer record if present. */
     if (strcmp(event->common.app_proto, "http") == 0 && event->app_layer.http) {
         jb_open_object(jb, "http");
-        logHttpInfoBasic(jb, event->app_layer.http);
+        logHttpInfoCommon(jb, event->app_layer.http);
         jb_close(jb);
     } else if (event->app_layer.nta) {
         jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
     }
+
+    /* Write JSON record. */
+    jb_close(jb);
+    logLine(fp, jb_ptr(jb), jb_len(jb));
+    jb_free(jb);
+}
+
+/* Log a FlowSnip event. */
+void logFlowSnip(FILE *fp, FlowSnipEvent *event) {
+    JsonBuilder *jb = jb_new_object();
+
+    /* Log common info. */
+    logCommon(jb, &event->common);
+    jb_set_string(jb, "event_type", "flow-snip");
+
+    /* Log flow specific info. */
+    logFlowCommon(jb, &event->flow);
+
+    /* Log flow snip specific info. */
+    jb_open_object(jb, "flow-snip");
+    jb_set_uint(jb, "snip_id", event->snip_id);
+    jb_set_uint(jb, "num_packets", event->num_packets);
+    jb_set_uint(jb, "pkt_cnt", event->pkt_cnt);
+    jb_set_string(jb, "timestamp_first", event->timestamp_first);
+    jb_set_string(jb, "timestamp_last", event->timestamp_last);
+
+    /* Log alerts .*/
+    if (event->alerts_size > 0) {
+        JsonBuilder *alertsjb = jb_new_array();
+
+        for (int i = 0; i < event->alerts_size; i++) {
+            JsonBuilder *obj = jb_new_object();
+            logAlertCommon(obj, &event->alerts[i]);
+            jb_close(obj);
+            jb_append_object(alertsjb, obj);
+            jb_free(obj);
+        }
+
+        jb_close(alertsjb);
+        jb_set_object(jb, "alerts", alertsjb);
+        jb_free(alertsjb);
+    }
+
+    jb_close(jb);
 
     /* Write JSON record. */
     jb_close(jb);

@@ -47,47 +47,49 @@ SuricataCtx *suricata_create_ctx(int n_workers);
  * \brief Register a callback that is invoked for every alert.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback);
+void suricata_register_alert_cb(SuricataCtx *ctx, CallbackFuncAlert callback);
 
 /**
  * \brief Register a callback that is invoked for every fileinfo event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx,
-                                   CallbackFuncFileinfo callback);
+void suricata_register_fileinfo_cb(SuricataCtx *ctx, CallbackFuncFileinfo callback);
 
 /**
  * \brief Register a callback that is invoked for every flow.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback);
+void suricata_register_flow_cb(SuricataCtx *ctx, CallbackFuncFlow callback);
+
+/**
+ * \brief Register a callback that is invoked for every FlowSnip event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_flowsnip_cb(SuricataCtx *ctx, CallbackFuncFlowSnip callback);
 
 /**
  * \brief Register a callback that is invoked for every HTTP event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback);
+void suricata_register_http_cb(SuricataCtx *ctx, CallbackFuncHttp callback);
 
 /**
  * \brief Register a callback that is invoked for every NTA event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta callback);
+void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback);
 
 /**
  * \brief Register a callback that is invoked before a candidate signature is inspected.
@@ -99,10 +101,23 @@ void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta 
  *         * >0: inspect signature but modify its action first with the returned value
  *
  * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_sig_cb(SuricataCtx *ctx, CallbackFuncSig callback);
+
+/**
+ * \brief Register a callback that is invoked every time `suricata_get_stats` is invoked.
+ *
+ * \param ctx            Pointer to SuricataCtx.
  * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig callback);
+void suricata_register_stats_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncStats callback);
+
+/**
+ * \brief Retrieve suricata stats.
+ */
+void suricata_get_stats(void);
 
 /**
  * \brief Set a configuration option.
@@ -119,7 +134,7 @@ int suricata_config_set(SuricataCtx *ctx, const char *key, const char *val);
  * \brief Load configuration from file.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param config_file    ilename of the yaml configuration to load.
+ * \param config_file    Filename of the yaml configuration to load.
  */
 void suricata_config_load(SuricataCtx *ctx, const char *config_file);
 
@@ -160,11 +175,12 @@ void suricata_post_init(SuricataCtx *ctx);
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
                            uint32_t len, int ignore_pkt_checksum, uint64_t *tenant_uuid,
-                           uint32_t tenant_id);
+                           uint32_t tenant_id, void *user_ctx);
 
 /** \brief Feed a single stream segment to the library.
  *
@@ -174,10 +190,12 @@ int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, st
  * \param len                   Packet length.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
-int suricata_handle_stream(ThreadVars *tv, FlowInfo *finfo, const uint8_t *data, uint32_t len,
-                           uint64_t *tenant_uuid, uint32_t tenant_id);
+int suricata_handle_stream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
+                           uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
+                           void *user_ctx);
 
 /**
  * \brief Destroy a worker thread.

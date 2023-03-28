@@ -118,9 +118,6 @@ enum {
 #define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode)  ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
 #define IS_SURI_HOST_MODE_ROUTER(host_mode)  ((host_mode) == SURI_HOST_IS_ROUTER)
 
-/* Not sure where to put this.
- * Change this whenever a new EVE callback is added */
-#define MAX_CALLBACKS 5
 
 #include "runmodes.h"
 
@@ -175,8 +172,6 @@ typedef struct SCInstance_ {
     SuricataCfg *cfg;
     /* Set of callbacks that can be invoked for each event. */
     Callbacks callbacks;
-    /* Ids of the actual callbacks we want to register. */
-    uint32_t callback_ids[MAX_CALLBACKS];
 } SCInstance;
 
 

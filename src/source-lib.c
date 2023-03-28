@@ -109,11 +109,12 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
                             struct timeval ts, uint32_t len, int ignore_pkt_checksum,
-                            uint64_t *tenant_uuid, uint32_t tenant_id) {
+                            uint64_t *tenant_uuid, uint32_t tenant_id, void *user_ctx) {
 
     Packet *p = PacketGetFromQueueOrAlloc();
 
@@ -128,6 +129,7 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
     p->tenant_uuid[0] = tenant_uuid[0];
     p->tenant_uuid[1] = tenant_uuid[1];
     p->tenant_id = tenant_id;
+    p->user_ctx = user_ctx;
 
     if (PacketSetData(p, data, len) == -1) {
         TmqhOutputPacketpool(tv, p);
@@ -153,9 +155,10 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
  * \param finfo           Pointer to the flow information.
  * \param tenant_uuid     Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id       Tenant id of the detection engine to use.
+ * \param user_ctx        Pointer to a user-defined context object.
  */
-static inline Packet * StreamPacketSetup(FlowInfo *finfo, uint64_t *tenant_uuid,
-                                         uint32_t tenant_id) {
+static inline Packet * StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_uuid,
+                                         uint32_t tenant_id, void *user_ctx) {
     Packet *p = PacketGetFromQueueOrAlloc();
 
     if (unlikely(p == NULL)) {
@@ -166,6 +169,7 @@ static inline Packet * StreamPacketSetup(FlowInfo *finfo, uint64_t *tenant_uuid,
     p->tenant_uuid[0] = tenant_uuid[0];
     p->tenant_uuid[1] = tenant_uuid[1];
     p->tenant_id = tenant_id;
+    p->user_ctx = user_ctx;
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
     p->ts = SCTIME_FROM_TIMEVAL(&finfo->ts);
@@ -282,11 +286,13 @@ error:
  * \param len                   Packet length.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
-int TmModuleLibHandleStream(ThreadVars *tv, FlowInfo *finfo, const uint8_t *data, uint32_t len,
-                            uint64_t *tenant_uuid, uint32_t tenant_id) {
-    Packet *p = StreamPacketSetup(finfo, tenant_uuid, tenant_id);
+int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
+                            uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
+                            void *user_ctx) {
+    Packet *p = StreamPacketSetup(finfo, tenant_uuid, tenant_id, user_ctx);
     if (unlikely(p == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
     }

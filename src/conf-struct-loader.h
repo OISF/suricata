@@ -69,7 +69,6 @@
     CFG_ENTRY(app_layer0protocols0sip0enabled)                                                   \
     CFG_ENTRY(app_layer0protocols0http0enabled)                                                  \
     CFG_ENTRY(app_layer0protocols0http0memcap)                                                   \
-    CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0personality)                        \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0request_body_limit)                 \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0response_body_limit)                \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0request_body_minimal_inspect_size)  \
@@ -81,6 +80,7 @@
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0double_decode_path)                 \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0double_decode_query)                \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0path_utf8_convert_bestfit)          \
+    CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0personality)                        \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0allow_truncated_output)             \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0allow_wrong_cl_extraction)          \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0decompression_layers_limit)         \
@@ -140,7 +140,30 @@
     CFG_ENTRY(host0hmemcap)                                                                      \
     CFG_ENTRY(host0hash_size)                                                                    \
     CFG_ENTRY(host0prealloc)                                                                     \
+    CFG_ENTRY(logging0default_log_level)                                                         \
     CFG_ENTRY(luajit0states)                                                                     \
+    CFG_ENTRY(outputs0content_snip0enabled)                                                      \
+    CFG_ENTRY(outputs0content_snip0dir)                                                          \
+    CFG_ENTRY(outputs0content_snip0pool_size_prealloc)                                           \
+    CFG_ENTRY(outputs0content_snip0pool_size_max)                                                \
+    CFG_ENTRY(outputs0callback0enabled)                                                          \
+    CFG_ENTRY(outputs0callback0alert0enabled)                                                    \
+    CFG_ENTRY(outputs0callback0fileinfo0enabled)                                                 \
+    CFG_ENTRY(outputs0callback0flow0enabled)                                                     \
+    CFG_ENTRY(outputs0callback0flow_snip0enabled)                                                \
+    CFG_ENTRY(outputs0callback0http0enabled)                                                     \
+    CFG_ENTRY(outputs0callback0http0extended)                                                    \
+    CFG_ENTRY(outputs0callback0http0xff0enabled)                                                 \
+    CFG_ENTRY(outputs0callback0http0xff0mode)                                                    \
+    CFG_ENTRY(outputs0callback0http0xff0deployment)                                              \
+    CFG_ENTRY(outputs0callback0http0xff0header)                                                  \
+    CFG_ENTRY(outputs0callback0http0dump_all_headers)                                            \
+    CFG_ENTRY(outputs0callback0nta0enabled)                                                      \
+    CFG_ENTRY(outputs0callback0nta0smb)                                                          \
+    CFG_ENTRY(outputs0callback0nta0dhcp)                                                         \
+    CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                \
+    CFG_ENTRY(outputs0callback0nta0tls)                                                          \
+    CFG_ENTRY(outputs0callback0nta0tls0custom)                                                   \
     CFG_ENTRY(outputs0file_store0version)                                                        \
     CFG_ENTRY(outputs0file_store0enabled)                                                        \
     CFG_ENTRY(outputs0file_store0dir)                                                            \
@@ -150,8 +173,7 @@
     CFG_ENTRY(outputs0stats0append)                                                              \
     CFG_ENTRY(outputs0stats0totals)                                                              \
     CFG_ENTRY(outputs0stats0threads)                                                             \
-    CFG_ENTRY(outputs0stats0deltas)                                                              \
-    CFG_ENTRY(outputs0stats0null_values)                                                         \
+    CFG_ENTRY(outputs0stats0threads_compact)                                                     \
     CFG_ENTRY(pcre0match_limit)                                                                  \
     CFG_ENTRY(pcre0match_limit_recursion)                                                        \
     CFG_ENTRY(stats0enabled)                                                                     \

@@ -2253,8 +2253,6 @@ void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
-    RunModeInitializeCallbacks(suricata.callback_ids);
-    RunModeFinalizeOutputs();
     DatasetsInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {

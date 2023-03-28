@@ -24,6 +24,22 @@
 #ifndef __OUTPUT_JSON_HTTP_H__
 #define __OUTPUT_JSON_HTTP_H__
 
+#define MAX_SIZE_HEADER_NAME 256
+#define MAX_SIZE_HEADER_VALUE 2048
+
+#define LOG_HTTP_DEFAULT 0
+#define LOG_HTTP_EXTENDED 1
+#define LOG_HTTP_REQUEST 2 /* request field */
+#define LOG_HTTP_ARRAY 4 /* require array handling */
+#define LOG_HTTP_REQ_HEADERS 8
+#define LOG_HTTP_RES_HEADERS 16
+#define LOG_HTTP_WITH_FILE 32 /* require array handling */
+#define LOG_HTTP_REQ_BODY 64 /* require array handling */
+
+#define LOG_HTTP_DIR_DOWNLOAD   "download"
+#define LOG_HTTP_DIR_UPLOAD     "upload"
+
+
 void JsonHttpLogRegister(void);
 
 bool EveHttpAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);

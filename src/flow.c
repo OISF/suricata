@@ -535,6 +535,7 @@ void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 
     /* set the flow in the packet */
     p->flags |= PKT_HAS_FLOW;
+    f->user_ctx = p->user_ctx;
     return;
 }
 

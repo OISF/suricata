@@ -15,19 +15,25 @@ The command help is shown below:
 
     suricata_client [options] <pcap_file(s)>
 
-    --suricata-config-str          The Suricata command line arguments in the format "arg1=value1;arg2-value2;".
+    -c                             Path to (optional) configuration file.
     -h                             Print this help and exit.
+    -l                             Path to log directory.
     -K, --preload-pcap             Preloads packets into RAM before sending
-    -l, --loop=num                 Loop through the capture file(s) X times
+    -L, --loop=num                 Loop through the capture file(s) X times
     -m, --mode=mode                Set the kind of input to feed to the engine (packet|stream)
+    -o, --output=output            Path of the EVE output file (eve-json.log by default)
 
-    Example usage: ./suricata_client --suricata-config-str "-c=suricata.yaml;-l=.;--runmode=offline" input.pcap
+    Example usage: ./suricata_client -c suricata.yaml input.pcap
 
-The client accepts a configuration string in the *--suricata-config-str* argument in the format
-described in :ref:`suricata_init` from the :doc:`api/index` section and one or more input files.
-It then initializes the library registering the callbacks (which print some fields
-of the relevant event) and creates a separate worker thread for each input file.
+The client accepts one or more input files, it initializes the library registering the callbacks
+and creates a separate worker thread for each input file.
 At the end of the processing, some performance stats are printed to stdout.
+
+The library can be configured using a YAML file and the *-c* option.
+
+The callbacks will dump the events in JSON format (basically the same as the suricata binary EVE
+logging) in a logging directory defined by the *-l* option and in an output file defined by the
+*-o* option.
 
 Currently suricata_client supports two run modes defined by the *-m* option:
 
@@ -51,5 +57,5 @@ The *pcap2stream.py* helper script located at the *script* directory is a utilit
 receives a .pcap file as input and converts it into its .stream equivalent.
 
 The client also provides support for preloading the input files from disk with the *-K* option and
-for looping over the files for a specified number of iterations with the *-l* option. These are
+for looping over the files for a specified number of iterations with the *-L* option. These are
 mainly intended for performance testing.

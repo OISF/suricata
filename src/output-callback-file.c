@@ -130,7 +130,7 @@ static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx
     /* TODO: add sids?. */
 
     /* Invoke callback and cleanup. */
-    tv->callbacks->fileinfo.func(&event, p->flow->tenant_uuid, tv->callbacks->fileinfo.user_ctx);
+    tv->callbacks->fileinfo(&event, p->flow->tenant_uuid, p->flow->user_ctx);
     CallbackCleanupAppLayer(p, tx_id, &event.app_layer);
 }
 
@@ -138,7 +138,7 @@ static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p
                               void *tx, const uint64_t tx_id, uint8_t dir) {
     BUG_ON(ff->flags & FILE_LOGGED);
 
-    if (!tv->callbacks->fileinfo.func) {
+    if (!tv->callbacks->fileinfo) {
         return 0;
     }
 
@@ -155,7 +155,7 @@ static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p
 }
 
 void CallbackFileLogRegister(void) {
-    OutputRegisterFileSubModule(LOGGER_CALLBACK_FILE, "", MODULE_NAME, "", CallbackFileLogInitSub,
-                                CallbackFileLogger, CallbackFileLogThreadInit,
-                                CallbackFileLogThreadDeinit, NULL);
+    OutputRegisterFileSubModule(LOGGER_CALLBACK_FILE, "callback", MODULE_NAME, "callback.fileinfo",
+                                CallbackFileLogInitSub, CallbackFileLogger,
+                                CallbackFileLogThreadInit, CallbackFileLogThreadDeinit, NULL);
 }

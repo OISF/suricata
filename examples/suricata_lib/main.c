@@ -30,6 +30,7 @@ typedef struct {
     int loop_rounds;
     int preload;
     enum InputTypes input_type;
+    void *user_ctx;
 } ThreadCtx;
 
 /* Struct containing the context passed to the packet/stream handler. */
@@ -46,6 +47,8 @@ typedef struct {
     PcapCache *pcap_cache;
     /* Stream cache head (when in stream mode). */
     StreamCache *stream_cache;
+    /* User defined context. */
+    void *user_ctx;
 } HandlerCtx;
 
 /* Typedef for replayer function (pcap/stream). */
@@ -60,7 +63,7 @@ void packetHandler(u_char *hc, const struct pcap_pkthdr *pkthdr, const u_char *p
     tenant_uuid[0] = (uint64_t)handler_ctx->tv + handler_ctx->iterations;
 
     if (suricata_handle_packet(handler_ctx->tv, packet, handler_ctx->datalink, pkthdr->ts,
-                               pkthdr->len, 1, tenant_uuid, 0)) {
+                               pkthdr->len, 1, tenant_uuid, 0, handler_ctx->user_ctx)) {
         fprintf(stderr, "Error while processing packet %d from worker %p", i, handler_ctx->tv);
     }
     handler_ctx->bytes += pkthdr->len;
@@ -68,14 +71,14 @@ void packetHandler(u_char *hc, const struct pcap_pkthdr *pkthdr, const u_char *p
     i++;
 }
 
-void streamHandler(HandlerCtx *hc, FlowInfo *finfo, uint32_t len, const uint8_t *data) {
+void streamHandler(HandlerCtx *hc, FlowStreamInfo *finfo, uint32_t len, const uint8_t *data) {
     static int i = 0;
 
     uint64_t tenant_uuid[2] = {};
     /* Use the worker thread address as tenant_uuid to have 1 per worker. */
     tenant_uuid[0] = (uint64_t) hc->tv + hc->iterations;
 
-    if (suricata_handle_stream(hc->tv, finfo, data, len, tenant_uuid, 0)) {
+    if (suricata_handle_stream(hc->tv, finfo, data, len, tenant_uuid, 0, hc->user_ctx)) {
         fprintf(stderr, "Error while processing stream segment %d from worker thread %p", i,
                 hc->tv);
     }
@@ -134,11 +137,11 @@ void replay_stream(ThreadCtx *tc, HandlerCtx *hc) {
         /* Set a maximum line length of 64KB. */
         char line[65535];
         while (fgets(line, sizeof(line), fp) != NULL) {
-            FlowInfo finfo;
+            FlowStreamInfo finfo;
             uint32_t length;
             char *b64_data;
 
-            /* Parse the line and fill the FlowInfo struct. */
+            /* Parse the line and fill the FlowStreamInfo struct. */
             parse_stream_line(line, &finfo, &length, &b64_data);
 
             uint32_t b64_len = strlen(b64_data);
@@ -175,7 +178,7 @@ void replay_stream(ThreadCtx *tc, HandlerCtx *hc) {
 void *suricataWorker(void *td) {
     ThreadCtx *tc = (ThreadCtx *)td;
     ThreadVars *tv = suricata_initialise_worker_thread(tc->ctx);
-    HandlerCtx hc = {tv, 0, 0, 0, 0};
+    HandlerCtx hc = {tv, 0, 0, 0, 0, 0, tc->user_ctx};
     struct timeval start_ts, end_ts;
 
     if (tc->preload) {
@@ -379,12 +382,14 @@ int main(int argc, char **argv) {
     ctx = suricata_create_ctx(n_workers);
 
     /* Register callbacks. */
-    suricata_register_alert_cb(ctx, (void *)eve_fp, callbackAlert);
-    suricata_register_fileinfo_cb(ctx, (void *)eve_fp, callbackFile);
-    suricata_register_http_cb(ctx, (void *)eve_fp, callbackHttp);
-    suricata_register_nta_cb(ctx, (void *)eve_fp, callbackNta);
-    suricata_register_flow_cb(ctx, (void *)eve_fp, callbackFlow);
-    suricata_register_sig_cb(ctx, (void *)eve_fp, callbackSig);
+    suricata_register_alert_cb(ctx, callbackAlert);
+    suricata_register_fileinfo_cb(ctx, callbackFile);
+    suricata_register_http_cb(ctx, callbackHttp);
+    suricata_register_nta_cb(ctx, callbackNta);
+    suricata_register_flow_cb(ctx, callbackFlow);
+    suricata_register_flowsnip_cb(ctx, callbackFlowSnip);
+    suricata_register_sig_cb(ctx, callbackSig);
+    suricata_register_stats_cb(ctx, (void *)eve_fp, callbackStats);
 
     /* Load config from file, if provided. */
     suricata_config_load(ctx, config);
@@ -402,7 +407,7 @@ int main(int argc, char **argv) {
 
     /* Spawn workers. */
     for (int i = 0; i < n_workers; ++i) {
-        tc[i] = (ThreadCtx){ctx, input_files[i], loop_rounds, preload, input_type};
+        tc[i] = (ThreadCtx){ctx, input_files[i], loop_rounds, preload, input_type, (void *)eve_fp};
         pthread_create(&thread_ids[i], NULL, suricataWorker, &tc[i]);
     }
 

@@ -12,29 +12,14 @@
 #include <unistd.h>
 
 #include "conf-struct-loader.h"
+#include "counters.h"
+#include "output-callback-stats.h"
 #include "flow-manager.h"
 #include "runmode-lib.h"
 #include "source-lib.h"
 
 #define SURICATA_PROGNAME "suricata"
 
-
-/**
- * \brief Utility method to register the callback id into the suricata instance.
- *
- * \param id    Id of the callback to register.
- */
-static void setCallbackId(uint32_t id) {
-    SCInstance *suri = GetInstance();
-    int i = 0;
-
-    while (suri->callback_ids[i]) {
-        i++;
-    }
-    assert(i < MAX_CALLBACKS);
-
-    suri->callback_ids[i] = id;
-}
 
 /**
  * \brief Create a Suricata context.
@@ -80,85 +65,83 @@ SuricataCtx *suricata_create_ctx(int n_workers) {
  * \brief Register a callback that is invoked for every alert.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback) {
+void suricata_register_alert_cb(SuricataCtx *ctx, CallbackFuncAlert callback) {
     SCInstance *suri = GetInstance();
+    suri->callbacks.alert = callback;
 
-    suri->callbacks.alert.func = callback;
-    suri->callbacks.alert.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_ALERT);
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.alert.enabled", "yes");
 }
 
 /**
  * \brief Register a callback that is invoked for every fileinfo event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx,
-                                   CallbackFuncFileinfo callback) {
+void suricata_register_fileinfo_cb(SuricataCtx *ctx, CallbackFuncFileinfo callback) {
     SCInstance *suri = GetInstance();
+    suri->callbacks.fileinfo = callback;
 
-    suri->callbacks.fileinfo.func = callback;
-    suri->callbacks.fileinfo.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_FILE);
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.fileinfo.enabled", "yes");
 }
 /**
  * \brief Register a callback that is invoked for every flow.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback) {
+void suricata_register_flow_cb(SuricataCtx *ctx, CallbackFuncFlow callback) {
     SCInstance *suri = GetInstance();
+    suri->callbacks.flow = callback;
 
-    suri->callbacks.flow.func = callback;
-    suri->callbacks.flow.user_ctx = user_ctx;
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.flow.enabled", "yes");
+}
 
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_FLOW);
+/**
+ * \brief Register a callback that is invoked for every FlowSnip event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_flowsnip_cb(SuricataCtx *ctx, CallbackFuncFlowSnip callback) {
+    SCInstance *suri = GetInstance();
+    suri->callbacks.flowsnip = callback;
+
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.flow-snip.enabled", "yes");
 }
 
 /**
  * \brief Register a callback that is invoked for every HTTP event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback) {
+void suricata_register_http_cb(SuricataCtx *ctx, CallbackFuncHttp callback) {
     SCInstance *suri = GetInstance();
+    suri->callbacks.http = callback;
 
-    suri->callbacks.http.func = callback;
-    suri->callbacks.http.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_TX);
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.http.enabled", "yes");
 }
 
 /**
  * \brief Register a callback that is invoked for every NTA event.
  *
  * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta callback) {
+void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback) {
     SCInstance *suri = GetInstance();
+    suri->callbacks.nta = callback;
 
-    suri->callbacks.nta.func = callback;
-    suri->callbacks.nta.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_TX);
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.nta.enabled", "yes");
 }
 
 /**
@@ -171,15 +154,32 @@ void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta 
  *         * >0: inspect signature but modify its action first with the returned value
  *
  * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_sig_cb(SuricataCtx *ctx, CallbackFuncSig callback) {
+    SCInstance *suri = GetInstance();
+    suri->callbacks.sig = callback;
+}
+
+/**
+ * \brief Register a callback that is invoked every time `suricata_get_stats` is invoked.
+ * \param ctx            Pointer to SuricataCtx.
  * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig callback) {
-    SCInstance *suri = GetInstance();
-
-    suri->callbacks.sig.func = callback;
-    suri->callbacks.sig.user_ctx = user_ctx;
+void suricata_register_stats_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncStats callback) {
+    /* Enable stats in the config and initialize callback module. */
+    CfgSet(ctx->cfg, "stats.enabled", "yes");
+    CallbackStatsLogInit(user_ctx, callback);
 }
+
+/**
+ * \brief Retrieve suricata stats.
+ */
+void suricata_get_stats(void) {
+    StatsPoll();
+}
+
 
 /**
  * \brief Set a configuration option.
@@ -219,6 +219,18 @@ void suricata_init(SuricataCtx *ctx) {
     suri->run_mode = RUNMODE_LIB;
     suri->set_logdir = true;
     suri->cfg = ctx->cfg;
+
+    /* If we registered at least one callback, force enabling the callback output module. */
+    int enabled = 0;
+    if (suri->callbacks.alert != NULL || suri->callbacks.fileinfo != NULL ||
+        suri->callbacks.flow != NULL || suri->callbacks.http != NULL ||
+        suri->callbacks.nta != NULL) {
+        enabled = 1;
+    }
+
+    if (enabled) {
+        CfgSet(ctx->cfg, "outputs.callback.enabled", "yes");
+    }
 
     /* Invoke engine initialization. */
     SuricataInit(SURICATA_PROGNAME);
@@ -292,13 +304,14 @@ void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
                            uint32_t len, int ignore_pkt_checksum, uint64_t *tenant_uuid,
-                           uint32_t tenant_id) {
+                           uint32_t tenant_id, void *user_ctx) {
     return TmModuleLibHandlePacket(tv, data, datalink, ts, len, ignore_pkt_checksum, tenant_uuid,
-                                   tenant_id);
+                                   tenant_id, user_ctx);
 }
 
 /** \brief Feed a single stream segment to the library.
@@ -309,11 +322,13 @@ int suricata_handle_packet(ThreadVars *tv, const uint8_t *data, int datalink, st
  * \param len                   Packet length.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
-int suricata_handle_stream(ThreadVars *tv, FlowInfo *finfo, const uint8_t *data, uint32_t len,
-                           uint64_t *tenant_uuid, uint32_t tenant_id) {
-    return TmModuleLibHandleStream(tv, finfo, data, len, tenant_uuid, tenant_id);
+int suricata_handle_stream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
+                           uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
+                           void *user_ctx) {
+    return TmModuleLibHandleStream(tv, finfo, data, len, tenant_uuid, tenant_id, user_ctx);
 }
 
 /**
@@ -326,6 +341,9 @@ void suricata_shutdown(SuricataCtx *ctx) {
     while(ctx->n_workers_done != ctx->n_workers) {
         usleep(10 * 1000);
     }
+
+    /* Retrieve stats one last time. */
+    suricata_get_stats();
 
     EngineDone(); /* needed only in offlne mode ?. */
     SuricataShutdown();

@@ -47,7 +47,6 @@
 #include "util-logopenfile.h"
 #include "util-ja3.h"
 
-#include "output-json.h"
 #include "output-json-tls.h"
 
 SC_ATOMIC_EXTERN(unsigned int, cert_id);
@@ -77,11 +76,6 @@ SC_ATOMIC_EXTERN(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CLIENT_CERT       (1 << 14)
 #define LOG_TLS_FIELD_CLIENT_CHAIN      (1 << 15)
 
-typedef struct {
-    const char *name;
-    uint64_t flag;
-} TlsFields;
-
 TlsFields tls_fields[] = { { "version", LOG_TLS_FIELD_VERSION },
     { "subject", LOG_TLS_FIELD_SUBJECT }, { "issuer", LOG_TLS_FIELD_ISSUER },
     { "serial", LOG_TLS_FIELD_SERIAL }, { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
@@ -92,17 +86,6 @@ TlsFields tls_fields[] = { { "version", LOG_TLS_FIELD_VERSION },
     { "client", LOG_TLS_FIELD_CLIENT }, { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
     { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN }, { NULL, -1 } };
 
-typedef struct OutputTlsCtx_ {
-    uint32_t flags;  /** Store mode */
-    uint64_t fields; /** Store fields */
-    OutputJsonCtx *eve_ctx;
-} OutputTlsCtx;
-
-
-typedef struct JsonTlsLogThread_ {
-    OutputTlsCtx *tlslog_ctx;
-    OutputJsonThreadCtx *ctx;
-} JsonTlsLogThread;
 
 static void JsonTlsLogSubject(JsonBuilder *js, SSLState *ssl_state)
 {
@@ -326,8 +309,7 @@ void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state)
     JsonTlsLogSessionResumed(js, ssl_state);
 }
 
-static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
-                                 SSLState *ssl_state)
+void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js, SSLState *ssl_state)
 {
     /* tls subject */
     if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT)
@@ -525,7 +507,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
+OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
 {
     OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
     if (unlikely(tls_ctx == NULL))
@@ -605,7 +587,7 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
+void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
 {
     OutputTlsCtx *tls_ctx = output_ctx->data;
     SCFree(tls_ctx);

@@ -134,6 +134,9 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
                 continue;
             DEBUG_VALIDATE_BUG_ON(extra_p->flow != NULL);
 
+            /* Set user context on the decode packet. */
+            extra_p->user_ctx = p->user_ctx;
+
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
                 r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);

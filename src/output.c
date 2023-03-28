@@ -44,6 +44,7 @@
 #include "alert-debuglog.h"
 #include "alert-syslog.h"
 #include "output-json.h"
+#include "output-callback.h"
 #include "output-callback-alert.h"
 #include "output-json-alert.h"
 #include "output-json-anomaly.h"
@@ -61,6 +62,7 @@
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
+#include "output-callback-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
 #include "output-callback-file.h"
@@ -78,6 +80,7 @@
 #include "output-json-krb5.h"
 #include "output-json-quic.h"
 #include "output-json-dhcp.h"
+#include "output-callback-dhcp.h"
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
@@ -1056,6 +1059,8 @@ void OutputRegisterLoggers(void)
     EveStreamLogRegister();
     /* json log */
     OutputJsonRegister();
+    /* callback log */
+    OutputCallbackRegister();
     /* email logs */
     JsonSmtpLogRegister();
     /* http log */
@@ -1067,6 +1072,7 @@ void OutputRegisterLoggers(void)
     LogTlsLogRegister();
     JsonTlsLogRegister();
     LogTlsStoreRegister();
+    CallbackTlsLogRegister();
     /* ssh */
     JsonSshLogRegister();
     /* pcap log */
@@ -1115,6 +1121,7 @@ void OutputRegisterLoggers(void)
     JsonQuicLogRegister();
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
+    CallbackDHCPLogRegister();
     /* SNMP JSON logger. */
     JsonSNMPLogRegister();
     /* SIP JSON logger. */

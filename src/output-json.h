@@ -58,6 +58,7 @@ extern const JsonAddrInfo json_addr_info_zero;
 
 void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
         JsonAddrInfo *addr);
+void JsonAddrInfoInitFlow(const Flow *f, JsonAddrInfo *addr);
 
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535

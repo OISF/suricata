@@ -583,6 +583,64 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
     }
 }
 
+void JsonAddrInfoInitFlow(const Flow *f, JsonAddrInfo *addr)
+{
+    char srcip[JSON_ADDR_LEN] = {0}, dstip[JSON_ADDR_LEN] = {0};
+    Port sp, dp;
+
+    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+        }
+        sp = f->sp;
+        dp = f->dp;
+    } else {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
+        }
+        sp = f->dp;
+        dp = f->sp;
+    }
+
+    strlcpy(addr->src_ip, srcip, JSON_ADDR_LEN);
+
+    switch(f->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            addr->sp = sp;
+            break;
+    }
+
+    strlcpy(addr->dst_ip, dstip, JSON_ADDR_LEN);
+
+    switch(f->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            addr->dp = dp;
+            break;
+    }
+
+    if (SCProtoNameValid(f->proto)) {
+        strlcpy(addr->proto, known_proto[f->proto], sizeof(addr->proto));
+    } else {
+        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, f->proto);
+    }
+}
+
 #define COMMUNITY_ID_BUF_SIZE 64
 
 static bool CalculateCommunityFlowIdv4(const Flow *f,

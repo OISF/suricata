@@ -25,6 +25,7 @@
 #define __OUTPUT_JSON_COUNTERS_H__
 
 #include "output-stats.h"
+#include "util-logopenfile.h"
 
 #define JSON_STATS_TOTALS  (1<<0)
 #define JSON_STATS_THREADS (1<<1)

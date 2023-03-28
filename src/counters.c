@@ -32,6 +32,7 @@
 
 #include "output.h"
 #include "output-json-stats.h"
+#include "output-callback-stats.h"
 
 #include "util-byte.h"
 #include "util-conf.h"
@@ -103,6 +104,7 @@ const char *stats_decoder_events_prefix = "decoder.event";
 /**< add stream events as stats? disabled by default */
 bool stats_stream_events = false;
 
+static int StatsCompute(void);
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
@@ -642,13 +644,11 @@ static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 }
 
 /**
- * \brief The output interface for the Stats API
+ *  \brief Compute the stats.
  */
-static int StatsOutput(ThreadVars *tv)
-{
+static int StatsCompute() {
     const StatsThreadStore *sts = NULL;
     const StatsCounter *pc = NULL;
-    void *td = stats_thread_data;
 
     if (counters_global_id == 0)
         return -1;
@@ -816,11 +816,32 @@ static int StatsOutput(ThreadVars *tv)
         }
     }
 
+    return 1;
+}
+
+/**
+ * \brief The output interface for the Stats API
+ */
+static int StatsOutput(ThreadVars *tv)
+{
+    void *td = stats_thread_data;
+
+    StatsCompute();
+
     /* invoke logger(s) */
     if (stats_loggers_active) {
         OutputStatsLog(tv, td, &stats_table);
     }
     return 1;
+}
+
+/**
+ * \brief Invoked when running in library mode to retrieve stats
+ */
+void StatsPoll(void) {
+    StatsCompute();
+
+    CallbackStatsLogger(&stats_table);
 }
 
 #ifdef BUILD_UNIX_SOCKET

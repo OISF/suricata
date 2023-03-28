@@ -52,6 +52,17 @@ void callbackNta(void *data, size_t len, uint64_t *tenant_uuid, void *user_ctx) 
 /* Callback invoked for each Suricata Flow event. */
 void callbackFlow(FlowEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     printf("Flow!, state %s\n", event->flow.state);
+
+}
+
+/* Callback invoked for each Suricata FlowSnip event. */
+void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
+    if (user_ctx == NULL) {
+        return;
+    }
+
+    FILE *eve_fp = (FILE *)user_ctx;
+    logFlowSnip(eve_fp, event);
 }
 
 /* Callback invoked for each candidate signature. */
@@ -60,4 +71,14 @@ int callbackSig(uint32_t signature_id, uint8_t current_action, uint32_t tenant_i
     printf("Signature hit!, sid %d action %d\n", signature_id, current_action);
 
     return 0;
+}
+
+/* Callback invoked for each stats event. */
+void callbackStats(void *data, size_t len, void *user_ctx) {
+    if (user_ctx == NULL) {
+        return;
+    }
+
+    FILE *eve_fp = (FILE *)user_ctx;
+    logNta(eve_fp, data, len);
 }

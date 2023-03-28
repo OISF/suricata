@@ -807,9 +807,9 @@ static inline void DetectRulePacketRules(
         }
 
         /* Invoke the signature callback. */
-        if (tv->callbacks && tv->callbacks->sig.func) {
-            int res = tv->callbacks->sig.func(s->id, s->action, de_ctx->tenant_id, p->tenant_uuid,
-                                              tv->callbacks->sig.user_ctx);
+        if (tv->callbacks && tv->callbacks->sig) {
+            int res = tv->callbacks->sig(s->id, s->action, de_ctx->tenant_id, p->tenant_uuid,
+                                         p->user_ctx);
 
             if (res == -1) {
                 /* Discard signature. */
@@ -1520,9 +1520,9 @@ static void DetectRunTx(ThreadVars *tv,
             }
 
             /* Invoke the signature callback. */
-            if (tv->callbacks && tv->callbacks->sig.func) {
-                int res = tv->callbacks->sig.func(s->id, s->action, de_ctx->tenant_id,
-                                                  p->tenant_uuid, tv->callbacks->sig.user_ctx);
+            if (tv->callbacks && tv->callbacks->sig) {
+                int res = tv->callbacks->sig(s->id, s->action, de_ctx->tenant_id, p->tenant_uuid,
+                                             p->user_ctx);
 
                 if (res == -1) {
                     /* Discard signature. */

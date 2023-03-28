@@ -17,19 +17,23 @@
 #include "conf.h"
 #include "util-debug.h"
 
-/* Maximum length for a node value (only used to handle rule-files and output modules). */
+/* Maximum length for a node value (only used to handle rule-files). */
 #define NODE_VALUE_MAX 4096
 
 
-/* Output modules indices corresponding to their index in the yaml sequence.
- * This means that right now the order of the output modules in the yaml matters (need to probably
- * adjust it later).
- */
-typedef enum OutputModulesIdx {
-    OUTPUT_MODULE_STATS = 1,
-    OUTPUT_MODULE_FILESTORE,
-    OUTPUT_MODULE_INVALID
+/* Output modules indices */
+typedef struct OutputModulesIdx {
+    int invalid;
+    int stats;
+    int filestore;
+    int content_snip;
+    int callback;
 } OutputModulesIdx;
+
+/* Default output modules indices.
+ * These can change if we load a yaml file and we need to make sure we avoid ending up with
+   overlapping indices. */
+static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9};
 
 /** \brief Mangle a SuricataCfg field into the format of the Configuration tree.
   *        This means replacing '_' characters with '-' and '0' with '.'.
@@ -38,6 +42,7 @@ typedef enum OutputModulesIdx {
   *        in the yaml.
   *
   * \param field           The SuricataCfg field.
+  * \param idx_from_yaml   The output module sequence index when loading a yaml file.
   * \return const char *   The mangled field.
   */
 static const char *mangleCfgField(const char *field) {
@@ -62,15 +67,20 @@ static const char *mangleCfgField(const char *field) {
     /* Check if it is a supported output module and extend the name to include the sequence
      * index. */
     if(strncmp(out, "outputs", 7) == 0) {
-        OutputModulesIdx idx = OUTPUT_MODULE_INVALID;
+        uint8_t idx = default_output_modules_idx.invalid;
 
-        if (strncmp(out + 8, "file-store", 10) == 0) {
-            idx = OUTPUT_MODULE_FILESTORE;
-        } else if (strncmp(out + 8, "stats", 5) == 0) {
-            idx = OUTPUT_MODULE_STATS;
+
+        if (strncmp(out + 8, "stats", 5) == 0) {
+            idx = default_output_modules_idx.stats;
+        } else if (strncmp(out + 8, "file-store", 10) == 0) {
+            idx = default_output_modules_idx.filestore;
+        } else if (strncmp(out + 8, "callback", 8) == 0) {
+            idx = default_output_modules_idx.callback;
+        } else if (strncmp(out + 8, "content-snip", 12) == 0) {
+            idx = default_output_modules_idx.content_snip;
         }
 
-        if (idx == OUTPUT_MODULE_INVALID) {
+        if (idx == default_output_modules_idx.invalid) {
             /* Something is off, just return the field without further modifications. */
             return out;
         }
@@ -92,6 +102,49 @@ static const char *mangleCfgField(const char *field) {
     }
 
     return out;
+}
+
+/** \brief Convert a yaml sequence object into a comma separated list of values and store it in
+  *        the configuration object. Currently used by the "rule-files" and
+  *        "output.callbacks.nta.tls.custom" nodes.
+  *
+  * \param cfg    The SuricataCfg object.
+  * \param name   The name of the configuration node to convert.
+  */
+static void CfgSetSequence(SuricataCfg *cfg, const char *name) {
+    ConfNode *node;
+    node = ConfGetNode(name);
+    if (node != NULL) {
+        ConfNode *value;
+        char values[NODE_VALUE_MAX];
+
+        int i = 0;
+        TAILQ_FOREACH(value, &node->head, next) {
+            size_t value_len = strlen(value->val);
+            if (value_len + i + 1 >= NODE_VALUE_MAX) {
+                /* Maximum length reached, we cannot store anymore values. */
+                SCLogWarning("Reached maximum size for node %s, not storing "
+                             "value %s and following", name, value->val);
+                break;
+            }
+            /* Append the filename. */
+            i += snprintf(values + i, value_len + 2, "%s,", value->val);
+        }
+        /* Remove trailing ','. */
+        values[i -1] = '\0';
+
+        if (strncmp(name, "rule-files", 10) == 0) {
+            if (cfg->rule_files) {
+                SCFree((void *)cfg->rule_files);
+            }
+            cfg->rule_files = SCStrdup(values);
+        } else if (strstr(name, "callback.nta.tls.custom") != NULL) {
+            if (cfg->outputs0callback0nta0tls0custom) {
+                SCFree((void *)cfg->outputs0callback0nta0tls0custom);
+            }
+            cfg->outputs0callback0nta0tls0custom = SCStrdup(values);
+        }
+    }
 }
 
 /**
@@ -187,15 +240,15 @@ SuricataCfg CfgGetDefault(void) {
         .flow0managers = SCStrdup("1"),
         .flow0recyclers = SCStrdup("1"),
         .luajit0states = SCStrdup("512"),
+        .outputs0callback0http0extended = SCStrdup("yes"),
+        .outputs0callback0http0xff0enabled = SCStrdup("false"),
+        .outputs0content_snip0enabled = SCStrdup("false"),
+        .outputs0content_snip0dir = SCStrdup("pcaps"),
         .outputs0file_store0version = SCStrdup("2"),
         .outputs0file_store0enabled = SCStrdup("yes"),
         .outputs0file_store0force_magic = SCStrdup("yes"),
         .outputs0file_store0dir = SCStrdup("files"),
         .outputs0file_store0stream_depth = SCStrdup("0"),
-        .outputs0stats0enabled = SCStrdup("yes"),
-        .outputs0stats0append = SCStrdup("true"),
-        .outputs0stats0totals = SCStrdup("yes"),
-        .outputs0stats0threads = SCStrdup("no"),
         .stats0enabled = SCStrdup("yes")
     };
     return c;
@@ -209,12 +262,38 @@ SuricataCfg CfgGetDefault(void) {
  * \return         Error code.
  */
 int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
-    /* TODO: handle environment variables in yaml (e.g $VXLAN_PORTS). */
     int ret = ConfYamlLoadFile(filename);
 
     if (ret != 0) {
         SCLogError("Failed to parse configuration file: %s", filename);
         return ret;
+    }
+
+    /* Loop over the output modules and update the indices since they might differ from the default
+     * ones above. */
+    ConfNode *outputs = ConfGetNode("outputs");
+
+    if (outputs != NULL) {
+        ConfNode *output, *child;
+
+        TAILQ_FOREACH(output, &outputs->head, next) {
+            child = ConfNodeLookupChild(output, output->val);
+
+            if (child == NULL) {
+                /* Should not happne but ignore anyway. */
+                continue;
+            }
+
+            if (strncmp(child->name, "stats", 5) == 0) {
+                default_output_modules_idx.stats = atoi(output->name);
+            } else if (strncmp(child->name, "file-store", 10) == 0) {
+                default_output_modules_idx.filestore = atoi(output->name);
+            } else if (strncmp(child->name, "callback", 8) == 0) {
+                default_output_modules_idx.callback = atoi(output->name);
+            } else if (strncmp(child->name, "content-snip", 12) == 0) {
+                default_output_modules_idx.content_snip = atoi(output->name);
+            }
+        }
     }
 
     /* Configuration is now parsed. Iterate over the struct fields, setting the relevant fields. */
@@ -246,39 +325,13 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
     CFG_FIELDS
 #undef CFG_ENTRY
 
-    /* Handle "rule-files" separately because it is a sequence. */
-    ConfNode *node;
-    node = ConfGetNode("rule-files");
-    if (node != NULL) {
-        ConfNode *filename;
-        char *rule_files = SCMalloc(NODE_VALUE_MAX * sizeof(char));
-        if (rule_files == NULL) {
-            SCLogError("Failed to allocate memory for rule files");
-            ConfDeInit();
-            ConfInit();
-            return -1;
-        }
-
-        int i = 0;
-        TAILQ_FOREACH(filename, &node->head, next) {
-            size_t filename_len = strlen(filename->val);
-            if (filename_len + i + 1 >= NODE_VALUE_MAX) {
-                /* Maximum length reached, we cannot store anymore files. */
-                SCLogWarning("Reached maximum size for rule files, not storing %s and following",
-                             filename->val);
-                break;
-            }
-            /* Append the filename. */
-            i += snprintf(rule_files + i, filename_len + 2, "%s,", filename->val);
-        }
-        /* Remove trailing ','. */
-        rule_files[i -1] = '\0';
-
-        if (cfg->rule_files) {
-            SCFree((void *)cfg->rule_files);
-        }
-        cfg->rule_files = rule_files;
-    }
+    /* Handle "rule-files" and "outputs.callback.nta.tls.custom" separately as they are a
+     * sequence objects in the yaml. */
+    CfgSetSequence(cfg, "rule-files");
+    char name[64];
+    snprintf(name, sizeof(name), "outputs.%d.callback.nta.tls.custom",
+             default_output_modules_idx.callback);
+    CfgSetSequence(cfg, name);
 
     /* Deinit reinit the configuration tree used later by the engine. */
     ConfDeInit();
@@ -303,8 +356,9 @@ int CfgLoadStruct(SuricataCfg *cfg) {
                return !ret;                                                                     \
            }                                                                                    \
                                                                                                 \
-           if (strncmp(node_name, "rule-files", 10) == 0) {                                     \
-               /* Rule files are handled differently because they are a sequence of comma       \
+           if (strncmp(node_name, "rule-files", 10) == 0 ||                                     \
+               strstr(node_name, "callback.nta.tls.custom") != NULL) {                          \
+               /* Handle these nodes differently because they are a sequence of comma           \
                 * separated values. */                                                          \
                ret = ConfSetFromSequence(node_name, cfg->name);                                 \
            } else {                                                                             \
@@ -323,16 +377,15 @@ int CfgLoadStruct(SuricataCfg *cfg) {
 
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
-    if (cfg->outputs0file_store0enabled != NULL) {
-        char node_name[10] = {0};
-        snprintf(node_name, 10, "outputs.%d", OUTPUT_MODULE_FILESTORE);
-        ConfSetFinal(node_name, "file-store");
-    }
-    if (cfg->outputs0stats0enabled != NULL) {
-        char node_name[10] = {0};
-        snprintf(node_name, 10, "outputs.%d", OUTPUT_MODULE_STATS);
-        ConfSetFinal(node_name, "stats");
-    }
+    char node_name[10] = {0};
+    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.stats);
+    ConfSetFinal(node_name, "stats");
+    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.filestore);
+    ConfSetFinal(node_name, "file-store");
+    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.callback);
+    ConfSetFinal(node_name, "callback");
+    snprintf(node_name, 10, "outputs.%d", default_output_modules_idx.content_snip);
+    ConfSetFinal(node_name, "content-snip");
 
     return 0;
 }
@@ -350,9 +403,11 @@ int CfgSet(SuricataCfg *cfg, const char *key, const char *val) {
         return -1;
     }
 
+    const char * mangled_key = mangleCfgField(key);
+
     #define CFG_ENTRY(name) do {                                                                \
         const char *node_name = mangleCfgField(#name);                                          \
-        if (node_name && strcmp(node_name, key) == 0) {                                         \
+        if (node_name && strcmp(node_name, mangled_key) == 0) {                                 \
             const char *copy = SCStrdup(val);                                                   \
             if (copy != NULL) {                                                                 \
                 /* Override (free) the current value, if set. */                                \
@@ -362,6 +417,7 @@ int CfgSet(SuricataCfg *cfg, const char *key, const char *val) {
                                                                                                 \
                 cfg->name = copy;                                                               \
                 SCFree((void *)node_name);                                                      \
+                SCFree((void *)mangled_key);                                                    \
                 return 1;                                                                       \
             }                                                                                   \
         }                                                                                       \
@@ -371,6 +427,7 @@ int CfgSet(SuricataCfg *cfg, const char *key, const char *val) {
     CFG_FIELDS
 #undef CFG_ENTRY
 
+    SCFree((void *)mangled_key);
     return 0;
 }
 

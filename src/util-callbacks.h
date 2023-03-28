@@ -28,6 +28,12 @@ typedef void (CallbackFuncFlow)(
     void *user_ctx
 );
 
+typedef void (CallbackFuncFlowSnip)(
+    FlowSnipEvent *flowsnip_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
+);
+
 typedef void (CallbackFuncHttp)(
     HttpEvent *http_event,
     uint64_t *tenant_uuid,
@@ -51,37 +57,21 @@ typedef int (CallbackFuncSig)(
     void *user_ctx
 );
 
+typedef void (CallbackFuncStats)(
+    void *data,
+    size_t len,
+    void *user_ctx
+);
+
 /* Callback struct. */
 typedef struct {
-    struct {
-        CallbackFuncAlert *func;
-        void *user_ctx;
-    } alert;
-
-    struct {
-        CallbackFuncFileinfo *func;
-        void *user_ctx;
-    } fileinfo;
-
-    struct {
-        CallbackFuncFlow *func;
-        void *user_ctx;
-    } flow;
-
-    struct {
-        CallbackFuncHttp *func;
-        void *user_ctx;
-    } http;
-
-    struct {
-        CallbackFuncNta *func;
-        void *user_ctx;
-    } nta;
-
-    struct {
-        CallbackFuncSig *func;
-        void *user_ctx;
-    } sig;
+    CallbackFuncAlert *alert;
+    CallbackFuncFileinfo *fileinfo;
+    CallbackFuncFlow *flow;
+    CallbackFuncFlowSnip *flowsnip;
+    CallbackFuncHttp *http;
+    CallbackFuncNta *nta;
+    CallbackFuncSig *sig;
 } Callbacks;
 
 #endif /* __UTIL_CALLBACKS_H__ */

@@ -11,14 +11,21 @@
 #include "app-layer-ftp.h"
 #include "output-callback.h"
 #include "output-callback-http.h"
+#include "output-json-http.h"
 #include "output-json-smb.h"
 #include "output-json-smtp.h"
 #include "app-layer-protos.h"
 #include "rust.h"
+#include "util-print.h"
+#include "util-proto-name.h"
+
+#define MODULE_NAME "OutputCallback"
 
 /* Add information common to all events. */
 void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common *common,
                         JsonAddrInfo *addr) {
+    const Flow *f = (const Flow *)p->flow;
+
     /* First initialize the address info (5-tuple). */
     JsonAddrInfoInit(p, LOG_DIR_PACKET, addr);
     common->src_ip = addr->src_ip;
@@ -26,7 +33,13 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     common->sp = addr->sp;
     common->dp = addr->dp;
     common->proto = addr->proto;
-    common->proto = addr->proto;
+
+    /* Flow id. */
+    int64_t flow_id = FlowGetId(f);
+    common->flow_id = flow_id;
+    if (f->parent_id) {
+        common->parent_id = f->parent_id;
+    }
 
     /* Timestamp. */
     CreateIsoTimeString(p->ts, common->timestamp, sizeof(common->timestamp));
@@ -61,6 +74,34 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     }
 }
 
+/* Add common information from a flow object. */
+void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *addr) {
+    /* First initialize the address info (5-tuple). */
+    JsonAddrInfoInitFlow(f, addr);
+    common->src_ip = addr->src_ip;
+    common->dst_ip = addr->dst_ip;
+    common->sp = addr->sp;
+    common->dp = addr->dp;
+    common->proto = addr->proto;
+
+    /* Flow id. */
+    int64_t flow_id = FlowGetId(f);
+    common->flow_id = flow_id;
+    if (f->parent_id) {
+        common->parent_id = f->parent_id;
+    }
+
+    SCTime_t ts = TimeGet();
+    CreateIsoTimeString(ts, common->timestamp, sizeof(common->timestamp));
+
+    /* TODO: do we care about ICMP codes? */
+
+    /* App layer protocol. */
+    if (f->alproto) {
+        common->app_proto = AppProtoToString(f->alproto);
+    }
+}
+
 /* Add app layer information (alert and fileinfo). */
 void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_layer) {
     const AppProto proto = FlowGetAppProtocol(p->flow);
@@ -78,6 +119,8 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_l
             HttpInfo *http = SCCalloc(1, sizeof(HttpInfo));
             if (http && CallbackHttpAddMetadata(p->flow, tx_id, dir, http)) {
                 app_layer->http = http;
+            } else {
+                SCFree(http);
             }
             break;
         case ALPROTO_SMB:
@@ -132,4 +175,33 @@ void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, union app_la
         default:
             break;
     }
+}
+
+static void OutputCallbackDeInitCtx(OutputCtx *output_ctx) {
+    SCFree(output_ctx);
+}
+
+
+/**
+ * \brief Create a new OutputCtx to be passed along to callbacks module.
+ * \param conf The configuration node for this output.
+ * \return An output context.
+ */
+static OutputInitResult OutputCallbackInitCtx(ConfNode *conf) {
+    OutputInitResult result = { NULL, false };
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+
+    if (unlikely(output_ctx == NULL)) {
+        return result;
+    }
+
+    output_ctx->DeInit = OutputCallbackDeInitCtx;
+    result.ctx = output_ctx;
+    result.ok = true;
+
+    return result;
+}
+
+void OutputCallbackRegister(void) {
+    OutputRegisterModule(MODULE_NAME, "callback", OutputCallbackInitCtx);
 }

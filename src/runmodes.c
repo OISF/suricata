@@ -465,7 +465,9 @@ void RunModeDispatch(int runmode, const char *custom_mode, const char *capture_p
         if (RunModeNeedsBypassManager()) {
             BypassedFlowManagerThreadSpawn();
         }
-        StatsSpawnThreads();
+        if (runmode != RUNMODE_LIB) {
+            StatsSpawnThreads();
+        }
     }
 }
 
@@ -756,6 +758,61 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
     }
 }
 
+static void RunModeInitializeCallbackOutput(ConfNode *conf, OutputCtx *parent_ctx,
+                                            const char *prefix) {
+
+    ConfNode *node = NULL;
+    TAILQ_FOREACH(node, &conf->head, next) {
+        if (strncmp(node->name, "enabled", 7) == 0 || strncmp(node->name, "nta", 3) == 0) {
+            continue;
+        }
+
+        const char *enabled = ConfNodeLookupChildValue(node, "enabled");
+        if (enabled != NULL && !ConfValIsTrue(enabled)) {
+            continue;
+        }
+
+        SCLogConfig("enabling '%s' module '%s'", prefix, node->name);
+
+        int sub_count = 0;
+        char subname[256];
+        snprintf(subname, sizeof(subname), "%s.%s", prefix, node->name);
+
+        /* Now setup all registered logger of this name. */
+        OutputModule *sub_module;
+        TAILQ_FOREACH(sub_module, &output_modules, entries) {
+            if (strcmp(subname, sub_module->conf_name) == 0) {
+                sub_count++;
+
+                if (sub_module->parent_name == NULL ||
+                    strcmp(sub_module->parent_name, "callback") != 0) {
+                    FatalError("bad parent for %s", subname);
+                }
+
+                OutputInitResult result = {NULL, true};
+                if (sub_module->InitSubFunc != NULL) {
+                    /* pass on parent output_ctx */
+                    result = sub_module->InitSubFunc(node, parent_ctx);
+
+                    if (!result.ok) {
+                        continue;
+                    }
+                }
+
+                AddOutputToFreeList(sub_module, result.ctx);
+                SetupOutput(sub_module->name, sub_module, result.ctx);
+            }
+        }
+
+        /* Error is no registered loggers with this name
+         * were found .*/
+        if (!sub_count) {
+            FatalErrorOnInit("No output module named %s", subname);
+            continue;
+        }
+    }
+}
+
 static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputModule *lua_module = OutputGetModuleByConfName("lua");
@@ -893,6 +950,14 @@ void RunModeInitializeOutputs(void)
                     continue;
                 RunModeInitializeLuaOutput(output_config, output_ctx);
                 AddOutputToFreeList(module, output_ctx);
+            } else if (strcmp(output->val, "callback") == 0) {
+                RunModeInitializeCallbackOutput(output_config, output_ctx, "callback");
+
+                ConfNode *nta = ConfNodeLookupChild(output_config, "nta");
+                if (nta != NULL) {
+                    RunModeInitializeCallbackOutput(nta, output_ctx, "callback.nta");
+                }
+                AddOutputToFreeList(module, output_ctx);
             } else {
                 AddOutputToFreeList(module, output_ctx);
                 SetupOutput(module->name, module, output_ctx);
@@ -938,34 +1003,7 @@ void RunModeInitializeOutputs(void)
             }
         }
     }
-}
 
-void RunModeInitializeCallbacks(uint32_t *callback_ids) {
-    for (int i = 0; i < MAX_CALLBACKS && callback_ids[i]; ++i) {
-        OutputModule *module;
-        TAILQ_FOREACH(module, &output_modules, entries) {
-            if (module->logger_id == callback_ids[i]) {
-                if (module->InitFunc) {
-                    OutputInitResult result = module->InitFunc(NULL);
-                    if (!result.ok) {
-                        SCLogError("Failed to initialize callback module %s", module->name);
-                    }
-                } else if (module->InitSubFunc) {
-                    OutputInitResult result = module->InitSubFunc(NULL, NULL);
-                    if (!result.ok) {
-                        SCLogError("Failed to initialize callback module %s", module->name);
-                    }
-                }
-
-                AddOutputToFreeList(module, NULL);
-                SetupOutput(module->name, module, NULL);
-            }
-        }
-    }
-}
-
-/* Finalize the Output modules (setup logger_bits). */
- void RunModeFinalizeOutputs(void) {
     /* register the logger bits to the app-layer */
     AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {

@@ -394,10 +394,13 @@ noinst_HEADERS = \
 	output.h \
 	output-callback.h \
 	output-callback-alert.h \
+	output-callback-dhcp.h \
 	output-callback-file.h \
 	output-callback-flow.h \
 	output-callback-http.h \
 	output-callback-smb.h \
+	output-callback-stats.h \
+	output-callback-tls.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
 	output-json-bittorrent-dht.h \
@@ -1008,10 +1011,13 @@ libsuricata_c_a_SOURCES = \
 	output.c \
 	output-callback.c \
 	output-callback-alert.c \
+	output-callback-dhcp.c \
 	output-callback-file.c \
 	output-callback-flow.c \
 	output-callback-http.c \
 	output-callback-smb.c \
+	output-callback-stats.c \
+	output-callback-tls.c \
 	output-eve-stream.c \
 	output-file.c \
 	output-filedata.c \

@@ -1,7 +1,7 @@
 Initialization
 ==============
 
-After registering the callbacks, the library is ready to be initialized with the following methods.
+After the library is properly configured, the engine can be initialized with the following methods.
 
 .. _suricata_init:
 
@@ -13,16 +13,14 @@ The function prototype is:
 .. code-block:: c
 
     /**
-     * \brief Initialize a Suricata context.
-     *
-     * \param config      Configuration string.
-     */
-    void suricata_init(const char *config);
+    * \brief Initialize a Suricata context.
+    *
+    * \param ctx  Pointer to SuricataCtx.
+    */
+    void suricata_init(SuricataCtx *ctx);
 
-This method initializes the internal Suricata engine from the given configuration string.
-The configuration string should contain the same arguments passed to the executable version in the
-format: "arg1=value1;arg2=value2".
-Notice that this method will change soon to allow to configure the library via a proper object.
+This method initializes the internal Suricata engine using the configuration object created by the
+configuration API methods.
 
 suricata_initialise_worker_thread
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -630,6 +630,8 @@ typedef struct Packet_
     uint32_t tenant_id;
     /* tenant uuid to associate a packet/flow to a given tenant */
     uint64_t tenant_uuid[2];
+    /* user define context passed along in the callbacks */
+    void *user_ctx;
 
     /* The Packet pool from which this packet was allocated. Used when returning
      * the packet to its owner's stack. If NULL, then allocated with malloc.

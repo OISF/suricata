@@ -67,16 +67,6 @@ typedef struct JsonHttpLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonHttpLogThread;
 
-#define MAX_SIZE_HEADER_NAME 256
-#define MAX_SIZE_HEADER_VALUE 2048
-
-#define LOG_HTTP_DEFAULT 0
-#define LOG_HTTP_EXTENDED 1
-#define LOG_HTTP_REQUEST 2 /* request field */
-#define LOG_HTTP_ARRAY 4 /* require array handling */
-#define LOG_HTTP_REQ_HEADERS 8
-#define LOG_HTTP_RES_HEADERS 16
-
 typedef enum {
     HTTP_FIELD_ACCEPT = 0,
     HTTP_FIELD_ACCEPT_CHARSET,

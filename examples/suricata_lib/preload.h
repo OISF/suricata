@@ -20,7 +20,7 @@ typedef struct PcapCache {
 
 /* Stream cache list. */
 typedef struct StreamCache {
-    FlowInfo finfo;
+    FlowStreamInfo finfo;
     uint32_t len;
     uint8_t *data;
     struct StreamCache *next;
@@ -30,7 +30,7 @@ typedef struct StreamCache {
 int preload_pcap(const char *filename, PcapCache **head, int *datalink);
 
 /* Parse a stream file line. */
-void parse_stream_line(char *line, FlowInfo *finfo, uint32_t *length, char **b64_data);
+void parse_stream_line(char *line, FlowStreamInfo *finfo, uint32_t *length, char **b64_data);
 
 /* Preload a stream file. */
 int preload_stream(const char *filename, StreamCache **head);

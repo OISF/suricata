@@ -7,10 +7,12 @@ them to properly integrate the library. Notice that the order in which these met
 is the same a client **must** use when invoking them.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    context_creation
-   callbacks
+   configuration
+   callbacks/index.rst
    initialization
    input
+   stats
    cleanup

@@ -13,6 +13,7 @@
 /* Maximum number of HTTP headers allowed per event per direction. */
 #define MAX_NUM_HTTP_HEADERS 100
 #define TIMESTAMP_LEN        64
+#define PACKET_ALERT_MAX 15 /* As defined in decode.h. */
 
 /* Struct representing fields common to all callbacks (5-tuple, timestamp...). */
 typedef struct {
@@ -32,6 +33,10 @@ typedef struct {
     const char *direction;
     /* Timestamp */
     char timestamp[TIMESTAMP_LEN];
+    /* Flow id */
+    int64_t flow_id;
+    /* Parent id */
+    int64_t parent_id;
 } Common;
 
 /* Struct representing an HTTP header. */
@@ -62,6 +67,8 @@ typedef struct HttpInfo {
     bstr *content_type;
     /* Redirect (location header) */
     bstr *redirect;
+    /* Referer */
+    bstr *referer;
     /* Direction */
     const char *direction;
     /* Response message length. */
@@ -80,24 +87,52 @@ typedef union app_layer {
     void *nta; /* JsonBuilder object but avoid including rust.h */
 } app_layer;
 
+/* Struct representing a single alert. */
+typedef struct Alert{
+    /* Action for this alert */
+    const char *action;
+    /* Signature relevant fields */
+    uint32_t sid;
+    uint32_t gid;
+    uint32_t rev;
+    int severity;
+    const char *msg;
+    const char *category;
+    const char *metadata;
+    /* Tenant id (suricata) */
+    uint32_t tenant_id_suri;
+} Alert;
+
+/* Struct representing a single flow. */
+typedef struct FlowInfo {
+    /* Input interface */
+    const char *dev;
+    /* Vland ids */
+    uint16_t vlan_id[2];
+    /* Counters */
+    uint32_t pkts_toserver;
+    uint32_t pkts_toclient;
+    uint64_t bytes_toserver;
+    uint64_t bytes_toclient;
+    /* Timestamps */
+    char start[TIMESTAMP_LEN];
+    char end[TIMESTAMP_LEN];
+    /* Age */
+    int32_t age;
+    /* Emergency flag */
+    uint8_t emergency;
+    /* State */
+    const char *state;
+    /* Reason */
+    const char *reason;
+    /* If flow has alerts */
+    int alerted;
+} FlowInfo;
+
 /* Struct representing an alert event. It will be passed along in the callback. */
 typedef struct AlertEvent {
     Common common;
-
-    struct {
-        /* Action for this alert */
-        const char *action;
-        /* Signature relevant fields */
-        uint32_t sid;
-        uint32_t gid;
-        uint32_t rev;
-        int severity;
-        const char *msg;
-        const char *category;
-        const char *metadata;
-        /* Tenant id (suricata) */
-        uint32_t tenant_id_suri;
-    } alert;
+    Alert alert;
 
     /* App layer event information, if any */
     app_layer app_layer;
@@ -142,44 +177,37 @@ typedef struct FileinfoEvent {
     app_layer app_layer;
 } FileinfoEvent;
 
+
 /* Struct representing a flow event. It will be passed along in the callback. */
 typedef struct FlowEvent {
     Common common;
-
-    struct {
-        /* Flow id */
-        int64_t flow_id;
-        /* Parent id */
-        int64_t parent_id;
-        /* Input interface */
-        const char *dev;
-        /* Vland ids */
-        uint16_t vlan_id[2];
-        /* Counters */
-        uint32_t pkts_toserver;
-        uint32_t pkts_toclient;
-        uint64_t bytes_toserver;
-        uint64_t bytes_toclient;
-        /* Timestamps */
-        char start[TIMESTAMP_LEN];
-        char end[TIMESTAMP_LEN];
-        /* Age */
-        int32_t age;
-        /* Emergency flag */
-        uint8_t emergency;
-        /* State */
-        const char *state;
-        /* Reason */
-        const char *reason;
-        /* If flow has alerts */
-        int alerted;
-    } flow;
+    FlowInfo flow;
 } FlowEvent;
+
+/* Struct representing a flow snip event. It will be passed along in the callback. */
+typedef struct FlowSnipEvent {
+    Common common;
+    FlowInfo flow;
+
+    /* FlowSnip id */
+    uint32_t snip_id;
+    /* Number of packets in the pcap */
+    uint16_t num_packets;
+    /*Counter of the first packet of the snip relative to the flow */
+    uint16_t pkt_cnt;
+    /* Timestamp of the first packet */
+    char timestamp_first[TIMESTAMP_LEN];
+    /* Timestamp of the last packet */
+    char timestamp_last[TIMESTAMP_LEN];
+
+    /* Array of alerts and corresponding size (<= PACKET_ALERT_MAX). */
+    uint16_t alerts_size;
+    Alert alerts[PACKET_ALERT_MAX];
+} FlowSnipEvent;
 
 /* Struct representing an Http event. It will be passed along in the callback. */
 typedef struct HttpEvent {
     Common common;
-
     HttpInfo http;
 } HttpEvent;
 

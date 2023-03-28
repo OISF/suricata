@@ -37,7 +37,7 @@ static OutputInitResult CallbackSmbLogInitSub(ConfNode *conf, OutputCtx *parent_
 
 static int CallbackSmbLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
                              void *state, void *tx, uint64_t tx_id) {
-    if (!tv->callbacks->nta.func) {
+    if (!tv->callbacks->nta) {
         return TM_ECODE_OK;
     }
 
@@ -58,15 +58,14 @@ static int CallbackSmbLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     jb_close(jb);
 
     /* Invoke NTA callback. */
-    tv->callbacks->nta.func((void *)jb_ptr(jb), jb_len(jb),
-                            f->tenant_uuid, tv->callbacks->http.user_ctx);
+    tv->callbacks->nta((void *)jb_ptr(jb), jb_len(jb), f->tenant_uuid, f->user_ctx);
 
     jb_free(jb);
     return TM_ECODE_OK;
 }
 
 void CallbackSmbLogRegister(void) {
-    OutputRegisterTxSubModule(LOGGER_CALLBACK_TX, "", MODULE_NAME, "", CallbackSmbLogInitSub,
-                              ALPROTO_SMB, CallbackSmbLogger, CallbackSmbLogThreadInit,
-                              CallbackSmbLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_CALLBACK_TX, "callback", MODULE_NAME, "callback.nta.smb",
+                              CallbackSmbLogInitSub, ALPROTO_SMB, CallbackSmbLogger,
+                              CallbackSmbLogThreadInit, CallbackSmbLogThreadDeinit, NULL);
 }

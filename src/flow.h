@@ -497,6 +497,9 @@ typedef struct Flow_
 
     SCTime_t startts;
 
+    /* User ctx passed along in the callbacks. */
+    void *user_ctx;
+
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;

@@ -32,7 +32,7 @@ static TmEcode CallbackAlertLogThreadDeinit(ThreadVars *t, void *data) {
     return TM_ECODE_OK;
 }
 
-static void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, AlertEvent *event) {
+void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert) {
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -47,18 +47,18 @@ static void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, AlertEve
         }
     }
 
-    event->alert.action = action;
-    event->alert.sid = pa->s->id;
-    event->alert.gid = pa->s->gid;
-    event->alert.rev = pa->s->rev;
-    event->alert.msg = pa->s->msg ? pa->s->msg: "";
-    event->alert.category = pa->s->class_msg ? pa->s->class_msg: "";
-    event->alert.severity = pa->s->prio;
+    alert->action = action;
+    alert->sid = pa->s->id;
+    alert->gid = pa->s->gid;
+    alert->rev = pa->s->rev;
+    alert->msg = pa->s->msg ? pa->s->msg: "";
+    alert->category = pa->s->class_msg ? pa->s->class_msg: "";
+    alert->severity = pa->s->prio;
 
     /* TODO: AlertJsonSourceTarget ? */
 
     if (pa->s->metadata && pa->s->metadata->json_str) {
-        event->alert.metadata = pa->s->metadata->json_str;
+        alert->metadata = pa->s->metadata->json_str;
     }
 }
 
@@ -81,7 +81,7 @@ static int AlertCallback(ThreadVars *tv, const Packet *p) {
         /* TODO: Add metadata (flowvars, pktvars)? */
 
         /* Alert */
-        AlertCallbackHeader(p, pa, &event);
+        AlertCallbackHeader(p, pa, &event.alert);
 
         /* TODO: Add tunnel info? */
 
@@ -94,7 +94,7 @@ static int AlertCallback(ThreadVars *tv, const Packet *p) {
         }
 
         /* Invoke callback and cleanup. */
-        tv->callbacks->alert.func(&event, p->flow->tenant_uuid, tv->callbacks->alert.user_ctx);
+        tv->callbacks->alert(&event, p->flow->tenant_uuid, p->user_ctx);
         CallbackCleanupAppLayer(p, pa->tx_id, &event.app_layer);
     }
 
@@ -116,10 +116,10 @@ static int AlertCallbackDecoderEvent(ThreadVars *tv, const Packet *p) {
         /* Alert timestamp. */
         CreateIsoTimeString(p->ts, event.common.timestamp, sizeof(event.common.timestamp));
 
-        AlertCallbackHeader(p, pa, &event);
+        AlertCallbackHeader(p, pa, &event.alert);
 
         /* Invoke callback */
-        tv->callbacks->alert.func(&event, p->flow->tenant_uuid, tv->callbacks->alert.user_ctx);
+        tv->callbacks->alert(&event, p->flow->tenant_uuid, p->user_ctx);
     }
 
     return TM_ECODE_OK;
@@ -135,14 +135,14 @@ static int CallbackAlertLogger(ThreadVars *tv, void *thread_data, const Packet *
 }
 
 static int CallbackAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p) {
-    if ((p->alerts.cnt || p->flags & PKT_HAS_TAG) && tv->callbacks && tv->callbacks->alert.func) {
+    if ((p->alerts.cnt || p->flags & PKT_HAS_TAG) && tv->callbacks->alert) {
         return TRUE;
     }
     return FALSE;
 }
 
 void CallbackAlertLogRegister(void) {
-    OutputRegisterPacketSubModule(LOGGER_CALLBACK_ALERT, "", MODULE_NAME, "", NULL,
-                                  CallbackAlertLogger, CallbackAlertLogCondition,
+    OutputRegisterPacketSubModule(LOGGER_CALLBACK_ALERT, "callback", MODULE_NAME, "callback.alert",
+                                  NULL, CallbackAlertLogger, CallbackAlertLogCondition,
                                   CallbackAlertLogThreadInit, CallbackAlertLogThreadDeinit, NULL);
 }

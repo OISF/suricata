@@ -24,7 +24,7 @@ enum StreamDirection {
 /**
 * \brief Struct representing flow information.
 *
-* \struct FlowInfo
+* \struct FlowStreamInfo
 */
 typedef struct {
     /* Source IP address (in network byte order). */
@@ -62,6 +62,6 @@ typedef struct {
 
     /* Timestamp of the stream segment. */
     struct timeval ts;
-} FlowInfo;
+} FlowStreamInfo;
 
 #endif /* __SURICATA_INTERFACE_STREAM_H__ */

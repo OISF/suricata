@@ -134,6 +134,9 @@ uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 int StatsSetupPrivate(struct ThreadVars_ *);
 void StatsThreadCleanup(struct ThreadVars_ *);
 
+/* library mode */
+void StatsPoll(void);
+
 #define StatsSyncCounters(tv) \
     StatsUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
 
