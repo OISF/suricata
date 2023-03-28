@@ -1140,6 +1140,10 @@ const char *GetProgramVersion(void)
     }
 }
 
+SCInstance *GetInstance(void) {
+    return &suricata;
+}
+
 static TmEcode PrintVersion(void)
 {
     printf("This is %s version %s\n", PROG_NAME, GetProgramVersion());
@@ -2258,6 +2262,7 @@ void PreRunInit(const int runmode)
 void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
+    RunModeInitializeCallbacks(suricata.callback_ids);
     RunModeInitializeOutputs();
     DatasetsInit();
 
@@ -2885,10 +2890,12 @@ int InitGlobal(void)
     return 0;
 }
 
+void SuricataPreInit(const char *progname) {
+    SCInstanceInit(&suricata, progname);
+}
+
 int SuricataInit(int argc, char **argv)
 {
-    SCInstanceInit(&suricata, argv[0]);
-
     if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
@@ -3063,6 +3070,8 @@ void SuricataShutdown(void) {
 int SuricataMain(int argc, char **argv)
 {
     /* Initialize engine. */
+    SuricataPreInit(argv[0]);
+
     if (SuricataInit(argc, argv) == EXIT_FAILURE) {
         GlobalsDestroy(&suricata);
         exit(EXIT_FAILURE);
