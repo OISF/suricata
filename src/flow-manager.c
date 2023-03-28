@@ -899,17 +899,17 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             uint32_t len = FlowSpareGetPoolSize();
             StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)len);
             if (emerg == true) {
-                SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
-                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
+                SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
+                           "flow_spare_q status: %" PRIu32 "%% flows at the queue",
                         len, flow_config.prealloc, len * 100 / MAX(flow_config.prealloc, 1));
 
-            /* only if we have pruned this "emergency_recovery" percentage
-             * of flows, we will unset the emergency bit */
-            if (len * 100 / MAX(flow_config.prealloc, 1) > flow_config.emergency_recovery) {
-                emerg_over_cnt++;
-            } else {
-                emerg_over_cnt = 0;
-            }
+                /* only if we have pruned this "emergency_recovery" percentage
+                 * of flows, we will unset the emergency bit */
+                if (len * 100 / MAX(flow_config.prealloc, 1) > flow_config.emergency_recovery) {
+                    emerg_over_cnt++;
+                } else {
+                    emerg_over_cnt = 0;
+                }
 
             if (emerg_over_cnt >= 30) {
                 SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
@@ -920,10 +920,11 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 emerg_over_cnt = 0;
                 hash_pass_iter = 0;
                 SCLogNotice("Flow emergency mode over, back to normal... unsetting"
-                          " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
-                          "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
-                          "%% flows at the queue", (uintmax_t)ts.tv_sec,
-                          (uintmax_t)ts.tv_usec, len * 100 / MAX(flow_config.prealloc, 1));
+                            " FLOW_EMERGENCY bit (ts.tv_sec: %" PRIuMAX ", "
+                            "ts.tv_usec:%" PRIuMAX ") flow_spare_q status(): %" PRIu32
+                            "%% flows at the queue",
+                        (uintmax_t)ts.tv_sec, (uintmax_t)ts.tv_usec,
+                        len * 100 / MAX(flow_config.prealloc, 1));
 
                 StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
             }
