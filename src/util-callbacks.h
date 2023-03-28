@@ -34,6 +34,13 @@ typedef void (CallbackFuncHttp)(
     void *user_ctx
 );
 
+typedef void (CallbackFuncNta)(
+    void *data,
+    size_t len,
+    uint64_t *tenant_uuid,
+    void *user_ctx
+);
+
 /* Detection callback, invoked before inspecting any signature candidate to remove the signature or
  * modify its action. */
 typedef int (CallbackFuncSig)(
@@ -65,6 +72,11 @@ typedef struct {
         CallbackFuncHttp *func;
         void *user_ctx;
     } http;
+
+    struct {
+        CallbackFuncNta *func;
+        void *user_ctx;
+    } nta;
 
     struct {
         CallbackFuncSig *func;

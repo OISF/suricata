@@ -1,6 +1,8 @@
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
+ *
+ *  Interface to the suricata library.
  */
 
 #ifndef __SURICATA_INTERFACE_H__
@@ -10,8 +12,15 @@
 #include "suricata-interface-stream.h"
 #include "threadvars.h"
 
+
+/* Forward declaration(s). */
+typedef struct SuricataCfg SuricataCfg;
+
 /* Used at init and deinit only for now */
 typedef struct SuricataCtx {
+    /* Configuration object. */
+    SuricataCfg *cfg;
+
     /* Number of workers that will be created. */
     int n_workers;
 
@@ -72,6 +81,15 @@ void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlo
 void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback);
 
 /**
+ * \brief Register a callback that is invoked for every NTA event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta callback);
+
+/**
  * \brief Register a callback that is invoked before a candidate signature is inspected.
  *
  *        Such callback will be able to decide if a signature is relevant or modify its action via
@@ -87,11 +105,30 @@ void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHtt
 void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig callback);
 
 /**
+ * \brief Set a configuration option.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param key            The configuration option key.
+ * \param val            The configuration option value.
+ *
+ * \return               1 if set, 0 if not set.
+ */
+int suricata_config_set(SuricataCtx *ctx, const char *key, const char *val);
+
+/**
+ * \brief Load configuration from file.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param config_file    ilename of the yaml configuration to load.
+ */
+void suricata_config_load(SuricataCtx *ctx, const char *config_file);
+
+/**
  * \brief Initialize a Suricata context.
  *
- * \param config      Configuration string.
+ * \param ctx            Pointer to SuricataCtx.
  */
-void suricata_init(const char *config);
+void suricata_init(SuricataCtx *ctx);
 
 /**
  * \brief Initialize a Suricata worker.

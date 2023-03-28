@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -238,39 +239,42 @@ void *suricataWorker(void *td) {
 
 void printUsage() {
     printf("suricata_client [options] <pcap_file(s)>\n\n"
-           "%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n\n"
-           "Example usage: ./suricata_client --suricata-config-str \"-c=suricata.yaml;-l=.;"
-           "--runmode=offline\" input.pcap\n",
-           "--suricata-config-str",
-           "The Suricata command line arguments in the format \"arg1=value1;arg2-value2;\".",
+           "%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n\n"
+           "Example usage: ./suricata_client -c suricata.yaml input.pcap\n",
+           "-c", "Path to (optional) configuration file.",
            "-h", "Print this help and exit.",
+           "-l", "Path to log directory.",
            "-K, --preload-pcap", "Preloads packets into RAM before sending",
-           "-l, --loop=num", "Loop through the capture file(s) X times",
-           "-m, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)");
+           "-L, --loop=num", "Loop through the capture file(s) X times",
+           "-m, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
+           "-o, --output=output", "Path of the EVE output file (eve-json.log by default)");
 }
 
 int main(int argc, char **argv) {
     int opt;
+    FILE *eve_fp;
     int n_workers = 0;
     int loop_rounds = 1; /* Loop once by default. */
     int preload = 0; /* Do not preload by default. */
     enum InputTypes input_type = TYPE_PACKET; /* Process packets by default. */
     const char *config = NULL;
+    const char *logdir = NULL;
+    const char *output = "eve-json.log";
     const char **input_files = NULL;
     pthread_t *thread_ids;
     ThreadCtx *tc;
     SuricataCtx *ctx = NULL;
 
     struct option long_opts[] = {
-        {"loop", required_argument, 0, 'l'},
+        {"loop", required_argument, 0, 'L'},
         {"mode", required_argument, 0, 'm'},
+        {"output", required_argument, 0, 'o'},
         {"preload-pcap", no_argument, 0, 'K'},
-        {"suricata-config-str", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
-    char short_opts[] = "hKl:m:";
+    char short_opts[] = "hKc:l:m:o:";
 
     /* Parse command line */
     if (argc < 2) {
@@ -280,12 +284,13 @@ int main(int argc, char **argv) {
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
-            case 0:
-                if (strcmp((long_opts[option_index]).name, "suricata-config-str") == 0) {
-                    config = optarg;
-                }
+            case 'c':
+                config = optarg;
                 break;
             case 'l':
+                logdir = optarg;
+                break;
+            case 'L':
                 ;
                 int loop = atoi(optarg);
                 if (loop) {
@@ -305,6 +310,9 @@ int main(int argc, char **argv) {
                     return 1;
                 }
                 break;
+            case 'o':
+                output = optarg;
+                break;
             case 'h':
             default:
                 printUsage();
@@ -312,9 +320,29 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (config == NULL) {
-        fprintf(stderr, "Required option \"--suricata-config-str\" is missing\n");
-        return 1;
+    /* Open EVE output file, if provided. */
+    if (output != NULL) {
+        char path[256];
+        int i = 0;
+
+        /* Full path is logidr/output. */
+        if (logdir) {
+            i = strlen(logdir);
+            memcpy(path, logdir, i);
+
+            /* Add '/' to full path if not provided in logdir. */
+            if (logdir[i - 1] != '/') {
+                path[i++] = '/';
+            }
+        }
+
+        /* Append output filename to path. */
+        snprintf(path + i, strlen(output) + 1, "%s", output);
+
+        eve_fp = fopen(path, "w");
+        if (eve_fp == NULL) {
+            fprintf(stderr, "Failed to open EVE output file, EVE logging is disabled.\n");
+        }
     }
 
     /* Remaining arguments are the PCAP/stream file(s). */
@@ -351,14 +379,26 @@ int main(int argc, char **argv) {
     ctx = suricata_create_ctx(n_workers);
 
     /* Register callbacks. */
-    suricata_register_alert_cb(ctx, NULL, callbackAlert);
-    suricata_register_fileinfo_cb(ctx, NULL, callbackFile);
-    suricata_register_http_cb(ctx, NULL, callbackHttp);
-    suricata_register_flow_cb(ctx, NULL, callbackFlow);
-    suricata_register_sig_cb(ctx, NULL, callbackSig);
+    suricata_register_alert_cb(ctx, (void *)eve_fp, callbackAlert);
+    suricata_register_fileinfo_cb(ctx, (void *)eve_fp, callbackFile);
+    suricata_register_http_cb(ctx, (void *)eve_fp, callbackHttp);
+    suricata_register_nta_cb(ctx, (void *)eve_fp, callbackNta);
+    suricata_register_flow_cb(ctx, (void *)eve_fp, callbackFlow);
+    suricata_register_sig_cb(ctx, (void *)eve_fp, callbackSig);
+
+    /* Load config from file, if provided. */
+    suricata_config_load(ctx, config);
+
+    /* Override runmode (required for testing as the yaml we use sets "runmode: single"). */
+    suricata_config_set(ctx, "runmode", "offline");
+
+    /* Override logdir if provided. */
+    if (logdir) {
+        suricata_config_set(ctx, "default-log-dir", logdir);
+    }
 
     /* Init suricata engine. */
-    suricata_init(config);
+    suricata_init(ctx);
 
     /* Spawn workers. */
     for (int i = 0; i < n_workers; ++i) {
@@ -379,6 +419,11 @@ int main(int argc, char **argv) {
     free(thread_ids);
     free(input_files);
     free(tc);
+
+    /* Close EVE output file descriptor if opened. */
+    if (eve_fp) {
+        fclose(eve_fp);
+    }
 
     return 0;
 }

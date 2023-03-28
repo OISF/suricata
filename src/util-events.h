@@ -8,8 +8,11 @@
 
 #include <stdint.h>
 
-#define TIMESTAMP_LEN 64
+#include "htp/bstr.h"
 
+/* Maximum number of HTTP headers allowed per event per direction. */
+#define MAX_NUM_HTTP_HEADERS 100
+#define TIMESTAMP_LEN        64
 
 /* Struct representing fields common to all callbacks (5-tuple, timestamp...). */
 typedef struct {
@@ -31,23 +34,51 @@ typedef struct {
     char timestamp[TIMESTAMP_LEN];
 } Common;
 
-/* */
-typedef struct Http{
+/* Struct representing an HTTP header. */
+typedef struct HttpHeader {
+    bstr *name;
+    bstr *value;
+} HttpHeader;
+
+/* Struct representing an Http transactions. Included in variious events. */
+typedef struct HttpInfo {
     /* Transaction id, for correlation with other events */
     uint64_t tx_id;
     /* Hostname */
-    char *hostname;
+    bstr *hostname;
+    /* Method */
+    bstr *http_method;
+    /* Protocol */
+    bstr *protocol;
     /* Port */
     int http_port;
     /* Uri */
-    char *uri;
+    bstr *uri;
     /* User agent */
-    char *user_agent;
+    bstr *user_agent;
     /* Xff header */
-    char *xff;
+    bstr *xff;
     /* Content-Type header */
-    char *content_type;
+    bstr *content_type;
+    /* Redirect (location header) */
+    bstr *redirect;
+    /* Direction */
+    const char *direction;
+    /* Response message length. */
+    uint64_t response_len;
+    /* Response status. */
+    uint64_t status;
+    /* Request headers. */
+    HttpHeader request_headers[MAX_NUM_HTTP_HEADERS];
+    /* Response headers. */
+    HttpHeader response_headers[MAX_NUM_HTTP_HEADERS];
 } HttpInfo;
+
+/* App layer event information included in alerts and fileinfo events. */
+typedef union app_layer {
+    HttpInfo *http;
+    void *nta; /* JsonBuilder object but avoid including rust.h */
+} app_layer;
 
 /* Struct representing an alert event. It will be passed along in the callback. */
 typedef struct AlertEvent {
@@ -69,9 +100,7 @@ typedef struct AlertEvent {
     } alert;
 
     /* App layer event information, if any */
-    union {
-        HttpInfo *http;
-    } app_layer;
+    app_layer app_layer;
 } AlertEvent;
 
 /* Struct representing a fileinfo event. It will be passed along in the callback. */
@@ -80,7 +109,9 @@ typedef struct FileinfoEvent {
 
     struct {
         /* File name */
-        const char *filename;
+        const uint8_t *filename;
+        /* File name len. */
+        uint16_t filename_len;
         /* Magic, if any */
         const char *magic;
         /* If the file has gaps */
@@ -103,12 +134,12 @@ typedef struct FileinfoEvent {
         uint64_t start;
         /* File end */
         uint64_t end;
+        /* Transaction id, for correlation with other events */
+        uint64_t tx_id;
     } fileinfo;
 
     /* App layer event information, if any */
-    union {
-        HttpInfo *http;
-    } app_layer;
+    app_layer app_layer;
 } FileinfoEvent;
 
 /* Struct representing a flow event. It will be passed along in the callback. */

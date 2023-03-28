@@ -10,10 +10,8 @@
 #include "suricata-common.h"
 
 #include "output-callback-file.h"
-
 #include "output.h"
 #include "output-callback.h"
-#include "output-callback-http.h"
 #include "threadvars.h"
 
 #define MODULE_NAME       "CallbackFileLog"
@@ -27,6 +25,17 @@ static TmEcode CallbackFileLogThreadInit(ThreadVars *t, const void *initdata, vo
 
 static TmEcode CallbackFileLogThreadDeinit(ThreadVars *t, void *data) {
     return TM_ECODE_OK;
+}
+
+static OutputInitResult CallbackFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    OutputInitResult result;
+
+    /* Just enable some filestore related features. */
+    FileForceTrackingEnable();
+
+    result.ctx = NULL;
+    result.ok = true;
+    return result;
 }
 
 static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx_id, uint32_t dir,
@@ -46,27 +55,15 @@ static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx
             break;
     }
 
-    EventAddCommonInfo(p, fdir, &event.common);
+    JsonAddrInfo addr = json_addr_info_zero;
+    EventAddCommonInfo(p, fdir, &event.common, &addr);
 
     /* TODO: add app layer metadata */
-    switch (p->flow->alproto) {
-        case ALPROTO_HTTP:
-            ;
-            HttpInfo *http = SCCalloc(1, sizeof(HttpInfo));
-            if (http && CallbackHttpAddMetadata(p->flow, tx_id, http)) {
-                event.app_layer.http = http;
-            }
-            break;
-        default:
-            break;
-    }
+    CallbackAddAppLayer(p, tx_id, &event.app_layer);
 
     /* File info. */
-    char name[ff->name_len + 1];
-
-    memcpy(name, ff->name, ff->name_len);
-    name[ff->name_len] = 0;
-    event.fileinfo.filename = name;
+    event.fileinfo.filename = ff->name;
+    event.fileinfo.filename_len = ff->name_len;
 
 #ifdef HAVE_MAGIC
     if (ff->magic)
@@ -128,13 +125,13 @@ static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx
         event.fileinfo.end = ff->end;
     }
 
-    /* TODO: add tx id? */
+    event.fileinfo.tx_id = tx_id;
 
-    /* Invoke callback and cleanup */
+    /* TODO: add sids?. */
+
+    /* Invoke callback and cleanup. */
     tv->callbacks->fileinfo.func(&event, p->flow->tenant_uuid, tv->callbacks->fileinfo.user_ctx);
-    if (event.app_layer.http) {
-        CallbackHttpCleanupInfo(event.app_layer.http);
-    }
+    CallbackCleanupAppLayer(p, tx_id, &event.app_layer);
 }
 
 static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff,
@@ -158,7 +155,7 @@ static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p
 }
 
 void CallbackFileLogRegister(void) {
-    OutputRegisterFileSubModule(LOGGER_CALLBACK_FILE, "", MODULE_NAME, "", NULL,
+    OutputRegisterFileSubModule(LOGGER_CALLBACK_FILE, "", MODULE_NAME, "", CallbackFileLogInitSub,
                                 CallbackFileLogger, CallbackFileLogThreadInit,
                                 CallbackFileLogThreadDeinit, NULL);
 }

@@ -207,6 +207,7 @@ uint64_t FTPMemcapGlobalCounter(void);
 
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len);
 void EveFTPDataAddMetadata(const Flow *f, JsonBuilder *jb);
+void EveFTPDataAddMetadataDo(const Flow *f, JsonBuilder *jb);
 
 #endif /* __APP_LAYER_FTP_H__ */
 

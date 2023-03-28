@@ -31,39 +31,48 @@ static TmEcode CallbackHttpLogThreadDeinit(ThreadVars *t, void *data) {
     return TM_ECODE_OK;
 }
 
-/* Cleanup all the heap allocated strings in the event. */
-void CallbackHttpCleanupInfo(HttpInfo *http) {
-    if (http->hostname) {
-        SCFree(http->hostname);
-    }
+static OutputInitResult CallbackHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    OutputInitResult result;
 
-    if (http->uri) {
-        SCFree(http->uri);
-    }
+    /* Enable the logger for the app layer */
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
-    if (http->user_agent) {
-        SCFree(http->user_agent);
-    }
+    result.ctx = NULL;
+    result.ok = true;
 
-    if (http->xff) {
-        SCFree(http->xff);
-    }
+    return result;
+}
 
-    if (http->content_type) {
-        SCFree(http->content_type);
+static void CallbackHttpLogHeaders(htp_tx_t *tx, HttpInfo *http, uint32_t direction) {
+    htp_table_t *headers = direction & LOG_HTTP_REQ_HEADERS ? tx->request_headers :
+                                                              tx->response_headers;
+    size_t header_size = htp_table_size(headers);
+    size_t j = 0;
+    size_t n = header_size > MAX_NUM_HTTP_HEADERS ? MAX_NUM_HTTP_HEADERS : header_size;
+    HttpHeader *event_headers = direction == LOG_HTTP_REQ_HEADERS ? http->request_headers :
+                                                              http->response_headers;
+
+    for (size_t i = 0; i < n; i++) {
+        htp_header_t *h = htp_table_get_index(headers, i, NULL);
+
+        if (h == NULL) {
+            continue;
+        }
+
+        event_headers[j].name = h->name;
+        event_headers[j++].value = h->value;
     }
 }
 
-static void CallbackHttpLog(htp_tx_t *tx, HttpInfo *http) {
+static void CallbackHttpLog(htp_tx_t *tx, const char *dir, HttpInfo *http) {
     /* Hostname. */
-    if (tx->request_hostname != NULL) {
-        http->hostname = SCMalloc(bstr_len(tx->request_hostname) + 1 * sizeof(char));
-        if (http->hostname != NULL) {
-            memcpy(http->hostname, bstr_ptr(tx->request_hostname), bstr_len
-            (tx->request_hostname));
-            http->hostname[bstr_len(tx->request_hostname)] = 0;
-        }
-    }
+    http->hostname = tx->request_hostname;
+
+    /* Method. */
+    http->http_method = tx->request_method;
+
+    /* Protocol. */
+    http->protocol = tx->request_protocol;
 
     /* Port. */
     /* NOTE: this field will be set ONLY if the port is present in the
@@ -71,38 +80,22 @@ static void CallbackHttpLog(htp_tx_t *tx, HttpInfo *http) {
      * There is no connection (from the suricata point of view) between this
      * port and the TCP destination port of the flow.
      */
-    if (tx->request_port_number >= 0) {
-        http->http_port = tx->request_port_number;
-    }
+    http->http_port = tx->request_port_number;
 
     /* Uri. */
-    if (tx->request_uri != NULL) {
-        http->uri = SCMalloc(bstr_len(tx->request_uri) + 1 * sizeof(char));
-        if (http->uri != NULL) {
-            memcpy(http->uri, bstr_ptr(tx->request_uri), bstr_len(tx->request_uri));
-            http->uri[bstr_len(tx->request_uri)] = 0;
-        }
-    }
+    http->uri = tx->request_uri;
 
     if (tx->request_headers != NULL) {
         /* User agent. */
         htp_header_t *h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
         if (h_user_agent != NULL) {
-            http->user_agent = SCMalloc(bstr_len(h_user_agent->value) + 1 * sizeof(char));
-            if (http->user_agent != NULL) {
-                memcpy(http->user_agent, bstr_ptr(h_user_agent->value),
-                       bstr_len(h_user_agent->value));
-            }
+            http->user_agent = h_user_agent->value;
         }
 
         /* X-Forwarded-For */
         htp_header_t *h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
-            http->xff = SCMalloc(bstr_len(h_x_forwarded_for->value) + 1 * sizeof(char));
-            if (http->xff != NULL) {
-                memcpy(http->xff, bstr_ptr(h_x_forwarded_for->value),
-                       bstr_len(h_x_forwarded_for->value));
-            }
+            http->xff = h_x_forwarded_for->value;
         }
     }
 
@@ -110,19 +103,36 @@ static void CallbackHttpLog(htp_tx_t *tx, HttpInfo *http) {
         /* Content-Type. */
         htp_header_t *h_content_type = htp_table_get_c(tx->response_headers, "content-type");
         if (h_content_type != NULL) {
-            const size_t size = bstr_len(h_content_type->value) * 2 + 1;
-            http->content_type = SCMalloc(size * sizeof(char));
-            BytesToStringBuffer(bstr_ptr(h_content_type->value), bstr_len(h_content_type->value),
-                                http->content_type, size);
-            char *p = strchr(http->content_type, ';');
-            if (p != NULL)
-                *p = '\0';
+            http->content_type = h_content_type->value;
         }
 
+        /* Redirect. */
+        htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+        if (h_location != NULL) {
+            http->redirect = h_location->value;
+        }
         /* TODO: content-range header? */
     }
 
-    /* TODO: log extra fields, such as headers and body? */
+    /* Direction */
+    http->direction = dir ? dir : "";
+
+    /* Response message len. */
+    http->response_len = tx->response_message_len;
+
+    /* Response status. */
+    if (tx->response_status != NULL) {
+        const size_t status_size = bstr_len(tx->response_status) * 2 + 1;
+        char status_string[status_size];
+        BytesToStringBuffer(bstr_ptr(tx->response_status), bstr_len(tx->response_status),
+                status_string, status_size);
+        unsigned int status = strtoul(status_string, NULL, 10);
+        http->status = status;
+    }
+
+     /* Headers. */
+    CallbackHttpLogHeaders(tx, http, LOG_HTTP_REQ_HEADERS);
+    CallbackHttpLogHeaders(tx, http, LOG_HTTP_RES_HEADERS);
 }
 
 static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
@@ -134,29 +144,35 @@ static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p
     HttpEvent event = {};
     htp_tx_t *tx = txptr;
 
-    EventAddCommonInfo(p, LOG_DIR_FLOW, &event.common);
+    JsonAddrInfo addr= json_addr_info_zero;
+    EventAddCommonInfo(p, LOG_DIR_FLOW, &event.common, &addr);
     event.http.tx_id = tx_id;
 
     /* TODO: Add metadata (flowvars, pktvars)? */
 
-    CallbackHttpLog(tx, &event.http);
+    const char *dir = NULL;
+    if (PKT_IS_TOCLIENT(p)) {
+        dir = LOG_HTTP_DIR_DOWNLOAD;
+    } else {
+        dir = LOG_HTTP_DIR_UPLOAD;
+    }
+    CallbackHttpLog(tx, dir, &event.http);
 
     /* TODO: handle xff? */
 
-    /* Invoke callback and cleanup event */
+    /* Invoke callback. */
     tv->callbacks->http.func(&event, f->tenant_uuid, tv->callbacks->http.user_ctx);
-    CallbackHttpCleanupInfo(&event.http);
 
     return 0;
 }
 
-bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, HttpInfo *http) {
+bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, const char *dir, HttpInfo *http) {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
 
         if (tx) {
-            CallbackHttpLog(tx, http);
+            CallbackHttpLog(tx, dir, http);
             return true;
         }
     }
@@ -165,7 +181,7 @@ bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, HttpInfo *http) {
 }
 
 void CallbackHttpLogRegister(void) {
-    OutputRegisterTxSubModule(LOGGER_CALLBACK_TX, "", MODULE_NAME, "", NULL, ALPROTO_HTTP,
-                              CallbackHttpLogger, CallbackHttpLogThreadInit,
+    OutputRegisterTxSubModule(LOGGER_CALLBACK_TX, "", MODULE_NAME, "", CallbackHttpLogInitSub,
+                              ALPROTO_HTTP, CallbackHttpLogger, CallbackHttpLogThreadInit,
                               CallbackHttpLogThreadDeinit, NULL);
 }

@@ -1,6 +1,8 @@
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
+ *
+ *  Library runmode.
  */
 
 #ifndef __RUNMODE_LIB_H__

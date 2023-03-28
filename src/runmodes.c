@@ -585,7 +585,6 @@ bool IsRunModeOffline(enum RunModes run_mode_to_check)
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:
         case RUNMODE_UNIX_SOCKET:
-        case RUNMODE_LIB:
             return true;
             break;
         default:
@@ -939,7 +938,34 @@ void RunModeInitializeOutputs(void)
             }
         }
     }
+}
 
+void RunModeInitializeCallbacks(uint32_t *callback_ids) {
+    for (int i = 0; i < MAX_CALLBACKS && callback_ids[i]; ++i) {
+        OutputModule *module;
+        TAILQ_FOREACH(module, &output_modules, entries) {
+            if (module->logger_id == callback_ids[i]) {
+                if (module->InitFunc) {
+                    OutputInitResult result = module->InitFunc(NULL);
+                    if (!result.ok) {
+                        SCLogError("Failed to initialize callback module %s", module->name);
+                    }
+                } else if (module->InitSubFunc) {
+                    OutputInitResult result = module->InitSubFunc(NULL, NULL);
+                    if (!result.ok) {
+                        SCLogError("Failed to initialize callback module %s", module->name);
+                    }
+                }
+
+                AddOutputToFreeList(module, NULL);
+                SetupOutput(module->name, module, NULL);
+            }
+        }
+    }
+}
+
+/* Finalize the Output modules (setup logger_bits). */
+ void RunModeFinalizeOutputs(void) {
     /* register the logger bits to the app-layer */
     AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {
@@ -980,18 +1006,6 @@ void RunModeInitializeOutputs(void)
 
     }
     OutputSetupActiveLoggers();
-}
-
-void RunModeInitializeCallbacks(uint32_t *callback_ids) {
-    for (int i = 0; i < MAX_CALLBACKS && callback_ids[i]; ++i) {
-        OutputModule *module;
-        TAILQ_FOREACH(module, &output_modules, entries) {
-            if (module->logger_id == callback_ids[i]) {
-                AddOutputToFreeList(module, NULL);
-                SetupOutput(module->name, module, NULL);
-            }
-        }
-    }
 }
 
 float threading_detect_ratio = 1;

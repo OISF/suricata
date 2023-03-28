@@ -1,6 +1,9 @@
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
+ *
+ *  LIB packet and stream decoding support
+ *
  */
 
 #ifndef __SOURCE_LIB_H__

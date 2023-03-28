@@ -287,6 +287,51 @@ done:
 }
 
 /**
+ * \brief Set a configuration parameter from a sequence (used in library mode).
+ *
+ * The sequence is a comma separated list of values, something like:
+ *    rule-files: file1,file2,file3
+ *
+ * \param name The name of the configuration parameter to set.
+ * \param val  The value of the configuration parameter.
+ *
+ * \retval 1 if the value is set, otherwise 0.
+ */
+int ConfSetFromSequence(const char *name, const char *val)
+{
+    ConfNode *node = ConfGetNodeOrCreate(name, 1);
+    char child_node_name[NODE_NAME_MAX];
+
+    if (node == NULL) {
+        return 0;
+    }
+
+    int seq_idx = 0;
+    char *xsaveptr = NULL;
+
+    char *copy = SCStrdup(val);
+    if (copy == NULL) {
+        ConfNodeFree(node);
+        return 0;
+    }
+
+    char *item = strtok_r(copy, ",", &xsaveptr);
+    while (item != NULL) {
+        /* Build the child name and set a new node for each single value. */
+        snprintf(child_node_name, NODE_NAME_MAX, "%s.%d", name, seq_idx++);
+        ConfSetFinal(child_node_name, item);
+        item = strtok_r(NULL, ",", &xsaveptr);
+    }
+    SCFree((void *)copy);
+
+    /* Set node as final and root of the sequence. */
+    node->is_seq = 1;
+    node->final = 1;
+
+    return 1;
+}
+
+/**
  * \brief Set a final configuration value.
  *
  * A final configuration value is a value that cannot be overridden by
@@ -343,6 +388,50 @@ int ConfGet(const char *name, const char **vptr)
         *vptr = node->val;
         return 1;
     }
+}
+
+/**
+ * \brief Retrieve the value of a configuration node.
+ *
+ * This function will return the value for a configuration node based
+ * on the full name of the node. This function notifies if vptr returns NULL
+ * or if name is set to NULL.
+ *
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 0 will be returned if name was not found,
+ *    1 will be returned if the name and it's value was found,
+ *   -1 if the value returns NULL,
+ *   -2 if name is NULL.
+ */
+int ConfGetValue(const char *name, const char **vptr)
+{
+    ConfNode *node;
+
+    if (name == NULL) {
+        SCLogError("parameter 'name' is NULL");
+        return -2;
+    }
+
+    node = ConfGetNode(name);
+
+    if (node == NULL) {
+        SCLogDebug("failed to lookup configuration parameter '%s'", name);
+        return 0;
+    }
+    else {
+
+        if (node->val == NULL) {
+            SCLogDebug("value for configuration parameter '%s' is NULL", name);
+            return -1;
+        }
+
+        *vptr = node->val;
+        return 1;
+    }
+
 }
 
 int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)

@@ -1,7 +1,3 @@
-/*
- *  Interface to the suricata library.
- */
-
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
@@ -15,56 +11,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "conf-struct-loader.h"
 #include "flow-manager.h"
 #include "runmode-lib.h"
 #include "source-lib.h"
 
+#define SURICATA_PROGNAME "suricata"
 
-/**
- * \brief Utility method to split the config string into the argc/argv format.
- *
- * \param config      Configuration string.
- * \param argv        Parameter that will hold the command line options.
- * \return int        Number of command line options.
- */
-static char **split_config_string(const char *config, int *argc) {
-    char **argv = NULL;
-    int i = 2;
-
-    /* Initialize to 2 to take account of first and last options added separately. */
-    *argc = 2;
-    char *copy = strdup(config);
-    char *xsaveptr = NULL;
-    char *key = strtok_r(copy, ";", &xsaveptr);
-    while (key != NULL) {
-        /* If the option contains a value we increase argc by 2. */
-        strstr(key, "=") != NULL ? *argc += 2 : (*argc)++;
-        key = strtok_r(NULL, ";", &xsaveptr);
-    }
-    free(copy);
-
-    /* Another iteration to store the values in argv. */
-    copy = strdup(config);
-    argv = calloc(*argc + 1, sizeof(char *));
-    argv[0] = (char *) "suricata";
-    argv[1] = (char *) "--lib";
-    xsaveptr = NULL;
-    key = strtok_r(copy, ";", &xsaveptr);
-    while (key != NULL ) {
-        const char *tmp = strstr(key, "=");
-        if (tmp != NULL) {
-            argv[i++] = strndup(key, tmp - key);
-            argv[i++] = strdup(++tmp);
-        } else {
-            argv[i++] = strdup(key);
-        }
-
-        key = strtok_r(NULL, ";", &xsaveptr);
-    }
-    free(copy);
-
-    return argv;
-}
 
 /**
  * \brief Utility method to register the callback id into the suricata instance.
@@ -108,6 +61,14 @@ SuricataCtx *suricata_create_ctx(int n_workers) {
     }
 
     ctx->n_workers = n_workers;
+
+    /* Retrieve default configuration. */
+    ctx->cfg = calloc(1, sizeof(SuricataCfg));
+    if (ctx->cfg == NULL) {
+        fprintf(stderr, "SuricataCfg creation failed");
+        exit(EXIT_FAILURE);
+    }
+    *ctx->cfg = CfgGetDefault();
 
     /* Setup the inner suricata instance. */
     SuricataPreInit("suricata");
@@ -184,6 +145,23 @@ void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHtt
 }
 
 /**
+ * \brief Register a callback that is invoked for every NTA event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_nta_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncNta callback) {
+    SCInstance *suri = GetInstance();
+
+    suri->callbacks.nta.func = callback;
+    suri->callbacks.nta.user_ctx = user_ctx;
+
+    /* Set the callback id into the suricata array to later register the output module. */
+    setCallbackId(LOGGER_CALLBACK_TX);
+}
+
+/**
  * \brief Register a callback that is invoked before a candidate signature is inspected.
  *
  *        Such callback will be able to decide if a signature is relevant or modify its action via
@@ -204,23 +182,46 @@ void suricata_register_sig_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncSig 
 }
 
 /**
+ * \brief Set a configuration option.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param key            The configuration option key.
+ * \param val            The configuration option value.
+ *
+ * \return               1 if set, 0 if not set.
+ */
+int suricata_config_set(SuricataCtx *ctx, const char *key, const char *val) {
+    return CfgSet(ctx->cfg, key, val);
+}
+
+/**
+ * \brief Load configuration from file.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param config_file    ilename of the yaml configuration to load.
+ */
+void suricata_config_load(SuricataCtx *ctx, const char *config_file) {
+    if (config_file && CfgLoadYaml(config_file, ctx->cfg) != 0) {
+        /* Loading the configuration from Yaml failed. */
+        fprintf(stderr, "Failed loading config file: %s", config_file);
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
  * \brief Initialize a Suricata context.
  *
- * \param config      Configuration string.
+ * \param ctx            Pointer to SuricataCtx.
  */
-void suricata_init(const char *config) {
-    /* Convert the config string into the argc/argv format */
-    int i = 2;
-    int argc = 0;
-    char **argv = split_config_string(config, &argc);
+void suricata_init(SuricataCtx *ctx) {
+    /* Set runmode and config in the suricata instance. */
+    SCInstance *suri = GetInstance();
+    suri->run_mode = RUNMODE_LIB;
+    suri->set_logdir = true;
+    suri->cfg = ctx->cfg;
 
-    SuricataInit(argc, argv);
-
-    while(i < argc) {
-        free(argv[i]);
-        i++;
-    }
-    free(argv);
+    /* Invoke engine initialization. */
+    SuricataInit(SURICATA_PROGNAME);
 }
 
 /**
@@ -329,6 +330,9 @@ void suricata_shutdown(SuricataCtx *ctx) {
     EngineDone(); /* needed only in offlne mode ?. */
     SuricataShutdown();
 
+    /* Cleanup the Suricata configuration. */
+    CfgFree(ctx->cfg);
+    free(ctx->cfg);
     pthread_mutex_destroy(&ctx->lock);
     free(ctx);
 

@@ -1,5 +1,8 @@
 /* Preload a PCAP file in memory. */
 
+#ifndef __PRELOAD_H__
+#define __PRELOAD_H__
+
 /* Required otherwise compiler complains of missing types such as u_char. */
 #define _DEFAULT_SOURCE 1
 
@@ -31,3 +34,5 @@ void parse_stream_line(char *line, FlowInfo *finfo, uint32_t *length, char **b64
 
 /* Preload a stream file. */
 int preload_stream(const char *filename, StreamCache **head);
+
+#endif /* __PRELOAD_H__ */

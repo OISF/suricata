@@ -62,36 +62,6 @@ static void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, AlertEve
     }
 }
 
-static void AlertAddAppLayer(const Packet *p, const uint64_t tx_id, AlertEvent *event) {
-    const AppProto proto = FlowGetAppProtocol(p->flow);
-    switch (proto) {
-        case ALPROTO_HTTP:
-            ;
-            HttpInfo *http = SCCalloc(1, sizeof(HttpInfo));
-            if (http && CallbackHttpAddMetadata(p->flow, tx_id, http)) {
-                event->app_layer.http = http;
-            }
-            break;
-        default:
-            break;
-    }
-}
-
-static void AlertCleanupAppLayer(const Packet *p, const uint64_t tx_id, AlertEvent *event) {
-    const AppProto proto = FlowGetAppProtocol(p->flow);
-    switch (proto) {
-        case ALPROTO_HTTP:
-            ;
-            if (event->app_layer.http) {
-                CallbackHttpCleanupInfo(event->app_layer.http);
-                SCFree(event->app_layer.http);
-            }
-            break;
-        default:
-            break;
-    }
-}
-
 static int AlertCallback(ThreadVars *tv, const Packet *p) {
     if (p->alerts.cnt == 0) {
         return TM_ECODE_OK;
@@ -105,7 +75,8 @@ static int AlertCallback(ThreadVars *tv, const Packet *p) {
         }
 
         AlertEvent event = {};
-        EventAddCommonInfo(p, LOG_DIR_PACKET, &event.common);
+        JsonAddrInfo addr = json_addr_info_zero;
+        EventAddCommonInfo(p, LOG_DIR_PACKET, &event.common, &addr);
 
         /* TODO: Add metadata (flowvars, pktvars)? */
 
@@ -115,16 +86,16 @@ static int AlertCallback(ThreadVars *tv, const Packet *p) {
         /* TODO: Add tunnel info? */
 
         if (p->flow != NULL) {
-            AlertAddAppLayer(p, pa->tx_id, &event);
+            CallbackAddAppLayer(p, pa->tx_id, &event.app_layer);
 
             /* TODO: Add file info? */
 
             /* TODO: Add flow info? */
         }
 
-        /* Invoke callback and cleanup */
+        /* Invoke callback and cleanup. */
         tv->callbacks->alert.func(&event, p->flow->tenant_uuid, tv->callbacks->alert.user_ctx);
-        AlertCleanupAppLayer(p, pa->tx_id, &event);
+        CallbackCleanupAppLayer(p, pa->tx_id, &event.app_layer);
     }
 
     return TM_ECODE_OK;

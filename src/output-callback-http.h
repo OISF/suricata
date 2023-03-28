@@ -12,15 +12,14 @@
 
 #define LOG_HTTP_DIR_DOWNLOAD           "download"
 #define LOG_HTTP_DIR_UPLOAD             "upload"
+#define LOG_HTTP_REQ_HEADERS 8
+#define LOG_HTTP_RES_HEADERS 16
 
 #include "flow.h"
-
 
 /* Register the output module. */
 void CallbackHttpLogRegister(void);
 /* Generate a HTTP event. */
-bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, HttpInfo *http);
-/* Cleanup all the heap allocated strings in the event. */
-void CallbackHttpCleanupInfo(HttpInfo *http);
+bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, const char *dir, HttpInfo *http);
 
 #endif /* __OUTPUT_CALLBACK_HTTP_H__ */

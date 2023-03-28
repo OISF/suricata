@@ -45,6 +45,7 @@
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include "conf-struct-loader.h"
 
 #include "decode.h"
 #include "defrag.h"
@@ -70,7 +71,6 @@
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "flow-worker.h"
-
 #include "flow-bit.h"
 #include "host-bit.h"
 #include "ippair-bit.h"
@@ -1398,8 +1398,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
-        {"lib", optional_argument, 0, 0},
-
         {"simulate-packet-flow-memcap", required_argument, 0, 0},
         {"simulate-applayer-error-at-offset-ts", required_argument, 0, 0},
         {"simulate-applayer-error-at-offset-tc", required_argument, 0, 0},
@@ -1806,14 +1804,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                             break;
                         }
                     }
-                }
-            } else if (strcmp((long_opts[option_index]).name , "lib") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_LIB;
-                } else {
-                    SCLogError("more than one run mode has been specified");
-                    PrintUsage(argv[0]);
-                    return TM_ECODE_FAILED;
                 }
             } else {
                 int r = ExceptionSimulationCommandlineParser(
@@ -2262,8 +2252,9 @@ void PreRunInit(const int runmode)
 void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
-    RunModeInitializeCallbacks(suricata.callback_ids);
     RunModeInitializeOutputs();
+    RunModeInitializeCallbacks(suricata.callback_ids);
+    RunModeFinalizeOutputs();
     DatasetsInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {
@@ -2329,7 +2320,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 }
 
 
-static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
+static int StartInternalRunMode(SCInstance *suri, const char *progname)
 {
     /* Treat internal running mode */
     switch(suri->run_mode) {
@@ -2348,7 +2339,7 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             PrintBuildInfo();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_USAGE:
-            PrintUsage(argv[0]);
+            PrintUsage(progname);
             return TM_ECODE_DONE;
         case RUNMODE_LIST_RUNMODES:
             RunModeListRunmodes();
@@ -2384,11 +2375,11 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-static int FinalizeRunMode(SCInstance *suri, char **argv)
+static int FinalizeRunMode(SCInstance *suri, const char *progname)
 {
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
-            PrintUsage(argv[0]);
+            PrintUsage(progname);
             return TM_ECODE_FAILED;
         default:
             break;
@@ -2892,30 +2883,19 @@ int InitGlobal(void)
 
 void SuricataPreInit(const char *progname) {
     SCInstanceInit(&suricata, progname);
-}
 
-int SuricataInit(int argc, char **argv)
-{
     if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
+}
 
-#ifdef OS_WIN32
-    /* service initialization */
-    if (WindowsInitService(argc, argv) != 0) {
-        exit(EXIT_FAILURE);
-    }
-#endif /* OS_WIN32 */
-
-    if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
+int SuricataInit(const char *progname)
+{
+    if (FinalizeRunMode(&suricata, progname) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    if (FinalizeRunMode(&suricata, argv) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    switch (StartInternalRunMode(&suricata, argc, argv)) {
+    switch (StartInternalRunMode(&suricata, progname)) {
         case TM_ECODE_DONE:
             exit(EXIT_SUCCESS);
         case TM_ECODE_FAILED:
@@ -2925,8 +2905,13 @@ int SuricataInit(int argc, char **argv)
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalsInitPreConfig();
 
-    /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
+    /* Load configuration from the config object if provided (library).
+     * Otherwise, load yaml configuration file if provided. */
+    if (suricata.cfg) {
+        if (CfgLoadStruct(suricata.cfg) != TM_ECODE_OK) {
+            exit(EXIT_FAILURE);
+        }
+    } else if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -3072,7 +3057,18 @@ int SuricataMain(int argc, char **argv)
     /* Initialize engine. */
     SuricataPreInit(argv[0]);
 
-    if (SuricataInit(argc, argv) == EXIT_FAILURE) {
+#ifdef OS_WIN32
+    /* service initialization */
+    if (WindowsInitService(argc, argv) != 0) {
+        exit(EXIT_FAILURE);
+    }
+#endif /* OS_WIN32 */
+
+    if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (SuricataInit(argv[0]) == EXIT_FAILURE) {
         GlobalsDestroy(&suricata);
         exit(EXIT_FAILURE);
     }

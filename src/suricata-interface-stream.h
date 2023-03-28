@@ -1,6 +1,8 @@
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
+ *
+ *  Utility structs for library stream support.
  */
 
 #ifndef __SURICATA_INTERFACE_STREAM_H__

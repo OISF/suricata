@@ -1516,6 +1516,7 @@
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
            AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),[enable_non_bundled_htp=$enableval],[enable_non_bundled_htp=no])
+    AM_CONDITIONAL([BUNDLED_HTP], [test "x$enable_non_bundled_htp" = "xno"])
     AS_IF([test "x$enable_non_bundled_htp" = "xyes"], [
         PKG_CHECK_MODULES([libhtp], htp,, [with_pkgconfig_htp=no])
         if test "$with_pkgconfig_htp" != "no"; then

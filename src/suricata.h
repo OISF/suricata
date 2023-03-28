@@ -119,10 +119,13 @@ enum {
 #define IS_SURI_HOST_MODE_ROUTER(host_mode)  ((host_mode) == SURI_HOST_IS_ROUTER)
 
 /* Not sure where to put this.
- * Change this whenever a new callback is added */
-#define MAX_CALLBACKS 4
+ * Change this whenever a new EVE callback is added */
+#define MAX_CALLBACKS 5
 
 #include "runmodes.h"
+
+/* Forward declaration(s). */
+typedef struct SuricataCfg SuricataCfg;
 
 typedef struct SCInstance_ {
     enum RunModes run_mode;
@@ -168,6 +171,8 @@ typedef struct SCInstance_ {
     const char *capture_plugin_name;
     const char *capture_plugin_args;
 
+    /* Configuration struct used to configure the engine when running as a library. */
+    SuricataCfg *cfg;
     /* Set of callbacks that can be invoked for each event. */
     Callbacks callbacks;
     /* Ids of the actual callbacks we want to register. */
@@ -200,8 +205,8 @@ int SuriHasSigFile(void);
 
 extern int run_mode;
 
-void SuricataPreInit(const char *argv);
-int SuricataInit(int argc, char **argv);
+void SuricataPreInit(const char *progname);
+int SuricataInit(const char *progname);
 void SuricataPostInit(void);
 int SuricataMain(int argc, char **argv);
 void SuricataShutdown(void);

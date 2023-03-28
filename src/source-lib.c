@@ -1,12 +1,8 @@
-/*
- *  Interface to the suricata library.
- */
-
 /** \file
  *
  *  \author Angelo Mirabella <mirabellaa@vmware.com>
  *
- *  LIB packet decoding support
+ *  LIB packet and stream decoding support
  *
  */
 

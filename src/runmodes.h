@@ -89,6 +89,7 @@ void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *, int (*
 void RunModeInitialize(void);
 void RunModeInitializeCallbacks(uint32_t *);
 void RunModeInitializeOutputs(void);
+void RunModeFinalizeOutputs(void);
 void RunModeShutDown(void);
 
 /* bool indicating if file logger is enabled */

@@ -55,6 +55,7 @@ noinst_HEADERS = \
 	autoconf.h \
 	build-info.h \
 	conf.h \
+	conf-struct-loader.h \
 	conf-yaml-loader.h \
 	counters.h \
 	datasets.h \
@@ -396,6 +397,7 @@ noinst_HEADERS = \
 	output-callback-file.h \
 	output-callback-flow.h \
 	output-callback-http.h \
+	output-callback-smb.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
 	output-json-bittorrent-dht.h \
@@ -674,6 +676,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
 	conf.c \
+	conf-struct-loader.c \
 	conf-yaml-loader.c \
 	counters.c \
 	datasets.c \
@@ -1008,6 +1011,7 @@ libsuricata_c_a_SOURCES = \
 	output-callback-file.c \
 	output-callback-flow.c \
 	output-callback-http.c \
+	output-callback-smb.c \
 	output-eve-stream.c \
 	output-file.c \
 	output-filedata.c \
@@ -1242,6 +1246,7 @@ include_HEADERS = \
 	runmodes.h \
 	suricata-plugin.h \
 	suricata.h \
+	suricata-common.h \
 	suricata-interface.h \
 	suricata-interface-stream.h
 
