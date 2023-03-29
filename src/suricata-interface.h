@@ -13,6 +13,10 @@
 #include "threadvars.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Forward declaration(s). */
 typedef struct SuricataCfg SuricataCfg;
 
@@ -230,6 +234,10 @@ void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv);
  * \param ctx Pointer to the Suricata context.
  */
 void suricata_shutdown(SuricataCtx *ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SURICATA_INTERFACE_H__ */
 

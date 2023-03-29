@@ -132,7 +132,7 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
 
     /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
     if (!time_set && !TimeModeIsLive()) {
-        TmThreadsInitThreadsTimestamp(&ts);
+        TmThreadsInitThreadsTimestamp(SCTIME_FROM_TIMEVAL(&ts));
         time_set = true;
     }
 
@@ -313,7 +313,7 @@ int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t
 
     /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
     if (!time_set && !TimeModeIsLive()) {
-        TmThreadsInitThreadsTimestamp(&finfo->ts);
+        TmThreadsInitThreadsTimestamp(SCTIME_FROM_TIMEVAL(&finfo->ts));
         time_set = true;
     }
 
