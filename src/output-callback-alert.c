@@ -9,6 +9,7 @@
 
 #include "suricata-common.h"
 
+#include "app-layer-parser.h"
 #include "detect-engine.h"
 #include "output-callback-alert.h"
 
@@ -25,10 +26,11 @@
 
 typedef struct AlertCallbackOutputCtx_ {
     HttpXFFCfg *xff_cfg;
+    OutputCallbackCommonSettings cfg;
 } AlertCallbackOutputCtx;
 
 typedef struct CallbackAlertLogThread_ {
-    AlertCallbackOutputCtx* callback_output_ctx;
+    AlertCallbackOutputCtx *callback_output_ctx;
 } CallbackAlertLogThread;
 
 static TmEcode CallbackAlertLogThreadInit(ThreadVars *t, const void *initdata, void **data) {
@@ -100,20 +102,30 @@ static void AlertCallbackSourceTarget(const Packet *p, const PacketAlert *pa, Al
 void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert,
                          JsonAddrInfo *addr) {
     const char *action = "allowed";
+    const char *action_detail = "none";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
         if (PacketCheckAction(p, ACTION_DROP_REJECT)) {
             action = "blocked";
+
+            if (PacketCheckAction(p, ACTION_DROP)) {
+                action_detail = "drop";
+            } else {
+                action_detail = "reject";
+            }
         }
     } else {
         if (pa->action & ACTION_REJECT_ANY) {
             action = "blocked";
+            action_detail = "drop";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
+            action_detail = "reject";
         }
     }
 
     alert->action = action;
+    alert->action_detail = action_detail;
     alert->sid = pa->s->id;
     alert->gid = pa->s->gid;
     alert->rev = pa->s->rev;
@@ -153,7 +165,7 @@ static int AlertCallback(ThreadVars *tv, CallbackAlertLogThread *aft, const Pack
             .alert.tx_id = -1
         };
         JsonAddrInfo addr = json_addr_info_zero;
-        EventAddCommonInfo(p, LOG_DIR_PACKET, &event.common, &addr);
+        EventAddCommonInfo(p, LOG_DIR_PACKET, &event.common, &addr, &callback_output_ctx->cfg);
 
         /* TODO: Add metadata (flowvars, pktvars)? */
 
@@ -271,6 +283,7 @@ static void CallbackAlertLogDeInitCtxSub(OutputCtx *output_ctx) {
 
 static OutputInitResult CallbackAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
     AlertCallbackOutputCtx *callback_output_ctx = NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
@@ -300,6 +313,7 @@ static OutputInitResult CallbackAlertLogInitCtxSub(ConfNode *conf, OutputCtx *pa
         }
     }
 
+    callback_output_ctx->cfg = occ->cfg;
     output_ctx->data = callback_output_ctx;
     output_ctx->DeInit = CallbackAlertLogDeInitCtxSub;
 

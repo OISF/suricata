@@ -13,6 +13,21 @@
 #include "rust.h"
 #include "util-debug.h"
 
+
+/* Utility function to format a MAC address into a JSON string. */
+static void macToJson(JsonBuilder *jb, const char *key, const uint8_t *val, bool is_array) {
+    char mac_addr[18];
+
+    snprintf(mac_addr, 18, "%02x:%02x:%02x:%02x:%02x:%02x", val[0], val[1], val[2], val[3], val[4],
+             val[5]);
+
+    if (is_array) {
+        jb_append_string(jb, mac_addr);
+    } else {
+        jb_set_string(jb, key, mac_addr);
+    }
+}
+
 /* Log common information. */
 static void logCommon(JsonBuilder *jb, Common *common) {
     jb_set_string(jb, "timestamp", common->timestamp);
@@ -27,6 +42,41 @@ static void logCommon(JsonBuilder *jb, Common *common) {
 
     if (common->dev) {
         jb_set_string(jb, "in_iface", common->dev);
+    }
+
+    if (common->ether.src_mac || common->ether.dst_mac || common->ether.src_macs[0] ||
+        common->ether.dst_macs[0]) {
+        jb_open_object(jb, "ether");
+
+        if (common->ether.src_mac) {
+            macToJson(jb, "src_mac", common->ether.src_mac, false);
+        }
+
+        if (common->ether.dst_mac) {
+            macToJson(jb, "dest_mac", common->ether.dst_mac, false);
+        }
+
+        if (common->ether.src_macs[0]) {
+            jb_open_array(jb, "src_macs");
+
+            for (int i = 0; i < 10 && common->ether.src_macs[i]; i++) {
+                macToJson(jb, NULL, common->ether.src_macs[i], true);
+            }
+
+            jb_close(jb);
+        }
+
+        if (common->ether.dst_macs[0]) {
+            jb_open_array(jb, "dest_macs");
+
+            for (int i = 0; i < 10 && common->ether.dst_macs[i]; i++) {
+                macToJson(jb, NULL, common->ether.dst_macs[i], true);
+            }
+
+            jb_close(jb);
+        }
+
+        jb_close(jb);
     }
 
     if (common->vlan_id[0]) {

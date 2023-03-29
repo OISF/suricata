@@ -6,6 +6,7 @@
  * Generate DNS events and invoke corresponding callback (NTA).
  *
  */
+#include "output-callback.h"
 #include "output-callback-dns.h"
 #include "suricata-common.h"
 #include "app-layer-parser.h"
@@ -211,6 +212,7 @@ static struct {
 
 typedef struct CallbackDnsCtx {
     uint64_t flags; /** Store mode */
+    OutputCallbackCommonSettings cfg;
 } CallbackDnsCtx;
 
 typedef struct CallbackDnsLogThread {
@@ -231,6 +233,7 @@ static int CallbackDnsLoggerToServer(ThreadVars *tv, void *thread_data, const Pa
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
+        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
         jb_open_object(jb, "dns");
         if (!rs_dns_log_json_query(txptr, i, dnslog_ctx->flags, jb)) {
@@ -373,12 +376,15 @@ static void CallbackDnsLogDeInitCtxSub(OutputCtx *output_ctx) {
 
 static OutputInitResult CallbackDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
 
     CallbackDnsCtx *dnslog_ctx = SCMalloc(sizeof(CallbackDnsCtx));
     if (unlikely(dnslog_ctx == NULL)) {
         return result;
     }
+
     memset(dnslog_ctx, 0x00, sizeof(CallbackDnsCtx));
+    dnslog_ctx->cfg = occ->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {

@@ -158,6 +158,20 @@ void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback) {
 }
 
 /**
+ * \brief Register a callback that is invoked for every Reject event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_reject_cb(SuricataCtx *ctx, CallbackFuncReject callback) {
+    SCInstance *suri = GetInstance();
+    suri->callbacks.reject = callback;
+
+    /* Enable callback in the config. */
+    CfgSet(ctx->cfg, "outputs.callback.reject.enabled", "yes");
+}
+
+/**
  * \brief Register a callback that is invoked for each signature that failed to load.
  *
  * \param ctx            Pointer to SuricataCtx.

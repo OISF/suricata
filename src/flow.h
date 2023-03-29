@@ -113,6 +113,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** All packets in this flow should be passed */
 #define FLOW_ACTION_PASS BIT_U32(28)
 
+/** All packets in this flow should be rejected */
+#define FLOW_ACTION_REJECT              BIT_U32(29)
+#define FLOW_ACTION_IS_REJECT(f) \
+    (((f)->flags & FLOW_ACTION_REJECT) == FLOW_ACTION_REJECT)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0

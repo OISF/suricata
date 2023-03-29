@@ -19,6 +19,8 @@ void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ct
 /* Callback invoked for each NTA event. */
 void callbackNta(void *data, size_t len, const char *event_type, uint64_t *tenant_uuid,
                  void *user_ctx);
+/* Callback invoked for each Suricata Reject event. */
+void callbackReject(RejectEvent *event, uint64_t *tenant_uuid, void *user_ctx);
 /* Callback invoked for each signature that fails to load. */
 void callbackSigFailedLoading(const char *signature, const char *signature_file, int line_number,
                               void *user_ctx);

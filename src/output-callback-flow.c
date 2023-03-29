@@ -23,14 +23,75 @@
 
 #define MODULE_NAME "CallbackFlowLog"
 
+typedef struct CallbackFlowCtx {
+    OutputCallbackCommonSettings cfg;
+} CallbackFlowCtx;
+
+typedef struct CallbackFlowLogThread {
+    CallbackFlowCtx *flowlog_ctx;
+} CallbackFlowLogThread;
+
+
+static void CallbackFlowDeinitSub(OutputCtx *output_ctx) {
+    CallbackFlowCtx *flow_ctx = output_ctx->data;
+
+    SCFree(flow_ctx);
+    SCFree(output_ctx);
+}
+
+static OutputInitResult CallbackFlowInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    OutputInitResult result = {NULL, false};
+    OutputCallbackCtx *occ = parent_ctx->data;
+
+    CallbackFlowCtx *flow_ctx = SCCalloc(1, sizeof(CallbackFlowCtx));
+    if (unlikely(flow_ctx == NULL)) {
+        return result;
+    }
+    flow_ctx->cfg = occ->cfg;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(flow_ctx);
+        return result;
+    }
+
+    output_ctx->data = flow_ctx;
+    output_ctx->DeInit = CallbackFlowDeinitSub;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
+}
 
 /* Mock ThreadInit/DeInit methods.
  * Callbacks do not store any per-thread information. */
 static TmEcode CallbackFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data) {
+    CallbackFlowLogThread *aft = SCCalloc(1, sizeof(CallbackFlowLogThread));
+    if (unlikely(aft == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for CallbackFlowLog. \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    aft->flowlog_ctx = ((OutputCtx *)initdata)->data;
+    *data = (void *)aft;
     return TM_ECODE_OK;
 }
 
 static TmEcode CallbackFlowLogThreadDeinit(ThreadVars *t, void *data) {
+    CallbackFlowLogThread *aft = (CallbackFlowLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    /* clear memory */
+    memset(aft, 0, sizeof(CallbackFlowLogThread));
+
+    SCFree(aft);
     return TM_ECODE_OK;
 }
 
@@ -121,6 +182,9 @@ void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
 }
 
 static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {
+    CallbackFlowLogThread *aft = (CallbackFlowLogThread *)thread_data;
+    CallbackFlowCtx *ctx = aft->flowlog_ctx;
+
     if (!tv->callbacks->flow) {
         return 0;
     }
@@ -128,7 +192,7 @@ static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {
     FlowEvent event = {};
     JsonAddrInfo addr = json_addr_info_zero;
 
-    EventAddCommonInfoFromFlow(f, &event.common, &addr);
+    EventAddCommonInfoFromFlow(f, &event.common, &addr, &ctx->cfg);
     CallbackFlowLog(f, &event.flow);
 
     /* Invoke callback. */
@@ -139,6 +203,6 @@ static int CallbackFlowLogger(ThreadVars *tv, void *thread_data, Flow *f) {
 
 void CallbackFlowLogRegister(void) {
     OutputRegisterFlowSubModule(LOGGER_CALLBACK_FLOW, "callback", MODULE_NAME, "callback.flow",
-                                NULL, CallbackFlowLogger, CallbackFlowLogThreadInit,
-                                CallbackFlowLogThreadDeinit, NULL);
+                                CallbackFlowInitSub, CallbackFlowLogger,
+                                CallbackFlowLogThreadInit, CallbackFlowLogThreadDeinit, NULL);
 }

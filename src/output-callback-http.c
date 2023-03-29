@@ -28,6 +28,7 @@ typedef struct LogHttpCtx {
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
     HttpXFFCfg *xff_cfg;
+    OutputCallbackCommonSettings cfg;
 } LogHttpCtx;
 
 typedef struct CallbackHttpLogThread {
@@ -71,6 +72,7 @@ static void CallbackHttpLogDeinitSub(OutputCtx *output_ctx) {
 
 static OutputInitResult CallbackHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
 
     LogHttpCtx *http_ctx = SCCalloc(1, sizeof(LogHttpCtx));
     if (unlikely(http_ctx == NULL)) {
@@ -78,6 +80,7 @@ static OutputInitResult CallbackHttpLogInitSub(ConfNode *conf, OutputCtx *parent
     }
     memset(http_ctx, 0x00, sizeof(*http_ctx));
     http_ctx->flags = LOG_HTTP_DEFAULT;
+    http_ctx->cfg = occ->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -277,9 +280,11 @@ static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p
     HttpEvent event = {};
     htp_tx_t *tx = txptr;
     CallbackHttpLogThread *chl = (CallbackHttpLogThread *)thread_data;
+    LogHttpCtx *ctx = chl->httplog_ctx;
+
 
     JsonAddrInfo addr= json_addr_info_zero;
-    EventAddCommonInfo(p, LOG_DIR_FLOW, &event.common, &addr);
+    EventAddCommonInfo(p, LOG_DIR_FLOW, &event.common, &addr, &ctx->cfg);
     event.http.tx_id = tx_id;
 
     /* TODO: Add metadata (flowvars, pktvars)? */

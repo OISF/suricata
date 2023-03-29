@@ -157,6 +157,7 @@
     CFG_ENTRY(outputs0content_snip0pool_size_prealloc)                                             \
     CFG_ENTRY(outputs0content_snip0pool_size_max)                                                  \
     CFG_ENTRY(outputs0callback0enabled)                                                            \
+    CFG_ENTRY(outputs0callback0ethernet)                                                           \
     CFG_ENTRY(outputs0callback0alert0enabled)                                                      \
     CFG_ENTRY(outputs0callback0alert0xff0enabled)                                                  \
     CFG_ENTRY(outputs0callback0alert0xff0mode)                                                     \
@@ -186,6 +187,7 @@
     CFG_ENTRY(outputs0callback0nta0tls)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
+    CFG_ENTRY(outputs0callback0reject0enabled)                                                     \
     CFG_ENTRY(outputs0callback0stats0enabled)                                                      \
     CFG_ENTRY(outputs0callback0stats0totals)                                                       \
     CFG_ENTRY(outputs0callback0stats0threads)                                                      \

@@ -344,6 +344,14 @@ static inline void FlowApplySignatureActions(
                     p->pcap_cnt, s->id, s->action, pa->flags);
         }
     }
+
+    /* Apply action to the flow for prevent action callback. */
+    if (s->action & ACTION_PREVENT && p->flow) {
+        p->flow->flags |= s->action & ACTION_REJECT_ANY ? FLOW_ACTION_REJECT :
+                                                            FLOW_ACTION_DROP;
+        p->flow->flags |= FLOW_NOPACKET_INSPECTION;
+    }
+
 }
 
 /**

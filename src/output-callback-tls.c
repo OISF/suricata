@@ -6,7 +6,7 @@
  * Generate TLS events and invoke corresponding callback (NTA).
  *
  */
-
+#include "output-callback.h"
 #include "output-callback-tls.h"
 #include "suricata-common.h"
 #include "app-layer.h"
@@ -40,7 +40,7 @@ static int CallbackTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_OK;
     }
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL, NULL);
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL, tls_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
@@ -107,10 +107,23 @@ static TmEcode CallbackTlsLogThreadDeinit(ThreadVars *t, void *data) {
     return TM_ECODE_OK;
 }
 
+static void OutputCallbackTlsLogDeinitSub(OutputCtx *output_ctx) {
+    OutputTlsCtx *tls_ctx = output_ctx->data;
+    SCFree(tls_ctx->eve_ctx);
+    SCFree(tls_ctx);
+    SCFree(output_ctx);
+}
+
 static OutputInitResult CallbackTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
 
     OutputTlsCtx *tls_ctx = OutputTlsInitCtx(conf);
+    if (unlikely(tls_ctx == NULL)) {
+        return result;
+    }
+
+    tls_ctx->eve_ctx = SCMalloc(sizeof(OutputJsonCtx));
     if (unlikely(tls_ctx == NULL)) {
         return result;
     }
@@ -127,8 +140,9 @@ static OutputInitResult CallbackTlsLogInitSub(ConfNode *conf, OutputCtx *parent_
                      "at a time");
     }
 
+    tls_ctx->eve_ctx->cfg = occ->cfg;
     output_ctx->data = tls_ctx;
-    output_ctx->DeInit = OutputTlsLogDeinitSub;
+    output_ctx->DeInit = OutputCallbackTlsLogDeinitSub;
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 

@@ -538,8 +538,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
 
-    /* handle TCP and app layer */
-    if (p->flow && PKT_IS_TCP(p) && !PKT_IS_STREAM_SEG(p)) {
+    /* Check if the packet belongs to a flow marked as reject. */
+    if (p->flow && FLOW_ACTION_IS_REJECT(p->flow)) {
+        /* Mark packet to skip inspection. */
+        p->flags |= PKT_NOPACKET_INSPECTION;
+
+        /* handle TCP and app layer */
+    } else if (p->flow && PKT_IS_TCP(p) && !PKT_IS_STREAM_SEG(p)) {
         SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
@@ -554,11 +559,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
         FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
 
-        /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && PKT_IS_TCP(p) && PKT_IS_STREAM_SEG(p)) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
         AppLayerHandleTCPReassembledStream(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+        /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && p->proto == IPPROTO_UDP) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
         AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);

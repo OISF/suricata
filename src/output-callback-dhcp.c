@@ -6,6 +6,7 @@
  * Generate DHCP events and invoke corresponding callback (NTA).
  *
  */
+#include "output-callback.h"
 #include "output-callback-dhcp.h"
 #include "suricata-common.h"
 #include "app-layer-parser.h"
@@ -17,6 +18,7 @@
 typedef struct CallbackDHCPCtx {
     uint32_t flags;
     void  *rs_logger;
+    OutputCallbackCommonSettings cfg;
 } CallbackDHCPCtx;
 
 typedef struct CallbackDHCPLogThread {
@@ -59,17 +61,20 @@ static void OutputDHCPCallbackDeInitCtxSub(OutputCtx *output_ctx) {
 
 static OutputInitResult CallbackDHCPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
 
     CallbackDHCPCtx *dhcplog_ctx = SCCalloc(1, sizeof(*dhcplog_ctx));
     if (unlikely(dhcplog_ctx == NULL)) {
         return result;
     }
+    dhcplog_ctx->cfg = occ->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(dhcplog_ctx);
         return result;
     }
+
     output_ctx->data = dhcplog_ctx;
     output_ctx->DeInit = OutputDHCPCallbackDeInitCtxSub;
 
@@ -100,6 +105,7 @@ static int CallbackDHCPLogger(ThreadVars *tv, void *thread_data, const Packet *p
         return TM_ECODE_FAILED;
     }
 
+    EveAddCommonOptions(&ctx->cfg, p, f, jb);
     rs_dhcp_logger_log(ctx->rs_logger, tx, jb);
 
     /* Close log line. */

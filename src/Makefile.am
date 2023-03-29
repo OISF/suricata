@@ -397,6 +397,7 @@ noinst_HEADERS = \
 	output-callback-http.h \
 	output-callback-krb5.h \
 	output-callback-rdp.h \
+	output-callback-reject.h \
 	output-callback-smb.h \
 	output-callback-stats.h \
 	output-callback-tls.h \
@@ -988,6 +989,7 @@ libsuricata_la_SOURCES = \
 	output-callback-http.c \
 	output-callback-krb5.c \
 	output-callback-rdp.c \
+	output-callback-reject.c \
 	output-callback-smb.c \
 	output-callback-stats.c \
 	output-callback-tls.c \

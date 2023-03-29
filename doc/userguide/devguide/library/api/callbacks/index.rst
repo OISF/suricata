@@ -20,6 +20,7 @@ The currently supported events are described in detail in the following sections
    flowsnip
    http
    nta
+   reject
    signature
    stats
    log

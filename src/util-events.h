@@ -17,6 +17,17 @@
 
 /* Struct representing fields common to all callbacks (5-tuple, timestamp...). */
 typedef struct {
+    /* Struct holding ethernet MAC addresses (flows/netflows allow for multiple entries) */
+    struct {
+        /* Packet source MAC */
+        const uint8_t *src_mac;
+        /* Packet dest MAC */
+        const uint8_t *dst_mac;
+        /* Packet source MAC list (max size is hardcoded by suricata) */
+        const uint8_t *src_macs[10];
+        /* Packet dest MAC list (max size is hardcoded by suricata) */
+        const uint8_t *dst_macs[10];
+    } ether;
     /* Packet source IP */
     const char *src_ip;
     /* Packet dest IP */
@@ -116,10 +127,47 @@ typedef struct IpPort {
     uint16_t port;
 } IpPort;
 
+/* Reject information included in reject events. */
+typedef struct RejectInfo {
+    /* Indicates whether the packet is IPv6. */
+    bool pkt_is_ipv6;
+    /* TCP info. */
+    struct {
+        /* Payload length. */
+        uint16_t payload_len;
+        /* Packet sequence number. */
+        uint32_t seq;
+        /* Packet ACK number. */
+        uint32_t ack;
+        /* Window. */
+        uint16_t win;
+    } tcp;
+    /* ICMP info. */
+    struct {
+        /* Payload (IP header + at most first 8 bytes of IP payload). */
+        uint8_t *payload;
+        /* Payload length. */
+        uint16_t payload_len;
+    } icmp;
+    /* DNS info. */
+    struct {
+        /* Transaction id. */
+        uint16_t query_tx_id;
+        /* Query rrtype. */
+        uint16_t query_rrtype;
+        /* Query rrname. */
+        const uint8_t *query_rrname;
+        /* Query rrname length. */
+        uint32_t query_rrname_len;
+    } dns;
+} RejectInfo;
+
 /* Struct representing a single alert. */
-typedef struct Alert{
+typedef struct Alert {
     /* Action for this alert */
     const char *action;
+    /* Detailed action in case of reject/drop. */
+    const char *action_detail;
     /* Signature relevant fields */
     uint32_t sid;
     uint32_t gid;
@@ -265,5 +313,11 @@ typedef struct HttpEvent {
     Common common;
     HttpInfo http;
 } HttpEvent;
+
+/* Struct representing a Reject event. It will be passed along in the callback. */
+typedef struct RejectEvent {
+    Common common;
+    RejectInfo reject;
+} RejectEvent;
 
 #endif /* __UTIL_EVENTS_H__ */

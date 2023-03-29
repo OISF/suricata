@@ -75,5 +75,4 @@ void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
 void JsonTlsLogJSONExtended(JsonBuilder *js, SSLState *ssl_state);
 void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js, SSLState *ssl_state);
 OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf);
-void OutputTlsLogDeinitSub(OutputCtx *output_ctx);
 #endif /* __OUTPUT_JSON_TLS_H__ */

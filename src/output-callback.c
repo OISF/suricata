@@ -10,6 +10,7 @@
 #include "suricata-common.h"
 #include "app-layer-ftp.h"
 #include "app-layer-parser.h"
+#include "flow-storage.h"
 #include "output-callback.h"
 #include "output-callback-http.h"
 #include "output-json-alert.h"
@@ -19,6 +20,7 @@
 #include "app-layer-protos.h"
 #include "rust.h"
 #include "util-device.h"
+#include "util-macset.h"
 #include "util-print.h"
 #include "util-proto-name.h"
 
@@ -42,9 +44,60 @@ static void EventFlowAddAppProto(const Flow *f, Common *common) {
     }
 }
 
+static int MacSetAppendAddress(uint8_t *val, MacSetSide side, void *data) {
+    Common *common = (Common *) data;
+
+    if (side == MAC_SET_DST) {
+        int i;
+
+        for (i = 0; i < 9 && common->ether.dst_macs[i]; i++);
+        common->ether.dst_macs[i] = val;
+    } else if (side == MAC_SET_SRC){
+        int i;
+
+        for (i = 0; i < 9 && common->ether.src_macs[i]; i++);
+        common->ether.src_macs[i] = val;
+    }
+
+    return 0;
+}
+
+static void CreateCallbackEther(Common *common, const Packet *p, const Flow *f) {
+    if (p == NULL) {
+        MacSet *ms = NULL;
+
+        /* Ensure we have a flow */
+        if (unlikely(f == NULL)) {
+            return;
+        }
+
+        ms = FlowGetStorageById((Flow *)f, MacSetGetFlowStorageID());
+        if (ms != NULL && MacSetSize(ms) > 0) {
+            MacSetForEach(ms, MacSetAppendAddress, common);
+        }
+    } else {
+        /* This is a packet context, so we need to add scalar fields */
+        if (p->ethh != NULL) {
+            /* Notice: the behavior is different from the EVE JSON logger. Here we don't swap the
+             * MAC addresses based on the packet direction. */
+            common->ether.src_mac = p->ethh->eth_src;
+            common->ether.dst_mac = p->ethh->eth_dst;
+        }
+    }
+}
+
+static void EventAddExtraCommonInfo(const OutputJsonCommonSettings *cfg, const Packet *p,
+                                    const Flow *f, Common *common) {
+    /* TODO: Add metadata/community flow id? */
+
+    if (cfg->include_ethernet) {
+        CreateCallbackEther(common, p, f);
+    }
+}
+
 /* Add information common to all events. */
 void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common *common,
-                        JsonAddrInfo *addr) {
+                        JsonAddrInfo *addr, OutputCallbackCommonSettings *cfg) {
 
     /* First initialize the address info (5-tuple). */
     JsonAddrInfoInit(p, dir, addr);
@@ -125,10 +178,14 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     if (f != NULL) {
         EventFlowAddAppProto(f, common);
     }
+
+    /* Extra options. */
+    EventAddExtraCommonInfo(cfg, p, NULL, common);
 }
 
 /* Add common information from a flow object. */
-void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *addr) {
+void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *addr,
+                                OutputCallbackCommonSettings *cfg) {
     /* First initialize the address info (5-tuple). */
     JsonAddrInfoInitFlow(f, addr);
     common->src_ip = addr->src_ip;
@@ -178,6 +235,9 @@ void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *add
     if (f->alproto) {
         EventFlowAddAppProto(f, common);
     }
+
+    /* Extra options. */
+    EventAddExtraCommonInfo(cfg, NULL, f, common);
 }
 
 /* Add app layer information (alert and fileinfo). */
@@ -303,6 +363,9 @@ void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *ap
 }
 
 static void OutputCallbackDeInitCtx(OutputCtx *output_ctx) {
+    OutputCallbackCtx *callback_ctx = (OutputCallbackCtx *)output_ctx->data;
+
+    SCFree(callback_ctx);
     SCFree(output_ctx);
 }
 
@@ -314,12 +377,31 @@ static void OutputCallbackDeInitCtx(OutputCtx *output_ctx) {
  */
 static OutputInitResult OutputCallbackInitCtx(ConfNode *conf) {
     OutputInitResult result = { NULL, false };
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
 
-    if (unlikely(output_ctx == NULL)) {
+    OutputCallbackCtx *callback_ctx = SCCalloc(1, sizeof(OutputCallbackCtx));
+    if (unlikely(callback_ctx == NULL)) {
+        SCLogDebug("could not create new OutputCallbackCtx");
         return result;
     }
 
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(callback_ctx);
+        return result;
+    }
+
+    if (conf) {
+        /* Check if ethernet information should be logged. */
+        const ConfNode *ethernet = ConfNodeLookupChild(conf, "ethernet");
+        if (ethernet && ethernet->val && ConfValIsTrue(ethernet->val)) {
+            SCLogConfig("Enabling Ethernet MAC address logging.");
+            callback_ctx->cfg.include_ethernet = true;
+        } else {
+            callback_ctx->cfg.include_ethernet = false;
+        }
+    }
+
+    output_ctx->data = callback_ctx;
     output_ctx->DeInit = OutputCallbackDeInitCtx;
     result.ctx = output_ctx;
     result.ok = true;

@@ -587,7 +587,7 @@ OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
+static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
 {
     OutputTlsCtx *tls_ctx = output_ctx->data;
     SCFree(tls_ctx);

@@ -19,6 +19,7 @@
 
 typedef struct LogFileInfoCtx {
     uint8_t stored_only;
+    OutputCallbackCommonSettings cfg;
 } LogFileInfoCtx;
 
 typedef struct CallbackFileInfoLogThread {
@@ -64,11 +65,13 @@ static void CallbackFileLogDeinitSub(OutputCtx *output_ctx) {
 
 static OutputInitResult CallbackFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
     OutputInitResult result = { NULL, false };
+    OutputCallbackCtx *occ = parent_ctx->data;
 
     LogFileInfoCtx *fileinfo_ctx = SCCalloc(1, sizeof(LogFileInfoCtx));
     if (unlikely(fileinfo_ctx == NULL)) {
         return result;
     }
+    fileinfo_ctx->cfg = occ->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -103,7 +106,7 @@ static OutputInitResult CallbackFileLogInitSub(ConfNode *conf, OutputCtx *parent
 }
 
 static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx_id, uint32_t dir,
-                              ThreadVars *tv) {
+                              LogFileInfoCtx *ctx, ThreadVars *tv) {
     /* TODO: add xff info? */
     FileinfoEvent event = {};
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
@@ -120,7 +123,7 @@ static void FileGenerateEvent(const Packet *p, const File *ff, const uint64_t tx
     }
 
     JsonAddrInfo addr = json_addr_info_zero;
-    EventAddCommonInfo(p, fdir, &event.common, &addr);
+    EventAddCommonInfo(p, fdir, &event.common, &addr, &ctx->cfg);
 
     /* TODO: add app layer metadata */
     CallbackAddAppLayer(p, tx_id, &event.app_layer);
@@ -209,18 +212,18 @@ static int CallbackFileLogger(ThreadVars *tv, void *thread_data, const Packet *p
                               void *tx, const uint64_t tx_id, uint8_t dir) {
     BUG_ON(ff->flags & FILE_LOGGED);
     CallbackFileInfoLogThread *aft = (CallbackFileInfoLogThread *)thread_data;
+    LogFileInfoCtx *ctx = aft->fileinfo_ctx;
 
     if (!tv->callbacks->fileinfo) {
         return 0;
     }
 
-    if (aft->fileinfo_ctx->stored_only && (ff->flags & FILE_STORED) == 0) {
+    if (ctx->stored_only && (ff->flags & FILE_STORED) == 0) {
         SCLogDebug("Not dumping information because file is not stored");
         return 0;
     }
 
-    FileGenerateEvent(p, ff, tx_id, dir, tv);
-
+    FileGenerateEvent(p, ff, tx_id, dir, ctx, tv);
     return 0;
 }
 

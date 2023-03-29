@@ -81,6 +81,12 @@ typedef void (CallbackFuncLog)(
     const char *message
 );
 
+typedef void (CallbackFuncReject)(
+    RejectEvent *reject_event,
+    uint64_t *tenant_uuid,
+    void *user_ctx
+);
+
 /* Callback struct. */
 typedef struct {
     CallbackFuncAlert *alert;
@@ -92,6 +98,7 @@ typedef struct {
     CallbackSigFailedLoading sig_failed_loading;
     CallbackFuncSigCandidate *sig_candidate;
     CallbackFuncLog *log;
+    CallbackFuncReject *reject;
 } Callbacks;
 
 #endif /* __UTIL_CALLBACKS_H__ */

@@ -778,7 +778,8 @@ static void RunModeInitializeCallbackOutput(ConfNode *conf, OutputCtx *parent_ct
 
     ConfNode *node = NULL;
     TAILQ_FOREACH(node, &conf->head, next) {
-        if (strncmp(node->name, "enabled", 7) == 0 || strncmp(node->name, "nta", 3) == 0) {
+        if (strncmp(node->name, "enabled", 7) == 0 || strncmp(node->name, "nta", 3) == 0 ||
+            strncmp(node->name, "ethernet", 8) == 0) {
             continue;
         }
 
