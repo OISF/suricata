@@ -42,7 +42,7 @@ http.accept                    http_accept (*)          Request
 http.accept_lang               http_accept_lang (*)     Request
 http.accept_enc                http_accept_enc (*)      Request
 http.referer                   http_referer (*)         Request
-http.connection                http_connection (*)      Request
+http.connection                http_connection (*)      Both
 file.data                      file_data (*)            Both
 http.content_type              http_content_type (*)    Both
 http.content_len               http_content_len (*)     Both
