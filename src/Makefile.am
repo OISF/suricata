@@ -1315,7 +1315,11 @@ EXTRA_DIST = \
 	tests/stream-tcp.c
 
 libsuricata_la_LDFLAGS = -release $(VERSION)
-libsuricata_la_LIBADD = $(HTP_LDADD) $(RUST_LDADD) $(RUST_SURICATA_LIB) -lm
+libsuricata_la_LIBADD = $(HTP_LDADD) $(RUST_LDADD) -lm
+
+if BUILD_SHARED_LIBRARY
+libsuricata_la_LIBADD += $(RUST_SURICATA_LIB)
+endif
 
 install-headers:
 	mkdir -p $(DESTDIR)${includedir}/suricata
