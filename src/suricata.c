@@ -2554,6 +2554,10 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCReturnInt(TM_ECODE_FAILED);
     }
 #endif
+    /* set engine mode if L2 IPS */
+    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
 
     /* load the pattern matchers */
     MpmTableSetup();
@@ -2720,11 +2724,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     DecodeGlobalConfig();
 
     LiveDeviceFinalize();
-
-    /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
