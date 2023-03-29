@@ -144,7 +144,10 @@
     CFG_ENTRY(host0hash_size)                                                                      \
     CFG_ENTRY(host0prealloc)                                                                       \
     CFG_ENTRY(logging0default_log_level)                                                           \
-    CFG_ENTRY(logging0outputs030callback0enabled)                                                  \
+    CFG_ENTRY(logging0outputs0console0enabled)                                                     \
+    CFG_ENTRY(logging0outputs0file0enabled)                                                        \
+    CFG_ENTRY(logging0outputs0file0filename)                                                       \
+    CFG_ENTRY(logging0outputs0callback0enabled)                                                    \
     CFG_ENTRY(luajit0states)                                                                       \
     CFG_ENTRY(outputs0content_snip0enabled)                                                        \
     CFG_ENTRY(outputs0content_snip0dir)                                                            \

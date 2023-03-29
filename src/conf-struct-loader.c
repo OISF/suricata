@@ -31,10 +31,21 @@ typedef struct OutputModulesIdx {
     int lua;
 } OutputModulesIdx;
 
+/* Logging modules indices */
+typedef struct LoggingModulesIdx {
+    int invalid;
+    int console;
+    int file;
+    int callback;
+} LoggingModulesIdx;
+
 /* Default output modules indices.
  * These can change if we load a yaml file and we need to make sure we avoid ending up with
    overlapping indices. */
 static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9, 12};
+
+/* Default logging modules indices. */
+static LoggingModulesIdx default_logging_modules_idx = {-1, 0, 1, 2};
 
 /** \brief Mangle a SuricataCfg field into the format of the Configuration tree.
   *        This means replacing '_' characters with '-' and '0' with '.'.
@@ -104,6 +115,37 @@ static const char *mangleCfgField(const char *field) {
         }
 
         snprintf(node_name_ext, node_len + 1, "outputs.%d.%s", idx, out + 8);
+
+        /* Swap out with node_name_ext. */
+        SCFree((void *)out);
+        out = node_name_ext;
+    } else if (strncmp(out, "logging.outputs", 15) == 0) {
+        /* Same process for logging modules. */
+        uint8_t idx = default_logging_modules_idx.invalid;
+
+        if (strncmp(out + 16, "console", 7) == 0) {
+            idx = default_logging_modules_idx.console;
+        } else if (strncmp(out + 16, "file", 4) == 0) {
+            idx = default_logging_modules_idx.file;
+        } else if (strncmp(out + 16, "callback", 8) == 0) {
+            idx = default_logging_modules_idx.callback;
+        }
+
+        if (idx == default_logging_modules_idx.invalid) {
+            /* Something is off, just return the field without further modifications. */
+            return out;
+        }
+
+        /* Assume a single digit is enough (there are not that many logging modules). */
+        size_t node_len = strlen(out) + 3;
+        char *node_name_ext = SCMalloc(node_len * sizeof(char));
+
+        if (node_name_ext == NULL) {
+            /* Something is off, just return the field without further modifications. */
+            return out;
+        }
+
+        snprintf(node_name_ext, node_len + 1, "logging.outputs.%d.%s", idx, out + 16);
 
         /* Swap out with node_name_ext. */
         SCFree((void *)out);
@@ -188,7 +230,7 @@ SuricataCfg CfgGetDefault(void) {
         .runmode = SCStrdup("offline"), /* Default for PCAP/Stream replaying. */
         .flow0managers = SCStrdup("1"),
         .flow0recyclers = SCStrdup("1"),
-        .logging0outputs030callback0enabled = SCStrdup("false"),
+        .logging0outputs0callback0enabled = SCStrdup("false"),
         .luajit0states = SCStrdup("512"),
         .outputs0callback0enabled = SCStrdup("false"),
         .outputs0callback0http0extended = SCStrdup("yes"),
@@ -227,7 +269,7 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
             child = ConfNodeLookupChild(output, output->val);
 
             if (child == NULL) {
-                /* Should not happne but ignore anyway. */
+                /* Should not happen but ignore anyway. */
                 continue;
             }
 
@@ -241,6 +283,29 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
                 default_output_modules_idx.content_snip = atoi(output->name);
             } else if (strncmp(child->name, "lua", 3) == 0) {
                 default_output_modules_idx.lua = atoi(output->name);
+            }
+        }
+    }
+
+    /* Same process for the logging modules. */
+    outputs = ConfGetNode("logging.outputs");
+    if (outputs != NULL) {
+        ConfNode *output, *child;
+
+        TAILQ_FOREACH(output, &outputs->head, next) {
+            child = ConfNodeLookupChild(output, output->val);
+
+            if (child == NULL) {
+                /* Should not happen but ignore anyway. */
+                continue;
+            }
+
+            if (strncmp(child->name, "console", 7) == 0) {
+                default_logging_modules_idx.console = atoi(output->name);
+            } else if (strncmp(child->name, "file", 4) == 0) {
+                default_logging_modules_idx.file = atoi(output->name);
+            } else if (strncmp(child->name, "callback", 8) == 0) {
+                default_logging_modules_idx.callback = atoi(output->name);
             }
         }
     }
@@ -338,24 +403,31 @@ int CfgLoadStruct(SuricataCfg *cfg) {
 
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
-    char node_name[16] = {0};
+    char node_name[32] = {0};
 
-    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.stats);
+    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.stats);
     ConfSetFinal(node_name, "stats");
 
-    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.filestore);
+    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.filestore);
     ConfSetFinal(node_name, "file-store");
 
-    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.callback);
+    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.callback);
     ConfSetFinal(node_name, "callback");
 
-    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.content_snip);
+    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.content_snip);
     ConfSetFinal(node_name, "content-snip");
 
-    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.lua);
+    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.lua);
     ConfSetFinal(node_name, "lua");
 
-    ConfSetFinal("logging.outputs.3", "callback");
+    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.console);
+    ConfSetFinal(node_name, "console");
+
+    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.file);
+    ConfSetFinal(node_name, "file");
+
+    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.callback);
+    ConfSetFinal(node_name, "callback");
 
     return 0;
 }
