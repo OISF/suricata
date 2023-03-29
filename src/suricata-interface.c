@@ -208,7 +208,7 @@ void suricata_register_log_cb(SuricataCtx *ctx, CallbackFuncLog callback) {
 
     /* Enable callback in the config. Notice the logging id is hard-coded but it should be fine
      * since suricata right now has only 3 output modules for logging (console, file, syslog) */
-    CfgSet(ctx->cfg, "logging.outputs.3.callback.enabled", "yes");
+    CfgSet(ctx->cfg, "logging.outputs.callback.enabled", "yes");
 }
 
 /**

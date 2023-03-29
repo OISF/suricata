@@ -110,6 +110,12 @@ typedef union AppLayer {
     void *nta; /* JsonBuilder object but avoid including rust.h */
 } AppLayer;
 
+/* Ip port information reported in alerts `source` and `target` fields. */
+typedef struct IpPort {
+    const char *ip;
+    uint16_t port;
+} IpPort;
+
 /* Struct representing a single alert. */
 typedef struct Alert{
     /* Action for this alert */
@@ -122,6 +128,9 @@ typedef struct Alert{
     const char *msg;
     const char *category;
     const char *metadata;
+    /* Source and target. */
+    IpPort source;
+    IpPort target;
     /* Transaction id, for correlation with other events */
     int tx_id;
     /* Tenant id (suricata) */

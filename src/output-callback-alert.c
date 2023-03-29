@@ -64,7 +64,41 @@ static TmEcode CallbackAlertLogThreadDeinit(ThreadVars *t, void *data) {
     return TM_ECODE_OK;
 }
 
-void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert) {
+static void AlertCallbackSourceTarget(const Packet *p, const PacketAlert *pa, Alert *alert,
+                                      JsonAddrInfo *addr) {
+    if (pa->s->flags & SIG_FLAG_DEST_IS_TARGET) {
+        alert->source.ip = addr->src_ip;
+        alert->target.ip = addr->dst_ip;
+        switch (p->proto) {
+            case IPPROTO_ICMP:
+            case IPPROTO_ICMPV6:
+                break;
+            case IPPROTO_UDP:
+            case IPPROTO_TCP:
+            case IPPROTO_SCTP:
+                alert->source.port = addr->sp;
+                alert->target.port = addr->dp;
+                break;
+        }
+    } else if (pa->s->flags & SIG_FLAG_SRC_IS_TARGET) {
+        alert->source.ip = addr->dst_ip;
+        alert->target.ip = addr->src_ip;
+        switch (p->proto) {
+            case IPPROTO_ICMP:
+            case IPPROTO_ICMPV6:
+                break;
+            case IPPROTO_UDP:
+            case IPPROTO_TCP:
+            case IPPROTO_SCTP:
+                alert->source.port = addr->dp;
+                alert->target.port = addr->sp;
+                break;
+        }
+    }
+}
+
+void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert,
+                         JsonAddrInfo *addr) {
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -92,7 +126,9 @@ void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert) {
         alert->tx_id = pa->tx_id;
     }
 
-    /* TODO: AlertJsonSourceTarget ? */
+    if (p != NULL && addr && pa->s->flags & SIG_FLAG_HAS_TARGET) {
+        AlertCallbackSourceTarget(p, pa, alert, addr);
+    }
 
     if (pa->s->metadata && pa->s->metadata->json_str) {
         alert->metadata = pa->s->metadata->json_str;
@@ -122,7 +158,7 @@ static int AlertCallback(ThreadVars *tv, CallbackAlertLogThread *aft, const Pack
         /* TODO: Add metadata (flowvars, pktvars)? */
 
         /* Alert */
-        AlertCallbackHeader(p, pa, &event.alert);
+        AlertCallbackHeader(p, pa, &event.alert, &addr);
 
         /* TODO: Add tunnel info? */
 
@@ -195,7 +231,7 @@ static int AlertCallbackDecoderEvent(ThreadVars *tv, const Packet *p) {
         /* Alert timestamp. */
         CreateIsoTimeString(p->ts, event.common.timestamp, sizeof(event.common.timestamp));
 
-        AlertCallbackHeader(p, pa, &event.alert);
+        AlertCallbackHeader(p, pa, &event.alert, NULL);
 
         /* Invoke callback */
         tv->callbacks->alert(&event, p->flow->tenant_uuid, p->flow->user_ctx);

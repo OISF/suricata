@@ -251,6 +251,34 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
         jb_set_formatted(jb, alert->metadata);
     }
 
+    if (alert->source.ip || alert->source.port) {
+        jb_open_object(jb, "source");
+
+        if (alert->source.ip) {
+            jb_set_string(jb, "ip", alert->source.ip);
+        }
+
+        if (alert->source.port) {
+            jb_set_uint(jb, "port", alert->source.port);
+        }
+
+        jb_close(jb);
+    }
+
+    if (alert->target.ip || alert->target.port) {
+        jb_open_object(jb, "target");
+
+        if (alert->target.ip) {
+            jb_set_string(jb, "ip", alert->target.ip);
+        }
+
+        if (alert->target.port) {
+            jb_set_uint(jb, "port", alert->target.port);
+        }
+
+        jb_close(jb);
+    }
+
     jb_close(jb);
 }
 

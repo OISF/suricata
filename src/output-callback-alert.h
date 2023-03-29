@@ -11,10 +11,11 @@
 #define __OUTPUT_CALLBACK_ALERT_H__
 
 #include "decode.h"
+#include "output-json.h"
 #include "util-events.h"
 
 /* Register the output module */
 void CallbackAlertLogRegister(void);
 /* Create an alert object from a packet alert. */
-void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert);
+void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert, JsonAddrInfo *addr);
 #endif /* __OUTPUT_CALLBACK_ALERT_H__ */
