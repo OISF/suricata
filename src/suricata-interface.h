@@ -182,6 +182,87 @@ void suricata_init(SuricataCtx *ctx);
 ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx, const char *interface);
 
 /**
+ * \brief Register a per worker counter.
+ *
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param counter_name The counter name.
+ * \return id          Counter id for the newly registered counter, or the already present counter.
+ */
+uint16_t suricata_register_worker_counter(ThreadVars *tv, const char *counter_name);
+
+/**
+ * \brief Register a per worker average counter.
+ *
+ * The registered counter holds the average of all the values assigned to it.
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param counter_name The counter name.
+ * \return id          Counter id for the newly registered counter, or the already present counter.
+ */
+uint16_t suricata_register_worker_avg_counter(ThreadVars *tv, const char *counter_name);
+
+/**
+ * \brief Register a per worker max counter.
+ *
+ * The registered counter holds the maximum of all the values assigned to it.
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param counter_name The counter name.
+ * \return id          Counter id for the newly registered counter, or the already present counter.
+ */
+uint16_t suricata_register_worker_max_counter(ThreadVars *tv, const char *counter_name);
+
+/**
+ * \brief Register a global counter.
+ *
+ * The registered counter is managed by the client application (not the library). Thread safety
+ * needs to be taken care of if the counter is accessed by multiple threads.
+ *
+ * \param counter_name The counter name.
+ * \param func         Function pointer used to retrieve the counter (uint64_t).
+ */
+void suricata_register_global_counter(const char *counter_name, uint64_t (*Func)(void));
+
+/**
+ * \brief Adds a value to the worker counter.
+ *
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param id           The counter id.
+ * \param value        The value to add.
+ */
+void suricata_worker_counter_add(ThreadVars *tv, uint16_t id, uint64_t value);
+
+/**
+ * \brief Increase the value of the worker counter.
+ *
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param id           The counter id.
+ */
+void suricata_worker_counter_increase(ThreadVars *tv, uint16_t id);
+
+/**
+ * \brief Set the value of the worker counter.
+ *
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param id           The counter id.
+ * \param value        The value to set.
+ */
+void suricata_worker_counter_set(ThreadVars *tv, uint16_t id, uint64_t value);
+
+/**
+ * \brief Reset the value of the worker counter.
+ *
+ *
+ * \param tv           Pointer to the per-thread structure.
+ * \param id           The counter id.
+ */
+void suricata_worker_counter_reset(ThreadVars *tv, uint16_t id);
+
+/**
  * \brief Suricata post initialization tasks.
  *
  * \param ctx Pointer to the Suricata context.

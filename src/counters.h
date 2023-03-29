@@ -127,6 +127,7 @@ void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
 void StatsDecr(struct ThreadVars_ *, uint16_t);
+void StatsReset(struct ThreadVars_ *, uint16_t);
 
 /* utility functions */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);

@@ -13,7 +13,7 @@ is the same a client **must** use when invoking them.
    configuration
    callbacks/index.rst
    initialization
-   input
    rule_reload
    stats
+   input
    cleanup

@@ -231,6 +231,27 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     return;
 }
 
+/**
+ * \brief Resets  a counter to zero. It's very similar to set value, but it
+ * ignores the maximum check
+ *
+ * \param id  Index of the local counter in the counter array
+ * \param pca Pointer to the StatsPrivateThreadContext
+ */
+void StatsReset(ThreadVars *tv, uint16_t id) {
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+#ifdef UNITTESTS
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON ((id < 1) || (id > pca->size));
+#endif
+    pca->head[id].value = 0;
+    pca->head[id].updates = 0;
+    return;
+}
+
 static ConfNode *GetConfig(void) {
     ConfNode *stats = ConfGetNode("stats");
     if (stats != NULL)
@@ -843,6 +864,21 @@ void StatsPoll(void) {
         /* Nothing to do, stats module not yet initialized or already freed. */
         return;
     }
+
+    /* Sync counters (packet and management threads). */
+    SCMutexLock(&tv_root_lock);
+    ThreadVars *tv = tv_root[TVT_PPT];
+    while (tv != NULL) {
+        StatsSyncCounters(tv);
+        tv = tv->next;
+    }
+
+    tv = tv_root[TVT_MGMT];
+    while (tv != NULL) {
+        StatsSyncCounters(tv);
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
 
     StatsCompute();
 
