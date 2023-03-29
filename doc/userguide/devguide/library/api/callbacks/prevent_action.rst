@@ -1,41 +1,44 @@
-Reject
-======
+Prevent Action
+==============
 
-Callback invoked for any Reject event. A reject event is invoked for every packet triggering a
-reject signature and allows the client to reject the connection in multiple ways.
+Callback invoked for any PreventAction event. A PreventAction event is invoked for every packet triggering a
+drop or a reject signature and allows the client to drop/reject the connection in multiple ways.
 
-All the subsequent packets belonging to the same flow will trigger a reject callback (in case the
-flow is not rejected at first attempt) but they will not be inspected by libsuricata.
+All the subsequent packets belonging to the same flow will trigger this callback (in case the
+flow is not dropped or rejected at first attempt) but they will not be inspected by libsuricata.
 The function prototype is:
 
 .. code-block:: c
 
     /**
-    * \brief Register a callback that is invoked for every Reject event.
+    * \brief Register a callback that is invoked for every PreventAction event.
     *
     * \param ctx            Pointer to SuricataCtx.
     * \param callback       Pointer to a callback function.
     */
-    void suricata_register_reject_cb(SuricataCtx *ctx, CallbackFuncReject callback);
+    void suricata_register_prevent_action_cb(SuricataCtx *ctx, CallbackFuncPreventAction callback);
 
-This method allows to register a callback represented by the *CallbackFuncReject* object,
+
+This method allows to register a callback represented by the *CallbackFuncPreventAction* object,
 defined as:
 
 .. code-block:: c
 
-    typedef void (CallbackFuncReject)(
-        RejectEvent *reject_event,
+    typedef void (CallbackFuncPreventAction)(
+        PreventActionEvent *prevent_action_event,
         uint64_t *tenant_uuid,
         void *user_ctx
     );
 
 Where:
-    * *reject_event* is an object containing the information to reject the connection. The prototype is:
+    * *prevent_action_event* is an object containing the information to reject the connection. The prototype is:
 
         .. code-block:: c
 
-            /* Reject information included in reject events. */
-            typedef struct RejectInfo {
+            /* Drop/Reject information included in PreventActionEvent events. */
+            typedef struct PreventActionInfo {
+                /* The signature action that triggered the callback (drop|reject). */
+                const char *action;
                 /* Indicates whether the packet is IPv6. */
                 bool pkt_is_ipv6;
                 /* TCP info. */
@@ -67,12 +70,13 @@ Where:
                     /* Query rrname length. */
                     uint32_t query_rrname_len;
                 } dns;
-            } RejectInfo;
+            } PreventActionInfo;
 
-            typedef struct RejectEvent {
+            /* Struct representing a PreventAction event. It will be passed along in the callback. */
+            typedef struct PreventActionEvent {
                 Common common;
-                RejectInfo reject;
-            } RejectEvent;
+                PreventActionInfo prevent_action;
+            } PreventActionEvent;
 
     * *tenant_uuid* is the UUID of the (flow) tenant associated to the alert.
     * *user_ctx* is a pointer to a user-defined context that will be passed along when invoking the

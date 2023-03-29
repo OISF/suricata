@@ -158,17 +158,17 @@ void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback) {
 }
 
 /**
- * \brief Register a callback that is invoked for every Reject event.
+ * \brief Register a callback that is invoked for every PreventAction event.
  *
  * \param ctx            Pointer to SuricataCtx.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_reject_cb(SuricataCtx *ctx, CallbackFuncReject callback) {
+void suricata_register_prevent_action_cb(SuricataCtx *ctx, CallbackFuncPreventAction callback) {
     SCInstance *suri = GetInstance();
-    suri->callbacks.reject = callback;
+    suri->callbacks.prevent_action = callback;
 
     /* Enable callback in the config. */
-    CfgSet(ctx->cfg, "outputs.callback.reject.enabled", "yes");
+    CfgSet(ctx->cfg, "outputs.callback.prevent-action.enabled", "yes");
 }
 
 /**

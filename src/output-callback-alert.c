@@ -117,10 +117,10 @@ void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert,
     } else {
         if (pa->action & ACTION_REJECT_ANY) {
             action = "blocked";
-            action_detail = "drop";
+            action_detail = "reject";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
-            action_detail = "reject";
+            action_detail = "drop";
         }
     }
 

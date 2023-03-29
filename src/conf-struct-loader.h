@@ -187,7 +187,7 @@
     CFG_ENTRY(outputs0callback0nta0tls)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
-    CFG_ENTRY(outputs0callback0reject0enabled)                                                     \
+    CFG_ENTRY(outputs0callback0prevent_action0enabled)                                             \
     CFG_ENTRY(outputs0callback0stats0enabled)                                                      \
     CFG_ENTRY(outputs0callback0stats0totals)                                                       \
     CFG_ENTRY(outputs0callback0stats0threads)                                                      \

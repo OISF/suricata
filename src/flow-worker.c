@@ -538,8 +538,8 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
 
-    /* Check if the packet belongs to a flow marked as reject. */
-    if (p->flow && FLOW_ACTION_IS_REJECT(p->flow)) {
+    /* Check if the packet belongs to a flow marked as drop/reject. */
+    if (p->flow && FLOW_ACTION_IS_PREVENT(p->flow)) {
         /* Mark packet to skip inspection. */
         p->flags |= PKT_NOPACKET_INSPECTION;
 

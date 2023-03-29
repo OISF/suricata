@@ -66,6 +66,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** All packets in this flow should be dropped */
 #define FLOW_ACTION_DROP                BIT_U32(7)
 
+/** This flow has been marked as drop.*/
+#define FLOW_ACTION_IS_DROP(f) \
+    (((f)->flags & FLOW_ACTION_DROP) == FLOW_ACTION_DROP)
+
 /** Sgh for toserver direction set (even if it's NULL) */
 #define FLOW_SGH_TOSERVER               BIT_U32(8)
 /** Sgh for toclient direction set (even if it's NULL) */
@@ -114,9 +118,15 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_ACTION_PASS BIT_U32(28)
 
 /** All packets in this flow should be rejected */
-#define FLOW_ACTION_REJECT              BIT_U32(29)
+#define FLOW_ACTION_REJECT             BIT_U32(29)
+
+/** This flow has been marked as reject.*/
 #define FLOW_ACTION_IS_REJECT(f) \
     (((f)->flags & FLOW_ACTION_REJECT) == FLOW_ACTION_REJECT)
+
+/** This flow has been marked as prevent (drop/reject).*/
+#define FLOW_ACTION_IS_PREVENT(f) \
+    (FLOW_ACTION_IS_DROP(f) || FLOW_ACTION_IS_REJECT(f))
 
 /* File flags */
 

@@ -79,9 +79,9 @@ void callbackNta(void *data, size_t len, const char *event_type, uint64_t *tenan
     fwrite("\n", 1, 1, eve_fp);
 }
 
-/* Callback invoked for each Suricata Reject event. */
-void callbackReject(RejectEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
-    printf("Reject!\n");
+/* Callback invoked for each Suricata PreventAction event. */
+void callbackPreventAction(PreventActionEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
+    printf("Prevent Action: %s!\n", event->prevent_action.action);
 }
 
 /* Callback invoked for each Suricata Flow event. */

@@ -127,8 +127,10 @@ typedef struct IpPort {
     uint16_t port;
 } IpPort;
 
-/* Reject information included in reject events. */
-typedef struct RejectInfo {
+/* Drop/Reject information included in PreventActionEvent events. */
+typedef struct PreventActionInfo {
+    /* The signature action that triggered the callback (drop|reject). */
+    const char *action;
     /* Indicates whether the packet is IPv6. */
     bool pkt_is_ipv6;
     /* TCP info. */
@@ -160,7 +162,7 @@ typedef struct RejectInfo {
         /* Query rrname length. */
         uint32_t query_rrname_len;
     } dns;
-} RejectInfo;
+} PreventActionInfo;
 
 /* Struct representing a single alert. */
 typedef struct Alert {
@@ -314,10 +316,10 @@ typedef struct HttpEvent {
     HttpInfo http;
 } HttpEvent;
 
-/* Struct representing a Reject event. It will be passed along in the callback. */
-typedef struct RejectEvent {
+/* Struct representing a PreventAction event. It will be passed along in the callback. */
+typedef struct PreventActionEvent {
     Common common;
-    RejectInfo reject;
-} RejectEvent;
+    PreventActionInfo prevent_action;
+} PreventActionEvent;
 
 #endif /* __UTIL_EVENTS_H__ */

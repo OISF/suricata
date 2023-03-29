@@ -100,7 +100,7 @@
 #include "output-json-frame.h"
 #include "output-json-bittorrent-dht.h"
 #include "output-filestore.h"
-#include "output-callback-reject.h"
+#include "output-callback-prevent-action.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1161,6 +1161,6 @@ void OutputRegisterLoggers(void)
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
     JsonBitTorrentDHTLogRegister();
-    /* Reject. */
-    CallbackRejectLogRegister();
+    /* Prevent action (drop/reject). */
+    CallbackPreventActionLogRegister();
 }

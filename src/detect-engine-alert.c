@@ -346,7 +346,7 @@ static inline void FlowApplySignatureActions(
     }
 
     /* Apply action to the flow for prevent action callback. */
-    if (s->action & ACTION_PREVENT && p->flow) {
+    if (s->action & ACTION_DROP_REJECT && p->flow) {
         p->flow->flags |= s->action & ACTION_REJECT_ANY ? FLOW_ACTION_REJECT :
                                                             FLOW_ACTION_DROP;
         p->flow->flags |= FLOW_NOPACKET_INSPECTION;
@@ -400,6 +400,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
                     BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
+
+            /* Apply action to the flow for prevent action callback. */
+            if (s->action & ACTION_DROP_REJECT && p->flow) {
+                p->flow->flags |= s->action & ACTION_REJECT_ANY ? FLOW_ACTION_REJECT :
+                                                                  FLOW_ACTION_DROP;
+                p->flow->flags |= FLOW_NOPACKET_INSPECTION;
+            }
 
             /* set actions on packet */
             PacketApplySignatureActions(p, s, pa);
