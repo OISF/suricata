@@ -36,12 +36,6 @@ static TmEcode CallbackFlowLogThreadDeinit(ThreadVars *t, void *data) {
 
 /* Create a flow event object from a flow. */
 void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
-    /* Input interface. */
-    if (f->livedev) {
-        flow->dev = f->livedev->dev;
-    }
-
-
     /* Counters. */
     /* TODO: support bypassed flows ? */
     flow->pkts_toserver = f->todstpktcnt;

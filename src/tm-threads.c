@@ -1694,6 +1694,10 @@ static void TmThreadFree(ThreadVars *tv)
         SCFree(tv->stream_pq_local);
     }
 
+    if (tv->in_iface) {
+        SCFree(tv->in_iface);
+    }
+
     s = (TmSlot *)tv->tm_slots;
     while (s) {
         ps = s;

@@ -18,6 +18,7 @@
 #include "output-json-smtp.h"
 #include "app-layer-protos.h"
 #include "rust.h"
+#include "util-device.h"
 #include "util-print.h"
 #include "util-proto-name.h"
 
@@ -61,6 +62,11 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
         if (f->parent_id) {
             common->parent_id = f->parent_id;
         }
+    }
+
+    /* Input interface. */
+    if (p->livedev) {
+        common->dev = p->livedev->dev;
     }
 
     /* Vlan */
@@ -136,6 +142,11 @@ void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *add
     common->flow_id = flow_id;
     if (f->parent_id) {
         common->parent_id = f->parent_id;
+    }
+
+    /* Input interface. */
+    if (f->livedev) {
+        common->dev = f->livedev->dev;
     }
 
     /* Vlan. */

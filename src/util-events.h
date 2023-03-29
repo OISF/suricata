@@ -44,6 +44,8 @@ typedef struct {
     int64_t flow_id;
     /* Parent id */
     int64_t parent_id;
+    /* Input interface */
+    const char *dev;
     /* Vland ids */
     uint16_t vlan_id[2];
     /* ICMP types and codes. */
@@ -128,8 +130,6 @@ typedef struct Alert{
 
 /* Struct representing a single flow. */
 typedef struct FlowInfo {
-    /* Input interface */
-    const char *dev;
     /* Counters */
     uint32_t pkts_toserver;
     uint32_t pkts_toclient;

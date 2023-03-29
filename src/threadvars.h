@@ -138,6 +138,9 @@ typedef struct ThreadVars_ {
 
     /* callbacks to invoke for each event when running as a library */
     Callbacks *callbacks;
+
+    /* sniffing interface assigned to this worker thread (library mode only) */
+    char *in_iface;
 } ThreadVars;
 
 /** Thread setup flags: */

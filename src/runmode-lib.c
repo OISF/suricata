@@ -9,6 +9,7 @@
 #include "runmodes.h"
 #include "tm-threads.h"
 #include "util-affinity.h"
+#include "util-device.h"
 
 
 static int g_thread_id = 0;
@@ -56,12 +57,23 @@ void *RunModeCreateWorker(const char *interface) {
         /* Append the interface name to the worker name. */
         size_t tname_len = strlen(tname);
         snprintf(tname + tname_len, sizeof(tname) - tname_len, "-%s", interface);
+
+        /* Create a LiveDevice object, if not existing. */
+        LiveDevice *dev = LiveGetDevice(interface);
+        if (dev ==  NULL) {
+            LiveRegisterDevice(interface);
+        }
     }
 
     ThreadVars *tv = TmThreadCreatePacketHandler(tname, "packetpool", "packetpool", "packetpool",
                                                  "packetpool", "lib");
     if (tv == NULL) {
         FatalError("TmThreadsCreate failed");
+    }
+
+    /* Store the interface. */
+    if (interface) {
+        tv->in_iface = SCStrdup(interface);
     }
 
     tm_module = TmModuleGetByName("DecodeLib");

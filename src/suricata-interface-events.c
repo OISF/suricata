@@ -25,6 +25,10 @@ static void logCommon(JsonBuilder *jb, Common *common) {
 
     jb_set_uint(jb, "flow_id", common->flow_id);
 
+    if (common->dev) {
+        jb_set_string(jb, "in_iface", common->dev);
+    }
+
     if (common->vlan_id[0]) {
         jb_open_array(jb, "vlan");
         jb_append_uint(jb, common->vlan_id[0]);
@@ -180,10 +184,6 @@ static void logFlowCommon(JsonBuilder *jb, FlowInfo *flow) {
 
 /* Log extended flow info shared across events. */
 static void logFlowExtended(JsonBuilder *jb, FlowInfo *flow, const char *proto) {
-    if (flow->dev) {
-        jb_set_string(jb, "in_iface", flow->dev);
-    }
-
     if (flow->emergency) {
         jb_set_bool(jb, "emergency", flow->emergency);
     }

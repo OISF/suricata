@@ -12,6 +12,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
+#include "util-device.h"
 
 static TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data);
 static TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data);
@@ -146,6 +147,11 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
     p->tenant_uuid[1] = tenant_uuid[1];
     p->tenant_id = tenant_id;
     p->user_ctx = user_ctx;
+
+    /* Set the sniffing interface. */
+    if (tv->in_iface) {
+        p->livedev = LiveGetDevice(tv->in_iface);
+    }
 
     if (PacketSetData(p, data, len) == -1) {
         TmqhOutputPacketpool(tv, p);
@@ -323,6 +329,11 @@ int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t
     p->payload = (uint8_t *)data;
     p->payload_len = len;
     p->flags |= PKT_ZERO_COPY;
+
+    /* Set the sniffing interface. */
+    if (tv->in_iface) {
+        p->livedev = LiveGetDevice(tv->in_iface);
+    }
 
     FlowSetupStreamPacket(p);
 
