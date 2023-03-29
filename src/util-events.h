@@ -207,6 +207,10 @@ typedef struct FlowInfo {
     const char *reason;
     /* If flow has alerts */
     int alerted;
+    /* Action for the flow, if any (can be NULL|pass|drop)*/
+    const char *action;
+    /* Bypass type for a bypassed flow, if any (can be NULL|local|capture)*/
+    const char *bypass;
 
     /* TCP flags. */
     struct {

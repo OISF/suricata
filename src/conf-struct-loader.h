@@ -10,10 +10,14 @@
 
 /* Suricata configuration fields. */
 #define CFG_FIELDS                                                                                 \
+    CFG_ENTRY(action_order)                                                                        \
     CFG_ENTRY(classification_file)                                                                 \
+    CFG_ENTRY(default_data_dir)                                                                    \
     CFG_ENTRY(default_log_dir)                                                                     \
     CFG_ENTRY(default_packet_size)                                                                 \
     CFG_ENTRY(default_rule_path)                                                                   \
+    CFG_ENTRY(engine_analysis0rules_fast_pattern)                                                  \
+    CFG_ENTRY(engine_analysis0rules)                                                               \
     CFG_ENTRY(max_pending_packets)                                                                 \
     CFG_ENTRY(mpm_algo)                                                                            \
     CFG_ENTRY(spm_algo)                                                                            \
@@ -21,6 +25,7 @@
     CFG_ENTRY(rule_files)                                                                          \
     CFG_ENTRY(runmode)                                                                             \
     CFG_ENTRY(app_layer0protocols0rfb0enabled)                                                     \
+    CFG_ENTRY(app_layer0error_policy)                                                              \
     CFG_ENTRY(app_layer0protocols0rfb0detection_ports0dp)                                          \
     CFG_ENTRY(app_layer0protocols0mqtt0enabled)                                                    \
     CFG_ENTRY(app_layer0protocols0krb50enabled)                                                    \
@@ -32,6 +37,7 @@
     CFG_ENTRY(app_layer0protocols0dcerpc0enabled)                                                  \
     CFG_ENTRY(app_layer0protocols0ftp0enabled)                                                     \
     CFG_ENTRY(app_layer0protocols0ftp0memcap)                                                      \
+    CFG_ENTRY(app_layer0protocols0ftp0max_line_length)                                             \
     CFG_ENTRY(app_layer0protocols0rdp0enabled)                                                     \
     CFG_ENTRY(app_layer0protocols0ssh0enabled)                                                     \
     CFG_ENTRY(app_layer0protocols0http20enabled)                                                   \
@@ -96,11 +102,13 @@
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0remove_nonprintable_chars_header)     \
     CFG_ENTRY(decoder0geneve0enabled)                                                              \
     CFG_ENTRY(decoder0geneve0ports)                                                                \
+    CFG_ENTRY(decoder0erspan0typeI0enabled)                                                        \
     CFG_ENTRY(decoder0teredo0enabled)                                                              \
     CFG_ENTRY(decoder0vntag0enabled)                                                               \
     CFG_ENTRY(decoder0vxlan0enabled)                                                               \
     CFG_ENTRY(decoder0vxlan0ports)                                                                 \
     CFG_ENTRY(defrag0memcap)                                                                       \
+    CFG_ENTRY(defrag0memcap_policy)                                                                \
     CFG_ENTRY(defrag0hash_size)                                                                    \
     CFG_ENTRY(defrag0trackers)                                                                     \
     CFG_ENTRY(defrag0max_frags)                                                                    \
@@ -109,7 +117,9 @@
     CFG_ENTRY(detect0profile)                                                                      \
     CFG_ENTRY(detect0sgh_mpm_context)                                                              \
     CFG_ENTRY(detect0inspection_recursion_limit)                                                   \
+    CFG_ENTRY(engine0init_failure_fatal)                                                           \
     CFG_ENTRY(flow0memcap)                                                                         \
+    CFG_ENTRY(flow0memcap_policy)                                                                  \
     CFG_ENTRY(flow0hash_size)                                                                      \
     CFG_ENTRY(flow0prealloc)                                                                       \
     CFG_ENTRY(flow0emergency_recovery)                                                             \
@@ -203,22 +213,27 @@
     CFG_ENTRY(outputs0file_store0force_magic)                                                      \
     CFG_ENTRY(outputs0file_store0stream_depth)                                                     \
     CFG_ENTRY(outputs0file_store0write_fileinfo)                                                   \
+    CFG_ENTRY(packet_alert_max)                                                                    \
     CFG_ENTRY(pcre0match_limit)                                                                    \
     CFG_ENTRY(pcre0match_limit_recursion)                                                          \
     CFG_ENTRY(stats0enabled)                                                                       \
     CFG_ENTRY(stats0interval)                                                                      \
     CFG_ENTRY(stream0memcap)                                                                       \
+    CFG_ENTRY(stream0memcap_policy)                                                                \
     CFG_ENTRY(stream0checksum_validation)                                                          \
     CFG_ENTRY(stream0midstream)                                                                    \
+    CFG_ENTRY(stream0midstream_policy)                                                             \
     CFG_ENTRY(stream0async_oneside)                                                                \
     CFG_ENTRY(stream0inline)                                                                       \
     CFG_ENTRY(stream0prealloc_sessions)                                                            \
     CFG_ENTRY(stream0bypass)                                                                       \
     CFG_ENTRY(stream0reassembly0memcap)                                                            \
+    CFG_ENTRY(stream0reassembly0memcap_policy)                                                     \
     CFG_ENTRY(stream0reassembly0segment_prealloc)                                                  \
     CFG_ENTRY(stream0reassembly0depth)                                                             \
     CFG_ENTRY(stream0reassembly0toserver_chunk_size)                                               \
     CFG_ENTRY(stream0reassembly0toclient_chunk_size)                                               \
+    CFG_ENTRY(strict_rule_parsing)                                                                 \
     CFG_ENTRY(threading0set_cpu_affinity)                                                          \
     CFG_ENTRY(threading0cpu_affinity0management_cpu_set0cpu)                                       \
     CFG_ENTRY(threading0cpu_affinity0management_cpu_set0mode)                                      \

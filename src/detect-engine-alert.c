@@ -162,6 +162,11 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
                     (f->flags & FLOW_ACTION_DROP) ? "drop" : "pass");
         } else {
             if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+                if (action & ACTION_REJECT_ANY) {
+                    /* Also set the reject action flag for the prevent callback. */
+                    f->flags |= FLOW_ACTION_REJECT;
+                }
+
                 f->flags |= FLOW_ACTION_DROP;
                 SCLogDebug("setting flow action drop");
             }
@@ -344,14 +349,6 @@ static inline void FlowApplySignatureActions(
                     p->pcap_cnt, s->id, s->action, pa->flags);
         }
     }
-
-    /* Apply action to the flow for prevent action callback. */
-    if (s->action & ACTION_DROP_REJECT && p->flow) {
-        p->flow->flags |= s->action & ACTION_REJECT_ANY ? FLOW_ACTION_REJECT :
-                                                            FLOW_ACTION_DROP;
-        p->flow->flags |= FLOW_NOPACKET_INSPECTION;
-    }
-
 }
 
 /**
@@ -400,13 +397,6 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
                     BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
-
-            /* Apply action to the flow for prevent action callback. */
-            if (s->action & ACTION_DROP_REJECT && p->flow) {
-                p->flow->flags |= s->action & ACTION_REJECT_ANY ? FLOW_ACTION_REJECT :
-                                                                  FLOW_ACTION_DROP;
-                p->flow->flags |= FLOW_NOPACKET_INSPECTION;
-            }
 
             /* set actions on packet */
             PacketApplySignatureActions(p, s, pa);

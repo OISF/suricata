@@ -251,31 +251,41 @@ void *suricataWorker(void *td) {
 void printUsage() {
     printf("suricata_client [options] <pcap_file(s)>\n\n"
            "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n"
-           "%-40s %s\n%-40s %s\n\n"
+           "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n\n"
            "Example usage: ./suricata_client -c suricata.yaml input.pcap\n",
            "-c", "Path to (optional) configuration file.",
            "-h", "Print this help and exit.",
-           "-l", "Path to log directory.",
+           "-l <dir>", "Path to log directory.",
+           "-e --engine-analysis", "Report analysis of different sections in the engine and exit.",
+           "-d --data-dir=dir", "Set the data directory (for datasets).",
+           "-D --disable-detection", "Disable detection engine (testing).",
+           "-F, --init-errors-fatal", "Enable fatal failure on signature init error",
            "-K, --preload-pcap", "Preloads packets into RAM before sending",
            "-I, --simulate-ips", "Force engine into IPS mode",
            "-L <num>, --loop=num", "Loop through the capture file(s) X times",
            "-m <mode>, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
            "-o <output>, --output=output", "Path of the EVE output file (eve.json by default)",
            "-s <name=value>, --set name=value", "Set a configuration value",
-           "-S <path>", "Absolute path to signature file loaded exclusively");
+           "-S <path>", "Absolute path to signature file loaded exclusively",
+           "-T --test-mode", "Enable suricata test mode.");
 }
 
 int main(int argc, char **argv) {
     int opt;
     FILE *eve_fp;
     int n_workers = 0;
+    int engine_analysis = 0;
+    int disable_detection = 0;
+    int init_errors_fatal = 0;
     int loop_rounds = 1; /* Loop once by default. */
     int preload = 0; /* Do not preload by default. */
     int ips_mode = 0;
+    int test_mode = 0;
     enum InputTypes input_type = TYPE_PACKET; /* Process packets by default. */
     char *set_options[MAX_SET_N];
     int set_count = 0;
     const char *config = NULL;
+    const char *data_dir = NULL;
     const char *logdir = NULL;
     const char *output = "eve-json.log";
     const char *sig_file = NULL;
@@ -285,17 +295,22 @@ int main(int argc, char **argv) {
     SuricataCtx *ctx = NULL;
 
     struct option long_opts[] = {
+        {"data-dir", required_argument, 0, 'd'},
+        {"disable-detection", no_argument, 0, 'D'},
+        {"engine-analysis", no_argument, 0, 'e'},
+        {"init-errors-fatal", no_argument, 0, 'F'},
         {"loop", required_argument, 0, 'L'},
         {"mode", required_argument, 0, 'm'},
         {"output", required_argument, 0, 'o'},
         {"preload-pcap", no_argument, 0, 'K'},
         {"set", required_argument, 0, 's'},
         {"simulate-ips", no_argument, 0, 'I'},
+        {"test-ips", no_argument, 0, 'T'},
         {0, 0, 0, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
-    char short_opts[] = "c:hk:KI:l:L:m:o:s:S:";
+    char short_opts[] = "c:dhk:DFKI:l:L:m:o:s:S:T";
 
     /* Parse command line */
     if (argc < 2) {
@@ -308,6 +323,24 @@ int main(int argc, char **argv) {
             case 'c':
                 config = optarg;
                 break;
+            case 'd':
+                data_dir = optarg;
+                break;
+            case 'D':
+                disable_detection = 1;
+                break;
+            case 'e':
+                engine_analysis = 1;
+                break;
+            case 'F':
+                init_errors_fatal = 1;
+                break;
+            case 'K':
+                preload = 1;
+                break;
+            case 'I':
+                ips_mode = 1;
+                break;
             case 'l':
                 logdir = optarg;
                 break;
@@ -317,9 +350,6 @@ int main(int argc, char **argv) {
                 if (loop) {
                     loop_rounds = loop;
                 }
-                break;
-            case 'K':
-                preload = 1;
                 break;
             case 'm':
                 if (strncmp(optarg, "stream", 6) == 0) {
@@ -343,7 +373,8 @@ int main(int argc, char **argv) {
             case 'S':
                 sig_file = optarg;
                 break;
-            case 'k':
+            case 'T':
+                test_mode = 1;
                 break;
             case 'h':
             default:
@@ -378,11 +409,18 @@ int main(int argc, char **argv) {
     }
 
     /* Remaining arguments are the PCAP/stream file(s). */
-    if (optind == argc) {
+    if (optind == argc && !engine_analysis && !test_mode) {
+        /* If we are not in engine-analysis or test mode we need a pcap. */
         fprintf(stderr, "At least one input file must be provided\n");
         return 1;
     }
     n_workers = argc - optind;
+
+    if (n_workers == 0) {
+        /* We are either in engine-analysis or in test mode, default to 1 worker to avoid failing
+         * in `suricata_create_ctx`.*/
+        ++n_workers;
+    }
 
     thread_ids = malloc(n_workers * sizeof(pthread_t));
     if (thread_ids == NULL) {
@@ -425,6 +463,47 @@ int main(int argc, char **argv) {
 
     /* Load config from file, if provided. */
     suricata_config_load(ctx, config);
+
+    /* Set the custom config options. */
+    for (int i = 0; i < set_count; i++) {
+        char *key = strtok(set_options[i], "=");
+        if (key == NULL) {
+            fprintf(stderr, "Invalid --set option: %s", set_options[i]);
+            return 1;
+        }
+        char *value = strtok(NULL, "=");
+        if (value == NULL) {
+            fprintf(stderr, "Invalid --set option: %s", set_options[i]);
+            return 1;
+        }
+
+        suricata_config_set(ctx, key, value);
+    }
+
+    /* Data directory. */
+    if (data_dir) {
+        suricata_config_set(ctx, "default-data-dir", data_dir);
+    }
+
+    /* Disable detection. */
+    if (disable_detection) {
+        suricata_disable_detection(ctx);
+    }
+
+    /* Engine analysis. */
+    if (engine_analysis) {
+        suricata_enable_engine_analysis_mode(ctx);
+    }
+
+    /* Init errors. */
+    if (init_errors_fatal) {
+        suricata_config_set(ctx, "engine.init-failure-fatal", "1");
+    }
+
+    /* Test analysis. */
+    if (engine_analysis) {
+        suricata_enable_test_mode(ctx);
+    }
 
     /* Override runmode (required for testing as the yaml we use sets "runmode: single"). */
     suricata_config_set(ctx, "runmode", "offline");

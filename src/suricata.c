@@ -1773,11 +1773,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->set_datadir = true;
             } else if (strcmp((long_opts[option_index]).name , "strict-rule-keywords") == 0){
                 if (optarg == NULL) {
-                    suri->strict_rule_parsing_string = SCStrdup("all");
+                    ConfSetFinal("strict-rule-parsing", "all");
                 } else {
-                    suri->strict_rule_parsing_string = SCStrdup(optarg);
+                    ConfSetFinal("strict-rule-parsing", "all");
                 }
-                if (suri->strict_rule_parsing_string == NULL) {
+
+                const char *tmp = NULL;
+                if (ConfGetValue("strict-rule-parsing", &tmp) != 1) {
                     FatalError("failed to duplicate 'strict' string");
                 }
             } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
@@ -2737,7 +2739,11 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
+
+    const char *strict_rule_parsing = NULL;
+    ConfGet("strict-rule-parsing", &strict_rule_parsing);
+
+    SigTableApplyStrictCommandlineOption(strict_rule_parsing);
     TmqhSetup();
 
     TagInitCtx();

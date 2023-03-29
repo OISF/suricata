@@ -60,6 +60,7 @@ static ThreadingModulesIdx default_threading_modules_idx = {-1, 0, 1};
 /* List of configuration nodes that are sequence objects in the yaml and a comma separated string
  * in the configuration struct. */
 static const char *sequenceNodes[] = {
+    "action-order",
     "callback.nta.dns.types",
     "callback.nta.tls.custom",
     "file-store.force-hash",
@@ -270,7 +271,7 @@ static int CfgIsNodeSequenceAsString(const char *name) {
         if (strstr(name, sequenceNodes[i]) != NULL) {
             /* If we are matching on index 3 ("lua.scripts") we meed too make sure we don't have a
              * collision on "lua.scripts-dir". Need to find a better solution for this. */
-            if (i == 3 && strstr(name, "lua.scripts-dir") != NULL) {
+            if (i == 5 && strstr(name, "lua.scripts-dir") != NULL) {
                 return 0;
             }
 
@@ -331,6 +332,13 @@ static int CfgConvertSequenceToString(const char *name, char *out) {
 static void CfgLoadSequences(SuricataCfg *cfg) {
     char out[NODE_VALUE_MAX];
     char name[64];
+
+    if (CfgConvertSequenceToString("action-order", out)) {
+        if (cfg->action_order) {
+            SCFree((void *)cfg->action_order);
+        }
+        cfg->action_order = SCStrdup(out);
+    }
 
     if (CfgConvertSequenceToString("rule-files", out)) {
         if (cfg->rule_files) {
@@ -438,6 +446,7 @@ static void CfgFinalizeSequences(SuricataCfg *cfg) {
  */
 SuricataCfg CfgGetDefault(void) {
     SuricataCfg c = {
+        .default_data_dir = SCStrdup("."),
         .default_log_dir = SCStrdup("."),
         .default_packet_size = SCStrdup("1538"),
         .mpm_algo = SCStrdup("hs"),

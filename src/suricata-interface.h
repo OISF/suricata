@@ -178,7 +178,28 @@ int suricata_config_set(SuricataCtx *ctx, const char *key, const char *val);
 void suricata_config_load(SuricataCtx *ctx, const char *config_file);
 
 /**
- * \brief Enable suricata IPS mode (testing only).
+ * \brief Enable suricata engine analysis mode (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_enable_engine_analysis_mode(SuricataCtx *ctx);
+
+/**
+ * \brief Enable suricata test mode (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_enable_test_mode(SuricataCtx *ctx);
+
+/**
+ * \brief Disable suricata detection engine (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_disable_detection(SuricataCtx *ctx);
+
+/**
+ * \brief Enable suricata IPS mode.
  */
 void suricata_enable_ips_mode(void);
 

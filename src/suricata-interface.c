@@ -59,6 +59,12 @@ SuricataCtx *suricata_create_ctx(int n_workers) {
     /* Setup the inner suricata instance. */
     SuricataPreInit("suricata");
 
+    SCInstance *suri = GetInstance();
+    suri->run_mode = RUNMODE_LIB;
+    suri->set_datadir = true;
+    suri->set_logdir = true;
+    suri->cfg = ctx->cfg;
+
     return ctx;
 }
 
@@ -268,7 +274,38 @@ void suricata_config_load(SuricataCtx *ctx, const char *config_file) {
 }
 
 /**
- * \brief Enable suricata IPS mode (testing only).
+ * \brief Enable suricata engine analysis mode (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_enable_engine_analysis_mode(SuricataCtx *ctx) {
+    SCInstance *suri = GetInstance();
+    suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
+}
+
+/**
+ * \brief Enable suricata test mode (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_enable_test_mode(SuricataCtx *ctx) {
+    SCInstance *suri = GetInstance();
+    suri->run_mode = RUNMODE_CONF_TEST;
+    CfgSet(ctx->cfg, "engine.init-failure-fatal", "1");
+}
+
+/**
+ * \brief Disable suricata detection engine (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_disable_detection(SuricataCtx *ctx) {
+    SCInstance *suri = GetInstance();
+    suri->disabled_detect = 1;
+}
+
+/**
+ * \brief Enable suricata IPS mode.
  */
 void suricata_enable_ips_mode(void) {
     EngineModeSetIPS();
@@ -282,9 +319,6 @@ void suricata_enable_ips_mode(void) {
 void suricata_init(SuricataCtx *ctx) {
     /* Set runmode and config in the suricata instance. */
     SCInstance *suri = GetInstance();
-    suri->run_mode = RUNMODE_LIB;
-    suri->set_logdir = true;
-    suri->cfg = ctx->cfg;
 
     /* If we registered at least one callback, force enabling the callback output module. */
     int enabled = 0;

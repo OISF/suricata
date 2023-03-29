@@ -121,6 +121,22 @@ void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
         flow->state = "established";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_CLOSED)
         flow->state = "closed";
+    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
+        flow->state = "bypassed";
+        int flow_state = f->flow_state;
+        switch (flow_state) {
+            case FLOW_STATE_LOCAL_BYPASSED:
+                flow->bypass = "local";
+                break;
+#ifdef CAPTURE_OFFLOAD
+            case FLOW_STATE_CAPTURE_BYPASSED:
+                flow->bypass = "capture";
+                break;
+#endif
+            default:
+                SCLogError("Invalid flow state: %d, contact developers", flow_state);
+        }
+    }
 
     /* TODO: do we support flow bypass? */
 
@@ -135,6 +151,12 @@ void CallbackFlowLog(const Flow *f, FlowInfo *flow) {
 
     /* If flow has alerts. */
     flow->alerted = FlowHasAlerts(f);
+
+    if (f->flags & FLOW_ACTION_DROP) {
+        flow->action = "drop";
+    } else if (f->flags & FLOW_ACTION_PASS) {
+        flow->action = "pass";
+    }
 
     /* TODO: Add metadata (flowvars, pktvars)? */
 

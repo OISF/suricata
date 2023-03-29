@@ -539,12 +539,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
 
     /* Check if the packet belongs to a flow marked as drop/reject. */
-    if (p->flow && FLOW_ACTION_IS_PREVENT(p->flow)) {
-        /* Mark packet to skip inspection. */
-        p->flags |= PKT_NOPACKET_INSPECTION;
-
-        /* handle TCP and app layer */
-    } else if (p->flow && PKT_IS_TCP(p) && !PKT_IS_STREAM_SEG(p)) {
+    if (p->flow && PKT_IS_TCP(p) && !PKT_IS_STREAM_SEG(p)) {
         SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 

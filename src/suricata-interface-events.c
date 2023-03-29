@@ -243,6 +243,15 @@ static void logFlowExtended(JsonBuilder *jb, FlowInfo *flow, const char *proto) 
     jb_set_string(jb, "state", flow->state);
     jb_set_string(jb, "reason", flow->reason);
     jb_set_bool(jb, "alerted", flow->alerted);
+
+    if (flow->action) {
+        jb_set_string(jb, "action", flow->action);
+    }
+
+    if (flow->bypass) {
+        jb_set_string(jb, "bypass", flow->bypass);
+    }
+
     jb_close(jb);
 
     /* TCP flags. */

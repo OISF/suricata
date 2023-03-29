@@ -375,16 +375,26 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 {
     AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
+    const char *action_detail = "none";
+
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
         if (PacketCheckAction(p, ACTION_DROP_REJECT)) {
             action = "blocked";
+
+            if (PacketCheckAction(p, ACTION_DROP)) {
+                action_detail = "drop";
+            } else {
+                action_detail = "reject";
+            }
         }
     } else {
         if (pa->action & ACTION_REJECT_ANY) {
             action = "blocked";
+            action_detail = "reject";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
+            action_detail = "drop";
         }
     }
 
@@ -397,6 +407,7 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
     jb_open_object(js, "alert");
 
     jb_set_string(js, "action", action);
+    jb_set_string(js, "action_detail", action_detail);
     jb_set_uint(js, "gid", pa->s->gid);
     jb_set_uint(js, "signature_id", pa->s->id);
     jb_set_uint(js, "rev", pa->s->rev);
