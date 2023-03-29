@@ -52,7 +52,10 @@ static TmEcode CallbackPreventActionLogThreadDeinit(ThreadVars *t, void *data) {
 }
 
 static int CallbackPreventActionLogCondition(ThreadVars *tv, void *thread_data, const Packet *p) {
-    if (!tv->callbacks->prevent_action) {
+    if (!tv->callbacks->prevent_action || PKT_IS_PSEUDOPKT(p) ||
+        (PKT_IS_TCP(p) && TCP_ISSET_FLAG_RST(p))) {
+        /* Do not invoke the callback if the callback is not set or this is a RST or a pseudo
+         * packet. */
         return FALSE;
     } else if (p->flow && FLOW_ACTION_IS_PREVENT(p->flow)) {
         /* This flow was marked as drop/reject because of a previous matching packet. */
