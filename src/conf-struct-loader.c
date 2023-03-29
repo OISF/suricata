@@ -17,8 +17,9 @@
 #include "conf.h"
 #include "util-debug.h"
 
-/* Maximum length for a node value (only used to handle rule-files). */
-#define NODE_VALUE_MAX 4096
+/* Maximum length for a node value (used when converting sequence values in comma separated
+ * string). */
+#define NODE_VALUE_MAX 8192
 
 
 /* Output modules indices */
