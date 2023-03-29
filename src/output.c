@@ -45,11 +45,11 @@
 #include "alert-syslog.h"
 #include "output-json.h"
 #include "output-callback.h"
-#include "output-callback-alert.h"
 #include "output-json-alert.h"
+#include "output-callback-alert.h"
 #include "output-json-anomaly.h"
-#include "output-callback-flow.h"
 #include "output-json-flow.h"
+#include "output-callback-flow.h"
 #include "output-json-netflow.h"
 #include "log-cf-common.h"
 #include "output-json-drop.h"
@@ -66,11 +66,11 @@
 #include "output-callback-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
-#include "output-callback-file.h"
 #include "output-json-file.h"
+#include "output-callback-file.h"
 #include "output-json-smtp.h"
-#include "output-callback-stats.h"
 #include "output-json-stats.h"
+#include "output-callback-stats.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
 #include "output-json-nfs.h"
@@ -91,6 +91,7 @@
 #include "output-json-pgsql.h"
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
+#include "output-callback-rdp.h"
 #include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
@@ -1152,6 +1153,7 @@ void OutputRegisterLoggers(void)
     JsonTemplateRustLogRegister();
     /* RDP JSON logger. */
     JsonRdpLogRegister();
+    CallbackRdpLogRegister();
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
     /* app layer frames */

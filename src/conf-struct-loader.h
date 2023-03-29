@@ -176,6 +176,7 @@
     CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                  \
     CFG_ENTRY(outputs0callback0nta0dns)                                                            \
     CFG_ENTRY(outputs0callback0nta0krb5)                                                           \
+    CFG_ENTRY(outputs0callback0nta0rdp)                                                            \
     CFG_ENTRY(outputs0callback0nta0smb)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \

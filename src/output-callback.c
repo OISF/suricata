@@ -235,6 +235,30 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_la
                 }
             }
             break;
+        case ALPROTO_RDP:
+            ;
+            void *rdp_state = (void *)FlowGetAppState(p->flow);
+            if (rdp_state) {
+                void *tx_ptr = AppLayerParserGetTx(p->flow->proto, ALPROTO_RDP, rdp_state, tx_id);
+                if (tx_ptr) {
+                    JsonBuilder *jb_tmp = jb_new_object();
+                    if (rs_rdp_to_json(tx_ptr, jb_tmp)) {
+                        /* We need to normalize to avoid logging twice the event_type. */
+                        jb = jb_new_object();
+                        size_t len = jb_len(jb_tmp) - 8;
+                        char normalized[len + 1];
+
+                        memset(normalized, 0, len + 1);
+                        memcpy(normalized, jb_ptr(jb_tmp) + 8, len);
+                        jb_set_formatted(jb, normalized);
+
+                        app_layer->nta = jb;
+                    }
+
+                    jb_free(jb_tmp);
+                }
+            }
+            break;
         default:
             break;
     }
@@ -257,6 +281,7 @@ void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *ap
         case ALPROTO_FTPDATA:
         case ALPROTO_SMTP:
         case ALPROTO_DNS:
+        case ALPROTO_RDP:
             if (app_layer->nta) {
                 jb_free(app_layer->nta);
             }
