@@ -60,6 +60,7 @@ static ThreadingModulesIdx default_threading_modules_idx = {-1, 0, 1};
 /* List of configuration nodes that are sequence objects in the yaml and a comma separated string
  * in the configuration struct. */
 static const char *sequenceNodes[] = {
+    "callback.nta.dns.types",
     "callback.nta.tls.custom",
     "file-store.force-hash",
     "rule-files",
@@ -336,6 +337,15 @@ static void CfgLoadSequences(SuricataCfg *cfg) {
             SCFree((void *)cfg->rule_files);
         }
         cfg->rule_files = SCStrdup(out);
+    }
+
+    snprintf(name, sizeof(name), "outputs.%d.callback.nta.dns.types",
+             default_output_modules_idx.callback);
+    if (CfgConvertSequenceToString(name, out)) {
+        if (cfg->outputs0callback0nta0dns0types) {
+            SCFree((void *)cfg->outputs0callback0nta0dns0types);
+        }
+        cfg->outputs0callback0nta0dns0types = SCStrdup(out);
     }
 
     snprintf(name, sizeof(name), "outputs.%d.callback.nta.tls.custom",

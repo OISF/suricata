@@ -54,6 +54,7 @@
     CFG_ENTRY(app_layer0protocols0modbus0enabled)                                                  \
     CFG_ENTRY(app_layer0protocols0modbus0detection_ports0dp)                                       \
     CFG_ENTRY(app_layer0protocols0modbus0stream_depth)                                             \
+    CFG_ENTRY(app_layer0protocols0dns0detection_ports0dp)                                          \
     CFG_ENTRY(app_layer0protocols0dns0tcp0enabled)                                                 \
     CFG_ENTRY(app_layer0protocols0dns0tcp0detection_ports0dp)                                      \
     CFG_ENTRY(app_layer0protocols0dns0udp0enabled)                                                 \
@@ -173,11 +174,16 @@
     CFG_ENTRY(outputs0callback0http0xff0header)                                                    \
     CFG_ENTRY(outputs0callback0http0dump_all_headers)                                              \
     CFG_ENTRY(outputs0callback0nta0enabled)                                                        \
+    CFG_ENTRY(outputs0callback0nta0dhcp)                                                           \
     CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                  \
     CFG_ENTRY(outputs0callback0nta0dns)                                                            \
+    CFG_ENTRY(outputs0callback0nta0dns0requests)                                                   \
+    CFG_ENTRY(outputs0callback0nta0dns0responses)                                                  \
+    CFG_ENTRY(outputs0callback0nta0dns0types)                                                      \
     CFG_ENTRY(outputs0callback0nta0krb5)                                                           \
     CFG_ENTRY(outputs0callback0nta0rdp)                                                            \
     CFG_ENTRY(outputs0callback0nta0smb)                                                            \
+    CFG_ENTRY(outputs0callback0nta0tls)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
     CFG_ENTRY(outputs0callback0stats0enabled)                                                      \
