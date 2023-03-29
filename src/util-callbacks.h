@@ -48,9 +48,21 @@ typedef void (CallbackFuncNta)(
     void *user_ctx
 );
 
+typedef void (CallbackFuncSigFailedLoading)(
+    const char *signature,
+    const char *signature_file,
+    int line_number,
+    void *user_ctx
+);
+
+typedef struct CallbackSigFailedLoading {
+    CallbackFuncSigFailedLoading *func;
+    void *user_ctx;
+} CallbackSigFailedLoading;
+
 /* Detection callback, invoked before inspecting any signature candidate to remove the signature or
  * modify its action. */
-typedef int (CallbackFuncSig)(
+typedef int (CallbackFuncSigCandidate)(
     uint32_t signature_id,
     uint8_t current_action,
     uint32_t tenant_id,
@@ -77,7 +89,8 @@ typedef struct {
     CallbackFuncFlowSnip *flowsnip;
     CallbackFuncHttp *http;
     CallbackFuncNta *nta;
-    CallbackFuncSig *sig;
+    CallbackSigFailedLoading sig_failed_loading;
+    CallbackFuncSigCandidate *sig_candidate;
     CallbackFuncLog *log;
 } Callbacks;
 

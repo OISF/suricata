@@ -158,6 +158,20 @@ void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback) {
 }
 
 /**
+ * \brief Register a callback that is invoked for each signature that failed to load.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_sig_failed_loading_cb(SuricataCtx *ctx, void *user_ctx,
+                                             CallbackFuncSigFailedLoading callback) {
+    SCInstance *suri = GetInstance();
+    suri->callbacks.sig_failed_loading.func = callback;
+    suri->callbacks.sig_failed_loading.user_ctx = user_ctx;
+}
+
+/**
  * \brief Register a callback that is invoked before a candidate signature is inspected.
  *
  *        Such callback will be able to decide if a signature is relevant or modify its action via
@@ -169,13 +183,14 @@ void suricata_register_nta_cb(SuricataCtx *ctx, CallbackFuncNta callback) {
  * \param ctx            Pointer to SuricataCtx.
  * \param callback       Pointer to a callback function.
  */
-void suricata_register_sig_cb(SuricataCtx *ctx, CallbackFuncSig callback) {
+void suricata_register_sig_cb(SuricataCtx *ctx, CallbackFuncSigCandidate callback) {
     SCInstance *suri = GetInstance();
-    suri->callbacks.sig = callback;
+    suri->callbacks.sig_candidate = callback;
 }
 
 /**
  * \brief Register a callback that is invoked every time `suricata_get_stats` is invoked.
+ *
  * \param ctx            Pointer to SuricataCtx.
  * \param user_ctx       Pointer to a user-defined context object.
  * \param callback       Pointer to a callback function.

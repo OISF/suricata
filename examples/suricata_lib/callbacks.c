@@ -117,9 +117,16 @@ void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ct
     free((void *)data);
 }
 
+/* Callback invoked for each signature that fails to load. */
+void callbackSigFailedLoading(const char *signature, const char *signature_file, int line_number,
+                              void *user_ctx) {
+    printf("Signature %s from file %s at line %d failed to load!\n", signature, signature_file,
+                                                                     line_number);
+}
+
 /* Callback invoked for each candidate signature. */
-int callbackSig(uint32_t signature_id, uint8_t current_action, uint32_t tenant_id,
-                uint64_t *tenant_uuid, void *user_ctx) {
+int callbackSigCandidate(uint32_t signature_id, uint8_t current_action, uint32_t tenant_id,
+                         uint64_t *tenant_uuid, void *user_ctx) {
     printf("Signature hit!, sid %d action %d\n", signature_id, current_action);
 
     return 0;

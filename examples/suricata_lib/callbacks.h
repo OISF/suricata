@@ -19,9 +19,12 @@ void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ct
 /* Callback invoked for each NTA event. */
 void callbackNta(void *data, size_t len, const char *event_type, uint64_t *tenant_uuid,
                  void *user_ctx);
+/* Callback invoked for each signature that fails to load. */
+void callbackSigFailedLoading(const char *signature, const char *signature_file, int line_number,
+                              void *user_ctx);
 /* Callback invoked for each candidate signature. */
-int callbackSig(uint32_t signature_id, uint8_t current_action, uint32_t tenant_id,
-                uint64_t *tenant_uuid, void *user_ctx);
+int callbackSigCandidate(uint32_t signature_id, uint8_t current_action, uint32_t tenant_id,
+                         uint64_t *tenant_uuid, void *user_ctx);
 /* Callback invoked for each stats event. */
 void callbackStats(void *data, size_t len, void *user_ctx);
 /* Callback invoked for each log message (testing only). */

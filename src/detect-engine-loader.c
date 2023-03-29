@@ -208,6 +208,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             if (!de_ctx->sigerror_ok) {
                 bad++;
             }
+
+            /* Invoke related callback, if defined. */
+            SCInstance *suri = GetInstance();
+            if (suri->callbacks.sig_failed_loading.func) {
+                suri->callbacks.sig_failed_loading.func(
+                    line, sig_file, lineno - multiline,
+                    suri->callbacks.sig_failed_loading.user_ctx);
+            }
         }
         multiline = 0;
     }

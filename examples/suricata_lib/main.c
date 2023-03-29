@@ -389,7 +389,8 @@ int main(int argc, char **argv) {
     suricata_register_nta_cb(ctx, callbackNta);
     suricata_register_flow_cb(ctx, callbackFlow);
     suricata_register_flowsnip_cb(ctx, callbackFlowSnip);
-    suricata_register_sig_cb(ctx, callbackSig);
+    suricata_register_sig_failed_loading_cb(ctx, NULL, callbackSigFailedLoading);
+    suricata_register_sig_cb(ctx, callbackSigCandidate);
     suricata_register_stats_cb(ctx, (void *)eve_fp, callbackStats);
     /* suricata_register_log_cb(ctx, callbackLog); Do not hook logs. */
 
