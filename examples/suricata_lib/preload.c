@@ -91,9 +91,9 @@ void parse_stream_line(char *line, FlowStreamInfo *finfo, uint32_t *length, char
     finfo->ts.tv_usec = (timestamp - finfo->ts.tv_sec) * 1000000;
     char family = *version == '4' ? AF_INET : AF_INET6;
     finfo->direction = atoi(direction) == 0 ? DIRECTION_TOSERVER : DIRECTION_TOCLIENT;
-    finfo->src.address_un_data32[0] = atoi(src_ip);
+    finfo->src.address_un_data32[0] = ntohl(atoi(src_ip));
     finfo->src.family = family;
-    finfo->dst.address_un_data32[0] = atoi(dst_ip);
+    finfo->dst.address_un_data32[0] = ntohl(atoi(dst_ip));
     finfo->dst.family = family;
     finfo->sp = atoi(sp);
     finfo->dp = atoi(dp);
@@ -130,7 +130,7 @@ int preload_stream(const char *filename, StreamCache **head) {
             return -1;
         }
 
-        node->data = malloc((length + 1) * sizeof(uint8_t));
+        node->data = malloc(b64_len * sizeof(uint8_t));
         if (node->data == NULL) {
             fclose(fp);
             free((void *)node);

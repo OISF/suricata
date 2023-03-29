@@ -152,7 +152,7 @@ void replay_stream(ThreadCtx *tc, HandlerCtx *hc) {
             parse_stream_line(line, &finfo, &length, &b64_data);
 
             uint32_t b64_len = strlen(b64_data);
-            uint8_t *data = malloc((length + 1) * sizeof(uint8_t));
+            uint8_t *data = malloc(b64_len * sizeof(uint8_t));
             if (data == NULL) {
                 fprintf(stderr, "Malloc for stream segment failed\n");
                 fclose(fp);

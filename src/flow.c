@@ -313,7 +313,12 @@ int FlowGetPacketDirection(const Flow *f, const Packet *p)
 {
     const int reverse = (f->flags & FLOW_DIR_REVERSED) != 0;
 
-    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
+    /* First check if somehow (library stream mode) the direction has been set already. */
+    if (PKT_IS_TOSERVER(p)) {
+        return TOSERVER ^ reverse;
+    } else if (PKT_IS_TOCLIENT(p)) {
+        return TOCLIENT ^ reverse;
+    } else if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
             /* update flags and counters */
             if (CMP_PORT(f->sp,p->sp)) {
@@ -492,6 +497,10 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
+    } else if (p->flags & PKT_STREAM_EST) {
+        /* This might be a pseudo packet from the library stream interface. */
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+        FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
     } else if (f->proto == IPPROTO_TCP) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
         if (ssn != NULL && ssn->state >= TCP_ESTABLISHED) {

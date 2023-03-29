@@ -71,3 +71,7 @@ initialized.
 After the stream segment is processed any relevant registered callback will be invoked.
 
 This method accepts the same flags as *suricata_handle_packet*.
+
+The libsuricata stream interface currently provides support for protocols where the first payload
+is sent by the client (e.g HTTP). Support for protocols where the first payload is sent by
+the server (e.g FTP) will be addressed in the future.

@@ -185,11 +185,12 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
  *
  * \param p               Pointer to the packet to setup.
  * \param finfo           Pointer to the flow information.
+ * \param len             Packet payload length.
  * \param tenant_uuid     Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id       Tenant id of the detection engine to use.
  * \param user_ctx        Pointer to a user-defined context object.
  */
-static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_uuid,
+static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint32_t len, uint64_t *tenant_uuid,
                                         uint32_t tenant_id, void *user_ctx) {
     Packet *p = PacketGetFromQueueOrAlloc();
 
@@ -214,7 +215,6 @@ static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_
     } else {
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
 
     /* Copy over the flow info to generate the proper hash. */
     if (finfo->src.family == AF_INET) {
@@ -251,7 +251,7 @@ static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 20);
 
-        SET_PKT_LEN(p, 40); /* ipv4 hdr + tcp hdr */
+        SET_PKT_LEN(p, 40 + len); /* ipv4 hdr + tcp hdr + payload length */
     } else if (finfo->src.family == AF_INET6) {
         p->src.addr_data32[0] = finfo->src.address_un_data32[0];
         p->src.addr_data32[1] = finfo->src.address_un_data32[1];
@@ -290,7 +290,7 @@ static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 40);
 
-        SET_PKT_LEN(p, 60); /* ipv6 hdr + tcp hdr */
+        SET_PKT_LEN(p, 60 + len); /* ipv6 hdr + tcp hdr + payload length */
     }
 
     p->src.family = finfo->src.family;
@@ -325,7 +325,7 @@ error:
 int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
                             uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
                             uint32_t flags, void *user_ctx) {
-    Packet *p = StreamPacketSetup(finfo, tenant_uuid, tenant_id, user_ctx);
+    Packet *p = StreamPacketSetup(finfo, len, tenant_uuid, tenant_id, user_ctx);
     if (unlikely(p == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
     }
